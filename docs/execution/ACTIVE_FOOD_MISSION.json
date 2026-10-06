@@ -87,20 +87,31 @@
       "depends_on": [
         1011
       ]
+    },
+    {
+      "issue": 1021,
+      "branch": "release/1021-uiux-v42-final-real-build",
+      "depends_on": [
+        1012
+      ]
     }
   ],
-  "final_gate_issue": 1012,
+  "final_gate_issue": 1021,
   "connection_loss_rule": "Re-read live GitHub before retrying any uncertain mutation; resume same Issue/branch/PR.",
   "main_merge_allowed": false,
   "terminal_release_build": {
     "required": true,
-    "owner_setup_branch": "release/1.0.58-van-complete",
-    "workflow": "FOODEX Van 1.0.58 Fresh Setup",
+    "gate_issue": 1021,
+    "final_branch": "release/1021-uiux-v42-final-real-build",
+    "starts_after_issue": 1012,
+    "source_freeze_rule": "#1012 records the exact final integrated implementation SHA; #1021 must build from that converged state.",
+    "next_version_rule": "Promote only after #1012 PASS to the next unpublished semantic patch version (expected 1.0.59 if 1.0.58 remains latest).",
     "setup_zip": "Release/FOODEX-Laravel-Setup.zip",
     "build_info": "Release/BUILD_INFO.json",
-    "fresh_install_evidence": "Release/FRESH_INSTALL_EVIDENCE.json",
-    "source_commit_rule": "BUILD_INFO.json.source_commit and FRESH_INSTALL_EVIDENCE.json.source_commit must equal the exact final integrated implementation SHA; only generated release-artifact publication commits may follow it.",
+    "latest_release": "Release/LATEST_RELEASE.json",
     "clean_install_from_zip_required": true,
+    "github_release_hash_verification_required": true,
+    "generated_distribution_refresh_required": true,
     "stale_setup_forbidden": true
   }
 }
