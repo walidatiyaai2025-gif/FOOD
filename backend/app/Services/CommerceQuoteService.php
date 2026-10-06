@@ -385,6 +385,10 @@ final class CommerceQuoteService
                 'is_available' => false,
                 'available_quantity' => 0.0,
                 'availability_state' => 'OUT_OF_STOCK',
+                'commercial_status' => 'UNAVAILABLE',
+                'commercial_reason_codes' => ['PRODUCT_NOT_AVAILABLE'],
+                'commercial_limits' => [],
+                'selling_units' => [],
                 'minimum_order_quantity' => null,
                 'ordering_increment' => null,
                 'pack_size' => null,
@@ -413,7 +417,19 @@ final class CommerceQuoteService
                 ),
             );
 
-        $isAvailable = $availableQuantity === null || $quantity <= $availableQuantity + 0.0001;
+        $legacyCustomerId = $customer?->legacy_customer_id === null
+            ? null
+            : (int) $customer->legacy_customer_id;
+        $commercial = app(CommercialPolicyService::class)->evaluate(
+            $productId,
+            $legacyCustomerId,
+            'customer',
+            $quantity,
+        );
+        $sellingUnits = app(CommercialPolicyService::class)->sellingUnits($productId);
+
+        $isAvailable = ($availableQuantity === null || $quantity <= $availableQuantity + 0.0001)
+            && $commercial['allowed'];
         $unitPrice = (float) $product->price;
         $minimum = null;
         $increment = null;
@@ -460,6 +476,14 @@ final class CommerceQuoteService
         }
 
         if (! $isAvailable && $strict) {
+            if (! $commercial['allowed']) {
+                throw ValidationException::withMessages([
+                    'items' => [
+                        'Commercial policy rejected product '.$productId.': '.implode(',', $commercial['reason_codes']),
+                    ],
+                ]);
+            }
+
             abort(409, 'Requested quantity exceeds available stock.');
         }
 
@@ -480,7 +504,13 @@ final class CommerceQuoteService
             'line_total' => $lineSubtotal,
             'is_available' => $isAvailable,
             'available_quantity' => $availableQuantity,
-            'availability_state' => $availableQuantity !== null && $availableQuantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+            'availability_state' => ! $commercial['allowed']
+                ? 'COMMERCIAL_POLICY_BLOCKED'
+                : ($availableQuantity !== null && $availableQuantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE'),
+            'commercial_status' => $commercial['status'],
+            'commercial_reason_codes' => $commercial['reason_codes'],
+            'commercial_limits' => $commercial['limits'],
+            'selling_units' => $sellingUnits,
             'minimum_order_quantity' => $minimum,
             'ordering_increment' => $increment,
             'pack_size' => $packSize,
