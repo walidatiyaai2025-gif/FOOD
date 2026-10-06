@@ -45,9 +45,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text(
-        'Online validation for the selected customer is required before a Flash sale.',
-      ),
+      find.text('Online validation required.'),
       findsOneWidget,
     );
     expect(find.byType(Dialog), findsNothing);
