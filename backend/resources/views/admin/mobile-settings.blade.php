@@ -64,6 +64,14 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <div><label>{{ $ar?'رابط الشروط والأحكام':'Terms URL' }}</label><input type="url" name="terms_url" value="{{ old('terms_url', $selectedSetting?->terms_url) }}" placeholder="https://example.com/terms"></div>
 </div>
 <label>{{ $ar?'رابط الدعم':'Support URL' }}</label><input type="url" name="support_url" value="{{ old('support_url', $selectedSetting?->support_url) }}" placeholder="https://example.com/support">
+<label>{{ $ar?'رابط حذف الحساب العام':'Delete Account public URL' }}</label><input type="url" name="delete_account_url" value="{{ old('delete_account_url', $selectedSetting?->delete_account_url) }}" placeholder="{{ url('/account-deletion') }}">
+<label>{{ $ar?'عرض شريط الإصدار الدائم':'Persistent footer display' }}</label>
+<select name="footer_display_mode">
+<option value="persistent" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode ?? 'persistent')==='persistent')>{{ $ar?'تشغيل':'ON — persistent' }}</option>
+<option value="about_only" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode)==='about_only')>{{ $ar?'إخفاء الدائم وإبقاؤه في حول/التشخيص':'OFF — About/Diagnostics only' }}</option>
+<option value="hidden" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode)==='hidden')>{{ $ar?'إخفاء الشريط الدائم':'OFF — zero persistent footer space' }}</option>
+</select>
+<p class="muted">{{ $ar?'هذا الإعداد يتحكم في الظهور فقط. رقم الإصدار/البناء الفعلي يأتي من التطبيق المثبت ولا يتم تزويره من الإعدادات البعيدة.':'Visibility only. The installed binary remains authoritative for version/build; remote settings never fake it.' }}</p>
 <div class="row">
 <div><label>{{ __('mobile_settings.release_ar') }}</label><textarea name="release_notes_ar" placeholder="ملاحظات الإصدار بالعربية">{{ old('release_notes_ar', $selectedSetting?->release_notes_ar) }}</textarea></div>
 <div><label>{{ __('mobile_settings.release_en') }}</label><textarea name="release_notes_en" placeholder="Release notes in English">{{ old('release_notes_en', $selectedSetting?->release_notes_en) }}</textarea></div>
@@ -154,6 +162,76 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <h3>{{ __('mobile_settings.delivery_log') }}</h3>
 @forelse($logs as $log)<div class="log">#{{ $log->id }} · {{ $log->app }}/{{ $log->platform }}/{{ $log->environment }} · <strong>{{ $log->status }}</strong>@if($log->response_code) · HTTP {{ $log->response_code }}@endif @if($log->error_code)<br><strong>{{ $ar?'السبب':'Reason' }}:</strong> {{ $log->error_code }}@if($log->error_message) — {{ $log->error_message }}@endif @endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
 </section>
+<section class="card" style="grid-column:1/-1" data-store-submission-center>
+<h2>{{ $ar?'النشر / تجهيز الرفع للمتاجر':'Publishing / Store Submission' }}</h2>
+<p class="muted">{{ $ar?'أربع مسارات مستقلة: العميل أندرويد، العميل iOS، السائق/الفان أندرويد، السائق/الفان iOS. حالة الجاهزية هنا لا تتجاوز نتائج التدقيق الآلي أو المتطلبات الخارجية.':'Four independent lanes: Customer Android, Customer iOS, Driver/Van Android, Driver/Van iOS. Readiness does not override automated audit evidence or external console/signing requirements.' }}</p>
+@foreach(['customer','driver'] as $submissionApp)
+@foreach(['android','ios'] as $submissionPlatform)
+@php($submission = $storeSubmissions->first(fn($item)=>$item->app===$submissionApp && $item->platform===$submissionPlatform && $item->environment===$selectedEnvironment))
+<form method="post" action="{{ route('admin.mobile-settings.submission') }}" class="policy" style="margin:12px 0">
+@csrf @method('put')
+<input type="hidden" name="app" value="{{ $submissionApp }}">
+<input type="hidden" name="platform" value="{{ $submissionPlatform }}">
+<input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
+<h3>{{ ucfirst($submissionApp) }} · {{ strtoupper($submissionPlatform) }} · {{ $selectedEnvironment }} — <span class="{{ ($submission?->readiness_state)==='PASS'?'status-ready':'status-blocked' }}">{{ $submission?->readiness_state ?? 'BLOCKED' }}</span></h3>
+<div class="row">
+<div><label>Package / Bundle ID</label><input name="package_identifier" value="{{ $submission?->package_identifier }}" placeholder="{{ $submissionApp==='customer'?'com.fiftysolution.foodex.customer':'com.fiftysolution.foodex.driver' }}"></div>
+<div><label>{{ $ar?'الحالة في المتجر':'Submission status' }}</label><select name="submission_status">@foreach(['NOT_READY','READY','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','PUBLISHED'] as $status)<option value="{{ $status }}" @selected(($submission?->submission_status ?? 'NOT_READY')===$status)>{{ $status }}</option>@endforeach</select></div>
+</div>
+<div class="row"><div><label>Current version</label><input name="current_version" value="{{ $submission?->current_version }}"></div><div><label>Current build</label><input name="current_build" value="{{ $submission?->current_build }}"></div></div>
+<div class="row"><div><label>Minimum version</label><input name="minimum_version" value="{{ $submission?->minimum_version }}"></div><div><label>Recommended version</label><input name="recommended_version" value="{{ $submission?->recommended_version }}"></div></div>
+<label>Update policy</label><select name="update_policy">@foreach(['optional','recommended','required'] as $policy)<option value="{{ $policy }}" @selected(($submission?->update_policy ?? 'optional')===$policy)>{{ $policy }}</option>@endforeach</select>
+<label>Store URL</label><input type="url" name="store_url" value="{{ $submission?->store_url }}">
+<div class="row"><div><label>Privacy URL</label><input type="url" name="privacy_url" value="{{ $submission?->privacy_url ?: url('/privacy') }}"></div><div><label>Terms URL</label><input type="url" name="terms_url" value="{{ $submission?->terms_url ?: url('/terms') }}"></div></div>
+<div class="row"><div><label>Support URL</label><input type="url" name="support_url" value="{{ $submission?->support_url ?: url('/support') }}"></div><div><label>Delete Account URL</label><input type="url" name="delete_account_url" value="{{ $submission?->delete_account_url ?: url('/account-deletion') }}"></div></div>
+<div class="row"><div><label>Release notes AR</label><textarea name="release_notes_ar">{{ $submission?->release_notes_ar }}</textarea></div><div><label>Release notes EN</label><textarea name="release_notes_en">{{ $submission?->release_notes_en }}</textarea></div></div>
+<label>Store title</label><input name="title" value="{{ $submission?->title }}">
+<label>Short description</label><input name="short_description" value="{{ $submission?->short_description }}">
+<label>Full description</label><textarea name="full_description">{{ $submission?->full_description }}</textarea>
+<div class="row"><div><label>Category</label><input name="category" value="{{ $submission?->category }}"></div><div><label>Keywords</label><input name="keywords" value="{{ $submission?->keywords }}"></div></div>
+<label>Reviewer notes</label><textarea name="reviewer_notes">{{ $submission?->reviewer_notes }}</textarea>
+<div class="row"><div><label>Screenshot / assets readiness JSON</label><textarea name="asset_checklist_json">{{ $submission?->asset_checklist ? json_encode($submission->asset_checklist, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '{}' }}</textarea></div><div><label>Permissions / store privacy impact JSON</label><textarea name="permission_declarations_json">{{ $submission?->permission_declarations ? json_encode($submission->permission_declarations, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '{}' }}</textarea></div></div>
+<div class="row"><div><label>Privacy/data declaration checklist JSON</label><textarea name="privacy_checklist_json">{{ $submission?->privacy_checklist ? json_encode($submission->privacy_checklist, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '{}' }}</textarea></div><div><label>EXTERNAL MANUAL gaps JSON</label><textarea name="manual_gaps_json">{{ $submission?->manual_gaps ? json_encode($submission->manual_gaps, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '[]' }}</textarea></div></div>
+<div class="policy-grid">
+@foreach(['signing_readiness'=>'Signing','firebase_readiness'=>'Firebase','apns_readiness'=>'APNs','deep_link_readiness'=>'Deep links','production_environment_readiness'=>'Production env','readiness_state'=>'Overall'] as $field=>$label)
+<div><label>{{ $label }}</label><select name="{{ $field }}">@foreach(['PASS','WARN','BLOCKED'] as $state)<option value="{{ $state }}" @selected(($submission?->{$field} ?? 'BLOCKED')===$state)>{{ $state }}</option>@endforeach</select></div>
+@endforeach
+</div>
+<button class="button">{{ $ar?'حفظ بيانات الرفع':'Save submission metadata' }}</button>
+</form>
+@endforeach
+@endforeach
+</section>
+
+<section class="card" style="grid-column:1/-1" data-reviewer-accounts>
+<h2>{{ $ar?'حسابات مراجعي المتاجر':'Store Reviewer / Test Accounts' }}</h2>
+<p class="warning">{{ $ar?'كلمة المرور لا تُعرض أبداً بعد الحفظ، ولا تُعاد في API أو السجلات أو الـAudit. الاختبار يتم على الخادم فقط.':'Reviewer passwords are write-only: never returned in API, Dashboard, logs, or audit. Readiness testing occurs server-side.' }}</p>
+<form method="post" action="{{ route('admin.mobile-settings.reviewer') }}">
+@csrf @method('put')
+<div class="row"><div><label>App</label><select name="app"><option value="customer">Customer</option><option value="driver">Driver/Van</option></select></div><div><label>Platform</label><select name="platform"><option value="android">Android</option><option value="ios">iOS</option></select></div></div>
+<input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
+<div class="row"><div><label>Persona</label><input name="persona" placeholder="customer_reviewer" required></div><div><label>Identifier type</label><select name="identifier_type"><option value="email">email</option><option value="username">username</option><option value="phone">phone</option></select></div></div>
+<label>Identifier</label><input name="identifier" required>
+<label>{{ $ar?'كلمة مرور/سر المراجع (كتابة فقط)':'Reviewer secret (write-only)' }}</label><input type="password" name="reviewer_secret" autocomplete="new-password">
+<label>Store / tenant / customer / driver context JSON</label><textarea name="context_json" placeholder='{"store_id":1,"channel":"b2c"}'></textarea>
+<label>Deterministic reviewer instructions</label><textarea name="reviewer_instructions"></textarea>
+<input type="hidden" name="is_active" value="0"><label class="check"><input type="checkbox" name="is_active" value="1" checked>Active</label>
+<button class="button">Save reviewer persona</button>
+</form>
+<h3>Configured personas</h3>
+@forelse($reviewerAccounts as $reviewer)
+<div class="policy">
+<strong>{{ $reviewer->app }} · {{ $reviewer->platform }} · {{ $reviewer->environment }} · {{ $reviewer->persona }}</strong>
+<p>{{ $reviewer->identifier_type }}: <code>{{ $reviewer->identifier }}</code> · secret: <strong>{{ $reviewer->maskedSecret() }}</strong> · readiness: <strong>{{ $reviewer->readiness_status }}</strong></p>
+@if($reviewer->reviewer_instructions)<p class="muted">{{ $reviewer->reviewer_instructions }}</p>@endif
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<form method="post" action="{{ route('admin.mobile-settings.reviewer.test',$reviewer) }}">@csrf<button class="button secondary" type="submit">Readiness test</button></form>
+<form method="post" action="{{ route('admin.mobile-settings.reviewer.rotate',$reviewer) }}">@csrf<label>Rotate secret</label><input type="password" name="reviewer_secret" autocomplete="new-password" required><button class="button secondary" type="submit">Rotate</button></form>
+</div>
+</div>
+@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
+</section>
+
 </div>
 </main>
 </div>

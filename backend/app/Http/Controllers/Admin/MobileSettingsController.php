@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MobileAppSetting;
+use App\Models\MobileStoreSubmission;
 use App\Models\PushDeliveryLog;
 use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
+use App\Models\StoreReviewerAccount;
 use App\Models\SystemVersion;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -45,6 +47,8 @@ final class MobileSettingsController extends Controller
             'devices' => PushDeviceToken::query()->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
             'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
+            'storeSubmissions' => MobileStoreSubmission::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
+            'reviewerAccounts' => StoreReviewerAccount::query()->orderBy('app')->orderBy('platform')->orderBy('persona')->get(),
         ]);
     }
 
@@ -70,6 +74,8 @@ final class MobileSettingsController extends Controller
             'privacy_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
             'terms_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
             'support_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'delete_account_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'footer_display_mode' => ['sometimes', 'in:persistent,about_only,hidden'],
             'release_notes_ar' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'release_notes_en' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'deep_link_json' => ['sometimes', 'nullable', 'json'],
@@ -105,6 +111,8 @@ final class MobileSettingsController extends Controller
             'privacy_url',
             'terms_url',
             'support_url',
+            'delete_account_url',
+            'footer_display_mode',
             'release_notes_ar',
             'release_notes_en',
         ] as $key) {

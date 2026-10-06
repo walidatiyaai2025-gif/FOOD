@@ -15,6 +15,7 @@ class MobileAppSetting extends Model
             'maintenance_mode' => 'boolean',
             'deep_link_config' => 'array',
             'store_readiness' => 'array',
+            'footer_display_mode' => 'string',
         ];
     }
 }

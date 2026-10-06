@@ -211,6 +211,15 @@ class PreviewB2cAccountApi implements B2cAccountApi {
   Future<Object?> favorites() => delegate.favorites();
 
   @override
+  Future<Object?> accountDeletionStatus() => delegate.accountDeletionStatus();
+
+  @override
+  Future<Object?> requestAccountDeletion(String password) =>
+      Future<Object?>.error(
+        const CustomerPreviewMutationBlocked('account.delete'),
+      );
+
+  @override
   Future<Object?> notifications({String locale = 'ar'}) =>
       delegate.notifications(locale: locale);
 

@@ -56,6 +56,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.locationTrackingFactory,
     this.versionPolicyClient,
     this.updateLauncher,
+    this.showPersistentFooter = true,
   });
 
   factory FoodexDriverApp.preview({
@@ -104,6 +105,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverLocationTrackingFactory? locationTrackingFactory;
   final DriverVersionPolicyClient? versionPolicyClient;
   final DriverUpdateLauncher? updateLauncher;
+  final bool showPersistentFooter;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -125,7 +127,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
   final DriverBiometricAuthenticator _biometricAuthenticator =
       LocalAuthDriverBiometricAuthenticator();
 
-  static const _appVersion = '1.0.57';
+  static const _appVersion = '1.0.58';
 
   String get _baseUrl =>
       widget.apiBaseUrl ??
@@ -509,7 +511,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
             fit: StackFit.expand,
             children: [
               child ?? const SizedBox.shrink(),
-              PositionedDirectional(
+              if (widget.showPersistentFooter)
+                PositionedDirectional(
                 start: 0,
                 end: 0,
                 bottom: 0,
@@ -594,6 +597,32 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
                   ),
                 ),
               ),
+              if (!widget.showPersistentFooter)
+                PositionedDirectional(
+                  end: 8,
+                  bottom: 8,
+                  child: SafeArea(
+                    top: false,
+                    child: Semantics(
+                      button: true,
+                      label: translatedContext.tr('driver.inspector.open'),
+                      child: IconButton.filledTonal(
+                      key: const Key('driver-floating-inspector'),
+                      onPressed: () {
+                        _routeBeforeInspector =
+                            DriverRuntimeInspector.instance.lastRoute ??
+                                (_session == null
+                                    ? 'driver.login'
+                                    : widget.initialRoute);
+                        DriverRuntimeInspector.instance
+                            .recordNavigation('driver.inspector');
+                        setState(() => _inspectorOpen = true);
+                      },
+                      icon: const Icon(Icons.bug_report_outlined),
+                      ),
+                    ),
+                  ),
+                ),
               if (_inspectorOpen)
                 Positioned.fill(
                   child: DriverInspectorPanel(
