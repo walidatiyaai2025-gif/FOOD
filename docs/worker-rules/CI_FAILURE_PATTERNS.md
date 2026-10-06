@@ -4,6 +4,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 
 | Failure class | Early detector | Prevention |
 | --- | --- | --- |
+| Flutter lazy-list widget assertion reports 0 matches for off-screen content | Widget test asserts text/key inside a lazy `ListView` before that child is built in the viewport. | Scroll the owning `Scrollable` until the target key is visible before asserting; for screens with polling timers, use bounded `pump()` calls instead of `pumpAndSettle()`. |
 | Invalid Issue branch name | repository preflight | Validate branch before first edit/push. |
 | PHP/Pint style drift | `composer lint` | Run formatter-generated canonical output before full tests. |
 | Worker preflight exits before changed-area lint because `changed_files` is referenced before initialization | `bash -n scripts/worker-preflight.sh` + fast preflight smoke | Initialize diff-derived variables before release routing; keep `set -u` enabled so ordering bugs fail locally, not in remote CI. |

@@ -69,6 +69,14 @@ void main() {
       expect(api.detailCalls, 2);
       expect(find.text('Preparing'), findsWidgets);
       expect(find.text('Delivered'), findsNothing);
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('customer-collection-receipt-44')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+
       expect(find.text('Collection receipts'), findsOneWidget);
       expect(find.text('Collection receipt #44'), findsOneWidget);
       expect(find.text('Remaining balance'), findsOneWidget);
