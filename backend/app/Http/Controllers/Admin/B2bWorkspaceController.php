@@ -172,8 +172,7 @@ class B2bWorkspaceController extends Controller
         OrderController $orders,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $row = DB::table('orders')
             ->where('id', $order)
@@ -200,8 +199,7 @@ class B2bWorkspaceController extends Controller
         ]);
     }
 
-    public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
-    {
+    public function storeOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse {
         $actor = $this->actor($request);
         $warehouseId = $request->integer('warehouse_id');
         $warehouse = DB::table('warehouses')
@@ -222,8 +220,7 @@ class B2bWorkspaceController extends Controller
         ));
     }
 
-    public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse
-    {
+    public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse {
         $actor = $this->actor($request);
         $model = Order::query()
             ->whereKey($order)
@@ -243,8 +240,7 @@ class B2bWorkspaceController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $driverId = $request->integer('driver_id');
         $orderId = $request->integer('order_id');
@@ -276,8 +272,7 @@ class B2bWorkspaceController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $principalStoreId = $this->principal->storeId();
         $orderModel = Order::query()
@@ -306,8 +301,7 @@ class B2bWorkspaceController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $principalStoreId = $this->principal->storeId();
         $orderModel = Order::query()
@@ -326,8 +320,7 @@ class B2bWorkspaceController extends Controller
         ));
     }
 
-    public function storeDriver(Request $request): RedirectResponse
-    {
+    public function storeDriver(Request $request): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -363,8 +356,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء سائق الجملة.', 'Wholesale driver created.'));
     }
 
-    public function resetDriverPassword(Request $request, int $driver): RedirectResponse
-    {
+    public function resetDriverPassword(Request $request, int $driver): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
@@ -399,8 +391,7 @@ class B2bWorkspaceController extends Controller
         ));
     }
 
-    public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse
-    {
+    public function savePriceRule(Request $request, B2bPricingController $pricing): RedirectResponse {
         $actor = $this->actor($request);
         $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'b2b.pricing.manage', 'b2b');
@@ -415,8 +406,7 @@ class B2bWorkspaceController extends Controller
         Request $request,
         B2bAccountController $accounts,
         B2bCustomerService $customers,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('b2b.accounts.manage'), 403);
 
@@ -429,8 +419,7 @@ class B2bWorkspaceController extends Controller
         Request $request,
         B2bAccount $account,
         B2bAccountController $accounts,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('b2b.accounts.manage'), 403);
         abort_unless($account->b2b_customer_id !== null, 404);
@@ -440,8 +429,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم تحديث حالة حساب الجملة.', 'Wholesale account status updated.'));
     }
 
-    public function storeCategory(Request $request): RedirectResponse
-    {
+    public function storeCategory(Request $request): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -475,8 +463,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء تصنيف الجملة.', 'Wholesale category created.'));
     }
 
-    public function storeProduct(Request $request): RedirectResponse
-    {
+    public function storeProduct(Request $request): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -537,8 +524,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء منتج الجملة.', 'Wholesale product created.'));
     }
 
-    public function updateProduct(Request $request, Product $product): RedirectResponse
-    {
+    public function updateProduct(Request $request, Product $product): RedirectResponse {
         $actor = $this->actor($request);
         $owner = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -610,8 +596,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم تحديث منتج الجملة.', 'Wholesale product updated.'));
     }
 
-    public function storeWarehouse(Request $request): RedirectResponse
-    {
+    public function storeWarehouse(Request $request): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'code' => ['required', 'string', 'max:80', 'unique:warehouses,code'],
@@ -639,8 +624,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء مخزن الجملة.', 'Wholesale warehouse created.'));
     }
 
-    public function ensureInventory(Request $request): RedirectResponse
-    {
+    public function ensureInventory(Request $request): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
@@ -668,8 +652,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم إنشاء/تحديث رصيد الجملة.', 'Wholesale inventory balance created/updated.'));
     }
 
-    public function adjustInventory(Request $request, int $inventory): RedirectResponse
-    {
+    public function adjustInventory(Request $request, int $inventory): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'quantity_delta' => ['required', 'numeric', 'not_in:0'],
@@ -718,8 +701,7 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم تعديل مخزون الجملة.', 'Wholesale inventory adjusted.'));
     }
 
-    public function saveSetting(Request $request): RedirectResponse
-    {
+    public function saveSetting(Request $request): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate([
             'key' => ['required', 'string', 'max:255'],
@@ -750,8 +732,7 @@ class B2bWorkspaceController extends Controller
         Remittance $remittance,
         string $action,
         CollectionCustodyService $custody,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless(in_array($action, ['approve', 'reject', 'reconcile'], true), 404);
 
@@ -1723,7 +1704,7 @@ class B2bWorkspaceController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        if (!isset($data['from']) && !isset($data['to']) && isset($data['date'])) {
+        if (! isset($data['from']) && ! isset($data['to']) && isset($data['date'])) {
             return [$data['date'], $data['date']];
         }
 
