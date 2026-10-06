@@ -35,6 +35,7 @@ Core invariants include:
 - Customer / Driver / Van mobile layouts are data-first and compact: title + subtitle must consume only a minimal footprint (target ~1% of usable page area), Start/End filters + action stay on one line, order numbers never wrap, screens use the available viewport, and list/grid rows remain compact.
 - Customer / Driver / Van must evaluate and implement Remember Me + biometric unlock consistently; never persist plaintext passwords for biometric login.
 - The main Dashboard map is unified Live Tracking for both Drivers and Vans, with person markers for Drivers and vehicle markers for Vans.
+- Every FOODEX version promotion must follow `docs/release/RELEASE_ARTIFACT_CONTRACT.md`: `Release/Updates` is refreshed and synchronized versioned APKs for Customer + Driver + Van plus `LATEST_RELEASE.json` are generated automatically. A release is incomplete if any one of the three APKs is missing.
 
 A worker must classify every business-facing field before implementation as Lookup, Enum, Builder, legitimate free input, or advanced technical input. Raw IDs/keys/JSON are never the default UI simply because the backend accepts them.
 
