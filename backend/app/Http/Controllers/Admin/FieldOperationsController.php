@@ -56,20 +56,26 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']);
 
-        $locations = FleetCurrentLocation::query()->where('actor_type', 'van')->get();
+        $canTrack = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('drivers.tracking.view');
         $locationHealth = ['online' => 0, 'stale' => 0, 'offline' => 0];
-        $fleetService = app(FleetLocationService::class);
-        foreach ($locations as $location) {
-            $status = $fleetService->status($location);
-            if (array_key_exists($status, $locationHealth)) {
-                $locationHealth[$status]++;
+        if ($canTrack) {
+            $locations = FleetCurrentLocation::query()->where('actor_type', 'van')->get();
+            $fleetService = app(FleetLocationService::class);
+            foreach ($locations as $location) {
+                $status = $fleetService->status($location);
+                if (array_key_exists($status, $locationHealth)) {
+                    $locationHealth[$status]++;
+                }
             }
         }
 
-        $outstanding = (float) DB::table('custody_ledger_entries')
-            ->join('collection_accounts', 'collection_accounts.id', '=', 'custody_ledger_entries.collection_account_id')
-            ->where('collection_accounts.actor_type', 'van')
-            ->sum('custody_ledger_entries.amount');
+        $canFinance = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
+        $outstanding = $canFinance
+            ? (float) DB::table('custody_ledger_entries')
+                ->join('collection_accounts', 'collection_accounts.id', '=', 'custody_ledger_entries.collection_account_id')
+                ->where('collection_accounts.actor_type', 'van')
+                ->sum('custody_ledger_entries.amount')
+            : 0.0;
 
         return $this->render($request, 'overview', [
             'summary' => [
@@ -78,7 +84,12 @@ final class FieldOperationsController extends Controller
                 'assigned_vans' => VanAssignment::query()->where('status', 'active')->distinct()->count('van_id'),
                 'unassigned_vans' => Van::query()->whereDoesntHave('assignments', fn ($q) => $q->where('status', 'active'))->count(),
                 'operators' => VanAssignment::query()->where('status', 'active')->whereNotNull('representative_user_id')->distinct()->count('representative_user_id'),
-                'customers_served' => VanVisit::query()->distinct()->count(DB::raw("CONCAT(customer_type, ':', customer_id)")),
+                'customers_served' => ($user->hasRole('SUPER_ADMIN') || $user->hasPermission('customers.view'))
+                    ? DB::query()->fromSub(
+                        VanVisit::query()->select(['customer_type', 'customer_id'])->distinct(),
+                        'served_customers',
+                    )->count()
+                    : 0,
                 'active_visits' => VanVisit::query()->whereIn('status', ['planned', 'started'])->count(),
                 'completed_visits' => VanVisit::query()->whereIn('status', ['completed_with_order', 'completed_no_order', 'customer_unavailable', 'closed'])->count(),
                 'no_order_visits' => VanVisit::query()->where('status', 'completed_no_order')->count(),
@@ -86,7 +97,7 @@ final class FieldOperationsController extends Controller
                 'territories' => ServiceTerritory::query()->where('status', 'active')->count(),
                 'unresolved_addresses' => AddressQualityReview::query()->where('status', 'unmapped')->count(),
                 'location_health' => $locationHealth,
-                'pending_remittances' => Remittance::query()->where('status', 'pending')->count(),
+                'pending_remittances' => $canFinance ? Remittance::query()->where('status', 'pending')->count() : 0,
             ],
         ]);
     }
@@ -94,7 +105,7 @@ final class FieldOperationsController extends Controller
     public function fleet(Request $request): View
     {
         $user = $this->actor($request);
-        $this->authorizeAny($user, ['drivers.tracking.view', 'field_ops.manage']);
+        $this->authorizeAny($user, ['drivers.tracking.view']);
 
         return $this->render($request, 'fleet', [
             'feedUrl' => route('admin.field-operations.fleet.feed'),
@@ -214,6 +225,7 @@ final class FieldOperationsController extends Controller
             ->pluck('id');
 
         $relationships = VanVisit::query()
+            ->with('actor')
             ->whereIn('id', $latestIds)
             ->orderByDesc('updated_at')
             ->paginate(30);
