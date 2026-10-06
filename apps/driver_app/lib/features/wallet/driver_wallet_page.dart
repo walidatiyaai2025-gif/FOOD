@@ -15,7 +15,8 @@ class DriverWalletPage extends StatefulWidget {
   State<DriverWalletPage> createState() => _DriverWalletPageState();
 }
 
-class _DriverWalletPageState extends State<DriverWalletPage> {
+class _DriverWalletPageState extends State<DriverWalletPage>
+    with WidgetsBindingObserver {
   bool _loading = true;
   bool _submitting = false;
   Object? _error;
@@ -24,7 +25,21 @@ class _DriverWalletPageState extends State<DriverWalletPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_loading && !_submitting) {
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -136,14 +151,14 @@ class _DriverWalletPageState extends State<DriverWalletPage> {
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
                         itemCount: _accounts.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final account = _accounts[index];
                           return Card(
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
