@@ -116,7 +116,7 @@ final class CommercialPolicyService
         }
 
         $reasonCodes = [];
-        if (! (bool) $product->is_active) {
+        if (!(bool) $product->is_active) {
             $reasonCodes[] = 'PRODUCT_INACTIVE';
         }
         if ($status === self::STATUS_CLOSED) {
@@ -127,7 +127,7 @@ final class CommercialPolicyService
         if ($channelAllowed === false) {
             $reasonCodes[] = 'CHANNEL_BLOCKED';
         }
-        if (! $this->insideAvailabilityWindow($productId, $now)) {
+        if (!$this->insideAvailabilityWindow($productId, $now)) {
             $allowed = false;
             $reasonCodes[] = 'OUTSIDE_AVAILABILITY';
         }
@@ -295,7 +295,7 @@ final class CommercialPolicyService
                 $at,
             );
 
-            if (! $decision['allowed']) {
+            if (!$decision['allowed']) {
                 throw new DomainException(implode(',', $decision['reason_codes']));
             }
 
@@ -411,7 +411,7 @@ final class CommercialPolicyService
         }
 
         $policy = DB::table('product_commercial_policies')->where('product_id', $productId)->first();
-        if (! (bool) ($policy->override_allowed ?? false)) {
+        if (!(bool) ($policy->override_allowed ?? false)) {
             throw new DomainException('Commercial override is not allowed for this product.');
         }
 
@@ -512,7 +512,7 @@ final class CommercialPolicyService
         }
 
         $channels = is_string($value) ? json_decode($value, true) : $value;
-        if (! is_array($channels) || ! array_key_exists($channel, $channels)) {
+        if (!is_array($channels) || !array_key_exists($channel, $channels)) {
             return null;
         }
 
