@@ -466,7 +466,7 @@ class B2bReportController extends Controller
                         ]);
                 }
 
-                $availability = $current === null || $storeId === null
+                $availability = $current === null
                     ? [
                         'available_quantity' => null,
                         'is_available' => false,
