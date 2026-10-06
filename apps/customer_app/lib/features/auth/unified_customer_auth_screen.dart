@@ -706,14 +706,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
+                        // The supplied truck crop includes the bottom edge
+                        // of the header slogan in its first 45 px. Crop that
+                        // overlap at render time so the approved slogan appears
+                        // exactly once, while keeping the source asset intact.
                         ClipRect(
                           child: AspectRatio(
-                            aspectRatio: 941 / 496,
+                            aspectRatio: 941 / 451,
                             child: Image.asset(
                               'assets/branding/login_reference/foodex_truck_hero.png',
                               key: const ValueKey('c13-business-login-hero'),
                               fit: BoxFit.cover,
-                              alignment: Alignment.center,
+                              alignment: Alignment.bottomCenter,
                             ),
                           ),
                         ),
