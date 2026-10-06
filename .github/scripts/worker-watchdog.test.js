@@ -448,7 +448,7 @@ test('handoff comment forces reuse of existing branch and PR', () => {
 });
 
 
-test('watchdog workflow avoids false-red cancellation fan-out', () => {
+test('watchdog workflow bounds queue fan-out and suppresses self-trigger cascades', () => {
   const workflowPath = path.join(__dirname, '..', 'workflows', 'worker-watchdog.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
 
@@ -460,7 +460,17 @@ test('watchdog workflow avoids false-red cancellation fan-out', () => {
   assert.doesNotMatch(workflow, /types: \[[^\]]*labeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*unlabeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /\n\s*push:\s*\n/);
-  assert.match(workflow, /cancel-in-progress:\s*false/);
-  assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/);
-  assert.match(workflow, /group: worker-watchdog-\$\{\{ github\.event_name \}\}/);
+
+  // All actionable events share one latest-state slot. A newer event supersedes
+  // stale watchdog work instead of consuming another hosted runner queue slot.
+  assert.match(workflow, /cancel-in-progress:\s*true/);
+  assert.match(workflow, /\|\| 'worker-watchdog'/);
+
+  // Comments written by the watchdog itself are no-op runs with isolated keys:
+  // they neither execute the job nor cancel the parent reconciliation.
+  assert.match(workflow, /worker-watchdog-self-\{0\}/);
+  assert.match(
+    workflow,
+    /if: \$\{\{ github\.event_name != 'issue_comment' \|\| !contains\(github\.event\.comment\.body, '<!-- foodex-watchdog:'\) \}\}/,
+  );
 });
