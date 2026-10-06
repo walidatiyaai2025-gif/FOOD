@@ -242,17 +242,47 @@ final class CommercialPolicyService
         string $channel,
         ?DateTimeInterface $at = null,
     ): array {
+        $unit = $this->sellingUnit($productId, $sellingUnitCode, $sellingQuantity);
+        $reservation = $this->reserveBaseQuantityForOrder(
+            $orderId,
+            $customerId,
+            $productId,
+            (float) $unit['base_quantity'],
+            $channel,
+            $at,
+        );
+
+        return [
+            ...$reservation,
+            'selling_unit' => $unit,
+        ];
+    }
+
+    /**
+     * Atomic authoritative quota reservation when the caller already holds a base-unit quantity.
+     *
+     * @return array{reservation_token:string,base_quantity:float,decision:array<string,mixed>}
+     */
+    public function reserveBaseQuantityForOrder(
+        int $orderId,
+        int $customerId,
+        int $productId,
+        float $baseQuantity,
+        string $channel,
+        ?DateTimeInterface $at = null,
+    ): array {
+        if ($baseQuantity <= 0) {
+            throw new InvalidArgumentException('Commercial base quantity must be greater than zero.');
+        }
+
         return DB::transaction(function () use (
             $orderId,
             $customerId,
             $productId,
-            $sellingUnitCode,
-            $sellingQuantity,
+            $baseQuantity,
             $channel,
             $at,
         ): array {
-            $unit = $this->sellingUnit($productId, $sellingUnitCode, $sellingQuantity);
-
             DB::table('commercial_quota_locks')->insertOrIgnore([
                 'product_id' => $productId,
                 'customer_id' => $customerId,
@@ -276,14 +306,11 @@ final class CommercialPolicyService
                 return [
                     'reservation_token' => (string) $existing->reservation_token,
                     'base_quantity' => (float) $existing->base_quantity,
-                    'decision' => $this->evaluate(
-                        $productId,
-                        $customerId,
-                        $channel,
-                        (float) $existing->base_quantity,
-                        $at,
-                    ),
-                    'selling_unit' => $unit,
+                    'decision' => [
+                        'allowed' => true,
+                        'status' => 'IDEMPOTENT_REPLAY',
+                        'reason_codes' => [],
+                    ],
                 ];
             }
 
@@ -291,7 +318,7 @@ final class CommercialPolicyService
                 $productId,
                 $customerId,
                 $channel,
-                (float) $unit['base_quantity'],
+                $baseQuantity,
                 $at,
             );
 
@@ -308,7 +335,7 @@ final class CommercialPolicyService
                     'order_id' => $orderId,
                     'product_id' => $productId,
                     'customer_id' => $customerId,
-                    'base_quantity' => $unit['base_quantity'],
+                    'base_quantity' => $baseQuantity,
                     'status' => self::RESERVATION_RESERVED,
                     'reserved_at' => $reservedAt,
                     'created_at' => now(),
@@ -320,7 +347,7 @@ final class CommercialPolicyService
                     ->update([
                         'reservation_token' => $token,
                         'customer_id' => $customerId,
-                        'base_quantity' => $unit['base_quantity'],
+                        'base_quantity' => $baseQuantity,
                         'status' => self::RESERVATION_RESERVED,
                         'reserved_at' => $reservedAt,
                         'consumed_at' => null,
@@ -331,9 +358,8 @@ final class CommercialPolicyService
 
             return [
                 'reservation_token' => $token,
-                'base_quantity' => (float) $unit['base_quantity'],
+                'base_quantity' => $baseQuantity,
                 'decision' => $decision,
-                'selling_unit' => $unit,
             ];
         }, 3);
     }
