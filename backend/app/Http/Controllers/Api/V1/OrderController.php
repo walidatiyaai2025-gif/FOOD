@@ -15,6 +15,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
+use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\CustomerOrderTimelineService;
 use App\Services\DashboardOperationalNotifier;
@@ -253,6 +254,7 @@ class OrderController extends Controller
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
+                app(CommercialPolicyService::class)->releaseOrderReservations((int) $locked->getKey());
                 if (strtolower((string) $locked->channel) === 'b2b') {
                     $this->reverseCheckoutSettlementEntries($locked, $user);
                 }
@@ -291,6 +293,11 @@ class OrderController extends Controller
                 }
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
+                DB::table('commercial_quota_reservations')
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', CommercialPolicyService::RESERVATION_RESERVED)
+                    ->pluck('reservation_token')
+                    ->each(fn (string $token) => app(CommercialPolicyService::class)->consumeReservation($token));
                 app(RetailWholesaleReplenishmentService::class)->receive($locked, $user);
             }
 
@@ -556,6 +563,11 @@ class OrderController extends Controller
                             : url('/'.ltrim($imagePath, '/')))
                         : null,
                     'quantity' => (float) $item->quantity,
+                    'selling_unit_code' => $item->selling_unit_code_snapshot,
+                    'selling_unit_name' => $item->selling_unit_name_snapshot,
+                    'selling_unit_quantity' => $item->selling_unit_quantity === null ? null : (float) $item->selling_unit_quantity,
+                    'base_quantity' => $item->base_quantity === null ? null : (float) $item->base_quantity,
+                    'conversion_factor' => $item->conversion_factor_snapshot === null ? null : (float) $item->conversion_factor_snapshot,
                     'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
                     'pack_size' => (float) ($item->quantity_conversion_factor ?? 1),
                     'unit_price' => (float) $item->unit_price,
