@@ -56,6 +56,7 @@ class FoodexDriverApp extends StatefulWidget {
     this.locationTrackingFactory,
     this.versionPolicyClient,
     this.updateLauncher,
+    this.showPersistentFooter = true,
   });
 
   factory FoodexDriverApp.preview({
@@ -104,6 +105,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverLocationTrackingFactory? locationTrackingFactory;
   final DriverVersionPolicyClient? versionPolicyClient;
   final DriverUpdateLauncher? updateLauncher;
+  final bool showPersistentFooter;
 
   @override
   State<FoodexDriverApp> createState() => _FoodexDriverAppState();
@@ -509,7 +511,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
             fit: StackFit.expand,
             children: [
               child ?? const SizedBox.shrink(),
-              PositionedDirectional(
+              if (widget.showPersistentFooter)
+                PositionedDirectional(
                 start: 0,
                 end: 0,
                 bottom: 0,
