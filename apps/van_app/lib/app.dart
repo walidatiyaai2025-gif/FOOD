@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -6,6 +7,7 @@ import 'core/auth/van_session.dart';
 import 'core/auth/van_session_store.dart';
 import 'core/config/foodex_environment.dart';
 import 'core/theme/foodex_van_theme.dart';
+import 'core/push/firebase_push_service.dart';
 import 'features/auth/van_login_screen.dart';
 import 'features/foundation/van_foundation_screen.dart';
 import 'features/wallet/http_van_wallet_repository.dart';
@@ -19,6 +21,7 @@ class FoodexVanApp extends StatefulWidget {
     this.sessionStore,
     this.initialSession,
     this.walletRepository,
+    this.pushService,
   });
 
   final Locale locale;
@@ -26,6 +29,7 @@ class FoodexVanApp extends StatefulWidget {
   final VanSessionStore? sessionStore;
   final VanSession? initialSession;
   final VanWalletRepository? walletRepository;
+  final VanFirebasePushService? pushService;
 
   @override
   State<FoodexVanApp> createState() => _FoodexVanAppState();
@@ -36,6 +40,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
   late final VanSessionStore _sessionStore;
   VanSession? _session;
   bool _restoring = true;
+  StreamSubscription<VanPushAlert>? _pushAlertSubscription;
 
   @override
   void initState() {
@@ -47,8 +52,14 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
 
     if (_session != null) {
       _restoring = false;
+      unawaited(widget.pushService?.bindSession(_session!.token));
     } else {
       _restoreSession();
+    }
+
+    final pushService = widget.pushService;
+    if (pushService != null) {
+      _pushAlertSubscription = pushService.alerts.listen(_showPushAlert);
     }
   }
 
@@ -69,6 +80,9 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
       _session = stored;
       _restoring = false;
     });
+    if (stored != null) {
+      unawaited(widget.pushService?.bindSession(stored.token));
+    }
   }
 
   Future<void> _authenticated(VanSession session, bool persist) async {
@@ -79,6 +93,8 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     } else {
       await _sessionStore.clear();
     }
+
+    unawaited(widget.pushService?.bindSession(session.token));
 
     if (!mounted) return;
     setState(() => _session = session);
@@ -93,10 +109,25 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     } catch (_) {
       // Local logout must remain available when the network is unavailable.
     }
+    await widget.pushService?.revokeSession();
     await _sessionStore.clear();
 
     if (!mounted) return;
     setState(() => _session = null);
+  }
+
+  void _showPushAlert(VanPushAlert alert) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${alert.title}: ${alert.body}')),
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_pushAlertSubscription?.cancel());
+    unawaited(widget.pushService?.dispose());
+    super.dispose();
   }
 
   @override
