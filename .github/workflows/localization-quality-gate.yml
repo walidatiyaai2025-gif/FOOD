@@ -9,15 +9,6 @@ on:
       head_sha:
         required: false
         type: string
-  pull_request:
-    paths:
-      - "apps/**"
-      - "backend/resources/views/**"
-      - "backend/lang/**"
-      - "backend/config/ui_translations.php"
-      - "scripts/localization-quality-gate.py"
-      - "scripts/tests/test_localization_quality_gate.py"
-      - ".github/workflows/localization-quality-gate.yml"
   push:
     branches:
       - main
@@ -43,7 +34,7 @@ jobs:
   localization-quality:
     name: Arabic / English localization quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,3 +93,27 @@ jobs:
           python3 scripts/localization-quality-gate.py \
             --base "${{ steps.range.outputs.base }}" \
             --head "${{ steps.range.outputs.head }}"
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Verify Customer localization runtime
+        working-directory: apps/customer_app
+        run: |
+          flutter pub get
+          flutter test test/localization_test.dart
+
+      - name: Verify Driver localization runtime
+        working-directory: apps/driver_app
+        run: |
+          flutter pub get
+          flutter test test/localization_test.dart
+
+      - name: Verify Van localization runtime
+        working-directory: apps/van_app
+        run: |
+          flutter pub get
+          flutter test test/localization_test.dart
