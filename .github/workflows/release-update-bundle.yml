@@ -284,9 +284,14 @@ jobs:
           print("Update bundle verified:", digest)
           PY
 
-      - name: Publish generated package to release branch
-        if: github.event_name == 'push'
+      - name: Publish generated package to source branch
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+        shell: bash
         run: |
+          set -euo pipefail
+          target_branch="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          test -n "$target_branch"
+
           cp dist/update/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
           cp dist/update/FOODEX-Update.json Release/Updates/FOODEX-Update.json
           cp dist/update/FOODEX-Update.sha256.txt Release/Updates/FOODEX-Update.sha256.txt
@@ -298,10 +303,10 @@ jobs:
                   Release/Updates/FOODEX-Update.sha256.txt \
                   Release/Updates/FOODEX-Update.files.txt
           if git diff --cached --quiet; then
-            echo "Generated update package is already published."
+            echo "Generated update package is already published on $target_branch."
           else
             git commit -m "release: publish generated FOODEX ${CURRENT_VERSION} cumulative update bundle"
-            git push origin "HEAD:release/${CURRENT_VERSION}-update"
+            git push origin "HEAD:$target_branch"
           fi
 
       - name: Upload FOODEX update artifact
