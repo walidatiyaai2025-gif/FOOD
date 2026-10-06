@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "mission_id": "UIUX-V42",
+  "active": true,
+  "umbrella_issue": 1001,
+  "umbrella_title": "[MISSION][ACTIVE] FOODEX UI/UX v4.2 autonomous completion",
+  "integration_target": "release/1.0.58-van-complete",
+  "max_active_lanes": 6,
+  "status_source": "live GitHub Issues/PRs/branches/CI; never this file",
+  "owner_commands": [
+    "حرك مشروع FOOD",
+    "اشتغل على مشروع FOOD",
+    "FOOD MISSION",
+    "FOOD AUTO-HANDOFF"
+  ],
+  "children": [
+    {
+      "issue": 1002,
+      "branch": "test/1002-uiux-v42-mobile-ux-guard",
+      "depends_on": []
+    },
+    {
+      "issue": 1003,
+      "branch": "feat/1003-customer-v42-mobile-compliance",
+      "depends_on": []
+    },
+    {
+      "issue": 1004,
+      "branch": "feat/1004-driver-v42-mobile-live-orders",
+      "depends_on": []
+    },
+    {
+      "issue": 1005,
+      "branch": "feat/1005-van-v42-mobile-compliance",
+      "depends_on": []
+    },
+    {
+      "issue": 1006,
+      "branch": "feat/1006-three-app-biometric-login-parity",
+      "depends_on": []
+    },
+    {
+      "issue": 1007,
+      "branch": "feat/1007-unified-driver-van-live-tracking",
+      "depends_on": []
+    },
+    {
+      "issue": 1008,
+      "branch": "feat/1008-customer-real-invoice",
+      "depends_on": []
+    },
+    {
+      "issue": 1009,
+      "branch": "ci/1009-release-artifact-contract-audit",
+      "depends_on": []
+    },
+    {
+      "issue": 1010,
+      "branch": "test/1010-localization-data-parity-audit",
+      "depends_on": [
+        1003,
+        1004,
+        1005,
+        1006,
+        1007,
+        1008
+      ]
+    },
+    {
+      "issue": 1011,
+      "branch": "test/1011-v42-cross-app-regression",
+      "depends_on": [
+        1002,
+        1003,
+        1004,
+        1005,
+        1006,
+        1007,
+        1008,
+        1009,
+        1010
+      ]
+    },
+    {
+      "issue": 1012,
+      "branch": "test/1012-v42-final-convergence",
+      "depends_on": [
+        1011
+      ]
+    }
+  ],
+  "final_gate_issue": 1012,
+  "connection_loss_rule": "Re-read live GitHub before retrying any uncertain mutation; resume same Issue/branch/PR.",
+  "main_merge_allowed": false
+}
