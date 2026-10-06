@@ -422,24 +422,6 @@
 @if($section === 'fleet')
     @include('admin._driver-live-map-scripts')
 @elseif($section === 'territories')
-    @php
-        $existingTerritoryFeatures = $territories
-            ->flatMap(function ($territory) use ($ar) {
-                return $territory->geometries->map(function ($geometry) use ($territory, $ar) {
-                    return [
-                        'type' => 'Feature',
-                        'properties' => [
-                            'territory_id' => $territory->id,
-                            'code' => $territory->code,
-                            'name' => $ar ? $territory->name_ar : $territory->name_en,
-                        ],
-                        'geometry' => $geometry->geojson,
-                    ];
-                });
-            })
-            ->values()
-            ->all();
-    @endphp
     <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
     <script>
     (() => {
@@ -447,7 +429,20 @@
         if (!node || !window.L) return;
         const map = L.map(node).setView([29.3759,47.9774],10);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-        const existing = @json($existingTerritoryFeatures);
+        const existing = [];
+        @foreach($territories as $territory)
+            @foreach($territory->geometries as $geometry)
+                existing.push({
+                    type: 'Feature',
+                    properties: {
+                        territory_id: @json($territory->id),
+                        code: @json($territory->code),
+                        name: @json($ar ? $territory->name_ar : $territory->name_en),
+                    },
+                    geometry: @json($geometry->geojson),
+                });
+            @endforeach
+        @endforeach
         const existingLayer = L.geoJSON({type:'FeatureCollection',features:existing},{
             onEachFeature:(feature,layer)=>layer.bindPopup((feature.properties?.name||feature.properties?.code||'Territory'))
         }).addTo(map);

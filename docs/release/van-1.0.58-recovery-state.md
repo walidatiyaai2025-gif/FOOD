@@ -38,3 +38,12 @@
 - The same view also had an incomplete Customer relationship table change: the `Collection context` header existed without a matching cell. The prepared fix renders the canonical `collection_context` already supplied by `VanCustomerCollectionContextService`.
 - Because a setup-delivered Blade file changes, the next successful Fresh Setup run must regenerate/publish the Setup ZIP/artifacts before final cleanup.
 - Next action: validate the application-fix checkpoint end-to-end, then inspect the artifact publication commit before final cleanup.
+
+## Follow-up from run 37465399043
+
+- Head `41ca1672f68cc13cdf3abd17adab0ede1b2386af` removed the original Blade parse error.
+- New exact failure: `Undefined variable $existingTerritoryFeatures` on the Territories page.
+- Interpretation: the complex nested expression is no longer a syntax blocker, but the intermediate Blade PHP variable is not reliable in this rendering path.
+- Safer fix prepared: remove the intermediate variable entirely and emit the existing GeoJSON features through Blade `@foreach` loops with simple scalar/object `@json` expressions.
+- Customer Collection context rendering from the same checkpoint remains in place.
+- Next action: validate the simplified Territories rendering on a new exact-head Fresh Setup run.
