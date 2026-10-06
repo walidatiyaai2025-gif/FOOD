@@ -242,7 +242,7 @@
                 <strong>{{ $ar?'كيف يتم الربط؟':'How the relationship is derived' }}</strong>
                 <p class="fieldops-muted">{{ $ar?'تُعرض العلاقة من الزيارة الفعلية + المشغل + إسناد الفان والمنطقة، بدون إنشاء نموذج ربط موازٍ.' : 'The relationship is derived from the canonical visit + operator + Van assignment/territory structures; no parallel customer-assignment model is introduced.' }}</p>
             </div>
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الفان':'Van' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'المسار':'Route' }}</th><th>{{ $ar?'آخر زيارة':'Latest visit' }}</th><th>{{ $ar?'الحالة':'Status' }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الفان':'Van' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'المسار':'Route' }}</th><th>{{ $ar?'التحصيل':'Collection context' }}</th><th>{{ $ar?'آخر زيارة':'Latest visit' }}</th><th>{{ $ar?'الحالة':'Status' }}</th></tr></thead><tbody>
             @forelse($relationships as $visit)
                 @php($a = $visit->getRelation('servingAssignment'))
                 <tr><td>{{ $visit->customer_display }}</td><td>{{ strtoupper($visit->customer_type) }}</td><td>{{ $a?->van?->code ?: (($visit->metadata['van_id'] ?? null) ? '#'.$visit->metadata['van_id'] : '—') }}</td><td>{{ $visit->actor?->name ?: ('User #'.$visit->actor_user_id) }}</td><td>{{ $a?->territory_key ?: ($visit->metadata['territory_key'] ?? '—') }}</td><td>{{ $visit->metadata['route_key'] ?? ($visit->metadata['route_code'] ?? '—') }}</td><td>#{{ $visit->id }} · {{ $visit->updated_at }}</td><td>{{ $visit->status }}</td></tr>
@@ -260,6 +260,7 @@
                         <label>{{ $ar?'نوع العميل':'Customer type' }}<select name="customer_type"><option value="b2b">B2B</option><option value="b2c">B2C</option></select></label>
                         <label>{{ $ar?'رقم العميل':'Customer ID' }}<input type="number" min="1" name="customer_id" required></label>
                         <label>{{ $ar?'وقت الزيارة':'Planned at' }}<input type="datetime-local" name="planned_at"></label>
+                        <label>{{ $ar?'المتجر (اختياري)':'Store ID (optional)' }}<input type="number" min="1" name="store_id"></label>
                         <label>{{ $ar?'كود المسار':'Route key' }}<input name="route_key"></label>
                     </div>
                     <button class="foodex-primary">{{ $ar?'إنشاء الزيارة':'Create planned visit' }}</button>
