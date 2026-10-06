@@ -92,6 +92,7 @@ backend/app/Http/Controllers/Admin/CommercialDashboardController.php
 backend/app/Http/Controllers/Admin/CouponManagementController.php
 backend/app/Http/Controllers/Admin/Customer360Controller.php
 backend/app/Http/Controllers/Admin/DriverLiveTrackingDashboardController.php
+backend/app/Http/Controllers/Admin/FieldOperationsController.php
 backend/app/Http/Controllers/Admin/InvoiceController.php
 backend/app/Http/Controllers/Admin/LiveAdController.php
 backend/app/Http/Controllers/Admin/LookupManagementController.php
