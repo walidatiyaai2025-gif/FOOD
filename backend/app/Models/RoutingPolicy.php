@@ -13,6 +13,7 @@ class RoutingPolicy extends Model
 {
     protected $guarded = [];
 
+    /** @return HasMany<RoutingPolicyRule, $this> */
     public function rules(): HasMany
     {
         return $this->hasMany(RoutingPolicyRule::class)->orderBy('position');
