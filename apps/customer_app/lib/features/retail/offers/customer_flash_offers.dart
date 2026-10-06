@@ -532,7 +532,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                           items: offer.sellingUnits
                               .map(
                                 (unit) => DropdownMenuItem<int>(
-                                  initialValue: unit.id,
+                                  value: unit.id,
                                   child: Text(
                                     unit.label.isEmpty
                                         ? (_ar ? 'وحدة' : 'Unit')
@@ -772,7 +772,7 @@ class _CustomerFlashCheckoutScreenState
               items: options.addresses
                   .map(
                     (address) => DropdownMenuItem<int>(
-                      initialValue: address.id,
+                      value: address.id,
                       child: Text(
                         [address.label, address.line1, address.city]
                             .where((part) => part.trim().isNotEmpty)
@@ -795,7 +795,7 @@ class _CustomerFlashCheckoutScreenState
               items: options.paymentMethods
                   .map(
                     (method) => DropdownMenuItem<String>(
-                      initialValue: method,
+                      value: method,
                       child: Text(method),
                     ),
                   )
