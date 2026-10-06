@@ -27,6 +27,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Main push fails after green PR because deployable code changed without VERSION bump | `scripts/validate-premerge-release-version.sh` | Mirror main-push release/version preconditions before merge; bump VERSION and synchronize Customer/Driver identities. |
 
 | Partial release identity sync: VERSION/pubspec updated but Customer/Driver runtime `_appVersion` remains previous release | `bash scripts/release-readiness.sh` | Treat version bump as atomic; synchronize root, mobile build, visible/runtime, notes and changelog identities before push. |
+| Partial release publication: deployable VERSION bump is not paired with the exact update bundle, manifest/checksum and one append-only release-registry entry | `scripts/validate-repo.sh` + update-bundle validation | Treat a release bump as one atomic publication unit: generate the exact-version deterministic update bundle, commit its matching manifest/checksum/file list, append exactly one immutable registry entry with the exact package SHA, then validate the complete set. |
 | Release readiness exits silently with no invariant name | named assertion output in release readiness | Release validators must print the exact failed invariant/value pair so workers can fix first-pass failures quickly. |
 
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
