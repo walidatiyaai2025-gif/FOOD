@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CommerceQuoteService;
+use App\Services\CommercialPolicyService;
 use App\Services\CouponRedemptionService;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
@@ -36,6 +37,7 @@ class CheckoutController extends Controller
         AuditLogger $auditLogger,
         DashboardOperationalNotifier $dashboardNotifier,
         CommerceQuoteService $quotes,
+        CommercialPolicyService $commercialPolicy,
         InvoiceService $invoices,
     ): JsonResponse {
         $validated = $request->validate([
@@ -122,6 +124,7 @@ class CheckoutController extends Controller
             $auditLogger,
             $request,
             $quotes,
+            $commercialPolicy,
             $invoices,
         ): array {
             $existing = Order::query()
@@ -277,7 +280,26 @@ class CheckoutController extends Controller
                 OrderItem::query()->create([
                     'order_id' => $order->getKey(),
                     ...$snapshot,
+                    'selling_unit_quantity' => $snapshot['quantity'],
+                    'base_quantity' => $snapshot['quantity'],
+                    'conversion_factor_snapshot' => 1,
                 ]);
+
+                try {
+                    $commercialPolicy->reserveBaseQuantityForOrder(
+                        (int) $order->getKey(),
+                        $legacyCustomerId,
+                        (int) $snapshot['product_id'],
+                        (float) $snapshot['quantity'],
+                        'customer',
+                    );
+                } catch (\DomainException $exception) {
+                    throw ValidationException::withMessages([
+                        'items' => [
+                            'Commercial policy rejected product '.$snapshot['product_id'].': '.$exception->getMessage(),
+                        ],
+                    ]);
+                }
             }
 
             foreach ($reservations as $reservation) {
