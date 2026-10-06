@@ -453,7 +453,6 @@ jobs:
 
           FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php prepare
 
-          # RECOVERY_CHECKPOINT_MARKER: remove with the recovery ledger after exact-head GREEN.
           stop_server() {
             local pid_file="$1"
             [[ -f "$pid_file" ]] || return 0
