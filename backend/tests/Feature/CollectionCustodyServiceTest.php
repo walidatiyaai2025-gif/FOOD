@@ -13,7 +13,6 @@ class CollectionCustodyServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-
     public function test_collection_posts_paid_payment_and_custody_idempotently(): void
     {
         $actor = User::factory()->create();
