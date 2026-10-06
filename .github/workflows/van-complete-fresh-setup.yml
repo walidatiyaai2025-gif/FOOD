@@ -236,6 +236,9 @@ jobs:
 
               $now = now();
               $b2bStoreTypeId = (int) $db::table('store_types')->where('code', 'B2B')->value('id');
+              if ($b2bStoreTypeId <= 0) {
+                  throw new RuntimeException('Expected seeded B2B store type was not returned after fresh setup.');
+              }
               $b2bStoreId = (int) $db::table('stores')->insertGetId([
                   'store_type_id' => $b2bStoreTypeId,
                   'code' => 'FRESH-VAN-B2B',
@@ -244,7 +247,14 @@ jobs:
                   'created_at' => $now,
                   'updated_at' => $now,
               ]);
+              if ($b2bStoreId <= 0 || ! $db::table('stores')->where('id', $b2bStoreId)->where('store_type_id', $b2bStoreTypeId)->where('is_active', true)->exists()) {
+                  throw new RuntimeException('Expected seeded B2B store was not returned after fresh setup.');
+              }
+
               $storeTypeId = (int) $db::table('store_types')->where('code', 'B2C')->value('id');
+              if ($storeTypeId <= 0) {
+                  throw new RuntimeException('Expected seeded B2C store type was not returned after fresh setup.');
+              }
               $storeId = (int) $db::table('stores')->insertGetId([
                   'store_type_id' => $storeTypeId,
                   'code' => 'FRESH-VAN',
@@ -253,6 +263,10 @@ jobs:
                   'created_at' => $now,
                   'updated_at' => $now,
               ]);
+              if ($storeId <= 0 || ! $db::table('stores')->where('id', $storeId)->where('store_type_id', $storeTypeId)->where('is_active', true)->exists()) {
+                  throw new RuntimeException('Expected seeded B2C store was not returned after fresh setup.');
+              }
+
               $catalogId = (int) $db::table('catalogs')->insertGetId([
                   'store_id' => $storeId,
                   'channel' => 'b2c',
@@ -407,6 +421,8 @@ jobs:
 
               file_put_contents('/tmp/foodex-fresh-fixture.json', json_encode([
                   'store_id' => $storeId,
+                  'b2b_store_id' => $b2bStoreId,
+                  'owner_id' => $owner->id,
                   'product_id' => $productId,
                   'customer_id' => $domainCustomerId,
                   'flash_offer_id' => $offerId,
@@ -423,33 +439,72 @@ jobs:
 
           FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php prepare
 
-          (
-            cd "$fresh/backend"
-            php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-install-server.log 2>&1 &
-            echo $! >/tmp/foodex-install-server.pid
-          )
-          for i in {1..30}; do
-            code="$(curl -sS -o /tmp/install-before.html -w '%{http_code}' http://127.0.0.1:8099/install || true)"
-            [[ "$code" == "200" ]] && break
-            sleep 1
-          done
-          test "$code" = "200"
-          grep -Fq 'FOODEX' /tmp/install-before.html
-          kill "$(cat /tmp/foodex-install-server.pid)" || true
+          # RECOVERY_CHECKPOINT_MARKER: remove with the recovery ledger after exact-head GREEN.
+          stop_server() {
+            local pid_file="$1"
+            [[ -f "$pid_file" ]] || return 0
+            local pid
+            pid="$(cat "$pid_file")"
+            if kill -0 "$pid" 2>/dev/null; then
+              kill "$pid" 2>/dev/null || true
+              for _ in {1..20}; do
+                kill -0 "$pid" 2>/dev/null || break
+                sleep 0.25
+              done
+              if kill -0 "$pid" 2>/dev/null; then
+                kill -9 "$pid" 2>/dev/null || true
+              fi
+            fi
+            rm -f "$pid_file"
+          }
 
-          FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php finish
+          wait_for_http() {
+            local label="$1"
+            local pid_file="$2"
+            local log_file="$3"
+            local url="$4"
+            local output_file="$5"
+            local expected_code="$6"
+            local pid code
+            pid="$(cat "$pid_file")"
 
+            for _ in {1..45}; do
+              if ! kill -0 "$pid" 2>/dev/null; then
+                echo "::error::$label server exited before becoming ready."
+                cat "$log_file" || true
+                tail -n 200 "$fresh/backend/storage/logs/laravel.log" 2>/dev/null || true
+                return 1
+              fi
+              code="$(curl -s -o "$output_file" -w '%{http_code}' "$url" || true)"
+              if [[ "$code" == "$expected_code" ]]; then
+                return 0
+              fi
+              sleep 1
+            done
+
+            echo "::error::$label readiness timed out; expected HTTP $expected_code from $url."
+            cat "$log_file" || true
+            tail -n 200 "$fresh/backend/storage/logs/laravel.log" 2>/dev/null || true
+            return 1
+          }
+
+          rm -f /tmp/foodex-installed-server.log /tmp/foodex-installed-server.pid
           (
             cd "$fresh/backend"
             php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-installed-server.log 2>&1 &
             echo $! >/tmp/foodex-installed-server.pid
           )
+          trap 'stop_server /tmp/foodex-installed-server.pid' EXIT
+
+          wait_for_http             "Pre-finish installer"             /tmp/foodex-installed-server.pid             /tmp/foodex-installed-server.log             http://127.0.0.1:8099/install             /tmp/install-before.html             200
+          grep -Fq 'FOODEX' /tmp/install-before.html
+
+          FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php finish
+
+          wait_for_http             "Post-finish dashboard"             /tmp/foodex-installed-server.pid             /tmp/foodex-installed-server.log             'http://127.0.0.1:8099/admin/b2c/login?locale=en'             /tmp/login.html             200
+
           rm -f /tmp/foodex-cookies.txt
-          for i in {1..30}; do
-            code="$(curl -sS -c /tmp/foodex-cookies.txt -o /tmp/login.html -w '%{http_code}' 'http://127.0.0.1:8099/admin/b2c/login?locale=en' || true)"
-            [[ "$code" == "200" ]] && break
-            sleep 1
-          done
+          code="$(curl -sS -c /tmp/foodex-cookies.txt -o /tmp/login.html -w '%{http_code}' 'http://127.0.0.1:8099/admin/b2c/login?locale=en')"
           test "$code" = "200"
 
           csrf="$(python3 - <<'PY'
@@ -465,7 +520,20 @@ jobs:
 
           eval "$(python3 - <<'PY'
           import json, shlex
-          data=json.load(open('/tmp/foodex-fresh-fixture.json'))
+          path='/tmp/foodex-fresh-fixture.json'
+          data=json.load(open(path))
+          required=['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token','flags']
+          missing=[key for key in required if key not in data]
+          if missing:
+              detail=' Expected seeded B2B store was not returned after fresh setup.' if 'b2b_store_id' in missing else ''
+              raise SystemExit(f"Fresh-install fixture missing required keys: {missing}.{detail}")
+          for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id']:
+              try:
+                  value=int(data[key])
+              except (TypeError, ValueError):
+                  raise SystemExit(f"Fresh-install fixture key {key} is not a valid integer ID: {data[key]!r}")
+              if value <= 0:
+                  raise SystemExit(f"Fresh-install fixture key {key} is not a real positive ID: {value}")
           for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
               print(f"{key.upper()}={shlex.quote(str(data[key]))}")
           flags=data['flags']
@@ -731,7 +799,8 @@ jobs:
           VAN_ID="$VAN_ID" node /tmp/capture-fresh-van.mjs
           test "$(find "$GITHUB_WORKSPACE/ScreenShots/FreshVan" -type f -name '*.png' | wc -l | tr -d ' ')" -eq 24
 
-          kill "$(cat /tmp/foodex-installed-server.pid)" || true
+          stop_server /tmp/foodex-installed-server.pid
+          trap - EXIT
 
           (
             cd "$fresh/backend"
@@ -929,6 +998,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          changed_paths="$(git diff --name-only "${GITHUB_SHA}^" "$GITHUB_SHA" || true)"
+          if ! printf '%s\n' "$changed_paths" | grep -Eq '^(VERSION$|backend/|apps/customer_app/|apps/driver_app/|apps/van_app/|scripts/build-dashboard-update\.sh$|scripts/build-update-bundle\.py$|Release/INSTALL-FIRST\.txt$|store/submission/metadata\.json$)'; then
+            echo "Fresh Setup validated a CI/recovery-only change; setup-delivered files are unchanged, so canonical release artifacts will not be republished."
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f             Release/FOODEX-Laravel-Setup.zip             Release/BUILD_INFO.json             Release/FRESH_INSTALL_EVIDENCE.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             docs/release/RELEASE_REGISTRY.json
