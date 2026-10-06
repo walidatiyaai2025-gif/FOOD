@@ -122,7 +122,7 @@ def main() -> None:
         raise SystemExit("Generated Android app Gradle file not found")
 
     rendered = (kotlin if kotlin.is_file() else groovy).read_text()
-    if "signingConfigs.getByName("debug")" in rendered or "signingConfigs.debug" in rendered:
+    if 'signingConfigs.getByName("debug")' in rendered or "signingConfigs.debug" in rendered:
         raise SystemExit("Store release configuration still references debug signing")
 
     print("Explicit FOODEX release signing configured; secret values were not persisted.")
