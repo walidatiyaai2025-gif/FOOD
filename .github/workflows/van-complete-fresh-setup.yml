@@ -503,6 +503,113 @@ jobs:
           grep -Fq 'No assignments.' /tmp/field-assignments.html
           grep -Fq 'No address-quality reviews.' /tmp/field-address-quality.html
           grep -Fq 'No routing policies.' /tmp/field-routing.html
+          field_csrf="$(python3 - <<'PY'
+          import html, re
+          text=open('/tmp/field-vans.html',encoding='utf-8').read()
+          match=re.search(r'name="_token"\s+value="([^"]+)"',text)
+          assert match, 'Field Operations CSRF token missing.'
+          print(html.unescape(match.group(1)))
+          PY
+          )"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/van-create-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "code=FRESH-VAN-UI"             --data-urlencode "plate_number=FV-1058"             --data-urlencode "vehicle_type=Sales Van"             --data-urlencode "capacity_units=1200"             --data-urlencode "capacity_weight=2500"             --data-urlencode "notes=Fresh-install Admin UI acceptance"             http://127.0.0.1:8099/admin/field-operations/vans)" = "302"
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-vans-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/vans)" = "200"
+          grep -Fq 'FRESH-VAN-UI' /tmp/field-vans-populated.html
+          VAN_ID="$(python3 - <<'PY'
+          import re
+          text=open('/tmp/field-vans-populated.html',encoding='utf-8').read()
+          match=re.search(r'/admin/field-operations/vans/(\d+)',text)
+          assert match, 'Created Van detail link missing.'
+          print(match.group(1))
+          PY
+          )"
+
+          EFFECTIVE_FROM="$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"
+          grep -Fq 'FRESH-VAN-UI' /tmp/field-assignments-populated.html
+          ASSIGNMENT_ID="$(python3 - <<'PY'
+          import re
+          text=open('/tmp/field-assignments-populated.html',encoding='utf-8').read()
+          match=re.search(r'<td>(\d+)</td><td>FRESH-VAN-UI</td>',text)
+          assert match, 'Created Van assignment row missing.'
+          print(match.group(1))
+          PY
+          )"
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/visit-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "assignment_id=$ASSIGNMENT_ID"             --data-urlencode "customer_type=b2c"             --data-urlencode "customer_id=$CUSTOMER_ID"             --data-urlencode "planned_at=$EFFECTIVE_FROM"             --data-urlencode "route_key=FRESH-ROUTE"             http://127.0.0.1:8099/admin/field-operations/visits)" = "302"
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
+          grep -Fq 'Fresh Van Customer' /tmp/field-visits-populated.html
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-customers-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/customers)" = "200"
+          grep -Fq 'Fresh Van Customer' /tmp/field-customers-populated.html
+          grep -Fq 'FRESH-VAN-UI' /tmp/field-customers-populated.html
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-van-detail.html -w '%{http_code}' "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID")" = "200"
+          grep -Fq 'Assignment history' /tmp/field-van-detail.html
+          grep -Fq 'FRESH-VAN-UI' /tmp/field-van-detail.html
+
+          CAPTURED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json'             -o /tmp/van-heartbeat.json -w '%{http_code}' -X POST             --data "$(printf '{"van_id":%s,"assignment_id":%s,"route_key":"FRESH-ROUTE","store_id":%s,"channel":"b2b","latitude":29.3759,"longitude":47.9774,"accuracy":8,"speed":3.2,"heading":90,"captured_at":"%s","app_version":"1.0.58"}' "$VAN_ID" "$ASSIGNMENT_ID" "$B2B_STORE_ID" "$CAPTURED_AT")"             http://127.0.0.1:8099/api/v1/admin/field-operations/fleet/van-heartbeat)" = "200"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -H 'Accept: application/json' -o /tmp/field-fleet-feed.json -w '%{http_code}'             "http://127.0.0.1:8099/admin/field-operations/fleet-map/feed?actor_type=van&channel=b2b&store_id=$B2B_STORE_ID")" = "200"
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/field-fleet-feed.json'))
+          assert data['data'], 'Fresh Van fleet feed is empty.'
+          row=data['data'][0]
+          assert row['entity_name'] == 'FRESH-VAN-UI', row
+          assert row['assignment']['id'] is not None, row
+          assert row['assignment']['operator_name'] == 'FOODEX Acceptance Owner', row
+          PY
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/geography-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "type=country"             --data-urlencode "code=KWFRESH"             --data-urlencode "country_code=KW"             --data-urlencode "name_ar=دولة قبول فودكس"             --data-urlencode "name_en=Fresh Acceptance Country"             http://127.0.0.1:8099/admin/field-operations/geography)" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-country.html http://127.0.0.1:8099/admin/field-operations/territories
+          COUNTRY_NODE_ID="$(python3 - <<'PY'
+          import re
+          text=open('/tmp/field-territories-country.html',encoding='utf-8').read()
+          match=re.search(r'<option value="(\d+)">Fresh Acceptance Country</option>',text)
+          assert match, 'Fresh geography country option missing.'
+          print(match.group(1))
+          PY
+          )"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/territory-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "code=FRESH-TERR"             --data-urlencode "name_ar=منطقة قبول فودكس"             --data-urlencode "name_en=Fresh Acceptance Territory"             --data-urlencode "country_node_id=$COUNTRY_NODE_ID"             --data-urlencode "status=active"             --data-urlencode "priority=100"             http://127.0.0.1:8099/admin/field-operations/territories)" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-populated.html http://127.0.0.1:8099/admin/field-operations/territories
+          TERRITORY_ID="$(python3 - <<'PY'
+          import re
+          text=open('/tmp/field-territories-populated.html',encoding='utf-8').read()
+          match=re.search(r'<option value="(\d+)">Fresh Acceptance Territory · FRESH-TERR</option>',text)
+          assert match, 'Fresh service territory option missing.'
+          print(match.group(1))
+          PY
+          )"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/geometry-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode 'geojson={"type":"Polygon","coordinates":[[[47.90,29.30],[48.05,29.30],[48.05,29.45],[47.90,29.45],[47.90,29.30]]]}'             "http://127.0.0.1:8099/admin/field-operations/territories/$TERRITORY_ID/geometry")" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-geometry.html http://127.0.0.1:8099/admin/field-operations/territories
+          grep -Fq 'Fresh Acceptance Territory' /tmp/field-territories-geometry.html
+          grep -Fq 'Geometries' /tmp/field-territories-geometry.html
+
+          cat > /tmp/foodex-address-fixture.php <<'PHP'
+          <?php
+          $root = getenv('FRESH_ROOT');
+          require $root.'/backend/vendor/autoload.php';
+          $app = require $root.'/backend/bootstrap/app.php';
+          $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+          $review = $app->make(App\Services\AddressQualityService::class)->queue(
+              'b2c_customer',
+              (int) getenv('CUSTOMER_ID'),
+              ['quality_class'=>'low_confidence','confidence'=>0.42,'reason'=>'Fresh-install address QA acceptance']
+          );
+          file_put_contents('/tmp/foodex-address-review-id', (string) $review->id);
+          PHP
+          FRESH_ROOT="$fresh" CUSTOMER_ID="$CUSTOMER_ID" php /tmp/foodex-address-fixture.php
+          REVIEW_ID="$(cat /tmp/foodex-address-review-id)"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/address-confirm-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "reason=Confirmed in fresh-install Admin acceptance"             "http://127.0.0.1:8099/admin/field-operations/address-quality/$REVIEW_ID/confirm")" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-address-quality-populated.html http://127.0.0.1:8099/admin/field-operations/address-quality
+          grep -Fq 'confirmed' /tmp/field-address-quality-populated.html
+          grep -Fq 'Details &amp; history' /tmp/field-address-quality-populated.html
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/routing-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "code=FRESH-ROUTING"             --data-urlencode "mode=MANUAL"             --data-urlencode 'rules_json=[{"name":"Fresh route","conditions":[],"actions":[],"enabled":true}]'             --data-urlencode "reason=Fresh-install Admin UI acceptance"             http://127.0.0.1:8099/admin/field-operations/routing-policies)" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-routing-populated.html http://127.0.0.1:8099/admin/field-operations/routing-policies
+          grep -Fq 'FRESH-ROUTING' /tmp/field-routing-populated.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/sales-control?store_id=$STORE_ID")" = "200"
           grep -Fq 'Product Sales Control' /tmp/sales-control.html
