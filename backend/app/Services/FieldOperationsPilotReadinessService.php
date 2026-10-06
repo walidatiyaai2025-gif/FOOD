@@ -11,8 +11,11 @@ use Illuminate\Validation\ValidationException;
 final class FieldOperationsPilotReadinessService
 {
     public const STATE_NOT_READY = 'NOT_READY';
+
     public const STATE_READY = 'READY';
+
     public const STATE_ACTIVE = 'ACTIVE';
+
     public const STATE_SUSPENDED = 'SUSPENDED';
 
     public function __construct(
@@ -20,8 +23,9 @@ final class FieldOperationsPilotReadinessService
         private readonly AuditLogger $audit,
     ) {}
 
-    /** @param array<string,string|int> $scope
-     *  @return array<string,mixed>
+    /**
+     * @param  array<string,string|int>  $scope
+     * @return array<string,mixed>
      */
     public function evaluate(array $scope): array
     {
