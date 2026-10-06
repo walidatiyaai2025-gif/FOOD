@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "e1c6df3ca13468c0c2c77c5384bbbadcb178774624ebbd2fac7b75081b43af53",
+  "sha256": "5a0228afeb4b14ed0d2184d8e93ee4c0214e5079005c98bd5cb100d67e916517",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "fix(ci): widen normalized invoice currency type",
+  "release_notes": "#1007 Unified Dashboard Live Tracking — Drivers + Vans",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "e1c6df3ca13468c0c2c77c5384bbbadcb178774624ebbd2fac7b75081b43af53",
+    "sha256": "5a0228afeb4b14ed0d2184d8e93ee4c0214e5079005c98bd5cb100d67e916517",
     "contains_migrations": true,
-    "release_notes": "fix(ci): widen normalized invoice currency type"
+    "release_notes": "#1007 Unified Dashboard Live Tracking — Drivers + Vans"
   }
 }
