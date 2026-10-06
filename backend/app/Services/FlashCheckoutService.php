@@ -277,8 +277,8 @@ final class FlashCheckoutService
             }
 
             foreach ($locked->inventoryAllocations() as $allocation) {
-                $inventoryId = (int) ($allocation['inventory_id'] ?? 0);
-                $quantity = (float) ($allocation['quantity'] ?? 0);
+                $inventoryId = (int) $allocation['inventory_id'];
+                $quantity = (float) $allocation['quantity'];
                 if ($inventoryId <= 0 || $quantity <= 0) {
                     continue;
                 }

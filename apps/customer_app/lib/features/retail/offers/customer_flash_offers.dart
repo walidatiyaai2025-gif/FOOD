@@ -289,7 +289,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
 
   @override
   Future<void> release({required String reservationId}) async {
-    if (reservationId <= 0) return;
+    if (reservationId.trim().isEmpty) return;
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/flash-reservations/$reservationId/release'),
       headers: {..._headers, 'Content-Type': 'application/json'},
