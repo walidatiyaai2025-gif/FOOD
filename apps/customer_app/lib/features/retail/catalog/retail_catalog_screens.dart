@@ -99,7 +99,11 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
     }
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +293,11 @@ class _RetailCatalogCategoriesScreenState
   Future<List<B2cCategory>> _load() =>
       widget.catalogApi.categories(widget.storeId);
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -430,7 +438,11 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
 
   Future<List<B2cOffer>> _load() => widget.catalogApi.offers(widget.storeId);
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -626,7 +638,11 @@ class _RetailCatalogProductsScreenState
     });
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   void dispose() {
@@ -793,7 +809,11 @@ class _RetailCatalogProductScreenState
     }
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   Future<B2cProduct> _load() =>
       widget.catalogApi.product(widget.productId, storeId: widget.storeId);
