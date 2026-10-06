@@ -32,8 +32,26 @@ void main() {
       expect(offer.sellingUnits.single.id, 3);
       expect(offer.sellingUnits.single.conversionFactor, 10);
       expect(
-        offer.remainingAt(DateTime.parse('2026-10-06T08:00:30Z')),
+        offer.remainingAfter(const Duration(seconds: 30)),
         const Duration(minutes: 9, seconds: 30),
+      );
+    });
+
+
+    test('countdown is anchored to server sample, not device wall clock', () {
+      final offer = CustomerFlashOffer.fromMap({
+        'id': 2,
+        'ends_at': '2026-10-06T08:10:00Z',
+        'server_time': '2026-10-06T08:00:00Z',
+      });
+
+      expect(
+        offer.remainingAfter(const Duration(seconds: 45)),
+        const Duration(minutes: 9, seconds: 15),
+      );
+      expect(
+        offer.remainingAfter(const Duration(seconds: -30)),
+        const Duration(minutes: 10),
       );
     });
 
@@ -45,7 +63,7 @@ void main() {
       });
 
       expect(
-        offer.remainingAt(DateTime.parse('2026-10-06T08:01:00Z')),
+        offer.remainingAfter(const Duration(minutes: 2)),
         Duration.zero,
       );
     });
@@ -64,7 +82,7 @@ void main() {
       expect(reservation.active, isTrue);
       expect(reservation.offerId, 44);
       expect(
-        reservation.remainingAt(DateTime.parse('2026-10-06T08:02:00Z')),
+        reservation.remainingAfter(const Duration(minutes: 2)),
         const Duration(minutes: 3),
       );
     });
