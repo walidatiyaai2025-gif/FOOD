@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 final class FleetLocationService
 {
     /**
-     * @param array<string,mixed> $attributes
+     * @param  array<string,mixed>  $attributes
      */
     public function heartbeat(string $actorType, int $actorId, array $attributes): FleetCurrentLocation
     {
@@ -40,7 +40,7 @@ final class FleetLocationService
                 'vehicle_id' => $attributes['vehicle_id'] ?? ($attributes['van_id'] ?? null),
                 'assignment_id' => $attributes['assignment_id'] ?? null,
                 'route_key' => $attributes['route_key'] ?? null,
-                                'store_id' => $attributes['store_id'] ?? null,
+                'store_id' => $attributes['store_id'] ?? null,
                 'channel' => $attributes['channel'] ?? null,
                 'latitude' => $attributes['latitude'],
                 'longitude' => $attributes['longitude'],
