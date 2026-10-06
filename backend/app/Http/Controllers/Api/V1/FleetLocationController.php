@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\FleetCurrentLocation;
 use App\Models\User;
+use App\Models\Van;
+use App\Models\VanAssignment;
 use App\Services\FleetLocationService;
 use App\Services\OperationalTenantScope;
 use Carbon\CarbonImmutable;
@@ -62,6 +64,8 @@ class FleetLocationController extends Controller
 
         $data = $request->validate([
             'actor_type' => ['nullable', Rule::in(['driver', 'van'])],
+            'actor_id' => ['nullable', 'integer', 'min:1'],
+            'route_key' => ['nullable', 'string', 'max:128'],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', Rule::in(['b2b', 'b2c'])],
             'status' => ['nullable', Rule::in(['online', 'stale', 'offline'])],
@@ -104,6 +108,8 @@ class FleetLocationController extends Controller
                 }
             })
             ->when(isset($data['actor_type']), fn ($query) => $query->where('actor_type', $data['actor_type']))
+            ->when(isset($data['actor_id']), fn ($query) => $query->where('actor_id', (int) $data['actor_id']))
+            ->when(isset($data['route_key']), fn ($query) => $query->where('route_key', $data['route_key']))
             ->when(isset($data['north']), fn ($query) => $query->where('latitude', '<=', (float) $data['north']))
             ->when(isset($data['south']), fn ($query) => $query->where('latitude', '>=', (float) $data['south']))
             ->when(isset($data['east']), fn ($query) => $query->where('longitude', '<=', (float) $data['east']))
@@ -130,7 +136,7 @@ class FleetLocationController extends Controller
     /** @return array<string,mixed> */
     private function serialize(FleetCurrentLocation $location, FleetLocationService $service): array
     {
-        return [
+        $payload = [
             'actor_type' => (string) $location->actor_type,
             'actor_id' => (int) $location->actor_id,
             'vehicle_id' => $location->vehicle_id === null ? null : (int) $location->vehicle_id,
@@ -148,6 +154,42 @@ class FleetLocationController extends Controller
             'received_at' => CarbonImmutable::parse((string) $location->received_at)->toISOString(),
             'source_app' => $location->source_app,
             'app_version' => $location->app_version,
+        ];
+
+        if ((string) $location->actor_type !== 'van') {
+            return $payload;
+        }
+
+        $van = Van::query()->find((int) $location->actor_id);
+        $assignment = $location->assignment_id === null
+            ? VanAssignment::query()
+                ->where('van_id', (int) $location->actor_id)
+                ->where('status', 'active')
+                ->orderByDesc('effective_from')
+                ->first()
+            : VanAssignment::query()->find((int) $location->assignment_id);
+        $operator = $assignment?->representative_user_id === null
+            ? null
+            : User::query()->find((int) $assignment->representative_user_id);
+
+        return [
+            ...$payload,
+            'entity_name' => $van?->code ?: 'Van #'.(int) $location->actor_id,
+            'van' => $van === null ? null : [
+                'id' => (int) $van->id,
+                'code' => (string) $van->code,
+                'plate_number' => $van->plate_number,
+                'vehicle_type' => $van->vehicle_type,
+                'operational_status' => (string) $van->status,
+            ],
+            'assignment' => $assignment === null ? null : [
+                'id' => (int) $assignment->id,
+                'type' => (string) $assignment->assignment_type,
+                'territory_key' => $assignment->territory_key,
+                'warehouse_id' => $assignment->warehouse_id === null ? null : (int) $assignment->warehouse_id,
+                'operator_user_id' => $assignment->representative_user_id === null ? null : (int) $assignment->representative_user_id,
+                'operator_name' => $operator?->name,
+            ],
         ];
     }
 }
