@@ -9,7 +9,7 @@ import 'package:foodex_customer_app/features/customer_orders/customer_orders_api
 
 void main() {
   testWidgets(
-    'lifecycle notification refetches authoritative order instead of trusting payload',
+    'order detail refetches authoritative collection state after lifecycle notification',
     (tester) async {
       final notifications = StreamController<Map<String, dynamic>>();
       final api = _FakeOrdersApi([
@@ -36,7 +36,7 @@ void main() {
           locale: const Locale('en'),
           overrides: const {},
           child: MaterialApp(
-            home: CustomerOrderTrackingScreen(
+            home: CustomerOrderDetailsScreen(
               api: api,
               orderId: 91,
               orderContext: const CustomerOrderContext(

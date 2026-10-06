@@ -593,7 +593,14 @@ class OrderController extends Controller
 
         $invoiceAmounts = $invoice instanceof Invoice
             ? app(B2bAccountLedgerService::class)->invoiceAmounts($invoice)
-            : null;
+            : [
+                'invoice_total' => 0.0,
+                'paid_amount' => 0.0,
+                'debit_adjustments' => 0.0,
+                'credit_adjustments' => 0.0,
+                'outstanding_amount' => 0.0,
+                'credit_amount' => 0.0,
+            ];
 
         $collectionReceipts = $invoice instanceof Invoice
             ? DB::table('collection_allocations')
