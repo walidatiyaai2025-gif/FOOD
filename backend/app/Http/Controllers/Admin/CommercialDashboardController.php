@@ -86,7 +86,7 @@ final class CommercialDashboardController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function render(Request $request, User $user, int $storeId, string $section, array $payload): View
     {
