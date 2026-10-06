@@ -86,6 +86,8 @@ def looks_like_technical_literal(value: str) -> bool:
     value = value.strip()
     if not value:
         return True
+    if ARABIC_RE.search(value):
+        return False
     if value in {"ar", "en", "∞", "-", "—", "…"}:
         return True
     if value.startswith(("/", "http://", "https://", "assets/", "package:")):
