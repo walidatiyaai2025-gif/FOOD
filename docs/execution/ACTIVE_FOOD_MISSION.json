@@ -91,5 +91,16 @@
   ],
   "final_gate_issue": 1012,
   "connection_loss_rule": "Re-read live GitHub before retrying any uncertain mutation; resume same Issue/branch/PR.",
-  "main_merge_allowed": false
+  "main_merge_allowed": false,
+  "terminal_release_build": {
+    "required": true,
+    "owner_setup_branch": "release/1.0.58-van-complete",
+    "workflow": "FOODEX Van 1.0.58 Fresh Setup",
+    "setup_zip": "Release/FOODEX-Laravel-Setup.zip",
+    "build_info": "Release/BUILD_INFO.json",
+    "fresh_install_evidence": "Release/FRESH_INSTALL_EVIDENCE.json",
+    "source_commit_rule": "BUILD_INFO.json.source_commit and FRESH_INSTALL_EVIDENCE.json.source_commit must equal the exact final integrated implementation SHA; only generated release-artifact publication commits may follow it.",
+    "clean_install_from_zip_required": true,
+    "stale_setup_forbidden": true
+  }
 }
