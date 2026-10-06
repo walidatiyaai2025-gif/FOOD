@@ -10,6 +10,31 @@ The objective is simple:
 
 GitHub is the source of truth. Chat history is not.
 
+## Mandatory Dashboard UI/UX and Master-Data contract
+
+Before implementing or modifying any Dashboard page, Admin navigation, business-facing form, or application-management feature, every worker **MUST** read and follow:
+
+- `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
+
+This is a repository-level Definition-of-Done contract, not optional visual guidance.
+
+Core invariants include:
+
+- Sidebar navigation is organized by business domain; do not hide unrelated features inside one project/epic menu.
+- Related page functions use horizontal page-level tabs where appropriate.
+- Add/Create actions use clear FOODEX primary buttons and Modal/Drawer/Wizard workflows.
+- Manage/Edit/View actions open the exact record directly rather than redirecting to a generic list.
+- Dashboard action buttons use FOODEX green with white text; default Bootstrap-looking action buttons are not acceptable.
+- Data grids follow the Orders-grid interaction model with useful row data and clear row actions.
+- Business users must never be asked to type internal database IDs, keys, technical codes, or raw JSON when a Lookup, Enum, or Builder is appropriate.
+- Every Lookup must read from its authoritative Master Data source/page; do not hard-code managed Master Data into dropdowns.
+- Geography/Territories are map-first for business users; raw GeoJSON/keys remain advanced/internal.
+- Administration opens as an icon/card Admin Hub rather than a long nested link list.
+- Customer, Driver and Van are three first-class FOODEX applications; app-level capabilities require parity evaluation across all three.
+- Arabic/English, responsive behavior and shared FOODEX components are acceptance requirements.
+
+A worker must classify every business-facing field before implementation as Lookup, Enum, Builder, legitimate free input, or advanced technical input. Raw IDs/keys/JSON are never the default UI simply because the backend accepts them.
+
 ---
 
 ## 1. Mandatory rule: One Task = One Owner = One Branch = One PR
