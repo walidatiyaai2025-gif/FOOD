@@ -11,6 +11,7 @@ const {
   assertAppendOnly,
   compareVersions,
   validateRegistry,
+  validationVersionForCandidate,
 } = require('./release-registry.js');
 
 function fixture(version = '1.0.40') {
@@ -90,4 +91,30 @@ test('published entries are immutable and a release appends exactly one higher v
   const mutated = JSON.parse(JSON.stringify(head));
   mutated.releases[0].note = 'rewritten history';
   assert.throws(() => assertAppendOnly(base, mutated), /immutable/);
+});
+
+
+test('unpublished PR candidate may advance VERSION while published registry stays immutable', () => {
+  const { root, registry } = fixture('1.0.57');
+  fs.writeFileSync(path.join(root, 'VERSION'), '1.0.58\n');
+
+  const validationVersion = validationVersionForCandidate(
+    '1.0.58',
+    registry,
+    JSON.parse(JSON.stringify(registry)),
+  );
+
+  assert.equal(validationVersion, '1.0.57');
+  assert.doesNotThrow(() => validateRegistry(root, registry, validationVersion));
+});
+
+test('unpublished PR candidate cannot rewrite published registry history', () => {
+  const { registry: base } = fixture('1.0.57');
+  const mutated = JSON.parse(JSON.stringify(base));
+  mutated.releases[0].note = 'rewritten';
+
+  assert.throws(
+    () => validationVersionForCandidate('1.0.58', mutated, base),
+    /may not mutate the published release registry/,
+  );
 });

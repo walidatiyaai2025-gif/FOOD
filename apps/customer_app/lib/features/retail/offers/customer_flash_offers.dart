@@ -103,7 +103,7 @@ class CustomerFlashReservation {
     required this.status,
   });
 
-  final String id;
+  final int id;
   final int offerId;
   final DateTime expiresAt;
   final DateTime serverTime;
@@ -122,7 +122,7 @@ class CustomerFlashReservation {
 
   factory CustomerFlashReservation.fromMap(Map<String, dynamic> map) =>
       CustomerFlashReservation(
-        id: map['id']?.toString() ?? '',
+        id: _int(map['id']),
         offerId: _int(map['offer_id']),
         expiresAt: _date(map['expires_at']),
         serverTime: _date(map['server_time']),
@@ -142,24 +142,15 @@ abstract interface class CustomerFlashOffersApi {
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId});
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required String reservationId,
+    required int reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
   });
-  Future<void> release({required String reservationId});
+  Future<void> release({required int reservationId});
 }
 
-abstract interface class CustomerFlashOffersAnalyticsApi {
-  Future<void> trackEvent({
-    required int storeId,
-    required int offerId,
-    required String event,
-  });
-}
-
-class HttpCustomerFlashOffersApi
-    implements CustomerFlashOffersApi, CustomerFlashOffersAnalyticsApi {
+class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   HttpCustomerFlashOffersApi({
     required this.token,
     String? baseUrl,
@@ -181,7 +172,7 @@ class HttpCustomerFlashOffersApi
   @override
   Future<List<CustomerFlashOffer>> activeOffers({required int storeId}) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/v1/flash-offers').replace(
+      Uri.parse('$baseUrl/api/v1/flash-offers/active').replace(
         queryParameters: {'store_id': '$storeId', 'channel': 'customer'},
       ),
       headers: {..._headers, 'X-FOODEX-Store-ID': '$storeId'},
@@ -214,9 +205,7 @@ class HttpCustomerFlashOffersApi
     final reservation = CustomerFlashReservation.fromMap(
       Map<String, dynamic>.from(data),
     );
-    return reservation.id.trim().isNotEmpty && reservation.active
-        ? reservation
-        : null;
+    return reservation.id > 0 && reservation.active ? reservation : null;
   }
 
   @override
@@ -229,12 +218,8 @@ class HttpCustomerFlashOffersApi
     if (token == null || token!.trim().isEmpty) {
       throw const RetailCommerceException('authentication_required');
     }
-    final offerProductId = sellingUnitId ?? offerId;
-    if (offerProductId <= 0) {
-      throw const RetailCommerceException('invalid_flash_offer_product');
-    }
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/flash-offers/products/$offerProductId/reserve'),
+      Uri.parse('$baseUrl/api/v1/flash-offers/$offerId/reservations'),
       headers: {
         ..._headers,
         'Content-Type': 'application/json',
@@ -244,8 +229,8 @@ class HttpCustomerFlashOffersApi
         'store_id': storeId,
         'channel': 'customer',
         'quantity': quantity,
-        'idempotency_key':
-            'customer-flash-$offerProductId-${DateTime.now().microsecondsSinceEpoch}',
+        if (sellingUnitId != null && sellingUnitId > 0)
+          'selling_unit_id': sellingUnitId,
       }),
     );
     final body = _decode(response);
@@ -271,7 +256,7 @@ class HttpCustomerFlashOffersApi
   @override
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required String reservationId,
+    required int reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
@@ -297,35 +282,13 @@ class HttpCustomerFlashOffersApi
   }
 
   @override
-  Future<void> release({required String reservationId}) async {
-    if (reservationId.trim().isEmpty) return;
+  Future<void> release({required int reservationId}) async {
+    if (reservationId <= 0) return;
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/flash-reservations/$reservationId/release'),
       headers: {..._headers, 'Content-Type': 'application/json'},
     );
     if (response.statusCode == 404 || response.statusCode == 409) return;
-    _decode(response);
-  }
-
-  @override
-  Future<void> trackEvent({
-    required int storeId,
-    required int offerId,
-    required String event,
-  }) async {
-    if (token == null || token!.trim().isEmpty) return;
-    final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/flash-offers/$offerId/events'),
-      headers: {
-        ..._headers,
-        'Content-Type': 'application/json',
-        'X-FOODEX-Store-ID': '$storeId',
-      },
-      body: jsonEncode({
-        'store_id': storeId,
-        'event': event,
-      }),
-    );
     _decode(response);
   }
 
@@ -378,7 +341,6 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   Timer? _ticker;
   final Stopwatch _serverClock = Stopwatch();
   final Map<int, int> _selectedUnits = <int, int>{};
-  final Set<int> _trackedImpressions = <int>{};
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -417,11 +379,6 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         _offers = results[0] as List<CustomerFlashOffer>;
         _reservation = results[1] as CustomerFlashReservation?;
       });
-      for (final offer in _offers) {
-        if (_trackedImpressions.add(offer.id)) {
-          unawaited(_trackEvent(offer.id, 'impression'));
-        }
-      }
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -442,27 +399,11 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     if (mounted) await _load();
   }
 
-  Future<void> _trackEvent(int offerId, String event) async {
-    if (widget.api is! CustomerFlashOffersAnalyticsApi) return;
-    final analytics = widget.api as CustomerFlashOffersAnalyticsApi;
-    try {
-      await analytics.trackEvent(
-        storeId: widget.storeId,
-        offerId: offerId,
-        event: event,
-      );
-    } catch (_) {
-      // Analytics must never block browsing or checkout.
-    }
-  }
-
   Future<void> _buyNow(CustomerFlashOffer offer) async {
     if (!widget.isAuthenticated) {
       widget.onAuthenticationRequired();
       return;
     }
-    unawaited(_trackEvent(offer.id, 'open'));
-    unawaited(_trackEvent(offer.id, 'buy_now_click'));
     setState(() {
       _busy = true;
       _error = null;
