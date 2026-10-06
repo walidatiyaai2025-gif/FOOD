@@ -421,7 +421,7 @@ def _configure_android_foreground_location(app: Path, *, background_delivery: bo
     manifest.write_text(text)
 
 
-def patch_android(app_dir: Path, bundle_id: str) -> None:
+def patch_android(app_dir: Path, bundle_id: str, label: str) -> None:
     app = app_dir / 'android' / 'app'
     build_files = [app / 'build.gradle.kts', app / 'build.gradle']
     for path in build_files:
@@ -726,7 +726,7 @@ def main() -> None:
     _require_brand_assets()
     identity = IDENTITIES[args.app]
     if args.platform in ('all', 'android'):
-        patch_android(args.app_dir, identity['bundle_id'])
+        patch_android(args.app_dir, identity['bundle_id'], identity['label'])
     if args.platform in ('all', 'ios'):
         patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
     print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")
