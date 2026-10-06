@@ -102,7 +102,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'FOODEX Van',
+                        _text('FOODEX Van', 'فودكس للفان'),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w800,
