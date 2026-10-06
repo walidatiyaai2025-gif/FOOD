@@ -635,7 +635,9 @@ class _CustomerFlashCheckoutScreenState
   Object? _error;
   bool _busy = true;
   bool _submitted = false;
-  late Duration _remaining = widget.reservation.remainingAt(DateTime.now());
+  final Stopwatch _serverClock = Stopwatch();
+  late Duration _remaining =
+      widget.reservation.remainingAfter(Duration.zero);
   Timer? _timer;
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
@@ -643,9 +645,11 @@ class _CustomerFlashCheckoutScreenState
   @override
   void initState() {
     super.initState();
+    _serverClock.start();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      final next = widget.reservation.remainingAt(DateTime.now());
+      final next =
+          widget.reservation.remainingAfter(_serverClock.elapsed);
       setState(() => _remaining = next);
       if (next == Duration.zero && !_submitted) {
         setState(() => _error =
