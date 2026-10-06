@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "1090949588488",
+    "project_id": "comfiftysolutionfoodexcustomer",
+    "storage_bucket": "comfiftysolutionfoodexcustomer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090949588488:android:5c63efffbec5b4bb3713bd",
+        "android_client_info": {
+          "package_name": "com.fiftysolution.foodex.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiGv-oDXBH_7BCKQtUxch1aQlPk58RBes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090949588488:android:68ddcf39391b44003713bd",
+        "android_client_info": {
+          "package_name": "com.fiftysolution.foodex.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiGv-oDXBH_7BCKQtUxch1aQlPk58RBes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090949588488:android:26b0a8e049d820393713bd",
+        "android_client_info": {
+          "package_name": "com.foodex.van"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiGv-oDXBH_7BCKQtUxch1aQlPk58RBes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

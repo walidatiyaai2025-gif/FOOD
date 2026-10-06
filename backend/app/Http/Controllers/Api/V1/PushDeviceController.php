@@ -39,7 +39,7 @@ final class PushDeviceController extends Controller
     private function upsert(Request $request, ?User $user): JsonResponse
     {
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'token' => ['required', 'string', 'max:4096'],
@@ -58,6 +58,8 @@ final class PushDeviceController extends Controller
                 ->where('is_active', true)
                 ->exists();
             abort_unless($allowed, 403);
+        } elseif ($data['app'] === 'van') {
+            abort_unless($user->hasPermission('van.login'), 403);
         } else {
             $allowed = DB::table('platform_customers')->where('user_id', $user->id)->where('is_active', true)->exists()
                 || DB::table('customers')->where('user_id', $user->id)->exists()

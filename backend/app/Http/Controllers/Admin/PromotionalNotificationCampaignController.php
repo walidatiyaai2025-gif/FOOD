@@ -289,15 +289,28 @@ final class PromotionalNotificationCampaignController extends Controller
         $audience = (string) $data['audience'];
         $app = (string) $data['app'];
 
-        if ($audience === 'customer' && $app === 'driver') {
+        if ($audience === 'customer' && in_array($app, ['driver', 'van'], true)) {
             throw ValidationException::withMessages([
-                'app' => ['Customer campaigns cannot target the Driver app.'],
+                'app' => ['Customer campaigns cannot target operations apps.'],
             ]);
         }
 
-        if ($audience === 'driver' && $app === 'customer') {
+        if ($audience === 'driver' && in_array($app, ['customer', 'van'], true)) {
             throw ValidationException::withMessages([
-                'app' => ['Driver campaigns cannot target the Customer app.'],
+                'app' => ['Driver campaigns cannot target Customer or Van apps.'],
+            ]);
+        }
+
+        if ($audience === 'van' && in_array($app, ['customer', 'driver'], true)) {
+            throw ValidationException::withMessages([
+                'app' => ['Van campaigns cannot target Customer or Driver apps.'],
+            ]);
+        }
+
+        if (($audience === 'van' || $app === 'van')
+            && ($data['target_channel'] ?? 'all') === 'b2c') {
+            throw ValidationException::withMessages([
+                'target_channel' => ['Van notifications are available for Wholesale/B2B operations only.'],
             ]);
         }
     }
@@ -360,10 +373,13 @@ final class PromotionalNotificationCampaignController extends Controller
             }
             $driver = $driverQuery->exists();
 
+            $van = User::query()->find($userId)?->hasPermission('van.login') ?? false;
+
             $allowed = match ($app) {
                 'customer' => $customer,
                 'driver' => $driver,
-                default => $customer || $driver,
+                'van' => $van,
+                default => $customer || $driver || $van,
             };
             abort_unless($allowed, 404);
         }
@@ -417,8 +433,8 @@ final class PromotionalNotificationCampaignController extends Controller
             'body_ar' => ['required', 'string', 'max:5000'],
             'body_en' => ['required', 'string', 'max:5000'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
-            'audience' => ['required', Rule::in(['all', 'customer', 'driver', 'user'])],
-            'app' => ['required', Rule::in(['all', 'customer', 'driver'])],
+            'audience' => ['required', Rule::in(['all', 'customer', 'driver', 'van', 'user'])],
+            'app' => ['required', Rule::in(['all', 'customer', 'driver', 'van'])],
             'target_channel' => ['required', Rule::in(['all', 'b2b', 'b2c'])],
             'delivery_channel' => ['required', Rule::in(['in_app', 'push', 'both'])],
             'popup_frequency' => ['required', Rule::in(['once_per_user', 'once_per_session', 'every_open'])],

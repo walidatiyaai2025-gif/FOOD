@@ -46,8 +46,8 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             @csrf
             <div class="grid">
                 <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ old('name') }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: عرض نهاية الأسبوع':'e.g. Weekend promotion' }}" required></div>
-                <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $v)<option value="{{ $v }}">{{ __('notifications.audience_options.'.$v) }}</option>@endforeach</select></div>
-                <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $v)<option value="{{ $v }}">{{ __('notifications.app_options.'.$v) }}</option>@endforeach</select></div>
+                <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','van','user'] as $v)<option value="{{ $v }}">{{ __('notifications.audience_options.'.$v) }}</option>@endforeach</select></div>
+                <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver','van'] as $v)<option value="{{ $v }}">{{ __('notifications.app_options.'.$v) }}</option>@endforeach</select></div>
 
                 @if($canAllChannels)
                     <div><label>{{ __('notifications.business_channel') }}</label><select name="target_channel">@foreach(['all','b2b','b2c'] as $v)<option value="{{ $v }}">{{ __('notifications.channel_options.'.$v) }}</option>@endforeach</select></div>
@@ -126,8 +126,8 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                     @csrf @method('PATCH')
                     <div class="grid">
                         <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ $campaign->name }}" required></div>
-                        <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','user'] as $v)<option value="{{ $v }}" @selected($campaign->audience===$v)>{{ __('notifications.audience_options.'.$v) }}</option>@endforeach</select></div>
-                        <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver'] as $v)<option value="{{ $v }}" @selected($campaign->app===$v)>{{ __('notifications.app_options.'.$v) }}</option>@endforeach</select></div>
+                        <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','van','user'] as $v)<option value="{{ $v }}" @selected($campaign->audience===$v)>{{ __('notifications.audience_options.'.$v) }}</option>@endforeach</select></div>
+                        <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver','van'] as $v)<option value="{{ $v }}" @selected($campaign->app===$v)>{{ __('notifications.app_options.'.$v) }}</option>@endforeach</select></div>
 
                         @if($canAllChannels)
                             <div><label>{{ __('notifications.business_channel') }}</label><select name="target_channel">@foreach(['all','b2b','b2c'] as $v)<option value="{{ $v }}" @selected($campaign->target_channel===$v)>{{ __('notifications.channel_options.'.$v) }}</option>@endforeach</select></div>

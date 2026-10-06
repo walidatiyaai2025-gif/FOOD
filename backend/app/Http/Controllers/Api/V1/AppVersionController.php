@@ -15,7 +15,7 @@ final class AppVersionController extends Controller
     {
         $validated = $request->validate([
             'platform' => ['required', 'in:android,ios'],
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'current_version' => ['required', 'string', 'max:64'],
         ]);
 

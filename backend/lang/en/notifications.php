@@ -83,6 +83,7 @@ return [
         'all' => 'Everyone',
         'customer' => 'Customers',
         'driver' => 'Drivers',
+        'van' => 'Van operators',
         'user' => 'Specific user',
     ],
     'app_options' => [
@@ -90,6 +91,7 @@ return [
         'customer' => 'Customer App',
         'dashboard' => 'Management Dashboard',
         'driver' => 'Driver App',
+        'van' => 'Van App',
     ],
     'channel_options' => [
         'all' => 'All channels',
