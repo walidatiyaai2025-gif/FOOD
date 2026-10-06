@@ -13,6 +13,8 @@ return [
         'demo_data.manage' => 'Create and remove isolated non-production FOODEX demo data',
         'settings.view' => 'View operational platform settings',
         'settings.manage' => 'Manage operational platform settings',
+        'field_ops.manage' => 'Manage field operations control-plane configuration',
+        'territories.manage' => 'Manage geography, service territories and address resolution',
         'mobile_settings.manage' => 'Manage Customer and Driver app release settings',
         'assistant.use' => 'Use the read-only FOODEX management Assistant within authorized business scope',
         'app_preview.view' => 'Open the real Customer and Driver application preview runtime',

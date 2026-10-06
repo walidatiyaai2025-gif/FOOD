@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\V1\RoutingPolicyController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
+use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
 use App\Http\Controllers\Api\V1\VanVisitController;
@@ -168,6 +169,13 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/visits/{visit}/transition', [VanVisitController::class, 'transition'])
                 ->whereNumber('visit');
             Route::get('/no-order-reasons', [VanVisitController::class, 'noOrderReasons']);
+        });
+        Route::prefix('/admin/field-operations')->group(function (): void {
+            Route::post('/geography', [TerritoryController::class, 'storeGeography']);
+            Route::post('/territories', [TerritoryController::class, 'storeTerritory']);
+            Route::post('/territories/{territory}/geometry', [TerritoryController::class, 'storeGeometry'])
+                ->whereNumber('territory');
+            Route::post('/territory-resolution', [TerritoryController::class, 'resolve']);
         });
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
