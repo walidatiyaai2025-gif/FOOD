@@ -13,3 +13,10 @@
 - Next intended action: verify the checkpoint remote SHA, then inspect the Fresh Setup run for that exact SHA. If GREEN, remove this ledger and the temporary workflow recovery marker in one final cleanup checkpoint and require Fresh Setup GREEN again on that final exact head.
 - Known passing acceptance evidence from the prior run before the fixture parsing failure: dashboard login/navigation; Van & Field Operations sidebar/pages/empty states; Live Fleet Map surface; territories; Sales Control; Flash Offers/Preview/Analytics; canonical feature flags; commercial/customer/Van routes and services; scheduler; notification routes; account deletion/legal; store readiness.
 - Do not merge to `main`.
+
+## Checkpoint update
+
+- Verified checkpoint remote SHA: `4a24f1fe33d162f2f9d42405bcb7e958d4b33019`.
+- Fresh Setup run `37463667017`: FAILED after the original port/fixture blockers were cleared; no `KeyError` and no readiness diagnostic fired.
+- Current blocker: a later shell assertion/test exits 1 silently inside fresh-install acceptance.
+- Next action: phase-safe ERR diagnostics only; do not modify application code until the exact failing shell command is identified.

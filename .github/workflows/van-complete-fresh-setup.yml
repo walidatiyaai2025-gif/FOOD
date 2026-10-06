@@ -127,7 +127,20 @@ jobs:
       - name: Validate clean install from ZIP only
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          report_failure() {
+            local rc="$1"
+            local line="$2"
+            local cmd="$3"
+            echo "::error::Fresh Setup failed at line $line with exit $rc: $cmd"
+            cat /tmp/foodex-installed-server.log 2>/dev/null || true
+            if [[ -n "${fresh:-}" ]]; then
+              tail -n 200 "$fresh/backend/storage/logs/laravel.log" 2>/dev/null || true
+            fi
+            return "$rc"
+          }
+          trap 'report_failure "$?" "$LINENO" "$BASH_COMMAND"' ERR
+
           fresh="$(mktemp -d)"
           unzip -q Release/FOODEX-Laravel-Setup.zip -d "$fresh"
           test "$(tr -d '[:space:]' < "$fresh/VERSION")" = "1.0.58"
