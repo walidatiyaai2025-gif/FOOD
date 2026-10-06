@@ -6,25 +6,42 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
-  OWNER_PULSE_STALE_MINUTES,
   STATE_MARKER,
   branchFromText,
   classify,
-  classifyOwnerMission,
   executionActivityMillis,
   handoffComment,
+  isRateLimitError,
   linkedIssueNumbers,
-  missionQueueState,
-  noWorkCurrentlyAvailable,
   parseWorkerState,
-  queueState,
   statusLabel,
+  targetIssueNumbersFromContext,
   summarizeCheckRuns,
   summarizeCommitStatuses,
   summarizeWorkflowRuns,
 } = require('./worker-watchdog');
 
 const NOW = Date.parse('2026-10-01T06:00:00Z');
+
+test('recognizes exhausted GitHub API quota without swallowing unrelated 403s', () => {
+  assert.equal(isRateLimitError({
+    status: 403,
+    response: {
+      headers: { 'x-ratelimit-remaining': '0' },
+      data: { message: 'API rate limit exceeded for installation.' },
+    },
+  }), true);
+
+  assert.equal(isRateLimitError({
+    status: 403,
+    response: {
+      headers: { 'x-ratelimit-remaining': '4999' },
+      data: { message: 'Resource not accessible by integration' },
+    },
+  }), false);
+
+  assert.equal(isRateLimitError({ status: 500, message: 'rate limit exceeded' }), false);
+});
 
 test('parses machine-readable worker state', () => {
   const state = parseWorkerState(`
@@ -50,10 +67,41 @@ NEXT_ACTION: inspect failed Driver tests
   });
 });
 
-test('extracts only closing-linked issues from PR body', () => {
+test('extracts only owned issue links from PR body', () => {
   assert.deepEqual(
-    linkedIssueNumbers('Parent #589\nCloses #591\nFixes #592\nRelated #512'),
-    [591, 592],
+    linkedIssueNumbers('Parent #589\nCloses #591\nFixes #592\nImplements #990\nRelated #512'),
+    [591, 592, 990],
+  );
+});
+
+test('targets direct issue events without repository-wide scanning', () => {
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'issue_comment',
+      payload: { issue: { number: 990 } },
+    }),
+    [990],
+  );
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'issues',
+      payload: { issue: { number: 936 } },
+    }),
+    [936],
+  );
+});
+
+test('targets pull request ownership links for recent commercial lanes', () => {
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'pull_request_target',
+      payload: {
+        pull_request: {
+          body: 'Implements #989 under parent #983. Related #984.',
+        },
+      },
+    }),
+    [989],
   );
 });
 
@@ -130,25 +178,6 @@ test('fresh explicit machine heartbeat keeps lease active', () => {
     }),
     { status: 'active', reason: 'fresh-lease' },
   );
-});
-
-test('owner mission queue state is deterministic', () => {
-  assert.equal(queueState({ status: 'ready', reason: 'unclaimed' }), 'READY');
-  assert.equal(queueState({ status: 'active', reason: 'fresh-lease' }), 'ACTIVE_PEER');
-  assert.equal(queueState({ status: 'waiting-ci', reason: 'ci-running' }), 'WAITING_CI');
-  assert.equal(queueState({ status: 'handoff-ready', reason: 'ci-failure' }), 'CI_FIX');
-  assert.equal(queueState({ status: 'handoff-ready', reason: 'merge-ready-stale' }), 'MERGE_READY');
-  assert.equal(queueState({ status: 'handoff-ready', reason: 'stale-lease' }), 'TAKEOVER');
-  assert.equal(queueState({ status: 'blocked-dep', reason: 'dependency' }), 'BLOCKED_DEP');
-  assert.equal(queueState({ status: 'human-gate', reason: 'approval' }), 'HUMAN_GATE');
-});
-
-test('ten-minute owner mission lease becomes takeover eligible', () => {
-  assert.deepEqual(classifyOwnerMission({ nowMs: NOW, managed: true, workerState: { state: 'WORKING', blocker: 'none' }, hasOpenPr: false, hasBranch: true, latestActivityMs: Date.parse('2026-10-01T05:50:00Z'), ciRunning: false, ciConclusion: null, mergeable: null }), { status: 'handoff-ready', reason: 'stale-lease' });
-});
-
-test('dependency blocker is explicit and non-claimable', () => {
-  assert.deepEqual(classify({ nowMs: NOW, managed: true, workerState: { state: 'BLOCKED_DEP', blocker: 'dependency' }, hasOpenPr: false, hasBranch: true, latestActivityMs: Date.parse('2026-10-01T04:00:00Z'), ciRunning: false, ciConclusion: null, mergeable: null }), { status: 'blocked-dep', reason: 'dependency' });
 });
 
 test('fresh worker lease remains active', () => {
@@ -448,77 +477,6 @@ test('unmanaged issue is ignored', () => {
   );
 });
 
-
-test('owner mission uses the explicit 10-minute takeover threshold', () => {
-  assert.equal(OWNER_PULSE_STALE_MINUTES, 10);
-
-  assert.deepEqual(
-    classifyOwnerMission({
-      nowMs: NOW,
-      managed: true,
-      workerState: { state: 'WORKING', blocker: 'none' },
-      hasOpenPr: true,
-      hasBranch: true,
-      latestActivityMs: Date.parse('2026-10-01T05:51:00Z'),
-      ciRunning: false,
-      ciConclusion: null,
-      mergeable: true,
-    }),
-    { status: 'active', reason: 'fresh-lease' },
-  );
-
-  assert.deepEqual(
-    classifyOwnerMission({
-      nowMs: NOW,
-      managed: true,
-      workerState: { state: 'WORKING', blocker: 'none' },
-      hasOpenPr: true,
-      hasBranch: true,
-      latestActivityMs: Date.parse('2026-10-01T05:50:00Z'),
-      ciRunning: false,
-      ciConclusion: null,
-      mergeable: true,
-    }),
-    { status: 'handoff-ready', reason: 'stale-lease' },
-  );
-});
-
-test('owner mission preserves exact-head running CI as WAITING_CI even when the lease is old', () => {
-  const outcome = classifyOwnerMission({
-    nowMs: NOW,
-    managed: true,
-    workerState: { state: 'WAITING_CI', blocker: 'ci' },
-    hasOpenPr: true,
-    hasBranch: true,
-    latestActivityMs: Date.parse('2026-10-01T04:00:00Z'),
-    ciRunning: true,
-    ciConclusion: null,
-    mergeable: true,
-  });
-
-  assert.deepEqual(outcome, { status: 'waiting-ci', reason: 'ci-running' });
-  assert.equal(missionQueueState(outcome), 'WAITING_CI');
-});
-
-test('mission queue states are deterministic and red CI is CI_FIX', () => {
-  assert.equal(missionQueueState({ status: 'ready', reason: 'unclaimed' }), 'READY');
-  assert.equal(missionQueueState({ status: 'active', reason: 'fresh-lease' }), 'ACTIVE_PEER');
-  assert.equal(missionQueueState({ status: 'waiting-ci', reason: 'ci-running' }), 'WAITING_CI');
-  assert.equal(missionQueueState({ status: 'handoff-ready', reason: 'stale-lease' }), 'TAKEOVER');
-  assert.equal(missionQueueState({ status: 'handoff-ready', reason: 'ci-failure' }), 'CI_FIX');
-  assert.equal(missionQueueState({ status: 'handoff-ready', reason: 'merge-ready-stale' }), 'MERGE_READY');
-  assert.equal(missionQueueState({ status: 'human-gate', reason: 'deploy' }), 'HUMAN_GATE');
-  assert.equal(missionQueueState({ status: 'active', reason: 'fresh-lease' }, { dependencyBlocked: true }), 'BLOCKED_DEP');
-});
-
-test('NO WORK is emitted only when every lane is genuinely non-claimable', () => {
-  assert.equal(noWorkCurrentlyAvailable(['ACTIVE_PEER', 'WAITING_CI', 'BLOCKED_DEP', 'HUMAN_GATE']), true);
-  assert.equal(noWorkCurrentlyAvailable(['COMPLETE', 'WAITING_CI']), true);
-  assert.equal(noWorkCurrentlyAvailable(['WAITING_CI', 'READY']), false);
-  assert.equal(noWorkCurrentlyAvailable(['ACTIVE_PEER', 'TAKEOVER']), false);
-  assert.equal(noWorkCurrentlyAvailable([]), false);
-});
-
 test('status maps to one queue label', () => {
   assert.equal(statusLabel('ready'), 'worker:ready');
   assert.equal(statusLabel('active'), 'worker:active');
@@ -543,19 +501,30 @@ test('handoff comment forces reuse of existing branch and PR', () => {
 });
 
 
-test('watchdog workflow avoids false-red cancellation fan-out', () => {
+test('watchdog workflow bounds queue fan-out and suppresses self-trigger cascades', () => {
   const workflowPath = path.join(__dirname, '..', 'workflows', 'worker-watchdog.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
 
   assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /types: \[completed\]/);
+  assert.match(workflow, /"FOODEX Required CI Gate"/);
+  assert.doesNotMatch(workflow, /- "Repository Policy"/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*requested[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*in_progress[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*labeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*unlabeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /\n\s*push:\s*\n/);
-  assert.match(workflow, /cancel-in-progress:\s*false/);
-  assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/);
-  assert.match(workflow, /group: worker-watchdog-\$\{\{ github\.event_name \}\}/);
+
+  // All actionable events share one latest-state slot. A newer event supersedes
+  // stale watchdog work instead of consuming another hosted runner queue slot.
+  assert.match(workflow, /cancel-in-progress:\s*true/);
+  assert.match(workflow, /\|\| 'worker-watchdog'/);
+
+  // Comments written by the watchdog itself are no-op runs with isolated keys:
+  // they neither execute the job nor cancel the parent reconciliation.
+  assert.match(workflow, /worker-watchdog-self-\{0\}/);
+  assert.match(workflow, /github\.event_name != 'workflow_run'/);
+  assert.match(workflow, /github\.event\.workflow_run\.event == 'pull_request'/);
+  assert.match(workflow, /contains\(github\.event\.comment\.body, '<!-- foodex-watchdog:'\)/);
 });

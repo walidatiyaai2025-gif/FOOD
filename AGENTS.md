@@ -247,9 +247,9 @@ At minimum:
 - **Branch / repository policy:** verify the branch name and task relationship comply with repository policy before the first implementation push. Issue-scoped branches such as `fix/<issue>-...`, `feat/<issue>-...`, or the repository-approved equivalent must be used. Do not weaken policy checks to make an invalid branch pass.
 - **Laravel / PHP formatting:** run the same Pint/lint contract used by CI. In particular, avoid recurring failures involving `braces_position`, quote style, import ordering, blank-line rules, PHPDoc formatting, unary/operator spacing, and compact/empty constructor bodies when the repository formatter expands them.
 - **Do not guess formatter output:** when Pint reports a style rule, reproduce the exact formatter result locally with `vendor/bin/pint <affected-path>` (or an equivalent isolated copy) and then verify with `vendor/bin/pint --test <affected-path>`. For promoted-property constructors with an empty body, preserve the formatter's exact multiline parameter layout and single-line empty body instead of manually toggling brace placement across pushes.
-- **Multiline PHP method signatures:** do not infer brace/operator style from older files. The current CI-resolved Pint contract is authoritative: for multiline methods/functions with a declared return type, Pint places the opening `{` on the same line as `): ReturnType {`; for negated `isset` guards, preserve Pint's exact spacing (`! isset(...)`). If dependency drift changes formatter output again, run Pint on the affected file and promote the generated diff here before repeated pushes.
+- **Multiline PHP method signatures:** for multiline methods/functions with a declared return type, follow the repository's Pint-canonical brace placement exactly: the opening `{` belongs on the same line as the closing `): ReturnType {`. Do not apply the ordinary single-line method brace layout to a multiline signature.
 - **Backend tests:** run the focused affected tests and the required backend suite when practical. Passing tests does not waive lint or static-analysis requirements.
-- **Static analysis / typing:** run the repository's PHP static-analysis/type checks for backend changes. Do not silence a real type defect merely to satisfy the analyzer. For new Eloquent datetime/JSON casts and relation collections, do not assume Larastan can infer the runtime cast from the database column; expose typed accessors/normalizers and generic relation PHPDoc where business logic calls date methods, iterates structured JSON, or maps related models.
+- **Static analysis / typing:** run the repository's PHP static-analysis/type checks for backend changes. Do not silence a real type defect merely to satisfy the analyzer.
 - **PHP syntax / patch integrity:** validate modified PHP files after scripted or generated edits. Never leave literal escape text such as `\n` where an actual newline is required, and do not assume a mechanically generated patch is syntactically valid.
 - **Flutter:** for every affected Flutter app, run `flutter analyze` plus the relevant tests. Treat analyzer warnings/errors, stale endpoint assumptions, invalid documentation markup, and nullability/type drift as pre-push defects.
 - **APP-PREVIEW:** preview/runtime changes must satisfy branch-scope guards, backend security/contract acceptance, Customer/Driver runtime matrices, and embedded-vs-standalone parity where applicable. A successful visual render alone is not sufficient.
@@ -436,6 +436,22 @@ A partial version bump is a known FOODEX failure pattern. Do not push a release 
 For release-related changes, run `bash scripts/release-readiness.sh` before push in addition to the normal worker preflight.
 
 Release validation scripts must emit the name of the failed invariant whenever practical; silent `test`/exit failures materially slow diagnosis and should be replaced with actionable errors when touched.
+
+
+### Main-push release-intent rule
+
+Normal feature/bug merges to `main` do **not** imply a release publication and do not require an immediate `VERSION` bump.
+
+Release-only workflows such as `FOODEX Trial Distribution Bundle` must distinguish ordinary deployable-code merges from explicit release intent. Explicit release intent exists when:
+
+- `VERSION` changes relative to the previous authoritative base; or
+- the repository owner/manual workflow dispatch explicitly requests distribution.
+
+A workflow must not fail `main` merely because `backend/**`, `apps/customer_app/**`, or `apps/driver_app/**` changed while `VERSION` remained unchanged. In that case, release/distribution work must be skipped cleanly and reported as "no release intent".
+
+When release intent exists, the full atomic release identity contract still applies: root VERSION, Customer/Driver mobile identities, runtime/UI identities, release notes, changelog, registry and immutable publication guards must remain synchronized.
+
+Any main-only red caused by a release workflow misclassifying a normal feature merge as a release is a CI-policy defect and must be corrected in the workflow trigger/gating logic rather than forcing unrelated feature work to publish a new version.
 
 ---
 
@@ -1128,3 +1144,5 @@ A worker must never report **"C13 finished"** while:
 - any Customer financial screen disagrees with the authoritative ledger;
 - any required screen still presents mock/stale data as live;
 - any required AR/EN, RTL/LTR, authorization, isolation or integrated E2E gate is red.
+
+- **Multiline PHP method signatures:** do not infer brace/operator style from older files. The current CI-resolved Pint contract is authoritative: for multiline methods/functions with a declared return type, Pint places the opening `{` on the same line as `): ReturnType {`; for negated `isset` guards, preserve Pint's exact spacing (`! isset(...)`). If dependency drift changes formatter output again, run Pint on the affected file and promote the generated diff here before repeated pushes.

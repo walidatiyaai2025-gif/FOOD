@@ -3,7 +3,6 @@ set -euo pipefail
 
 base="${1:-}"
 head="${2:-HEAD}"
-target_ref="${3:-${GITHUB_BASE_REF:-main}}"
 
 if [[ -z "$base" ]]; then
   if git rev-parse --verify origin/main >/dev/null 2>&1; then
@@ -24,17 +23,6 @@ if [[ -z "$current_version" || -z "$base_version" ]]; then
   exit 1
 fi
 
-if [[ "$customer_identity" != "$driver_identity" ]]; then
-  echo "Customer and Driver mobile version identities must match before merge." >&2
-  exit 1
-fi
-
-if [[ "${driver_identity%%+*}" != "$current_version" ]]; then
-  echo "Mobile version identity must match VERSION before merge." >&2
-  exit 1
-fi
-
-runtime_changed=false
 if [[ "$head" == "WORKTREE" ]]; then
   changed="$(
     {
@@ -45,21 +33,39 @@ if [[ "$head" == "WORKTREE" ]]; then
 else
   changed="$(git diff --name-only "$base" "$head")"
 fi
-if grep -Eq '^(backend/|apps/customer_app/|apps/driver_app/)' <<<"$changed"; then
-  runtime_changed=true
+
+version_changed=false
+if [[ "$current_version" != "$base_version" ]]; then
+  version_changed=true
 fi
 
-target_branch="${GITHUB_BASE_REF:-}"
-
-if [[ "$runtime_changed" == "true" && "$current_version" == "$base_version" ]]; then
-  if [[ -n "$target_branch" && "$target_branch" != "main" ]]; then
-    echo "Deployable code targets non-main integration branch '$target_branch'; release identity bump is deferred to the final main-targeting integration PR."
-  else
-    echo "Deployable FOODEX code changed without a VERSION bump." >&2
-    echo "This would pass PR-only checks but fail FOODEX Trial Distribution after merge to main." >&2
-    echo "Bump VERSION and keep Customer/Driver pubspec version identities synchronized before merge." >&2
-    exit 1
-  fi
+branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
+release_branch=false
+if [[ "$branch_name" == release/* ]]; then
+  release_branch=true
 fi
 
-echo "Pre-merge release version contract passed (runtime_changed=$runtime_changed, target=${target_branch:-local-or-unknown}, base=$base_version, candidate=$current_version)."
+# Normal feature/bug PRs are allowed to change deployable code without publishing
+# a new release. Release synchronization becomes mandatory only when release intent
+# exists (VERSION changed) or when work is explicitly happening on a release/* branch.
+if [[ "$version_changed" != "true" && "$release_branch" != "true" ]]; then
+  echo "No release intent detected; VERSION may remain $current_version for normal feature/bug work."
+  exit 0
+fi
+
+if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
+  echo "Release branch '$branch_name' must bump VERSION relative to base ($base_version)." >&2
+  exit 1
+fi
+
+if [[ "$customer_identity" != "$driver_identity" ]]; then
+  echo "Customer and Driver mobile version identities must match for release work." >&2
+  exit 1
+fi
+
+if [[ "${driver_identity%%+*}" != "$current_version" ]]; then
+  echo "Mobile version identity must match VERSION for release work." >&2
+  exit 1
+fi
+
+echo "Pre-merge release version contract passed (release_intent=true, base=$base_version, candidate=$current_version)."

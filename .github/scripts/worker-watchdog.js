@@ -4,7 +4,6 @@ const STATE_MARKER = '<!-- foodex-worker-state:v1 -->';
 const MANAGED_MARKER = '<!-- foodex-worker:managed -->';
 const WATCHDOG_MARKER = '<!-- foodex-watchdog:';
 const STALE_MINUTES = 30;
-const OWNER_PULSE_STALE_MINUTES = 10;
 
 const RED_CI_CONCLUSIONS = new Set([
   'failure',
@@ -34,8 +33,6 @@ const GATE_LABELS = [
   'gate:approval',
 ];
 
-const DEPENDENCY_BLOCKERS = new Set(['dep', 'dependency', 'blocked_dep']);
-
 const HUMAN_BLOCKERS = new Set([
   'deploy',
   'production',
@@ -57,6 +54,14 @@ const LABELS = {
   'gate:device': ['B60205', 'Requires a real device/environment not available to repository workers'],
   'gate:approval': ['B60205', 'Requires explicit human approval before proceeding'],
 };
+
+function isRateLimitError(error) {
+  if (!error || error.status !== 403) return false;
+  const headers = error.response?.headers || {};
+  const remaining = headers['x-ratelimit-remaining'] ?? headers['X-RateLimit-Remaining'];
+  const message = String(error.response?.data?.message || error.message || '').toLowerCase();
+  return String(remaining) === '0' || message.includes('rate limit exceeded');
+}
 
 function parseWorkerState(text) {
   if (!text || !text.includes(STATE_MARKER)) return null;
@@ -82,7 +87,7 @@ function parseWorkerState(text) {
 function linkedIssueNumbers(body) {
   const text = body || '';
   const result = new Set();
-  const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/gi;
+  const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|implement(?:s|ed)?)\s+#(\d+)\b/gi;
   let match;
   while ((match = closing.exec(text)) !== null) result.add(Number(match[1]));
   return [...result];
@@ -140,7 +145,6 @@ function classify({
   ciRunning,
   ciConclusion,
   mergeable,
-  staleMinutes = STALE_MINUTES,
 }) {
   if (!managed) return { status: 'ignored', reason: 'not-managed' };
 
@@ -161,10 +165,6 @@ function classify({
     return { status: 'handoff-ready', reason: 'merge-conflict' };
   }
 
-  if (DEPENDENCY_BLOCKERS.has(blocker)) {
-    return { status: 'blocked-dep', reason: blocker };
-  }
-
   if (HUMAN_BLOCKERS.has(blocker)) {
     return {
       status: 'human-gate',
@@ -182,7 +182,7 @@ function classify({
     return { status: 'ready', reason: 'unclaimed' };
   }
 
-  const stale = minutesSince(nowMs, latestActivityMs) >= staleMinutes;
+  const stale = minutesSince(nowMs, latestActivityMs) >= STALE_MINUTES;
   if (!stale) {
     return { status: 'active', reason: 'fresh-lease' };
   }
@@ -196,47 +196,6 @@ function classify({
   }
 
   return { status: 'handoff-ready', reason: 'stale-lease' };
-}
-
-function queueState(outcome) {
-  if (!outcome) return 'TAKEOVER';
-  if (outcome.status === 'ready') return 'READY';
-  if (outcome.status === 'active') return 'ACTIVE_PEER';
-  if (outcome.status === 'waiting-ci') return 'WAITING_CI';
-  if (outcome.status === 'blocked-dep') return 'BLOCKED_DEP';
-  if (outcome.status === 'human-gate') return 'HUMAN_GATE';
-  if (outcome.status === 'handoff-ready' && String(outcome.reason).startsWith('ci-')) return 'CI_FIX';
-  if (outcome.status === 'handoff-ready' && outcome.reason === 'merge-ready-stale') return 'MERGE_READY';
-  if (outcome.status === 'handoff-ready') return 'TAKEOVER';
-  return 'TAKEOVER';
-}
-
-function classifyOwnerMission(args) {
-  return classify({ ...args, staleMinutes: OWNER_PULSE_STALE_MINUTES });
-}
-
-function missionQueueState(outcome, { dependencyBlocked = false } = {}) {
-  if (dependencyBlocked) return 'BLOCKED_DEP';
-  if (!outcome) return null;
-
-  if (outcome.status === 'ready') return 'READY';
-  if (outcome.status === 'active') return 'ACTIVE_PEER';
-  if (outcome.status === 'waiting-ci') return 'WAITING_CI';
-  if (outcome.status === 'human-gate') return 'HUMAN_GATE';
-
-  if (outcome.status === 'handoff-ready') {
-    if ((outcome.reason || '').startsWith('ci-')) return 'CI_FIX';
-    if (outcome.reason === 'merge-ready-stale' || outcome.reason === 'ready-to-merge') return 'MERGE_READY';
-    return 'TAKEOVER';
-  }
-
-  return null;
-}
-
-function noWorkCurrentlyAvailable(states) {
-  if (!Array.isArray(states) || states.length === 0) return false;
-  const nonClaimable = new Set(['ACTIVE_PEER', 'WAITING_CI', 'BLOCKED_DEP', 'HUMAN_GATE', 'COMPLETE']);
-  return states.every(state => nonClaimable.has(state));
 }
 
 function statusLabel(status) {
@@ -447,7 +406,7 @@ function combineCiStates(states) {
 async function workflowState(github, owner, repo, pr) {
   if (!pr) return { running: false, conclusion: null };
 
-  const [workflowResponse, checksResponse, statusesResponse] = await Promise.all([
+  const [workflowResponse, checksResponse] = await Promise.all([
     github.rest.actions.listWorkflowRunsForRepo({
       owner,
       repo,
@@ -460,36 +419,121 @@ async function workflowState(github, owner, repo, pr) {
       ref: pr.head.sha,
       per_page: 100,
     }),
-    github.rest.repos.listCommitStatusesForRef({
-      owner,
-      repo,
-      ref: pr.head.sha,
-      per_page: 100,
-    }),
   ]);
 
   const matching = workflowResponse.data.workflow_runs.filter(
     run => run.head_sha === pr.head.sha,
   );
-
-  return combineCiStates([
+  const primary = combineCiStates([
     summarizeWorkflowRuns(matching),
     summarizeCheckRuns(checksResponse.data.check_runs || []),
+  ]);
+
+  // Commit statuses are legacy/external fallback only. Do not spend a third
+  // API call when Actions/check-runs already provide current CI state.
+  if (primary.running || primary.conclusion) return primary;
+
+  const statusesResponse = await github.rest.repos.listCommitStatusesForRef({
+    owner,
+    repo,
+    ref: pr.head.sha,
+    per_page: 100,
+  });
+  return combineCiStates([
+    primary,
     summarizeCommitStatuses(statusesResponse.data || []),
   ]);
 }
 
-async function run({ github, context, core, nowMs = Date.now() }) {
+async function latestIssueComments(github, owner, repo, issue) {
+  if (!issue?.comments) return [];
+  const perPage = 100;
+  const page = Math.max(1, Math.ceil(issue.comments / perPage));
+  const { data } = await github.rest.issues.listComments({
+    owner,
+    repo,
+    issue_number: issue.number,
+    per_page: perPage,
+    page,
+  });
+  return data;
+}
+
+function targetIssueNumbersFromContext(context) {
+  const payload = context.payload || {};
+  if (context.eventName === 'issues' || context.eventName === 'issue_comment') {
+    return payload.issue?.number ? [payload.issue.number] : [];
+  }
+  if (context.eventName === 'pull_request_target') {
+    return linkedIssueNumbers(payload.pull_request?.body || '');
+  }
+  return [];
+}
+
+async function resolveTargetPulls(github, owner, repo, context) {
+  const payload = context.payload || {};
+  if (context.eventName === 'pull_request_target' && payload.pull_request) {
+    return [payload.pull_request];
+  }
+  if (context.eventName === 'workflow_run') {
+    const refs = payload.workflow_run?.pull_requests || [];
+    const pulls = [];
+    for (const ref of refs.slice(0, 5)) {
+      const { data } = await github.rest.pulls.get({
+        owner,
+        repo,
+        pull_number: ref.number,
+      });
+      pulls.push(data);
+    }
+    return pulls;
+  }
+  return null;
+}
+
+async function runCore({ github, context, core, nowMs }) {
   const { owner, repo } = context.repo;
-  await ensureLabels(github, owner, repo, core);
+  const fullSweep = context.eventName === 'schedule' || context.eventName === 'workflow_dispatch';
 
-  const [issues, pulls] = await Promise.all([
-    github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 }),
-    github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 }),
-  ]);
+  // Label existence is stable repository configuration. Verify/create it only
+  // on periodic/manual reconciliation, not on every PR/comment/workflow event.
+  if (fullSweep) await ensureLabels(github, owner, repo, core);
 
-  const openIssues = issues.filter(issue => !issue.pull_request);
-  const queue = [];
+  let pulls = await resolveTargetPulls(github, owner, repo, context);
+  if (pulls === null) {
+    const response = await github.rest.pulls.list({ owner, repo, state: 'open', per_page: 100 });
+    pulls = response.data;
+  }
+
+  let openIssues;
+  if (fullSweep) {
+    const response = await github.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: 'open',
+      per_page: 100,
+    });
+    openIssues = response.data.filter(issue => !issue.pull_request);
+  } else {
+    const direct = new Set(targetIssueNumbersFromContext(context));
+    for (const pr of pulls) {
+      for (const issueNumber of linkedIssueNumbers(pr.body)) direct.add(issueNumber);
+    }
+
+    // A workflow_run on main or any run with no owning PR/issue is not worker
+    // state and must not trigger a repository-wide scan.
+    if (direct.size === 0) {
+      core.info(`Worker Watchdog no-op for ${context.eventName}: no owned issue target.`);
+      return { processed: 0, targeted: true };
+    }
+
+    openIssues = [];
+    for (const issueNumber of [...direct].slice(0, 10)) {
+      const { data } = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
+      if (!data.pull_request && data.state === 'open') openIssues.push(data);
+    }
+  }
+
   const prByIssue = new Map();
   for (const pr of pulls) {
     for (const issueNumber of linkedIssueNumbers(pr.body)) {
@@ -497,17 +541,14 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     }
   }
 
+  let processed = 0;
   for (const issue of openIssues) {
     const labelNames = issue.labels.map(label => typeof label === 'string' ? label : label.name).filter(Boolean);
     const linkedPr = prByIssue.get(issue.number) || null;
 
-    const comments = await github.paginate(github.rest.issues.listComments, {
-      owner,
-      repo,
-      issue_number: issue.number,
-      per_page: 100,
-    });
-
+    // Read only the newest comment page. Worker state is append-only and the
+    // newest state marker wins; old history does not need to be paginated.
+    const comments = await latestIssueComments(github, owner, repo, issue);
     const nonWatchdogComments = comments.filter(comment => !isWatchdogComment(comment.body));
     let workerState = null;
     for (let i = nonWatchdogComments.length - 1; i >= 0; i -= 1) {
@@ -531,26 +572,22 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       branch = searchable.map(branchFromText).find(Boolean) || '';
     }
 
-    const hasBranch = await branchExists(github, owner, repo, branch);
-    const commitActivity = await latestCommitMillis(github, owner, repo, linkedPr?.head?.sha || branch);
+    const hasBranch = linkedPr ? true : await branchExists(github, owner, repo, branch);
     const stateHeartbeat = asMillis(workerState?.heartbeat);
-    const latestActivityMs = executionActivityMillis({
-      commitActivity,
-      stateHeartbeat,
-    });
+    const heartbeatFresh = stateHeartbeat && minutesSince(nowMs, stateHeartbeat) < STALE_MINUTES;
+    const commitActivity = heartbeatFresh
+      ? 0
+      : await latestCommitMillis(github, owner, repo, linkedPr?.head?.sha || branch);
+    const latestActivityMs = executionActivityMillis({ commitActivity, stateHeartbeat });
 
     const ci = await workflowState(github, owner, repo, linkedPr);
-    let mergeable = null;
-    if (linkedPr) {
-      try {
-        const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
-        mergeable = data.mergeable;
-      } catch (_) {
-        mergeable = null;
-      }
+    let mergeable = linkedPr?.mergeable ?? null;
+    if (linkedPr && mergeable === null) {
+      const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
+      mergeable = data.mergeable;
     }
 
-    const outcome = classifyOwnerMission({
+    const outcome = classify({
       nowMs,
       managed,
       workerState,
@@ -562,17 +599,11 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       mergeable,
     });
 
-    const queueEntry = { issue: issue.number, state: queueState(outcome), reason: outcome.reason, branch, pr: linkedPr?.number || null, head: linkedPr?.head?.sha || workerState?.head || '' };
-    queue.push(queueEntry);
-    core.info(`#${issue.number}: ${queueEntry.state} (${outcome.reason})`);
+    processed += 1;
+    core.info(`#${issue.number}: ${outcome.status} (${outcome.reason})`);
 
     if (outcome.status === 'human-gate') {
       await replaceStatusLabels(github, owner, repo, issue, outcome.labels);
-      continue;
-    }
-
-    if (outcome.status === 'blocked-dep') {
-      await replaceStatusLabels(github, owner, repo, issue, []);
       continue;
     }
 
@@ -601,34 +632,39 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     });
   }
 
-  queue.sort((a, b) => a.issue - b.issue);
-  const claimable = queue.filter(entry => ['READY', 'TAKEOVER', 'CI_FIX', 'MERGE_READY'].includes(entry.state));
-  const ownerMissionState = claimable.length > 0 ? 'WORK_AVAILABLE' : 'NO WORK CURRENTLY AVAILABLE';
-  core.setOutput('owner_mission_state', ownerMissionState);
-  core.setOutput('queue_json', JSON.stringify(queue));
-  core.info(`${ownerMissionState}: ${queue.map(entry => `#${entry.issue}=${entry.state}`).join(', ')}`);
-  return { ownerMissionState, queue };
+  return { processed, targeted: !fullSweep };
+}
+
+async function run({ github, context, core, nowMs = Date.now() }) {
+  try {
+    return await runCore({ github, context, core, nowMs });
+  } catch (error) {
+    if (!isRateLimitError(error)) throw error;
+
+    const reset = error.response?.headers?.['x-ratelimit-reset'];
+    const resetText = reset
+      ? new Date(Number(reset) * 1000).toISOString()
+      : 'unknown';
+    core.warning(`Worker Watchdog deferred: GitHub API rate limit exhausted; reset=${resetText}. Rate limiting is infrastructure pressure, not branch CI failure; repository state was left unchanged from the point of deferral.`);
+    return { deferred: true, reason: 'github-api-rate-limit', reset: resetText };
+  }
 }
 
 module.exports = {
-  DEPENDENCY_BLOCKERS,
   HUMAN_BLOCKERS,
   MANAGED_MARKER,
-  OWNER_PULSE_STALE_MINUTES,
   RED_CI_CONCLUSIONS,
   STALE_MINUTES,
   STATE_MARKER,
   branchFromText,
   classify,
-  classifyOwnerMission,
   executionActivityMillis,
   handoffComment,
+  isRateLimitError,
   linkedIssueNumbers,
-  missionQueueState,
+  targetIssueNumbersFromContext,
   minutesSince,
-  noWorkCurrentlyAvailable,
   parseWorkerState,
-  queueState,
   run,
   statusLabel,
   summarizeCheckRuns,

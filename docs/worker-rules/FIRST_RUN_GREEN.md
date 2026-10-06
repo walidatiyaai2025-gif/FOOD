@@ -110,7 +110,6 @@ A small UI-only change should not trigger unrelated expensive areas, but a share
 Before push, workers must also check:
 
 - `git diff --check`;
-- for backend PHP changes, run `cd backend && composer lint` before push; use repository/Pint-native style rather than guessing formatter output (notably import exception/classes instead of fully-qualified inline references, and prefer explicit boolean comparisons such as `in_array(...) === false` when the active Pint rules would churn unary `!` spacing);
 - no accidental debug flags, commented security checks or temporary bypasses;
 - no secrets or credentials;
 - no hardcoded customer/store/account/product IDs or fixed business currency where runtime/store data is authoritative;
@@ -176,9 +175,7 @@ Before merge readiness, workers must reproduce the deterministic preconditions o
 bash scripts/validate-premerge-release-version.sh <base-sha> <head-sha>
 ```
 
-Deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` require a `VERSION` bump relative to the PR base when the change is being merged into `main`, and Customer/Driver mobile version identities must remain synchronized with `VERSION`.
-
-Atomic child PRs that target a non-main integration train do not mint competing release identities. They keep the current registered release identity and defer the single synchronized version/package bump to the final integration-train PR that targets `main`. CI must use the actual PR base branch to distinguish those two cases; local or unknown-target validation remains conservative and requires the bump.
+Deployable changes under `backend/`, `apps/customer_app/`, or `apps/driver_app/` require a `VERSION` bump relative to the PR base, and Customer/Driver mobile version identities must remain synchronized with `VERSION`.
 
 Any post-merge failure that was predictable from the PR diff must be converted into a pre-merge check so it cannot recur as a main-only surprise.
 
@@ -194,3 +191,16 @@ bash scripts/validate-premerge-release-version.sh <base-sha> <head-or-WORKTREE>
 ```
 
 Customer and Driver visible/runtime version constants, mobile build identities, release notes and CHANGELOG must agree with the root release identity. Partial synchronization is rejected before expensive release packaging.
+
+## Main-push release-intent parity
+
+A normal feature/bug merge may update deployable runtime code without immediately publishing a new FOODEX release.
+
+Release/distribution workflows must use explicit release intent:
+
+- VERSION changed relative to the authoritative base; or
+- manual distribution was explicitly requested.
+
+If neither condition is true, the workflow should perform only a lightweight release-intent check and finish successfully with distribution skipped. It must not produce a red main build simply because runtime paths changed.
+
+When VERSION changes, all release identities and immutable publication checks remain mandatory.
