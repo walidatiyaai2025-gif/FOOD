@@ -37,8 +37,8 @@ use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TranslationController;
-use App\Http\Controllers\Api\V1\VanVisitController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
+use App\Http\Controllers\Api\V1\VanVisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
