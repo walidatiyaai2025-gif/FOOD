@@ -125,6 +125,7 @@ jobs:
         run: ./scripts/validate-repo.sh
 
       - name: Prevent post-merge main release failures
+        if: github.base_ref == 'main'
         shell: bash
         run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
 
