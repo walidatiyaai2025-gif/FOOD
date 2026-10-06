@@ -96,6 +96,8 @@ class _DriverWalletPageState extends State<DriverWalletPage> {
         collectionAccountId: account.id,
         amount: amount,
         method: 'cash_office',
+        idempotencyKey:
+            'driver-remit-${account.id}-${(account.availableToRemit * 1000).round()}-${(amount * 1000).round()}',
       );
       await _load();
     } catch (error) {
