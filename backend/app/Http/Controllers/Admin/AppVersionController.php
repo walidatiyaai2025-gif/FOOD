@@ -21,7 +21,7 @@ final class AppVersionController extends Controller
         Gate::authorize('platform.manage');
 
         $policies = AppVersion::query()->orderBy('app')->orderBy('platform')->get();
-        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver'], true)
+        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver', 'van'], true)
             ? (string) $request->query('app')
             : 'customer';
         $selectedPlatform = in_array((string) $request->query('platform'), ['android', 'ios'], true)
@@ -45,7 +45,7 @@ final class AppVersionController extends Controller
         Gate::authorize('platform.manage');
 
         $validated = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'latest_version' => ['required', 'string', 'max:64'],
             'minimum_supported_version' => ['required', 'string', 'max:64'],

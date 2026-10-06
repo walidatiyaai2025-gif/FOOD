@@ -28,6 +28,7 @@ return [
     'mobile_apps' => [
         'customer_download' => 'Download Customer APK',
         'driver_download' => 'Download Driver APK',
+        'van_download' => 'Download Van APK',
     ],
     'app_versions' => 'App Versions',
     'app_preview' => 'Application Preview',
@@ -38,6 +39,7 @@ return [
         'application' => 'Application',
         'customer' => 'Customer App',
         'driver' => 'Driver App',
+        'van' => 'Van App',
         'channel' => 'Channel',
         'wholesale' => 'Wholesale / B2B',
         'retail' => 'Retail / B2C',
@@ -77,6 +79,7 @@ return [
         'platform_version' => 'Platform version',
         'customer_runtime' => 'Customer runtime contract',
         'driver_runtime' => 'Driver runtime contract',
+        'van_runtime' => 'Van runtime contract',
         'not_connected' => 'Not connected',
         'inspector' => 'Preview Inspector',
         'inspector_description' => 'Sanitized runtime metadata only. Credentials, PII, bodies, storage and precise coordinates are never exported.',

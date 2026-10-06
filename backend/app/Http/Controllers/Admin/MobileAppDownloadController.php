@@ -22,6 +22,11 @@ final class MobileAppDownloadController extends Controller
         return $this->redirectToVersionedAsset('FOODEX-Driver.apk');
     }
 
+    public function van(): RedirectResponse
+    {
+        return $this->redirectToVersionedAsset('FOODEX-Van.apk');
+    }
+
     private function redirectToVersionedAsset(string $asset): RedirectResponse
     {
         Gate::authorize('platform.manage');

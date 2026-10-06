@@ -48,6 +48,7 @@
                     <select id="preview-app" data-preview-control="app">
                         <option value="customer" @selected(request()->query('app', 'customer') === 'customer')>{{ __('admin.preview_center.customer') }}</option>
                         <option value="driver" @selected(request()->query('app') === 'driver') @disabled(!$canImpersonateDriver)>{{ __('admin.preview_center.driver') }}</option>
+                        <option value="van" @selected(request()->query('app') === 'van')>{{ __('admin.preview_center.van') }}</option>
                     </select>
                 </label>
 
@@ -152,6 +153,7 @@
                     <div><small>{{ __('admin.preview_center.platform_version') }}</small><strong>{{ $platformVersion ?: '—' }}</strong></div>
                     <div><small>{{ __('admin.preview_center.customer_runtime') }}</small><strong data-runtime-meta="customer">{{ $runtimeConfig['customer']['contract_version'] ?: __('admin.preview_center.not_connected') }}</strong></div>
                     <div><small>{{ __('admin.preview_center.driver_runtime') }}</small><strong data-runtime-meta="driver">{{ $runtimeConfig['driver']['contract_version'] ?: __('admin.preview_center.not_connected') }}</strong></div>
+                    <div><small>{{ __('admin.preview_center.van_runtime') }}</small><strong data-runtime-meta="van">{{ $runtimeConfig['van']['contract_version'] ?: __('admin.preview_center.not_connected') }}</strong></div>
                 </div>
 
                 <section class="preview-inspector" id="preview-inspector" aria-label="{{ __('admin.preview_center.inspector') }}">
@@ -267,9 +269,11 @@
     };
 
     const activeRuntime = () => runtimeConfig?.[app?.value || 'customer'] || null;
-    const requiresIdentity = () => app?.value === 'driver' || persona?.value === 'authenticated';
+    const requiresIdentity = () => app?.value !== 'van' && (app?.value === 'driver' || persona?.value === 'authenticated');
     const canImpersonateSelectedApp = () =>
-        app?.value === 'driver' ? bridgeConfig.canImpersonateDriver : bridgeConfig.canImpersonateCustomer;
+        app?.value === 'van'
+            ? false
+            : (app?.value === 'driver' ? bridgeConfig.canImpersonateDriver : bridgeConfig.canImpersonateCustomer);
 
     const setStatus = (message) => {
         if (status) status.textContent = message;
@@ -371,12 +375,14 @@
         const textScale = Number(option?.dataset?.textScale || 1);
         const storeId = selectedStoreId();
         return {
-            app: app?.value === 'driver' ? 'driver' : 'customer',
+            app: ['customer', 'driver', 'van'].includes(app?.value) ? app.value : 'customer',
             channel: channel?.value === 'b2c' ? 'b2c' : 'b2b',
             store_id: storeId,
-            auth_mode: app?.value === 'driver'
-                ? 'preview-driver'
-                : (persona?.value === 'authenticated' ? 'preview-customer' : 'guest'),
+            auth_mode: app?.value === 'van'
+                ? 'preview-van-readonly'
+                : (app?.value === 'driver'
+                    ? 'preview-driver'
+                    : (persona?.value === 'authenticated' ? 'preview-customer' : 'guest')),
             locale: locale?.value === 'en' ? 'en' : 'ar',
             device_profile: safeText(device?.value, 64),
             device_width: width,
@@ -517,7 +523,9 @@
 
     const syncPersona = () => {
         const driverMode = app?.value === 'driver';
+        const vanMode = app?.value === 'van';
         if (guestOption) guestOption.disabled = driverMode;
+        if (persona) persona.disabled = vanMode;
 
         if (authenticatedOption) {
             authenticatedOption.disabled = !canImpersonateSelectedApp();
@@ -529,6 +537,7 @@
             persona.value = 'guest';
         }
 
+        if (vanMode && persona) persona.value = 'guest';
         if (targetWrap) targetWrap.hidden = !requiresIdentity();
     };
 
@@ -811,7 +820,9 @@
         iframe.src = runtime.url;
         iframe.title = app.value === 'driver'
             ? @json(__('admin.preview_center.driver'))
-            : @json(__('admin.preview_center.customer'));
+            : (app.value === 'van'
+                ? @json(__('admin.preview_center.van'))
+                : @json(__('admin.preview_center.customer')));
         iframe.referrerPolicy = 'no-referrer';
         iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
         iframe.setAttribute('data-preview-shared-runtime', app.value);
@@ -824,7 +835,7 @@
     async function launchPreview() {
         const launchId = ++launchRequest;
         const snapshot = {
-            app: app?.value === 'driver' ? 'driver' : 'customer',
+            app: ['customer', 'driver', 'van'].includes(app?.value) ? app.value : 'customer',
             channel: channel?.value === 'b2c' ? 'b2c' : 'b2b',
             storeId: selectedStoreId(),
             targetUserId: Number(target?.value || 0),
@@ -845,8 +856,29 @@
             if (snapshot.requiresIdentity) {
                 nextSession = await createAuthenticatedSession(snapshot);
             } else {
-                if (snapshot.app !== 'customer') throw new Error('target_required');
-                nextSession = guestSession(snapshot);
+                if (snapshot.app === 'van') {
+                    nextSession = {
+                        credential: null,
+                        context: {
+                            session_id: null,
+                            target_type: 'van',
+                            auth_mode: 'preview-van-readonly',
+                            channel: snapshot.channel,
+                            store_id: snapshot.storeId,
+                            commerce_context: {
+                                channel: snapshot.channel,
+                                store_id: snapshot.storeId,
+                            },
+                            mode: 'read_only',
+                            read_only: true,
+                            support_access: false,
+                            target: null,
+                        },
+                    };
+                } else {
+                    if (snapshot.app !== 'customer') throw new Error('target_required');
+                    nextSession = guestSession(snapshot);
+                }
             }
 
             if (launchId !== launchRequest) {
