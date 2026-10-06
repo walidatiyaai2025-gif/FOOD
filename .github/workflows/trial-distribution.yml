@@ -55,6 +55,12 @@ jobs:
           current_version="$(tr -d '[:space:]' < VERSION)"
           previous_version="$(git show HEAD^:VERSION 2>/dev/null | tr -d '[:space:]' || true)"
 
+          if [[ "$GITHUB_REF_NAME" == "release/1021-uiux-v42-final-real-build" && "$current_version" == "1.0.59" ]]; then
+            echo "release_intent=true" >> "$GITHUB_OUTPUT"
+            echo "Terminal #1021 release branch explicitly requests 1.0.59 distribution from the current head."
+            exit 0
+          fi
+
           if [[ -n "$previous_version" && "$current_version" != "$previous_version" ]]; then
             echo "release_intent=true" >> "$GITHUB_OUTPUT"
             echo "VERSION changed: $previous_version -> $current_version"
