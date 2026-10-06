@@ -112,6 +112,9 @@
     "clean_install_from_zip_required": true,
     "github_release_hash_verification_required": true,
     "generated_distribution_refresh_required": true,
-    "stale_setup_forbidden": true
+    "stale_setup_forbidden": true,
+    "final_branch_artifact_persistence_required": true,
+    "final_branch_setup_path": "Release/FOODEX-Laravel-Setup.zip",
+    "cross_surface_hash_rule": "Setup ZIP SHA-256 must match on final branch, immutable GitHub Release, and generated distribution branch."
   }
 }
