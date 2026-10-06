@@ -323,11 +323,11 @@ final class FieldOperationsController extends Controller
         abort_unless($assignment->status === 'active', 422, 'Only an active Van assignment can receive a planned visit.');
 
         $plannedAt = isset($data['planned_at']) ? Carbon::parse((string) $data['planned_at']) : now();
-        abort_if($assignment->effective_from !== null && $plannedAt->lt($assignment->effective_from), 422, 'Visit is before assignment start.');
+        abort_if($plannedAt->lt($assignment->effective_from), 422, 'Visit is before assignment start.');
         abort_if($assignment->effective_until !== null && $plannedAt->gte($assignment->effective_until), 422, 'Visit is outside assignment window.');
 
         $actorUserId = $assignment->representative_user_id;
-        if ($actorUserId === null) {
+        if ($actorUserId === null && $assignment->driver_id !== null) {
             $actorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
         }
         if ($actorUserId === null) {
