@@ -17,9 +17,20 @@ void main() {
   );
 
   test('loads Van Flash offers from canonical server feed', () async {
-    late Uri requested;
+    late Uri flashRequested;
     final client = MockClient((request) async {
-      requested = request.url;
+      if (request.url.path.endsWith('/offers')) {
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {'id': 1, 'name': 'Normal offer', 'type': 'percentage', 'value': 10},
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      flashRequested = request.url;
       return http.Response(
         jsonEncode({
           'server_time': '2026-10-06T08:30:00+03:00',
@@ -61,14 +72,78 @@ void main() {
 
     final feed = await repository.offersFor(customer);
 
-    expect(requested.path, '/api/v1/flash-offers');
-    expect(requested.queryParameters['store_id'], '7');
-    expect(requested.queryParameters['channel'], 'van');
+    expect(flashRequested.path, '/api/v1/flash-offers');
+    expect(flashRequested.queryParameters['store_id'], '7');
+    expect(flashRequested.queryParameters['channel'], 'van');
     expect(feed.serverTime, DateTime.parse('2026-10-06T05:30:00Z'));
     expect(feed.offers, hasLength(1));
     expect(feed.offers.single.products.single.sellingUnitCode, 'CARTON');
     expect(feed.offers.single.products.single.conversionFactor, 10);
     expect(feed.offers.single.products.single.flashPrice, 7);
+    expect(feed.normalOffers.single.name, 'Normal offer');
+  });
+
+  test('loads canonical selected-customer commercial quote', () async {
+    late http.Request captured;
+    final repository = HttpVanCommercialRepository(
+      VanApiClient(
+        'https://foodex.example/',
+        'token',
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({
+              'data': {
+                'effective_allowed': false,
+                'override_applied': false,
+                'decision': {
+                  'allowed': false,
+                  'status': 'CLOSED',
+                  'reason_codes': ['PRODUCT_CLOSED'],
+                },
+                'selling_unit': {
+                  'code': 'CARTON',
+                  'name': 'Carton',
+                  'conversion_factor': 10,
+                  'price': 7,
+                  'sku': 'SKU-1',
+                  'barcode': null,
+                  'is_base': false,
+                },
+                'selling_units': [
+                  {
+                    'code': 'CARTON',
+                    'name': 'Carton',
+                    'conversion_factor': 10,
+                    'price': 7,
+                    'sku': 'SKU-1',
+                    'barcode': null,
+                    'is_base': false,
+                  }
+                ],
+              }
+            }),
+            200,
+          );
+        }),
+      ),
+    );
+
+    final quote = await repository.quoteForCustomer(
+      customer: customer,
+      productId: 99,
+      sellingUnitCode: 'CARTON',
+      quantity: 2,
+    );
+
+    expect(
+      captured.url.path,
+      '/api/v1/van/customers/b2c/44/commercial/quote',
+    );
+    expect(quote.allowed, isFalse);
+    expect(quote.status, 'CLOSED');
+    expect(quote.reasonCodes, ['PRODUCT_CLOSED']);
+    expect(quote.sellingUnit.conversionFactor, 10);
   });
 
   test('reserves Flash against selected customer scope, never Van operator', () async {
@@ -89,6 +164,7 @@ void main() {
       offerProductId: 51,
       quantity: 2,
       idempotencyKey: 'idem-1',
+      overrideReason: 'Supervisor approved',
     );
 
     expect(
@@ -99,6 +175,7 @@ void main() {
     expect(body['store_id'], 7);
     expect(body['quantity'], 2);
     expect(body['idempotency_key'], 'idem-1');
+    expect(body['override_reason'], 'Supervisor approved');
   });
 
   test('canonical commercial reason-code set stays aligned with #983', () {
