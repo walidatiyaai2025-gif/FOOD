@@ -48,6 +48,32 @@ class VanControlPlaneParityTest extends TestCase
             ->assertJsonPath('data.maintenance_message', 'Van maintenance');
     }
 
+    public function test_authorized_van_can_register_for_dashboard_managed_push(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->postJson('/api/v1/push/devices', [
+            'app' => 'van',
+            'platform' => 'android',
+            'environment' => 'production',
+            'token' => 'van-fcm-token-1',
+            'install_id' => 'van-install-1',
+            'locale' => 'en',
+        ])->assertCreated()
+            ->assertJsonPath('data.app', 'van')
+            ->assertJsonPath('data.platform', 'android')
+            ->assertJsonPath('data.environment', 'production');
+
+        $this->assertDatabaseHas('push_device_tokens', [
+            'user_id' => $admin->id,
+            'app' => 'van',
+            'platform' => 'android',
+            'environment' => 'production',
+            'install_id' => 'van-install-1',
+            'revoked_at' => null,
+        ]);
+    }
+
     public function test_app_version_policy_can_represent_van(): void
     {
         $admin = $this->admin();
