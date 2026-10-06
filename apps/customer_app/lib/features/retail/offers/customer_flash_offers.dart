@@ -524,7 +524,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                       if (offer.sellingUnits.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         DropdownButtonFormField<int>(
-                          value: _selectedUnits[offer.id] ??
+                          initialValue: _selectedUnits[offer.id] ??
                               offer.sellingUnits.first.id,
                           decoration: InputDecoration(
                             labelText: _ar ? 'وحدة البيع' : 'Selling unit',
@@ -532,7 +532,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                           items: offer.sellingUnits
                               .map(
                                 (unit) => DropdownMenuItem<int>(
-                                  value: unit.id,
+                                  initialValue: unit.id,
                                   child: Text(
                                     unit.label.isEmpty
                                         ? (_ar ? 'وحدة' : 'Unit')
@@ -765,14 +765,14 @@ class _CustomerFlashCheckoutScreenState
           if (options != null) ...[
             const SizedBox(height: 20),
             DropdownButtonFormField<int>(
-              value: _addressId,
+              initialValue: _addressId,
               decoration: InputDecoration(
                 labelText: _ar ? 'عنوان التوصيل' : 'Delivery address',
               ),
               items: options.addresses
                   .map(
                     (address) => DropdownMenuItem<int>(
-                      value: address.id,
+                      initialValue: address.id,
                       child: Text(
                         [address.label, address.line1, address.city]
                             .where((part) => part.trim().isNotEmpty)
@@ -788,14 +788,14 @@ class _CustomerFlashCheckoutScreenState
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
               decoration: InputDecoration(
                 labelText: _ar ? 'طريقة الدفع' : 'Payment method',
               ),
               items: options.paymentMethods
                   .map(
                     (method) => DropdownMenuItem<String>(
-                      value: method,
+                      initialValue: method,
                       child: Text(method),
                     ),
                   )
