@@ -99,7 +99,7 @@ class VanControlPlaneParityTest extends TestCase
             ->assertOk()
             ->assertSee('value="van"', false)
             ->assertSee('preview-van-readonly', false)
-            ->assertSee('/preview/van/', false);
+            ->assertSee('preview\\/van\\/', false);
     }
 
     private function admin(): User
