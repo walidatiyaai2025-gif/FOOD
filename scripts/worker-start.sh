@@ -15,6 +15,13 @@ fi
 base="$(git merge-base "$base_ref" HEAD)"
 
 echo "FOODEX worker bootstrap"
+echo
+echo "MANDATORY UI/UX CONTRACT:"
+echo "  docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md"
+echo "  Read before changing Dashboard/Admin/business-facing UI."
+echo "  No raw IDs/keys/codes/JSON when a Lookup/Enum/Builder is appropriate."
+echo "  Customer + Driver + Van application parity must be evaluated."
+echo
 echo "branch=$branch"
 echo "head=$head"
 echo "base_ref=$base_ref"
