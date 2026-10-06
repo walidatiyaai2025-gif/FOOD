@@ -72,6 +72,20 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
+            $this->group('field_operations', 'admin.nav_groups.field_operations', '⌖', [
+                $this->routeItemAny($user, 'field_ops_overview', 'admin.field_operations.overview', 'admin.field-operations.overview', ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']),
+                $this->routeItemAny($user, 'field_ops_fleet', 'admin.field_operations.fleet', 'admin.field-operations.fleet', ['drivers.tracking.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_vans', 'admin.field_operations.vans', 'admin.field-operations.vans', ['drivers.b2b.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_assignments', 'admin.field_operations.assignments', 'admin.field-operations.assignments', ['drivers.b2b.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_customers', 'admin.field_operations.customers', 'admin.field-operations.customers', ['customers.view', 'drivers.b2b.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_visits', 'admin.field_operations.visits', 'admin.field-operations.visits', ['drivers.b2b.view', 'customers.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_territories', 'admin.field_operations.territories', 'admin.field-operations.territories', ['territories.manage', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_address_quality', 'admin.field_operations.address_quality', 'admin.field-operations.address-quality', ['customers.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_routing', 'admin.field_operations.routing', 'admin.field-operations.routing', ['territories.manage', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view', 'field_ops.manage']),
+                $this->routeItemFlaggedAny($user, 'field_ops_commercial_rules', 'admin.field_operations.commercial_rules', 'admin.commercial.sales-control', ['catalog.view', 'field_ops.manage'], 'commercial_rules_enabled'),
+                $this->routeItemFlaggedAny($user, 'field_ops_van_offers', 'admin.field_operations.van_offers', 'admin.commercial.flash-offers', ['promotions.view', 'field_ops.manage'], 'van_offers_enabled'),
+            ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
                 $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
@@ -323,6 +337,22 @@ class AdminNavigation
         }
 
         return null;
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemFlaggedAny(
+        User $user,
+        string $key,
+        string $label,
+        string $route,
+        array $permissions,
+        string $featureFlag,
+    ): ?array {
+        if (! app(\App\Services\CommercialFeatureFlags::class)->enabled($featureFlag)) {
+            return null;
+        }
+
+        return $this->routeItemAny($user, $key, $label, $route, $permissions);
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
