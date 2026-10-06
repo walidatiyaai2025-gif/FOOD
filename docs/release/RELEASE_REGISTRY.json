@@ -204,7 +204,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "408072018ca31e6f1d16ecd06d513417aa0e0a66c3fed23adb582ee59e288f49",
+      "dashboard_update_sha256": "9a522c91b0fd870b20138bb7ee2f6501714439cf4e0c6165f4bdde5b58c89cee",
       "note": "Canonical FOODEX Van 1.0.58 release: complete #983/#991 commercial and Flash scope, #990 store-readiness, full Van field operations and clean-install package. Apple/Google console signing and submission remain external/manual."
     }
   ]
