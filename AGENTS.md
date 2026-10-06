@@ -1201,7 +1201,8 @@ For the current mission:
 - mission ID: `UIUX-V42`;
 - execution plan: `docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`;
 - integration target: `release/1.0.58-van-complete`;
-- final convergence gate: **#1012**;
+- final code convergence gate: **#1012**;
+- terminal real release gate: **#1021** on `release/1021-uiux-v42-final-real-build`;
 - maximum implementation parallelism: **6 active lanes**.
 
 When the repository owner says `حرك مشروع FOOD`, `اشتغل على مشروع FOOD`, or `FOOD MISSION`:
@@ -1216,7 +1217,7 @@ When the repository owner says `حرك مشروع FOOD`, `اشتغل على مش
 8. after each child completes, return to the umbrella and continue draining;
 9. stop only at COMPLETE or a genuine all-remaining-lanes HUMAN_GATE state.
 
-For #1001, only #1012 may declare the plan fully converged and close the umbrella.
+For #1001, #1012 may declare only final code convergence. Only #1021 may declare the Mission COMPLETE and close the umbrella after the real Setup/release build is clean-install-tested and published.
 
 #1012 must not close #1001 until the canonical `FOODEX Van 1.0.58 Fresh Setup` workflow has built `Release/FOODEX-Laravel-Setup.zip` from the exact final integrated implementation source SHA, passed clean-install validation from the ZIP only, and published the synchronized Setup/evidence/update artifacts back to `release/1.0.58-van-complete`. `Release/BUILD_INFO.json.source_commit` and `Release/FRESH_INSTALL_EVIDENCE.json.source_commit` must equal that implementation source SHA. If Setup-delivered business code changes afterwards, the Setup is stale and the workflow must rebuild/revalidate it before Mission completion.
 
