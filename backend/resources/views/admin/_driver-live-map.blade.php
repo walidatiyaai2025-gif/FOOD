@@ -1,5 +1,6 @@
 @php
     $liveMapMode = $liveMapMode ?? 'full';
+    $trackingActor = $trackingActor ?? 'driver';
     $showFilters = $showFilters ?? true;
     $showList = $showList ?? true;
     $showSummary = $showSummary ?? true;
@@ -32,6 +33,10 @@
         'accuracy' => __('admin.driver_live_tracking.accuracy'),
         'speed' => __('admin.driver_live_tracking.speed'),
         'lastSeen' => __('admin.driver_live_tracking.last_seen'),
+        'entitySingular' => $trackingActor === 'van' ? ($ar ?? false ? 'فان' : 'Van') : __('admin.driver_live_tracking.driver'),
+        'entities' => $trackingActor === 'van' ? ($ar ?? false ? 'الفانات' : 'Vans') : __('admin.driver_live_tracking.drivers'),
+        'entityId' => $trackingActor === 'van' ? ($ar ?? false ? 'رقم الفان' : 'Van ID') : __('admin.driver_live_tracking.driver_id'),
+        'route' => $trackingActor === 'van' ? ($ar ?? false ? 'المسار' : 'Route') : __('admin.driver_live_tracking.order'),
     ];
 @endphp
 
@@ -42,6 +47,7 @@
     data-show-list="{{ $showList ? '1' : '0' }}"
     data-feed-url="{{ $feedUrl }}"
     data-poll-ms="{{ $pollMs }}"
+    data-actor-kind="{{ $trackingActor }}"
     data-assets-failed="{{ __('admin.driver_live_tracking.assets_failed') }}"
 >
     <script type="application/json" data-driver-live-map-i18n>@json($trackingI18n)</script>
@@ -65,8 +71,13 @@
                         <option value="offline">{{ __('admin.driver_live_tracking.offline') }}</option>
                     </select>
                 </label>
-                <label>{{ __('admin.driver_live_tracking.driver_id') }}<input data-live-map="driver-id" type="number" min="1" inputmode="numeric"></label>
-                <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
+                @if($trackingActor === 'van')
+                    <label>{{ $trackingI18n['entityId'] ?? 'Van ID' }}<input data-live-map="actor-id" type="number" min="1" inputmode="numeric"></label>
+                    <label>{{ $trackingI18n['route'] ?? 'Route' }}<input data-live-map="route-key" type="text"></label>
+                @else
+                    <label>{{ __('admin.driver_live_tracking.driver_id') }}<input data-live-map="driver-id" type="number" min="1" inputmode="numeric"></label>
+                    <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
+                @endif
             </div>
             <div class="tracking-actions">
                 <button class="btn btn-primary" type="button" data-live-map="apply">{{ __('admin.driver_live_tracking.apply') }}</button>
@@ -125,7 +136,7 @@
                 <label class="tracking-search-label">{{ __('admin.driver_live_tracking.search') }}
                     <input data-live-map="search" type="search" autocomplete="off">
                 </label>
-                <h2 class="tracking-list-title">{{ __('admin.driver_live_tracking.drivers') }}</h2>
+                <h2 class="tracking-list-title">{{ $trackingI18n['entities'] ?? __('admin.driver_live_tracking.drivers') }}</h2>
                 <div data-live-map="list" class="tracking-list">
                     <div class="tracking-empty">{{ __('admin.driver_live_tracking.loading') }}</div>
                 </div>
