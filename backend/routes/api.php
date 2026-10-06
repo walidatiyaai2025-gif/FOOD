@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AddressQualityController;
 use App\Http\Controllers\Api\V1\AdminReportController;
 use App\Http\Controllers\Api\V1\AppPreviewInvalidationController;
 use App\Http\Controllers\Api\V1\AppPreviewSessionController;
@@ -13,9 +14,11 @@ use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
+use App\Http\Controllers\Api\V1\DriverCollectionController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\FlashOfferController;
+use App\Http\Controllers\Api\V1\FleetLocationController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
 use App\Http\Controllers\Api\V1\GuestStoreController;
@@ -33,10 +36,15 @@ use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RetailCheckoutOptionsController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
+use App\Http\Controllers\Api\V1\RoutingPolicyController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
+use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
+use App\Http\Controllers\Api\V1\VanCollectionController;
+use App\Http\Controllers\Api\V1\VanRegistryController;
+use App\Http\Controllers\Api\V1\VanVisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -153,6 +161,33 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/runtime-inspector/events', MobileSystemInspectorEventController::class)
             ->middleware('throttle:60,1')
             ->name('api.runtime-inspector.events');
+
+        Route::prefix('van')->group(function (): void {
+            Route::get('/customers', [VanVisitController::class, 'customers']);
+            Route::get('/customers/{type}/{customer}', [VanVisitController::class, 'customer'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::get('/customers/{type}/{customer}/collection-context', [VanCollectionController::class, 'customerContext'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::post('/customers/{type}/{customer}/collect', [VanCollectionController::class, 'collect'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::get('/wallet', [VanCollectionController::class, 'wallet']);
+            Route::post('/remittances', [VanCollectionController::class, 'remit']);
+            Route::get('/visits', [VanVisitController::class, 'visits']);
+            Route::post('/visits', [VanVisitController::class, 'store']);
+            Route::post('/visits/{visit}/transition', [VanVisitController::class, 'transition'])
+                ->whereNumber('visit');
+            Route::get('/no-order-reasons', [VanVisitController::class, 'noOrderReasons']);
+        });
+        Route::prefix('/admin/field-operations')->group(function (): void {
+            Route::post('/geography', [TerritoryController::class, 'storeGeography']);
+            Route::post('/territories', [TerritoryController::class, 'storeTerritory']);
+            Route::post('/territories/{territory}/geometry', [TerritoryController::class, 'storeGeometry'])
+                ->whereNumber('territory');
+            Route::post('/territory-resolution', [TerritoryController::class, 'resolve']);
+        });
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
             ->whereNumber('session');
@@ -180,7 +215,24 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/admin/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles']);
         Route::patch('/admin/security/users/{user}/status', [SecurityController::class, 'updateUserStatus']);
         Route::get('/admin/reports/dashboard', [AdminReportController::class, 'dashboard']);
+        Route::get('/admin/field-operations/address-quality', [AddressQualityController::class, 'index']);
+        Route::get('/admin/field-operations/address-quality/{review}', [AddressQualityController::class, 'show'])->whereNumber('review');
+        Route::post('/admin/field-operations/address-quality/{review}/confirm', [AddressQualityController::class, 'confirm'])->whereNumber('review');
+        Route::post('/admin/field-operations/address-quality/{review}/reject', [AddressQualityController::class, 'reject'])->whereNumber('review');
+        Route::post('/admin/field-operations/address-quality/{review}/reopen', [AddressQualityController::class, 'reopen'])->whereNumber('review');
         Route::get('/admin/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed']);
+        Route::get('/admin/field-operations/fleet/feed', [FleetLocationController::class, 'feed']);
+        Route::post('/admin/field-operations/fleet/van-heartbeat', [FleetLocationController::class, 'vanHeartbeat'])
+            ->middleware('throttle:120,1');
+        Route::prefix('admin/field-operations/routing-policies')->group(function (): void {
+            Route::post('/', [RoutingPolicyController::class, 'store']);
+            Route::post('/{routingPolicy}/publish', [RoutingPolicyController::class, 'publish'])->whereNumber('routingPolicy');
+            Route::post('/{routingPolicy}/simulate', [RoutingPolicyController::class, 'simulate'])->whereNumber('routingPolicy');
+            Route::post('/{routingPolicy}/rollback', [RoutingPolicyController::class, 'rollback'])->whereNumber('routingPolicy');
+        });
+        Route::post('/admin/field-operations/vans', [VanRegistryController::class, 'store']);
+        Route::post('/admin/field-operations/vans/{van}/assignments', [VanRegistryController::class, 'assign'])->whereNumber('van');
+        Route::post('/admin/field-operations/vans/{van}/suspend', [VanRegistryController::class, 'suspend'])->whereNumber('van');
         Route::get('/admin/reports/{report}', [ManagementReportController::class, 'show'])
             ->whereIn('report', ['orders', 'products', 'customers', 'operations']);
         Route::get('/admin/b2b/accounts', [B2bAccountController::class, 'index']);
@@ -237,12 +289,15 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/admin/deliveries/orders/{order}', [DriverAssignmentController::class, 'unassign'])->whereNumber('order');
         Route::post('/driver/location/heartbeat', [DriverLocationController::class, 'heartbeat'])
             ->middleware('throttle:120,1');
+        Route::get('/driver/wallet', [DriverCollectionController::class, 'wallet']);
+        Route::post('/driver/wallet/remittances', [DriverCollectionController::class, 'remit']);
 
         Route::middleware('driver.location.fresh')->group(function (): void {
             Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
             Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
             Route::get('/driver/assignments/{assignment}/invoice/download', [DriverAssignmentController::class, 'downloadInvoice'])->whereNumber('assignment');
             Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
+            Route::post('/driver/assignments/{assignment}/collections', [DriverCollectionController::class, 'collect'])->whereNumber('assignment');
         });
     });
 });
