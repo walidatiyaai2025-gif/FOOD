@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "ec7610be44d9eded4ae921b19bed973da993f44394758018fc1948b9f7a63266",
+  "sha256": "67a32a9e016cc858b6bcc18eaa9058ed88d71a8e38c19e00b62ce2e02d2d8bf4",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "docs(preview): align canonical Van runtime origin",
+  "release_notes": "ci: trigger canonical Van fresh-install visibility gate",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "ec7610be44d9eded4ae921b19bed973da993f44394758018fc1948b9f7a63266",
+    "sha256": "67a32a9e016cc858b6bcc18eaa9058ed88d71a8e38c19e00b62ce2e02d2d8bf4",
     "contains_migrations": true,
-    "release_notes": "docs(preview): align canonical Van runtime origin"
+    "release_notes": "ci: trigger canonical Van fresh-install visibility gate"
   }
 }
