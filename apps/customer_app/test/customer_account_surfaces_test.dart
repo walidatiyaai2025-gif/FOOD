@@ -240,6 +240,57 @@ void main() {
     },
   );
 
+  testWidgets(
+    'account surfaces compact headers and refresh automatically on resume',
+    (tester) async {
+      final api = _AccountFakeApi(
+        addressesValue: const {'data': []},
+        favoritesValue: const {'data': []},
+        notificationsValue: const {'data': []},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: FoodexTheme.light(),
+          home: CustomerAccountScreen(
+            api: api,
+            favoritesApi: api,
+            retailStoreId: 19,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final surface = tester.widget<CustomerCurvedHeaderSurface>(
+        find.byType(CustomerCurvedHeaderSurface),
+      );
+      expect(
+        surface.headerPadding,
+        const EdgeInsetsDirectional.fromSTEB(12, 6, 12, 8),
+      );
+      expect(
+        tester.getSize(find.byType(CustomerAccountHeader)).height,
+        lessThan(72),
+      );
+
+      final profileBefore = api.profileLoads;
+      final addressesBefore = api.addressLoads;
+      final favoritesBefore = api.favoriteLoads.length;
+      final notificationsBefore = api.notificationLoads;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(api.profileLoads, profileBefore + 1);
+      expect(api.addressLoads, addressesBefore + 1);
+      expect(api.favoriteLoads.length, favoritesBefore + 1);
+      expect(api.notificationLoads, notificationsBefore + 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('notification and address empty states use V3 state primitives',
       (tester) async {
     final api = _AccountFakeApi(
@@ -302,6 +353,9 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   final Object? favoritesValue;
   final Object? notificationsValue;
 
+  int profileLoads = 0;
+  int addressLoads = 0;
+  int notificationLoads = 0;
   final List<int?> favoriteLoads = <int?>[];
   final List<(int, int?)> removedFavorites = <(int, int?)>[];
   final List<int> readNotifications = <int>[];
@@ -310,12 +364,16 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
 
   @override
   Future<Object?> profile() async {
+    profileLoads += 1;
     if (profileError != null) throw profileError!;
     return profileValue;
   }
 
   @override
-  Future<Object?> addresses() async => addressesValue;
+  Future<Object?> addresses() async {
+    addressLoads += 1;
+    return addressesValue;
+  }
 
   @override
   Future<Object?> favorites() async => favoritesValue;
@@ -340,8 +398,10 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   }
 
   @override
-  Future<Object?> notifications({String locale = 'ar'}) async =>
-      notificationsValue;
+  Future<Object?> notifications({String locale = 'ar'}) async {
+    notificationLoads += 1;
+    return notificationsValue;
+  }
 
   @override
   Future<void> markNotificationRead(int notificationId) async {

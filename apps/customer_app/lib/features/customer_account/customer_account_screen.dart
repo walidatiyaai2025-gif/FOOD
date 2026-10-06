@@ -32,7 +32,8 @@ class CustomerAccountScreen extends StatefulWidget {
   State<CustomerAccountScreen> createState() => _CustomerAccountScreenState();
 }
 
-class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
+class _CustomerAccountScreenState extends State<CustomerAccountScreen>
+    with WidgetsBindingObserver {
   late Future<Object?> _profile;
   late Future<Object?> _addresses;
   late Future<Object?> _favorites;
@@ -42,6 +43,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _profile = widget.api.profile();
     _addresses = widget.api.addresses();
     _favorites = widget.favoritesApi.favoritesForStore(widget.retailStoreId);
@@ -54,6 +56,20 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
     if (_notifications == null || locale != _locale) {
       _locale = locale;
       _notifications = widget.api.notifications(locale: locale);
+    }
+  }
+
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reloadAll();
     }
   }
 
