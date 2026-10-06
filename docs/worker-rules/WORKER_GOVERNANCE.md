@@ -68,7 +68,8 @@ Mission safety rules:
 - CI red/conflicts/test failures remain repository work on the same lane;
 - current-head running CI is preserved rather than duplicated;
 - a worker that completes one lane returns to the umbrella and continues another safe lane;
-- only the final convergence child may close the umbrella;
+- #1012 freezes/converges code but does not close the umbrella;
+- only terminal real-release child #1021 may close the umbrella after a verified clean Setup build;
 - `main` is not a merge/auto-merge target for this Mission.
 
 GitHub is the durable mission state. Chat history is never required for recovery.
