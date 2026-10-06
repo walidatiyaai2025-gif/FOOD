@@ -312,6 +312,7 @@ final class FieldOperationsController extends Controller
             'customer_type' => ['required', Rule::in(['b2b', 'b2c'])],
             'customer_id' => ['required', 'integer', 'min:1'],
             'planned_at' => ['nullable', 'date'],
+            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
             'route_key' => ['nullable', 'string', 'max:128'],
         ]);
 
@@ -331,9 +332,11 @@ final class FieldOperationsController extends Controller
         }
 
         $this->assertCustomerExists((string) $data['customer_type'], (int) $data['customer_id']);
-        $storeId = (string) $data['customer_type'] === 'b2c'
-            ? DB::table('b2c_customers')->where('id', $data['customer_id'])->value('store_id')
-            : null;
+        $storeId = $data['store_id'] ?? (
+            (string) $data['customer_type'] === 'b2c'
+                ? DB::table('b2c_customers')->where('id', $data['customer_id'])->value('store_id')
+                : null
+        );
 
         VanVisit::query()->create([
             'actor_user_id' => (int) $actorUserId,
@@ -369,6 +372,7 @@ final class FieldOperationsController extends Controller
         $this->visitLifecycle->transition(
             $visit,
             (string) $data['status'],
+            $user,
             isset($data['order_id']) ? (int) $data['order_id'] : null,
             isset($data['no_order_reason_id']) ? (int) $data['no_order_reason_id'] : null,
         );
