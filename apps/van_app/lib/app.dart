@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/api/http_van_api.dart';
+import 'core/auth/van_auth_persistence.dart';
 import 'core/auth/van_session.dart';
 import 'core/auth/van_session_store.dart';
 import 'core/config/foodex_environment.dart';
@@ -21,6 +22,8 @@ class FoodexVanApp extends StatefulWidget {
     this.locale = const Locale('ar'),
     this.authRepository,
     this.sessionStore,
+    this.authPreferenceStore,
+    this.biometricAuthenticator,
     this.initialSession,
     this.walletRepository,
     this.commercialRepository,
@@ -30,6 +33,8 @@ class FoodexVanApp extends StatefulWidget {
   final Locale locale;
   final VanAuthRepository? authRepository;
   final VanSessionStore? sessionStore;
+  final VanAuthPreferenceStore? authPreferenceStore;
+  final VanBiometricAuthenticator? biometricAuthenticator;
   final VanSession? initialSession;
   final VanWalletRepository? walletRepository;
   final VanCommercialRepository? commercialRepository;
@@ -42,6 +47,9 @@ class FoodexVanApp extends StatefulWidget {
 class _FoodexVanAppState extends State<FoodexVanApp> {
   late final VanAuthRepository _authRepository;
   late final VanSessionStore _sessionStore;
+  late final VanAuthPreferenceStore _authPreferenceStore;
+  late final VanBiometricAuthenticator _biometricAuthenticator;
+  VanAuthPreferences _preferences = const VanAuthPreferences();
   VanSession? _session;
   bool _restoring = true;
   StreamSubscription<VanPushAlert>? _pushAlertSubscription;
@@ -52,13 +60,17 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     _authRepository =
         widget.authRepository ?? HttpVanAuthRepository(FoodexEnvironment.apiBaseUrl);
     _sessionStore = widget.sessionStore ?? SecureVanSessionStore();
+    _authPreferenceStore =
+        widget.authPreferenceStore ?? SecureVanAuthPreferenceStore();
+    _biometricAuthenticator =
+        widget.biometricAuthenticator ?? LocalAuthVanBiometricAuthenticator();
     _session = widget.initialSession;
 
     if (_session != null) {
       _restoring = false;
       unawaited(widget.pushService?.bindSession(_session!.token));
     } else {
-      _restoreSession();
+      _restoreAuthState();
     }
 
     final pushService = widget.pushService;
@@ -67,41 +79,84 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     }
   }
 
-  Future<void> _restoreSession() async {
+  Future<void> _restoreAuthState() async {
+    VanAuthPreferences? preferences;
     VanSession? stored;
+
     try {
+      preferences = await _authPreferenceStore.read();
       stored = await _sessionStore.read();
+
       if (stored != null && !stored.canUseVan) {
         await _sessionStore.clear();
         stored = null;
       }
+
+      if (preferences == null && stored != null) {
+        preferences = const VanAuthPreferences(rememberMe: true);
+        await _authPreferenceStore.write(preferences);
+      }
+
+      preferences ??= const VanAuthPreferences();
+
+      if (!preferences.rememberMe) {
+        if (stored != null) {
+          await _sessionStore.clear();
+          stored = null;
+        }
+      } else if (stored == null && preferences.biometricEnabled) {
+        preferences = preferences.copyWith(biometricEnabled: false);
+        await _authPreferenceStore.write(preferences);
+      }
     } catch (_) {
+      preferences = const VanAuthPreferences();
       stored = null;
     }
 
+    final resolvedPreferences =
+        preferences ?? const VanAuthPreferences();
+    final restoredSession =
+        resolvedPreferences.biometricEnabled ? null : stored;
+
     if (!mounted) return;
     setState(() {
-      _session = stored;
+      _preferences = resolvedPreferences;
+      _session = restoredSession;
       _restoring = false;
     });
-    if (stored != null) {
-      unawaited(widget.pushService?.bindSession(stored.token));
+
+    if (restoredSession != null) {
+      unawaited(widget.pushService?.bindSession(restoredSession.token));
     }
   }
 
-  Future<void> _authenticated(VanSession session, bool persist) async {
+  Future<void> _authenticated(
+    VanSession session,
+    bool rememberMe,
+    bool biometricEnabled,
+  ) async {
     if (!session.canUseVan) return;
 
-    if (persist) {
+    final preferences = VanAuthPreferences(
+      rememberMe: rememberMe,
+      biometricEnabled: rememberMe && biometricEnabled,
+    );
+
+    if (rememberMe) {
       await _sessionStore.write(session);
+      await _authPreferenceStore.write(preferences);
     } else {
       await _sessionStore.clear();
+      await _authPreferenceStore.clear();
     }
 
     unawaited(widget.pushService?.bindSession(session.token));
 
     if (!mounted) return;
-    setState(() => _session = session);
+    setState(() {
+      _preferences = preferences;
+      _session = session;
+    });
   }
 
   Future<void> _logout() async {
@@ -115,9 +170,13 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     }
     await widget.pushService?.revokeSession();
     await _sessionStore.clear();
+    await _authPreferenceStore.clear();
 
     if (!mounted) return;
-    setState(() => _session = null);
+    setState(() {
+      _preferences = const VanAuthPreferences();
+      _session = null;
+    });
   }
 
   void _showPushAlert(VanPushAlert alert) {
@@ -155,6 +214,9 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
               ? VanLoginScreen(
                   repository: _authRepository,
                   onAuthenticated: _authenticated,
+                  sessionStore: _sessionStore,
+                  preferences: _preferences,
+                  biometricAuthenticator: _biometricAuthenticator,
                 )
               : Builder(
                   builder: (context) {

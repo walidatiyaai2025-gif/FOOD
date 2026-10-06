@@ -39,7 +39,8 @@ function currentVersion(root) {
   return fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
 }
 
-function validateRegistry(root, registry, expectedVersion = null) {
+function validateRegistry(root, registry, expectedVersion = null, options = {}) {
+  const allowReleaseCandidate = options.allowReleaseCandidate === true;
   if (registry.schema_version !== 1) fail('Release registry schema_version must be 1.');
   if (registry.policy !== 'main-authoritative-append-only') {
     fail('Release registry policy must be main-authoritative-append-only.');
@@ -63,7 +64,14 @@ function validateRegistry(root, registry, expectedVersion = null) {
     if (i > 0 && compareVersions(registry.releases[i - 1].version, entry.version) >= 0) {
       fail('Release registry versions must be strictly increasing.');
     }
-    if (entry.state !== 'published') fail('Release ' + entry.version + ' must be registered as published.');
+    const isCurrentReleaseCandidate =
+      allowReleaseCandidate
+      && i === registry.releases.length - 1
+      && entry.version === repoVersion
+      && entry.state === 'release-candidate';
+    if (entry.state !== 'published' && !isCurrentReleaseCandidate) {
+      fail('Release ' + entry.version + ' must be registered as published.');
+    }
     if (!entry.release_notes || !fs.existsSync(path.join(root, entry.release_notes))) {
       fail('Release ' + entry.version + ' is missing its registered release-notes file.');
     }
@@ -188,7 +196,12 @@ function runValidate(root) {
     registry,
     baseRegistry,
   );
-  const result = validateRegistry(root, registry, validationVersion);
+  const isReleaseBranchValidation =
+    (process.env.GITHUB_BASE_REF || '').startsWith('release/')
+    || (process.env.GITHUB_REF_NAME || '').startsWith('release/');
+  const result = validateRegistry(root, registry, validationVersion, {
+    allowReleaseCandidate: isReleaseBranchValidation,
+  });
 
   if (baseRef) assertAppendOnly(baseRegistry, registry);
 
