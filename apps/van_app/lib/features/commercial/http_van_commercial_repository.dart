@@ -40,11 +40,15 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
     required double quantity,
     required String idempotencyKey,
   }) async {
-    // #983 requires Van Flash reservations to be evaluated for the selected
-    // customer. The current #985 contract reserves against request->user(),
-    // which is the Van operator. Do not silently substitute the operator for
-    // the selected customer or invent eligibility math in the mobile client.
-    throw const VanCommercialContractPendingException();
+    await api.postJson(
+      'van/customers/${customer.type}/${customer.id}'
+      '/flash-offers/products/$offerProductId/reserve',
+      body: {
+        'store_id': customer.storeId,
+        'quantity': quantity,
+        'idempotency_key': idempotencyKey,
+      },
+    );
   }
 
   VanCommercialOffer _offer(Map<String, dynamic> data) {
