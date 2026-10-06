@@ -18,6 +18,7 @@
 
         const mapNode = find('map');
         const feedUrl = root.dataset.feedUrl;
+        const actorKind = root.dataset.actorKind || 'driver';
         const fail = (code, key, preserveRenderedData = false) => {
             const message = i18n[key] || i18n.failed || 'Unable to load live driver locations.';
             root.dataset.liveMapError = code;
@@ -77,7 +78,14 @@
         };
 
         const inputValue = role => find(role)?.value || '';
-        const values = () => ({
+        const values = () => actorKind === 'van' ? ({
+            channel: inputValue('channel'),
+            store_id: inputValue('store'),
+            status: inputValue('status-filter'),
+            actor_type: 'van',
+            actor_id: inputValue('actor-id'),
+            route_key: inputValue('route-key'),
+        }) : ({
             channel: inputValue('channel'),
             store_id: inputValue('store'),
             status: inputValue('status-filter'),
@@ -105,12 +113,20 @@
             return i18n.statuses?.[status] || status;
         };
 
+        const entityId = row => row.actor_id ?? row.driver_id;
+        const entityName = row => row.entity_name || row.driver_name || ((i18n.entitySingular || 'Driver')+' #'+entityId(row));
+        const routeOrOrder = row => actorKind === 'van' ? (row.route_key || '—') : (row.order?.number || '—');
+
         const popupFor = row => {
             const box = document.createElement('div');
-            box.append(text('strong', row.driver_name || ('#'+row.driver_id)));
-            box.append(text('div', (row.channel || '').toUpperCase()+' · '+i18n.store+' '+row.store_id));
+            box.append(text('strong', entityName(row)));
+            box.append(text('div', (row.channel || '').toUpperCase()+' · '+i18n.store+' '+(row.store_id ?? '—')));
             box.append(text('div', i18n.status+': '+statusLabel(row.status)));
-            box.append(text('div', i18n.order+': '+(row.order?.number || '—')));
+            box.append(text('div', (actorKind === 'van' ? (i18n.route || 'Route') : i18n.order)+': '+routeOrOrder(row)));
+            if (actorKind === 'van' && row.assignment) {
+                box.append(text('div', (row.assignment.operator_name || ('Assignment #'+row.assignment.id))+' · '+(row.assignment.territory_key || '—')));
+            }
+            if (actorKind === 'van' && row.van?.plate_number) box.append(text('div', row.van.plate_number));
             box.append(text('div', i18n.lastSeen+': '+new Date(row.received_at).toLocaleString()));
             if (row.accuracy != null) box.append(text('div', i18n.accuracy+': '+Number(row.accuracy).toFixed(0)+' m'));
             if (row.speed != null) box.append(text('div', i18n.speed+': '+Number(row.speed).toFixed(1)+' m/s'));
@@ -121,7 +137,7 @@
             const q = inputValue('search').trim().toLowerCase();
             if (!q) return latestRows;
             return latestRows.filter(row => [
-                row.driver_name,row.driver_id,row.order?.number,row.order?.id,row.store_id,row.channel,row.status,statusLabel(row.status)
+                entityName(row),entityId(row),row.order?.number,row.order?.id,row.route_key,row.assignment?.territory_key,row.assignment?.operator_name,row.van?.plate_number,row.store_id,row.channel,row.status,statusLabel(row.status)
             ].some(value => String(value ?? '').toLowerCase().includes(q)));
         };
 
@@ -160,7 +176,7 @@
                     radius:9,color:'#fff',weight:2,fillColor:color,fillOpacity:1
                 }).bindPopup(popupFor(row)).addTo(layer);
 
-                markers.set(String(row.driver_id), marker);
+                markers.set(String(entityId(row)), marker);
                 bounds.push([lat,lng]);
 
                 if (list) {
@@ -172,11 +188,11 @@
                     const dot = document.createElement('span');
                     dot.className = 'tracking-dot';
                     dot.style.backgroundColor = color;
-                    title.append(dot, document.createTextNode(row.driver_name || ('#'+row.driver_id)));
+                    title.append(dot, document.createTextNode(entityName(row)));
                     button.append(title);
                     button.append(text(
                         'small',
-                        (row.channel || '').toUpperCase()+' · '+i18n.store+' '+row.store_id+' · '+statusLabel(row.status)+' · '+(row.order?.number || '—')
+                        (row.channel || '').toUpperCase()+' · '+i18n.store+' '+(row.store_id ?? '—')+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
                     ));
                     button.addEventListener('click',() => {
                         map.setView([lat,lng],16);
@@ -280,7 +296,7 @@
         });
 
         find('clear')?.addEventListener('click',() => {
-            ['channel','store','status-filter','driver-id','order-id','search'].forEach(role => {
+            ['channel','store','status-filter','driver-id','order-id','actor-id','route-key','search'].forEach(role => {
                 const control = find(role);
                 if (control) control.value='';
             });
