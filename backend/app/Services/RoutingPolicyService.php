@@ -106,8 +106,12 @@ final class RoutingPolicyService
             $source->mode,
             $source->rules->map(fn ($rule) => [
                 'name' => $rule->name,
-                'conditions' => $rule->conditions,
-                'actions' => $rule->actions,
+                'conditions' => is_array($rule->getAttribute('conditions'))
+                    ? $rule->getAttribute('conditions')
+                    : [],
+                'actions' => is_array($rule->getAttribute('actions'))
+                    ? $rule->getAttribute('actions')
+                    : [],
                 'enabled' => $rule->enabled,
             ])->all(),
             $reason ?? 'rollback',

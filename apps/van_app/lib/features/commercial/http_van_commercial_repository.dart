@@ -12,7 +12,7 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
   Future<VanCommercialOfferFeed> offersFor(VanCustomerScope customer) async {
     final decoded = _map(
       await api.getJson(
-        'van/customers/${customer.type}/${customer.id}/flash-offers?store_id=${customer.storeId}',
+        'flash-offers?store_id=${customer.storeId}&channel=van',
       ),
     );
     final normalDecoded = _map(
