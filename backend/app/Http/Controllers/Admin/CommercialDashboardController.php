@@ -113,7 +113,9 @@ final class CommercialDashboardController extends Controller
 
             DB::table('product_availability_windows')->where('product_id', $product)->delete();
             foreach ($windows as $window) {
-                if (! is_array($window)) continue;
+                if (! is_array($window)) {
+                    continue;
+                }
                 DB::table('product_availability_windows')->insert([
                     'product_id' => $product,
                     'recurrence' => (string) ($window['recurrence'] ?? 'fixed'),
@@ -131,7 +133,9 @@ final class CommercialDashboardController extends Controller
 
             DB::table('product_commercial_rules')->where('product_id', $product)->delete();
             foreach ($rules as $rule) {
-                if (! is_array($rule)) continue;
+                if (! is_array($rule)) {
+                    continue;
+                }
                 DB::table('product_commercial_rules')->insert([
                     'product_id' => $product,
                     'customer_id' => $rule['customer_id'] ?? null,
@@ -200,7 +204,9 @@ final class CommercialDashboardController extends Controller
         DB::transaction(function () use ($data, $channels, $products, $user, $storeId, $request): void {
             $offerId = isset($data['offer_id']) ? (int) $data['offer_id'] : 0;
             $before = $offerId > 0 ? (array) (DB::table('flash_offers')->where('store_id', $storeId)->where('id', $offerId)->first() ?? []) : [];
-            if ($offerId > 0 && $before === []) abort(404);
+            if ($offerId > 0 && $before === []) {
+                abort(404);
+            }
 
             $payload = [
                 'store_id' => $storeId,
@@ -273,8 +279,12 @@ final class CommercialDashboardController extends Controller
             default => (string) $row->status,
         };
         $changes = ['status' => $status, 'updated_at' => now()];
-        if ($data['action'] === 'kill_on') $changes['kill_switch'] = true;
-        if ($data['action'] === 'kill_off') $changes['kill_switch'] = false;
+        if ($data['action'] === 'kill_on') {
+            $changes['kill_switch'] = true;
+        }
+        if ($data['action'] === 'kill_off') {
+            $changes['kill_switch'] = false;
+        }
         DB::table('flash_offers')->where('id', $offer)->update($changes);
         $this->audit->record('commercial.flash_offer.action', $user, null, (array) $row, [...(array) $row, ...$changes, 'store_id' => $storeId], $request);
 
