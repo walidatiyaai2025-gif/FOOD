@@ -93,7 +93,7 @@ For long/complex values, show a small readable sample/summary in the row rather 
 
 Entity relationships must show meaningful names/codes intended for humans, never raw database IDs.
 
-Where row-level actions exist, expose the three most important actions clearly on the row, using FOODEX green/white action buttons. Additional low-frequency actions may be grouped in a secondary menu if needed.
+Where row-level actions exist, use **one compact FOODEX-green three-dots (ellipsis) action button** in the Actions column. The ellipsis menu contains the actions available for that record. Do not spread multiple action buttons across the row unless the repository owner explicitly requires a dedicated primary action.
 
 Status must use readable FOODEX badges rather than raw values.
 
@@ -274,3 +274,101 @@ New pages/features should not be declared complete if they:
 - use default Bootstrap visual actions;
 - bypass the FOODEX shared design language;
 - omit Van from application-level parity without a documented reason.
+
+
+---
+
+## 14. Compact mobile layout contract - Customer / Driver / Van
+
+This section is mandatory for all three FOODEX mobile applications:
+
+1. Customer
+2. Driver
+3. Van
+
+The core objective is to maximize usable data area and avoid oversized decorative UI.
+
+### 14.1 Compact title/header footprint
+
+- A page title and its small subtitle must be extremely compact.
+- The combined title + subtitle block should target **no more than approximately 1% of the usable page area**.
+- Do not use oversized headers/subheaders that consume roughly 20% or more of the viewport.
+- Use a readable, balanced font size: not tiny, not oversized.
+- Minimize top/bottom padding around page titles.
+- Prefer the actual working data area over decorative vertical spacing.
+
+### 14.2 Use the full available screen
+
+- Customer, Driver and Van screens must use the available viewport width and height efficiently.
+- Avoid unnecessary large margins, fixed-height empty areas, oversized cards, or narrow centered content when the screen can safely show more data.
+- Content should feel full-width and data-first while preserving safe areas and basic touch accessibility.
+- The goal is a comfortable information-dense application, not a page where one card/row dominates the screen.
+
+### 14.3 One-line filter bars
+
+Filters must be compact.
+
+If a workflow contains Start and End values (for example Start Date and End Date), they must appear **side by side on the same line**, with the related action button on that same line.
+
+Example:
+
+`Start | End | Apply/Search`
+
+Rules:
+
+- Do not place Start on one row, End on another row, and the button below them.
+- The filter bar should not wrap to multiple lines.
+- On narrow screens, use compact controls, a date-range control, or horizontal scrolling rather than vertical wrapping.
+- Apply this to invoices, orders, reports, date-range searches and any equivalent filtering surface across all three apps.
+
+### 14.4 Order number must never wrap
+
+- An Order Number / Order Reference must always render on **one line** everywhere in Customer, Driver and Van.
+- Use `nowrap`/equivalent behavior.
+- Do not split an order number across two lines.
+- If space is constrained, preserve the full identifier through compact layout, horizontal room, or controlled truncation with a direct way to reveal/copy the complete value. Never make the identifier visually ambiguous.
+
+### 14.5 Compact list/grid rows
+
+- Mobile grids/lists must use compact rows/items.
+- A normal row must not consume most of the viewport height.
+- Prefer concise stacked elements inside the row: key identity, status, short supporting data, and compact metadata.
+- Avoid oversized cards with excessive padding.
+- Show enough rows/items on one screen to let the user scan data comfortably.
+- Long values should use concise samples/secondary text where appropriate without hiding critical identifiers.
+
+### 14.6 Row actions use one ellipsis menu
+
+When a record has available actions:
+
+- show one compact **three-dots (ellipsis) button** on the row;
+- the button uses FOODEX green with a white icon/dots;
+- opening it shows the actions allowed for that record and user permission;
+- action labels must be business-readable;
+- selecting Manage/Edit/View must open the exact record/action context directly.
+
+Do not place several large action buttons across every mobile row.
+
+### 14.7 Typography density
+
+- Typography must remain readable without becoming visually dominant.
+- Titles, labels, values and metadata should use a controlled scale.
+- Avoid very large fonts that reduce the visible data area.
+- Avoid excessively small fonts that harm readability.
+- Use emphasis through weight/hierarchy before increasing font size.
+
+### 14.8 Mobile layout review gate
+
+For every Customer / Driver / Van screen, review must explicitly verify:
+
+- compact title/subtitle footprint;
+- no oversized header taking meaningful data space;
+- full use of available viewport;
+- Start/End/action filters remain on one line;
+- Order Number never wraps;
+- row/list density is comfortable and more than one normal record can be scanned per screen where data permits;
+- row actions use the green ellipsis menu;
+- font size is readable and space-efficient;
+- Arabic and English layouts preserve the same density and behavior.
+
+A mobile feature is incomplete if it wastes large parts of the viewport on headers, filters, padding or oversized rows.
