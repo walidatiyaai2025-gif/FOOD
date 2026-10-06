@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "94a968b52a45a0833a9802e575cc87d99f83d28679163abbb48a9a3e03cab008",
+  "sha256": "a85abfbb0a99bf4b88175326dc1e9ded8a440eefc43738e970b0019e4ef4c537",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#1004 — Driver UI/UX v4.2 live order compliance",
+  "release_notes": "fix(release): normalize inherited backend Pint gate",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "94a968b52a45a0833a9802e575cc87d99f83d28679163abbb48a9a3e03cab008",
+    "sha256": "a85abfbb0a99bf4b88175326dc1e9ded8a440eefc43738e970b0019e4ef4c537",
     "contains_migrations": true,
-    "release_notes": "#1004 — Driver UI/UX v4.2 live order compliance"
+    "release_notes": "fix(release): normalize inherited backend Pint gate"
   }
 }
