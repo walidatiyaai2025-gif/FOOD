@@ -93,6 +93,7 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
     required int offerProductId,
     required double quantity,
     required String idempotencyKey,
+    String? overrideReason,
   }) async {
     await api.postJson(
       'van/customers/${customer.type}/${customer.id}'
@@ -101,6 +102,8 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
         'store_id': customer.storeId,
         'quantity': quantity,
         'idempotency_key': idempotencyKey,
+        if (overrideReason != null && overrideReason.trim().isNotEmpty)
+          'override_reason': overrideReason.trim(),
       },
     );
   }
