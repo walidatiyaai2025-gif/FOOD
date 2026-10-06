@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.57",
-  "minimum_current_version": "1.0.56",
-  "sha256": "2ebf94b66727a7efc357a2cf20bd1405806651d6be49c402c23b8efbffaf0c5c",
-  "contains_migrations": false,
+  "target_version": "1.0.59",
+  "minimum_current_version": "1.0.57",
+  "sha256": "9bad78cdd8ff3c39af7d171e25fc892bd5ad5e9b973da8724ddeb3b0a784eca8",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release: FOODEX Dashboard 1.0.57 — #943 UI/UX + silent map refresh",
+  "release_notes": "release(#1021): prevent terminal artifact rebuild loop",
   "dashboard_fields": {
-    "target_version": "1.0.57",
-    "minimum_current_version": "1.0.56",
-    "sha256": "2ebf94b66727a7efc357a2cf20bd1405806651d6be49c402c23b8efbffaf0c5c",
-    "contains_migrations": false,
-    "release_notes": "release: FOODEX Dashboard 1.0.57 — #943 UI/UX + silent map refresh"
+    "target_version": "1.0.59",
+    "minimum_current_version": "1.0.57",
+    "sha256": "9bad78cdd8ff3c39af7d171e25fc892bd5ad5e9b973da8724ddeb3b0a784eca8",
+    "contains_migrations": true,
+    "release_notes": "release(#1021): prevent terminal artifact rebuild loop"
   }
 }
