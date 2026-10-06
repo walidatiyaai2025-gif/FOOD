@@ -66,12 +66,14 @@ backend/app/Http/Controllers/Admin/PromotionalNotificationCampaignController.php
 backend/app/Http/Controllers/Admin/ReportController.php
 backend/app/Http/Controllers/Admin/RetailStoreProvisioningController.php
 backend/app/Http/Controllers/Admin/SecurityController.php
+backend/app/Http/Controllers/Admin/StoreSubmissionController.php
 backend/app/Http/Controllers/Admin/StorefrontDesignController.php
 backend/app/Http/Controllers/Admin/StorefrontDraftEditorController.php
 backend/app/Http/Controllers/Admin/SystemInspectorController.php
 backend/app/Http/Controllers/Admin/SystemLookupController.php
 backend/app/Http/Controllers/Admin/SystemUpdateController.php
 backend/app/Http/Controllers/Admin/WholesaleStorefrontDesignController.php
+backend/app/Http/Controllers/Api/V1/AccountDeletionController.php
 backend/app/Http/Controllers/Api/V1/AppPreviewInvalidationController.php
 backend/app/Http/Controllers/Api/V1/AppPreviewSessionController.php
 backend/app/Http/Controllers/Api/V1/AuthController.php
@@ -90,6 +92,7 @@ backend/app/Http/Controllers/Api/V1/GuestCatalogController.php
 backend/app/Http/Controllers/Api/V1/GuestStoreController.php
 backend/app/Http/Controllers/Api/V1/LiveAdController.php
 backend/app/Http/Controllers/Api/V1/LookupOptionsController.php
+backend/app/Http/Controllers/Api/V1/MobileRuntimeController.php
 backend/app/Http/Controllers/Api/V1/MobileSystemInspectorEventController.php
 backend/app/Http/Controllers/Api/V1/NotificationCampaignPopupController.php
 backend/app/Http/Controllers/Api/V1/OrderController.php
@@ -107,6 +110,7 @@ backend/app/Http/Middleware/ResolveCustomerPreviewSession.php
 backend/app/Http/Middleware/ResolveDriverPreviewSession.php
 backend/app/Http/Middleware/RunSchedulerHeartbeat.php
 backend/app/Jobs/DispatchPushNotification.php
+backend/app/Models/AccountDeletionRequest.php
 backend/app/Models/Address.php
 backend/app/Models/AppPreviewInvalidationEvent.php
 backend/app/Models/AppPreviewSession.php
@@ -118,16 +122,20 @@ backend/app/Models/InvoiceItem.php
 backend/app/Models/LiveAd.php
 backend/app/Models/MarketingCoupon.php
 backend/app/Models/MarketingCouponRedemption.php
+backend/app/Models/MobileAppSetting.php
+backend/app/Models/MobileStoreSubmission.php
 backend/app/Models/OperationalLookup.php
 backend/app/Models/Order.php
 backend/app/Models/Payment.php
 backend/app/Models/PlatformCustomer.php
 backend/app/Models/Store.php
+backend/app/Models/StoreReviewerAccount.php
 backend/app/Models/StorefrontRevision.php
 backend/app/Models/SystemInspectorEvent.php
 backend/app/Models/User.php
 backend/app/Policies/B2bCustomerPolicy.php
 backend/app/Providers/AppServiceProvider.php
+backend/app/Services/AccountDeletionService.php
 backend/app/Services/AdminOrderManagementService.php
 backend/app/Services/AppPreviewInvalidationService.php
 backend/app/Services/AppPreviewInvalidationStream.php
@@ -458,6 +466,7 @@ backend/database/migrations/2026_10_03_083000_reconcile_retail_merchant_canonica
 backend/database/migrations/2026_10_04_052700_add_operational_system_lookups.php
 backend/database/migrations/2026_10_04_053000_add_notification_campaign_launch_popups.php
 backend/database/migrations/2026_10_04_133500_create_customer_account_ledger_entries.php
+backend/database/migrations/2026_10_06_081600_add_store_submission_readiness.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
@@ -625,6 +634,7 @@ backend/resources/views/admin/system-inspector.blade.php
 backend/resources/views/admin/system-lookups.blade.php
 backend/resources/views/admin/system-update.blade.php
 backend/resources/views/admin/translations.blade.php
+backend/resources/views/public/legal.blade.php
 backend/routes/api.php
 backend/routes/console.php
 backend/routes/coupons.php

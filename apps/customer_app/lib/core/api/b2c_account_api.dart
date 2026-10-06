@@ -20,6 +20,8 @@ abstract interface class B2cAccountApi {
   Future<Object?> favorites();
   Future<void> addFavorite(int productId);
   Future<void> removeFavorite(int productId);
+  Future<Object?> accountDeletionStatus();
+  Future<Object?> requestAccountDeletion(String password);
   Future<Object?> notifications({String locale = 'ar'});
   Future<void> markNotificationRead(int notificationId);
 }
@@ -239,6 +241,21 @@ class HttpB2cAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _decode(response);
     }
+  }
+
+  @override
+  Future<Object?> accountDeletionStatus() async {
+    _requireToken();
+    return _get('/api/v1/account-deletion');
+  }
+
+  @override
+  Future<Object?> requestAccountDeletion(String password) async {
+    _requireToken();
+    return _write('POST', '/api/v1/account-deletion', {
+      'password': password,
+      'confirmation': true,
+    });
   }
 
   @override
