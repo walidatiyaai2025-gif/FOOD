@@ -177,7 +177,7 @@ class _VanOffersPageState extends State<VanOffersPage> {
           else ...[
             DropdownButtonFormField<VanCustomerScope>(
               key: const Key('van-offers-customer-selector'),
-              value: _selectedCustomer,
+              initialValue: _selectedCustomer,
               decoration: InputDecoration(
                 labelText: _text('Selected customer', 'العميل المحدد'),
               ),
