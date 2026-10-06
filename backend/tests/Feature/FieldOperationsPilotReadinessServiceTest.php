@@ -7,7 +7,6 @@ use App\Services\FieldOperationConfigurationService;
 use App\Services\FieldOperationsPilotReadinessService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
