@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -23,6 +24,17 @@ class FlashOffer extends Model
         ];
     }
 
+    public function startsAt(): CarbonImmutable
+    {
+        return CarbonImmutable::parse((string) $this->getAttribute('starts_at'));
+    }
+
+    public function endsAt(): CarbonImmutable
+    {
+        return CarbonImmutable::parse((string) $this->getAttribute('ends_at'));
+    }
+
+    /** @return HasMany<FlashOfferProduct, $this> */
     public function products(): HasMany
     {
         return $this->hasMany(FlashOfferProduct::class);
