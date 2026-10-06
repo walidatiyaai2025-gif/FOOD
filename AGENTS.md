@@ -437,6 +437,22 @@ For release-related changes, run `bash scripts/release-readiness.sh` before push
 
 Release validation scripts must emit the name of the failed invariant whenever practical; silent `test`/exit failures materially slow diagnosis and should be replaced with actionable errors when touched.
 
+
+### Main-push release-intent rule
+
+Normal feature/bug merges to `main` do **not** imply a release publication and do not require an immediate `VERSION` bump.
+
+Release-only workflows such as `FOODEX Trial Distribution Bundle` must distinguish ordinary deployable-code merges from explicit release intent. Explicit release intent exists when:
+
+- `VERSION` changes relative to the previous authoritative base; or
+- the repository owner/manual workflow dispatch explicitly requests distribution.
+
+A workflow must not fail `main` merely because `backend/**`, `apps/customer_app/**`, or `apps/driver_app/**` changed while `VERSION` remained unchanged. In that case, release/distribution work must be skipped cleanly and reported as "no release intent".
+
+When release intent exists, the full atomic release identity contract still applies: root VERSION, Customer/Driver mobile identities, runtime/UI identities, release notes, changelog, registry and immutable publication guards must remain synchronized.
+
+Any main-only red caused by a release workflow misclassifying a normal feature merge as a release is a CI-policy defect and must be corrected in the workflow trigger/gating logic rather than forcing unrelated feature work to publish a new version.
+
 ---
 
 ## 10. External blockers vs repository blockers
