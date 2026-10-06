@@ -95,6 +95,35 @@ void main() {
     expect(navigatedStore, 7);
   });
 
+  testWidgets('NEW Retail catalog refreshes authoritative data on resume',
+      (tester) async {
+    final api = _FakeCatalogApi();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCatalogHomeScreen(storeId: 7, catalogApi: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final beforeResume = api.seenStoreIds.length;
+    expect(beforeResume, 4);
+
+    await tester.binding.handleAppLifecycleStateChanged(
+      AppLifecycleState.paused,
+    );
+    await tester.pump();
+    await tester.binding.handleAppLifecycleStateChanged(
+      AppLifecycleState.resumed,
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.seenStoreIds.length, beforeResume + 4);
+    expect(api.seenStoreIds, everyElement(7));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('NEW Retail home hides unwired controls instead of silent buttons',
       (tester) async {
     await tester.pumpWidget(

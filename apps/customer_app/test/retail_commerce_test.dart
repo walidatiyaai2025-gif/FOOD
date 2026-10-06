@@ -180,6 +180,38 @@ void main() {
     expect(find.byKey(const ValueKey('retail-cart-summary')), findsOneWidget);
   });
 
+  testWidgets('cart refreshes authoritative snapshot on resume', (tester) async {
+    final api = _FakeRetailCommerceApi();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCartScreen(
+          storeId: 7,
+          api: api,
+          isAuthenticated: true,
+          onCheckout: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final beforeResume = api.loadCartCalls;
+    expect(beforeResume, 1);
+
+    await tester.binding.handleAppLifecycleStateChanged(
+      AppLifecycleState.paused,
+    );
+    await tester.pump();
+    await tester.binding.handleAppLifecycleStateChanged(
+      AppLifecycleState.resumed,
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.loadCartCalls, beforeResume + 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('cart V3 fits narrow RTL layout with larger text', (tester) async {
     final api = _FakeRetailCommerceApi();
     tester.view.physicalSize = const Size(360, 800);
@@ -338,6 +370,7 @@ void main() {
 
 class _FakeRetailCommerceApi implements RetailCommerceApi {
   bool emptyAddresses = false;
+  int loadCartCalls = 0;
   int mergeCalls = 0;
   int? lastMergeStore;
   int submitCalls = 0;
@@ -386,6 +419,7 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
 
   @override
   Future<RetailCartSnapshot> loadCart({required int storeId}) async {
+    loadCartCalls += 1;
     final pending = cartCompleter;
     if (pending != null) return pending.future;
     return cart;

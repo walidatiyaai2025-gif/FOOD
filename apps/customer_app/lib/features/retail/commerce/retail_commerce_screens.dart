@@ -34,7 +34,8 @@ class RetailCartScreen extends StatefulWidget {
   State<RetailCartScreen> createState() => _RetailCartScreenState();
 }
 
-class _RetailCartScreenState extends State<RetailCartScreen> {
+class _RetailCartScreenState extends State<RetailCartScreen>
+    with WidgetsBindingObserver {
   late RetailCommerceApi _api = widget.api;
   late bool _authenticated = widget.isAuthenticated;
   RetailCartSnapshot? _cart;
@@ -44,7 +45,21 @@ class _RetailCartScreenState extends State<RetailCartScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _reload();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
   }
 
   Future<void> _reload() async {
