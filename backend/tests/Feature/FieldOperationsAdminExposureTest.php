@@ -61,7 +61,7 @@ class FieldOperationsAdminExposureTest extends TestCase
         $this->assertStringContainsString("'van_assignment_id'", $controller);
     }
 
-    public function test_sidebar_contains_one_coherent_field_operations_group_and_feature_flagged_commercial_links(): void
+    public function test_sidebar_contains_one_coherent_field_operations_group_without_duplicate_commercial_links(): void
     {
         $navigation = file_get_contents(app_path('Support/AdminNavigation.php'));
 
@@ -81,8 +81,10 @@ class FieldOperationsAdminExposureTest extends TestCase
         ] as $key) {
             $this->assertStringContainsString("'{$key}'", $navigation);
         }
-        $this->assertStringContainsString("'commercial_rules_enabled'", $navigation);
-        $this->assertStringContainsString("'van_offers_enabled'", $navigation);
+        $this->assertStringNotContainsString("'field_ops_commercial_rules'", $navigation);
+        $this->assertStringNotContainsString("'field_ops_van_offers'", $navigation);
+        $this->assertSame(1, substr_count($navigation, "'commercial_sales_control'"));
+        $this->assertSame(1, substr_count($navigation, "'commercial_flash_offers'"));
     }
 
     public function test_field_operations_surface_reuses_shared_map_finance_and_visual_coverage_contracts(): void
@@ -98,6 +100,8 @@ class FieldOperationsAdminExposureTest extends TestCase
         $this->assertStringContainsString("@include('admin._field-operations-finance'", $view);
         $this->assertStringContainsString('fieldops-coverage-map', $view);
         $this->assertStringContainsString("type:'Polygon'", $view);
+        $this->assertStringContainsString("featureFlags['commercial_rules_enabled']", $view);
+        $this->assertStringContainsString("featureFlags['van_offers_enabled']", $view);
 
         $this->assertStringContainsString('data-actor-kind="{{ $trackingActor }}"', $map);
         $this->assertStringContainsString("actorKind === 'van'", $mapRuntime);
