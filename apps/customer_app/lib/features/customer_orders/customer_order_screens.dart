@@ -185,7 +185,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         child: Column(
           children: [
             SizedBox(
-              height: 64,
+              height: 52,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -194,7 +194,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF111827),
                           fontWeight: FontWeight.w900,
-                          fontSize: 21,
+                          fontSize: 18,
                         ),
                   ),
                   Positioned(
@@ -209,10 +209,10 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                             ? null
                             : () => unawaited(_loadChannel(_activeChannel)),
                         child: const SizedBox.square(
-                          dimension: 44,
+                          dimension: 40,
                           child: Icon(
                             Icons.refresh_rounded,
-                            size: 24,
+                            size: 22,
                             color: Color(0xFF14221D),
                           ),
                         ),
@@ -810,6 +810,13 @@ class _OrderCard extends StatelessWidget {
   final VoidCallback? onReorder;
   final bool reordering;
 
+  bool get _hasQuickActions =>
+      onTap != null ||
+      onReorder != null ||
+      order.approvalStatus != null ||
+      order.invoiceOutstandingAmount != null ||
+      order.appliedCustomerCreditAmount != null;
+
   void _showQuickActions(BuildContext context) {
     final approval = _approvalText(context, order);
     final financial = _financialText(context, order);
@@ -830,11 +837,16 @@ class _OrderCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
-                style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Text(
+                  order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -854,8 +866,20 @@ class _OrderCard extends StatelessWidget {
                   key: ValueKey('customer-order-balance-applied-${order.id}'),
                 ),
               ],
-              if (onReorder != null) ...[
+              if (onTap != null) ...[
                 const SizedBox(height: 16),
+                FilledButton.icon(
+                  key: ValueKey('customer-order-view-${order.id}'),
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    onTap?.call();
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: Text(context.tr('customer.orders.view_details')),
+                ),
+              ],
+              if (onReorder != null) ...[
+                SizedBox(height: onTap != null ? 8 : 16),
                 OutlinedButton.icon(
                   key: ValueKey('customer-order-reorder-${order.id}'),
                   onPressed: reordering
@@ -895,12 +919,6 @@ class _OrderCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onReorder == null &&
-                order.approvalStatus == null &&
-                order.invoiceOutstandingAmount == null &&
-                order.appliedCustomerCreditAmount == null
-            ? null
-            : () => _showQuickActions(context),
         child: Container(
           constraints: const BoxConstraints(minHeight: 108),
           padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 12),
@@ -949,17 +967,20 @@ class _OrderCard extends StatelessWidget {
                     children: [
                       Directionality(
                         textDirection: TextDirection.ltr,
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF151B1A),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15.5,
-                                height: 1.12,
-                              ),
+                        child: Tooltip(
+                          message: title,
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.left,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: const Color(0xFF151B1A),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15.5,
+                                  height: 1.12,
+                                ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -1021,6 +1042,26 @@ class _OrderCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 _CompactOrderStatusChip(status: order.status),
+                if (_hasQuickActions) ...[
+                  const SizedBox(width: 8),
+                  Material(
+                    color: const Color(0xFF07885E),
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      key: ValueKey('customer-order-actions-${order.id}'),
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _showQuickActions(context),
+                      child: const SizedBox.square(
+                        dimension: 36,
+                        child: Icon(
+                          Icons.more_horiz_rounded,
+                          size: 22,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1110,6 +1151,8 @@ class _OrderHeader extends StatelessWidget {
     final channel = order.channel == 'b2b'
         ? context.tr('customer.orders.channel.wholesale')
         : context.tr('customer.orders.channel.retail');
+    final title =
+        order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -1124,11 +1167,17 @@ class _OrderHeader extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: CustomerUiColors.white,
-                        ),
+                  child: Tooltip(
+                    message: title,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: CustomerUiColors.white,
+                          ),
+                    ),
                   ),
                 ),
                 _StatusChip(status: order.status, inverted: true),
