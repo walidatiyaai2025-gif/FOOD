@@ -123,11 +123,12 @@ class VanApiClient {
   Future<Object?> postJson(
     String path, {
     Map<String, Object?> body = const {},
+    Map<String, String> headers = const {},
   }) async {
     return _request(
       () => _client.post(
         _endpoint(path),
-        headers: _headers,
+        headers: {..._headers, ...headers},
         body: jsonEncode(body),
       ),
     );
