@@ -74,7 +74,7 @@ class AdminNavigation
             ]),
             $this->group('field_operations', 'admin.nav_groups.field_operations', '⌖', [
                 $this->routeItemAny($user, 'field_ops_overview', 'admin.field_operations.overview', 'admin.field-operations.overview', ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']),
-                $this->routeItemAny($user, 'field_ops_fleet', 'admin.field_operations.fleet', 'admin.field-operations.fleet', ['drivers.tracking.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_fleet', 'admin.field_operations.fleet', 'admin.field-operations.fleet', ['drivers.tracking.view']),
                 $this->routeItemAny($user, 'field_ops_vans', 'admin.field_operations.vans', 'admin.field-operations.vans', ['drivers.b2b.view', 'field_ops.manage']),
                 $this->routeItemAny($user, 'field_ops_assignments', 'admin.field_operations.assignments', 'admin.field-operations.assignments', ['drivers.b2b.view', 'field_ops.manage']),
                 $this->routeItemAny($user, 'field_ops_customers', 'admin.field_operations.customers', 'admin.field-operations.customers', ['customers.view', 'drivers.b2b.view', 'field_ops.manage']),
