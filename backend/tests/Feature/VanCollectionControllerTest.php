@@ -117,7 +117,7 @@ class VanCollectionControllerTest extends TestCase
         $this->assertDatabaseHas('payments', [
             'invoice_id' => $invoice->getKey(),
             'provider' => 'field_collection',
-            'status' => 'captured',
+            'status' => 'paid',
             'amount' => 30,
             'currency' => 'EGP',
         ]);
