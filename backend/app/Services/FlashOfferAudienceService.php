@@ -33,7 +33,7 @@ final class FlashOfferAudienceService
                 : array_values(array_intersect($eligible, $resolved));
         }
 
-        return $configured ? array_values($eligible ?? []) : null;
+        return $configured ? ($eligible ?? []) : null;
     }
 
     public function isEligible(FlashOffer $offer, int $userId): bool
@@ -136,7 +136,8 @@ final class FlashOfferAudienceService
         $users = [];
 
         foreach (VanVisit::query()->where('store_id', $offer->store_id)->get() as $visit) {
-            $metadata = is_array($visit->metadata) ? $visit->metadata : [];
+            $rawMetadata = $visit->getAttribute('metadata');
+            $metadata = is_array($rawMetadata) ? $rawMetadata : [];
             $routeValues = array_values(array_filter(array_map(
                 static fn (mixed $value): string => mb_strtolower(trim((string) $value)),
                 [
