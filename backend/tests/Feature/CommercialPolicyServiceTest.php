@@ -80,6 +80,8 @@ class CommercialPolicyServiceTest extends TestCase
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+
+        $this->flag('commercial_rules_enabled', true);
     }
 
     public function test_selling_units_convert_to_base_quantity_without_bypassing_inventory_unit(): void
@@ -265,6 +267,79 @@ class CommercialPolicyServiceTest extends TestCase
         $this->assertNotSame($first['reservation_token'], $second['reservation_token']);
     }
 
+    public function test_break_pack_modes_are_enforced_and_base_quantity_cannot_bypass_unit_policy(): void
+    {
+        DB::table('product_selling_units')->insert([
+            'product_id' => $this->productId,
+            'unit_id' => null,
+            'code' => 'carton',
+            'name' => 'Carton',
+            'conversion_factor' => 10,
+            'price' => 25,
+            'sku' => 'SKU-984-C10',
+            'barcode' => '98400010',
+            'is_base' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->policy(['break_pack_policy' => 'full-pack-only']);
+
+        $this->assertSame(10.0, $this->service()->sellingUnit($this->productId, 'carton', 1)['base_quantity']);
+        $this->expectDomainException(fn () => $this->service()->sellingUnit($this->productId, 'piece', 1), 'UNIT_NOT_ALLOWED');
+        $this->expectDomainException(
+            fn () => $this->service()->reserveBaseQuantityForOrder(
+                $this->order('ORD-984-BYPASS'),
+                $this->customerId,
+                $this->productId,
+                1,
+                'customer',
+            ),
+            'UNIT_CONTEXT_REQUIRED',
+        );
+
+        DB::table('product_commercial_policies')->where('product_id', $this->productId)->update([
+            'break_pack_policy' => 'loose-only',
+            'break_pack_unit_code' => null,
+        ]);
+        $this->assertSame(1.0, $this->service()->sellingUnit($this->productId, 'piece', 1)['base_quantity']);
+        $this->expectDomainException(fn () => $this->service()->sellingUnit($this->productId, 'carton', 1), 'UNIT_NOT_ALLOWED');
+
+        DB::table('product_commercial_policies')->where('product_id', $this->productId)->update([
+            'break_pack_policy' => 'one-unit-type',
+            'break_pack_unit_code' => 'carton',
+        ]);
+        $this->assertSame(20.0, $this->service()->sellingUnit($this->productId, 'carton', 2)['base_quantity']);
+        $this->expectDomainException(fn () => $this->service()->sellingUnit($this->productId, 'piece', 1), 'UNIT_NOT_ALLOWED');
+
+        DB::table('product_commercial_policies')->where('product_id', $this->productId)->update([
+            'break_pack_policy' => 'mixed',
+            'break_pack_unit_code' => null,
+        ]);
+        $this->assertSame(1.0, $this->service()->sellingUnit($this->productId, 'piece', 1)['base_quantity']);
+        $this->assertSame(10.0, $this->service()->sellingUnit($this->productId, 'carton', 1)['base_quantity']);
+    }
+
+    public function test_commercial_rules_flag_defaults_off_for_backward_compatibility(): void
+    {
+        DB::table('settings')->whereNull('store_id')->where('key', 'commercial_rules_enabled')->delete();
+        $this->policy([
+            'status' => CommercialPolicyService::STATUS_CLOSED,
+            'default_max_per_day' => 1,
+        ]);
+
+        $legacy = $this->service()->evaluate($this->productId, $this->customerId, 'customer', 5);
+        $this->assertTrue($legacy['allowed']);
+        $this->assertSame(CommercialPolicyService::STATUS_OPEN, $legacy['status']);
+        $this->assertFalse($legacy['feature_enabled']);
+
+        $this->flag('commercial_rules_enabled', true);
+        $enabled = $this->service()->evaluate($this->productId, $this->customerId, 'customer', 5);
+        $this->assertFalse($enabled['allowed']);
+        $this->assertTrue($enabled['feature_enabled']);
+        $this->assertContains('PRODUCT_CLOSED', $enabled['reason_codes']);
+    }
+
     /** @param array<string,mixed> $overrides */
     private function policy(array $overrides = []): void
     {
@@ -274,6 +349,8 @@ class CommercialPolicyServiceTest extends TestCase
             'hide_when_closed' => false,
             'override_allowed' => false,
             'channels' => null,
+            'break_pack_policy' => 'mixed',
+            'break_pack_unit_code' => null,
             'business_timezone' => 'UTC',
             'week_starts_on' => 1,
             'created_at' => now(),
@@ -297,6 +374,29 @@ class CommercialPolicyServiceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function flag(string $key, bool $enabled): void
+    {
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => null, 'key' => $key],
+            [
+                'value' => json_encode($enabled, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+    }
+
+    private function expectDomainException(callable $callback, string $message): void
+    {
+        try {
+            $callback();
+            $this->fail('Expected DomainException: '.$message);
+        } catch (DomainException $exception) {
+            $this->assertStringContainsString($message, $exception->getMessage());
+        }
     }
 
     private function service(): CommercialPolicyService

@@ -36,6 +36,7 @@ final class CommercialPolicyService
 
     public function __construct(
         private readonly AuditLogger $audit,
+        private readonly CommercialFeatureFlags $flags,
     ) {}
 
     /**
@@ -48,7 +49,8 @@ final class CommercialPolicyService
      *   reason_codes:list<string>,
      *   limits:array<string,float|null>,
      *   usage:array<string,float>,
-     *   business_timezone:string
+     *   business_timezone:string,
+     *   feature_enabled:bool
      * }
      */
     public function evaluate(
@@ -70,6 +72,19 @@ final class CommercialPolicyService
         $product = DB::table('products')->where('id', $productId)->first(['id', 'is_active']);
         if ($product === null) {
             throw new InvalidArgumentException('Unknown product.');
+        }
+
+        if (! $this->flags->commercialRulesEnabled()) {
+            return [
+                'allowed' => (bool) $product->is_active,
+                'status' => self::STATUS_OPEN,
+                'hide_when_closed' => false,
+                'reason_codes' => (bool) $product->is_active ? [] : ['PRODUCT_INACTIVE'],
+                'limits' => array_fill_keys(self::LIMIT_KEYS, null),
+                'usage' => ['day' => 0.0, 'week' => 0.0, 'month' => 0.0, 'lifetime' => 0.0],
+                'business_timezone' => 'UTC',
+                'feature_enabled' => false,
+            ];
         }
 
         $policy = DB::table('product_commercial_policies')->where('product_id', $productId)->first();
@@ -155,6 +170,7 @@ final class CommercialPolicyService
             'limits' => $limits,
             'usage' => $usage,
             'business_timezone' => $timezone,
+            'feature_enabled' => true,
         ];
     }
 
@@ -170,7 +186,8 @@ final class CommercialPolicyService
      *   base_quantity:float,
      *   price:float|null,
      *   sku:string|null,
-     *   barcode:string|null
+     *   barcode:string|null,
+     *   is_base:bool
      * }
      */
     public function sellingUnit(
@@ -208,12 +225,15 @@ final class CommercialPolicyService
             $unit->conversion_factor = 1;
             $unit->price = null;
             $unit->barcode = null;
+            $unit->is_base = true;
         }
 
         $factor = (float) $unit->conversion_factor;
         if ($factor <= 0) {
             throw new RuntimeException('Selling unit conversion factor must be greater than zero.');
         }
+
+        $this->assertBreakPackPolicy($productId, (string) $unit->code, (bool) ($unit->is_base ?? false), $factor);
 
         return [
             'selling_unit_id' => (int) $unit->id,
@@ -225,6 +245,7 @@ final class CommercialPolicyService
             'price' => $this->number($unit->price),
             'sku' => $unit->sku === null ? null : (string) $unit->sku,
             'barcode' => $unit->barcode === null ? null : (string) $unit->barcode,
+            'is_base' => (bool) ($unit->is_base ?? false),
         ];
     }
 
@@ -294,6 +315,7 @@ final class CommercialPolicyService
         float $sellingQuantity,
         string $channel,
         ?DateTimeInterface $at = null,
+        ?string $sellingUnitCode = null,
     ): array {
         $unit = $this->sellingUnit($productId, $sellingUnitCode, $sellingQuantity);
         $reservation = $this->reserveBaseQuantityForOrder(
@@ -303,6 +325,7 @@ final class CommercialPolicyService
             (float) $unit['base_quantity'],
             $channel,
             $at,
+            (string) $unit['code'],
         );
 
         return [
@@ -335,7 +358,10 @@ final class CommercialPolicyService
             $baseQuantity,
             $channel,
             $at,
+            $sellingUnitCode,
         ): array {
+            $this->assertBreakPackPolicy($productId, $sellingUnitCode);
+
             DB::table('commercial_quota_locks')->insertOrIgnore([
                 'product_id' => $productId,
                 'customer_id' => $customerId,
@@ -356,6 +382,12 @@ final class CommercialPolicyService
                 ->first();
 
             if ($existing !== null && $existing->status !== self::RESERVATION_RELEASED) {
+                $existingUnit = trim((string) ($existing->selling_unit_code ?? ''));
+                $requestedUnit = trim((string) ($sellingUnitCode ?? ''));
+                if ($existingUnit !== '' && $requestedUnit !== '' && strcasecmp($existingUnit, $requestedUnit) !== 0) {
+                    throw new DomainException('UNIT_TYPE_MISMATCH');
+                }
+
                 return [
                     'reservation_token' => (string) $existing->reservation_token,
                     'base_quantity' => (float) $existing->base_quantity,
@@ -389,6 +421,7 @@ final class CommercialPolicyService
                     'product_id' => $productId,
                     'customer_id' => $customerId,
                     'base_quantity' => $baseQuantity,
+                    'selling_unit_code' => $sellingUnitCode,
                     'status' => self::RESERVATION_RESERVED,
                     'reserved_at' => $reservedAt,
                     'created_at' => now(),
@@ -401,6 +434,7 @@ final class CommercialPolicyService
                         'reservation_token' => $token,
                         'customer_id' => $customerId,
                         'base_quantity' => $baseQuantity,
+                        'selling_unit_code' => $sellingUnitCode,
                         'status' => self::RESERVATION_RESERVED,
                         'reserved_at' => $reservedAt,
                         'consumed_at' => null,
@@ -505,6 +539,73 @@ final class CommercialPolicyService
                 'context' => $context,
             ],
         );
+    }
+
+    private function assertBreakPackPolicy(
+        int $productId,
+        ?string $sellingUnitCode,
+        ?bool $knownIsBase = null,
+        ?float $knownFactor = null,
+    ): void {
+        if (! $this->flags->commercialRulesEnabled()) {
+            return;
+        }
+
+        $policy = DB::table('product_commercial_policies')
+            ->where('product_id', $productId)
+            ->first(['break_pack_policy', 'break_pack_unit_code']);
+
+        $mode = strtolower(trim((string) ($policy->break_pack_policy ?? 'mixed')));
+        if ($mode === '' || $mode === 'mixed') {
+            return;
+        }
+
+        $code = trim((string) $sellingUnitCode);
+        if ($code === '') {
+            throw new DomainException('UNIT_CONTEXT_REQUIRED');
+        }
+
+        $isBase = $knownIsBase;
+        $factor = $knownFactor;
+        if ($isBase === null || $factor === null) {
+            $unit = DB::table('product_selling_units')
+                ->where('product_id', $productId)
+                ->where('code', $code)
+                ->where('is_active', true)
+                ->first(['is_base', 'conversion_factor']);
+
+            if ($unit !== null) {
+                $isBase = (bool) $unit->is_base;
+                $factor = (float) $unit->conversion_factor;
+            } else {
+                $baseExists = DB::table('products')
+                    ->join('units', 'units.id', '=', 'products.unit_id')
+                    ->where('products.id', $productId)
+                    ->where('units.code', $code)
+                    ->exists();
+                if (! $baseExists) {
+                    throw new DomainException('UNIT_NOT_ALLOWED');
+                }
+                $isBase = true;
+                $factor = 1.0;
+            }
+        }
+
+        $configuredUnit = trim((string) ($policy->break_pack_unit_code ?? ''));
+        $allowed = match ($mode) {
+            'full-pack-only' => $isBase === false && (float) $factor > 1.0001,
+            'loose-only' => $isBase === true,
+            'one-unit-type' => $configuredUnit !== '' && strcasecmp($code, $configuredUnit) === 0,
+            default => false,
+        };
+
+        if (! $allowed) {
+            throw new DomainException(
+                $mode === 'one-unit-type' && $configuredUnit === ''
+                    ? 'BREAK_PACK_UNIT_NOT_CONFIGURED'
+                    : 'UNIT_NOT_ALLOWED',
+            );
+        }
     }
 
     /** @return list<object> */

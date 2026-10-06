@@ -14,6 +14,10 @@ class FlashOffer extends Model
     {
         return [
             'channels' => 'array',
+            'audience_customer_ids' => 'array',
+            'audience_customer_group_ids' => 'array',
+            'audience_regions' => 'array',
+            'audience_routes' => 'array',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'total_allocation_base' => 'decimal:3',
