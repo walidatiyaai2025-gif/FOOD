@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "d99625bfab83bb4b59d88e98b0c263d4a1857569108968794e35544805058581",
+  "sha256": "b941d60119cd1d1c78b62ca38797514fdf6a516f50f5c6bf77963d321abf2f34",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "feat(van): expose field operations admin control center",
+  "release_notes": "feat(van): add complete field operations dashboard surface",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "d99625bfab83bb4b59d88e98b0c263d4a1857569108968794e35544805058581",
+    "sha256": "b941d60119cd1d1c78b62ca38797514fdf6a516f50f5c6bf77963d321abf2f34",
     "contains_migrations": true,
-    "release_notes": "feat(van): expose field operations admin control center"
+    "release_notes": "feat(van): add complete field operations dashboard surface"
   }
 }

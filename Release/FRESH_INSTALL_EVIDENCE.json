@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "version": "1.0.58",
-  "source_commit": "63686e416cd7bbed5ff845c794ea7af11339152e",
+  "source_commit": "72acda6fef92b04d2dba522cbd647f1ee2f1d024",
   "api_base_url": "https://vanfoodex.50sols.com",
   "setup_zip": "FOODEX-Laravel-Setup.zip",
   "document_root": "backend/public",

@@ -566,6 +566,7 @@ backend/resources/views/admin/customer-360-index.blade.php
 backend/resources/views/admin/customer-360-show.blade.php
 backend/resources/views/admin/demo-data.blade.php
 backend/resources/views/admin/driver-live-tracking.blade.php
+backend/resources/views/admin/field-operations.blade.php
 backend/resources/views/admin/flash-offer-analytics.blade.php
 backend/resources/views/admin/flash-offer-preview.blade.php
 backend/resources/views/admin/invoice.blade.php
