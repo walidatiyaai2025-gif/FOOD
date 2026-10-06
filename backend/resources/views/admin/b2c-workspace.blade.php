@@ -480,6 +480,10 @@
                     <p class="empty">{{ app()->getLocale()==='ar' ? 'بيانات مباشرة ضمن المتاجر المصرح بها لهذا المستخدم.' : 'Live server data restricted to this user\'s assigned stores.' }}</p>
                 </div>
             </div>
+            @if(in_array($module, ['products', 'promotions'], true) && !empty($moduleData['commercial']))
+                @include('admin._commercial-dashboard-contract')
+            @endif
+
             @if(!empty($moduleData['actions']))
                 <div class="module-links module-actions">
                     @foreach($moduleData['actions'] as $action)
