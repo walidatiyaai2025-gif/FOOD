@@ -46,7 +46,7 @@ void main() {
     const _CaptureCase('02_MultiStore/08_wholesale_checkout__ar.png', '/b2b/checkout?store_id=70', session: _b2cWholesale),
     const _CaptureCase('02_MultiStore/09_wholesale_orders__ar.png', '/b2b/orders', session: _b2cWholesale),
     // C13 #873 final integrated exact-head matrix: capture Screens 1-13 in the existing AR/EN locale loop.
-    const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/b2b/dashboard'),
+    const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/entry'),
     const _CaptureCase('01_Mobile/B2B_Customer/02_الصفحة_الرئيسية_Dashboard__populated__ar.png', '/b2b/dashboard', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/03_تقارير_المشتريات_والرسوم_البيانية__populated__ar.png', '/b2b/reports/purchases', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/04_أكثر_المنتجات_طلبا__populated__ar.png', '/b2b/products/top?from=2026-09-01&to=2026-09-30', session: _b2b),
@@ -116,6 +116,12 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
 
         if (path.contains('01_شاشة_الدخول__default__')) {
+          // The reference hero/header are large bundled PNGs. Wait for their
+          // asynchronous decode/paint before taking evidence; the previous
+          // fixed 150 ms delay captured the correct widget tree with blank
+          // image regions on slower CI runners.
+          await tester.pumpAndSettle();
+
           expect(
             find.byKey(const ValueKey('c13-business-login-hero')),
             findsOneWidget,
