@@ -153,6 +153,21 @@ final class FieldOperationsController extends Controller
         return $this->render($request, 'vans', compact('vans', 'locations'));
     }
 
+    public function showVan(Request $request, Van $van): View
+    {
+        $user = $this->actor($request);
+        $this->authorizeAny($user, ['drivers.b2b.view']);
+
+        $van->load(['assignments' => fn ($query) => $query->orderByDesc('effective_from')]);
+        $location = FleetCurrentLocation::query()
+            ->where('actor_type', 'van')
+            ->where('actor_id', $van->id)
+            ->first();
+        $locationStatus = $location === null ? null : app(FleetLocationService::class)->status($location);
+
+        return $this->render($request, 'van-detail', compact('van', 'location', 'locationStatus'));
+    }
+
     public function storeVan(Request $request): RedirectResponse
     {
         $user = $this->actor($request);
@@ -578,6 +593,7 @@ final class FieldOperationsController extends Controller
             'section' => $section,
             'navGroups' => $this->navigation->groupsFor($user),
             'navContext' => match ($section) {
+                'van-detail' => 'field_ops_vans',
                 'address-quality' => 'field_ops_address_quality',
                 'routing' => 'field_ops_routing',
                 default => 'field_ops_'.str_replace('-', '_', $section),
