@@ -253,6 +253,7 @@ class OrderController extends Controller
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
+                app(CommercialPolicyService::class)->releaseOrderReservations((int) $locked->getKey());
                 if (strtolower((string) $locked->channel) === 'b2b') {
                     $this->reverseCheckoutSettlementEntries($locked, $user);
                 }
@@ -291,6 +292,11 @@ class OrderController extends Controller
                 }
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
+                DB::table('commercial_quota_reservations')
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', CommercialPolicyService::RESERVATION_RESERVED)
+                    ->pluck('reservation_token')
+                    ->each(fn (string $token) => app(CommercialPolicyService::class)->consumeReservation($token));
                 app(RetailWholesaleReplenishmentService::class)->receive($locked, $user);
             }
 
