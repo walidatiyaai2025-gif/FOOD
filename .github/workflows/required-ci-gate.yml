@@ -14,6 +14,7 @@ jobs:
   changes:
     name: Detect changed areas
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       customer: ${{ steps.filter.outputs.customer }}
@@ -26,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - id: filter
         name: Detect validation areas
@@ -116,10 +117,11 @@ jobs:
   repository-policy:
     name: Repository Policy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Validate repository foundation
         run: ./scripts/validate-repo.sh
@@ -196,7 +198,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Validate 13-screen Customer journey contracts
         run: bash ./scripts/c13-integrated-acceptance.sh
