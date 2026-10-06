@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\FlashReservation;
 use App\Models\User;
@@ -27,9 +28,9 @@ final class VanFlashOfferController extends Controller
         $storeId = $this->assertCustomerScope($request, $actor, $type, $customer);
         $customerUserId = $this->customerUserId($type, $customer);
 
-        $offerProduct->loadMissing('offer');
-        abort_unless($offerProduct->offer !== null, 404);
-        abort_unless((int) $offerProduct->offer->store_id === $storeId, 404);
+        $offer = FlashOffer::query()->find((int) $offerProduct->flash_offer_id);
+        abort_unless($offer instanceof FlashOffer, 404);
+        abort_unless((int) $offer->store_id === $storeId, 404);
 
         $data = $request->validate([
             'quantity' => ['required', 'numeric', 'gt:0'],
