@@ -10,9 +10,11 @@ use App\Models\FlashOfferProduct;
 use App\Models\FlashReservation;
 use App\Models\User;
 use App\Models\VanVisit;
+use App\Services\CommercialPolicyService;
 use App\Services\FlashOfferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class VanFlashOfferController extends Controller
@@ -23,10 +25,12 @@ final class VanFlashOfferController extends Controller
         int $customer,
         FlashOfferProduct $offerProduct,
         FlashOfferService $flash,
+        CommercialPolicyService $commercial,
     ): JsonResponse {
         $actor = $this->actor($request);
         $storeId = $this->assertCustomerScope($request, $actor, $type, $customer);
         $customerUserId = $this->customerUserId($type, $customer);
+        $legacyCustomerId = $this->legacyCustomerId($type, $customer);
 
         $offer = FlashOffer::query()->find((int) $offerProduct->flash_offer_id);
         abort_unless($offer instanceof FlashOffer, 404);
@@ -35,7 +39,44 @@ final class VanFlashOfferController extends Controller
         $data = $request->validate([
             'quantity' => ['required', 'numeric', 'gt:0'],
             'idempotency_key' => ['required', 'string', 'max:120'],
+            'override_reason' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $baseQuantity = round(
+            (float) $data['quantity'] * (float) $offerProduct->conversion_factor,
+            3,
+        );
+        $decision = $commercial->evaluate(
+            (int) $offerProduct->product_id,
+            $legacyCustomerId,
+            'van',
+            $baseQuantity,
+        );
+
+        if (! $decision['allowed']) {
+            $overrideReason = trim((string) ($data['override_reason'] ?? ''));
+            abort_if($overrideReason === '', 409, implode(',', $decision['reason_codes']));
+            abort_unless(
+                Gate::forUser($actor)->allows('orders.approve', $storeId)
+                || Gate::forUser($actor)->allows('platform.manage'),
+                403,
+            );
+            $commercial->recordOverride(
+                (int) $offerProduct->product_id,
+                $actor,
+                $overrideReason,
+                [
+                    'source' => 'van_flash',
+                    'store_id' => $storeId,
+                    'customer_type' => $type,
+                    'customer_id' => $customer,
+                    'legacy_customer_id' => $legacyCustomerId,
+                    'channel' => 'van',
+                    'base_quantity' => $baseQuantity,
+                    'reason_codes' => $decision['reason_codes'],
+                ],
+            );
+        }
 
         $reservation = $flash->reserve(
             $customerUserId,
@@ -156,6 +197,23 @@ final class VanFlashOfferController extends Controller
         abort_unless($storeIds->contains($storeId), 404);
 
         return $storeId;
+    }
+
+    private function legacyCustomerId(string $type, int $customer): int
+    {
+        $legacyId = match ($type) {
+            'b2b' => B2bCustomer::query()->whereKey($customer)->value('legacy_customer_id'),
+            'b2c' => B2cCustomer::query()->whereKey($customer)->value('legacy_customer_id'),
+            default => null,
+        };
+
+        if ($legacyId === null) {
+            throw ValidationException::withMessages([
+                'customer_id' => ['The selected customer is not linked to the canonical commercial customer domain.'],
+            ]);
+        }
+
+        return (int) $legacyId;
     }
 
     private function customerUserId(string $type, int $customer): int
