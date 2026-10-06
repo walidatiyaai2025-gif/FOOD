@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.58 - 2026-10-06
+
+- Add the Customer Flash Offers surface with server-authoritative eligibility, allocation, per-customer limits, selling-unit selection and countdown presentation while keeping regular catalog offers reachable.
+- Route BUY NOW through a dedicated Flash reservation and checkout flow instead of normal-cart persistence, with address/payment selection, idempotent confirmation, active-reservation recovery, expiry handling and explicit release.
+- Reuse the existing Customer authentication handoff, notification-campaign popup service, push/deep-link navigation and Retail checkout option models; keep commercial lifecycle, pricing, quota and multi-device safety authoritative to backend contracts.
+- Add focused Flash offer/reservation/selling-unit contract tests and promote the pre-merge release-registry rule so an unpublished candidate VERSION may advance while the published registry and generated release artifacts remain immutable until the dedicated release flow.
+- Synchronize Customer and Driver mobile identities at 1.0.58+58 as required by the repository runtime-version policy; do not merge this lane to main without a new explicit owner command.
+
 ## 1.0.57 - 2026-10-05
 
 - Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior.
