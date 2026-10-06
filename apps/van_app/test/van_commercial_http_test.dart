@@ -71,30 +71,34 @@ void main() {
     expect(feed.offers.single.products.single.flashPrice, 7);
   });
 
-  test('never substitutes Van operator for selected customer reservation', () async {
+  test('reserves Flash against selected customer scope, never Van operator', () async {
+    late http.Request captured;
     final repository = HttpVanCommercialRepository(
       VanApiClient(
         'https://foodex.example/',
         'token',
-        client: MockClient((_) async => http.Response('{}', 500)),
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(jsonEncode({'id': 'reservation-1'}), 201);
+        }),
       ),
     );
 
-    await expectLater(
-      repository.reserveFlashForCustomer(
-        customer: customer,
-        offerProductId: 51,
-        quantity: 1,
-        idempotencyKey: 'idem-1',
-      ),
-      throwsA(
-        isA<VanCommercialContractPendingException>().having(
-          (error) => error.reasonCode,
-          'reasonCode',
-          'ONLINE_VALIDATION_REQUIRED',
-        ),
-      ),
+    await repository.reserveFlashForCustomer(
+      customer: customer,
+      offerProductId: 51,
+      quantity: 2,
+      idempotencyKey: 'idem-1',
     );
+
+    expect(
+      captured.url.path,
+      '/api/v1/van/customers/b2c/44/flash-offers/products/51/reserve',
+    );
+    final body = jsonDecode(captured.body) as Map<String, dynamic>;
+    expect(body['store_id'], 7);
+    expect(body['quantity'], 2);
+    expect(body['idempotency_key'], 'idem-1');
   });
 
   test('canonical commercial reason-code set stays aligned with #983', () {
