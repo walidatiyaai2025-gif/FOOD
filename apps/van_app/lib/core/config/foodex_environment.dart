@@ -5,6 +5,11 @@ abstract final class FoodexEnvironment {
     defaultValue: 'https://vanfoodex.50sols.com',
   );
 
+  static const pushEnvironment = String.fromEnvironment(
+    'FOODEX_PUSH_ENVIRONMENT',
+    defaultValue: 'production',
+  );
+
   static const previewContractVersion = String.fromEnvironment(
     'FOODEX_PREVIEW_CONTRACT_VERSION',
     defaultValue: 'shared-flutter-v1',
