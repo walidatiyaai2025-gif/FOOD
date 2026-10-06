@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "production_base_url": "https://foodex.50sols.com",
+  "release": {
+    "version": "1.0.57",
+    "build": "57"
+  },
+  "public_urls": {
+    "privacy": "https://foodex.50sols.com/privacy",
+    "terms": "https://foodex.50sols.com/terms",
+    "support": "https://foodex.50sols.com/support",
+    "delete_account": "https://foodex.50sols.com/account-deletion"
+  },
+  "lanes": [
+    {
+      "app": "customer",
+      "platform": "android",
+      "identifier": "com.fiftysolution.foodex.customer",
+      "title": "FOODEX",
+      "category": "Shopping",
+      "permissions": [
+        {"name": "INTERNET", "reason": "FOODEX API, storefront, authentication and push services"},
+        {"name": "ACCESS_COARSE_LOCATION", "reason": "Optional delivery-address location selection"},
+        {"name": "ACCESS_FINE_LOCATION", "reason": "Optional precise delivery-address location selection"},
+        {"name": "USE_BIOMETRIC", "reason": "Optional biometric unlock for saved customer session"}
+      ],
+      "external_manual": ["Google Play Console app ownership/access", "production upload signing key / Play App Signing enrollment", "store screenshots and promotional asset upload", "final Play Data safety declaration"]
+    },
+    {
+      "app": "customer",
+      "platform": "ios",
+      "identifier": "com.fiftysolution.foodex.customer",
+      "title": "FOODEX",
+      "category": "Shopping",
+      "permissions": ["NSLocationWhenInUseUsageDescription", "NSCameraUsageDescription", "NSFaceIDUsageDescription", "aps-environment"],
+      "external_manual": ["Apple Developer/App Store Connect access", "distribution certificate and provisioning/App Store signing", "APNs/Firebase production console association confirmation", "store screenshots and promotional asset upload", "final App Privacy declaration"]
+    },
+    {
+      "app": "driver",
+      "platform": "android",
+      "identifier": "com.fiftysolution.foodex.driver",
+      "title": "FOODEX Driver",
+      "category": "Business",
+      "permissions": [
+        {"name": "INTERNET", "reason": "FOODEX operational APIs and push"},
+        {"name": "ACCESS_COARSE_LOCATION", "reason": "Driver location during active operations"},
+        {"name": "ACCESS_FINE_LOCATION", "reason": "Precise driver location during active delivery"},
+        {"name": "FOREGROUND_SERVICE", "reason": "Continue active delivery location service when backgrounded"},
+        {"name": "FOREGROUND_SERVICE_LOCATION", "reason": "Android foreground location service type"},
+        {"name": "USE_BIOMETRIC", "reason": "Optional biometric unlock for saved driver session"}
+      ],
+      "forbidden_permissions": ["ACCESS_BACKGROUND_LOCATION"],
+      "external_manual": ["Google Play Console app ownership/access", "production upload signing key / Play App Signing enrollment", "store screenshots and promotional asset upload", "final Play Data safety declaration"]
+    },
+    {
+      "app": "driver",
+      "platform": "ios",
+      "identifier": "com.fiftysolution.foodex.driver",
+      "title": "FOODEX Driver",
+      "category": "Business",
+      "permissions": ["NSLocationWhenInUseUsageDescription", "NSFaceIDUsageDescription", "UIBackgroundModes.location", "aps-environment"],
+      "forbidden_permissions": ["NSLocationAlwaysAndWhenInUseUsageDescription"],
+      "external_manual": ["Apple Developer/App Store Connect access", "distribution certificate and provisioning/App Store signing", "APNs/Firebase production console association confirmation", "store screenshots and promotional asset upload", "final App Privacy declaration"]
+    }
+  ]
+}
