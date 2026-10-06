@@ -281,6 +281,7 @@ final class FieldOperationsController extends Controller
                     ? $this->customerCollectionContext->context((string) $visit->customer_type, (int) $visit->customer_id, (int) $visit->store_id)
                     : null,
             );
+
             return $visit;
         }));
 
@@ -295,6 +296,7 @@ final class FieldOperationsController extends Controller
         $visits = VanVisit::query()->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
+
             return $visit;
         }));
         $assignments = $this->registry->effectiveAssignments();
@@ -534,12 +536,14 @@ final class FieldOperationsController extends Controller
 
         if ($action === 'publish') {
             $this->routing->publish($user, $routingPolicy);
+
             return back()->with('status', __('admin.field_operations.saved'));
         }
 
         if ($action === 'rollback') {
             $data = $request->validate(['reason' => ['nullable', 'string', 'max:2000']]);
             $this->routing->rollback($user, $routingPolicy, $data['reason'] ?? null);
+
             return back()->with('status', __('admin.field_operations.saved'));
         }
 
@@ -554,6 +558,7 @@ final class FieldOperationsController extends Controller
                 ? json_decode((string) $data['scope_json'], true, 512, JSON_THROW_ON_ERROR)
                 : [];
             $result = $this->routing->simulate($routingPolicy, is_array($input) ? $input : [], is_array($scope) ? $scope : [], $data['at'] ?? null);
+
             return back()->with('simulation_result', $result)->with('simulation_policy', $routingPolicy->id);
         }
 
