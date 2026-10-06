@@ -1003,14 +1003,17 @@ class _OrderCard extends StatelessWidget {
                         Directionality(
                           textDirection: TextDirection.ltr,
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _formatDateTime(order.createdAt!),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: const Color(0xFF69736F),
-                                      fontSize: 11.5,
-                                    ),
+                              Expanded(
+                                child: Text(
+                                  _formatDateTime(order.createdAt!),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: const Color(0xFF69736F),
+                                        fontSize: 11.5,
+                                      ),
+                                ),
                               ),
                               const SizedBox(width: 8),
                               const Icon(

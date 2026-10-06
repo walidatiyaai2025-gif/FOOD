@@ -5774,6 +5774,20 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
     final status =
         data['display_status']?.toString() ?? data['status']?.toString() ?? '';
     final orderRoute = _orderRoute(data);
+    final orderNumber = data['order_number']?.toString().trim() ?? '';
+    final sellerBrandAr = seller['brand_name_ar']?.toString().trim() ?? '';
+    final sellerBrandEn = seller['brand_name_en']?.toString().trim() ?? '';
+    final sellerSnapshotName = seller['name']?.toString().trim() ?? '';
+    final sellerDisplayName = (ar ? sellerBrandAr : sellerBrandEn).isNotEmpty
+        ? (ar ? sellerBrandAr : sellerBrandEn)
+        : ((ar ? sellerBrandEn : sellerBrandAr).isNotEmpty
+            ? (ar ? sellerBrandEn : sellerBrandAr)
+            : sellerSnapshotName);
+    final sellerLogoUrl = seller['logo_url']?.toString().trim() ?? '';
+    final sellerAddress = seller['address']?.toString().trim() ?? '';
+    final paymentMethod = data['payment_method']?.toString().trim() ?? '';
+    final paymentStatus = data['payment_status']?.toString().trim() ?? '';
+    final grandTotal = data['grand_total'] ?? data['total'];
     final credit =
         double.tryParse(data['credit_amount']?.toString() ?? '') ?? 0;
     final outstanding =
@@ -5819,7 +5833,18 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.receipt_long_rounded),
+                    child: sellerLogoUrl.isEmpty
+                        ? const Icon(Icons.receipt_long_rounded)
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.network(
+                              sellerLogoUrl,
+                              key: const ValueKey('b2b-invoice-seller-logo'),
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  const Icon(Icons.receipt_long_rounded),
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -5879,6 +5904,17 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                   ),
+                  if (orderNumber.isNotEmpty)
+                    Text(
+                      '${ar ? 'الطلب' : 'Order'} · $orderNumber',
+                      key: const ValueKey('b2b-invoice-order-number'),
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                 ],
               ),
               if ((seller['name']?.toString() ?? '').isNotEmpty ||
@@ -5887,13 +5923,31 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 const Divider(height: 1),
                 const SizedBox(height: 12),
               ],
-              if ((seller['name']?.toString() ?? '').isNotEmpty)
+              if (sellerDisplayName.isNotEmpty)
                 Text(
-                  '${ar ? 'البائع' : 'Seller'} · ${seller['name']}',
+                  '${ar ? 'البائع' : 'Seller'} · $sellerDisplayName',
                   key: const ValueKey('b2b-invoice-seller'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
+                  ),
+                ),
+              if (sellerSnapshotName.isNotEmpty &&
+                  sellerDisplayName.isNotEmpty &&
+                  sellerSnapshotName != sellerDisplayName)
+                Text(
+                  '${ar ? 'الفرع' : 'Store'} · $sellerSnapshotName',
+                  key: const ValueKey('b2b-invoice-seller-store'),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              if (sellerAddress.isNotEmpty)
+                Text(
+                  sellerAddress,
+                  key: const ValueKey('b2b-invoice-seller-address'),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                 ),
               if ((customer['name']?.toString() ?? '').isNotEmpty)
@@ -5964,7 +6018,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
           children: [
             _settlementMetric(
               label: ar ? 'الإجمالي' : 'Total',
-              value: _money(data['total'], currency),
+              value: _money(grandTotal, currency),
               icon: Icons.receipt_long_outlined,
             ),
             const SizedBox(width: 8),
@@ -6013,13 +6067,23 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 const Divider(),
                 _summaryRow(
                   ar ? 'الإجمالي' : 'Total',
-                  _money(data['total'], currency),
+                  _money(grandTotal, currency),
                   strong: true,
                 ),
                 _summaryRow(
                   ar ? 'المدفوع' : 'Paid',
                   _money(data['paid_amount'], currency),
                 ),
+                if (paymentMethod.isNotEmpty)
+                  _summaryRow(
+                    ar ? 'طريقة الدفع' : 'Payment method',
+                    paymentMethod,
+                  ),
+                if (paymentStatus.isNotEmpty)
+                  _summaryRow(
+                    ar ? 'حالة الدفع' : 'Payment status',
+                    paymentStatus,
+                  ),
                 if (outstanding > 0.0005)
                   _summaryRow(
                     ar ? 'المتبقي عليك' : 'Outstanding',
@@ -6061,6 +6125,10 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 double.tryParse(item['discount_total']?.toString() ?? '') ?? 0;
             final tax =
                 double.tryParse(item['tax_total']?.toString() ?? '') ?? 0;
+            final unitName = item['unit_name']?.toString().trim() ?? '';
+            final unitCode = item['unit_code']?.toString().trim() ?? '';
+            final unitLabel = unitName.isNotEmpty ? unitName : unitCode;
+            final quantityText = item['quantity']?.toString() ?? '—';
             return Card(
               key: ValueKey('b2b-invoice-item-${item['id']}'),
               child: Padding(
@@ -6075,8 +6143,10 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     if ((item['sku']?.toString() ?? '').isNotEmpty)
                       Text('SKU: ${item['sku']}'),
                     Text(
-                      '${ar ? 'الكمية: ' : 'Qty: '}${item['quantity']} × '
+                      '${ar ? 'الكمية: ' : 'Qty: '}$quantityText'
+                      '${unitLabel.isEmpty ? '' : ' $unitLabel'} × '
                       '${_money(item['unit_price'], itemCurrency)}',
+                      key: ValueKey('b2b-invoice-item-unit-${item['id']}'),
                     ),
                     if (discount > 0.0005)
                       Text(

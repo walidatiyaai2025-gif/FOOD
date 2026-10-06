@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class B2bFinanceController extends Controller
 {
@@ -311,6 +312,22 @@ class B2bFinanceController extends Controller
 
         $displayStatus = $this->invoiceDisplayStatus($invoice, $amounts);
 
+        $sellerBranding = $invoice->store_id === null
+            ? null
+            : DB::table('stores')
+                ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
+                ->where('stores.id', (int) $invoice->store_id)
+                ->first([
+                    'stores.logo_path',
+                    'storefront_settings.header_address',
+                    'storefront_settings.branding',
+                ]);
+        $branding = [];
+        if ($sellerBranding !== null && is_string($sellerBranding->branding ?? null)) {
+            $decoded = json_decode((string) $sellerBranding->branding, true);
+            $branding = is_array($decoded) ? $decoded : [];
+        }
+
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
@@ -321,6 +338,7 @@ class B2bFinanceController extends Controller
             'discount_total' => (float) ($invoice->discount_total ?? 0),
             'delivery_total' => (float) ($invoice->delivery_total ?? 0),
             'tax_total' => (float) ($invoice->tax_total ?? 0),
+            'grand_total' => $amounts['invoice_total'],
             'total' => $amounts['invoice_total'],
             'paid_amount' => $amounts['paid_amount'],
             'debit_adjustments' => $amounts['debit_adjustments'],
@@ -337,6 +355,16 @@ class B2bFinanceController extends Controller
             'seller' => [
                 'store_id' => $invoice->store_id === null ? null : (int) $invoice->store_id,
                 'name' => $invoice->store_name_snapshot,
+                'brand_name_ar' => isset($branding['brand_title_ar']) && is_string($branding['brand_title_ar'])
+                    ? trim($branding['brand_title_ar'])
+                    : null,
+                'brand_name_en' => isset($branding['brand_title_en']) && is_string($branding['brand_title_en'])
+                    ? trim($branding['brand_title_en'])
+                    : null,
+                'logo_url' => $this->assetUrl($sellerBranding->logo_path ?? null),
+                'address' => isset($sellerBranding->header_address)
+                    ? trim((string) $sellerBranding->header_address)
+                    : null,
             ],
             'customer' => [
                 'name' => $invoice->customer_name_snapshot,
@@ -357,6 +385,12 @@ class B2bFinanceController extends Controller
                     $snapshotSku = is_array($snapshot) && isset($snapshot['sku'])
                         ? (string) $snapshot['sku']
                         : null;
+                    $unitCode = is_array($snapshot) && isset($snapshot['selling_unit_code'])
+                        ? trim((string) $snapshot['selling_unit_code'])
+                        : '';
+                    $unitName = is_array($snapshot) && isset($snapshot['selling_unit_name'])
+                        ? trim((string) $snapshot['selling_unit_name'])
+                        : '';
 
                     return [
                         'id' => (int) $item->getKey(),
@@ -364,6 +398,8 @@ class B2bFinanceController extends Controller
                         'sku' => $item->sku_snapshot ?? $snapshotSku,
                         'description' => (string) $item->description,
                         'quantity' => (float) $item->quantity,
+                        'unit_code' => $unitCode === '' ? null : $unitCode,
+                        'unit_name' => $unitName === '' ? null : $unitName,
                         'unit_price' => (float) $item->unit_price,
                         'discount_total' => (float) ($item->line_discount_total ?? 0),
                         'tax_total' => (float) ($item->line_tax_total ?? 0),
@@ -391,6 +427,20 @@ class B2bFinanceController extends Controller
         }
 
         return $payload;
+    }
+
+    private function assetUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        $path = trim($path);
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return url('/'.ltrim($path, '/'));
     }
 
     /** @param array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} $amounts */

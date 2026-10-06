@@ -2352,6 +2352,7 @@ void main() {
       'data': {
         'id': 31,
         'invoice_number': 'INV-31',
+        'order_number': 'ORDER-77',
         'display_status': 'partially_paid',
         'currency': 'KWD',
         'subtotal': 20.0,
@@ -2362,11 +2363,20 @@ void main() {
         'paid_amount': 5.0,
         'outstanding_amount': 17.0,
         'credit_amount': 0.0,
+        'payment_method': 'account',
+        'payment_status': 'partial',
         'store_id': 7,
         'order_id': 77,
         'issued_at': '2026-10-01T10:00:00Z',
         'due_at': '2026-10-20T10:00:00Z',
-        'seller': {'store_id': 7, 'name': 'FOODEX Wholesale'},
+        'seller': {
+          'store_id': 7,
+          'name': 'FOODEX Wholesale',
+          'brand_name_ar': 'فودكس للتوزيع',
+          'brand_name_en': 'FOODEX Distribution',
+          'logo_url': 'https://example.invalid/foodex-logo.png',
+          'address': 'Kuwait Distribution Center',
+        },
         'customer': {
           'name': 'Buyer Co',
           'email': 'buyer@example.test',
@@ -2379,6 +2389,8 @@ void main() {
             'sku': 'WHO-501',
             'description': 'Wholesale item',
             'quantity': 2.0,
+            'unit_code': 'CASE',
+            'unit_name': 'Case',
             'unit_price': 10.0,
             'discount_total': 1.0,
             'tax_total': 1.0,
@@ -2420,6 +2432,7 @@ void main() {
     await tester.pumpWidget(
       FoodexCustomerApp(
         session: b2b,
+        locale: const Locale('en'),
         initialRoute: '/b2b/invoices/31?store_id=7',
         b2bApi: api,
       ),
@@ -2444,7 +2457,18 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('INV-31'), findsOneWidget);
+    expect(find.textContaining('ORDER-77'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-order-number')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('FOODEX Distribution'), findsOneWidget);
     expect(find.textContaining('FOODEX Wholesale'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-seller-logo')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Kuwait Distribution Center'), findsOneWidget);
     expect(find.textContaining('Buyer Co'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-invoice-detail-totals')),
@@ -2459,6 +2483,13 @@ void main() {
     );
     expect(find.text('Wholesale item'), findsOneWidget);
     expect(find.textContaining('WHO-501'), findsOneWidget);
+    expect(find.textContaining('2.0 Case'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-item-unit-501')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Payment method'), findsOneWidget);
+    expect(find.text('account'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-invoice-payments')),
       findsOneWidget,
@@ -2485,6 +2516,26 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('/api/v1/invoices/31/download'), findsNothing);
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('ar'),
+        initialRoute: '/b2b/invoices/31?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('فودكس للتوزيع'), findsOneWidget);
+    expect(find.textContaining('الطلب · ORDER-77'), findsOneWidget);
+    expect(find.textContaining('2.0 Case'), findsOneWidget);
+    expect(
+      Directionality.of(
+        tester.element(find.byKey(const ValueKey('b2b-invoice-seller'))),
+      ),
+      TextDirection.rtl,
+    );
   });
 
   testWidgets('B2B remote journey renders loading and empty states', (tester) async {

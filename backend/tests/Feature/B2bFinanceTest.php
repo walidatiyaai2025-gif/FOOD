@@ -20,9 +20,33 @@ class B2bFinanceTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$user, $customer] = $this->buyer('finance-buyer@example.test', 'active');
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'FINANCE-INVOICE-B2B',
+            'name' => 'Current Wholesale Store',
+            'logo_path' => 'storage/storefronts/finance-invoice-logo.png',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('storefront_settings')->insert([
+            'store_id' => $storeId,
+            'theme_code' => 'wholesale_b2b',
+            'header_address' => 'Kuwait Distribution Center',
+            'branding' => json_encode([
+                'brand_title_ar' => 'فودكس للتوزيع',
+                'brand_title_en' => 'FOODEX Distribution',
+            ], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $invoice = Invoice::query()->create([
             'customer_id' => $customer->id,
+            'store_id' => $storeId,
             'invoice_number' => 'INV-58-1',
+            'order_number_snapshot' => 'ORDER-58-1',
             'status' => 'issued',
             'currency' => 'KWD',
             'subtotal' => 11.500,
@@ -51,7 +75,11 @@ class B2bFinanceTest extends TestCase
             'line_total' => 12.500,
             'currency' => 'KWD',
             'price_tier_code_snapshot' => 'INTERNAL-TIER',
-            'line_snapshot' => json_encode(['secret_internal' => 'hidden']),
+            'line_snapshot' => json_encode([
+                'secret_internal' => 'hidden',
+                'selling_unit_code' => 'CASE',
+                'selling_unit_name' => 'Case',
+            ], JSON_THROW_ON_ERROR),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -77,20 +105,32 @@ class B2bFinanceTest extends TestCase
             ->assertJsonPath('data.discount_total', 1)
             ->assertJsonPath('data.delivery_total', 1)
             ->assertJsonPath('data.tax_total', 1)
+            ->assertJsonPath('data.grand_total', 12.5)
             ->assertJsonPath('data.total', 12.5)
             ->assertJsonPath('data.paid_amount', 5)
             ->assertJsonPath('data.outstanding_amount', 7.5)
+            ->assertJsonPath('data.order_number', 'ORDER-58-1')
             ->assertJsonPath('data.seller.name', 'FOODEX Wholesale')
+            ->assertJsonPath('data.seller.brand_name_ar', 'فودكس للتوزيع')
+            ->assertJsonPath('data.seller.brand_name_en', 'FOODEX Distribution')
+            ->assertJsonPath('data.seller.address', 'Kuwait Distribution Center')
             ->assertJsonPath('data.customer.name', 'B2B Buyer')
             ->assertJsonPath('data.customer.email', 'finance-buyer@example.test')
             ->assertJsonPath('data.items.0.sku', 'WHO-58')
             ->assertJsonPath('data.items.0.description', 'Wholesale item')
+            ->assertJsonPath('data.items.0.unit_code', 'CASE')
+            ->assertJsonPath('data.items.0.unit_name', 'Case')
             ->assertJsonPath('data.items.0.discount_total', 1)
             ->assertJsonPath('data.items.0.tax_total', 1)
             ->assertJsonPath('data.payments.0.method', 'account')
             ->assertJsonPath('data.payments.0.reference', 'PAY-58')
             ->assertJsonPath('data.payments.0.amount', 5)
             ->assertJsonPath('data.pdf_path', '/api/v1/b2b/invoices/'.$invoice->id.'/download');
+
+        $this->assertStringEndsWith(
+            '/storage/storefronts/finance-invoice-logo.png',
+            (string) $detail->json('data.seller.logo_url'),
+        );
 
         $pdf = $this->get('/api/v1/b2b/invoices/'.$invoice->id.'/download?locale=ar');
         $pdf->assertOk()->assertHeader('content-type', 'application/pdf');

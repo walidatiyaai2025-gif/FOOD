@@ -3140,14 +3140,118 @@ components:
           type: string
         order_id:
           type: [integer, "null"]
+        order_number:
+          type: [string, "null"]
+        store_id:
+          type: [integer, "null"]
         status:
           type: string
+        display_status:
+          type: string
+          enum: [open, partially_paid, paid, overdue, cancelled, credited]
         currency:
           type: string
-          enum: [EGP]
+          minLength: 3
+          maxLength: 3
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
         total:
           type: number
           multipleOf: 0.001
+        paid_amount:
+          type: number
+          multipleOf: 0.001
+        outstanding_amount:
+          type: number
+          multipleOf: 0.001
+        credit_amount:
+          type: number
+          multipleOf: 0.001
+        payment_method:
+          type: [string, "null"]
+        payment_status:
+          type: [string, "null"]
+        seller:
+          type: object
+          properties:
+            store_id:
+              type: [integer, "null"]
+            name:
+              type: [string, "null"]
+              description: Immutable seller/store name captured on the invoice.
+            brand_name_ar:
+              type: [string, "null"]
+              description: Current Arabic storefront brand identity configured by the seller.
+            brand_name_en:
+              type: [string, "null"]
+              description: Current English storefront brand identity configured by the seller.
+            logo_url:
+              type: [string, "null"]
+            address:
+              type: [string, "null"]
+        customer:
+          type: object
+          properties:
+            name:
+              type: [string, "null"]
+            email:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, description, quantity, unit_price, discount_total, tax_total, line_total, currency]
+            properties:
+              id:
+                type: integer
+              product_id:
+                type: [integer, "null"]
+              sku:
+                type: [string, "null"]
+              description:
+                type: string
+              quantity:
+                type: number
+                multipleOf: 0.001
+              unit_code:
+                type: [string, "null"]
+                description: Historical selling-unit code captured in the immutable line snapshot.
+              unit_name:
+                type: [string, "null"]
+                description: Historical selling-unit display name captured in the immutable line snapshot.
+              unit_price:
+                type: number
+                multipleOf: 0.001
+              discount_total:
+                type: number
+                multipleOf: 0.001
+              tax_total:
+                type: number
+                multipleOf: 0.001
+              line_total:
+                type: number
+                multipleOf: 0.001
+              currency:
+                type: string
+                minLength: 3
+                maxLength: 3
+        pdf_path:
+          type: string
         issued_at:
           type: [string, "null"]
           format: date-time
