@@ -5,13 +5,22 @@ on:
     branches: ["chore/1-bootstrap-foundation"]
 permissions:
   contents: read
+
+concurrency:
+  group: repository-policy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   policy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # PR merge refs only need the merge commit plus its two parents for
+          # base/head VERSION and changed-file validation. Avoid cloning the
+          # entire repository history on every policy run.
+          fetch-depth: 2
       - run: ./scripts/validate-repo.sh
 
       - name: Syntax-check First-Run Green scripts
