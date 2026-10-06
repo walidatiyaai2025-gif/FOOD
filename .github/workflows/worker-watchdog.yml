@@ -11,9 +11,11 @@ on:
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
   workflow_run:
+    # Required CI Gate already aggregates Repository Policy and the business
+    # validation matrix. Listening to both doubled watchdog invocations for the
+    # same PR head and amplified GitHub API pressure.
     workflows:
       - "FOODEX Required CI Gate"
-      - "Repository Policy"
     types: [completed]
 
 permissions:
@@ -24,17 +26,23 @@ permissions:
   pull-requests: read
   statuses: read
 
-# Do not use one global cancelling slot here. Watchdog events are advisory
-# coordination signals, so cancelling an older run creates false-red history
-# on otherwise healthy repository state. Scope serialization to the concrete
-# event target and let each accepted run finish.
+# Watchdog is a state reconciler, not a CI workload. Under active development
+# many issue/PR/workflow events can arrive within seconds. Keep one actionable
+# reconciliation slot and let the newest repository state supersede older work.
+#
+# Watchdog-generated issue comments get an isolated no-op concurrency key so
+# they cannot cancel the run that created them and cannot create a cascade.
 concurrency:
-  group: worker-watchdog-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event.pull_request.number || github.event.comment.id || github.event.issue.number || github.run_id }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'issue_comment' && contains(github.event.comment.body, '<!-- foodex-watchdog:') && format('worker-watchdog-self-{0}', github.run_id) || 'worker-watchdog' }}
+  cancel-in-progress: true
 
 jobs:
   watchdog:
     name: Detect stale workers and external gates
+    # Ignore watchdog-authored comments. Also ignore workflow_run events that
+    # are not PR-originated (notably main push/schedule runs); those have no
+    # worker lease to reconcile and previously caused repeated full scans.
+    if: ${{ (github.event_name != 'issue_comment' || !contains(github.event.comment.body, '<!-- foodex-watchdog:')) && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -5,9 +5,14 @@ on:
     branches: ["chore/1-bootstrap-foundation"]
 permissions:
   contents: read
+
+concurrency:
+  group: repository-policy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   policy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:

@@ -55,6 +55,14 @@ const LABELS = {
   'gate:approval': ['B60205', 'Requires explicit human approval before proceeding'],
 };
 
+function isRateLimitError(error) {
+  if (!error || error.status !== 403) return false;
+  const headers = error.response?.headers || {};
+  const remaining = headers['x-ratelimit-remaining'] ?? headers['X-RateLimit-Remaining'];
+  const message = String(error.response?.data?.message || error.message || '').toLowerCase();
+  return String(remaining) === '0' || message.includes('rate limit exceeded');
+}
+
 function parseWorkerState(text) {
   if (!text || !text.includes(STATE_MARKER)) return null;
   const after = text.slice(text.lastIndexOf(STATE_MARKER) + STATE_MARKER.length);
@@ -79,7 +87,7 @@ function parseWorkerState(text) {
 function linkedIssueNumbers(body) {
   const text = body || '';
   const result = new Set();
-  const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/gi;
+  const closing = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|implement(?:s|ed)?)\s+#(\d+)\b/gi;
   let match;
   while ((match = closing.exec(text)) !== null) result.add(Number(match[1]));
   return [...result];
@@ -398,7 +406,7 @@ function combineCiStates(states) {
 async function workflowState(github, owner, repo, pr) {
   if (!pr) return { running: false, conclusion: null };
 
-  const [workflowResponse, checksResponse, statusesResponse] = await Promise.all([
+  const [workflowResponse, checksResponse] = await Promise.all([
     github.rest.actions.listWorkflowRunsForRepo({
       owner,
       repo,
@@ -411,35 +419,121 @@ async function workflowState(github, owner, repo, pr) {
       ref: pr.head.sha,
       per_page: 100,
     }),
-    github.rest.repos.listCommitStatusesForRef({
-      owner,
-      repo,
-      ref: pr.head.sha,
-      per_page: 100,
-    }),
   ]);
 
   const matching = workflowResponse.data.workflow_runs.filter(
     run => run.head_sha === pr.head.sha,
   );
-
-  return combineCiStates([
+  const primary = combineCiStates([
     summarizeWorkflowRuns(matching),
     summarizeCheckRuns(checksResponse.data.check_runs || []),
+  ]);
+
+  // Commit statuses are legacy/external fallback only. Do not spend a third
+  // API call when Actions/check-runs already provide current CI state.
+  if (primary.running || primary.conclusion) return primary;
+
+  const statusesResponse = await github.rest.repos.listCommitStatusesForRef({
+    owner,
+    repo,
+    ref: pr.head.sha,
+    per_page: 100,
+  });
+  return combineCiStates([
+    primary,
     summarizeCommitStatuses(statusesResponse.data || []),
   ]);
 }
 
-async function run({ github, context, core, nowMs = Date.now() }) {
+async function latestIssueComments(github, owner, repo, issue) {
+  if (!issue?.comments) return [];
+  const perPage = 100;
+  const page = Math.max(1, Math.ceil(issue.comments / perPage));
+  const { data } = await github.rest.issues.listComments({
+    owner,
+    repo,
+    issue_number: issue.number,
+    per_page: perPage,
+    page,
+  });
+  return data;
+}
+
+function targetIssueNumbersFromContext(context) {
+  const payload = context.payload || {};
+  if (context.eventName === 'issues' || context.eventName === 'issue_comment') {
+    return payload.issue?.number ? [payload.issue.number] : [];
+  }
+  if (context.eventName === 'pull_request_target') {
+    return linkedIssueNumbers(payload.pull_request?.body || '');
+  }
+  return [];
+}
+
+async function resolveTargetPulls(github, owner, repo, context) {
+  const payload = context.payload || {};
+  if (context.eventName === 'pull_request_target' && payload.pull_request) {
+    return [payload.pull_request];
+  }
+  if (context.eventName === 'workflow_run') {
+    const refs = payload.workflow_run?.pull_requests || [];
+    const pulls = [];
+    for (const ref of refs.slice(0, 5)) {
+      const { data } = await github.rest.pulls.get({
+        owner,
+        repo,
+        pull_number: ref.number,
+      });
+      pulls.push(data);
+    }
+    return pulls;
+  }
+  return null;
+}
+
+async function runCore({ github, context, core, nowMs }) {
   const { owner, repo } = context.repo;
-  await ensureLabels(github, owner, repo, core);
+  const fullSweep = context.eventName === 'schedule' || context.eventName === 'workflow_dispatch';
 
-  const [issues, pulls] = await Promise.all([
-    github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 }),
-    github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 }),
-  ]);
+  // Label existence is stable repository configuration. Verify/create it only
+  // on periodic/manual reconciliation, not on every PR/comment/workflow event.
+  if (fullSweep) await ensureLabels(github, owner, repo, core);
 
-  const openIssues = issues.filter(issue => !issue.pull_request);
+  let pulls = await resolveTargetPulls(github, owner, repo, context);
+  if (pulls === null) {
+    const response = await github.rest.pulls.list({ owner, repo, state: 'open', per_page: 100 });
+    pulls = response.data;
+  }
+
+  let openIssues;
+  if (fullSweep) {
+    const response = await github.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: 'open',
+      per_page: 100,
+    });
+    openIssues = response.data.filter(issue => !issue.pull_request);
+  } else {
+    const direct = new Set(targetIssueNumbersFromContext(context));
+    for (const pr of pulls) {
+      for (const issueNumber of linkedIssueNumbers(pr.body)) direct.add(issueNumber);
+    }
+
+    // A workflow_run on main or any run with no owning PR/issue is not worker
+    // state and must not trigger a repository-wide scan.
+    if (direct.size === 0) {
+      core.info(`Worker Watchdog no-op for ${context.eventName}: no owned issue target.`);
+      return { processed: 0, targeted: true };
+    }
+
+    openIssues = [];
+    for (const issueNumber of [...direct].slice(0, 10)) {
+      const { data } = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
+      if (!data.pull_request && data.state === 'open') openIssues.push(data);
+    }
+  }
+
   const prByIssue = new Map();
   for (const pr of pulls) {
     for (const issueNumber of linkedIssueNumbers(pr.body)) {
@@ -447,17 +541,14 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     }
   }
 
+  let processed = 0;
   for (const issue of openIssues) {
     const labelNames = issue.labels.map(label => typeof label === 'string' ? label : label.name).filter(Boolean);
     const linkedPr = prByIssue.get(issue.number) || null;
 
-    const comments = await github.paginate(github.rest.issues.listComments, {
-      owner,
-      repo,
-      issue_number: issue.number,
-      per_page: 100,
-    });
-
+    // Read only the newest comment page. Worker state is append-only and the
+    // newest state marker wins; old history does not need to be paginated.
+    const comments = await latestIssueComments(github, owner, repo, issue);
     const nonWatchdogComments = comments.filter(comment => !isWatchdogComment(comment.body));
     let workerState = null;
     for (let i = nonWatchdogComments.length - 1; i >= 0; i -= 1) {
@@ -481,23 +572,19 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       branch = searchable.map(branchFromText).find(Boolean) || '';
     }
 
-    const hasBranch = await branchExists(github, owner, repo, branch);
-    const commitActivity = await latestCommitMillis(github, owner, repo, linkedPr?.head?.sha || branch);
+    const hasBranch = linkedPr ? true : await branchExists(github, owner, repo, branch);
     const stateHeartbeat = asMillis(workerState?.heartbeat);
-    const latestActivityMs = executionActivityMillis({
-      commitActivity,
-      stateHeartbeat,
-    });
+    const heartbeatFresh = stateHeartbeat && minutesSince(nowMs, stateHeartbeat) < STALE_MINUTES;
+    const commitActivity = heartbeatFresh
+      ? 0
+      : await latestCommitMillis(github, owner, repo, linkedPr?.head?.sha || branch);
+    const latestActivityMs = executionActivityMillis({ commitActivity, stateHeartbeat });
 
     const ci = await workflowState(github, owner, repo, linkedPr);
-    let mergeable = null;
-    if (linkedPr) {
-      try {
-        const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
-        mergeable = data.mergeable;
-      } catch (_) {
-        mergeable = null;
-      }
+    let mergeable = linkedPr?.mergeable ?? null;
+    if (linkedPr && mergeable === null) {
+      const { data } = await github.rest.pulls.get({ owner, repo, pull_number: linkedPr.number });
+      mergeable = data.mergeable;
     }
 
     const outcome = classify({
@@ -512,6 +599,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       mergeable,
     });
 
+    processed += 1;
     core.info(`#${issue.number}: ${outcome.status} (${outcome.reason})`);
 
     if (outcome.status === 'human-gate') {
@@ -543,6 +631,23 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       }),
     });
   }
+
+  return { processed, targeted: !fullSweep };
+}
+
+async function run({ github, context, core, nowMs = Date.now() }) {
+  try {
+    return await runCore({ github, context, core, nowMs });
+  } catch (error) {
+    if (!isRateLimitError(error)) throw error;
+
+    const reset = error.response?.headers?.['x-ratelimit-reset'];
+    const resetText = reset
+      ? new Date(Number(reset) * 1000).toISOString()
+      : 'unknown';
+    core.warning(`Worker Watchdog deferred: GitHub API rate limit exhausted; reset=${resetText}. Rate limiting is infrastructure pressure, not branch CI failure; repository state was left unchanged from the point of deferral.`);
+    return { deferred: true, reason: 'github-api-rate-limit', reset: resetText };
+  }
 }
 
 module.exports = {
@@ -555,7 +660,9 @@ module.exports = {
   classify,
   executionActivityMillis,
   handoffComment,
+  isRateLimitError,
   linkedIssueNumbers,
+  targetIssueNumbersFromContext,
   minutesSince,
   parseWorkerState,
   run,

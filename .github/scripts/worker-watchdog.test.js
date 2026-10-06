@@ -11,15 +11,37 @@ const {
   classify,
   executionActivityMillis,
   handoffComment,
+  isRateLimitError,
   linkedIssueNumbers,
   parseWorkerState,
   statusLabel,
+  targetIssueNumbersFromContext,
   summarizeCheckRuns,
   summarizeCommitStatuses,
   summarizeWorkflowRuns,
 } = require('./worker-watchdog');
 
 const NOW = Date.parse('2026-10-01T06:00:00Z');
+
+test('recognizes exhausted GitHub API quota without swallowing unrelated 403s', () => {
+  assert.equal(isRateLimitError({
+    status: 403,
+    response: {
+      headers: { 'x-ratelimit-remaining': '0' },
+      data: { message: 'API rate limit exceeded for installation.' },
+    },
+  }), true);
+
+  assert.equal(isRateLimitError({
+    status: 403,
+    response: {
+      headers: { 'x-ratelimit-remaining': '4999' },
+      data: { message: 'Resource not accessible by integration' },
+    },
+  }), false);
+
+  assert.equal(isRateLimitError({ status: 500, message: 'rate limit exceeded' }), false);
+});
 
 test('parses machine-readable worker state', () => {
   const state = parseWorkerState(`
@@ -45,10 +67,41 @@ NEXT_ACTION: inspect failed Driver tests
   });
 });
 
-test('extracts only closing-linked issues from PR body', () => {
+test('extracts only owned issue links from PR body', () => {
   assert.deepEqual(
-    linkedIssueNumbers('Parent #589\nCloses #591\nFixes #592\nRelated #512'),
-    [591, 592],
+    linkedIssueNumbers('Parent #589\nCloses #591\nFixes #592\nImplements #990\nRelated #512'),
+    [591, 592, 990],
+  );
+});
+
+test('targets direct issue events without repository-wide scanning', () => {
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'issue_comment',
+      payload: { issue: { number: 990 } },
+    }),
+    [990],
+  );
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'issues',
+      payload: { issue: { number: 936 } },
+    }),
+    [936],
+  );
+});
+
+test('targets pull request ownership links for recent commercial lanes', () => {
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'pull_request_target',
+      payload: {
+        pull_request: {
+          body: 'Implements #989 under parent #983. Related #984.',
+        },
+      },
+    }),
+    [989],
   );
 });
 
@@ -448,19 +501,30 @@ test('handoff comment forces reuse of existing branch and PR', () => {
 });
 
 
-test('watchdog workflow avoids false-red cancellation fan-out', () => {
+test('watchdog workflow bounds queue fan-out and suppresses self-trigger cascades', () => {
   const workflowPath = path.join(__dirname, '..', 'workflows', 'worker-watchdog.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
 
   assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /types: \[completed\]/);
+  assert.match(workflow, /"FOODEX Required CI Gate"/);
+  assert.doesNotMatch(workflow, /- "Repository Policy"/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*requested[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*in_progress[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*labeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*unlabeled[^\]]*\]/);
   assert.doesNotMatch(workflow, /\n\s*push:\s*\n/);
-  assert.match(workflow, /cancel-in-progress:\s*false/);
-  assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/);
-  assert.match(workflow, /group: worker-watchdog-\$\{\{ github\.event_name \}\}/);
+
+  // All actionable events share one latest-state slot. A newer event supersedes
+  // stale watchdog work instead of consuming another hosted runner queue slot.
+  assert.match(workflow, /cancel-in-progress:\s*true/);
+  assert.match(workflow, /\|\| 'worker-watchdog'/);
+
+  // Comments written by the watchdog itself are no-op runs with isolated keys:
+  // they neither execute the job nor cancel the parent reconciliation.
+  assert.match(workflow, /worker-watchdog-self-\{0\}/);
+  assert.match(workflow, /github\.event_name != 'workflow_run'/);
+  assert.match(workflow, /github\.event\.workflow_run\.event == 'pull_request'/);
+  assert.match(workflow, /contains\(github\.event\.comment\.body, '<!-- foodex-watchdog:'\)/);
 });

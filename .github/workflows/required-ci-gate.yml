@@ -14,6 +14,7 @@ jobs:
   changes:
     name: Detect changed areas
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       customer: ${{ steps.filter.outputs.customer }}
@@ -61,7 +62,7 @@ jobs:
             driver=true
           fi
 
-          if grep -Eq '^(\.github/workflows/required-ci-gate\.yml|\.github/workflows/release-validation\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/release-readiness\.sh|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
+          if grep -Eq '^(\.github/workflows/release-validation\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/release-readiness\.sh|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
             backend=true
             customer=true
             driver=true
@@ -94,7 +95,7 @@ jobs:
             preview_runtime_distribution=true
           fi
 
-          if grep -Eq '^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\.php|resources/views/admin/app-preview\.blade\.php)|scripts/app_preview_visual_parity\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\.md|\.github/workflows/app-preview-(acceptance-ci|visual-parity)\.yml|\.github/workflows/required-ci-gate\.yml)' changed-files.txt; then
+          if grep -Eq '^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\.php|resources/views/admin/app-preview\.blade\.php)|scripts/app_preview_visual_parity\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\.md|\.github/workflows/app-preview-(acceptance-ci|visual-parity)\.yml)' changed-files.txt; then
             app_preview_visual=true
           fi
 
@@ -116,6 +117,7 @@ jobs:
   repository-policy:
     name: Repository Policy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:

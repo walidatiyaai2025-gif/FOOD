@@ -30,4 +30,6 @@ This registry records reusable failure classes. It is prevention guidance, not a
 
 | Trial Distribution red on normal main feature merge with unchanged VERSION | release-intent detector | Do not treat deployable-path changes alone as release intent; skip distribution cleanly unless VERSION changed or manual distribution was requested. |
 
+| Worker Watchdog API-rate-limit storm from broad event scans / duplicate workflow_run triggers | Watchdog event-target unit tests + GitHub rate-limit classification | Reconcile only the event-owned Issue/PR outside scheduled sweeps; listen to the aggregate Required CI Gate once; suppress watchdog-authored comment recursion; treat exhausted installation quota as deferred infrastructure pressure, never branch CI red. |
+
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
