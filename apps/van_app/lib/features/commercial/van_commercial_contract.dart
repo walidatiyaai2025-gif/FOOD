@@ -186,6 +186,7 @@ abstract interface class VanCommercialRepository {
     required int offerProductId,
     required double quantity,
     required String idempotencyKey,
+    String? overrideReason,
   });
 }
 
