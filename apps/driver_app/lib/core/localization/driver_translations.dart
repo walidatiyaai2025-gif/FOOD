@@ -123,7 +123,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.preview.safe': 'معاينة آمنة',
     'driver.preview.store': 'المتجر',
     'driver.preview.revision': 'المراجعة',
-    'driver.preview.runtime': 'Runtime',
+    'driver.preview.runtime': 'بيئة التشغيل',
     'driver.preview.mutation_blocked': 'المعاينة الآمنة تعرض الإجراء فقط ولا تنفذ أي تغيير فعلي.',
     'driver.preview.navigation_simulated': 'الملاحة الأصلية معطلة في المعاينة الآمنة ويمكن تمثيلها فقط عبر Preview adapter معتمد.',
     'driver.preview.configuration_invalid': 'سياق معاينة السائق غير صالح أو لا يطابق قناة السائق.',
