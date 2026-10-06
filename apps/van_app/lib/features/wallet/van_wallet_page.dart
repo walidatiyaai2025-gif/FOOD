@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
@@ -18,8 +20,11 @@ class VanWalletPage extends StatefulWidget {
   State<VanWalletPage> createState() => _VanWalletPageState();
 }
 
-class _VanWalletPageState extends State<VanWalletPage> {
+class _VanWalletPageState extends State<VanWalletPage>
+    with WidgetsBindingObserver {
   bool _loading = true;
+  bool _refreshing = false;
+  bool _stale = false;
   bool _submitting = false;
   Object? _error;
   List<VanWalletAccount> _accounts = const [];
@@ -33,13 +38,31 @@ class _VanWalletPageState extends State<VanWalletPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_loading && !_refreshing) {
+      unawaited(_load(background: true));
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _load({bool background = false}) async {
     if (mounted) {
       setState(() {
-        _loading = true;
+        if (background && (_accounts.isNotEmpty || _customers.isNotEmpty)) {
+          _refreshing = true;
+        } else {
+          _loading = true;
+        }
         _error = null;
       });
     }
@@ -54,6 +77,8 @@ class _VanWalletPageState extends State<VanWalletPage> {
         _accounts = results[0] as List<VanWalletAccount>;
         _customers = results[1] as List<VanCustomerScope>;
         _loading = false;
+        _refreshing = false;
+        _stale = false;
       });
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
@@ -61,7 +86,12 @@ class _VanWalletPageState extends State<VanWalletPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error;
+        _refreshing = false;
+        if (background && (_accounts.isNotEmpty || _customers.isNotEmpty)) {
+          _stale = true;
+        } else {
+          _error = error;
+        }
       });
     }
   }
@@ -218,8 +248,23 @@ class _VanWalletPageState extends State<VanWalletPage> {
       onRefresh: _load,
       child: ListView(
         key: const Key('van-wallet-page'),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         children: [
+          if (_refreshing) ...[
+            const LinearProgressIndicator(key: Key('van-wallet-refreshing')),
+            const SizedBox(height: 6),
+          ],
+          if (_stale) ...[
+            _InfoCard(
+              key: const Key('van-wallet-stale-banner'),
+              icon: Icons.cloud_off_outlined,
+              text: _t(
+                'Connection is unavailable. Showing the last server balances until refresh succeeds.',
+                'الاتصال غير متاح. يتم عرض آخر أرصدة من الخادم حتى ينجح التحديث.',
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           _SectionTitle(
             title: _t('Custody wallet', 'محفظة العهدة'),
             subtitle: _t(
@@ -227,7 +272,7 @@ class _VanWalletPageState extends State<VanWalletPage> {
               'الأرصدة تأتي من سجل العهدة المالي المشترك.',
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (_accounts.isEmpty)
             _InfoCard(
               icon: Icons.account_balance_wallet_outlined,
@@ -310,11 +355,18 @@ class _SectionTitle extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 4),
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 2),
         Text(
           subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: FoodexVanTokens.muted,
               ),
         ),
@@ -324,7 +376,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.icon, required this.text});
+  const _InfoCard({super.key, required this.icon, required this.text});
 
   final IconData icon;
   final String text;
@@ -333,7 +385,7 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Icon(icon, color: FoodexVanTokens.green),

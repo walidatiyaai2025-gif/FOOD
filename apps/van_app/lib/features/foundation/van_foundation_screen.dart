@@ -118,39 +118,49 @@ class _FoundationState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: FoodexVanTokens.surface,
-              border: Border.all(color: FoodexVanTokens.border),
-              borderRadius: BorderRadius.circular(FoodexVanTokens.cardRadius),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 40, color: FoodexVanTokens.green),
-                  const SizedBox(height: 16),
-                  Text(title, style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: FoodexVanTokens.muted,
-                        ),
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: FoodexVanTokens.surface,
+            border: Border.all(color: FoodexVanTokens.border),
+            borderRadius: BorderRadius.circular(FoodexVanTokens.cardRadius),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 32, color: FoodexVanTokens.green),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexVanTokens.muted,
+                            ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
