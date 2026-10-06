@@ -8,6 +8,8 @@ import 'core/config/foodex_environment.dart';
 import 'core/theme/foodex_van_theme.dart';
 import 'features/auth/van_login_screen.dart';
 import 'features/foundation/van_foundation_screen.dart';
+import 'features/wallet/http_van_wallet_repository.dart';
+import 'features/wallet/van_wallet_contract.dart';
 
 class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
@@ -16,12 +18,14 @@ class FoodexVanApp extends StatefulWidget {
     this.authRepository,
     this.sessionStore,
     this.initialSession,
+    this.walletRepository,
   });
 
   final Locale locale;
   final VanAuthRepository? authRepository;
   final VanSessionStore? sessionStore;
   final VanSession? initialSession;
+  final VanWalletRepository? walletRepository;
 
   @override
   State<FoodexVanApp> createState() => _FoodexVanAppState();
@@ -120,6 +124,13 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
               : VanFoundationScreen(
                   session: _session!,
                   onLogout: _logout,
+                  walletRepository: widget.walletRepository ??
+                      HttpVanWalletRepository(
+                        VanApiClient(
+                          FoodexEnvironment.apiBaseUrl,
+                          _session!.token,
+                        ),
+                      ),
                 ),
     );
   }
