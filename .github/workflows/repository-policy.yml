@@ -38,4 +38,12 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           branch="${{ github.head_ref }}"
+          base="${{ github.base_ref }}"
+
+          # Allow the canonical baseline-sync topology from main into a versioned
+          # release branch. main is still rejected as a PR head for every other base.
+          if [[ "$branch" == "main" && "$base" =~ ^release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+$ ]]; then
+            exit 0
+          fi
+
           [[ "$branch" == "feat/assistant-v1-integration" || "$branch" =~ ^((feat|fix|chore|docs|refactor|test|ci)/[0-9]+-[a-z0-9-]+|release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]]
