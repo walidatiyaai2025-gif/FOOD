@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use App\Http\Controllers\Api\V1\VanCollectionController;
+use App\Http\Controllers\Api\V1\VanCommercialPolicyController;
 use App\Http\Controllers\Api\V1\VanFlashOfferController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
 use App\Http\Controllers\Api\V1\VanVisitController;
@@ -175,6 +176,9 @@ Route::prefix('v1')->group(function (): void {
                 ->whereNumber('customer');
             Route::get('/wallet', [VanCollectionController::class, 'wallet']);
             Route::post('/remittances', [VanCollectionController::class, 'remit']);
+            Route::post('/customers/{type}/{customer}/commercial/quote', [VanCommercialPolicyController::class, 'quote'])
+                ->whereNumber('customer')
+                ->middleware('throttle:120,1');
             Route::post('/customers/{type}/{customer}/flash-offers/products/{offerProduct}/reserve', [VanFlashOfferController::class, 'reserve'])
                 ->where(['customer' => '[0-9]+', 'offerProduct' => '[0-9]+'])
                 ->middleware('throttle:60,1');
