@@ -31,7 +31,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -51,7 +50,9 @@ final class FieldOperationsController extends Controller
         private readonly AddressQualityService $addressQuality,
         private readonly RoutingPolicyService $routing,
         private readonly CollectionCustodyService $custody,
-    ) {}
+    ) {
+        // Constructor promotion defines the complete immutable service dependencies.
+    }
 
     public function overview(Request $request): View
     {
@@ -517,7 +518,7 @@ final class FieldOperationsController extends Controller
             'effective_until' => ['nullable', 'date'],
         ]);
         $rules = json_decode((string) $data['rules_json'], true, 512, JSON_THROW_ON_ERROR);
-        if (! is_array($rules)) {
+        if (is_array($rules) === false) {
             throw ValidationException::withMessages(['rules_json' => ['Rules JSON must be an array.']]);
         }
 
@@ -645,7 +646,7 @@ final class FieldOperationsController extends Controller
         }
 
         foreach ($permissions as $permission) {
-            if (! $user->hasPermission($permission)) {
+            if ($user->hasPermission($permission) === false) {
                 abort(403);
             }
         }
@@ -662,7 +663,7 @@ final class FieldOperationsController extends Controller
     private function assertCustomerExists(string $type, int $id): void
     {
         $table = $type === 'b2b' ? 'b2b_customers' : 'b2c_customers';
-        if (! DB::table($table)->where('id', $id)->exists()) {
+        if (DB::table($table)->where('id', $id)->exists() === false) {
             throw ValidationException::withMessages(['customer_id' => ['Customer does not exist in the selected channel.']]);
         }
     }

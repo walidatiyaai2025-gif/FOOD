@@ -96,7 +96,7 @@ class FieldOperationsAdminExposureTest extends TestCase
         $finance = file_get_contents(resource_path('views/admin/_field-operations-finance.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString("data-field-operations-page=", $view);
+        $this->assertStringContainsString('data-field-operations-page=', $view);
         $this->assertStringContainsString("@include('admin._driver-live-map'", $view);
         $this->assertStringContainsString("@include('admin._field-operations-finance'", $view);
         $this->assertStringContainsString("@elseif(\$section === 'van-detail')", $view);
@@ -112,7 +112,7 @@ class FieldOperationsAdminExposureTest extends TestCase
         $this->assertStringContainsString("actor_id: inputValue('actor-id')", $mapRuntime);
 
         $this->assertStringContainsString("\$opsRouteName = \$opsRouteName ?? 'admin.b2b.module';", $finance);
-        $this->assertStringContainsString("route(\$opsReviewRouteName", $finance);
+        $this->assertStringContainsString('route($opsReviewRouteName', $finance);
     }
 
     public function test_field_operations_has_english_and_arabic_navigation_labels(): void
