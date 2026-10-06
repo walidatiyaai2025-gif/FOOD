@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodex_customer/features/retail/offers/customer_flash_offers.dart';
+import 'package:foodex_customer_app/features/retail/offers/customer_flash_offers.dart';
 
 void main() {
   group('CustomerFlashOffer', () {
