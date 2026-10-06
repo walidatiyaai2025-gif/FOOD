@@ -308,6 +308,7 @@ final class TerritoryService
                 if ($lng >= -180 && $lng <= 180 && $lat >= -90 && $lat <= 90) {
                     $points[] = [$lng, $lat];
                 }
+
                 return;
             }
 
