@@ -10,6 +10,7 @@ on:
       - "backend/**"
       - "apps/customer_app/**"
       - "apps/driver_app/**"
+      - "apps/van_app/**"
       - "scripts/configure-mobile-native.py"
       - "scripts/build-dashboard-update.sh"
       - "scripts/write-trial-bundle-manifest.py"
@@ -90,7 +91,9 @@ jobs:
           current_version="$(tr -d '[:space:]' < VERSION)"
           customer_identity="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
           driver_identity="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
+          van_identity="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml | tr -d '"')"
           test "$customer_identity" = "$driver_identity"
+          test "$customer_identity" = "$van_identity"
           test "${driver_identity%%+*}" = "$current_version"
           mobile_build_number="${driver_identity##*+}"
           test -n "$mobile_build_number"
@@ -141,7 +144,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p Release/Updates
-          rm -f Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json
+          rm -f \
+            Release/FOODEX-Customer.apk \
+            Release/FOODEX-Driver.apk \
+            Release/FOODEX-Van.apk \
+            Release/FOODEX-Customer-*.apk \
+            Release/FOODEX-Driver-*.apk \
+            Release/FOODEX-Van-*.apk \
+            Release/FOODEX-Laravel-Setup.zip \
+            Release/BUILD_INFO.json \
+            Release/LATEST_RELEASE.json
 
       - name: Build Customer Android tester APK
         shell: bash
@@ -197,6 +209,37 @@ jobs:
           grep -F "versionName='$CURRENT_VERSION'" build/trial-badging.txt
           cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Driver.apk"
 
+      - name: Build Van Android tester APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/van_app
+          flutter create --platforms=android --project-name foodex_van_app .
+          python3 ../../scripts/configure-mobile-native.py --app van --app-dir . --platform android
+          rm -f test/widget_test.dart
+          flutter pub get
+          flutter build apk --release \
+            --build-name="$CURRENT_VERSION" \
+            --build-number="$MOBILE_BUILD_NUMBER" \
+            --dart-define=FOODEX_API_BASE_URL="$FOODEX_API_BASE_URL"
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
+          "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
+          grep -Fx "application-label:'FOODEX Van'" build/trial-badging.txt
+          grep -F "package: name='com.foodex.van'" build/trial-badging.txt
+          grep -F "versionCode='$MOBILE_BUILD_NUMBER'" build/trial-badging.txt
+          grep -F "versionName='$CURRENT_VERSION'" build/trial-badging.txt
+          cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Van.apk"
+
+      - name: Create versioned mobile APK filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Release/FOODEX-Customer.apk "Release/FOODEX-Customer-${CURRENT_VERSION}.apk"
+          cp Release/FOODEX-Driver.apk "Release/FOODEX-Driver-${CURRENT_VERSION}.apk"
+          cp Release/FOODEX-Van.apk "Release/FOODEX-Van-${CURRENT_VERSION}.apk"
+
       - name: Build Laravel first-install ZIP
         shell: bash
         run: |
@@ -240,7 +283,64 @@ jobs:
           if [[ -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
             driver_firebase=true
           fi
-          python3 scripts/write-trial-bundle-manifest.py --version "$CURRENT_VERSION" --source-commit "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER" --mobile-build-number "$MOBILE_BUILD_NUMBER" --api-base-url "$FOODEX_API_BASE_URL" --customer Release/FOODEX-Customer.apk --driver Release/FOODEX-Driver.apk --setup Release/FOODEX-Laravel-Setup.zip --customer-firebase "$customer_firebase" --driver-firebase "$driver_firebase" --output Release/BUILD_INFO.json
+          python3 scripts/write-trial-bundle-manifest.py \
+            --version "$CURRENT_VERSION" \
+            --source-commit "$GITHUB_SHA" \
+            --run-number "$GITHUB_RUN_NUMBER" \
+            --mobile-build-number "$MOBILE_BUILD_NUMBER" \
+            --api-base-url "$FOODEX_API_BASE_URL" \
+            --customer "Release/FOODEX-Customer-${CURRENT_VERSION}.apk" \
+            --driver "Release/FOODEX-Driver-${CURRENT_VERSION}.apk" \
+            --van "Release/FOODEX-Van-${CURRENT_VERSION}.apk" \
+            --setup Release/FOODEX-Laravel-Setup.zip \
+            --customer-firebase "$customer_firebase" \
+            --driver-firebase "$driver_firebase" \
+            --output Release/BUILD_INFO.json
+
+          CURRENT_VERSION="$CURRENT_VERSION" MOBILE_BUILD_NUMBER="$MOBILE_BUILD_NUMBER" GITHUB_SHA="$GITHUB_SHA" python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          version = os.environ["CURRENT_VERSION"]
+          build = int(os.environ["MOBILE_BUILD_NUMBER"])
+          root = Path("Release")
+
+          def entry(app: str):
+              versioned = root / f"FOODEX-{app}-{version}.apk"
+              latest = root / f"FOODEX-{app}.apk"
+              assert versioned.is_file() and versioned.stat().st_size > 0
+              assert latest.is_file() and latest.stat().st_size > 0
+              assert hashlib.sha256(versioned.read_bytes()).hexdigest() == hashlib.sha256(latest.read_bytes()).hexdigest()
+              return {
+                  "app": app.lower(),
+                  "version": version,
+                  "build_number": build,
+                  "file": versioned.name,
+                  "latest_alias": latest.name,
+                  "bytes": versioned.stat().st_size,
+                  "sha256": hashlib.sha256(versioned.read_bytes()).hexdigest(),
+              }
+
+          payload = {
+              "schema_version": 1,
+              "version": version,
+              "build_number": build,
+              "source_commit": os.environ["GITHUB_SHA"],
+              "dashboard_update": {
+                  "directory": "Updates",
+                  "package": "FOODEX-Update.zip",
+                  "manifest": "FOODEX-Update.json",
+              },
+              "android_apps": [
+                  entry("Customer"),
+                  entry("Driver"),
+                  entry("Van"),
+              ],
+          }
+          (root / "LATEST_RELEASE.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
 
       - name: Guard immutable published release
         shell: bash
@@ -272,13 +372,14 @@ jobs:
           cat > "$notes_file" <<EOF
           # FOODEX $CURRENT_VERSION
 
-          Dashboard, Customer APK and Driver APK are synchronized to the same FOODEX version.
+          Dashboard, Customer APK, Driver APK and Van APK are synchronized to the same FOODEX version.
 
           Source commit: $GITHUB_SHA
 
           - Dashboard: $CURRENT_VERSION
           - Customer Android APK: $CURRENT_VERSION+$MOBILE_BUILD_NUMBER
           - Driver Android APK: $CURRENT_VERSION+$MOBILE_BUILD_NUMBER
+          - Van Android APK: $CURRENT_VERSION+$MOBILE_BUILD_NUMBER
           EOF
 
           # Version tags are immutable release identities. A workflow-only rerun
@@ -313,8 +414,10 @@ jobs:
           fi
 
           gh release upload "$tag" \
-            Release/FOODEX-Customer.apk \
-            Release/FOODEX-Driver.apk \
+            "Release/FOODEX-Customer-${CURRENT_VERSION}.apk" \
+            "Release/FOODEX-Driver-${CURRENT_VERSION}.apk" \
+            "Release/FOODEX-Van-${CURRENT_VERSION}.apk" \
+            Release/LATEST_RELEASE.json \
             Release/BUILD_INFO.json \
             Release/Updates/FOODEX-Update.zip \
             Release/Updates/FOODEX-Update.json \
@@ -324,8 +427,10 @@ jobs:
             --clobber
 
           assets="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
-          grep -Fx "FOODEX-Customer.apk" <<<"$assets"
-          grep -Fx "FOODEX-Driver.apk" <<<"$assets"
+          grep -Fx "FOODEX-Customer-${CURRENT_VERSION}.apk" <<<"$assets"
+          grep -Fx "FOODEX-Driver-${CURRENT_VERSION}.apk" <<<"$assets"
+          grep -Fx "FOODEX-Van-${CURRENT_VERSION}.apk" <<<"$assets"
+          grep -Fx "LATEST_RELEASE.json" <<<"$assets"
           grep -Fx "BUILD_INFO.json" <<<"$assets"
           grep -Fx "FOODEX-Update.zip" <<<"$assets"
           grep -Fx "FOODEX-Update.json" <<<"$assets"
@@ -336,7 +441,9 @@ jobs:
           mkdir -p /tmp/foodex-published
           gh release download "$tag" \
             --repo "$GITHUB_REPOSITORY" \
-            --pattern "FOODEX-Driver.apk" \
+            --pattern "FOODEX-Driver-${CURRENT_VERSION}.apk" \
+            --pattern "FOODEX-Van-${CURRENT_VERSION}.apk" \
+            --pattern "LATEST_RELEASE.json" \
             --pattern "BUILD_INFO.json" \
             --dir /tmp/foodex-published \
             --clobber
@@ -348,15 +455,24 @@ jobs:
 
           root = Path("/tmp/foodex-published")
           manifest = json.loads((root / "BUILD_INFO.json").read_text(encoding="utf-8"))
-          driver = root / "FOODEX-Driver.apk"
-          digest = hashlib.sha256(driver.read_bytes()).hexdigest()
           expected_version = os.environ["CURRENT_VERSION"]
+          driver = root / f"FOODEX-Driver-{expected_version}.apk"
+          van = root / f"FOODEX-Van-{expected_version}.apk"
+          latest = json.loads((root / "LATEST_RELEASE.json").read_text(encoding="utf-8"))
+          digest = hashlib.sha256(driver.read_bytes()).hexdigest()
+          van_digest = hashlib.sha256(van.read_bytes()).hexdigest()
           expected_build = int(os.environ["MOBILE_BUILD_NUMBER"])
           assert manifest["version"] == expected_version
           assert manifest["driver"]["version"] == expected_version
           assert manifest["driver"]["build_number"] == expected_build
           assert manifest["driver"]["application_id"] == "com.fiftysolution.foodex.driver"
           assert manifest["driver"]["sha256"] == digest
+          assert manifest["van"]["version"] == expected_version
+          assert manifest["van"]["build_number"] == expected_build
+          assert manifest["van"]["application_id"] == "com.foodex.van"
+          assert manifest["van"]["sha256"] == van_digest
+          assert latest["version"] == expected_version
+          assert {item["app"] for item in latest["android_apps"]} == {"customer", "driver", "van"}
           assert manifest["android_signing"] == "flutter-template-debug-key-test-only"
           assert manifest["production_store_ready"] is False
           print("Verified published Driver artifact:", expected_version, expected_build, digest)
@@ -412,6 +528,11 @@ jobs:
           set -euo pipefail
           test -s Release/FOODEX-Customer.apk
           test -s Release/FOODEX-Driver.apk
+          test -s Release/FOODEX-Van.apk
+          test -s "Release/FOODEX-Customer-${CURRENT_VERSION}.apk"
+          test -s "Release/FOODEX-Driver-${CURRENT_VERSION}.apk"
+          test -s "Release/FOODEX-Van-${CURRENT_VERSION}.apk"
+          test -s Release/LATEST_RELEASE.json
           test -s Release/FOODEX-Laravel-Setup.zip
           test -s Release/BUILD_INFO.json
           test -s Release/Updates/README.md
@@ -436,7 +557,17 @@ jobs:
           generated_branch="release/221-generated-trial-bundle"
           bundle_stage="$(mktemp -d)"
           mkdir -p "$bundle_stage/Release/Updates"
-          cp Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json "$bundle_stage/Release/"
+          cp \
+            Release/FOODEX-Customer.apk \
+            Release/FOODEX-Driver.apk \
+            Release/FOODEX-Van.apk \
+            "Release/FOODEX-Customer-${CURRENT_VERSION}.apk" \
+            "Release/FOODEX-Driver-${CURRENT_VERSION}.apk" \
+            "Release/FOODEX-Van-${CURRENT_VERSION}.apk" \
+            Release/LATEST_RELEASE.json \
+            Release/FOODEX-Laravel-Setup.zip \
+            Release/BUILD_INFO.json \
+            "$bundle_stage/Release/"
           cp Release/Updates/FOODEX-Update.json "$bundle_stage/Release/Updates/"
           if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
             cp Release/Updates/FOODEX-Update.zip "$bundle_stage/Release/Updates/"
@@ -454,8 +585,14 @@ jobs:
           fi
 
           mkdir -p Release/Updates
+          rm -f Release/FOODEX-Customer-*.apk Release/FOODEX-Driver-*.apk Release/FOODEX-Van-*.apk
           cp "$bundle_stage/Release/FOODEX-Customer.apk" Release/FOODEX-Customer.apk
           cp "$bundle_stage/Release/FOODEX-Driver.apk" Release/FOODEX-Driver.apk
+          cp "$bundle_stage/Release/FOODEX-Van.apk" Release/FOODEX-Van.apk
+          cp "$bundle_stage/Release/FOODEX-Customer-${CURRENT_VERSION}.apk" "Release/FOODEX-Customer-${CURRENT_VERSION}.apk"
+          cp "$bundle_stage/Release/FOODEX-Driver-${CURRENT_VERSION}.apk" "Release/FOODEX-Driver-${CURRENT_VERSION}.apk"
+          cp "$bundle_stage/Release/FOODEX-Van-${CURRENT_VERSION}.apk" "Release/FOODEX-Van-${CURRENT_VERSION}.apk"
+          cp "$bundle_stage/Release/LATEST_RELEASE.json" Release/LATEST_RELEASE.json
           cp "$bundle_stage/Release/FOODEX-Laravel-Setup.zip" Release/FOODEX-Laravel-Setup.zip
           cp "$bundle_stage/Release/BUILD_INFO.json" Release/BUILD_INFO.json
           cp "$bundle_stage/Release/Updates/FOODEX-Update.json" Release/Updates/FOODEX-Update.json
@@ -465,7 +602,17 @@ jobs:
             rm -f Release/Updates/FOODEX-Update.zip
           fi
 
-          git add -f Release/FOODEX-Customer.apk Release/FOODEX-Driver.apk Release/FOODEX-Laravel-Setup.zip Release/BUILD_INFO.json Release/Updates/FOODEX-Update.json
+          git add -f \
+            Release/FOODEX-Customer.apk \
+            Release/FOODEX-Driver.apk \
+            Release/FOODEX-Van.apk \
+            "Release/FOODEX-Customer-${CURRENT_VERSION}.apk" \
+            "Release/FOODEX-Driver-${CURRENT_VERSION}.apk" \
+            "Release/FOODEX-Van-${CURRENT_VERSION}.apk" \
+            Release/LATEST_RELEASE.json \
+            Release/FOODEX-Laravel-Setup.zip \
+            Release/BUILD_INFO.json \
+            Release/Updates/FOODEX-Update.json
           if [[ -f Release/Updates/FOODEX-Update.zip ]]; then
             git add -f Release/Updates/FOODEX-Update.zip
           else
