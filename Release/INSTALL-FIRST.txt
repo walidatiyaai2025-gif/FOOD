@@ -6,12 +6,12 @@ FOODEX first install
 3. PHP 8.2+ is required with pdo_mysql, mbstring, openssl, tokenizer, json and zip.
 4. MySQL or MariaDB is required (default port 3306). Redis is recommended for cache and queue.
 5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
-6. Open https://foodex.50sols.com/install and complete the wizard.
-7. Approved first-install database name: solscool_foodex
-8. Approved first-install database username: solscool_foodex
+6. Open https://vanfoodex.50sols.com/install and complete the wizard.
+7. Approved first-install database name: solscool_vanfoodex
+8. Approved first-install database username: solscool_vanfoodex
 9. Enter the database password only on the server/installer. Never commit it.
 10. After Finish, /install is locked and normal administration continues from /admin.
 
-Android tester APKs use the production API origin https://foodex.50sols.com.
+Android tester APKs use the production API origin https://vanfoodex.50sols.com.
 They are test-signed until the production Android keystore is supplied, so they are for
 device testing/acceptance and not Google Play publication.
