@@ -67,7 +67,7 @@ jobs:
     timeout-minutes: 55
 
     env:
-      FOODEX_API_BASE_URL: https://foodex.50sols.com
+      FOODEX_API_BASE_URL: https://vanfoodex.50sols.com
       CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_CUSTOMER_FIREBASE_API_KEY }}
       CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_APP_ID }}
       CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
