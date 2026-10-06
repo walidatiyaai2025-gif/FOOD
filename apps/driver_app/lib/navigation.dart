@@ -96,10 +96,10 @@ class DriverNavigator {
         );
       case DriverRoutes.b2cWallet:
       case DriverRoutes.b2bWallet:
-        final walletRepository = repository;
-        if (walletRepository is! DriverWalletRepository) {
+        if (repository is! DriverWalletRepository) {
           return _page(const _DriverRouteNotFound(), settings);
         }
+        final walletRepository = repository as DriverWalletRepository;
         return _page(
           DriverWalletPage(repository: walletRepository),
           settings,
