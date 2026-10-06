@@ -15,7 +15,8 @@ final class CommercialDashboardController extends Controller
 {
     public function __construct(
         private readonly AdminNavigation $navigation,
-    ) {}
+    ) {
+    }
 
     public function salesControl(Request $request): View
     {
