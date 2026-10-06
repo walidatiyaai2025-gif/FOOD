@@ -21,10 +21,9 @@ final class RoutingPolicyService
 
     public function __construct(
         private readonly FieldOperationConfigurationService $configurationService,
-    ) {
-    }
+    ) {}
 
-    /** @param array<int,array{name:string,conditions:array<string,mixed>,actions:array<string,mixed>,enabled?:bool}> $rules */
+    /** @param  array<int,array{name:string,conditions:array<string,mixed>,actions:array<string,mixed>,enabled?:bool}>  $rules */
     public function createDraft(User $actor, string $code, string $mode, array $rules, ?string $reason = null, mixed $from = null, mixed $until = null): RoutingPolicy
     {
         $mode = strtoupper($mode);
@@ -120,8 +119,8 @@ final class RoutingPolicyService
     }
 
     /**
-     * @param array<string,mixed> $input
-     * @param array<string,string|int> $scope
+     * @param  array<string,mixed>  $input
+     * @param  array<string,string|int>  $scope
      * @return array<string,mixed>
      */
     public function simulate(RoutingPolicy $policy, array $input, array $scope = [], mixed $at = null): array
@@ -133,8 +132,8 @@ final class RoutingPolicyService
     }
 
     /**
-     * @param array<int,array<string,mixed>> $inputs
-     * @param array<string,string|int> $scope
+     * @param  array<int,array<string,mixed>>  $inputs
+     * @param  array<string,string|int>  $scope
      * @return array<int,array<string,mixed>>
      */
     public function simulateBatch(RoutingPolicy $policy, array $inputs, array $scope = [], mixed $at = null): array
@@ -146,8 +145,8 @@ final class RoutingPolicyService
     }
 
     /**
-     * @param array<string,mixed> $input
-     * @param array<string,string|int> $scope
+     * @param  array<string,mixed>  $input
+     * @param  array<string,string|int>  $scope
      */
     public function route(string $code, string $subjectType, string $subjectKey, array $input, mixed $at = null, array $scope = []): RoutingDecisionTrace
     {
@@ -179,8 +178,8 @@ final class RoutingPolicyService
     }
 
     /**
-     * @param array<string,mixed> $input
-     * @param array<string,mixed> $mode
+     * @param  array<string,mixed>  $input
+     * @param  array<string,mixed>  $mode
      * @return array<string,mixed>
      */
     private function evaluate(RoutingPolicy $policy, array $input, array $mode): array
@@ -234,7 +233,7 @@ final class RoutingPolicyService
     }
 
     /**
-     * @param array<string,string|int> $scope
+     * @param  array<string,string|int>  $scope
      * @return array<string,mixed>
      */
     private function resolveMode(RoutingPolicy $policy, array $scope, Carbon $moment): array
