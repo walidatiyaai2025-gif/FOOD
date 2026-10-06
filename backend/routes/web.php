@@ -164,7 +164,10 @@ Route::prefix('admin')
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
         Route::get('/b2c/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
+        Route::put('/b2c/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
         Route::get('/b2c/commercial/flash-offers', [CommercialDashboardController::class, 'flashOffers'])->name('commercial.flash-offers');
+        Route::post('/b2c/commercial/flash-offers', [CommercialDashboardController::class, 'saveFlashOffer'])->name('commercial.flash-offers.save');
+        Route::post('/b2c/commercial/flash-offers/{offer}/action', [CommercialDashboardController::class, 'flashAction'])->whereNumber('offer')->name('commercial.flash-offers.action');
         Route::post('/b2c/orders/quote', [B2cWorkspaceController::class, 'quoteOrder'])->name('b2c.orders.quote');
         Route::post('/b2c/orders', [B2cWorkspaceController::class, 'storeOrder'])->name('b2c.orders.store');
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
