@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AdminReportController;
 use App\Http\Controllers\Api\V1\AddressQualityController;
+use App\Http\Controllers\Api\V1\AdminReportController;
 use App\Http\Controllers\Api\V1\AppPreviewInvalidationController;
 use App\Http\Controllers\Api\V1\AppPreviewSessionController;
 use App\Http\Controllers\Api\V1\AppVersionController;
