@@ -170,6 +170,90 @@ final class CommercialDashboardController extends Controller
         ]);
     }
 
+    public function flashPreview(Request $request, int $offer): View
+    {
+        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        $row = $this->flashOfferRow($storeId, $offer);
+        $products = DB::table('flash_offer_products')
+            ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
+            ->where('flash_offer_products.flash_offer_id', $offer)
+            ->orderBy('flash_offer_products.id')
+            ->get([
+                'flash_offer_products.id',
+                'flash_offer_products.product_id',
+                'products.name as product_name',
+                'products.sku as product_sku',
+                'flash_offer_products.selling_unit_code',
+                'flash_offer_products.conversion_factor',
+                'flash_offer_products.flash_price',
+                'flash_offer_products.allocation_base',
+            ]);
+
+        return view('admin.flash-offer-preview', [
+            'user' => $user,
+            'storeId' => $storeId,
+            'offer' => $row,
+            'products' => $products,
+            'channels' => $this->storedJsonList($row->channels),
+            'supportAccess' => $request->boolean('support_access'),
+            'navGroups' => $this->navigation->groupsFor($user),
+            'navContext' => 'b2c_promotions',
+        ]);
+    }
+
+    public function flashAnalytics(Request $request, int $offer): View
+    {
+        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        $row = $this->flashOfferRow($storeId, $offer);
+
+        $reservationStats = DB::table('flash_reservations')
+            ->where('flash_offer_id', $offer)
+            ->selectRaw('status, COUNT(*) as reservations_count, COALESCE(SUM(reserved_base_quantity), 0) as base_quantity')
+            ->groupBy('status')
+            ->orderBy('status')
+            ->get();
+
+        $eventStats = DB::table('flash_offer_events')
+            ->where('flash_offer_id', $offer)
+            ->selectRaw('event, COUNT(*) as events_count')
+            ->groupBy('event')
+            ->orderByDesc('events_count')
+            ->orderBy('event')
+            ->get();
+
+        $channelStats = DB::table('flash_offer_events')
+            ->where('flash_offer_id', $offer)
+            ->whereNotNull('channel')
+            ->selectRaw('channel, COUNT(*) as events_count')
+            ->groupBy('channel')
+            ->orderByDesc('events_count')
+            ->orderBy('channel')
+            ->get();
+
+        $liveReservedBase = (float) $reservationStats
+            ->whereIn('status', ['active', 'confirmed'])
+            ->sum('base_quantity');
+        $confirmedBase = (float) $reservationStats
+            ->where('status', 'confirmed')
+            ->sum('base_quantity');
+
+        return view('admin.flash-offer-analytics', [
+            'user' => $user,
+            'storeId' => $storeId,
+            'offer' => $row,
+            'reservationStats' => $reservationStats,
+            'eventStats' => $eventStats,
+            'channelStats' => $channelStats,
+            'reservationCount' => (int) $reservationStats->sum('reservations_count'),
+            'eventCount' => (int) $eventStats->sum('events_count'),
+            'liveReservedBase' => $liveReservedBase,
+            'confirmedBase' => $confirmedBase,
+            'supportAccess' => $request->boolean('support_access'),
+            'navGroups' => $this->navigation->groupsFor($user),
+            'navContext' => 'b2c_promotions',
+        ]);
+    }
+
     public function saveFlashOffer(Request $request): RedirectResponse
     {
         [$user, $storeId] = $this->authorizedStore($request, 'promotions.manage');
@@ -312,6 +396,32 @@ final class CommercialDashboardController extends Controller
         }
 
         return $decoded;
+    }
+
+    private function flashOfferRow(int $storeId, int $offer): object
+    {
+        $row = DB::table('flash_offers')
+            ->where('store_id', $storeId)
+            ->where('id', $offer)
+            ->first();
+
+        abort_unless($row !== null, 404);
+
+        return $row;
+    }
+
+    /** @return list<string> */
+    private function storedJsonList(mixed $value): array
+    {
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (! is_array($decoded) || ! array_is_list($decoded)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (mixed $item): string => (string) $item,
+            array_filter($decoded, static fn (mixed $item): bool => is_string($item) && trim($item) !== ''),
+        ));
     }
 
     private function hasApiContract(string $needle): bool
