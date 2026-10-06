@@ -603,9 +603,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
                   bottom: 8,
                   child: SafeArea(
                     top: false,
-                    child: IconButton.filledTonal(
+                    child: Semantics(
+                      button: true,
+                      label: translatedContext.tr('driver.inspector.open'),
+                      child: IconButton.filledTonal(
                       key: const Key('driver-floating-inspector'),
-                      tooltip: translatedContext.tr('driver.inspector.open'),
                       onPressed: () {
                         _routeBeforeInspector =
                             DriverRuntimeInspector.instance.lastRoute ??
@@ -617,6 +619,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
                         setState(() => _inspectorOpen = true);
                       },
                       icon: const Icon(Icons.bug_report_outlined),
+                      ),
                     ),
                   ),
                 ),
