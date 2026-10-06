@@ -14,7 +14,21 @@ void main() {
       final notifications = StreamController<Map<String, dynamic>>();
       final api = _FakeOrdersApi([
         _details('pending'),
-        _details('preparing'),
+        _details(
+          'preparing',
+          outstanding: 7.5,
+          collectionReceipts: [
+            CustomerCollectionReceipt(
+              id: 44,
+              paymentId: 81,
+              status: 'posted',
+              amount: 5,
+              currency: 'KWD',
+              source: 'driver_delivery',
+              collectedAt: DateTime.utc(2026, 10, 1, 10, 15),
+            ),
+          ],
+        ),
       ]);
 
       await tester.pumpWidget(
@@ -55,6 +69,11 @@ void main() {
       expect(api.detailCalls, 2);
       expect(find.text('Preparing'), findsWidgets);
       expect(find.text('Delivered'), findsNothing);
+      expect(find.text('Collection receipts'), findsOneWidget);
+      expect(find.text('Collection receipt #44'), findsOneWidget);
+      expect(find.text('Remaining balance'), findsOneWidget);
+      expect(find.text('7.500 KWD'), findsOneWidget);
+      expect(find.text('5.000 KWD'), findsOneWidget);
 
       // Close the notification stream while the widget is still subscribed and
       // advance fake async once so the done event is delivered. Awaiting
@@ -67,7 +86,13 @@ void main() {
   );
 }
 
-CustomerOrderDetails _details(String status) => CustomerOrderDetails(
+CustomerOrderDetails _details(
+  String status, {
+  double? outstanding,
+  List<CustomerCollectionReceipt> collectionReceipts =
+      const <CustomerCollectionReceipt>[],
+}) =>
+    CustomerOrderDetails(
       summary: CustomerOrderSummary(
         id: 91,
         orderNumber: 'FO-91',
@@ -79,6 +104,7 @@ CustomerOrderDetails _details(String status) => CustomerOrderDetails(
         currency: 'KWD',
         grandTotal: 12.5,
         createdAt: DateTime.utc(2026, 10, 1, 10),
+        invoiceOutstandingAmount: outstanding,
       ),
       subtotal: 10,
       discountTotal: 0,
@@ -89,6 +115,7 @@ CustomerOrderDetails _details(String status) => CustomerOrderDetails(
       history: const [],
       payment: null,
       requestedDeliveryDate: null,
+      collectionReceipts: collectionReceipts,
     );
 
 class _FakeOrdersApi implements CustomerOrdersApi {

@@ -1395,7 +1395,10 @@ class _PaymentSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final payment = details.payment;
-    if (payment == null) {
+    final receipts = details.collectionReceipts;
+    final outstanding = details.summary.invoiceOutstandingAmount;
+
+    if (payment == null && receipts.isEmpty && outstanding == null) {
       return Text(
         details.paymentMethod?.trim().isNotEmpty == true
             ? details.paymentMethod!
@@ -1403,17 +1406,83 @@ class _PaymentSummary extends StatelessWidget {
       );
     }
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.payments_outlined),
-      title: Text(payment.provider),
-      subtitle: Text(payment.status),
-      trailing: Text(
-        '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (payment != null)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.payments_outlined),
+            title: Text(payment.provider),
+            subtitle: Text(payment.status),
+            trailing: Text(
+              '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        if (outstanding != null)
+          ListTile(
+            key: ValueKey('customer-order-outstanding-${details.summary.id}'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.account_balance_wallet_outlined),
+            title: Text(context.tr('customer.order.payment.remaining')),
+            trailing: Text(
+              '${outstanding.toStringAsFixed(3)} ${details.summary.currency}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        if (receipts.isNotEmpty) ...[
+          const SizedBox(height: CustomerUiSpacing.xs),
+          Text(
+            context.tr('customer.order.payment.collection_receipts'),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: CustomerUiSpacing.xxs),
+          for (final receipt in receipts)
+            ListTile(
+              key: ValueKey('customer-collection-receipt-${receipt.id}'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(
+                '${context.tr('customer.order.payment.collection_receipt')} '
+                '#${receipt.id}',
+              ),
+              subtitle: Text(
+                [
+                  _collectionStatusText(context, receipt.status),
+                  _collectionSourceText(context, receipt.source),
+                  if (receipt.collectedAt != null)
+                    _formatDateTime(receipt.collectedAt!),
+                ].join(' · '),
+              ),
+              trailing: Text(
+                '${receipt.amount.toStringAsFixed(3)} ${receipt.currency}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
+      ],
     );
   }
+}
+
+String _collectionStatusText(BuildContext context, String status) {
+  return status.trim().toLowerCase() == 'posted'
+      ? context.tr('customer.order.payment.status.collected')
+      : status.trim().replaceAll('_', ' ');
+}
+
+String _collectionSourceText(BuildContext context, String source) {
+  final normalized = source.trim().toLowerCase();
+  if (normalized.contains('driver')) {
+    return context.tr('customer.order.payment.source.driver');
+  }
+  if (normalized.contains('van')) {
+    return context.tr('customer.order.payment.source.van');
+  }
+  return context.tr('customer.order.payment.source.field');
 }
 
 class _Section extends StatelessWidget {
