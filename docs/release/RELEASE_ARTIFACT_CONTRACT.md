@@ -4,6 +4,8 @@ This is a mandatory repository-level release contract. It applies to every FOODE
 
 A release is **not complete** until the synchronized Dashboard update and all three Android application APKs have been produced from the same validated release version/source commit.
 
+For releases that support a fresh Laravel install, the release is also not complete until the canonical Setup ZIP has been rebuilt from the exact final implementation source commit and has passed a clean install using the ZIP only.
+
 ## Required Release layout
 
 Every completed release must leave the latest downloadable artifacts under `Release/`:
@@ -64,6 +66,21 @@ Canonical examples:
 
 All release assets for one version must come from the same intended release source commit and version identity. `LATEST_RELEASE.json` and `BUILD_INFO.json` are part of the evidence.
 
+### Fresh Setup source integrity
+
+For a release with `Release/FOODEX-Laravel-Setup.zip`:
+
+- record the exact final implementation source SHA before generated artifact publication;
+- `Release/BUILD_INFO.json.source_commit` must equal that implementation source SHA;
+- `Release/FRESH_INSTALL_EVIDENCE.json.source_commit` must equal that implementation source SHA when fresh-install evidence is part of the release;
+- the Setup ZIP must be built from that exact source and its size/SHA-256 must match BUILD_INFO;
+- the fresh-install workflow must validate a clean install from the ZIP only, not from the repository working tree;
+- after that source SHA, a generated-artifact publication commit is allowed only to commit release artifacts/evidence back to the canonical release branch;
+- that publication commit must not add or change business code delivered by the Setup;
+- if implementation code changes after the recorded source SHA, the Setup is stale and must be rebuilt and revalidated.
+
+For the active FOODEX 1.0.58 Van mission, the owner-facing final Setup source is `release/1.0.58-van-complete`.
+
 Do not reuse an APK from an older version while publishing a newer Dashboard update.
 
 Existing immutable version tags/releases must not be moved to a different source commit merely to rerun packaging.
@@ -78,4 +95,8 @@ A version promotion is incomplete if any of the following is true:
 - `LATEST_RELEASE.json` is absent or does not list all three apps;
 - the Dashboard update assets were not refreshed for the release;
 - the generated distribution does not contain the synchronized latest artifacts;
-- published release assets and repository release manifests disagree on version, source commit or checksum.
+- published release assets and repository release manifests disagree on version, source commit or checksum;
+- a fresh-install release contains code newer than the source SHA recorded in BUILD_INFO/FRESH_INSTALL_EVIDENCE;
+- `FOODEX-Laravel-Setup.zip` was not rebuilt from the exact final implementation source SHA;
+- clean installation from the Setup ZIP only did not pass;
+- the canonical release branch contains a stale Setup ZIP from an older implementation head.
