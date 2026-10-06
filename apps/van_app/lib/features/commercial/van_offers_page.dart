@@ -8,11 +8,13 @@ import 'van_commercial_contract.dart';
 class VanOffersPage extends StatefulWidget {
   const VanOffersPage({
     super.key,
+    required this.session,
     required this.commercialRepository,
     required this.customerRepository,
     required this.onSessionExpired,
   });
 
+  final VanSession session;
   final VanCommercialRepository commercialRepository;
   final VanWalletRepository customerRepository;
   final Future<void> Function() onSessionExpired;
@@ -25,8 +27,13 @@ class _VanOffersPageState extends State<VanOffersPage> {
   List<VanCustomerScope> _customers = const [];
   VanCustomerScope? _selectedCustomer;
   VanCommercialOfferFeed? _feed;
+  final Map<int, String> _overrideReasons = <int, String>{};
   bool _loading = true;
   Object? _error;
+
+  bool get _canOverride =>
+      widget.session.permissions.contains('orders.approve') ||
+      widget.session.permissions.contains('platform.manage');
 
   String _text(String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
@@ -74,6 +81,7 @@ class _VanOffersPageState extends State<VanOffersPage> {
     setState(() {
       _loading = true;
       _error = null;
+      _overrideReasons.clear();
     });
     try {
       final feed = await widget.commercialRepository.offersFor(customer);
@@ -94,40 +102,80 @@ class _VanOffersPageState extends State<VanOffersPage> {
     VanCommercialOfferProduct product,
   ) async {
     final customer = _selectedCustomer;
+    final unitCode = product.sellingUnitCode?.trim();
     if (customer == null) return;
 
+    if (unitCode == null || unitCode.isEmpty) {
+      _showOnlineValidationRequired();
+      return;
+    }
+
+    final overrideReason = _canOverride
+        ? (_overrideReasons[product.id]?.trim() ?? '')
+        : '';
+
     try {
+      final quote = await widget.commercialRepository.quoteForCustomer(
+        customer: customer,
+        productId: product.productId,
+        sellingUnitCode: unitCode,
+        quantity: 1,
+        overrideReason: overrideReason.isEmpty ? null : overrideReason,
+      );
+
+      if (!quote.allowed) {
+        if (!mounted) return;
+        final reasons = quote.reasonCodes.isEmpty
+            ? 'ONLINE_VALIDATION_REQUIRED'
+            : quote.reasonCodes.join(', ');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            key: const Key('van-commercial-policy-blocked'),
+            content: Text(
+              _text(
+                'Sale blocked by commercial policy: $reasons',
+                'تم منع البيع بواسطة السياسة التجارية: $reasons',
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+
       await widget.commercialRepository.reserveFlashForCustomer(
         customer: customer,
         offerProductId: product.id,
         quantity: 1,
         idempotencyKey:
             'van-${customer.type}-${customer.id}-${product.id}-${DateTime.now().millisecondsSinceEpoch}',
+        overrideReason: overrideReason.isEmpty ? null : overrideReason,
       );
-    } on VanCommercialContractPendingException catch (error) {
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          key: const Key('van-flash-online-validation-required'),
+          key: const Key('van-flash-reserved'),
           content: Text(
-            error.reasonCode == 'ONLINE_VALIDATION_REQUIRED'
-                ? _text(
-                    'Online validation for the selected customer is required before a Flash sale.',
-                    'يلزم التحقق عبر الإنترنت للعميل المحدد قبل بيع عرض Flash.',
-                  )
-                : error.reasonCode,
+            _text(
+              'Flash quantity reserved after online validation.',
+              'تم حجز كمية Flash بعد التحقق عبر الإنترنت.',
+            ),
           ),
         ),
       );
+    } on VanCommercialContractPendingException {
+      _showOnlineValidationRequired();
     } on VanOfflineException {
+      _showOnlineValidationRequired();
+    } on VanAccessDeniedException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          key: const Key('van-flash-online-validation-required'),
+          key: const Key('van-commercial-override-denied'),
           content: Text(
             _text(
-              'Online validation required.',
-              'يلزم التحقق عبر الإنترنت.',
+              'Supervisor/admin approval is required for this override.',
+              'يتطلب هذا التجاوز موافقة مشرف أو مدير.',
             ),
           ),
         ),
@@ -135,6 +183,21 @@ class _VanOffersPageState extends State<VanOffersPage> {
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     }
+  }
+
+  void _showOnlineValidationRequired() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const Key('van-flash-online-validation-required'),
+        content: Text(
+          _text(
+            'Online validation required.',
+            'يلزم التحقق عبر الإنترنت.',
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -158,8 +221,8 @@ class _VanOffersPageState extends State<VanOffersPage> {
           const SizedBox(height: 6),
           Text(
             _text(
-              'Offer visibility is server-driven for the selected customer/store. Flash sales never fall back to offline validation.',
-              'ظهور العروض يعتمد على الخادم حسب العميل والمتجر المحددين. بيع Flash لا يستخدم تحققًا محليًا عند انقطاع الاتصال.',
+              'Normal and Flash offers are server-driven for the selected customer/store. Flash sales never fall back to offline validation.',
+              'العروض العادية وFlash تعتمد على الخادم حسب العميل والمتجر المحددين. بيع Flash لا يستخدم تحققًا محليًا عند انقطاع الاتصال.',
             ),
             style: Theme.of(context)
                 .textTheme
@@ -213,19 +276,50 @@ class _VanOffersPageState extends State<VanOffersPage> {
               )
             else if (_loading)
               const Center(child: CircularProgressIndicator())
-            else if ((_feed?.offers ?? const []).isEmpty)
+            else if ((_feed?.offers ?? const []).isEmpty &&
+                (_feed?.normalOffers ?? const []).isEmpty)
               _messageCard(
                 _text(
                   'No eligible active offers were returned.',
                   'لم يعُد الخادم بعروض نشطة مؤهلة.',
                 ),
               )
-            else
-              ..._feed!.offers.map(
-                (offer) => _offerCard(offer, languageCode),
-              ),
+            else ...[
+              if ((_feed?.normalOffers ?? const []).isNotEmpty) ...[
+                Text(
+                  _text('Normal offers', 'العروض العادية'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ..._feed!.normalOffers.map(_normalOfferCard),
+                const SizedBox(height: 12),
+              ],
+              if ((_feed?.offers ?? const []).isNotEmpty) ...[
+                Text(
+                  _text('Flash offers', 'عروض Flash'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ..._feed!.offers.map(
+                  (offer) => _offerCard(offer, languageCode),
+                ),
+              ],
+            ],
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _normalOfferCard(VanNormalOffer offer) {
+    final value = offer.value == null ? '' : ' · ${offer.value}';
+    return Card(
+      key: Key('van-normal-offer-${offer.id}'),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: const Icon(Icons.local_offer_outlined),
+        title: Text(offer.name),
+        subtitle: Text('${offer.type}$value'),
       ),
     );
   }
@@ -261,23 +355,41 @@ class _VanOffersPageState extends State<VanOffersPage> {
             ...offer.products.map(
               (product) => Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _text(
-                          'Product #${product.productId} · ${product.flashPrice.toStringAsFixed(3)}'
-                          '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
-                          'منتج #${product.productId} · ${product.flashPrice.toStringAsFixed(3)}'
-                          '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _text(
+                              'Product #${product.productId} · ${product.flashPrice.toStringAsFixed(3)}'
+                              '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
+                              'منتج #${product.productId} · ${product.flashPrice.toStringAsFixed(3)}'
+                              '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
+                            ),
+                          ),
                         ),
+                        FilledButton.tonal(
+                          key: Key('van-flash-buy-${product.id}'),
+                          onPressed: () => _attemptFlashSale(product),
+                          child: Text(_text('Validate online', 'تحقق أونلاين')),
+                        ),
+                      ],
+                    ),
+                    if (_canOverride) ...[
+                      const SizedBox(height: 8),
+                      TextField(
+                        key: Key('van-commercial-override-${product.id}'),
+                        decoration: InputDecoration(
+                          labelText: _text(
+                            'Override reason (supervisor/admin only)',
+                            'سبب التجاوز (للمشرف/المدير فقط)',
+                          ),
+                        ),
+                        onChanged: (value) => _overrideReasons[product.id] = value,
                       ),
-                    ),
-                    FilledButton.tonal(
-                      key: Key('van-flash-buy-${product.id}'),
-                      onPressed: () => _attemptFlashSale(product),
-                      child: Text(_text('Validate online', 'تحقق أونلاين')),
-                    ),
+                    ],
                   ],
                 ),
               ),
