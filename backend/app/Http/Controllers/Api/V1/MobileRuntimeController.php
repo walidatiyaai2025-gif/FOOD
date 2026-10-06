@@ -13,7 +13,7 @@ final class MobileRuntimeController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'environment' => ['required', 'in:development,staging,production'],
             'locale' => ['nullable', 'in:ar,en'],
         ]);
