@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.58 - 2026-10-06
+
+- Add the canonical backend commercial policy foundation for #984: product OPEN / RESTRICTED / CLOSED policy, channel controls, customer/group precedence and server-authoritative fixed/yearly availability windows.
+- Add selling-unit conversion to base inventory units with optional unit price/SKU/barcode and immutable order-line unit/conversion snapshots.
+- Add per-order/day/week/month/lifetime quotas in base units with atomic customer/product reservation locking, idempotent consume/release lifecycle and cancellation capacity release.
+- Reuse existing inventory, order and audit infrastructure and add focused commercial-policy regression coverage; no Flash lifecycle, client UI, notification subsystem or store-readiness implementation is introduced in this lane.
+- Synchronize Dashboard, Customer and Driver release identities at 1.0.58 / mobile build 1.0.58+58 for pre-merge validation. Main merge remains explicitly owner-gated.
+
+
 ## 1.0.57 - 2026-10-05
 
 - Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior.
