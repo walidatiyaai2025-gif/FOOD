@@ -39,6 +39,12 @@ final class CollectionCustodyService
                 ->first();
 
             if ($existing instanceof CollectionTransaction) {
+                if ((int) $existing->collection_account_id !== (int) $account->getKey()) {
+                    throw ValidationException::withMessages([
+                        'idempotency_key' => ['Idempotency-Key is already owned by another collection account.'],
+                    ]);
+                }
+
                 return $existing;
             }
 
@@ -62,7 +68,7 @@ final class CollectionCustodyService
                 'invoice_id' => count($allocations) === 1 ? (int) $allocations[0]['invoice_id'] : null,
                 'provider' => 'field_collection',
                 'provider_reference' => $idempotencyKey,
-                'status' => 'captured',
+                'status' => 'paid',
                 'amount' => $amount,
                 'currency' => $currency,
                 'metadata' => [
@@ -133,6 +139,12 @@ final class CollectionCustodyService
                 ->first();
 
             if ($existing instanceof Remittance) {
+                if ((int) $existing->collection_account_id !== (int) $account->getKey()) {
+                    throw ValidationException::withMessages([
+                        'idempotency_key' => ['Idempotency-Key is already owned by another collection account.'],
+                    ]);
+                }
+
                 return $existing;
             }
 
