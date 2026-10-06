@@ -347,7 +347,8 @@ class RetailCheckoutScreen extends StatefulWidget {
   State<RetailCheckoutScreen> createState() => _RetailCheckoutScreenState();
 }
 
-class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
+class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
+    with WidgetsBindingObserver {
   late final RetailCheckoutSubmissionGuard _submission =
       RetailCheckoutSubmissionGuard(widget.api);
   final TextEditingController _coupon = TextEditingController();
@@ -362,13 +363,22 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadOptions();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _coupon.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted && !_submitting) {
+      _loadOptions();
+    }
   }
 
   Future<void> _loadOptions() async {
