@@ -17,10 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # PR merge refs only need the merge commit plus its two parents for
-          # base/head VERSION and changed-file validation. Avoid cloning the
-          # entire repository history on every policy run.
-          fetch-depth: 2
+          fetch-depth: 0
       - run: ./scripts/validate-repo.sh
 
       - name: Syntax-check First-Run Green scripts
