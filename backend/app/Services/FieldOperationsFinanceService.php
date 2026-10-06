@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\DB;
 final class FieldOperationsFinanceService
 {
     /**
-     * @param list<int> $storeIds
-     * @param array{ops_tab?:string,ops_q?:?string,ops_status?:?string,ops_per_page?:int} $filters
-     * @return array<string,mixed>
+     * @param  list<int>  $storeIds
+     * @param  array{ops_tab?: string, ops_q?: ?string, ops_status?: ?string, ops_per_page?: int}  $filters
+     * @return array<string, mixed>
      */
     public function viewModel(array $storeIds, array $filters): array
     {
@@ -44,7 +44,7 @@ final class FieldOperationsFinanceService
         ];
     }
 
-    /** @param list<int> $storeIds */
+    /** @param  list<int>  $storeIds */
     private function wallets(array $storeIds, string $q, string $status, int $perPage): LengthAwarePaginator
     {
         $custody = DB::table('custody_ledger_entries')
@@ -96,7 +96,7 @@ final class FieldOperationsFinanceService
             ->paginate($perPage, ['*'], 'ops_page');
     }
 
-    /** @param list<int> $storeIds */
+    /** @param  list<int>  $storeIds */
     private function collections(array $storeIds, string $q, string $status, int $perPage): LengthAwarePaginator
     {
         return DB::table('collection_transactions')
@@ -140,7 +140,7 @@ final class FieldOperationsFinanceService
             ->paginate($perPage, ['*'], 'ops_page');
     }
 
-    /** @param list<int> $storeIds */
+    /** @param  list<int>  $storeIds */
     private function remittances(
         array $storeIds,
         string $q,

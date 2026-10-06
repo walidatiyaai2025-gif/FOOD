@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
+use App\Models\CollectionAccount;
 use App\Models\B2bCustomer;
 use App\Models\Category;
 use App\Models\Driver;
@@ -747,7 +748,7 @@ class B2bWorkspaceController extends Controller
         $actor = $this->actor($request);
         abort_unless(in_array($action, ['approve', 'reject', 'reconcile'], true), 404);
 
-        $account = \App\Models\CollectionAccount::query()
+        $account = CollectionAccount::query()
             ->whereKey($remittance->collection_account_id)
             ->firstOrFail();
         $storeId = $account->store_id === null ? null : (int) $account->store_id;
