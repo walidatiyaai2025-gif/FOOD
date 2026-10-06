@@ -17,6 +17,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Embedded vs standalone preview mismatch | parity smoke | Reuse exact head runtime and preserve navigation/state contract. |
 | UI visual runtime failure | runtime health smoke | Verify route/data/console health before screenshot capture. |
 | MySQL/MariaDB migration rollback mismatch | DB acceptance | Validate forward/rollback behavior on supported DB engine. |
+| Parallel same-domain implementations carry incompatible schema assumptions into one PR | full backend tests after integration-train reconciliation | Before merging concurrent lane work, choose one canonical domain schema/service/API contract and remove superseded competing implementation/tests/routes; do not preserve both just because each passed independently. |
 | Nested Required CI child red while top-level checks look green | required gate child inspection | Read all applicable child jobs; one red means not ready. |
 | Main branch drift | exact-head/base comparison | Revalidate against current main before readiness/merge. |
 | Stale release artifact | SHA manifest/checksum | Artifacts must identify and match final validated head SHA. |

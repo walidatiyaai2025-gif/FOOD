@@ -35,9 +35,11 @@ use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RetailCheckoutOptionsController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
+use App\Http\Controllers\Api\V1\RoutingPolicyController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
+use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
 use App\Http\Controllers\Api\V1\VanVisitController;
@@ -169,6 +171,13 @@ Route::prefix('v1')->group(function (): void {
                 ->whereNumber('visit');
             Route::get('/no-order-reasons', [VanVisitController::class, 'noOrderReasons']);
         });
+        Route::prefix('/admin/field-operations')->group(function (): void {
+            Route::post('/geography', [TerritoryController::class, 'storeGeography']);
+            Route::post('/territories', [TerritoryController::class, 'storeTerritory']);
+            Route::post('/territories/{territory}/geometry', [TerritoryController::class, 'storeGeometry'])
+                ->whereNumber('territory');
+            Route::post('/territory-resolution', [TerritoryController::class, 'resolve']);
+        });
         Route::post('/admin/app-preview/sessions', [AppPreviewSessionController::class, 'store']);
         Route::delete('/admin/app-preview/sessions/{session}', [AppPreviewSessionController::class, 'destroy'])
             ->whereNumber('session');
@@ -205,6 +214,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/field-operations/fleet/feed', [FleetLocationController::class, 'feed']);
         Route::post('/admin/field-operations/fleet/van-heartbeat', [FleetLocationController::class, 'vanHeartbeat'])
             ->middleware('throttle:120,1');
+        Route::prefix('admin/field-operations/routing-policies')->group(function (): void {
+            Route::post('/', [RoutingPolicyController::class, 'store']);
+            Route::post('/{routingPolicy}/publish', [RoutingPolicyController::class, 'publish'])->whereNumber('routingPolicy');
+            Route::post('/{routingPolicy}/simulate', [RoutingPolicyController::class, 'simulate'])->whereNumber('routingPolicy');
+            Route::post('/{routingPolicy}/rollback', [RoutingPolicyController::class, 'rollback'])->whereNumber('routingPolicy');
+        });
         Route::post('/admin/field-operations/vans', [VanRegistryController::class, 'store']);
         Route::post('/admin/field-operations/vans/{van}/assignments', [VanRegistryController::class, 'assign'])->whereNumber('van');
         Route::post('/admin/field-operations/vans/{van}/suspend', [VanRegistryController::class, 'suspend'])->whereNumber('van');

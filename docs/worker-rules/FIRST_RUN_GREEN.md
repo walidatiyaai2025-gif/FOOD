@@ -110,6 +110,7 @@ A small UI-only change should not trigger unrelated expensive areas, but a share
 Before push, workers must also check:
 
 - `git diff --check`;
+- for backend PHP changes, run `cd backend && composer lint` before push; use repository/Pint-native style rather than guessing formatter output (notably import exception/classes instead of fully-qualified inline references, and prefer explicit boolean comparisons such as `in_array(...) === false` when the active Pint rules would churn unary `!` spacing);
 - no accidental debug flags, commented security checks or temporary bypasses;
 - no secrets or credentials;
 - no hardcoded customer/store/account/product IDs or fixed business currency where runtime/store data is authoritative;
