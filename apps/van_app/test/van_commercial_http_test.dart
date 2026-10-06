@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  // canonical-fresh-plan-trigger
   const customer = VanCustomerScope(
     type: 'b2c',
     id: 44,
