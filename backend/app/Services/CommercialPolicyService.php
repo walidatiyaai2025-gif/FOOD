@@ -315,7 +315,6 @@ final class CommercialPolicyService
         float $sellingQuantity,
         string $channel,
         ?DateTimeInterface $at = null,
-        ?string $sellingUnitCode = null,
     ): array {
         $unit = $this->sellingUnit($productId, $sellingUnitCode, $sellingQuantity);
         $reservation = $this->reserveBaseQuantityForOrder(
@@ -346,6 +345,7 @@ final class CommercialPolicyService
         float $baseQuantity,
         string $channel,
         ?DateTimeInterface $at = null,
+        ?string $sellingUnitCode = null,
     ): array {
         if ($baseQuantity <= 0) {
             throw new InvalidArgumentException('Commercial base quantity must be greater than zero.');
