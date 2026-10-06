@@ -809,12 +809,12 @@ jobs:
 
           async function captureLocale(lang) {
             await page.goto(base + '/admin/profile');
-            const localeForm = page.locator('form[action$="/admin/profile/locale"]').filter({
+            const localeForm = page.locator('form[action$="/admin/profile/locale"]:visible').filter({
               has: page.locator('input[name="locale"][value="'+lang+'"]')
-            });
+            }).first();
             await Promise.all([
               page.waitForNavigation({waitUntil:'networkidle'}),
-              localeForm.locator('button[type="submit"]').click(),
+              localeForm.locator('button[type="submit"]:visible').first().click(),
             ]);
 
             for (const [name,path] of pages) {

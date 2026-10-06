@@ -64,3 +64,11 @@
 - Classification: deterministic test-harness module-resolution defect; application behavior had already passed up to visual capture.
 - Harness fix prepared: create and execute the temporary capture module inside `$GITHUB_WORKSPACE`, where Node can resolve the installed workspace `node_modules`, then remove it after capture.
 - Next action: require the full visual/RTL-LTR acceptance and artifact publication to pass on the next exact head.
+
+## Follow-up from run 37467057663
+
+- Head `b22915f5d9e1277bc037f2c9de08cd4b69fad6c2` resolved Playwright module loading and reached live browser capture.
+- Exact failure: Playwright strict mode found two matching Arabic locale forms/buttons on the responsive profile surface.
+- Classification: deterministic visual-QA locator ambiguity, not an application defect.
+- Harness fix prepared: select the visible locale form/button and use the first visible match.
+- Next action: rerun full English/Arabic desktop + mobile visual acceptance and proceed to artifact publication if GREEN.
