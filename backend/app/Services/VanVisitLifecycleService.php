@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\Order;
-use App\Models\VanNoOrderReason;
 use App\Models\User;
+use App\Models\VanNoOrderReason;
 use App\Models\VanVisit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
