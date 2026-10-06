@@ -115,6 +115,8 @@ abstract interface class VanCommercialRepository {
 
   /// Flash reservation must remain server-authoritative and customer-scoped.
   ///
+  /// The selected customer identity must be carried by the canonical backend
+  /// contract; the authenticated Van operator must never be substituted for it.
   /// Implementations MUST NOT fall back to local/offline eligibility or stock
   /// calculations when this operation cannot reach the canonical backend.
   Future<void> reserveFlashForCustomer({
