@@ -471,3 +471,149 @@ Do not label the map as Driver-only when it displays both entity types.
 - Where useful, provide compact filters for **Drivers / Vans / Both**.
 - Offline/stale/no-location states must be explicit; never present stale coordinates as live.
 - The map must prioritize operating visibility over decorative UI and should use the available map area efficiently.
+
+---
+
+## 17. Clear mobile application identity
+
+The three official applications must identify themselves clearly **inside the visible login/authentication experience**, not only through package name, icon or store metadata.
+
+Required role identity:
+
+- Customer: **Customer App / تطبيق العميل**
+- Driver: **Driver App / تطبيق السائق**
+- Van: **Van App / تطبيق الفان**
+
+Rules:
+
+- the role identity must be visible without requiring the user to infer it from branding;
+- Arabic and English must follow the active locale;
+- the identity may be compact and must not violate the mobile-density contract;
+- role identity does not replace FOODEX branding;
+- login/auth changes must preserve the Remember Me + biometric rules in section 15.
+
+A login screen is incomplete if a user can reasonably confuse Driver, Van or Customer authentication surfaces.
+
+---
+
+## 18. Live data and automatic refresh contract - Customer / Driver / Van
+
+Dynamic operational screens must not depend on manual refresh as their primary freshness mechanism.
+
+For Customer, Driver and Van, use the strongest appropriate authoritative update mechanism available for the context:
+
+- push/event notification;
+- WebSocket/SSE where supported;
+- controlled polling;
+- foreground/resume synchronization;
+- pull-to-refresh only as an explicit fallback/manual recovery action.
+
+Every dynamic screen must define:
+
+- how it becomes fresh when opened;
+- how it updates while foregrounded where required;
+- how it re-synchronizes after app resume;
+- what happens when the network is offline;
+- what stale data means and how it is labelled;
+- how duplicate events/responses are de-duplicated;
+- how server authority wins over cached/local state.
+
+Do not present old cached data as current/live without a visible stale/offline state.
+
+### 18.1 Driver new-order event
+
+When a Driver receives a new authoritative assignment/order:
+
+- while foregrounded, show an immediate in-app popup/high-priority banner or equivalent clear alert;
+- provide a direct **View/Open** action to the exact order/assignment;
+- while backgrounded, use the supported notification path with a deep link to the exact order;
+- de-duplicate repeated delivery of the same event;
+- if the Driver is already viewing that order, refresh/update the current surface instead of stacking duplicate alerts;
+- stale/revoked assignments must not become accessible because of an old notification payload.
+
+### 18.2 Project-wide dynamic-page review
+
+For every new dynamic page/function, review must explicitly answer:
+
+- What event/poll/resume path refreshes it?
+- What server value is authoritative?
+- What stale/offline state is shown?
+- Is manual refresh only a fallback?
+- Are duplicate events idempotent?
+- Does the selected locale apply to newly refreshed labels/status values?
+
+A feature that can silently remain stale until the user manually refreshes is incomplete unless the product domain explicitly permits static data.
+
+---
+
+## 19. Customer real invoice contract
+
+Customer invoice detail must present a real commercial invoice, not a decorative order summary.
+
+Where available from authoritative configuration/data, include:
+
+- FOODEX/company logo and company identity from settings, not hardcoded presentation values;
+- invoice title;
+- invoice number;
+- invoice date;
+- related order/reference number;
+- seller/company/customer/commercial-party information;
+- line items;
+- selling unit;
+- quantity;
+- unit price;
+- line discount;
+- line total;
+- subtotal;
+- invoice-level discount;
+- tax;
+- fees/charges when applicable;
+- grand total;
+- payment state/method;
+- amount paid / remaining amount where applicable.
+
+Rules:
+
+- never invent financial/tax/payment values in the client;
+- use authoritative backend invoice/ledger/pricing contracts;
+- Arabic and English labels follow the active locale;
+- RTL/LTR structure must remain readable;
+- the on-screen structure should be suitable for future PDF/share/print rendering without requiring a different financial meaning;
+- missing optional commercial fields may be omitted cleanly, but required invoice identity/totals may not be replaced with fake placeholders.
+
+---
+
+## 20. Project-wide v4.2 non-regression gate
+
+Sections 14-19 are a single cross-application contract.
+
+A mission/release claiming v4.2 completion must verify the integrated behavior of:
+
+- Dashboard;
+- Customer App;
+- Driver App;
+- Van App.
+
+Acceptance includes:
+
+- compact mobile title/subtitle density;
+- full-width/edge-to-edge use of the usable viewport;
+- one-line filters where applicable;
+- no wrapped Order Number/Reference;
+- compact rows and one ellipsis action pattern;
+- Remember Me and secure biometric unlock;
+- visible Customer/Driver/Van login identity;
+- live/automatic data synchronization with stale/offline truthfulness;
+- Driver new-order alert/deep-link/idempotency;
+- unified Driver + Van Live Tracking;
+- real Customer invoice presentation;
+- Arabic/English localization and RTL/LTR parity;
+- no regression in permissions, tenant/store/channel isolation, business rules or authoritative financial semantics.
+
+Passing one application in isolation is not sufficient evidence for project-wide completion.
+
+The active execution Mission for this contract is tracked by GitHub umbrella **#1001** and:
+`docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`.
+
+Only the final convergence gate defined by that Mission may declare the complete v4.2 plan finished.
+
