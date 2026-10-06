@@ -18,7 +18,6 @@ Schedule::command('foodex:dispatch-scheduled-notifications')
     ->everyMinute()
     ->withoutOverlapping();
 
-
 Artisan::command('foodex:expire-flash-reservations', function (): void {
     $count = app(FlashOfferService::class)->expireDue();
     $this->info("Expired {$count} Flash reservation(s).");
