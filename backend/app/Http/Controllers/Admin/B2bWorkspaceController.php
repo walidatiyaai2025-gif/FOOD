@@ -744,7 +744,8 @@ class B2bWorkspaceController extends Controller
         Remittance $remittance,
         string $action,
         CollectionCustodyService $custody,
-    ): RedirectResponse {
+    ): RedirectResponse
+    {
         $actor = $this->actor($request);
         abort_unless(in_array($action, ['approve', 'reject', 'reconcile'], true), 404);
 
