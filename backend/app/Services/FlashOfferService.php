@@ -133,7 +133,7 @@ final class FlashOfferService
                 throw new HttpException(409, 'Flash reservation is not active.');
             }
 
-            if ($reservation->expires_at->isPast()) {
+            if ($reservation->expiresAt()->isPast()) {
                 $this->releaseLocked($reservation, 'expired');
                 throw new HttpException(409, 'FLASH_RESERVATION_EXPIRED');
             }
@@ -151,7 +151,9 @@ final class FlashOfferService
                 ]);
             }
 
-            return $reservation->fresh();
+            $reservation->refresh();
+
+            return $reservation;
         }, 3);
     }
 
@@ -193,7 +195,7 @@ final class FlashOfferService
                 $reservation = FlashReservation::query()->whereKey($id)->lockForUpdate()->first();
                 if (! $reservation instanceof FlashReservation
                     || $reservation->status !== 'active'
-                    || $reservation->expires_at->isFuture()) {
+                    || $reservation->expiresAt()->isFuture()) {
                     return false;
                 }
 
@@ -233,8 +235,8 @@ final class FlashOfferService
         }
 
         if (! in_array($offer->status, ['scheduled', 'active'], true)
-            || $offer->starts_at->isFuture()
-            || ! $offer->ends_at->isFuture()) {
+            || $offer->startsAt()->isFuture()
+            || ! $offer->endsAt()->isFuture()) {
             throw new HttpException(409, 'FLASH_NOT_ACTIVE');
         }
     }
@@ -353,7 +355,7 @@ final class FlashOfferService
         string $status,
         string $reason = 'timeout',
     ): void {
-        foreach ((array) $reservation->inventory_allocations as $allocation) {
+        foreach ($reservation->inventoryAllocations() as $allocation) {
             $inventoryId = (int) ($allocation['inventory_id'] ?? 0);
             $quantity = (float) ($allocation['quantity'] ?? 0);
             if ($inventoryId <= 0 || $quantity <= 0) {
