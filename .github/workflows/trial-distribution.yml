@@ -15,6 +15,8 @@ on:
       - "scripts/configure-mobile-native.py"
       - "scripts/build-dashboard-update.sh"
       - "scripts/write-trial-bundle-manifest.py"
+      - "scripts/validate_release_artifact_contract.py"
+      - "scripts/tests/test_release_artifact_contract.py"
       - "Release/README.md"
       - "Release/INSTALL-FIRST.txt"
       - "Release/Updates/README.md"
@@ -352,6 +354,16 @@ jobs:
           }
           (root / "LATEST_RELEASE.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
           PY
+
+      - name: Validate synchronized release artifact contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/validate_release_artifact_contract.py \
+            --release-dir Release \
+            --version "$CURRENT_VERSION" \
+            --build-number "$MOBILE_BUILD_NUMBER" \
+            --source-commit "$GITHUB_SHA"
 
       - name: Guard immutable published release
         shell: bash
