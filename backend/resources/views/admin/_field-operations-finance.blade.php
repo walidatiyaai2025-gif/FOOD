@@ -1,5 +1,8 @@
 @php
     $fieldFinance = $fieldFinance ?? [];
+    $opsRouteName = $opsRouteName ?? 'admin.b2b.module';
+    $opsRouteParams = $opsRouteParams ?? ['module'=>'finance'];
+    $opsReviewRouteName = $opsReviewRouteName ?? 'admin.b2b.finance.remittances.review';
     $opsTab = $fieldFinance['tab'] ?? 'wallets';
     $opsRows = $fieldFinance['rows'] ?? [];
     $opsPagination = $fieldFinance['pagination'] ?? ['current_page'=>1,'last_page'=>1,'total'=>0];
@@ -37,14 +40,14 @@
     <nav class="foodex-tabs" aria-label="{{ app()->getLocale()==='ar'?'تبويبات عمليات المالية':'Finance operations tabs' }}">
         @foreach($opsTabs as $key=>$label)
             <a
-                href="{{ route('admin.b2b.module', array_merge(['module'=>'finance'], $opsBaseQuery, ['ops_tab'=>$key])) }}"
+                href="{{ route($opsRouteName, array_merge($opsRouteParams, $opsBaseQuery, ['ops_tab'=>$key])) }}"
                 @class(['active'=>$opsTab===$key])
                 @if($opsTab===$key) aria-current="page" @endif
             >{{ $label }}</a>
         @endforeach
     </nav>
 
-    <form method="get" action="{{ route('admin.b2b.module',['module'=>'finance']) }}" class="foodex-ops-toolbar">
+    <form method="get" action="{{ route($opsRouteName, $opsRouteParams) }}" class="foodex-ops-toolbar">
         <input type="hidden" name="ops_tab" value="{{ $opsTab }}">
         @foreach(request()->only(['from','to','customer_id']) as $name=>$value)
             @if($value !== null && $value !== '')<input type="hidden" name="{{ $name }}" value="{{ $value }}">@endif
@@ -149,16 +152,16 @@
                                             <summary aria-label="{{ app()->getLocale()==='ar'?'الإجراءات':'Actions' }}">⋮</summary>
                                             <div class="foodex-ops-menu">
                                                 @if($row['status']==='pending')
-                                                    <form method="post" action="{{ route('admin.b2b.finance.remittances.review',['remittance'=>$row['id'],'action'=>'approve']) }}">
+                                                    <form method="post" action="{{ route($opsReviewRouteName,['remittance'=>$row['id'],'action'=>'approve']) }}">
                                                         @csrf
                                                         <button type="submit">{{ app()->getLocale()==='ar'?'اعتماد':'Approve' }}</button>
                                                     </form>
-                                                    <form method="post" action="{{ route('admin.b2b.finance.remittances.review',['remittance'=>$row['id'],'action'=>'reject']) }}">
+                                                    <form method="post" action="{{ route($opsReviewRouteName,['remittance'=>$row['id'],'action'=>'reject']) }}">
                                                         @csrf
                                                         <button class="danger" type="submit">{{ app()->getLocale()==='ar'?'رفض':'Reject' }}</button>
                                                     </form>
                                                 @elseif($row['status']==='approved')
-                                                    <form method="post" action="{{ route('admin.b2b.finance.remittances.review',['remittance'=>$row['id'],'action'=>'reconcile']) }}">
+                                                    <form method="post" action="{{ route($opsReviewRouteName,['remittance'=>$row['id'],'action'=>'reconcile']) }}">
                                                         @csrf
                                                         <button type="submit">{{ app()->getLocale()==='ar'?'تأكيد المطابقة':'Mark reconciled' }}</button>
                                                     </form>
@@ -181,11 +184,11 @@
         <span class="muted">{{ app()->getLocale()==='ar'?'الإجمالي':'Total' }}: {{ number_format((int)($opsPagination['total'] ?? 0)) }}</span>
         <div class="links">
             @if(($opsPagination['current_page'] ?? 1)>1)
-                <a href="{{ route('admin.b2b.module', array_merge(['module'=>'finance'], request()->except('ops_page'), ['ops_page'=>(int)$opsPagination['current_page']-1])) }}">{{ app()->getLocale()==='ar'?'السابق':'Previous' }}</a>
+                <a href="{{ route($opsRouteName, array_merge($opsRouteParams, request()->except('ops_page'), ['ops_page'=>(int)$opsPagination['current_page']-1])) }}">{{ app()->getLocale()==='ar'?'السابق':'Previous' }}</a>
             @endif
             <span>{{ (int)($opsPagination['current_page'] ?? 1) }} / {{ max(1,(int)($opsPagination['last_page'] ?? 1)) }}</span>
             @if(($opsPagination['current_page'] ?? 1)<($opsPagination['last_page'] ?? 1))
-                <a href="{{ route('admin.b2b.module', array_merge(['module'=>'finance'], request()->except('ops_page'), ['ops_page'=>(int)$opsPagination['current_page']+1])) }}">{{ app()->getLocale()==='ar'?'التالي':'Next' }}</a>
+                <a href="{{ route($opsRouteName, array_merge($opsRouteParams, request()->except('ops_page'), ['ops_page'=>(int)$opsPagination['current_page']+1])) }}">{{ app()->getLocale()==='ar'?'التالي':'Next' }}</a>
             @endif
         </div>
     </div>
