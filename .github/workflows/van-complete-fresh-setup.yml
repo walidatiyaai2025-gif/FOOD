@@ -773,7 +773,8 @@ jobs:
           test "$(curl -sS -o /tmp/terms.html -w '%{http_code}' http://127.0.0.1:8099/terms)" = "200"
           test "$(curl -sS -o /tmp/support.html -w '%{http_code}' http://127.0.0.1:8099/support)" = "200"
           mkdir -p "$GITHUB_WORKSPACE/ScreenShots/FreshVan"
-          cat > /tmp/capture-fresh-van.mjs <<'NODE'
+          capture_script="$GITHUB_WORKSPACE/.fresh-van-capture.mjs"
+          cat > "$capture_script" <<'NODE'
           import { chromium } from 'playwright';
 
           const base = 'http://127.0.0.1:8099';
@@ -836,7 +837,8 @@ jobs:
           await captureLocale('ar');
           await browser.close();
           NODE
-          VAN_ID="$VAN_ID" node /tmp/capture-fresh-van.mjs
+          VAN_ID="$VAN_ID" node "$capture_script"
+          rm -f "$capture_script"
           test "$(find "$GITHUB_WORKSPACE/ScreenShots/FreshVan" -type f -name '*.png' | wc -l | tr -d ' ')" -eq 24
 
           stop_server /tmp/foodex-installed-server.pid

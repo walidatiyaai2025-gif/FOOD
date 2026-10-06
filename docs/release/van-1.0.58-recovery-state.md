@@ -56,3 +56,11 @@
 - Harness fix prepared: assert the escaped HTML text.
 - Artifact publication guard correction: determine setup-delivered changes relative to the `source_commit` stored in the committed `Release/BUILD_INFO.json`, not only relative to the immediate parent. This preserves required Setup ZIP publication when an application fix is followed by a CI-only recovery commit, while still allowing final cleanup commits to avoid unnecessary artifact churn.
 - Next action: require full Fresh Setup GREEN; because backend changed since published BUILD_INFO source `72acda6fef92b04d2dba522cbd647f1ee2f1d024`, the successful run must publish regenerated release artifacts.
+
+## Follow-up from run 37466514029
+
+- Head `34dd2508224b98d043d41901c757ad254ddacb97` passed all fresh-install HTTP/API/Field Operations checks through the visual stage.
+- Exact failure: Node ESM could not resolve `playwright` because the capture module was created under `/tmp` while `playwright` was installed under the GitHub workspace.
+- Classification: deterministic test-harness module-resolution defect; application behavior had already passed up to visual capture.
+- Harness fix prepared: create and execute the temporary capture module inside `$GITHUB_WORKSPACE`, where Node can resolve the installed workspace `node_modules`, then remove it after capture.
+- Next action: require the full visual/RTL-LTR acceptance and artifact publication to pass on the next exact head.
