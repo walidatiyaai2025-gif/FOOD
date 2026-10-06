@@ -8,7 +8,7 @@ use App\Models\Invoice;
 use App\Models\User;
 use App\Models\VanVisit;
 use App\Services\CustomerDomainResolver;
-use App\Support\WholesalePrincipal;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
