@@ -163,7 +163,7 @@
                 @php($assignment = $van->assignments->firstWhere('status','active'))
                 @php($location = $locations->get($van->id))
                 <tr>
-                    <td><strong>{{ $van->code }}</strong><div class="fieldops-muted">{{ $van->plate_number ?: '—' }} · {{ $van->vehicle_type ?: '—' }}</div></td>
+                    <td><a href="{{ route('admin.field-operations.vans.show',$van) }}"><strong>{{ $van->code }}</strong></a><div class="fieldops-muted">{{ $van->plate_number ?: '—' }} · {{ $van->vehicle_type ?: '—' }}</div></td>
                     <td><span class="fieldops-status">{{ $van->status }}</span></td>
                     <td>@if($assignment)#{{ $assignment->id }} · {{ $assignment->assignment_type }}<br><span class="fieldops-muted">{{ $assignment->territory_key ?: '—' }}</span>@else—@endif</td>
                     <td>@if($location)<span class="fieldops-code">{{ number_format($location->latitude,5) }}, {{ number_format($location->longitude,5) }}</span>@else—@endif</td>
@@ -183,6 +183,34 @@
             @empty<tr><td colspan="6"><div class="foodex-ops-state">{{ $ar?'لا توجد فانات مسجلة.':'No Vans registered.' }}</div></td></tr>@endforelse
             </tbody></table></div>
             {{ $vans->links() }}
+
+        @elseif($section === 'van-detail')
+            <div class="fieldops-actions"><a href="{{ route('admin.field-operations.vans') }}">← {{ $ar?'العودة للفانات':'Back to Vans' }}</a></div>
+            <section class="fieldops-grid">
+                <article class="fieldops-card"><h2>{{ $ar?'بيانات الفان':'Van identity' }}</h2>
+                    <div class="control-row"><span>Code</span><strong>{{ $van->code }}</strong></div>
+                    <div class="control-row"><span>{{ $ar?'اللوحة':'Plate' }}</span><strong>{{ $van->plate_number ?: '—' }}</strong></div>
+                    <div class="control-row"><span>{{ $ar?'النوع':'Vehicle type' }}</span><strong>{{ $van->vehicle_type ?: '—' }}</strong></div>
+                    <div class="control-row"><span>{{ $ar?'الحالة':'Status' }}</span><span class="fieldops-status">{{ $van->status }}</span></div>
+                    <div class="control-row"><span>{{ $ar?'السعة':'Capacity' }}</span><strong>{{ $van->capacity_units ?? '—' }} / {{ $van->capacity_weight ?? '—' }}</strong></div>
+                    <div class="control-row"><span>{{ $ar?'المخزن الرئيسي':'Home warehouse' }}</span><strong>{{ $van->home_warehouse_id ? '#'.$van->home_warehouse_id : '—' }}</strong></div>
+                    @if($van->notes)<p class="fieldops-muted">{{ $van->notes }}</p>@endif
+                </article>
+                <article class="fieldops-card"><h2>{{ $ar?'صحة الموقع':'Location health' }}</h2>
+                    @if($location)
+                        <div class="control-row"><span>{{ $ar?'الحالة':'Status' }}</span><span class="fieldops-status">{{ $locationStatus }}</span></div>
+                        <div class="control-row"><span>{{ $ar?'الإحداثيات':'Coordinates' }}</span><span class="fieldops-code">{{ number_format($location->latitude,6) }}, {{ number_format($location->longitude,6) }}</span></div>
+                        <div class="control-row"><span>{{ $ar?'آخر تحديث':'Last heartbeat' }}</span><strong>{{ $location->received_at }}</strong></div>
+                        <div class="control-row"><span>{{ $ar?'المسار':'Route' }}</span><strong>{{ $location->route_key ?: '—' }}</strong></div>
+                    @else<div class="foodex-ops-state">{{ $ar?'لا يوجد موقع مستلم لهذا الفان بعد.':'No location heartbeat has been received for this Van yet.' }}</div>@endif
+                </article>
+            </section>
+            <section class="fieldops-card"><h2>{{ $ar?'سجل الإسنادات':'Assignment history' }}</h2>
+                <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'السائق':'Driver' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'النوع':'Type' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الفترة':'Window' }}</th></tr></thead><tbody>
+                @forelse($van->assignments as $a)<tr><td>{{ $a->id }}</td><td>{{ $a->driver_id ? '#'.$a->driver_id : '—' }}</td><td>{{ $a->representative_user_id ? '#'.$a->representative_user_id : '—' }}</td><td>{{ $a->territory_key ?: '—' }}</td><td>{{ $a->assignment_type }}</td><td>{{ $a->status }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
+                @empty<tr><td colspan="7">{{ $ar?'لا يوجد سجل إسنادات لهذا الفان.':'No assignment history for this Van.' }}</td></tr>@endforelse
+                </tbody></table></div>
+            </section>
 
         @elseif($section === 'assignments')
             @if($canManageVan)
@@ -315,7 +343,13 @@
         @elseif($section === 'address-quality')
             <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ $ar?'بحث':'Search' }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>Status<select name="status"><option value="">All</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ $st }}</option>@endforeach</select></label><button class="foodex-primary">{{ $ar?'تطبيق':'Apply' }}</button></form>
             <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'الموضوع':'Subject' }}</th><th>{{ $ar?'الجودة':'Quality' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
-            @forelse($reviews as $review)<tr><td>{{ $review->id }}</td><td>{{ $review->subject_type }} #{{ $review->subject_id }}</td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $review->territory_key ?: '—' }}</td><td>{{ $review->status }}</td><td>
+            @forelse($reviews as $review)<tr><td>{{ $review->id }}</td><td>{{ $review->subject_type }} #{{ $review->subject_id }}
+                <details style="margin-top:6px"><summary>{{ $ar?'التفاصيل والسجل':'Details & history' }}</summary>
+                    <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: ($ar?'لا يوجد سبب مسجل.':'No recorded reason.') }}</div>
+                    <div>{{ $ar?'المصدر':'Source' }}: {{ $review->resolution_source ?: '—' }} · {{ $ar?'حُل بواسطة':'Resolved by' }}: {{ $review->resolved_by ? '#'.$review->resolved_by : '—' }} · {{ $review->resolved_at ?: '—' }}</div>
+                    @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ $event->event_type }} · {{ $event->old_status ?: '—' }} → {{ $event->new_status }} · {{ $event->reason ?: '—' }}</div>@endforeach
+                </details>
+            </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $review->territory_key ?: '—' }}</td><td>{{ $review->status }}</td><td>
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                     @foreach(['confirm','reject','reopen'] as $action)
                     <form method="post" action="{{ route('admin.field-operations.address-quality.action',['review'=>$review,'action'=>$action]) }}">@csrf
