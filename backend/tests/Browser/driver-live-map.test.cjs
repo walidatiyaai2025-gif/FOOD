@@ -92,14 +92,14 @@ test('mixed mode merges authoritative Driver and Van feeds on one map runtime',a
     env.run();await settle();
     assert.equal(env.calls.length,2);
     assert.deepEqual(
-        env.roots[0].foodexDriverLiveMap.rows().map(row=>row.actor_type).sort(),
+        Array.from(env.roots[0].foodexDriverLiveMap.rows(),row=>row.actor_type).sort(),
         ['driver','van']
     );
     assert.equal(env.roots[0].parts['count-online'].textContent,'2');
 });
 test('mixed runtime defines visually distinct Driver and Van marker symbols',()=>{
     assert.ok(source.includes("kind === 'van' ? '🚐' : '👤'"));
-    assert.ok(source.includes('foodex-tracking-entity-marker-'+kind));
+    assert.ok(source.includes("foodex-tracking-entity-marker-'+kind"));
 });
 test('map initialization exception is visible and does not prevent the next root starting',async()=>{
     const env=setup({brokenMap:true});env.run();assert.equal(env.roots[0].dataset.liveMapError,'map-initialization');assert.equal(env.calls.length,0);
