@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "a85abfbb0a99bf4b88175326dc1e9ded8a440eefc43738e970b0019e4ef4c537",
+  "sha256": "408072018ca31e6f1d16ecd06d513417aa0e0a66c3fed23adb582ee59e288f49",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "fix(release): normalize inherited backend Pint gate",
+  "release_notes": "fix(release): satisfy Pint blank-line-before-return",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "a85abfbb0a99bf4b88175326dc1e9ded8a440eefc43738e970b0019e4ef4c537",
+    "sha256": "408072018ca31e6f1d16ecd06d513417aa0e0a66c3fed23adb582ee59e288f49",
     "contains_migrations": true,
-    "release_notes": "fix(release): normalize inherited backend Pint gate"
+    "release_notes": "fix(release): satisfy Pint blank-line-before-return"
   }
 }
