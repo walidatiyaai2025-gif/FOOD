@@ -118,6 +118,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<DriverPushOpen>? _pushOpenSubscription;
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
+  final Set<String> _seenPushAlerts = <String>{};
+  int? _lastPushAssignmentId;
   bool _inspectorOpen = false;
   String? _routeBeforeInspector;
   DriverLocationTrackingController? _locationTracking;
@@ -312,20 +314,46 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
 
   void _openFromPush(DriverPushOpen open) {
     final session = _session;
-    if (session == null) return;
+    final assignmentId = open.assignmentId;
+    if (session == null || open.accessRevoked || assignmentId == null) return;
+
     final route = session.channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
         : DriverRoutes.b2bDeliveries;
+    final navigator = _driverNavigatorKey.currentState;
+    if (navigator == null) return;
 
-    _driverNavigatorKey.currentState?.pushNamed(
-      route,
-      arguments: open.accessRevoked ? null : open.assignmentId,
-    );
+    if (_lastPushAssignmentId == assignmentId) {
+      navigator.pushReplacementNamed(route, arguments: assignmentId);
+    } else {
+      _lastPushAssignmentId = assignmentId;
+      navigator.pushNamed(route, arguments: assignmentId);
+    }
   }
 
   void _showPushAlert(DriverPushAlert alert) {
-    final message = alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
-    _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
+    if (!_seenPushAlerts.add(alert.eventKey)) return;
+    if (_seenPushAlerts.length > 50) {
+      _seenPushAlerts.remove(_seenPushAlerts.first);
+    }
+
+    final message =
+        alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
+    final context = _messengerKey.currentContext;
+    final actionable =
+        !alert.open.accessRevoked && alert.open.assignmentId != null;
+
+    _messengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: actionable
+            ? SnackBarAction(
+                label: context?.tr('driver.notifications.open') ?? 'View',
+                onPressed: () => _openFromPush(alert.open),
+              )
+            : null,
+      ),
+    );
   }
 
   Future<void> _restoreRememberedSession() async {
@@ -376,6 +404,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
   }
 
   void _sessionExpired() {
+    _seenPushAlerts.clear();
+    _lastPushAssignmentId = null;
     _disposeLocationTracking();
     _locationGateReady = false;
     final service = widget.pushService;
@@ -403,6 +433,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     }
 
     final session = _session;
+    _seenPushAlerts.clear();
+    _lastPushAssignmentId = null;
     _disposeLocationTracking();
     _locationGateReady = false;
     final service = widget.pushService;
