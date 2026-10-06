@@ -12,6 +12,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | PHP syntax damage from scripted edits | `php -l` changed files | Syntax-check every mechanically edited PHP file. |
 | PHP static type drift | `composer analyse` | Run PHPStan before the full Laravel suite. |
 | Flutter import/type/nullability errors | `flutter analyze` | Analyzer runs in fast gate before platform builds. |
+| Flutter symbol compiles conceptually but analyzer reports `creation_with_non_type` after importing a wrapper module | `flutter analyze` on changed app before tests | Dart imports are not re-exported transitively: import the file that owns the exception/model type explicitly; also replace analyzer-reported deprecated Flutter form APIs before pushing. |
 | Stale Flutter test assumptions | focused Flutter tests | Reconcile test contract with authoritative runtime/API semantics. |
 | Backend workflow test skips an authoritative state transition | focused service/feature state-machine test | Drive tests through every required transition in the canonical order; do not jump directly to a later status just to reach the assertion under test. |
 | APP-PREVIEW branch-scope violation | preview scope guard | Check allowed scope before preview build/parity. |
