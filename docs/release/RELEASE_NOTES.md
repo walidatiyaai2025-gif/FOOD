@@ -1,17 +1,17 @@
-# FOODEX 1.0.58 Release Notes
+# FOODEX 1.0.59 Release Notes
 
-Status: canonical FOODEX Van 1.0.58 consolidation — #983/#991 verified scope plus #990 store-submission readiness. Repository-controlled release; Apple/Google console/signing actions remain external.
+Status: terminal UIUX-V42 FOODEX 1.0.59 release for #1021, preserving the accepted Van/commercial scope and the completed cross-app UI/UX convergence. Repository-controlled release; Apple/Google console/signing actions remain external.
 
-Release branch: `release/1.0.58-van-complete`
+Release branch: `release/1021-uiux-v42-final-real-build`
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.58`
-- Customer app: `1.0.58+58`
-- Driver/Van app: `1.0.58+58`
-- Customer runtime/footer identity: `1.0.58`
-- Driver runtime/footer identity: `1.0.58`
-- Driver diagnostics current identity: `1.0.58`
+- Dashboard / repository release: `1.0.59`
+- Customer app: `1.0.59+58`
+- Driver/Van app: `1.0.59+58`
+- Customer runtime/footer identity: `1.0.59`
+- Driver runtime/footer identity: `1.0.59`
+- Driver diagnostics current identity: `1.0.59`
 - Driver diagnostics build identity: `58`
 
 - Production API: `https://vanfoodex.50sols.com`
