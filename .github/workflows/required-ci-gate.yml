@@ -68,7 +68,7 @@ jobs:
             driver=true
           fi
 
-          if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-mobile-prod-ux-final-acceptance$ ]]; then
+          if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-mobile-prod-ux-final-acceptance$ || "${GITHUB_HEAD_REF:-}" == "test/1011-v42-cross-app-regression" ]]; then
             mobile_prod_ux_acceptance=true
             backend=true
             customer=true
