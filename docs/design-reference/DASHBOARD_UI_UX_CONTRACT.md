@@ -440,3 +440,34 @@ For each of Customer, Driver and Van verify:
 - no plaintext password is persisted;
 - Android/iOS behavior is validated where the app supports those platforms;
 - Arabic/English labels and accessibility are covered.
+
+
+---
+
+## 16. Main Dashboard live tracking map - Drivers + Vans
+
+The first/main Dashboard map is a **Live Tracking** map for both Drivers and Vans.
+
+UI wording should be business-readable and generic:
+
+- Arabic: **التتبع الحي**
+- English: **Live Tracking**
+
+Do not label the map as Driver-only when it displays both entity types.
+
+### 16.1 Marker types
+
+- A **Driver** is represented by a clear person/driver icon.
+- A **Van** is represented by a clear vehicle/van icon.
+- The two marker types must be visually distinct at a glance.
+- Each marker appears at the entity's latest valid known/live geographic position.
+- Clicking/tapping a marker opens the relevant entity context/details directly where supported.
+
+### 16.2 Map usability and truthfulness
+
+- Include a compact legend explaining Driver vs Van markers.
+- Preserve FOODEX visual identity.
+- Do not expose raw IDs, coordinates, keys or technical map data to business users.
+- Where useful, provide compact filters for **Drivers / Vans / Both**.
+- Offline/stale/no-location states must be explicit; never present stale coordinates as live.
+- The map must prioritize operating visibility over decorative UI and should use the available map area efficiently.
