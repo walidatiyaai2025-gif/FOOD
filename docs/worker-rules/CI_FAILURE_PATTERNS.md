@@ -30,4 +30,6 @@ This registry records reusable failure classes. It is prevention guidance, not a
 
 | Integration-train PR falsely blocked by main-only release identity gate | PR base-ref check in repository policy | Run post-merge-main release identity validation only when the PR base is `main`; integration-train PRs retain normal repository/runtime validation without allocating a release version. |
 
+| Generated Flutter Android app keeps default `flutter create` label | Native identity smoke check (`aapt dump badging`) after scaffold configuration | `configure-mobile-native.py` must set the approved Android `application` label together with bundle ID/branding for every mobile app before release validation. |
+
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
