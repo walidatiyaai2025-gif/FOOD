@@ -11,6 +11,7 @@
         'overview' => [$ar ? 'مركز عمليات الفان' : 'Van & Field Operations', $ar ? 'لوحة تحكم تشغيلية تجمع الأسطول والزيارات والمناطق والتحصيل في مكان واحد.' : 'Operational control center for fleet, visits, territories and field finance.'],
         'fleet' => [$ar ? 'خريطة الأسطول الحية' : 'Live Fleet Map', $ar ? 'الموقع الحالي للفانات وحالة آخر اتصال والإسناد والمسار.' : 'Current Van positions, heartbeat health, assignment and route context.'],
         'vans' => [$ar ? 'الفانات' : 'Vans', $ar ? 'سجل الفانات وحالتها التشغيلية وآخر إسناد وموقع.' : 'Van registry, operational state, latest assignment and location health.'],
+        'van-detail' => [$ar ? 'تفاصيل الفان' : 'Van Details', $ar ? 'الهوية والحالة والموقع وسجل الإسنادات للفان المحدد.' : 'Identity, operational state, location health and assignment history for the selected Van.'],
         'assignments' => [$ar ? 'إسنادات الفانات' : 'Van Assignments', $ar ? 'إدارة ربط الفان بالسائق أو المندوب والمنطقة والمخزن.' : 'Manage Van-to-driver/operator, territory and warehouse assignments.'],
         'customers' => [$ar ? 'عملاء الفان' : 'Van Customers', $ar ? 'العلاقة الفعلية بين العميل والزيارة والمشغل والفان والمنطقة.' : 'Canonical customer-to-visit/operator/Van/territory relationship view.'],
         'visits' => [$ar ? 'الزيارات والمسارات' : 'Visits & Routes', $ar ? 'خطط الزيارات ومتابعة دورة الحياة ونتائج عدم الطلب.' : 'Plan visits and manage lifecycle, route context and no-order outcomes.'],
