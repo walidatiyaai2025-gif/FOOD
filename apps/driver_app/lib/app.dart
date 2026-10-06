@@ -597,6 +597,32 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
                   ),
                 ),
               ),
+              if (!widget.showPersistentFooter)
+                PositionedDirectional(
+                  end: 8,
+                  bottom: 8,
+                  child: SafeArea(
+                    top: false,
+                    child: Semantics(
+                      button: true,
+                      label: translatedContext.tr('driver.inspector.open'),
+                      child: IconButton.filledTonal(
+                      key: const Key('driver-floating-inspector'),
+                      onPressed: () {
+                        _routeBeforeInspector =
+                            DriverRuntimeInspector.instance.lastRoute ??
+                                (_session == null
+                                    ? 'driver.login'
+                                    : widget.initialRoute);
+                        DriverRuntimeInspector.instance
+                            .recordNavigation('driver.inspector');
+                        setState(() => _inspectorOpen = true);
+                      },
+                      icon: const Icon(Icons.bug_report_outlined),
+                      ),
+                    ),
+                  ),
+                ),
               if (_inspectorOpen)
                 Positioned.fill(
                   child: DriverInspectorPanel(
