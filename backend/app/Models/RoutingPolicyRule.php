@@ -5,6 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property array<string, mixed> $conditions
+ * @property array<string, mixed> $actions
+ * @property bool $enabled
+ */
 class RoutingPolicyRule extends Model
 {
     protected $guarded = [];

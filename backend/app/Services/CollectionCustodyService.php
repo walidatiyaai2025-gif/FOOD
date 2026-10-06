@@ -205,6 +205,66 @@ final class CollectionCustodyService
         });
     }
 
+    public function rejectRemittance(Remittance $remittance, User $actor): Remittance
+    {
+        return DB::transaction(function () use ($remittance, $actor): Remittance {
+            $locked = Remittance::query()->whereKey($remittance->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === 'rejected') {
+                return $locked;
+            }
+            if ($locked->status !== 'pending') {
+                throw ValidationException::withMessages(['status' => ['Only pending remittances can be rejected.']]);
+            }
+
+            $locked->forceFill([
+                'status' => 'rejected',
+                'reviewed_by' => $actor->getKey(),
+                'reviewed_at' => now(),
+            ])->save();
+
+            return $locked->fresh();
+        });
+    }
+
+    public function reconcileRemittance(Remittance $remittance, User $actor): Remittance
+    {
+        return DB::transaction(function () use ($remittance, $actor): Remittance {
+            $locked = Remittance::query()->whereKey($remittance->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === 'reconciled') {
+                return $locked;
+            }
+            if ($locked->status !== 'approved') {
+                throw ValidationException::withMessages(['status' => ['Only approved remittances can be reconciled.']]);
+            }
+
+            $account = CollectionAccount::query()->whereKey($locked->collection_account_id)->lockForUpdate()->firstOrFail();
+            $this->assertAccountCurrency($account, (string) $locked->currency);
+
+            $approvedEntryExists = CustodyLedgerEntry::query()
+                ->where('collection_account_id', $account->getKey())
+                ->where('entry_type', 'approved_remittance')
+                ->where('reference_type', Remittance::class)
+                ->where('reference_id', $locked->getKey())
+                ->exists();
+
+            if (! $approvedEntryExists) {
+                throw ValidationException::withMessages([
+                    'status' => ['Approved remittance custody evidence is missing and cannot be reconciled.'],
+                ]);
+            }
+
+            $locked->forceFill([
+                'status' => 'reconciled',
+                'reviewed_by' => $actor->getKey(),
+                'reviewed_at' => now(),
+            ])->save();
+
+            return $locked->fresh();
+        });
+    }
+
     public function custodyBalance(CollectionAccount $account): float
     {
         return (float) CustodyLedgerEntry::query()

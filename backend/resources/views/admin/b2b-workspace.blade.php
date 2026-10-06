@@ -421,6 +421,7 @@
               : 'Exports use the same filters and visible result set. With no matches, a valid file is generated with filter context and headers but no data rows.' }}
         </div>
       </div>
+      @include('admin._field-operations-finance', ['fieldFinance' => $moduleData['field_operations'] ?? []])
       @endif
 
       @if($module==='storefront')
