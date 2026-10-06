@@ -11,7 +11,10 @@ use App\Models\Payment;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2cCustomerService;
+use App\Services\CommercialPolicyService;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\DriverOrderService;
+use App\Services\InvoiceService;
 use App\Services\NotificationAudience;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -293,6 +296,126 @@ class DriverInvoiceNotificationTest extends TestCase
                 ->assertJsonPath('data.order.settlement.payment_state', 'partially_settled')
                 ->assertJsonPath('data.order.settlement.amount_to_collect_now', $case['collect']);
         }
+    }
+
+    public function test_commercial_selling_unit_flows_through_quota_invoice_and_driver_pick_payload(): void
+    {
+        $storeId = $this->store('COMMERCIAL-OPS');
+        $customer = app(B2cCustomerService::class)->create($storeId, [
+            'name' => 'Commercial Ops Buyer',
+            'email' => 'commercial-ops@example.test',
+        ]);
+        $productId = $this->product($storeId, 'OPS-SKU');
+
+        DB::table('product_selling_units')->insert([
+            'product_id' => $productId,
+            'code' => 'CARTON',
+            'name' => 'Carton',
+            'conversion_factor' => 10,
+            'price' => 7,
+            'sku' => 'OPS-CARTON',
+            'barcode' => '1234567890123',
+            'is_base' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $order = Order::query()->create([
+            'store_id' => $storeId,
+            'customer_id' => $customer->legacy_customer_id,
+            'b2c_customer_id' => $customer->id,
+            'order_number' => 'COMM-OPS-1',
+            'channel' => 'b2c',
+            'status' => 'ready',
+            'currency' => 'KWD',
+            'subtotal' => 14,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'tax_total' => 0,
+            'grand_total' => 14,
+            'payment_method' => 'cash_on_delivery',
+        ]);
+
+        $commercial = app(CommercialPolicyService::class);
+        $reservation = $commercial->reserveForOrder(
+            (int) $order->id,
+            (int) $customer->legacy_customer_id,
+            $productId,
+            'CARTON',
+            2,
+            'van',
+        );
+
+        $this->assertSame(20.0, (float) $reservation['base_quantity']);
+        $this->assertDatabaseHas('commercial_quota_reservations', [
+            'order_id' => $order->id,
+            'product_id' => $productId,
+            'customer_id' => $customer->legacy_customer_id,
+            'base_quantity' => 20,
+            'status' => CommercialPolicyService::RESERVATION_RESERVED,
+        ]);
+
+        $itemId = (int) DB::table('order_items')->insertGetId([
+            'order_id' => $order->id,
+            'product_id' => $productId,
+            'sku_snapshot' => 'OPS-SKU',
+            'name_snapshot' => 'Commercial item',
+            'quantity' => 2,
+            'unit_price' => 7,
+            'line_total' => 14,
+            'currency' => 'KWD',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $commercial->snapshotOrderItem($itemId, $reservation['selling_unit']);
+
+        Payment::query()->create([
+            'order_id' => $order->id,
+            'provider' => 'cash_on_delivery',
+            'status' => 'pending',
+            'amount' => 14,
+            'currency' => 'KWD',
+        ]);
+
+        $invoice = app(InvoiceService::class)->issueForOrder($order);
+        $invoiceLine = DB::table('invoice_items')
+            ->where('invoice_id', $invoice->id)
+            ->firstOrFail();
+        $snapshot = json_decode((string) $invoiceLine->line_snapshot, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('CARTON', $snapshot['selling_unit_code']);
+        $this->assertSame('Carton', $snapshot['selling_unit_name']);
+        $this->assertSame(2.0, (float) $snapshot['selling_unit_quantity']);
+        $this->assertSame(20.0, (float) $snapshot['base_quantity']);
+        $this->assertSame(10.0, (float) $snapshot['conversion_factor']);
+        $this->assertSame('OPS-CARTON', $snapshot['selling_unit_sku']);
+
+        $driverUser = $this->roleUser('B2C_DRIVER', 'commercial-ops-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $assignment = DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+
+        $payload = app(DriverOrderService::class)->payload($assignment);
+        $pick = $payload['order']['items'][0];
+
+        $this->assertSame(2.0, (float) $pick['quantity']);
+        $this->assertSame(20.0, (float) $pick['base_quantity']);
+        $this->assertSame(10.0, (float) $pick['quantity_conversion_factor']);
+        $this->assertSame('CARTON', $pick['selling_unit_code']);
+        $this->assertSame('Carton', $pick['selling_unit_name']);
     }
 
     public function test_retail_operational_notifications_are_store_scoped_deduplicated_and_have_authorized_deep_links(): void
