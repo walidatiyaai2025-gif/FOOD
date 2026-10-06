@@ -96,6 +96,13 @@ final class DriverOrderService
                 'order_items.name_snapshot',
                 'order_items.quantity',
                 'order_items.quantity_conversion_factor',
+                'order_items.selling_unit_code_snapshot',
+                'order_items.selling_unit_name_snapshot',
+                'order_items.selling_unit_quantity',
+                'order_items.base_quantity',
+                'order_items.conversion_factor_snapshot',
+                'order_items.selling_unit_sku_snapshot',
+                'order_items.selling_unit_barcode_snapshot',
                 'order_items.pack_size_snapshot',
                 'order_items.case_size_snapshot',
                 'order_items.unit_price',
@@ -114,9 +121,24 @@ final class DriverOrderService
                 $conversionFactor = (float) ($item->quantity_conversion_factor ?? 1);
                 $packSize = $item->pack_size_snapshot === null ? null : (float) $item->pack_size_snapshot;
                 $caseSize = $item->case_size_snapshot === null ? null : (float) $item->case_size_snapshot;
-                $unitName = trim((string) ($item->unit_name ?? ''));
-                $unitCode = trim((string) ($item->unit_code ?? ''));
+                $unitName = trim((string) ($item->selling_unit_name_snapshot ?? ''));
+                $unitCode = trim((string) ($item->selling_unit_code_snapshot ?? ''));
+                if ($unitName === '') {
+                    $unitName = trim((string) ($item->unit_name ?? ''));
+                }
+                if ($unitCode === '') {
+                    $unitCode = trim((string) ($item->unit_code ?? ''));
+                }
                 $unit = $unitName !== '' ? $unitName : $unitCode;
+                $sellingQuantity = $item->selling_unit_quantity === null
+                    ? (float) $item->quantity
+                    : (float) $item->selling_unit_quantity;
+                $baseQuantity = $item->base_quantity === null
+                    ? (float) $item->quantity
+                    : (float) $item->base_quantity;
+                $commercialConversion = $item->conversion_factor_snapshot === null
+                    ? $conversionFactor
+                    : (float) $item->conversion_factor_snapshot;
 
                 return [
                     'product_id' => (int) $item->product_id,
@@ -124,8 +146,13 @@ final class DriverOrderService
                     'name' => (string) $item->name_snapshot,
                     'image_url' => $imageUrl,
                     'variant' => null,
-                    'quantity' => (float) $item->quantity,
-                    'quantity_conversion_factor' => $conversionFactor,
+                    'quantity' => $sellingQuantity,
+                    'base_quantity' => $baseQuantity,
+                    'quantity_conversion_factor' => $commercialConversion,
+                    'selling_unit_code' => $unitCode !== '' ? $unitCode : null,
+                    'selling_unit_name' => $unitName !== '' ? $unitName : null,
+                    'selling_unit_sku' => $item->selling_unit_sku_snapshot,
+                    'selling_unit_barcode' => $item->selling_unit_barcode_snapshot,
                     'pack_size' => $packSize,
                     'case_size' => $caseSize,
                     'unit' => $unit,
