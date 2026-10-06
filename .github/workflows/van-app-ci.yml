@@ -38,3 +38,52 @@ jobs:
           if (("${#tests[@]}" > 0)); then
             flutter test "${tests[@]}"
           fi
+
+
+  android:
+    name: Van Android Firebase validation
+    needs: fast
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/van_app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Prepare Android scaffolding and FOODEX Van identity
+        run: |
+          flutter create --platforms=android --project-name foodex_van_app .
+          python3 ../../scripts/configure-mobile-native.py --app van --app-dir . --platform android
+
+      - name: Remove generated default widget test
+        run: rm -f test/widget_test.dart
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build Android release validation APK
+        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
+
+      - name: Verify Van package, Firebase config and notification permission
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          test -f android/app/google-services.json
+          grep -F '"package_name": "com.foodex.van"' android/app/google-services.json
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$aapt_bin"
+          "$aapt_bin" dump badging "$apk" > build/release-badging.txt
+          grep -F "package: name='com.foodex.van'" build/release-badging.txt
+          grep -F "application-label:'FOODEX Van'" build/release-badging.txt
+          "$aapt_bin" dump permissions "$apk" > build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.INTERNET'" build/release-permissions.txt
+          grep -Fx "uses-permission: name='android.permission.POST_NOTIFICATIONS'" build/release-permissions.txt
