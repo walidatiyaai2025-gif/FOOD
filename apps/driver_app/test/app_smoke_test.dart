@@ -54,4 +54,14 @@ void main() {
     );
     expect(directionality.textDirection, TextDirection.ltr);
   });
+  testWidgets('dashboard can remove persistent driver footer while diagnostics remain reachable',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexDriverApp(showPersistentFooter: false),
+    );
+
+    expect(find.byKey(const Key('driver-app-version-footer')), findsNothing);
+    expect(find.byKey(const Key('driver-floating-inspector')), findsOneWidget);
+  });
+
 }
