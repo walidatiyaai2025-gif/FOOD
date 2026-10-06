@@ -72,6 +72,8 @@ return [
         'drivers.b2c.manage' => 'Manage Retail drivers and delivery operations',
         'deliveries.b2b.execute' => 'Execute B2B delivery assignments',
         'deliveries.b2c.execute' => 'Execute Retail delivery assignments',
+        'van.login' => 'Use the Van application runtime',
+        'van.support.view' => 'View sanitized Van runtime support diagnostics',
     ],
 
     'roles' => [
