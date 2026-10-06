@@ -26,7 +26,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 
 <form class="runtime-picker" method="get" action="{{ route('admin.mobile-settings.index') }}">
 <div class="row">
-<div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer" @selected($selectedApp==='customer')>{{ $ar?'العميل':'Customer' }}</option><option value="driver" @selected($selectedApp==='driver')>{{ $ar?'السائق':'Driver' }}</option></select></div>
+<div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer" @selected($selectedApp==='customer')>{{ $ar?'العميل':'Customer' }}</option><option value="driver" @selected($selectedApp==='driver')>{{ $ar?'السائق':'Driver' }}</option><option value="van" @selected($selectedApp==='van')>{{ $ar?'الفان':'Van' }}</option></select></div>
 <div><label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development" @selected($selectedEnvironment==='development')>{{ $ar?'تطوير':'Development' }}</option><option value="staging" @selected($selectedEnvironment==='staging')>{{ $ar?'اختبار':'Staging' }}</option><option value="production" @selected($selectedEnvironment==='production')>{{ $ar?'إنتاج':'Production' }}</option></select></div>
 </div>
 <button class="button secondary" type="submit">{{ $ar?'تحميل الإعداد المحفوظ':'Load saved setting' }}</button>
@@ -136,7 +136,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <section class="card">
 <h2>{{ __('mobile_settings.push_title') }}</h2>
 <form method="post" action="{{ route('admin.mobile-settings.push') }}">@csrf @method('put')
-<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ $ar?'العميل':'Customer' }}</option><option value="driver">{{ $ar?'السائق':'Driver' }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">{{ $ar?'أندرويد / إشعارات فايربيز':'Android / FCM' }}</option><option value="ios">{{ $ar?'آي أو إس / إشعارات فايربيز':'iOS / FCM (APNs)' }}</option></select></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ $ar?'العميل':'Customer' }}</option><option value="driver">{{ $ar?'السائق':'Driver' }}</option><option value="van">{{ $ar?'الفان':'Van' }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">{{ $ar?'أندرويد / إشعارات فايربيز':'Android / FCM' }}</option><option value="ios">{{ $ar?'آي أو إس / إشعارات فايربيز':'iOS / FCM (APNs)' }}</option></select></div></div>
 <label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development">{{ $ar?'تطوير':'Development' }}</option><option value="staging">{{ $ar?'اختبار':'Staging' }}</option><option value="production" selected>{{ $ar?'إنتاج':'Production' }}</option></select>
 <label class="check"><input type="checkbox" name="enabled" value="1">{{ __('mobile_settings.enabled') }}</label>
 <label>{{ __('mobile_settings.credentials') }}</label><textarea name="credentials_json" placeholder="{{ $ar?'ألصق Service Account JSON من Firebase / Google Cloud ويشمل project_id و client_email و private_key':'Paste the Firebase / Google Cloud Service Account JSON including project_id, client_email and private_key' }}"></textarea>
