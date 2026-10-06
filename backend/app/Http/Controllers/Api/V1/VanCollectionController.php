@@ -321,7 +321,7 @@ final class VanCollectionController extends Controller
         };
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /** @return Collection<int,array{id:int,number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}> */
     private function openInvoices(
         string $type,
         int $customer,
