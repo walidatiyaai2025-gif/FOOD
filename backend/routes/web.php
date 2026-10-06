@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -123,6 +124,34 @@ Route::prefix('admin')
         Route::delete('/app-preview/sessions/{sessionId}', [AppPreviewController::class, 'destroySession'])
             ->whereUuid('sessionId')
             ->name('app-preview.sessions.destroy');
+        Route::prefix('field-operations')->name('field-operations.')->group(function (): void {
+            Route::get('/', [FieldOperationsController::class, 'overview'])->name('overview');
+            Route::get('/fleet-map', [FieldOperationsController::class, 'fleet'])->name('fleet');
+            Route::get('/fleet-map/feed', [FieldOperationsController::class, 'fleetFeed'])->name('fleet.feed');
+            Route::get('/vans', [FieldOperationsController::class, 'vans'])->name('vans');
+            Route::post('/vans', [FieldOperationsController::class, 'storeVan'])->name('vans.store');
+            Route::post('/vans/{van}/suspend', [FieldOperationsController::class, 'suspendVan'])->whereNumber('van')->name('vans.suspend');
+            Route::get('/assignments', [FieldOperationsController::class, 'assignments'])->name('assignments');
+            Route::post('/vans/{van}/assignments', [FieldOperationsController::class, 'storeAssignment'])->whereNumber('van')->name('assignments.store');
+            Route::get('/customers', [FieldOperationsController::class, 'customers'])->name('customers');
+            Route::get('/visits', [FieldOperationsController::class, 'visits'])->name('visits');
+            Route::post('/visits', [FieldOperationsController::class, 'storeVisit'])->name('visits.store');
+            Route::post('/visits/{visit}/transition', [FieldOperationsController::class, 'transitionVisit'])->whereNumber('visit')->name('visits.transition');
+            Route::get('/territories', [FieldOperationsController::class, 'territories'])->name('territories');
+            Route::post('/geography', [FieldOperationsController::class, 'storeGeography'])->name('geography.store');
+            Route::post('/territories', [FieldOperationsController::class, 'storeTerritory'])->name('territories.store');
+            Route::post('/territories/{territory}/geometry', [FieldOperationsController::class, 'storeGeometry'])->whereNumber('territory')->name('territories.geometry.store');
+            Route::get('/address-quality', [FieldOperationsController::class, 'addressQuality'])->name('address-quality');
+            Route::post('/address-quality/{review}/{action}', [FieldOperationsController::class, 'addressAction'])
+                ->whereNumber('review')->whereIn('action', ['confirm', 'reject', 'reopen'])->name('address-quality.action');
+            Route::get('/routing-policies', [FieldOperationsController::class, 'routingPolicies'])->name('routing');
+            Route::post('/routing-policies', [FieldOperationsController::class, 'storeRoutingPolicy'])->name('routing.store');
+            Route::post('/routing-policies/{routingPolicy}/{action}', [FieldOperationsController::class, 'routingAction'])
+                ->whereNumber('routingPolicy')->whereIn('action', ['publish', 'simulate', 'rollback'])->name('routing.action');
+            Route::get('/finance', [FieldOperationsController::class, 'finance'])->name('finance');
+            Route::post('/finance/remittances/{remittance}/{action}', [FieldOperationsController::class, 'reviewRemittance'])
+                ->whereNumber('remittance')->whereIn('action', ['approve', 'reject', 'reconcile'])->name('finance.remittances.review');
+        });
         Route::get('/driver-live-tracking', [DriverLiveTrackingDashboardController::class, 'index'])->name('driver-live-tracking.index');
         Route::get('/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed'])->name('driver-live-tracking.feed');
         Route::get('/driver-live-tracking/assignments/{assignment}/evidence', [DriverLiveTrackingDashboardController::class, 'evidence'])
