@@ -15,6 +15,7 @@ const {
   linkedIssueNumbers,
   parseWorkerState,
   statusLabel,
+  targetIssueNumbersFromContext,
   summarizeCheckRuns,
   summarizeCommitStatuses,
   summarizeWorkflowRuns,
@@ -66,10 +67,41 @@ NEXT_ACTION: inspect failed Driver tests
   });
 });
 
-test('extracts only closing-linked issues from PR body', () => {
+test('extracts only owned issue links from PR body', () => {
   assert.deepEqual(
-    linkedIssueNumbers('Parent #589\nCloses #591\nFixes #592\nRelated #512'),
-    [591, 592],
+    linkedIssueNumbers('Parent #589\nCloses #591\nFixes #592\nImplements #990\nRelated #512'),
+    [591, 592, 990],
+  );
+});
+
+test('targets direct issue events without repository-wide scanning', () => {
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'issue_comment',
+      payload: { issue: { number: 990 } },
+    }),
+    [990],
+  );
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'issues',
+      payload: { issue: { number: 936 } },
+    }),
+    [936],
+  );
+});
+
+test('targets pull request ownership links for recent commercial lanes', () => {
+  assert.deepEqual(
+    targetIssueNumbersFromContext({
+      eventName: 'pull_request_target',
+      payload: {
+        pull_request: {
+          body: 'Implements #989 under parent #983. Related #984.',
+        },
+      },
+    }),
+    [989],
   );
 });
 
@@ -476,6 +508,8 @@ test('watchdog workflow bounds queue fan-out and suppresses self-trigger cascade
   assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /types: \[completed\]/);
+  assert.match(workflow, /"FOODEX Required CI Gate"/);
+  assert.doesNotMatch(workflow, /- "Repository Policy"/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*requested[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*in_progress[^\]]*\]/);
   assert.doesNotMatch(workflow, /types: \[[^\]]*labeled[^\]]*\]/);
@@ -490,8 +524,7 @@ test('watchdog workflow bounds queue fan-out and suppresses self-trigger cascade
   // Comments written by the watchdog itself are no-op runs with isolated keys:
   // they neither execute the job nor cancel the parent reconciliation.
   assert.match(workflow, /worker-watchdog-self-\{0\}/);
-  assert.match(
-    workflow,
-    /if: \$\{\{ github\.event_name != 'issue_comment' \|\| !contains\(github\.event\.comment\.body, '<!-- foodex-watchdog:'\) \}\}/,
-  );
+  assert.match(workflow, /github\.event_name != 'workflow_run'/);
+  assert.match(workflow, /github\.event\.workflow_run\.event == 'pull_request'/);
+  assert.match(workflow, /contains\(github\.event\.comment\.body, '<!-- foodex-watchdog:'\)/);
 });
