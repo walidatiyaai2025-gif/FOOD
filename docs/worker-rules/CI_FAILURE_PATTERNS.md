@@ -23,7 +23,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Nested Required CI child red while top-level checks look green | required gate child inspection | Read all applicable child jobs; one red means not ready. |
 | New mobile app path is absent from Required CI changed-area detection | `required-ci-gate` may look green while app analyzer/tests never run | Wire every first-class mobile app into a dedicated reusable CI workflow and the Required CI detector/gate before the lane can be considered complete. |
 | Main branch drift | exact-head/base comparison | Revalidate against current main before readiness/merge. |
-| Stale release artifact | SHA manifest/checksum | Artifacts must identify and match final validated head SHA. |
+| Stale release artifact | release-registry validation + SHA manifest/checksum | Dashboard update `target_version` must equal `VERSION`, and manifest/checksum/registry SHA-256 values must match the exact package bytes on the validated head. |
 | Repeated identical CI failure across pushes | failure fingerprint | Reproduce locally before another push; promote rule/check. |
 | Dependency/lockfile accidental drift | diff preflight | Reject unrelated lockfile changes and implicit upgrades. |
 | Flaky time/random/order test | deterministic test setup | Freeze clock/seed/state; do not rerun-until-green. |
@@ -32,5 +32,6 @@ This registry records reusable failure classes. It is prevention guidance, not a
 
 | Partial release identity sync: VERSION/pubspec updated but Customer/Driver runtime `_appVersion` remains previous release | `bash scripts/release-readiness.sh` | Treat version bump as atomic; synchronize root, mobile build, visible/runtime, notes and changelog identities before push. |
 | Release readiness exits silently with no invariant name | named assertion output in release readiness | Release validators must print the exact failed invariant/value pair so workers can fix first-pass failures quickly. |
+| Release validator hard-codes one production origin/database while an approved release train uses another documented production target | `bash scripts/release-readiness.sh` against the release branch | Read the non-secret production origin/database/username from `backend/.env.production.example`, require documented configuration parity, and require Customer/Driver runtime defaults to match that same origin; do not weaken secret/signing checks. |
 
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
