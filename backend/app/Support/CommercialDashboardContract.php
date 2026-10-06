@@ -4,7 +4,7 @@ namespace App\Support;
 
 final class CommercialDashboardContract
 {
-    public const MODE_CONTRACT_PENDING = 'contract-pending';
+    public const MODE_CONTRACT_LIVE = 'contract-live';
 
     /** @var list<string> */
     public const REASON_CODES = [
@@ -30,7 +30,7 @@ final class CommercialDashboardContract
     public static function salesControlSurface(): array
     {
         return [
-            'mode' => self::MODE_CONTRACT_PENDING,
+            'mode' => self::MODE_CONTRACT_LIVE,
             'title' => 'Product Sales Control',
             'contract' => 'canonical-commercial-policy',
             'sections' => [
@@ -55,7 +55,7 @@ final class CommercialDashboardContract
     public static function flashOffersSurface(): array
     {
         return [
-            'mode' => self::MODE_CONTRACT_PENDING,
+            'mode' => self::MODE_CONTRACT_LIVE,
             'title' => 'Flash Offers',
             'contract' => 'canonical-flash-offer',
             'sections' => [
