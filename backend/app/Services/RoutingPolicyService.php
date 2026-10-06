@@ -228,6 +228,10 @@ final class RoutingPolicyService
             'mode_resolution' => $mode,
             'result' => $result,
             'evaluated_rules' => $evaluated,
+            'matched_rules' => array_values(array_filter(
+                $evaluated,
+                fn (array $rule): bool => $rule['matched'],
+            )),
             'warnings' => [],
         ];
     }
