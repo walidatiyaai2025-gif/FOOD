@@ -1,6 +1,7 @@
 @php
     $liveMapMode = $liveMapMode ?? 'full';
     $trackingActor = $trackingActor ?? 'driver';
+    $secondaryFeedUrl = $secondaryFeedUrl ?? null;
     $showFilters = $showFilters ?? true;
     $showList = $showList ?? true;
     $showSummary = $showSummary ?? true;
@@ -33,10 +34,17 @@
         'accuracy' => __('admin.driver_live_tracking.accuracy'),
         'speed' => __('admin.driver_live_tracking.speed'),
         'lastSeen' => __('admin.driver_live_tracking.last_seen'),
-        'entitySingular' => $trackingActor === 'van' ? ($ar ?? false ? 'فان' : 'Van') : __('admin.driver_live_tracking.driver'),
-        'entities' => $trackingActor === 'van' ? ($ar ?? false ? 'الفانات' : 'Vans') : __('admin.driver_live_tracking.drivers'),
-        'entityId' => $trackingActor === 'van' ? ($ar ?? false ? 'رقم الفان' : 'Van ID') : __('admin.driver_live_tracking.driver_id'),
-        'route' => $trackingActor === 'van' ? ($ar ?? false ? 'المسار' : 'Route') : __('admin.driver_live_tracking.order'),
+        'driver' => __('admin.driver_live_tracking.driver'),
+        'van' => __('admin.driver_live_tracking.van'),
+        'entityType' => __('admin.driver_live_tracking.entity_type'),
+        'allEntities' => __('admin.driver_live_tracking.all_entities'),
+        'assignment' => __('admin.driver_live_tracking.assignment'),
+        'entitySingular' => $trackingActor === 'van' ? __('admin.driver_live_tracking.van') : __('admin.driver_live_tracking.driver'),
+        'entities' => $trackingActor === 'mixed'
+            ? __('admin.driver_live_tracking.entities')
+            : ($trackingActor === 'van' ? __('admin.driver_live_tracking.vans') : __('admin.driver_live_tracking.drivers')),
+        'entityId' => $trackingActor === 'van' ? __('admin.driver_live_tracking.van_id') : __('admin.driver_live_tracking.driver_id'),
+        'route' => __('admin.driver_live_tracking.route'),
     ];
 @endphp
 
@@ -46,6 +54,7 @@
     data-mode="{{ $liveMapMode }}"
     data-show-list="{{ $showList ? '1' : '0' }}"
     data-feed-url="{{ $feedUrl }}"
+    data-secondary-feed-url="{{ $secondaryFeedUrl ?? '' }}"
     data-poll-ms="{{ $pollMs }}"
     data-actor-kind="{{ $trackingActor }}"
     data-assets-failed="{{ __('admin.driver_live_tracking.assets_failed') }}"
@@ -63,6 +72,15 @@
                     </select>
                 </label>
                 <label>{{ __('admin.driver_live_tracking.store_id') }}<input data-live-map="store" type="number" min="1" inputmode="numeric"></label>
+                @if($trackingActor === 'mixed')
+                    <label>{{ __('admin.driver_live_tracking.entity_type') }}
+                        <select data-live-map="entity-type">
+                            <option value="">{{ __('admin.driver_live_tracking.all_entities') }}</option>
+                            <option value="driver">{{ __('admin.driver_live_tracking.drivers') }}</option>
+                            <option value="van">{{ __('admin.driver_live_tracking.vans') }}</option>
+                        </select>
+                    </label>
+                @endif
                 <label>{{ __('admin.driver_live_tracking.status') }}
                     <select data-live-map="status-filter">
                         <option value="">{{ __('admin.driver_live_tracking.all_statuses') }}</option>
@@ -72,9 +90,9 @@
                     </select>
                 </label>
                 @if($trackingActor === 'van')
-                    <label>{{ $trackingI18n['entityId'] ?? 'Van ID' }}<input data-live-map="actor-id" type="number" min="1" inputmode="numeric"></label>
-                    <label>{{ $trackingI18n['route'] ?? 'Route' }}<input data-live-map="route-key" type="text"></label>
-                @else
+                    <label>{{ $trackingI18n['entityId'] }}<input data-live-map="actor-id" type="number" min="1" inputmode="numeric"></label>
+                    <label>{{ $trackingI18n['route'] }}<input data-live-map="route-key" type="text"></label>
+                @elseif($trackingActor === 'driver')
                     <label>{{ __('admin.driver_live_tracking.driver_id') }}<input data-live-map="driver-id" type="number" min="1" inputmode="numeric"></label>
                     <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
                 @endif
@@ -125,6 +143,12 @@
                 data-map-library="leaflet-1.9.4"
             ></div>
 
+            @if($trackingActor === 'mixed')
+                <div class="tracking-entity-legend" aria-label="{{ __('admin.driver_live_tracking.entity_type') }}">
+                    <span><span class="tracking-entity-symbol" aria-hidden="true">👤</span>{{ __('admin.driver_live_tracking.drivers') }}</span>
+                    <span><span class="tracking-entity-symbol" aria-hidden="true">🚐</span>{{ __('admin.driver_live_tracking.vans') }}</span>
+                </div>
+            @endif
             <div class="tracking-status tracking-last-updated">
                 {{ __('admin.driver_live_tracking.last_updated') }}:
                 <span data-live-map="updated">—</span>

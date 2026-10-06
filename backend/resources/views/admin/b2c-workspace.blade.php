@@ -339,6 +339,8 @@
                 <article class="panel dashboard-live-map-card" data-dashboard-primary-card="driver-map" data-dashboard-live-driver-map>
                     @include('admin._driver-live-map', [
                         'feedUrl' => $driverTrackingFeedUrl,
+                        'secondaryFeedUrl' => $vanTrackingFeedUrl,
+                        'trackingActor' => 'mixed',
                         'liveMapMode' => 'compact',
                         'showFilters' => false,
                         'showList' => false,
