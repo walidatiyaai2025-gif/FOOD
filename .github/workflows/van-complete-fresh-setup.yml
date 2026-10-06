@@ -481,7 +481,7 @@ jobs:
 
           test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json'             -o /tmp/van-flash.json -w '%{http_code}'             "http://127.0.0.1:8099/api/v1/van/customers/b2c/$CUSTOMER_ID/flash-offers?store_id=$STORE_ID")" = "200"
 
-          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json'             -o /tmp/van-quote.json -w '%{http_code}' -X POST             --data "{"store_id":$STORE_ID,"product_id":$PRODUCT_ID,"selling_unit_code":"EA","quantity":1}"             "http://127.0.0.1:8099/api/v1/van/customers/b2c/$CUSTOMER_ID/commercial/quote")" = "200"
+          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json'             -o /tmp/van-quote.json -w '%{http_code}' -X POST             --data "$(printf '{\"store_id\":%s,\"product_id\":%s,\"selling_unit_code\":\"EA\",\"quantity\":1}' "$STORE_ID" "$PRODUCT_ID")"             "http://127.0.0.1:8099/api/v1/van/customers/b2c/$CUSTOMER_ID/commercial/quote")" = "200"
 
           test "$(curl -sS -H "Authorization: Bearer $CUSTOMER_TOKEN" -H 'Accept: application/json'             -o /tmp/customer-flash.json -w '%{http_code}'             "http://127.0.0.1:8099/api/v1/flash-offers?store_id=$STORE_ID&channel=customer")" = "200"
 

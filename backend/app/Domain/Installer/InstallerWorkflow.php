@@ -198,6 +198,8 @@ final class InstallerWorkflow
         if (Artisan::call('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true]) !== 0) {
             throw new RuntimeException('Required core data could not be seeded.');
         }
+
+        $this->seedFreshInstallVanReleaseDefaults();
     }
 
     public function generateApplicationKey(): void
@@ -334,6 +336,33 @@ final class InstallerWorkflow
         $this->state->clearProgress();
 
         return $version;
+    }
+
+    private function seedFreshInstallVanReleaseDefaults(): void
+    {
+        if ($this->state->isInstalled()) {
+            return;
+        }
+
+        foreach ([
+            'commercial_rules_enabled',
+            'flash_offers_enabled',
+            'customer_flash_popup_enabled',
+            'van_offers_enabled',
+        ] as $key) {
+            if (DB::table('settings')->whereNull('store_id')->where('key', $key)->exists()) {
+                continue;
+            }
+
+            DB::table('settings')->insert([
+                'store_id' => null,
+                'key' => $key,
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function applyRuntimeConfiguration(): void
