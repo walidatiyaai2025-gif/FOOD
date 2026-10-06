@@ -74,7 +74,8 @@ As a slot becomes free, take #1002 and #1009. Do not exceed six active implement
 - #1010 becomes actionable after the implementation lanes that can introduce localized UI/data are integrated: #1003, #1004, #1005, #1006, #1007 and #1008.
 - #1011 starts only after #1002-#1010 are complete/integrated as required.
 - #1012 starts only after #1011 passes.
-- #1001 closes only from #1012 after the complete mission matrix is green.
+- #1012 must then converge the accepted implementation into `release/1.0.58-van-complete` and require the canonical Fresh Setup workflow to build and clean-install-test the Setup ZIP from that exact final implementation source SHA.
+- #1001 closes only from #1012 after the complete mission matrix is green **and** the terminal real release build requirement below passes.
 
 ## Connection-loss / crash-safe protocol
 
@@ -136,6 +137,27 @@ The Mission is not complete until the integrated result proves:
 - cross-app AR/EN + RTL/LTR non-regression;
 - applicable required CI green on the integrated target.
 
+## Terminal real release build / owner Setup source
+
+The last phase of the Mission is not another feature branch. It is a **real release build on the canonical release branch**:
+
+`release/1.0.58-van-complete`
+
+After all product/code convergence is accepted:
+
+1. record the exact final implementation source SHA on `release/1.0.58-van-complete`;
+2. run/observe `FOODEX Van 1.0.58 Fresh Setup` for that exact source SHA;
+3. require it to build `Release/FOODEX-Laravel-Setup.zip`;
+4. require clean-install validation using the ZIP only, including migrations, seed, first owner, permissions, Van/Flash/field operations and fresh-install acceptance;
+5. require `Release/BUILD_INFO.json.source_commit` and `Release/FRESH_INSTALL_EVIDENCE.json.source_commit` to equal that exact implementation source SHA;
+6. require the Setup ZIP bytes/SHA-256 recorded in BUILD_INFO to match the published ZIP;
+7. require the workflow to publish the generated Setup/evidence/update artifacts back to `release/1.0.58-van-complete`;
+8. allow only a generated-artifact publication commit after the implementation source SHA; that publication commit must not add business code;
+9. verify no code delivered by Setup is newer than the recorded Setup source and no stale/older Setup ZIP remains;
+10. declare the canonical release branch to be the owner-facing source for the final installable Setup.
+
+A GREEN product CI matrix without this exact-head Fresh Setup publication is **not Mission completion**.
+
 ## Completion
 
-Only #1012 may declare the Mission converged. It must post the final evidence matrix to #1001 and close #1001 only when every required child is genuinely complete.
+Only #1012 may declare the Mission converged. It must post the final evidence matrix to #1001 and close #1001 only when every required child is genuinely complete **and the terminal real release build above is published and verified**.
