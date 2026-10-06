@@ -48,3 +48,28 @@ Mandatory worker rules:
 - coordinate before editing shared preview auth/session, OpenAPI, migrations, app bootstrap or shared renderer files.
 
 For #498 work, child tracks remain one issue/owner/branch each; no worker may claim an active leased branch owned by another worker.
+
+## Active autonomous FOOD mission
+
+The current active project Mission is **#1001 / UIUX-V42**.
+
+Authoritative execution files:
+- `docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`
+- `docs/execution/ACTIVE_FOOD_MISSION.json`
+
+Bare owner commands `حرك مشروع FOOD`, `اشتغل على مشروع FOOD`, and `FOOD MISSION` mean: resolve the live open `[MISSION][ACTIVE]` umbrella and apply `AGENTS.md` Mission/Drain rules immediately.
+
+Mission safety rules:
+- maximum six active implementation lanes;
+- one child Issue, one canonical branch, one PR;
+- child Issues record their exact canonical branch and workers must use it;
+- before branch/PR creation, re-read GitHub and reuse existing state;
+- after connection loss or an uncertain mutation result, re-read GitHub before retrying;
+- CI red/conflicts/test failures remain repository work on the same lane;
+- current-head running CI is preserved rather than duplicated;
+- a worker that completes one lane returns to the umbrella and continues another safe lane;
+- only the final convergence child may close the umbrella;
+- `main` is not a merge/auto-merge target for this Mission.
+
+GitHub is the durable mission state. Chat history is never required for recovery.
+
