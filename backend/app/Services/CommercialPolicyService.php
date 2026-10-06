@@ -100,7 +100,7 @@ final class CommercialPolicyService
                 }
             }
 
-            if (($rule->is_allowed ?? null) !== null) {
+            if ($rule->is_allowed !== null) {
                 $resolvedAllowed = (bool) $rule->is_allowed;
             }
         }
@@ -127,7 +127,7 @@ final class CommercialPolicyService
         if ($channelAllowed === false) {
             $reasonCodes[] = 'CHANNEL_BLOCKED';
         }
-        if (!$this->insideAvailabilityWindow($productId, $now)) {
+        if (! $this->insideAvailabilityWindow($productId, $now)) {
             $allowed = false;
             $reasonCodes[] = 'OUTSIDE_AVAILABILITY';
         }
@@ -322,7 +322,7 @@ final class CommercialPolicyService
                 $at,
             );
 
-            if (!$decision['allowed']) {
+            if (! $decision['allowed']) {
                 throw new DomainException(implode(',', $decision['reason_codes']));
             }
 
@@ -538,7 +538,7 @@ final class CommercialPolicyService
         }
 
         $channels = is_string($value) ? json_decode($value, true) : $value;
-        if (!is_array($channels) || !array_key_exists($channel, $channels)) {
+        if (! is_array($channels) || ! array_key_exists($channel, $channels)) {
             return null;
         }
 
