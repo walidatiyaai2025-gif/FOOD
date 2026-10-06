@@ -476,6 +476,20 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             text = text.replace('FlutterActivity()', 'FlutterFragmentActivity()')
         path.write_text(text)
 
+    manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
+    if not manifest.exists():
+        raise RuntimeError('Generated Android main manifest was not found')
+    text = manifest.read_text()
+    text, count = re.subn(
+        r'android:label="[^"]*"',
+        f'android:label="{label}"',
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError('Generated Android application label was not found')
+    manifest.write_text(text)
+
     _enable_android_core_library_desugaring(app)
     _configure_android_firebase(app_dir, bundle_id)
     if bundle_id in (
