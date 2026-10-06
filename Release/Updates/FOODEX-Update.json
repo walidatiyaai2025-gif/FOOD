@@ -4,16 +4,16 @@
   "package": "FOODEX-Update.zip",
   "target_version": "1.0.58",
   "minimum_current_version": "1.0.57",
-  "sha256": "3d3c88be09e01256002f5abf6e999b45a8bdde4c98de36452f38c9e4eb1050ce",
+  "sha256": "59d22e84d529c234100d158fd18a5f6968811ef27480f45b1751b6c7eda8bebe",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "#1006 — Three-app biometric login parity",
+  "release_notes": "#1005 — Van UI/UX v4.2 live field compliance",
   "dashboard_fields": {
     "target_version": "1.0.58",
     "minimum_current_version": "1.0.57",
-    "sha256": "3d3c88be09e01256002f5abf6e999b45a8bdde4c98de36452f38c9e4eb1050ce",
+    "sha256": "59d22e84d529c234100d158fd18a5f6968811ef27480f45b1751b6c7eda8bebe",
     "contains_migrations": true,
-    "release_notes": "#1006 — Three-app biometric login parity"
+    "release_notes": "#1005 — Van UI/UX v4.2 live field compliance"
   }
 }
