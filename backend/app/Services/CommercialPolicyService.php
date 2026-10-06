@@ -106,7 +106,9 @@ final class CommercialPolicyService
         }
 
         if ($status === self::STATUS_RESTRICTED) {
-            $allowed = $resolvedAllowed === true;
+            $allowed = (bool) $product->is_active
+                && $channelAllowed !== false
+                && $resolvedAllowed === true;
         } elseif ($status === self::STATUS_CLOSED) {
             $allowed = false;
         } elseif ($resolvedAllowed !== null) {
@@ -187,7 +189,25 @@ final class CommercialPolicyService
             ->first();
 
         if ($unit === null) {
-            throw new InvalidArgumentException('Selling unit is not available for this product.');
+            $unit = DB::table('products')
+                ->join('units', 'units.id', '=', 'products.unit_id')
+                ->where('products.id', $productId)
+                ->where('units.code', $code)
+                ->first([
+                    'units.id as unit_id',
+                    'units.code',
+                    'units.name',
+                    'products.sku',
+                ]);
+
+            if ($unit === null) {
+                throw new InvalidArgumentException('Selling unit is not available for this product.');
+            }
+
+            $unit->id = 0;
+            $unit->conversion_factor = 1;
+            $unit->price = null;
+            $unit->barcode = null;
         }
 
         $factor = (float) $unit->conversion_factor;
