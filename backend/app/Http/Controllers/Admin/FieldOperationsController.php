@@ -327,7 +327,7 @@ final class FieldOperationsController extends Controller
         abort_if($assignment->effective_until !== null && $plannedAt->gte($assignment->effective_until), 422, 'Visit is outside assignment window.');
 
         $actorUserId = $assignment->representative_user_id;
-        if ($actorUserId === null && $assignment->driver_id !== null) {
+        if ($actorUserId === null) {
             $actorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
         }
         if ($actorUserId === null) {
