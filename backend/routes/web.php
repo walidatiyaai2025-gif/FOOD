@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
+use App\Http\Controllers\Admin\StoreSubmissionController;
 use App\Http\Controllers\Admin\SystemInspectorController;
 use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
@@ -40,6 +41,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', fn () => redirect()->route('admin.b2c.login'));
+
+Route::view('/privacy', 'public.legal', ['title' => 'FOODEX Privacy Policy', 'content' => '<div class="card"><p>FOODEX processes account, order, delivery, device and support data only as needed to operate the service, secure accounts, fulfill transactions and meet legal or accounting obligations.</p><p>Store submission declarations must match the actual production build and configured integrations. Contact Support for privacy questions or deletion status.</p></div>'])->name('public.privacy');
+Route::view('/terms', 'public.legal', ['title' => 'FOODEX Terms of Service', 'content' => '<div class="card"><p>Use of FOODEX is subject to the commercial, payment, delivery and account rules presented in the service. Operational Driver/Van accounts may be managed by the associated organization and are not treated as ordinary consumer accounts.</p></div>'])->name('public.terms');
+Route::view('/support', 'public.legal', ['title' => 'FOODEX Support', 'content' => '<div class="card"><p>For account, order, delivery, privacy or store-review support, use the support contact configured for the production FOODEX release.</p></div>'])->name('public.support');
+Route::view('/account-deletion', 'public.legal', ['title' => 'FOODEX Account Deletion', 'content' => '<div class="card"><p>Customer accounts can request deletion from the authenticated app. Identity verification is required. Required order, invoice, payment, tax and audit records are retained where legally or operationally required.</p><p>Driver/Van operational accounts follow managed deactivation and retention rules.</p></div>'])->name('public.account-deletion');
 
 Route::withoutMiddleware([
     EncryptCookies::class,
@@ -277,6 +283,10 @@ Route::prefix('admin')
         Route::put('/settings/mobile/push', [MobileSettingsController::class, 'updateProvider'])->name('mobile-settings.push');
         Route::post('/settings/mobile/push/test-connection', [MobileSettingsController::class, 'testProvider'])->name('mobile-settings.push.test');
         Route::post('/settings/mobile/test-push', [MobileSettingsController::class, 'testPush'])->name('mobile-settings.test');
+        Route::put('/settings/mobile/submission', [StoreSubmissionController::class, 'updateSubmission'])->name('mobile-settings.submission');
+        Route::put('/settings/mobile/reviewer', [StoreSubmissionController::class, 'upsertReviewer'])->name('mobile-settings.reviewer');
+        Route::post('/settings/mobile/reviewer/{reviewer}/rotate', [StoreSubmissionController::class, 'rotateReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.rotate');
+        Route::post('/settings/mobile/reviewer/{reviewer}/test', [StoreSubmissionController::class, 'testReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.test');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
