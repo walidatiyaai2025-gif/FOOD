@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CommercialFeatureFlags;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -19,6 +20,7 @@ final class CommercialDashboardController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly AuditLogger $audit,
+        private readonly CommercialFeatureFlags $flags,
     ) {}
 
     public function salesControl(Request $request): View
@@ -38,6 +40,8 @@ final class CommercialDashboardController extends Controller
             'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
             'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
             'commercialRules' => DB::table('product_commercial_rules')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
+            'featureFlags' => $this->flags->snapshot(),
+            'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('commercial'),
         ]);
     }
@@ -52,6 +56,8 @@ final class CommercialDashboardController extends Controller
             'hide_when_closed' => ['sometimes', 'boolean'],
             'override_allowed' => ['sometimes', 'boolean'],
             'channels_json' => ['required', 'json'],
+            'break_pack_policy' => ['required', 'in:mixed,full-pack-only,loose-only,one-unit-type'],
+            'break_pack_unit_code' => ['nullable', 'string', 'max:80'],
             'business_timezone' => ['required', 'timezone'],
             'week_starts_on' => ['required', 'integer', 'between:0,6'],
             'default_max_per_order' => ['nullable', 'numeric', 'min:0'],
@@ -78,6 +84,8 @@ final class CommercialDashboardController extends Controller
                     'hide_when_closed' => $request->boolean('hide_when_closed'),
                     'override_allowed' => $request->boolean('override_allowed'),
                     'channels' => json_encode($channels, JSON_THROW_ON_ERROR),
+                    'break_pack_policy' => $data['break_pack_policy'],
+                    'break_pack_unit_code' => $data['break_pack_unit_code'] ?? null,
                     'default_max_per_order' => $data['default_max_per_order'] ?? null,
                     'default_max_per_day' => $data['default_max_per_day'] ?? null,
                     'default_max_per_week' => $data['default_max_per_week'] ?? null,
@@ -166,7 +174,94 @@ final class CommercialDashboardController extends Controller
         return $this->render($request, $user, $storeId, 'flash-offers', [
             'existingPromotions' => DB::table('promotions')->where('store_id', $storeId)->orderByDesc('created_at')->limit(100)->get(),
             'flashOffers' => DB::table('flash_offers')->where('store_id', $storeId)->orderByDesc('id')->limit(100)->get(),
+            'featureFlags' => $this->flags->snapshot(),
+            'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('flash'),
+        ]);
+    }
+
+    public function flashPreview(Request $request, int $offer): View
+    {
+        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        $row = $this->flashOfferRow($storeId, $offer);
+        $products = DB::table('flash_offer_products')
+            ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
+            ->where('flash_offer_products.flash_offer_id', $offer)
+            ->orderBy('flash_offer_products.id')
+            ->get([
+                'flash_offer_products.id',
+                'flash_offer_products.product_id',
+                'products.name as product_name',
+                'products.sku as product_sku',
+                'flash_offer_products.selling_unit_code',
+                'flash_offer_products.conversion_factor',
+                'flash_offer_products.flash_price',
+                'flash_offer_products.allocation_base',
+            ]);
+
+        return view('admin.flash-offer-preview', [
+            'user' => $user,
+            'storeId' => $storeId,
+            'offer' => $row,
+            'products' => $products,
+            'channels' => $this->storedJsonList($row->channels),
+            'customerPopupEnabled' => $this->flags->customerFlashPopupEnabled(),
+            'supportAccess' => $request->boolean('support_access'),
+            'navGroups' => $this->navigation->groupsFor($user),
+            'navContext' => 'b2c_promotions',
+        ]);
+    }
+
+    public function flashAnalytics(Request $request, int $offer): View
+    {
+        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        $row = $this->flashOfferRow($storeId, $offer);
+
+        $reservationStats = DB::table('flash_reservations')
+            ->where('flash_offer_id', $offer)
+            ->selectRaw('status, COUNT(*) as reservations_count, COALESCE(SUM(reserved_base_quantity), 0) as base_quantity')
+            ->groupBy('status')
+            ->orderBy('status')
+            ->get();
+
+        $eventStats = DB::table('flash_offer_events')
+            ->where('flash_offer_id', $offer)
+            ->selectRaw('event, COUNT(*) as events_count')
+            ->groupBy('event')
+            ->orderByDesc('events_count')
+            ->orderBy('event')
+            ->get();
+
+        $channelStats = DB::table('flash_offer_events')
+            ->where('flash_offer_id', $offer)
+            ->whereNotNull('channel')
+            ->selectRaw('channel, COUNT(*) as events_count')
+            ->groupBy('channel')
+            ->orderByDesc('events_count')
+            ->orderBy('channel')
+            ->get();
+
+        $liveReservedBase = (float) $reservationStats
+            ->whereIn('status', ['active', 'confirmed'])
+            ->sum('base_quantity');
+        $confirmedBase = (float) $reservationStats
+            ->where('status', 'confirmed')
+            ->sum('base_quantity');
+
+        return view('admin.flash-offer-analytics', [
+            'user' => $user,
+            'storeId' => $storeId,
+            'offer' => $row,
+            'reservationStats' => $reservationStats,
+            'eventStats' => $eventStats,
+            'channelStats' => $channelStats,
+            'reservationCount' => (int) $reservationStats->sum('reservations_count'),
+            'eventCount' => (int) $eventStats->sum('events_count'),
+            'liveReservedBase' => $liveReservedBase,
+            'confirmedBase' => $confirmedBase,
+            'supportAccess' => $request->boolean('support_access'),
+            'navGroups' => $this->navigation->groupsFor($user),
+            'navContext' => 'b2c_promotions',
         ]);
     }
 
@@ -185,6 +280,10 @@ final class CommercialDashboardController extends Controller
             'ends_at' => ['required', 'date', 'after:starts_at'],
             'timezone' => ['required', 'timezone'],
             'channels_json' => ['required', 'json'],
+            'audience_customer_ids_json' => ['nullable', 'json'],
+            'audience_customer_group_ids_json' => ['nullable', 'json'],
+            'audience_regions_json' => ['nullable', 'json'],
+            'audience_routes_json' => ['nullable', 'json'],
             'allocation_mode' => ['required', 'in:shared,reserved'],
             'total_allocation_base' => ['nullable', 'numeric', 'min:0'],
             'per_customer_limit_base' => ['nullable', 'numeric', 'min:0'],
@@ -200,8 +299,23 @@ final class CommercialDashboardController extends Controller
         ]);
         $channels = $this->jsonArray($data['channels_json'], 'channels_json');
         $products = $this->jsonArray($data['products_json'], 'products_json');
+        $audienceCustomerIds = $this->integerJsonList($data['audience_customer_ids_json'] ?? null, 'audience_customer_ids_json');
+        $audienceCustomerGroupIds = $this->integerJsonList($data['audience_customer_group_ids_json'] ?? null, 'audience_customer_group_ids_json');
+        $audienceRegions = $this->stringJsonList($data['audience_regions_json'] ?? null, 'audience_regions_json');
+        $audienceRoutes = $this->stringJsonList($data['audience_routes_json'] ?? null, 'audience_routes_json');
 
-        DB::transaction(function () use ($data, $channels, $products, $user, $storeId, $request): void {
+        DB::transaction(function () use (
+            $data,
+            $channels,
+            $products,
+            $audienceCustomerIds,
+            $audienceCustomerGroupIds,
+            $audienceRegions,
+            $audienceRoutes,
+            $user,
+            $storeId,
+            $request,
+        ): void {
             $offerId = isset($data['offer_id']) ? (int) $data['offer_id'] : 0;
             $before = $offerId > 0 ? (array) (DB::table('flash_offers')->where('store_id', $storeId)->where('id', $offerId)->first() ?? []) : [];
             if ($offerId > 0 && $before === []) {
@@ -220,6 +334,10 @@ final class CommercialDashboardController extends Controller
                 'ends_at' => $data['ends_at'],
                 'timezone' => $data['timezone'],
                 'channels' => json_encode($channels, JSON_THROW_ON_ERROR),
+                'audience_customer_ids' => $audienceCustomerIds === [] ? null : json_encode($audienceCustomerIds, JSON_THROW_ON_ERROR),
+                'audience_customer_group_ids' => $audienceCustomerGroupIds === [] ? null : json_encode($audienceCustomerGroupIds, JSON_THROW_ON_ERROR),
+                'audience_regions' => $audienceRegions === [] ? null : json_encode($audienceRegions, JSON_THROW_ON_ERROR),
+                'audience_routes' => $audienceRoutes === [] ? null : json_encode($audienceRoutes, JSON_THROW_ON_ERROR),
                 'allocation_mode' => $data['allocation_mode'],
                 'total_allocation_base' => $data['total_allocation_base'] ?? null,
                 'per_customer_limit_base' => $data['per_customer_limit_base'] ?? null,
@@ -262,6 +380,32 @@ final class CommercialDashboardController extends Controller
         });
 
         return back()->with('status', 'Flash Offer saved.');
+    }
+
+    public function saveFeatureFlags(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($this->canManageFeatureFlags($user), 403);
+
+        $data = $request->validate([
+            CommercialFeatureFlags::COMMERCIAL_RULES => ['required', 'boolean'],
+            CommercialFeatureFlags::FLASH_OFFERS => ['required', 'boolean'],
+            CommercialFeatureFlags::CUSTOMER_FLASH_POPUP => ['required', 'boolean'],
+            CommercialFeatureFlags::VAN_OFFERS => ['required', 'boolean'],
+        ]);
+
+        $before = $this->flags->snapshot();
+        $after = $this->flags->persist([
+            CommercialFeatureFlags::COMMERCIAL_RULES => (bool) $data[CommercialFeatureFlags::COMMERCIAL_RULES],
+            CommercialFeatureFlags::FLASH_OFFERS => (bool) $data[CommercialFeatureFlags::FLASH_OFFERS],
+            CommercialFeatureFlags::CUSTOMER_FLASH_POPUP => (bool) $data[CommercialFeatureFlags::CUSTOMER_FLASH_POPUP],
+            CommercialFeatureFlags::VAN_OFFERS => (bool) $data[CommercialFeatureFlags::VAN_OFFERS],
+        ]);
+
+        $this->audit->record('commercial.feature_flags.updated', $user, null, $before, $after, $request);
+
+        return back()->with('status', 'Commercial feature flags saved.');
     }
 
     public function flashAction(Request $request, int $offer): RedirectResponse
@@ -312,6 +456,73 @@ final class CommercialDashboardController extends Controller
         }
 
         return $decoded;
+    }
+
+    private function flashOfferRow(int $storeId, int $offer): object
+    {
+        $row = DB::table('flash_offers')
+            ->where('store_id', $storeId)
+            ->where('id', $offer)
+            ->first();
+
+        abort_unless($row !== null, 404);
+
+        return $row;
+    }
+
+    /** @return list<string> */
+    private function storedJsonList(mixed $value): array
+    {
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if (! is_array($decoded) || ! array_is_list($decoded)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (mixed $item): string => (string) $item,
+            array_filter($decoded, static fn (mixed $item): bool => is_string($item) && trim($item) !== ''),
+        ));
+    }
+
+    /** @return list<int> */
+    private function integerJsonList(?string $json, string $field): array
+    {
+        $items = $this->optionalJsonArray($json, $field);
+
+        return collect($items)
+            ->map(static fn (mixed $item): int => (int) $item)
+            ->filter(static fn (int $item): bool => $item > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @return list<string> */
+    private function stringJsonList(?string $json, string $field): array
+    {
+        $items = $this->optionalJsonArray($json, $field);
+
+        return collect($items)
+            ->map(static fn (mixed $item): string => trim((string) $item))
+            ->filter(static fn (string $item): bool => $item !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @return list<mixed> */
+    private function optionalJsonArray(?string $json, string $field): array
+    {
+        if ($json === null || trim($json) === '') {
+            return [];
+        }
+
+        return $this->jsonArray($json, $field);
+    }
+
+    private function canManageFeatureFlags(User $user): bool
+    {
+        return $user->hasRole('SUPER_ADMIN') || $user->hasPermission('platform.manage');
     }
 
     private function hasApiContract(string $needle): bool
