@@ -125,7 +125,7 @@ class B2bFinanceTest extends TestCase
             ->assertJsonPath('data.payments.0.method', 'account')
             ->assertJsonPath('data.payments.0.reference', 'PAY-58')
             ->assertJsonPath('data.payments.0.amount', 5)
-            ->assertJsonPath('data.pdf_path', '/api/v1/b2b/invoices/'.$invoice->id.'/download');
+            ->assertJsonPath('data.pdf_path', '/api/v1/b2b/invoices/'.$invoice->id.'/download?store_id='.$invoice->store_id);
 
         $this->assertStringEndsWith(
             '/storage/storefronts/finance-invoice-logo.png',
