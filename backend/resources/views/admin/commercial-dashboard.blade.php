@@ -150,6 +150,7 @@
         </header>
         <section class="commercial-card">
             <h2>{{ $ar ? 'إنشاء / تعديل Flash Offer' : 'Create / Edit Flash Offer' }}</h2>
+            @if($storeId > 0)
             <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list">
                 @csrf
                 <input type="number" name="offer_id" placeholder="Offer ID (blank = new)">
@@ -174,6 +175,9 @@
                 <label>Products JSON<textarea name="products_json" rows="6" required>[{"product_id":1,"selling_unit_code":"carton","conversion_factor":10,"flash_price":7,"allocation_base":1000}]</textarea></label>
                 <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ العرض' : 'Save Flash Offer' }}</button>
             </form>
+            @else
+                <p class="muted">{{ $ar ? 'الخطة التجارية مفعلة. أنشئ متجر تجزئة أولاً لإضافة عروض Flash.' : 'The commercial plan is enabled. Create a Retail store before adding Flash Offers.' }}</p>
+            @endif
         </section>
 
         <section class="commercial-card">

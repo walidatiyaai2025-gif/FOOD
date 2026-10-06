@@ -32,6 +32,8 @@ return [
     ],
     'app_versions' => 'App Versions',
     'app_preview' => 'Application Preview',
+    'commercial_sales_control' => 'Product Sales Control',
+    'flash_offers' => 'Flash Offers',
     'preview_center' => [
         'title' => 'Application Preview',
         'description' => 'Select the real Customer or Driver app context and host the shared Flutter runtime without duplicating mobile business logic in the dashboard.',

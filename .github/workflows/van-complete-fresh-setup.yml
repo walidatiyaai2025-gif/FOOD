@@ -201,6 +201,200 @@ jobs:
               if (! $db::table('system_versions')->where('version', '1.0.58')->exists()) {
                   throw new RuntimeException('System version was not recorded.');
               }
+
+              $owner = App\Models\User::query()
+                  ->where('email', 'acceptance-owner@example.test')
+                  ->firstOrFail();
+
+              $expectedFlags = [
+                  'commercial_rules_enabled' => true,
+                  'flash_offers_enabled' => true,
+                  'customer_flash_popup_enabled' => true,
+                  'van_offers_enabled' => true,
+              ];
+              $actualFlags = $app->make(App\Services\CommercialFeatureFlags::class)->snapshot();
+              if ($actualFlags !== $expectedFlags) {
+                  throw new RuntimeException('Canonical Van release feature flags were not enabled on first install: '.json_encode($actualFlags));
+              }
+
+              foreach (['platform.manage','catalog.view','catalog.manage','promotions.view','promotions.manage'] as $permission) {
+                  if (! $owner->hasPermission($permission)) {
+                      throw new RuntimeException("Fresh Super Admin is missing required permission [{$permission}].");
+                  }
+              }
+
+              $now = now();
+              $storeTypeId = (int) $db::table('store_types')->where('code', 'B2C')->value('id');
+              $storeId = (int) $db::table('stores')->insertGetId([
+                  'store_type_id' => $storeTypeId,
+                  'code' => 'FRESH-VAN',
+                  'name' => 'Fresh Van Acceptance Store',
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $catalogId = (int) $db::table('catalogs')->insertGetId([
+                  'store_id' => $storeId,
+                  'channel' => 'b2c',
+                  'code' => 'fresh-van',
+                  'name' => 'Fresh Van Acceptance',
+                  'is_active' => true,
+                  'is_migration_quarantine' => false,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $unitId = (int) $db::table('units')->insertGetId([
+                  'store_id' => $storeId,
+                  'scope' => 'store',
+                  'scope_key' => 'store:'.$storeId,
+                  'code' => 'EA',
+                  'name' => 'Each',
+                  'name_ar' => 'قطعة',
+                  'name_en' => 'Each',
+                  'decimal_places' => 0,
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $productId = (int) $db::table('products')->insertGetId([
+                  'catalog_id' => $catalogId,
+                  'unit_id' => $unitId,
+                  'sku' => 'FRESH-VAN-001',
+                  'name' => 'Fresh Van Product',
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $db::table('store_products')->insert([
+                  'store_id' => $storeId,
+                  'product_id' => $productId,
+                  'price' => 10,
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $db::table('product_selling_units')->insert([
+                  'product_id' => $productId,
+                  'unit_id' => $unitId,
+                  'code' => 'EA',
+                  'name' => 'Each',
+                  'conversion_factor' => 1,
+                  'price' => 10,
+                  'sku' => 'FRESH-VAN-001',
+                  'barcode' => null,
+                  'is_base' => true,
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $db::table('product_commercial_policies')->insert([
+                  'product_id' => $productId,
+                  'status' => 'OPEN',
+                  'hide_when_closed' => false,
+                  'override_allowed' => true,
+                  'channels' => json_encode(['customer'=>true,'van'=>true,'admin'=>true], JSON_THROW_ON_ERROR),
+                  'break_pack_policy' => 'mixed',
+                  'business_timezone' => 'Asia/Kuwait',
+                  'week_starts_on' => 1,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+
+              $customerUser = App\Models\User::query()->create([
+                  'name' => 'Fresh Van Customer',
+                  'email' => 'fresh-van-customer@example.test',
+                  'password' => Illuminate\Support\Facades\Hash::make('AcceptanceCustomer!12345'),
+                  'locale' => 'en',
+                  'is_active' => true,
+              ]);
+              $legacyCustomerId = (int) $db::table('customers')->insertGetId([
+                  'user_id' => $customerUser->id,
+                  'type' => 'b2c',
+                  'name' => 'Fresh Van Customer',
+                  'email' => $customerUser->email,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $domainCustomerId = (int) $db::table('b2c_customers')->insertGetId([
+                  'legacy_customer_id' => $legacyCustomerId,
+                  'store_id' => $storeId,
+                  'user_id' => $customerUser->id,
+                  'name' => 'Fresh Van Customer',
+                  'email' => $customerUser->email,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $db::table('van_visits')->insert([
+                  'actor_user_id' => $owner->id,
+                  'customer_type' => 'b2c',
+                  'customer_id' => $domainCustomerId,
+                  'store_id' => $storeId,
+                  'status' => 'planned',
+                  'idempotency_key' => 'fresh-van-acceptance-visit',
+                  'metadata' => json_encode(['route_code'=>'FRESH-ROUTE'], JSON_THROW_ON_ERROR),
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $db::table('promotions')->insert([
+                  'store_id' => $storeId,
+                  'name' => 'Fresh Normal Offer',
+                  'type' => 'percentage',
+                  'value' => 5,
+                  'starts_at' => $now->copy()->subMinute(),
+                  'ends_at' => $now->copy()->addHour(),
+                  'is_active' => true,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $offerId = (int) $db::table('flash_offers')->insertGetId([
+                  'store_id' => $storeId,
+                  'name' => 'Fresh Flash Offer',
+                  'title_ar' => 'عرض فلاش',
+                  'title_en' => 'Fresh Flash Offer',
+                  'body_ar' => null,
+                  'body_en' => 'Fresh-install acceptance',
+                  'status' => 'active',
+                  'starts_at' => $now->copy()->subMinute(),
+                  'ends_at' => $now->copy()->addHour(),
+                  'timezone' => 'Asia/Kuwait',
+                  'channels' => json_encode(['customer','van'], JSON_THROW_ON_ERROR),
+                  'allocation_mode' => 'shared',
+                  'total_allocation_base' => 100,
+                  'per_customer_limit_base' => 10,
+                  'reservation_seconds' => 300,
+                  'retry_count' => 0,
+                  'cooldown_seconds' => 0,
+                  'priority' => 100,
+                  'popup_frequency' => 'once_per_session',
+                  'counts_toward_normal_quota' => true,
+                  'stackable' => false,
+                  'kill_switch' => false,
+                  'created_by' => $owner->id,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+              $offerProductId = (int) $db::table('flash_offer_products')->insertGetId([
+                  'flash_offer_id' => $offerId,
+                  'product_id' => $productId,
+                  'selling_unit_id' => $unitId,
+                  'selling_unit_code' => 'EA',
+                  'conversion_factor' => 1,
+                  'flash_price' => 8,
+                  'allocation_base' => 100,
+                  'created_at' => $now,
+                  'updated_at' => $now,
+              ]);
+
+              file_put_contents('/tmp/foodex-fresh-fixture.json', json_encode([
+                  'store_id' => $storeId,
+                  'product_id' => $productId,
+                  'customer_id' => $domainCustomerId,
+                  'flash_offer_id' => $offerId,
+                  'flash_offer_product_id' => $offerProductId,
+                  'owner_token' => $owner->createToken('fresh-install-van')->plainTextToken,
+                  'customer_token' => $customerUser->createToken('fresh-install-customer')->plainTextToken,
+                  'flags' => $actualFlags,
+              ], JSON_THROW_ON_ERROR));
               exit(0);
           }
 
@@ -230,12 +424,90 @@ jobs:
             php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-installed-server.log 2>&1 &
             echo $! >/tmp/foodex-installed-server.pid
           )
+          rm -f /tmp/foodex-cookies.txt
           for i in {1..30}; do
-            code="$(curl -sS -o /tmp/login.html -w '%{http_code}' http://127.0.0.1:8099/admin/b2c/login || true)"
+            code="$(curl -sS -c /tmp/foodex-cookies.txt -o /tmp/login.html -w '%{http_code}' 'http://127.0.0.1:8099/admin/b2c/login?locale=en' || true)"
             [[ "$code" == "200" ]] && break
             sleep 1
           done
           test "$code" = "200"
+
+          csrf="$(python3 - <<'PY'
+          import html, re
+          text = open('/tmp/login.html', encoding='utf-8').read()
+          match = re.search(r'name="_token"\s+value="([^"]+)"', text)
+          assert match, 'CSRF token missing from login page.'
+          print(html.unescape(match.group(1)))
+          PY
+          )"
+          login_code="$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/login-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$csrf"             --data-urlencode "email=acceptance-owner@example.test"             --data-urlencode "password=AcceptanceOnly!12345"             --data-urlencode "locale=en"             http://127.0.0.1:8099/admin/b2c/login)"
+          test "$login_code" = "302"
+
+          eval "$(python3 - <<'PY'
+          import json, shlex
+          data=json.load(open('/tmp/foodex-fresh-fixture.json'))
+          for key in ['store_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
+              print(f"{key.upper()}={shlex.quote(str(data[key]))}")
+          flags=data['flags']
+          assert all(flags.get(k) is True for k in [
+              'commercial_rules_enabled','flash_offers_enabled','customer_flash_popup_enabled','van_offers_enabled'
+          ]), flags
+          PY
+          )"
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "200"
+          grep -Fq 'Product Sales Control' /tmp/admin-home.html
+          grep -Fq 'Flash Offers' /tmp/admin-home.html
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/sales-control?store_id=$STORE_ID")" = "200"
+          grep -Fq 'Product Sales Control' /tmp/sales-control.html
+          grep -Fq 'Break-pack policy' /tmp/sales-control.html
+          grep -Fq 'Selling units JSON' /tmp/sales-control.html
+          grep -Fq 'Availability windows JSON' /tmp/sales-control.html
+          grep -Fq 'Customer/group/channel rules JSON' /tmp/sales-control.html
+          grep -Fq 'Commercial Feature Flags' /tmp/sales-control.html
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-offers.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers?store_id=$STORE_ID")" = "200"
+          grep -Fq 'Promotions &gt; Flash Offers' /tmp/flash-offers.html
+          grep -Fq 'Audience customer IDs JSON' /tmp/flash-offers.html
+          grep -Fq 'Preview' /tmp/flash-offers.html
+          grep -Fq 'Analytics' /tmp/flash-offers.html
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-preview.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers/$FLASH_OFFER_ID/preview?store_id=$STORE_ID")" = "200"
+          grep -Fq 'Customer Popup Preview' /tmp/flash-preview.html
+
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-analytics.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers/$FLASH_OFFER_ID/analytics?store_id=$STORE_ID")" = "200"
+          grep -Fq 'Flash Analytics' /tmp/flash-analytics.html
+
+          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json'             -o /tmp/van-flash.json -w '%{http_code}'             "http://127.0.0.1:8099/api/v1/van/customers/b2c/$CUSTOMER_ID/flash-offers?store_id=$STORE_ID")" = "200"
+
+          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json'             -o /tmp/van-quote.json -w '%{http_code}' -X POST             --data "{"store_id":$STORE_ID,"product_id":$PRODUCT_ID,"selling_unit_code":"EA","quantity":1}"             "http://127.0.0.1:8099/api/v1/van/customers/b2c/$CUSTOMER_ID/commercial/quote")" = "200"
+
+          test "$(curl -sS -H "Authorization: Bearer $CUSTOMER_TOKEN" -H 'Accept: application/json'             -o /tmp/customer-flash.json -w '%{http_code}'             "http://127.0.0.1:8099/api/v1/flash-offers?store_id=$STORE_ID&channel=customer")" = "200"
+
+          test "$(curl -sS -H 'Accept: application/json' -o /tmp/normal-offers.json -w '%{http_code}'             "http://127.0.0.1:8099/api/v1/stores/$STORE_ID/offers")" = "200"
+
+          python3 - <<'PY'
+          import json
+          van=json.load(open('/tmp/van-flash.json'))
+          assert van['data'], 'Van Flash feed is empty.'
+          assert van['data'][0]['title_en'] == 'Fresh Flash Offer'
+          assert 'popup_frequency' not in van['data'][0], 'Van Flash payload must not expose popup behavior.'
+
+          quote=json.load(open('/tmp/van-quote.json'))['data']
+          assert quote['decision']['feature_enabled'] is True
+          assert quote['effective_allowed'] is True
+          assert quote['selling_unit']['code'] == 'EA'
+          assert quote['selling_units'], 'Van selling units are missing.'
+
+          customer=json.load(open('/tmp/customer-flash.json'))
+          assert customer['data'], 'Customer Flash endpoint is empty.'
+          assert customer['data'][0]['id'] == van['data'][0]['id']
+
+          normal=json.load(open('/tmp/normal-offers.json'))
+          assert normal['data'], 'Normal offers endpoint is empty.'
+          PY
+
           test "$(curl -sS -o /tmp/install-after.html -w '%{http_code}' http://127.0.0.1:8099/install)" = "404"
           test "$(curl -sS -o /tmp/privacy.html -w '%{http_code}' http://127.0.0.1:8099/privacy)" = "200"
           test "$(curl -sS -o /tmp/terms.html -w '%{http_code}' http://127.0.0.1:8099/terms)" = "200"
@@ -254,15 +526,33 @@ jobs:
           routes = json.loads(Path('/tmp/foodex-routes.json').read_text())
           uris = [r.get('uri','') for r in routes]
           required = [
-              'flash-offers',
-              'flash-reservations',
-              'commercial/quote',
+              'admin/b2c/commercial/sales-control',
+              'admin/b2c/commercial/feature-flags',
+              'admin/b2c/commercial/flash-offers',
+              'api/v1/van/customers/{type}/{customer}/commercial/quote',
+              'api/v1/van/customers/{type}/{customer}/flash-offers',
+              'api/v1/flash-offers',
+              'api/v1/flash-reservations',
               'account-deletion',
               'push/devices',
               'settings/mobile',
           ]
-          missing = [needle for needle in required if not any(needle in uri for uri in uris)]
+          missing = [needle for needle in required if needle not in uris and not any(needle in uri for uri in uris)]
           assert not missing, f'Missing fresh-install routes: {missing}'
+
+          names = {r.get('name') for r in routes}
+          required_names = {
+              'admin.commercial.sales-control',
+              'admin.commercial.sales-control.save',
+              'admin.commercial.feature-flags.save',
+              'admin.commercial.flash-offers',
+              'admin.commercial.flash-offers.preview',
+              'admin.commercial.flash-offers.analytics',
+              'admin.commercial.flash-offers.save',
+              'admin.commercial.flash-offers.action',
+          }
+          missing_names = sorted(required_names - names)
+          assert not missing_names, f'Missing commercial route names: {missing_names}'
           assert Path('/tmp/foodex-schedule.txt').read_text().strip(), 'Scheduler list is empty.'
           PY
 
@@ -275,7 +565,7 @@ jobs:
 
           cat > Release/FRESH_INSTALL_EVIDENCE.json <<EOF
           {
-            "schema_version": 1,
+            "schema_version": 2,
             "version": "1.0.58",
             "source_commit": "$GITHUB_SHA",
             "api_base_url": "https://vanfoodex.50sols.com",
@@ -289,9 +579,24 @@ jobs:
             "first_owner": "PASS",
             "install_lock": "PASS",
             "dashboard_login": "PASS",
+            "dashboard_navigation_visibility": "PASS",
+            "product_sales_control_visibility": "PASS",
+            "flash_offers_visibility": "PASS",
+            "flash_preview_visibility": "PASS",
+            "flash_analytics_visibility": "PASS",
+            "canonical_feature_flags": {
+              "commercial_rules_enabled": true,
+              "flash_offers_enabled": true,
+              "customer_flash_popup_enabled": true,
+              "van_offers_enabled": true
+            },
             "commercial_services": "PASS",
             "customer_flash_routes": "PASS",
             "van_commercial_routes": "PASS",
+            "van_selected_customer_quote": "PASS",
+            "van_selected_customer_flash_feed": "PASS",
+            "van_popup_contract": "ABSENT",
+            "normal_offers": "PASS",
             "scheduler": "PASS",
             "notification_routes": "PASS",
             "account_deletion_legal": "PASS",

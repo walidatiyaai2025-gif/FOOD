@@ -25,7 +25,7 @@ final class CommercialDashboardController extends Controller
 
     public function salesControl(Request $request): View
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'catalog.view');
+        [$user, $storeId] = $this->authorizedStore($request, 'catalog.view', true);
 
         $products = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
@@ -169,7 +169,7 @@ final class CommercialDashboardController extends Controller
 
     public function flashOffers(Request $request): View
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view', true);
 
         return $this->render($request, $user, $storeId, 'flash-offers', [
             'existingPromotions' => DB::table('promotions')->where('store_id', $storeId)->orderByDesc('created_at')->limit(100)->get(),
@@ -436,13 +436,26 @@ final class CommercialDashboardController extends Controller
     }
 
     /** @return array{0: User, 1: int} */
-    private function authorizedStore(Request $request, string $permission): array
+    private function authorizedStore(Request $request, string $permission, bool $allowEmptyStore = false): array
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
+
+        $scope = app(OperationalTenantScope::class);
         $storeId = $request->integer('store_id');
+
+        if ($storeId <= 0) {
+            $allowedStoreIds = $scope->allowedStoreIds($user, $permission, 'b2c');
+
+            if ($allowedStoreIds !== []) {
+                $storeId = (int) $allowedStoreIds[0];
+            } elseif ($allowEmptyStore && $user->hasRole('SUPER_ADMIN')) {
+                return [$user, 0];
+            }
+        }
+
         abort_unless($storeId > 0, 404);
-        app(OperationalTenantScope::class)->assertStore($user, $storeId, $permission, 'b2c');
+        $scope->assertStore($user, $storeId, $permission, 'b2c');
 
         return [$user, $storeId];
     }
