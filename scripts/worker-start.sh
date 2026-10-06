@@ -22,6 +22,8 @@ echo "  Read before changing Dashboard/Admin/business-facing UI."
 echo "  No raw IDs/keys/codes/JSON when a Lookup/Enum/Builder is appropriate."
 echo "  Customer + Driver + Van application parity must be evaluated."
 echo "  Mobile UI: compact header, full viewport, one-line filters, no wrapped order numbers, compact rows, green ellipsis actions."
+echo "  Auth parity: Remember Me + biometric unlock for Customer/Driver/Van; never store plaintext passwords."
+echo "  Dashboard map: unified Live Tracking for Drivers (person icon) + Vans (vehicle icon)."
 echo
 echo "branch=$branch"
 echo "head=$head"
