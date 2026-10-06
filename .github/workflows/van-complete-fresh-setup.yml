@@ -713,7 +713,7 @@ jobs:
           test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/address-confirm-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "reason=Confirmed in fresh-install Admin acceptance"             "http://127.0.0.1:8099/admin/field-operations/address-quality/$REVIEW_ID/confirm")" = "302"
           curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-address-quality-populated.html http://127.0.0.1:8099/admin/field-operations/address-quality
           grep -Fq 'confirmed' /tmp/field-address-quality-populated.html
-          grep -Fq 'Details & history' /tmp/field-address-quality-populated.html
+          grep -Fq 'Details &amp; history' /tmp/field-address-quality-populated.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/routing-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "code=FRESH-ROUTING"             --data-urlencode "mode=MANUAL"             --data-urlencode 'rules_json=[{"name":"Fresh route","conditions":[],"actions":[],"enabled":true}]'             --data-urlencode "reason=Fresh-install Admin UI acceptance"             http://127.0.0.1:8099/admin/field-operations/routing-policies)" = "302"
           curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-routing-populated.html http://127.0.0.1:8099/admin/field-operations/routing-policies
@@ -1039,9 +1039,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          changed_paths="$(git diff --name-only "${GITHUB_SHA}^" "$GITHUB_SHA" || true)"
+          artifact_source="$(git show HEAD:Release/BUILD_INFO.json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("source_commit",""))' 2>/dev/null || true)"
+          if [[ -n "$artifact_source" ]] && git cat-file -e "$artifact_source^{commit}" 2>/dev/null; then
+            changed_paths="$(git diff --name-only "$artifact_source" "$GITHUB_SHA" || true)"
+          else
+            changed_paths="$(git diff --name-only "${GITHUB_SHA}^" "$GITHUB_SHA" || true)"
+          fi
           if ! printf '%s\n' "$changed_paths" | grep -Eq '^(VERSION$|backend/|apps/customer_app/|apps/driver_app/|apps/van_app/|scripts/build-dashboard-update\.sh$|scripts/build-update-bundle\.py$|Release/INSTALL-FIRST\.txt$|store/submission/metadata\.json$)'; then
-            echo "Fresh Setup validated a CI/recovery-only change; setup-delivered files are unchanged, so canonical release artifacts will not be republished."
+            echo "Fresh Setup validated changes with no setup-delivered delta since the last published BUILD_INFO source; canonical release artifacts will not be republished."
             exit 0
           fi
 

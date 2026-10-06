@@ -47,3 +47,12 @@
 - Safer fix prepared: remove the intermediate variable entirely and emit the existing GeoJSON features through Blade `@foreach` loops with simple scalar/object `@json` expressions.
 - Customer Collection context rendering from the same checkpoint remains in place.
 - Next action: validate the simplified Territories rendering on a new exact-head Fresh Setup run.
+
+## Follow-up from run 37465917249
+
+- Head `4c53fd7b7e63d29825393c59659eada90f5dae39` passed the previous Field Operations/Territories rendering blockers and progressed through populated Van/Customer/Territory flows.
+- Exact current failure: the Address Quality page check searched for literal `Details & history`, while Blade correctly HTML-escapes the ampersand as `Details &amp; history`.
+- Classification: deterministic test-harness assertion defect, not an application defect.
+- Harness fix prepared: assert the escaped HTML text.
+- Artifact publication guard correction: determine setup-delivered changes relative to the `source_commit` stored in the committed `Release/BUILD_INFO.json`, not only relative to the immediate parent. This preserves required Setup ZIP publication when an application fix is followed by a CI-only recovery commit, while still allowing final cleanup commits to avoid unnecessary artifact churn.
+- Next action: require full Fresh Setup GREEN; because backend changed since published BUILD_INFO source `72acda6fef92b04d2dba522cbd647f1ee2f1d024`, the successful run must publish regenerated release artifacts.
