@@ -113,6 +113,17 @@ jobs:
           unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Fx 'backend/vendor/autoload.php'
           ! unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Eq '(^|/)\.env$|\.jks$|\.keystore$|\.p12$|\.pfx$|(^|/)auth\.json$'
 
+      - name: Set up Node for fresh-install visual QA
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install Playwright Chromium for fresh-install visual QA
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
       - name: Validate clean install from ZIP only
         shell: bash
         run: |
@@ -217,7 +228,7 @@ jobs:
                   throw new RuntimeException('Canonical Van release feature flags were not enabled on first install: '.json_encode($actualFlags));
               }
 
-              foreach (['platform.manage','catalog.view','catalog.manage','promotions.view','promotions.manage'] as $permission) {
+              foreach (['platform.manage','catalog.view','catalog.manage','promotions.view','promotions.manage','field_ops.manage','territories.manage','drivers.tracking.view','drivers.b2b.view','finance.view','customers.view'] as $permission) {
                   if (! $owner->hasPermission($permission)) {
                       throw new RuntimeException("Fresh Super Admin is missing required permission [{$permission}].");
                   }
@@ -458,6 +469,31 @@ jobs:
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "200"
           grep -Fq 'Product Sales Control' /tmp/admin-home.html
           grep -Fq 'Flash Offers' /tmp/admin-home.html
+          grep -Fq 'Van &amp; Field Operations' /tmp/admin-home.html || grep -Fq 'Van & Field Operations' /tmp/admin-home.html
+
+          declare -A field_pages=(
+            [overview]="/admin/field-operations"
+            [fleet]="/admin/field-operations/fleet-map"
+            [vans]="/admin/field-operations/vans"
+            [assignments]="/admin/field-operations/assignments"
+            [customers]="/admin/field-operations/customers"
+            [visits]="/admin/field-operations/visits"
+            [territories]="/admin/field-operations/territories"
+            [address-quality]="/admin/field-operations/address-quality"
+            [routing]="/admin/field-operations/routing-policies"
+            [finance]="/admin/field-operations/finance"
+          )
+          for section in overview fleet vans assignments customers visits territories address-quality routing finance; do
+            path="${field_pages[$section]}"
+            test "$(curl -sS -b /tmp/foodex-cookies.txt -o "/tmp/field-$section.html" -w '%{http_code}' "http://127.0.0.1:8099$path")" = "200"
+            grep -Fq "data-field-operations-page=\"$section\"" "/tmp/field-$section.html"
+          done
+          grep -Fq 'data-actor-kind="van"' /tmp/field-fleet.html
+          grep -Fq 'fieldops-coverage-map' /tmp/field-territories.html
+          grep -Fq 'No Vans registered.' /tmp/field-vans.html
+          grep -Fq 'No assignments.' /tmp/field-assignments.html
+          grep -Fq 'No address-quality reviews.' /tmp/field-address-quality.html
+          grep -Fq 'No routing policies.' /tmp/field-routing.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/sales-control?store_id=$STORE_ID")" = "200"
           grep -Fq 'Product Sales Control' /tmp/sales-control.html
@@ -512,6 +548,71 @@ jobs:
           test "$(curl -sS -o /tmp/privacy.html -w '%{http_code}' http://127.0.0.1:8099/privacy)" = "200"
           test "$(curl -sS -o /tmp/terms.html -w '%{http_code}' http://127.0.0.1:8099/terms)" = "200"
           test "$(curl -sS -o /tmp/support.html -w '%{http_code}' http://127.0.0.1:8099/support)" = "200"
+          mkdir -p "$GITHUB_WORKSPACE/ScreenShots/FreshVan"
+          cat > /tmp/capture-fresh-van.mjs <<'NODE'
+          import { chromium } from 'playwright';
+
+          const base = 'http://127.0.0.1:8099';
+          const out = process.env.GITHUB_WORKSPACE + '/ScreenShots/FreshVan';
+          const browser = await chromium.launch({headless:true});
+          const context = await browser.newContext({viewport:{width:1440,height:1000}});
+          const page = await context.newPage();
+
+          await page.goto(base + '/admin/b2c/login?locale=en');
+          await page.locator('input[name="email"]').fill('acceptance-owner@example.test');
+          await page.locator('input[name="password"]').fill('AcceptanceOnly!12345');
+          const locale = page.locator('select[name="locale"]');
+          if (await locale.count()) await locale.selectOption('en');
+          await Promise.all([
+            page.waitForURL(url => !url.pathname.includes('/login')),
+            page.locator('form').filter({has:page.locator('input[name="email"]')}).locator('button[type="submit"]').click(),
+          ]);
+
+          const pages = [
+            ['overview','/admin/field-operations'],
+            ['fleet','/admin/field-operations/fleet-map'],
+            ['vans','/admin/field-operations/vans'],
+            ['assignments','/admin/field-operations/assignments'],
+            ['customers','/admin/field-operations/customers'],
+            ['visits','/admin/field-operations/visits'],
+            ['territories','/admin/field-operations/territories'],
+            ['address-quality','/admin/field-operations/address-quality'],
+            ['routing','/admin/field-operations/routing-policies'],
+            ['finance','/admin/field-operations/finance'],
+          ];
+
+          async function captureLocale(lang) {
+            await page.goto(base + '/admin/profile');
+            const localeForm = page.locator('form[action$="/admin/profile/locale"]');
+            await localeForm.locator('select[name="locale"]').selectOption(lang);
+            await Promise.all([
+              page.waitForLoadState('networkidle'),
+              localeForm.locator('button[type="submit"]').click(),
+            ]);
+
+            for (const [name,path] of pages) {
+              await page.goto(base + path, {waitUntil:'networkidle'});
+              await page.locator('[data-field-operations-page="'+name+'"]').waitFor();
+              const dir = await page.locator('html').getAttribute('dir');
+              if ((lang === 'ar' && dir !== 'rtl') || (lang === 'en' && dir !== 'ltr')) {
+                throw new Error('Wrong direction for '+lang+' on '+name+': '+dir);
+              }
+              await page.screenshot({path:out+'/'+name+'__desktop-1440__'+lang+'.png',fullPage:true});
+            }
+
+            await page.setViewportSize({width:390,height:844});
+            await page.goto(base + '/admin/field-operations', {waitUntil:'networkidle'});
+            await page.screenshot({path:out+'/overview__mobile-390__'+lang+'.png',fullPage:true});
+            await page.setViewportSize({width:1440,height:1000});
+          }
+
+          await captureLocale('en');
+          await captureLocale('ar');
+          await browser.close();
+          NODE
+          node /tmp/capture-fresh-van.mjs
+          test "$(find "$GITHUB_WORKSPACE/ScreenShots/FreshVan" -type f -name '*.png' | wc -l | tr -d ' ')" -eq 22
+
           kill "$(cat /tmp/foodex-installed-server.pid)" || true
 
           (
@@ -529,6 +630,16 @@ jobs:
               'admin/b2c/commercial/sales-control',
               'admin/b2c/commercial/feature-flags',
               'admin/b2c/commercial/flash-offers',
+              'admin/field-operations',
+              'admin/field-operations/fleet-map',
+              'admin/field-operations/vans',
+              'admin/field-operations/assignments',
+              'admin/field-operations/customers',
+              'admin/field-operations/visits',
+              'admin/field-operations/territories',
+              'admin/field-operations/address-quality',
+              'admin/field-operations/routing-policies',
+              'admin/field-operations/finance',
               'api/v1/van/customers/{type}/{customer}/commercial/quote',
               'api/v1/van/customers/{type}/{customer}/flash-offers',
               'api/v1/flash-offers',
@@ -580,6 +691,13 @@ jobs:
             "install_lock": "PASS",
             "dashboard_login": "PASS",
             "dashboard_navigation_visibility": "PASS",
+            "field_operations_sidebar_visibility": "PASS",
+            "field_operations_pages": "PASS",
+            "field_operations_empty_states": "PASS",
+            "field_operations_rtl_ltr": "PASS",
+            "field_operations_visual_screenshots": 22,
+            "live_fleet_map_surface": "PASS",
+            "territory_visual_coverage": "PASS",
             "product_sales_control_visibility": "PASS",
             "flash_offers_visibility": "PASS",
             "flash_preview_visibility": "PASS",
@@ -603,6 +721,14 @@ jobs:
             "store_readiness": "PASS"
           }
           EOF
+
+      - name: Upload fresh-install Van visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-van-1-0-58-fresh-ui-${{ github.run_id }}
+          path: ScreenShots/FreshVan/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Build synchronized Dashboard update package
         shell: bash
