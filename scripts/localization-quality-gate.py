@@ -37,14 +37,21 @@ VISIBLE_DART_LITERAL_PATTERNS = (
 )
 
 DYNAMIC_ENUM_PATTERN = re.compile(
-    r"\bText\([^\n]*(?:\.(?:status|state|channel|role|type)|\[['\"](?:status|state|channel|role|type)['\"]\])",
+    r"\bText\([^\n]*(?:\.(?:status|state|channel|role|type|payment_method|paymentMethod|unit_code|unitCode)|\[['\"](?:status|state|channel|role|type|payment_method|unit_code)['\"]\])",
     re.IGNORECASE,
 )
 
 BLADE_DYNAMIC_ENUM_PATTERN = re.compile(
-    r"\{\{[^\n}]*(?:->(?:status|state|channel|role|type)|\[['\"](?:status|state|channel|role|type)['\"]\])[^\n}]*\}\}",
+    r"\{\{[^\n}]*(?:->(?:status|state|channel|role|type|payment_method|unit_code)|\[['\"](?:status|state|channel|role|type|payment_method|unit_code)['\"]\])[^\n}]*\}\}",
     re.IGNORECASE,
 )
+
+DIRECT_LOCALE_FIELD_PATTERN = re.compile(
+    r"\b(?:name_(?:ar|en)|name(?:Ar|En)|title_(?:ar|en)|title(?:Ar|En)|"
+    r"description_(?:ar|en)|description(?:Ar|En))\b"
+)
+
+ALLOW_MARKER = "localization-gate: allow"
 
 DART_ENTRY = re.compile(
     r"^\s*(['\"])(?P<key>[^'\"]+)\1\s*:\s*(['\"])(?P<value>.*?)(?<!\\)\3\s*,?\s*$"
@@ -242,7 +249,7 @@ def is_ui_dart(path: str) -> bool:
 
 def line_has_translation_usage(line: str) -> bool:
     markers = (
-        ".tr(", "__(", "trans(", "translate(", "localized", "localised",
+        ".tr(", "__(", "trans(", "translate(", "localized", "localised", "_text(",
         "name_ar", "name_en", "label_ar", "label_en", "title_ar", "title_en",
         "description_ar", "description_en",
     )
@@ -258,6 +265,8 @@ def scan_added_lines(
     for path, lineno, line in added:
         if not path:
             continue
+        if ALLOW_MARKER in line:
+            continue
 
         if is_ui_dart(path):
             for pattern in VISIBLE_DART_LITERAL_PATTERNS:
@@ -270,9 +279,16 @@ def scan_added_lines(
                         )
             if DYNAMIC_ENUM_PATTERN.search(line) and not line_has_translation_usage(line):
                 errors.append(
-                    f"{path}:{lineno}: enum/status-like data is rendered directly; "
+                    f"{path}:{lineno}: enum/status/type/channel/payment/role/unit data is rendered directly; "
                     "map it through localization before display"
                 )
+            if "Text(" in line and DIRECT_LOCALE_FIELD_PATTERN.search(line):
+                lower = line.lower()
+                if "localized" not in lower and "locale" not in lower:
+                    errors.append(
+                        f"{path}:{lineno}: a language-specific data field is rendered directly; "
+                        "select Arabic/English through the active-locale resolver"
+                    )
 
         if path.endswith(".blade.php") and path.startswith("backend/resources/views/"):
             if re.search(r"\$ar\s*\?\s*['\"]", line):
@@ -301,9 +317,16 @@ def scan_added_lines(
 
             if BLADE_DYNAMIC_ENUM_PATTERN.search(line) and "__(" not in line and "trans(" not in line:
                 errors.append(
-                    f"{path}:{lineno}: status/type/channel/role is rendered directly; "
+                    f"{path}:{lineno}: status/type/channel/payment/role/unit is rendered directly; "
                     "use a localized label/translation"
                 )
+            if "{{" in line and DIRECT_LOCALE_FIELD_PATTERN.search(line):
+                lower = line.lower()
+                if "localized" not in lower and "locale" not in lower and "app()->getlocale" not in lower:
+                    errors.append(
+                        f"{path}:{lineno}: a language-specific data field is rendered directly; "
+                        "use the active-locale resolver"
+                    )
 
         if path in {
             "apps/customer_app/lib/core/localization/app_translations.dart",
@@ -371,7 +394,9 @@ def main() -> int:
         print(
             "\nRule: Arabic UI must resolve Arabic labels/data and English UI must resolve "
             "English labels/data. Add translation keys to both locales and render statuses/"
-            "enums through localization.",
+            "enums through localization. System-owned text may not silently fall back to the "
+            "wrong language. Exceptional technical literals require an inline "
+            f"'{ALLOW_MARKER}' justification.",
             file=sys.stderr,
         )
         return 1
