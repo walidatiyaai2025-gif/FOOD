@@ -210,6 +210,38 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertSame(30.0, $summary['open_amount']);
     }
 
+    public function test_captured_field_collection_reduces_authoritative_invoice_outstanding(): void
+    {
+        [, $legacyCustomer, $customer, $storeId] = $this->account(100);
+        $invoice = $this->invoice($legacyCustomer->id, $customer->id, $storeId, 60, now()->addWeek());
+
+        DB::table('payments')->insert([
+            'invoice_id' => $invoice->id,
+            'provider' => 'field_collection',
+            'provider_reference' => 'FIELD-COLLECTION-25',
+            'status' => 'captured',
+            'amount' => 25,
+            'currency' => 'EGP',
+            'created_at' => now()->subMinute(),
+            'updated_at' => now()->subMinute(),
+        ]);
+
+        $ledger = app(B2bAccountLedgerService::class);
+        $amounts = $ledger->invoiceAmounts($invoice);
+
+        $this->assertSame(25.0, $amounts['paid_amount']);
+        $this->assertSame(35.0, $amounts['outstanding_amount']);
+
+        $summary = $ledger->summary($customer, $storeId);
+        $this->assertSame(25.0, $summary['total_credits']);
+        $this->assertSame(-35.0, $summary['balance']);
+        $this->assertSame(35.0, $summary['open_amount']);
+
+        $statement = $ledger->statement($customer, null, null, $storeId);
+        $this->assertSame('payment', $statement['transactions'][1]['type']);
+        $this->assertSame(25.0, $statement['transactions'][1]['credit']);
+    }
+
     public function test_opening_notes_returns_and_adjustments_are_append_only_supported_types(): void
     {
         [$user, , $customer] = $this->account(200);

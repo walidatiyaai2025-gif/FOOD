@@ -239,6 +239,7 @@ class CustomerOrderDetails {
     required this.history,
     required this.payment,
     required this.requestedDeliveryDate,
+    this.collectionReceipts = const <CustomerCollectionReceipt>[],
   });
 
   final CustomerOrderSummary summary;
@@ -251,6 +252,7 @@ class CustomerOrderDetails {
   final List<CustomerOrderHistoryEntry> history;
   final CustomerOrderPayment? payment;
   final String? requestedDeliveryDate;
+  final List<CustomerCollectionReceipt> collectionReceipts;
 
   factory CustomerOrderDetails.fromJson(Map<String, dynamic> json) {
     final items = json['items'] is List
@@ -271,6 +273,15 @@ class CustomerOrderDetails {
             .toList(growable: false)
         : const <CustomerOrderHistoryEntry>[];
 
+    final collectionReceipts = json['collection_receipts'] is List
+        ? (json['collection_receipts'] as List)
+            .whereType<Map>()
+            .map((receipt) => CustomerCollectionReceipt.fromJson(
+                  Map<String, dynamic>.from(receipt),
+                ))
+            .toList(growable: false)
+        : const <CustomerCollectionReceipt>[];
+
     return CustomerOrderDetails(
       summary: CustomerOrderSummary.fromJson(json),
       subtotal: _double(json['subtotal']),
@@ -288,6 +299,7 @@ class CustomerOrderDetails {
             )
           : null,
       requestedDeliveryDate: _nullableText(json['requested_delivery_date']),
+      collectionReceipts: collectionReceipts,
     );
   }
 }
@@ -370,6 +382,37 @@ class CustomerOrderPayment {
         status: json['status']?.toString() ?? '',
         amount: _double(json['amount']),
         currency: json['currency']?.toString() ?? '',
+      );
+}
+
+class CustomerCollectionReceipt {
+  const CustomerCollectionReceipt({
+    required this.id,
+    required this.paymentId,
+    required this.status,
+    required this.amount,
+    required this.currency,
+    required this.source,
+    required this.collectedAt,
+  });
+
+  final int id;
+  final int? paymentId;
+  final String status;
+  final double amount;
+  final String currency;
+  final String source;
+  final DateTime? collectedAt;
+
+  factory CustomerCollectionReceipt.fromJson(Map<String, dynamic> json) =>
+      CustomerCollectionReceipt(
+        id: _int(json['id']),
+        paymentId: json['payment_id'] == null ? null : _int(json['payment_id']),
+        status: json['status']?.toString() ?? '',
+        amount: _double(json['amount']),
+        currency: json['currency']?.toString() ?? '',
+        source: json['source']?.toString() ?? '',
+        collectedAt: _date(json['collected_at']),
       );
 }
 
