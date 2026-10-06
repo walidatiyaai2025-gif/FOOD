@@ -178,18 +178,18 @@ void main() {
     expect(body['override_reason'], 'Supervisor approved');
   });
 
-  test('canonical commercial reason-code set stays aligned with #983', () {
+  test('canonical commercial reason-code set stays aligned with #984 runtime', () {
     expect(vanCommercialReasonCodes, containsAll(const [
+      'PRODUCT_INACTIVE',
       'PRODUCT_CLOSED',
-      'CUSTOMER_NOT_ELIGIBLE',
-      'CHANNEL_NOT_ALLOWED',
-      'ORDER_LIMIT_EXCEEDED',
-      'DAILY_LIMIT_REACHED',
-      'WEEKLY_LIMIT_REACHED',
-      'MONTHLY_LIMIT_REACHED',
-      'LIFETIME_LIMIT_REACHED',
-      'UNIT_NOT_ALLOWED',
-      'INSUFFICIENT_STOCK',
+      'PRODUCT_RESTRICTED',
+      'CHANNEL_BLOCKED',
+      'OUTSIDE_AVAILABILITY',
+      'MAX_PER_ORDER_EXCEEDED',
+      'MAX_PER_DAY_EXCEEDED',
+      'MAX_PER_WEEK_EXCEEDED',
+      'MAX_PER_MONTH_EXCEEDED',
+      'MAX_LIFETIME_EXCEEDED',
       'FLASH_NOT_ACTIVE',
       'FLASH_SOLD_OUT',
       'FLASH_CUSTOMER_LIMIT_REACHED',
