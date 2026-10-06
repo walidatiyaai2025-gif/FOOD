@@ -14,7 +14,7 @@
 
 الـ APKs مبنية Release mode ومربوطة افتراضيًا على:
 
-`https://foodex.50sols.com`
+`https://vanfoodex.50sols.com`
 
 الهويات الأصلية:
 
@@ -32,11 +32,11 @@
 3. اجعل Document Root للدومين يشير إلى `backend/public`.
 4. المطلوب PHP 8.2+ مع `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `json`, `zip`.
 5. استخدم MySQL/MariaDB (المنفذ الافتراضي `3306`). القيم المعتمدة لأول تركيب:
-   - Database: `solscool_foodex`
-   - Username: `solscool_foodex`
+   - Database: `solscool_vanfoodex`
+   - Username: `solscool_vanfoodex`
    - Password: يتم إدخاله على السيرفر ولا يُحفظ في Git.
 6. اجعل `backend/storage` و`backend/bootstrap/cache` قابلين للكتابة بواسطة مستخدم PHP/Web.
-7. افتح `https://foodex.50sols.com/install` وأكمل الـwizard حتى Finish.
+7. افتح `https://vanfoodex.50sols.com/install` وأكمل الـwizard حتى Finish.
 8. بعد Finish يتم قفل `/install` تلقائيًا، وتتم الإدارة من الـDashboard.
 
 الحزمة تتضمن Composer production dependencies لتسهيل أول Setup، لكنها لا تتضمن `.env` أو كلمات مرور أو مفاتيح signing.
