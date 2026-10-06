@@ -8,9 +8,9 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
-use App\Models\CollectionAccount;
 use App\Models\B2bCustomer;
 use App\Models\Category;
+use App\Models\CollectionAccount;
 use App\Models\Driver;
 use App\Models\Inventory;
 use App\Models\Invoice;
@@ -172,8 +172,7 @@ class B2bWorkspaceController extends Controller
         OrderController $orders,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $row = DB::table('orders')
             ->where('id', $order)
@@ -243,8 +242,7 @@ class B2bWorkspaceController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $driverId = $request->integer('driver_id');
         $orderId = $request->integer('order_id');
@@ -276,8 +274,7 @@ class B2bWorkspaceController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $principalStoreId = $this->principal->storeId();
         $orderModel = Order::query()
@@ -306,8 +303,7 @@ class B2bWorkspaceController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $dashboardNotifier,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         $principalStoreId = $this->principal->storeId();
         $orderModel = Order::query()
@@ -415,8 +411,7 @@ class B2bWorkspaceController extends Controller
         Request $request,
         B2bAccountController $accounts,
         B2bCustomerService $customers,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('b2b.accounts.manage'), 403);
 
@@ -429,8 +424,7 @@ class B2bWorkspaceController extends Controller
         Request $request,
         B2bAccount $account,
         B2bAccountController $accounts,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('b2b.accounts.manage'), 403);
         abort_unless($account->b2b_customer_id !== null, 404);
@@ -750,8 +744,7 @@ class B2bWorkspaceController extends Controller
         Remittance $remittance,
         string $action,
         CollectionCustodyService $custody,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless(in_array($action, ['approve', 'reject', 'reconcile'], true), 404);
 
@@ -1723,7 +1716,7 @@ class B2bWorkspaceController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        if (!isset($data['from']) && !isset($data['to']) && isset($data['date'])) {
+        if (! isset($data['from']) && ! isset($data['to']) && isset($data['date'])) {
             return [$data['date'], $data['date']];
         }
 
