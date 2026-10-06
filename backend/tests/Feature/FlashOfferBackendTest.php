@@ -16,8 +16,11 @@ class FlashOfferBackendTest extends TestCase
     use RefreshDatabase;
 
     private int $storeId;
+
     private int $productId;
+
     private int $inventoryId;
+
     private User $user;
 
     protected function setUp(): void
