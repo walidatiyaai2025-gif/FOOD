@@ -31,7 +31,7 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('evaluate_policy')
             ->assertSee('remaining_quota')
             ->assertSee('PRODUCT_CLOSED')
-            ->assertSee('Canonical backend contract pending');
+            ->assertSee('Canonical backend contract live');
     }
 
     public function test_promotions_workspace_exposes_flash_contract_without_duplicate_mutation_logic(): void
@@ -48,7 +48,7 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('reserve_flash_offer')
             ->assertSee('release_reservation')
             ->assertSee('FLASH_RESERVATION_EXPIRED')
-            ->assertSee('Create/edit/activate mutations are intentionally gated');
+            ->assertSee('Create/edit/activate mutations are wired');
     }
 
     /** @return array{0:User,1:int} */
