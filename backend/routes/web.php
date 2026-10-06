@@ -158,6 +158,10 @@ Route::prefix('admin')
         Route::delete('/b2b/storefront/banners/{banner}', [StorefrontDraftEditorController::class, 'wholesaleBannerDestroy'])->name('b2b.storefront.banners.destroy');
         Route::post('/b2b/storefront/publish', [StorefrontDraftEditorController::class, 'wholesalePublish'])->name('b2b.storefront.publish');
         Route::post('/b2b/storefront/discard', [StorefrontDraftEditorController::class, 'wholesaleDiscard'])->name('b2b.storefront.discard');
+        Route::post('/b2b/finance/remittances/{remittance}/{action}', [B2bWorkspaceController::class, 'reviewRemittance'])
+            ->whereNumber('remittance')
+            ->whereIn('action', ['approve', 'reject', 'reconcile'])
+            ->name('b2b.finance.remittances.review');
         Route::get('/b2b/pricing-approvals', [B2bWorkspaceController::class, 'show'])->defaults('module', 'pricing')->name('b2b.pricing-approvals');
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');

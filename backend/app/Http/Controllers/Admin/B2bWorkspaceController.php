@@ -10,11 +10,13 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\Category;
+use App\Models\CollectionAccount;
 use App\Models\Driver;
 use App\Models\Inventory;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Remittance;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
@@ -24,7 +26,9 @@ use App\Services\B2bCustomerService;
 use App\Services\B2bDashboardService;
 use App\Services\B2bFinanceInvoiceService;
 use App\Services\CatalogOwnership;
+use App\Services\CollectionCustodyService;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\FieldOperationsFinanceService;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
@@ -65,6 +69,7 @@ class B2bWorkspaceController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly B2bDashboardService $dashboard,
         private readonly B2bFinanceInvoiceService $financeInvoices,
+        private readonly FieldOperationsFinanceService $fieldFinance,
         private readonly B2bAccountLedgerService $accountLedger,
         private readonly ManagementReportService $reports,
         private readonly ReportExportService $reportExports,
@@ -734,6 +739,58 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg('تم حفظ إعداد الجملة.', 'Wholesale setting saved.'));
     }
 
+    public function reviewRemittance(
+        Request $request,
+        Remittance $remittance,
+        string $action,
+        CollectionCustodyService $custody,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        abort_unless(in_array($action, ['approve', 'reject', 'reconcile'], true), 404);
+
+        $account = CollectionAccount::query()
+            ->whereKey($remittance->collection_account_id)
+            ->firstOrFail();
+        $storeId = $account->store_id === null ? null : (int) $account->store_id;
+
+        abort_unless($storeId !== null && in_array($storeId, $this->wholesaleStoreIds($actor), true), 404);
+        abort_unless($actor->hasPermission('finance.manage', $storeId), 403);
+
+        $before = $remittance->toArray();
+        $updated = match ($action) {
+            'approve' => $custody->approveRemittance($remittance, $actor),
+            'reject' => $custody->rejectRemittance($remittance, $actor),
+            'reconcile' => $custody->reconcileRemittance($remittance, $actor),
+        };
+
+        $this->audit->record(
+            'b2b.finance.remittance.'.$action,
+            $actor,
+            $updated,
+            $before,
+            $updated->toArray(),
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.b2b.module', [
+                'module' => 'finance',
+                'ops_tab' => $action === 'reconcile' ? 'reconciliation' : 'remittances',
+            ])
+            ->with('status', $this->msg(
+                match ($action) {
+                    'approve' => 'تم اعتماد التوريد.',
+                    'reject' => 'تم رفض التوريد.',
+                    default => 'تمت مطابقة التوريد.',
+                },
+                match ($action) {
+                    'approve' => 'Remittance approved.',
+                    'reject' => 'Remittance rejected.',
+                    default => 'Remittance reconciled.',
+                },
+            ));
+    }
+
     private function reportModuleData(User $user, array $storeIds): array
     {
         $storeId = (int) ($storeIds[0] ?? $this->principal->storeId());
@@ -883,11 +940,16 @@ class B2bWorkspaceController extends Controller
         ];
     }
 
-    private function financeModuleData(array $storeIds, Request $request): array
+    private function financeModuleData(array $storeIds, User $user, Request $request): array
     {
         $filters = $request->validate($this->financeFilterRules());
+        $opsFilters = $request->validate($this->fieldOperationsFinanceFilterRules());
 
-        return $this->financeInvoices->viewModel($storeIds, $filters, app()->getLocale());
+        $data = $this->financeInvoices->viewModel($storeIds, $filters, app()->getLocale());
+        $data['field_operations'] = $this->fieldFinance->viewModel($storeIds, $opsFilters);
+        $data['field_operations']['can_manage'] = $user->hasPermission('finance.manage', (int) ($storeIds[0] ?? 0));
+
+        return $data;
     }
 
     private function inventoryModuleData(array $storeIds): array
@@ -1247,7 +1309,7 @@ class B2bWorkspaceController extends Controller
                     ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'sku' => $row->sku])
                     ->all(),
             ],
-            'finance' => $this->financeModuleData($storeIds, $request),
+            'finance' => $this->financeModuleData($storeIds, $user, $request),
             'reports' => $this->reportModuleData($user, $storeIds),
             'storefront' => $this->storefrontModuleData($storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
@@ -1624,6 +1686,18 @@ class B2bWorkspaceController extends Controller
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'customer_id' => ['nullable', 'integer', 'min:1'],
+        ];
+    }
+
+    /** @return array<string,list<string>> */
+    private function fieldOperationsFinanceFilterRules(): array
+    {
+        return [
+            'ops_tab' => ['nullable', 'string', 'in:wallets,collections,remittances,reconciliation'],
+            'ops_q' => ['nullable', 'string', 'max:120'],
+            'ops_status' => ['nullable', 'string', 'max:32'],
+            'ops_per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
+            'ops_page' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
