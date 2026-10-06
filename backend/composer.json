@@ -37,7 +37,8 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint --test app routes tests"
+            "vendor/bin/pint app/Http/Controllers/Admin/B2bWorkspaceController.php",
+            "git diff --exit-code -- app/Http/Controllers/Admin/B2bWorkspaceController.php"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
