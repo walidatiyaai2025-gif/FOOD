@@ -8,7 +8,8 @@ const backend = path.resolve(__dirname, '../..');
 const source = fs.readFileSync(path.join(backend, 'public/assets/admin/driver-live-map.js'), 'utf8');
 const loader = fs.readFileSync(path.join(backend, 'resources/views/admin/_driver-live-map-scripts.blade.php'), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
 const i18n = {
-    loading:'Loading', ready:'Live', noDrivers:'No drivers', failed:'Failed', assetsFailed:'Assets failed',
+    loading:'Loading', ready:'Live', noDrivers:'No locations', failed:'Failed', assetsFailed:'Assets failed',
+    driver:'Driver', van:'Van', route:'Route', assignment:'Assignment',
     mapFailed:'Map failed', sessionExpired:'Sign in again', forbidden:'Permission denied',
     serverFailed:'Server unavailable', networkFailed:'Network unavailable', invalidFeed:'Invalid response', timeout:'Timed out',
 };
@@ -19,19 +20,23 @@ class Node {
     addEventListener(type, callback) { this.listeners[type]=callback; }
     click() { this.listeners.click?.({preventDefault() {}}); }
 }
-function root(mode) {
+function root(mode, actorKind='driver') {
     const node = new Node();
-    node.dataset={feedUrl:'/admin/driver-live-tracking/feed?channel=b2b&store_id=7',pollMs:'5000',mode,assetsFailed:i18n.assetsFailed};
+    node.dataset={
+        feedUrl:'/admin/driver-live-tracking/feed?channel=b2b&store_id=7',
+        secondaryFeedUrl:actorKind === 'mixed' ? '/admin/field-operations/fleet-map/feed?channel=b2b&store_id=7' : '',
+        actorKind,pollMs:'5000',mode,assetsFailed:i18n.assetsFailed
+    };
     node.parts = Object.fromEntries(['map','state','error','error-message','updated','retry','count-online','count-stale','count-offline',
-        ...(mode === 'full' ? ['list','search','apply','clear','recenter','channel','store','status-filter','driver-id','order-id'] : [])].map(role=>[role,new Node()]));
+        ...(mode === 'full' ? ['list','search','apply','clear','recenter','channel','store','entity-type','status-filter','driver-id','order-id'] : [])].map(role=>[role,new Node()]));
     node.parts.updated.textContent='—';
     node.parts.error.hidden=true;
     const translations = {textContent:JSON.stringify(i18n)};
     node.querySelector = selector => selector === '[data-driver-live-map-i18n]' ? translations : node.parts[selector.match(/"(.*)"/)?.[1]] || null;
     return node;
 }
-function setup({mode='full', noLeaflet=false, brokenMap=false, roots:givenRoots, response}={}) {
-    const roots=givenRoots || [root(mode)];
+function setup({mode='full', actorKind='driver', noLeaflet=false, brokenMap=false, roots:givenRoots, response}={}) {
+    const roots=givenRoots || [root(mode,actorKind)];
     const calls=[], timers=new Map(), intervals=[], events={};
     let nextTimer=0;
     const layer={clearCount:0,addTo(){return this;},clearLayers(){this.clearCount++;}};
@@ -67,6 +72,35 @@ for (const mode of ['full','compact']) {
         assert.equal([...env.timers.values()].filter(timer=>timer.ms===5000).length,1);
     });
 }
+test('mixed mode merges authoritative Driver and Van feeds on one map runtime',async()=>{
+    const env=setup({
+        actorKind:'mixed',
+        response:async(url)=> {
+            const parsed=new URL(url);
+            if(parsed.pathname.includes('/field-operations/fleet-map/feed')) {
+                return {ok:true,json:async()=>({data:[{
+                    actor_type:'van',actor_id:5,entity_name:'Van 5',latitude:29.3,longitude:48.3,status:'online',
+                    received_at:'2026-10-01T05:00:00Z',route_key:'R-5'
+                }],meta:{generated_at:'2026-10-01T05:00:00Z'}})};
+            }
+            return {ok:true,json:async()=>({data:[{
+                driver_id:4,driver_name:'Driver 4',latitude:29.2,longitude:48.2,status:'online',
+                received_at:'2026-10-01T05:00:00Z',order:{number:'ORD-4'}
+            }],meta:{generated_at:'2026-10-01T05:00:00Z'}})};
+        }
+    });
+    env.run();await settle();
+    assert.equal(env.calls.length,2);
+    assert.deepEqual(
+        env.roots[0].foodexDriverLiveMap.rows().map(row=>row.actor_type).sort(),
+        ['driver','van']
+    );
+    assert.equal(env.roots[0].parts['count-online'].textContent,'2');
+});
+test('mixed runtime defines visually distinct Driver and Van marker symbols',()=>{
+    assert.ok(source.includes("kind === 'van' ? '🚐' : '👤'"));
+    assert.ok(source.includes('foodex-tracking-entity-marker-'+kind));
+});
 test('map initialization exception is visible and does not prevent the next root starting',async()=>{
     const env=setup({brokenMap:true});env.run();assert.equal(env.roots[0].dataset.liveMapError,'map-initialization');assert.equal(env.calls.length,0);
     const first=root('full'),second=root('compact');delete first.parts.map;

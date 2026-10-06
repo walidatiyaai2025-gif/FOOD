@@ -132,6 +132,9 @@ class B2bWorkspaceController extends Controller
                 $this->operationalScope->allowedStoreIds($user, 'drivers.tracking.view', 'b2b'),
                 true,
             );
+        $vanTrackingFeedUrl = $canViewDriverTracking
+            ? route('admin.field-operations.fleet.feed', ['channel' => 'b2b', 'store_id' => $principalStoreId])
+            : null;
         $driverTrackingFeedUrl = $canViewDriverTracking
             ? route('admin.driver-live-tracking.feed', ['channel' => 'b2b', 'store_id' => $principalStoreId])
             : null;
@@ -162,6 +165,7 @@ class B2bWorkspaceController extends Controller
             'visibleModules',
             'canViewDriverTracking',
             'driverTrackingFeedUrl',
+            'vanTrackingFeedUrl',
             'driverTrackingPageUrl',
         ));
     }

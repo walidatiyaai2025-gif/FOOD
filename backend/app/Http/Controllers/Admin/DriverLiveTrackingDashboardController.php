@@ -32,6 +32,7 @@ final class DriverLiveTrackingDashboardController extends Controller
             'navGroups' => $this->navigation->groupsFor($user),
             'navContext' => 'driver_live_tracking',
             'feedUrl' => route('admin.driver-live-tracking.feed'),
+            'vanFeedUrl' => route('admin.field-operations.fleet.feed'),
             'trackingI18n' => [
                 'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
                 'loading' => __('admin.driver_live_tracking.loading'),
@@ -48,6 +49,13 @@ final class DriverLiveTrackingDashboardController extends Controller
                 'accuracy' => __('admin.driver_live_tracking.accuracy'),
                 'speed' => __('admin.driver_live_tracking.speed'),
                 'lastSeen' => __('admin.driver_live_tracking.last_seen'),
+                'driver' => __('admin.driver_live_tracking.driver'),
+                'van' => __('admin.driver_live_tracking.van'),
+                'entities' => __('admin.driver_live_tracking.entities'),
+                'entityType' => __('admin.driver_live_tracking.entity_type'),
+                'allEntities' => __('admin.driver_live_tracking.all_entities'),
+                'route' => __('admin.driver_live_tracking.route'),
+                'assignment' => __('admin.driver_live_tracking.assignment'),
             ],
         ]);
     }

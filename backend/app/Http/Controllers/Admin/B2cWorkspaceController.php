@@ -101,6 +101,9 @@ class B2cWorkspaceController extends Controller
                 app(OperationalTenantScope::class)->allowedStoreIds($user, 'drivers.tracking.view', 'b2c'),
                 true,
             );
+        $vanTrackingFeedUrl = $canViewDriverTracking
+            ? route('admin.field-operations.fleet.feed', ['channel' => 'b2c', 'store_id' => $storeId])
+            : null;
         $driverTrackingFeedUrl = $canViewDriverTracking
             ? route('admin.driver-live-tracking.feed', ['channel' => 'b2c', 'store_id' => $storeId])
             : null;
@@ -142,6 +145,7 @@ class B2cWorkspaceController extends Controller
             'visibleModules',
             'canViewDriverTracking',
             'driverTrackingFeedUrl',
+            'vanTrackingFeedUrl',
             'driverTrackingPageUrl',
         ));
     }
