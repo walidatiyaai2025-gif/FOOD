@@ -200,7 +200,7 @@ void main() {
     expect(beforeResume, 1);
 
     tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.paused,
+      AppLifecycleState.inactive,
     );
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(
@@ -340,7 +340,7 @@ void main() {
 
     expect(api.checkoutOptionsCalls, 1);
 
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();

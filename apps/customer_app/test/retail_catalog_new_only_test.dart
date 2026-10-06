@@ -111,7 +111,7 @@ void main() {
     expect(beforeResume, 4);
 
     tester.binding.handleAppLifecycleStateChanged(
-      AppLifecycleState.paused,
+      AppLifecycleState.inactive,
     );
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(
