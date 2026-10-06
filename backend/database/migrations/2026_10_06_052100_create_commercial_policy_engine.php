@@ -141,17 +141,24 @@ return new class extends Migration
         $products = DB::table('products')
             ->join('units', 'units.id', '=', 'products.unit_id')
             ->orderBy('products.id')
+            ->select([
+                'products.id as product_id',
+                'products.sku as product_sku',
+                'units.id as unit_id',
+                'units.code as unit_code',
+                'units.name as unit_name',
+            ])
             ->cursor();
 
         foreach ($products as $product) {
             DB::table('product_selling_units')->insert([
-                'product_id' => $product->id,
+                'product_id' => $product->product_id,
                 'unit_id' => $product->unit_id,
-                'code' => $product->code,
-                'name' => $product->name,
+                'code' => $product->unit_code,
+                'name' => $product->unit_name,
                 'conversion_factor' => 1,
                 'price' => null,
-                'sku' => $product->sku,
+                'sku' => $product->product_sku,
                 'barcode' => null,
                 'is_base' => true,
                 'is_active' => true,
