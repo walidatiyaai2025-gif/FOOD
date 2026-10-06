@@ -60,9 +60,11 @@ class CustomerFlashOffer {
   final List<CustomerFlashSellingUnit> sellingUnits;
   final String? imageUrl;
 
-  Duration remainingAt(DateTime localNow) {
-    final drift = localNow.toUtc().difference(serverTime.toUtc());
-    final effectiveServerNow = serverTime.toUtc().add(drift);
+  Duration remainingAfter(Duration elapsedSinceServerSample) {
+    final elapsed = elapsedSinceServerSample.isNegative
+        ? Duration.zero
+        : elapsedSinceServerSample;
+    final effectiveServerNow = serverTime.toUtc().add(elapsed);
     final remaining = endsAt.toUtc().difference(effectiveServerNow);
     return remaining.isNegative ? Duration.zero : remaining;
   }
@@ -109,9 +111,11 @@ class CustomerFlashReservation {
 
   bool get active => status.toUpperCase() == 'ACTIVE';
 
-  Duration remainingAt(DateTime localNow) {
-    final drift = localNow.toUtc().difference(serverTime.toUtc());
-    final effectiveServerNow = serverTime.toUtc().add(drift);
+  Duration remainingAfter(Duration elapsedSinceServerSample) {
+    final elapsed = elapsedSinceServerSample.isNegative
+        ? Duration.zero
+        : elapsedSinceServerSample;
+    final effectiveServerNow = serverTime.toUtc().add(elapsed);
     final remaining = expiresAt.toUtc().difference(effectiveServerNow);
     return remaining.isNegative ? Duration.zero : remaining;
   }
@@ -335,7 +339,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   Object? _error;
   bool _busy = true;
   Timer? _ticker;
-  DateTime _now = DateTime.now();
+  final Stopwatch _serverClock = Stopwatch();
   final Map<int, int> _selectedUnits = <int, int>{};
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
@@ -343,14 +347,16 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   @override
   void initState() {
     super.initState();
+    _serverClock.start();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _now = DateTime.now());
       final reservation = _reservation;
       if (reservation != null &&
-          reservation.remainingAt(_now) == Duration.zero) {
+          reservation.remainingAfter(_serverClock.elapsed) == Duration.zero) {
         setState(() => _reservation = null);
+        return;
       }
+      setState(() {});
     });
     _load();
   }
@@ -366,6 +372,9 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         widget.api.activeReservation(storeId: widget.storeId),
       ]);
       if (!mounted) return;
+      _serverClock
+        ..reset()
+        ..start();
       setState(() {
         _offers = results[0] as List<CustomerFlashOffer>;
         _reservation = results[1] as CustomerFlashReservation?;
@@ -444,7 +453,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
             if (_reservation != null)
               _ActiveReservationBanner(
                 reservation: _reservation!,
-                remaining: _reservation!.remainingAt(_now),
+                remaining: _reservation!.remainingAfter(_serverClock.elapsed),
                 isArabic: _ar,
                 onContinue: () => _openCheckout(_reservation!),
               ),
@@ -466,7 +475,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                 ),
               ),
             ..._offers.map((offer) {
-              final remaining = offer.remainingAt(_now);
+              final remaining = offer.remainingAfter(_serverClock.elapsed);
               final canBuy = offer.eligible &&
                   offer.remainingAllocation > 0 &&
                   offer.remainingCustomerLimit > 0 &&
