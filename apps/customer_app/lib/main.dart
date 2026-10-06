@@ -6,6 +6,8 @@ import 'core/auth/customer_auth_persistence.dart';
 import 'core/auth/customer_session.dart';
 import 'core/auth/customer_session_store.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
+import 'core/config/foodex_environment.dart';
+import 'core/config/mobile_runtime_visibility.dart';
 import 'core/push/firebase_push_service.dart';
 
 Future<void> main() async {
@@ -47,6 +49,11 @@ Future<void> main() async {
     });
   }
 
+  final runtimeVisibility = await MobileRuntimeVisibility.fetch(
+    baseUrl: FoodexEnvironment.apiBaseUrl,
+    locale: 'ar',
+  );
+
   CustomerFirebasePushService? pushService;
   try {
     pushService = await CustomerFirebasePushService.bootstrap();
@@ -65,6 +72,7 @@ Future<void> main() async {
       authPreferenceStore: authPreferenceStore,
       biometricAuthenticator: LocalAuthCustomerBiometricAuthenticator(),
       pushService: pushService,
+      showPersistentFooter: runtimeVisibility.showPersistentFooter,
     ),
   );
 }

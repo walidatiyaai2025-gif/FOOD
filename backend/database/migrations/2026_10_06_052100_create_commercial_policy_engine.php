@@ -16,6 +16,8 @@ return new class extends Migration
             $table->boolean('hide_when_closed')->default(false);
             $table->boolean('override_allowed')->default(false);
             $table->json('channels')->nullable();
+            $table->string('break_pack_policy', 24)->default('mixed');
+            $table->string('break_pack_unit_code', 80)->nullable();
             $table->decimal('default_max_per_order', 14, 3)->nullable();
             $table->decimal('default_max_per_day', 14, 3)->nullable();
             $table->decimal('default_max_per_week', 14, 3)->nullable();
@@ -115,6 +117,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
             $table->decimal('base_quantity', 14, 3);
+            $table->string('selling_unit_code', 80)->nullable();
             $table->string('status', 20)->default('RESERVED');
             $table->timestamp('reserved_at');
             $table->timestamp('consumed_at')->nullable();

@@ -151,6 +151,10 @@ final class NotificationAudience
                 if ($storeIds !== []) {
                     $scope->orWhereIn('store_id', $storeIds);
                 }
+            })
+            ->where(function (Builder $targeting) use ($user): void {
+                $targeting->whereNull('data->eligible_user_ids')
+                    ->orWhereJsonContains('data->eligible_user_ids', (int) $user->id);
             });
     }
 }

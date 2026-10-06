@@ -126,14 +126,10 @@
             @forelse($flashOffers as $offer)
                 <div class="control-row">
                     <span>#{{ $offer->id }} · {{ $offer->name }} · <strong>{{ $offer->status }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ $ar ? 'معاينة' : 'Preview' }}</a>
-                        <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ $ar ? 'التحليلات' : 'Analytics' }}</a>
-                        <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
-                            <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option>{{ $action }}</option>@endforeach</select>
-                            <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
-                        </form>
-                    </div>
+                    <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
+                        <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option>{{ $action }}</option>@endforeach</select>
+                        <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
+                    </form>
                 </div>
             @empty
                 <p class="muted">{{ $ar?'لا توجد Flash Offers.':'No Flash Offers yet.' }}</p>

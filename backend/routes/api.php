@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountDeletionController;
 use App\Http\Controllers\Api\V1\AddressQualityController;
 use App\Http\Controllers\Api\V1\AdminReportController;
 use App\Http\Controllers\Api\V1\AppPreviewInvalidationController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\DriverCollectionController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
+use App\Http\Controllers\Api\V1\FlashOfferController;
 use App\Http\Controllers\Api\V1\FleetLocationController;
 use App\Http\Controllers\Api\V1\GuestCartController;
 use App\Http\Controllers\Api\V1\GuestCatalogController;
@@ -42,6 +44,8 @@ use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use App\Http\Controllers\Api\V1\VanCollectionController;
+use App\Http\Controllers\Api\V1\VanCommercialPolicyController;
+use App\Http\Controllers\Api\V1\VanFlashOfferController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
 use App\Http\Controllers\Api\V1\VanVisitController;
 use Illuminate\Support\Facades\Route;
@@ -174,6 +178,12 @@ Route::prefix('v1')->group(function (): void {
                 ->whereNumber('customer');
             Route::get('/wallet', [VanCollectionController::class, 'wallet']);
             Route::post('/remittances', [VanCollectionController::class, 'remit']);
+            Route::post('/customers/{type}/{customer}/commercial/quote', [VanCommercialPolicyController::class, 'quote'])->whereNumber('customer')->middleware('throttle:120,1');
+            Route::get('/customers/{type}/{customer}/flash-offers', [VanFlashOfferController::class, 'index'])->whereNumber('customer')->middleware('throttle:120,1');
+            Route::post('/customers/{type}/{customer}/flash-offers/products/{offerProduct}/reserve', [VanFlashOfferController::class, 'reserve'])->where(['customer' => '[0-9]+', 'offerProduct' => '[0-9]+'])->middleware('throttle:60,1');
+            Route::get('/customers/{type}/{customer}/flash-reservations/{reservation}', [VanFlashOfferController::class, 'show']);
+            Route::post('/customers/{type}/{customer}/flash-reservations/{reservation}/confirm', [VanFlashOfferController::class, 'confirm'])->middleware('throttle:60,1');
+            Route::post('/customers/{type}/{customer}/flash-reservations/{reservation}/release', [VanFlashOfferController::class, 'release'])->middleware('throttle:60,1');
             Route::get('/visits', [VanVisitController::class, 'visits']);
             Route::post('/visits', [VanVisitController::class, 'store']);
             Route::post('/visits/{visit}/transition', [VanVisitController::class, 'transition'])
@@ -203,6 +213,8 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/b2b/product-mappings/{sourceProduct}', [RetailWholesaleProductMappingController::class, 'upsert']);
         Route::post('/push/devices', [PushDeviceController::class, 'store']);
         Route::delete('/push/devices/{device}', [PushDeviceController::class, 'destroy']);
+        Route::get('/account-deletion', [AccountDeletionController::class, 'show']);
+        Route::post('/account-deletion', [AccountDeletionController::class, 'store'])->middleware('throttle:6,1');
         Route::get('/admin/security/permissions', [SecurityController::class, 'permissions']);
         Route::get('/admin/security/roles', [SecurityController::class, 'roles']);
         Route::post('/admin/security/roles', [SecurityController::class, 'storeRole']);
@@ -264,6 +276,14 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/profile/favorites', [CustomerProfileController::class, 'favorites']);
         Route::post('/profile/favorites/{product}', [CustomerProfileController::class, 'addFavorite']);
         Route::delete('/profile/favorites/{product}', [CustomerProfileController::class, 'removeFavorite']);
+
+        Route::get('/flash-offers', [FlashOfferController::class, 'index'])->middleware('throttle:120,1');
+        Route::post('/flash-offers/{offer}/events', [FlashOfferController::class, 'event'])->whereNumber('offer')->middleware('throttle:240,1');
+        Route::post('/flash-offers/products/{offerProduct}/reserve', [FlashOfferController::class, 'reserve'])->whereNumber('offerProduct')->middleware('throttle:60,1');
+        Route::get('/flash-reservations/active', [FlashOfferController::class, 'activeReservation'])->middleware('throttle:120,1');
+        Route::get('/flash-reservations/{reservation}', [FlashOfferController::class, 'showReservation']);
+        Route::post('/flash-reservations/{reservation}/confirm', [FlashOfferController::class, 'confirm'])->middleware('throttle:60,1');
+        Route::post('/flash-reservations/{reservation}/release', [FlashOfferController::class, 'release'])->middleware('throttle:60,1');
 
         Route::post('/quote', QuoteController::class);
         Route::get('/checkout/options', RetailCheckoutOptionsController::class);

@@ -23,6 +23,7 @@ import 'commerce/retail_commerce_api.dart';
 import 'commerce/retail_commerce_screens.dart';
 import 'customer_ui_v3/customer_retail_shell.dart';
 import 'customer_ui_v3/retail_home_v3_screen.dart';
+import 'offers/customer_flash_offers.dart';
 
 class RetailCustomerJourneyScreen extends StatelessWidget {
   const RetailCustomerJourneyScreen({
@@ -182,10 +183,27 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
       case CustomerRoutePaths.offers:
         return withShell(
           CustomerRetailDestination.products,
-          RetailCatalogOffersScreen(
+          CustomerFlashOffersScreen(
             storeId: storeId,
-            catalogApi: catalogApi,
-            navigation: navigation,
+            api: HttpCustomerFlashOffersApi(
+              token: _currentSession.accessToken,
+            ),
+            isAuthenticated: _currentSession.isAuthenticated,
+            onAuthenticationRequired: () => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.authHandoff(
+                context: commerceContext,
+                next: location,
+              ),
+            ),
+            onOpenNormalOffers: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => RetailCatalogOffersScreen(
+                  storeId: storeId,
+                  catalogApi: catalogApi,
+                  navigation: navigation,
+                ),
+              ),
+            ),
           ),
         );
 

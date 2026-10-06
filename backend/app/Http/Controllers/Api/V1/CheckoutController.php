@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CommerceQuoteService;
+use App\Services\CommercialPolicyService;
 use App\Services\CouponRedemptionService;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
@@ -36,6 +37,7 @@ class CheckoutController extends Controller
         AuditLogger $auditLogger,
         DashboardOperationalNotifier $dashboardNotifier,
         CommerceQuoteService $quotes,
+        CommercialPolicyService $commercialPolicy,
         InvoiceService $invoices,
     ): JsonResponse {
         $validated = $request->validate([
@@ -122,6 +124,7 @@ class CheckoutController extends Controller
             $auditLogger,
             $request,
             $quotes,
+            $commercialPolicy,
             $invoices,
         ): array {
             $existing = Order::query()
@@ -277,7 +280,26 @@ class CheckoutController extends Controller
                 OrderItem::query()->create([
                     'order_id' => $order->getKey(),
                     ...$snapshot,
+                    'selling_unit_quantity' => $snapshot['quantity'],
+                    'base_quantity' => $snapshot['quantity'],
+                    'conversion_factor_snapshot' => 1,
                 ]);
+
+                try {
+                    $commercialPolicy->reserveBaseQuantityForOrder(
+                        (int) $order->getKey(),
+                        $legacyCustomerId,
+                        (int) $snapshot['product_id'],
+                        (float) $snapshot['quantity'],
+                        'customer',
+                    );
+                } catch (\DomainException $exception) {
+                    throw ValidationException::withMessages([
+                        'items' => [
+                            'Commercial policy rejected product '.$snapshot['product_id'].': '.$exception->getMessage(),
+                        ],
+                    ]);
+                }
             }
 
             foreach ($reservations as $reservation) {
@@ -386,6 +408,11 @@ class CheckoutController extends Controller
                 'sku' => (string) $item->sku_snapshot,
                 'name' => (string) $item->name_snapshot,
                 'quantity' => (float) $item->quantity,
+                'selling_unit_code' => $item->selling_unit_code_snapshot,
+                'selling_unit_name' => $item->selling_unit_name_snapshot,
+                'selling_unit_quantity' => $item->selling_unit_quantity === null ? null : (float) $item->selling_unit_quantity,
+                'base_quantity' => $item->base_quantity === null ? null : (float) $item->base_quantity,
+                'conversion_factor' => $item->conversion_factor_snapshot === null ? null : (float) $item->conversion_factor_snapshot,
                 'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
                 'base_unit_price' => $item->base_unit_price_snapshot === null ? null : (float) $item->base_unit_price_snapshot,
                 'unit_price' => (float) $item->unit_price,

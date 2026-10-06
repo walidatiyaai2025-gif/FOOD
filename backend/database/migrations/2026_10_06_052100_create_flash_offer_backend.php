@@ -21,6 +21,10 @@ return new class extends Migration
             $table->timestamp('ends_at')->index();
             $table->string('timezone', 64)->default('Asia/Kuwait');
             $table->json('channels');
+            $table->json('audience_customer_ids')->nullable();
+            $table->json('audience_customer_group_ids')->nullable();
+            $table->json('audience_regions')->nullable();
+            $table->json('audience_routes')->nullable();
             $table->string('allocation_mode', 24)->default('shared');
             $table->decimal('total_allocation_base', 14, 3)->nullable();
             $table->decimal('per_customer_limit_base', 14, 3)->nullable();

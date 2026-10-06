@@ -66,7 +66,6 @@ final class CommercialDashboardContract
                 'popup_policy',
                 'reservation_policy',
                 'priority',
-                'preview',
                 'preflight',
                 'analytics',
                 'audit',

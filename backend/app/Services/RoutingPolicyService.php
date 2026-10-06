@@ -104,19 +104,12 @@ final class RoutingPolicyService
             $actor,
             $source->code,
             $source->mode,
-            $source->rules->map(function ($rule): array {
-                /** @var array<string, mixed> $conditions */
-                $conditions = $rule->conditions;
-                /** @var array<string, mixed> $actions */
-                $actions = $rule->actions;
-
-                return [
-                    'name' => $rule->name,
-                    'conditions' => $conditions,
-                    'actions' => $actions,
-                    'enabled' => $rule->enabled,
-                ];
-            })->all(),
+            $source->rules->map(fn ($rule) => [
+                'name' => $rule->name,
+                'conditions' => $rule->conditions,
+                'actions' => $rule->actions,
+                'enabled' => $rule->enabled,
+            ])->all(),
             $reason ?? 'rollback',
             $source->effective_from,
             $source->effective_until,
