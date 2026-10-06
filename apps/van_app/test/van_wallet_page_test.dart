@@ -23,7 +23,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('van-wallet-page')), findsOneWidget);
-    expect(find.text('10.000 EGP'), findsOneWidget);
+    expect(find.text('10.000 EGP'), findsNWidgets(2));
     expect(find.text('Scoped Customer'), findsOneWidget);
 
     final collect = find.byKey(
