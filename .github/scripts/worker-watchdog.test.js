@@ -11,6 +11,7 @@ const {
   classify,
   executionActivityMillis,
   handoffComment,
+  isRateLimitError,
   linkedIssueNumbers,
   parseWorkerState,
   statusLabel,
@@ -20,6 +21,26 @@ const {
 } = require('./worker-watchdog');
 
 const NOW = Date.parse('2026-10-01T06:00:00Z');
+
+test('recognizes exhausted GitHub API quota without swallowing unrelated 403s', () => {
+  assert.equal(isRateLimitError({
+    status: 403,
+    response: {
+      headers: { 'x-ratelimit-remaining': '0' },
+      data: { message: 'API rate limit exceeded for installation.' },
+    },
+  }), true);
+
+  assert.equal(isRateLimitError({
+    status: 403,
+    response: {
+      headers: { 'x-ratelimit-remaining': '4999' },
+      data: { message: 'Resource not accessible by integration' },
+    },
+  }), false);
+
+  assert.equal(isRateLimitError({ status: 500, message: 'rate limit exceeded' }), false);
+});
 
 test('parses machine-readable worker state', () => {
   const state = parseWorkerState(`
