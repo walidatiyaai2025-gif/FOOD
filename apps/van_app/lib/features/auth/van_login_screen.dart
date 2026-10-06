@@ -16,16 +16,16 @@ class VanLoginScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onAuthenticated,
-    required this.sessionStore,
-    required this.preferences,
-    required this.biometricAuthenticator,
+    this.sessionStore,
+    this.preferences = const VanAuthPreferences(),
+    this.biometricAuthenticator,
   });
 
   final VanAuthRepository repository;
   final VanAuthenticatedCallback onAuthenticated;
-  final VanSessionStore sessionStore;
+  final VanSessionStore? sessionStore;
   final VanAuthPreferences preferences;
-  final VanBiometricAuthenticator biometricAuthenticator;
+  final VanBiometricAuthenticator? biometricAuthenticator;
 
   @override
   State<VanLoginScreen> createState() => _VanLoginScreenState();
@@ -42,6 +42,8 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   bool _savedBiometricLogin = false;
   bool _checkingBiometrics = true;
   String? _error;
+  late final VanSessionStore _sessionStore;
+  late final VanBiometricAuthenticator _biometricAuthenticator;
 
   String _text(String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
@@ -49,18 +51,21 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   @override
   void initState() {
     super.initState();
+    _sessionStore = widget.sessionStore ?? SecureVanSessionStore();
+    _biometricAuthenticator =
+        widget.biometricAuthenticator ?? LocalAuthVanBiometricAuthenticator();
     _rememberMe = widget.preferences.rememberMe;
     _enableBiometrics = widget.preferences.biometricEnabled;
     _loadAuthOptions();
   }
 
   Future<void> _loadAuthOptions() async {
-    final available = await widget.biometricAuthenticator.isAvailable();
+    final available = await _biometricAuthenticator.isAvailable();
     VanSession? stored;
     if (widget.preferences.rememberMe &&
         widget.preferences.biometricEnabled) {
       try {
-        stored = await widget.sessionStore.read();
+        stored = await _sessionStore.read();
       } catch (_) {
         stored = null;
       }
@@ -87,7 +92,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
     });
 
     try {
-      final authenticated = await widget.biometricAuthenticator.authenticate(
+      final authenticated = await _biometricAuthenticator.authenticate(
         reason: _text(
           'Confirm your identity to unlock the Van app.',
           'أكد هويتك لفتح تطبيق الفان.',
@@ -105,7 +110,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
         return;
       }
 
-      final stored = await widget.sessionStore.read();
+      final stored = await _sessionStore.read();
       if (stored == null || !stored.canUseVan) {
         if (mounted) {
           setState(
