@@ -16,7 +16,7 @@ The selected application language controls all user-facing system wording.
 2. Add every new translation key to both Arabic and English catalogs in the same change.
 3. Customer and Driver Dart translation maps must maintain exact AR/EN key parity.
 4. Backend `lang/ar` and `lang/en` files must maintain matching files and matching flattened keys.
-5. Status, state, channel, role and type values must not be rendered as raw internal/backend values. They must be mapped through a localization key or a locale-aware label returned by an authoritative localized-data contract.
+5. Status, state, channel, role, type, payment-method and selling-unit labels must not be rendered as raw internal/backend values. They must be mapped through a localization key or a locale-aware label returned by an authoritative localized-data contract.
 6. New business/master/catalog data that is intended to be bilingual must expose a deterministic localized representation, for example:
    - `name_ar` + `name_en`
    - `label_ar` + `label_en`
@@ -37,10 +37,14 @@ The gate checks:
 - Backend Arabic/English language file/key parity.
 - New raw user-facing Flutter literals.
 - New raw user-facing Blade text/attributes.
-- New direct rendering of status/state/channel/role/type values without localization.
+- New direct rendering of status/state/channel/role/type/payment-method/unit values without localization.
+- Direct rendering of language-specific fields such as `name_en`, `name_ar`, `title_en` or `title_ar` instead of selecting through the active-locale resolver.
 - New Arabic catalog entries that are English-only, and English catalog entries that contain Arabic text, excluding approved technical tokens.
+- Customer, Driver and Van localization runtime tests for Arabic/English rendering.
 
-The localization gate is blocking. A failed localization check is a real CI failure, not advisory output.
+The localization gate is blocking. A failed localization check is a real CI failure, not advisory output. It is consumed by Required CI and by the release distribution workflow; a release must not be published while localization quality is red.
+
+For system-owned wording and localized business labels, silently falling back to the opposite language is not an acceptable success state. If Arabic is selected and an Arabic system translation is missing, the missing translation must be fixed rather than quietly showing the English system label (and vice versa).
 
 ## New page / feature requirement
 
