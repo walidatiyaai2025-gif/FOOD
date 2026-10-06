@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AppVersion;
-use App\Models\MobileAppSetting;
 use App\Models\Role;
 use App\Models\SystemVersion;
 use App\Models\User;
