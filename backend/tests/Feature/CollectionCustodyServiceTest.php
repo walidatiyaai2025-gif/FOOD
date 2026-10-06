@@ -7,6 +7,7 @@ use App\Models\CustodyLedgerEntry;
 use App\Models\User;
 use App\Services\CollectionCustodyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class CollectionCustodyServiceTest extends TestCase
@@ -57,7 +58,7 @@ class CollectionCustodyServiceTest extends TestCase
         $service = app(CollectionCustodyService::class);
         $service->collect($firstAccount, $actor, 'driver-shared-key', 5, 'KWD', 'driver_app');
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         $service->collect($secondAccount, $actor, 'driver-shared-key', 5, 'KWD', 'driver_app');
     }
 
