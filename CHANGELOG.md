@@ -1,3 +1,11 @@
+## 1.0.58 - Van Full Install
+
+- Consolidate the #936 national Van field-operations train into a clean-environment release candidate.
+- Add FOODEX Van Android identity `com.foodex.van`, Firebase client wiring, FCM token lifecycle and Dashboard-managed Van push targeting.
+- Add isolated first-install configuration for `https://vanfoodex.50sols.com` and `solscool_vanfoodex`.
+- Extend the distribution bundle to publish `FOODEX-Van.apk` together with the full Laravel Setup ZIP and synchronized Customer/Driver APKs.
+- Preserve Firebase service-account credentials, database passwords and production signing material outside Git.
+
 # Changelog
 
 ## 1.0.57 - 2026-10-05
