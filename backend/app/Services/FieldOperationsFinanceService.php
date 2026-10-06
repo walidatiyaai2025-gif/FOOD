@@ -33,7 +33,7 @@ final class FieldOperationsFinanceService
             'q' => $q,
             'status' => $status,
             'per_page' => $perPage,
-            'rows' => collect($paginator->items())->map(fn (object $row): array => (array) $row)->all(),
+            'rows' => collect($paginator->items())->map(fn (mixed $row): array => (array) $row)->all(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),

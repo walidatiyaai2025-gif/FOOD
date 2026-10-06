@@ -755,7 +755,7 @@ class B2bWorkspaceController extends Controller
         abort_unless($storeId !== null && in_array($storeId, $this->wholesaleStoreIds($actor), true), 404);
         abort_unless($actor->hasPermission('finance.manage', $storeId), 403);
 
-        $before = $remittance->fresh()->toArray();
+        $before = $remittance->toArray();
         $updated = match ($action) {
             'approve' => $custody->approveRemittance($remittance, $actor),
             'reject' => $custody->rejectRemittance($remittance, $actor),
