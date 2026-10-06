@@ -9,6 +9,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Multiline PHP brace/signature mismatch | Pint on affected file | Use repository/Pint canonical signature layout; do not guess braces. |
 | PHP syntax damage from scripted edits | `php -l` changed files | Syntax-check every mechanically edited PHP file. |
 | PHP static type drift | `composer analyse` | Run PHPStan before the full Laravel suite. |
+| Eloquent datetime/JSON cast runtime works but Larastan still infers raw scalar column types | `composer analyse` on changed models/controllers | Expose typed accessors/normalizers for cast values consumed by business logic and use those typed methods instead of calling date/array operations directly on dynamic model properties. |
 | Flutter import/type/nullability errors | `flutter analyze` | Analyzer runs in fast gate before platform builds. |
 | Stale Flutter test assumptions | focused Flutter tests | Reconcile test contract with authoritative runtime/API semantics. |
 | APP-PREVIEW branch-scope violation | preview scope guard | Check allowed scope before preview build/parity. |
