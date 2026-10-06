@@ -20,3 +20,11 @@
 - Fresh Setup run `37463667017`: FAILED after the original port/fixture blockers were cleared; no `KeyError` and no readiness diagnostic fired.
 - Current blocker: a later shell assertion/test exits 1 silently inside fresh-install acceptance.
 - Next action: phase-safe ERR diagnostics only; do not modify application code until the exact failing shell command is identified.
+
+## Root cause confirmed by run 37464156100
+
+- Exact diagnostic: Field Operations page HTTP assertion failed while the server log printed `Environment modified. Restarting server...`.
+- Causal chain: installer Finish changes environment/install state -> long-lived `php artisan serve` detects the change -> Artisan development server hot-restarts during acceptance -> an authenticated Field Operations request lands during restart and returns non-200.
+- Recovery fix: use two deterministic server lifecycles. Pre-finish server validates `/install`, then is stopped and port 8099 must be released before Finish. After Finish, start a fresh server and wait for the dashboard login endpoint before any authenticated acceptance calls.
+- Application code remains untouched; this is test-harness lifecycle stabilization only.
+- Next action: require Fresh Setup GREEN on the new exact remote head before cleanup.

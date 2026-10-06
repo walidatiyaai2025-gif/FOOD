@@ -133,6 +133,7 @@ jobs:
             local line="$2"
             local cmd="$3"
             echo "::error::Fresh Setup failed at line $line with exit $rc: $cmd"
+            cat /tmp/foodex-install-server.log 2>/dev/null || true
             cat /tmp/foodex-installed-server.log 2>/dev/null || true
             if [[ -n "${fresh:-}" ]]; then
               tail -n 200 "$fresh/backend/storage/logs/laravel.log" 2>/dev/null || true
@@ -501,18 +502,44 @@ jobs:
             return 1
           }
 
+          wait_for_port_free() {
+            for _ in {1..40}; do
+              if ! (exec 3<>/dev/tcp/127.0.0.1/8099) 2>/dev/null; then
+                return 0
+              fi
+              exec 3>&- 3<&- || true
+              sleep 0.25
+            done
+            echo "::error::Port 8099 is still occupied after stopping the acceptance server."
+            ss -ltnp 2>/dev/null | grep ':8099' || true
+            return 1
+          }
+
+          rm -f /tmp/foodex-install-server.log /tmp/foodex-install-server.pid
+          (
+            cd "$fresh/backend"
+            php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-install-server.log 2>&1 &
+            echo $! >/tmp/foodex-install-server.pid
+          )
+          trap 'stop_server /tmp/foodex-install-server.pid; stop_server /tmp/foodex-installed-server.pid' EXIT
+
+          wait_for_http             "Pre-finish installer"             /tmp/foodex-install-server.pid             /tmp/foodex-install-server.log             http://127.0.0.1:8099/install             /tmp/install-before.html             200
+          grep -Fq 'FOODEX' /tmp/install-before.html
+
+          # Finish mutates installer/environment state. Do not let Artisan's development
+          # server hot-reload in the middle of acceptance requests: stop it completely,
+          # wait for the socket to be released, then start a fresh post-install process.
+          stop_server /tmp/foodex-install-server.pid
+          wait_for_port_free
+
+          FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php finish
+
           rm -f /tmp/foodex-installed-server.log /tmp/foodex-installed-server.pid
           (
             cd "$fresh/backend"
             php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-installed-server.log 2>&1 &
             echo $! >/tmp/foodex-installed-server.pid
           )
-          trap 'stop_server /tmp/foodex-installed-server.pid' EXIT
-
-          wait_for_http             "Pre-finish installer"             /tmp/foodex-installed-server.pid             /tmp/foodex-installed-server.log             http://127.0.0.1:8099/install             /tmp/install-before.html             200
-          grep -Fq 'FOODEX' /tmp/install-before.html
-
-          FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php finish
 
           wait_for_http             "Post-finish dashboard"             /tmp/foodex-installed-server.pid             /tmp/foodex-installed-server.log             'http://127.0.0.1:8099/admin/b2c/login?locale=en'             /tmp/login.html             200
 
