@@ -26,6 +26,9 @@ echo "  Mobile UI: compact header, full viewport, one-line filters, no wrapped o
 echo "  Auth parity: Remember Me + biometric unlock for Customer/Driver/Van; never store plaintext passwords."
 echo "  Dashboard map: unified Live Tracking for Drivers (person icon) + Vans (vehicle icon)."
 echo "  Release contract: every VERSION release refreshes Release/Updates + versioned Customer/Driver/Van APKs + LATEST_RELEASE.json."
+echo "  Active FOOD mission: #1001 (UIUX-V42); bare commands 'حرك مشروع FOOD' / 'FOOD MISSION' mean drain #1001."
+echo "  Mission registry: docs/execution/ACTIVE_FOOD_MISSION.json"
+echo "  Connection safety: re-read GitHub before retrying uncertain branch/PR/workflow mutations; never duplicate branches/PRs."
 echo
 echo "branch=$branch"
 echo "head=$head"
