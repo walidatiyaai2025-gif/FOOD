@@ -27,13 +27,29 @@ class CustomerAddressBookScreen extends StatefulWidget {
       _CustomerAddressBookScreenState();
 }
 
-class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
+class _CustomerAddressBookScreenState
+    extends State<CustomerAddressBookScreen> with WidgetsBindingObserver {
   late Future<Object?> _future;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _future = widget.api.addresses();
+  }
+
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
   }
 
   @override

@@ -8,7 +8,7 @@ class CustomerCurvedHeaderSurface extends StatelessWidget {
     required this.child,
     this.backgroundColor = CustomerUiColors.mint,
     this.headerColor = CustomerUiColors.deepGreen,
-    this.headerPadding = const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 26),
+    this.headerPadding = const EdgeInsetsDirectional.fromSTEB(12, 6, 12, 8),
     super.key,
   });
 

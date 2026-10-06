@@ -24,9 +24,29 @@ class CustomerNotificationCenterScreen extends StatefulWidget {
 }
 
 class _CustomerNotificationCenterScreenState
-    extends State<CustomerNotificationCenterScreen> {
+    extends State<CustomerNotificationCenterScreen>
+    with WidgetsBindingObserver {
   Future<Object?>? _future;
   String _locale = 'ar';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted && _future != null) {
+      _reload();
+    }
+  }
 
   @override
   void didChangeDependencies() {

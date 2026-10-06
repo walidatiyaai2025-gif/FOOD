@@ -59,9 +59,16 @@ class RetailCatalogHomeScreen extends StatefulWidget {
       _RetailCatalogHomeScreenState();
 }
 
-class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen> {
+class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
+    with WidgetsBindingObserver {
   late Future<_RetailCatalogHomeData> _future = _load();
   final TextEditingController _search = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   Future<_RetailCatalogHomeData> _load() async {
     final values = await Future.wait<Object?>([
@@ -80,11 +87,23 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _search.dispose();
     super.dispose();
   }
 
-  void _reload() => setState(() => _future = _load());
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
+  }
+
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -248,13 +267,37 @@ class RetailCatalogCategoriesScreen extends StatefulWidget {
 }
 
 class _RetailCatalogCategoriesScreenState
-    extends State<RetailCatalogCategoriesScreen> {
+    extends State<RetailCatalogCategoriesScreen>
+    with WidgetsBindingObserver {
   late Future<List<B2cCategory>> _future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
+  }
 
   Future<List<B2cCategory>> _load() =>
       widget.catalogApi.categories(widget.storeId);
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -370,12 +413,36 @@ class RetailCatalogOffersScreen extends StatefulWidget {
       _RetailCatalogOffersScreenState();
 }
 
-class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen> {
+class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
+    with WidgetsBindingObserver {
   late Future<List<B2cOffer>> _future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
+  }
 
   Future<List<B2cOffer>> _load() => widget.catalogApi.offers(widget.storeId);
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -545,11 +612,18 @@ class RetailCatalogProductsScreen extends StatefulWidget {
 }
 
 class _RetailCatalogProductsScreenState
-    extends State<RetailCatalogProductsScreen> {
+    extends State<RetailCatalogProductsScreen>
+    with WidgetsBindingObserver {
   late final TextEditingController _search =
       TextEditingController(text: widget.initialQuery ?? '');
   late String? _query = _normalized(widget.initialQuery);
   late Future<List<B2cProduct>> _future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   Future<List<B2cProduct>> _load() => widget.catalogApi.products(
         widget.storeId,
@@ -564,10 +638,24 @@ class _RetailCatalogProductsScreenState
     });
   }
 
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _search.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
   }
 
   @override
@@ -620,7 +708,7 @@ class _RetailCatalogProductsScreenState
                   if (snapshot.hasError || !snapshot.hasData) {
                     return _CatalogErrorState(
                       error: snapshot.error,
-                      onRetry: () => setState(() => _future = _load()),
+                      onRetry: _reload,
                     );
                   }
                   final products = snapshot.data!;
@@ -696,10 +784,36 @@ class RetailCatalogProductScreen extends StatefulWidget {
 }
 
 class _RetailCatalogProductScreenState
-    extends State<RetailCatalogProductScreen> {
+    extends State<RetailCatalogProductScreen>
+    with WidgetsBindingObserver {
   late Future<B2cProduct> _future = _load();
   double _quantity = 1;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
+  }
+
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   Future<B2cProduct> _load() =>
       widget.catalogApi.product(widget.productId, storeId: widget.storeId);
@@ -757,7 +871,7 @@ class _RetailCatalogProductScreenState
             if (snapshot.hasError || !snapshot.hasData) {
               return _CatalogErrorState(
                 error: snapshot.error,
-                onRetry: () => setState(() => _future = _load()),
+                onRetry: _reload,
               );
             }
             final product = snapshot.data!;
