@@ -97,9 +97,23 @@ Future<void> showDriverLocalNotification(RemoteMessage message) async {
 }
 
 class DriverPushAlert {
-  const DriverPushAlert({required this.title, required this.body});
+  const DriverPushAlert({
+    required this.title,
+    required this.body,
+    required this.open,
+  });
+
   final String title;
   final String body;
+  final DriverPushOpen open;
+
+  String get eventKey {
+    final assignmentId = open.assignmentId;
+    if (assignmentId != null) return 'assignment:$assignmentId';
+    final orderId = open.orderId;
+    if (orderId != null) return 'order:$orderId';
+    return 'message:$title|$body';
+  }
 }
 
 class DriverPushOpen {
@@ -236,7 +250,13 @@ class DriverFirebasePushService {
         final body = message.notification?.body ??
             message.data['body']?.toString() ??
             '';
-        service._alerts.add(DriverPushAlert(title: title, body: body));
+        service._alerts.add(
+          DriverPushAlert(
+            title: title,
+            body: body,
+            open: DriverFirebasePushService.openForData(message.data),
+          ),
+        );
       });
       return service;
     } catch (_) {

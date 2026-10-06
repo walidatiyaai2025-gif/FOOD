@@ -51,7 +51,8 @@ enum _DriverActiveLoadState { loading, ready, empty, error, offline }
 
 enum _DriverDeliveryPeriod { today, all, custom }
 
-class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
+class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
+    with WidgetsBindingObserver {
   static const Set<String> _terminalStatuses = {
     'delivered',
     'failed',
@@ -71,10 +72,25 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.focusAssignmentId != null) {
       _period = _DriverDeliveryPeriod.all;
     }
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _state != _DriverActiveLoadState.loading) {
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   bool _allows(DriverAssignment assignment, String status) =>
@@ -923,7 +939,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1000,7 +1016,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                     key: widget.initialAssignmentStatus != null
                         ? const Key('driver-active-status-filter')
                         : const Key('driver-active-assignment-list'),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
                     itemCount: rows.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -1011,7 +1027,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                         child: InkWell(
                           onTap: () => _showDetail(assignment),
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -1157,11 +1173,11 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
 
     return ListView(
       key: Key('driver-active-detail-${assignment.id}'),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
       children: [
         Text(
           context.tr('driver.detail.title'),
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),

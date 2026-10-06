@@ -14,12 +14,14 @@ class _FakeActiveRepo
   String? transitionedStatus;
   String? transitionedNote;
   int transitionCount = 0;
+  int listCount = 0;
   int? downloadedInvoiceAssignmentId;
   String? downloadedInvoiceLocale;
   final List<String> transitionedStatuses = <String>[];
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
+    listCount += 1;
     if (offline) throw const DriverOfflineException();
     return [current];
   }
@@ -134,6 +136,28 @@ Widget _host(
 }
 
 void main() {
+  testWidgets('active deliveries refresh when Driver app resumes', (tester) async {
+    final repo = _FakeActiveRepo(
+      const DriverAssignment(
+        id: 901,
+        channel: DriverChannel.b2c,
+        reference: 'RESUME-901',
+        status: 'accepted',
+        availableStatuses: ['picked_up', 'failed'],
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+    expect(repo.listCount, 1);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(repo.listCount, 2);
+  });
+
   testWidgets('assigned action is exposed only when server allows accepted',
       (tester) async {
     final repo = _FakeActiveRepo(

@@ -26,7 +26,8 @@ class DriverNotificationPage extends StatefulWidget {
   State<DriverNotificationPage> createState() => _DriverNotificationPageState();
 }
 
-class _DriverNotificationPageState extends State<DriverNotificationPage> {
+class _DriverNotificationPageState extends State<DriverNotificationPage>
+    with WidgetsBindingObserver {
   bool _loading = true;
   bool _failed = false;
   List<DriverNotification> _items = const [];
@@ -34,7 +35,21 @@ class _DriverNotificationPageState extends State<DriverNotificationPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_loading) {
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -158,7 +173,7 @@ class _DriverNotificationPageState extends State<DriverNotificationPage> {
                         onRefresh: _load,
                         child: ListView.builder(
                           key: const Key('driver-notifications-list'),
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
                           itemCount: _items.length,
                           itemBuilder: (context, index) {
                             final notification = _items[index];
@@ -174,8 +189,8 @@ class _DriverNotificationPageState extends State<DriverNotificationPage> {
                               margin: const EdgeInsets.only(bottom: 10),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
+                                  horizontal: 12,
+                                  vertical: 4,
                                 ),
                                 leading: Icon(
                                   unread

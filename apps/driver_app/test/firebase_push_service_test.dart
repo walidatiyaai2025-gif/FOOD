@@ -44,6 +44,26 @@ void main() {
     expect(revoked.accessRevoked, isTrue);
   });
 
+  test('foreground driver alert keeps the exact assignment target and stable dedupe key', () {
+    const open = DriverPushOpen(assignmentId: 42, orderId: 99);
+    const alert = DriverPushAlert(
+      title: 'New order',
+      body: 'Order 99 is ready',
+      open: open,
+    );
+
+    expect(alert.open.assignmentId, 42);
+    expect(alert.open.orderId, 99);
+    expect(alert.eventKey, 'assignment:42');
+
+    const orderOnly = DriverPushAlert(
+      title: 'Order update',
+      body: 'Updated',
+      open: DriverPushOpen(orderId: 99),
+    );
+    expect(orderOnly.eventKey, 'order:99');
+  });
+
   test('device registry revokes authenticated driver push device', () async {
     late http.Request captured;
     final client = MockClient((request) async {
