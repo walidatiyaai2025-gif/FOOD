@@ -23,6 +23,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Dependency/lockfile accidental drift | diff preflight | Reject unrelated lockfile changes and implicit upgrades. |
 | Flaky time/random/order test | deterministic test setup | Freeze clock/seed/state; do not rerun-until-green. |
 
+| Android AAB signing fails with `Get Key failed: Given final block not properly padded` after an ephemeral CI keystore is generated | store-readiness/release AAB validation | Do not rely on the JDK default PKCS12 behavior with different store/key passwords. Generate an explicit JKS (or use one password for store/key), and verify release signing never falls back to debug. |
 | Main push fails after green PR because deployable code changed without VERSION bump | `scripts/validate-premerge-release-version.sh` | Mirror main-push release/version preconditions before merge; bump VERSION and synchronize Customer/Driver identities. |
 
 | Partial release identity sync: VERSION/pubspec updated but Customer/Driver runtime `_appVersion` remains previous release | `bash scripts/release-readiness.sh` | Treat version bump as atomic; synchronize root, mobile build, visible/runtime, notes and changelog identities before push. |
