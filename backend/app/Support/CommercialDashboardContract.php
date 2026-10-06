@@ -36,10 +36,12 @@ final class CommercialDashboardContract
             'sections' => [
                 'availability',
                 'selling_units',
+                'break_pack_policy',
                 'quotas',
                 'targeting',
                 'channel_rules',
                 'override_policy',
+                'feature_flags',
             ],
             'server_operations' => [
                 'evaluate_policy',
@@ -66,8 +68,10 @@ final class CommercialDashboardContract
                 'popup_policy',
                 'reservation_policy',
                 'priority',
+                'preview',
                 'preflight',
                 'analytics',
+                'feature_flags',
                 'audit',
             ],
             'server_operations' => [
