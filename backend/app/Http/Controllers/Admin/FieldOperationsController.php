@@ -24,6 +24,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\RoutingPolicyService;
 use App\Services\TerritoryService;
 use App\Services\VanRegistryService;
+use App\Services\VanCustomerCollectionContextService;
 use App\Services\VanVisitLifecycleService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -45,6 +46,7 @@ final class FieldOperationsController extends Controller
         private readonly FieldOperationsFinanceService $finance,
         private readonly VanRegistryService $registry,
         private readonly VanVisitLifecycleService $visitLifecycle,
+        private readonly VanCustomerCollectionContextService $customerCollectionContext,
         private readonly TerritoryService $territoryService,
         private readonly AddressQualityService $addressQuality,
         private readonly RoutingPolicyService $routing,
@@ -267,10 +269,17 @@ final class FieldOperationsController extends Controller
             ->get()
             ->groupBy('representative_user_id');
 
-        $relationships->setCollection($relationships->getCollection()->map(function (VanVisit $visit) use ($assignmentsByActor): VanVisit {
+        $canFinance = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
+        $relationships->setCollection($relationships->getCollection()->map(function (VanVisit $visit) use ($assignmentsByActor, $canFinance): VanVisit {
             $assignment = $assignmentsByActor->get($visit->actor_user_id)?->first();
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
             $visit->setRelation('servingAssignment', $assignment);
+            $visit->setAttribute(
+                'collection_context',
+                $canFinance && $visit->store_id !== null
+                    ? $this->customerCollectionContext->context((string) $visit->customer_type, (int) $visit->customer_id, (int) $visit->store_id)
+                    : null,
+            );
             return $visit;
         }));
 
