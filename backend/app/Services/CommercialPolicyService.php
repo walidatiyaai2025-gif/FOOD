@@ -116,7 +116,7 @@ final class CommercialPolicyService
         }
 
         $reasonCodes = [];
-        if (! (bool) $product->is_active) {
+        if ((bool) $product->is_active === false) {
             $reasonCodes[] = 'PRODUCT_INACTIVE';
         }
         if ($status === self::STATUS_CLOSED) {
@@ -490,7 +490,7 @@ final class CommercialPolicyService
         }
 
         $policy = DB::table('product_commercial_policies')->where('product_id', $productId)->first();
-        if (! (bool) ($policy->override_allowed ?? false)) {
+        if ((bool) ($policy->override_allowed ?? false) === false) {
             throw new DomainException('Commercial override is not allowed for this product.');
         }
 
