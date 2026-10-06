@@ -158,6 +158,13 @@ jobs:
     if: ${{ needs.changes.outputs.driver == 'true' }}
     uses: ./.github/workflows/driver-app-ci.yml
 
+  localization-quality:
+    name: Localization quality
+    uses: ./.github/workflows/localization-quality-gate.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+
   app-preview-visual-parity:
     name: APP-PREVIEW visual runtime parity
     needs: changes
@@ -241,6 +248,7 @@ jobs:
       - backend-validation
       - customer-validation
       - driver-validation
+      - localization-quality
       - app-preview-visual-parity
       - preview-runtime-distribution
       - screenshot-evidence
@@ -259,6 +267,7 @@ jobs:
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
+          LOCALIZATION_RESULT: ${{ needs.localization-quality.result }}
           APP_PREVIEW_VISUAL_CHANGED: ${{ needs.changes.outputs.app_preview_visual }}
           APP_PREVIEW_VISUAL_RESULT: ${{ needs.app-preview-visual-parity.result }}
           PREVIEW_RUNTIME_DISTRIBUTION_CHANGED: ${{ needs.changes.outputs.preview_runtime_distribution }}
@@ -300,6 +309,7 @@ jobs:
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
+          require_success "Localization quality" "$LOCALIZATION_RESULT"
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
           require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"
