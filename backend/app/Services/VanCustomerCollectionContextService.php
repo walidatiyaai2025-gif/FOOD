@@ -10,7 +10,7 @@ final class VanCustomerCollectionContextService
 {
     public function __construct(private readonly B2bAccountLedgerService $ledger) {}
 
-    /** @return array{customer_type:string,customer_id:int,store_id:int,invoices:Collection<int,array{id:int,number:string,currency:uppercase-string,total:float,outstanding_amount:float,due_at:string|null}>,outstanding_total_by_currency:Collection<string,float>} */
+    /** @return array{customer_type:string,customer_id:int,store_id:int,invoices:Collection<int,array{id:int,number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}>,outstanding_total_by_currency:Collection<string,float>} */
     public function context(string $type, int $customer, int $storeId): array
     {
         $invoices = $this->openInvoices($type, $customer, $storeId);
@@ -40,7 +40,7 @@ final class VanCustomerCollectionContextService
         };
     }
 
-    /** @return Collection<int,array{id:int,number:string,currency:uppercase-string,total:float,outstanding_amount:float,due_at:string|null}> */
+    /** @return Collection<int,array{id:int,number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}> */
     public function openInvoices(string $type, int $customer, int $storeId): Collection
     {
         $column = $this->customerColumn($type);
@@ -57,7 +57,7 @@ final class VanCustomerCollectionContextService
                 return [
                     'id' => (int) $invoice->getKey(),
                     'number' => (string) $invoice->invoice_number,
-                    'currency' => strtoupper((string) $invoice->currency),
+                    'currency' => $this->normalizeCurrency((string) $invoice->currency),
                     'total' => round((float) $invoice->total, 3),
                     'outstanding_amount' => $this->outstandingAmount($invoice, $type),
                     'due_at' => $invoice->due_at === null ? null : (string) $invoice->due_at,
@@ -65,6 +65,11 @@ final class VanCustomerCollectionContextService
             })
             ->filter(fn (array $invoice): bool => (float) $invoice['outstanding_amount'] > 0.0001)
             ->values();
+    }
+
+    private function normalizeCurrency(string $currency): string
+    {
+        return strtoupper($currency);
     }
 
     public function outstandingAmount(Invoice $invoice, string $type): float
