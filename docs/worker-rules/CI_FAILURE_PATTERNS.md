@@ -36,3 +36,4 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Release readiness exits silently with no invariant name | named assertion output in release readiness | Release validators must print the exact failed invariant/value pair so workers can fix first-pass failures quickly. |
 
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
+| Cross-lane typed client/test still asserts pre-integration reason codes after canonical dependency lands | Focused client contract test fails while analyzer passes | Re-read the merged canonical service contract and update client reason-code enums/tests to the runtime names; never preserve scaffold aliases after dependency integration. |
