@@ -19,7 +19,7 @@
             </p>
         </div>
         <span class="badge" data-commercial-contract-status="{{ $commercial['mode'] }}">
-            {{ $isArCommercial ? 'بانتظار عقد الباكند المركزي' : 'Canonical backend contract pending' }}
+            {{ $isArCommercial ? 'العقد المركزي متصل' : 'Canonical backend contract live' }}
         </span>
     </div>
 
@@ -28,7 +28,7 @@
             <div class="foodex-card" style="padding:12px;box-shadow:none">
                 <strong>{{ str_replace('_', ' ', ucwords($section, '_')) }}</strong>
                 <div class="empty" style="margin-top:5px">
-                    {{ $isArCommercial ? 'يتم الحفظ والتحقق من الخادم بعد توفر العقد.' : 'Server-owned save and validation once the canonical contract is available.' }}
+                    {{ $isArCommercial ? 'الحفظ والتحقق يتمان من الخادم عبر العقد المركزي.' : 'Save and validation are server-owned through the canonical contract.' }}
                 </div>
             </div>
         @endforeach
@@ -54,8 +54,8 @@
 
     <div class="flash" role="note" style="margin:0">
         {{ $isArCommercial
-            ? 'إجراءات الإنشاء/التعديل/التفعيل معطلة عمدًا إلى أن ينشر #984/#985 العقود النهائية. هذا يمنع إنشاء محرك قواعد أو منطق عروض مكرر داخل الواجهة.'
-            : 'Create/edit/activate mutations are intentionally gated until #984/#985 publish the final contracts. This prevents a second rule engine or duplicate Flash logic in Dashboard.' }}
+            ? 'إجراءات الإنشاء/التعديل/التفعيل متصلة بالعقود المركزية لـ #984/#985؛ لا توجد حسابات تجارية مكررة داخل الواجهة.'
+            : 'Create/edit/activate mutations are wired to the canonical #984/#985 contracts; Dashboard does not duplicate commercial-rule math.' }}
     </div>
 </section>
 @endif
