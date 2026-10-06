@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DriverAssignment;
 use App\Models\DriverCurrentLocation;
 use App\Services\DriverRuntimeContextResolver;
+use App\Services\FleetLocationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class DriverLocationController extends Controller
 {
-    public function heartbeat(Request $request, DriverRuntimeContextResolver $driverContext): JsonResponse
+    public function heartbeat(Request $request, DriverRuntimeContextResolver $driverContext, FleetLocationService $fleet): JsonResponse
     {
         [$driver, $channel, $storeId] = $driverContext->resolve($request);
 
@@ -97,6 +98,21 @@ class DriverLocationController extends Controller
                 ...$values,
             ]);
         }, 3);
+
+        $fleet->heartbeat('driver', (int) $driver->getKey(), [
+            'assignment_id' => $activeAssignmentId === null ? null : (int) $activeAssignmentId,
+            'store_id' => (int) $storeId,
+            'channel' => (string) $channel,
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'accuracy' => $data['accuracy'] ?? null,
+            'speed' => $data['speed'] ?? null,
+            'heading' => $data['heading'] ?? null,
+            'captured_at' => $data['captured_at'],
+            'source_app' => 'driver',
+            'app_version' => $data['app_version'] ?? null,
+            'is_mocked' => $data['is_mocked'] ?? null,
+        ]);
 
         return response()->json([
             'data' => [
