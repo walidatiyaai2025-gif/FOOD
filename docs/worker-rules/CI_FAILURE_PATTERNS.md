@@ -28,4 +28,6 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | Partial release identity sync: VERSION/pubspec updated but Customer/Driver runtime `_appVersion` remains previous release | `bash scripts/release-readiness.sh` | Treat version bump as atomic; synchronize root, mobile build, visible/runtime, notes and changelog identities before push. |
 | Release readiness exits silently with no invariant name | named assertion output in release readiness | Release validators must print the exact failed invariant/value pair so workers can fix first-pass failures quickly. |
 
+| Integration-train PR falsely blocked by main-only release identity gate | PR base-ref check in repository policy | Run post-merge-main release identity validation only when the PR base is `main`; integration-train PRs retain normal repository/runtime validation without allocating a release version. |
+
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
