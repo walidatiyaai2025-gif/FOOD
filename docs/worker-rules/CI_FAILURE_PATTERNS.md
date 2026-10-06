@@ -13,6 +13,7 @@ This registry records reusable failure classes. It is prevention guidance, not a
 | PHP static type drift | `composer analyse` | Run PHPStan before the full Laravel suite. |
 | Flutter import/type/nullability errors | `flutter analyze` | Analyzer runs in fast gate before platform builds. |
 | Stale Flutter test assumptions | focused Flutter tests | Reconcile test contract with authoritative runtime/API semantics. |
+| Backend workflow test skips an authoritative state transition | focused service/feature state-machine test | Drive tests through every required transition in the canonical order; do not jump directly to a later status just to reach the assertion under test. |
 | APP-PREVIEW branch-scope violation | preview scope guard | Check allowed scope before preview build/parity. |
 | Preview backend contract/security mismatch | contract tests | Validate producer/consumer/security contract before runtime build. |
 | Embedded vs standalone preview mismatch | parity smoke | Reuse exact head runtime and preserve navigation/state contract. |

@@ -513,6 +513,23 @@ final class DriverOrderService
                 );
 
                 if ($targetStatus === 'delivered') {
+                    $deliveryInvoice = Invoice::query()
+                        ->where('order_id', $order->getKey())
+                        ->whereIn('status', ['issued', 'reissued'])
+                        ->orderByDesc('revision')
+                        ->orderByDesc('id')
+                        ->first();
+                    $latestPayment = DB::table('payments')
+                        ->where('order_id', $order->getKey())
+                        ->orderByDesc('id')
+                        ->first(['provider', 'status', 'amount', 'currency', 'metadata']);
+                    $deliverySettlement = $this->settlement($order, $deliveryInvoice, $latestPayment);
+                    abort_if(
+                        (float) $deliverySettlement['amount_to_collect_now'] > 0.0001,
+                        409,
+                        'Required collection must be completed before delivery can be finalized.',
+                    );
+
                     if (! $proofImage instanceof UploadedFile || ! $proofImage->isValid()) {
                         throw ValidationException::withMessages([
                             'proof_image' => ['A valid delivery proof image is required before completing delivery.'],

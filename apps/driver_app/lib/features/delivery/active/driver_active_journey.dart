@@ -7,6 +7,7 @@ import '../../../core/auth/driver_session.dart';
 import '../../../core/localization/driver_translations.dart';
 import '../../../core/preview/driver_preview_context.dart';
 import '../driver_assignment_contract.dart';
+import '../../wallet/driver_wallet_contract.dart';
 
 typedef DriverActiveAssignmentCallback = Future<void> Function(
   DriverAssignment assignment,
@@ -300,6 +301,116 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
     }
   }
 
+  bool _requiresCollection(DriverAssignment assignment) =>
+      (assignment.settlement?.amountToCollectNow ?? 0) > 0.0001;
+
+  String _deliveryActionLabel(DriverAssignment assignment) => context.tr(
+        _requiresCollection(assignment)
+            ? 'driver.collection.collect_and_deliver'
+            : 'driver.collection.deliver_no_collection',
+      );
+
+  Future<void> _completeDelivery(DriverAssignment assignment) async {
+    if (!_requiresCollection(assignment)) {
+      await _requestDelivered(assignment);
+      return;
+    }
+
+    final repository = widget.repository;
+    final settlement = assignment.settlement;
+    if (repository is! DriverCollectionRepository || settlement == null) {
+      setState(() {
+        _actionError = context.tr('driver.collection.unavailable');
+      });
+      return;
+    }
+    final collectionRepository = repository as DriverCollectionRepository;
+
+    final amountController = TextEditingController(
+      text: settlement.amountToCollectNow.toStringAsFixed(3),
+    );
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('driver.collection.collect_and_deliver')),
+        content: TextField(
+          key: const Key('driver-collection-amount'),
+          controller: amountController,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: context.tr('driver.collection.amount'),
+            suffixText: settlement.currency,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.tr('driver.action.cancel')),
+          ),
+          FilledButton(
+            key: const Key('driver-collection-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(
+              double.tryParse(amountController.text.trim()),
+            ),
+            child: Text(context.tr('driver.action.confirm')),
+          ),
+        ],
+      ),
+    );
+    amountController.dispose();
+
+    if (amount == null || !mounted) return;
+    if (amount <= 0 || amount > settlement.amountToCollectNow + 0.0005) {
+      setState(() {
+        _actionError = context.tr('driver.collection.invalid_amount');
+      });
+      return;
+    }
+    if (_busyAssignments.contains(assignment.id)) return;
+
+    setState(() {
+      _busyAssignments.add(assignment.id);
+      _actionError = null;
+    });
+
+    try {
+      final result = await collectionRepository.collect(
+        assignment.id,
+        amount: amount,
+        idempotencyKey:
+            'driver-collect-${assignment.id}-${(settlement.remainingAmount * 1000).round()}-${(amount * 1000).round()}',
+      );
+      final fresh = await _fetchAuthoritativeAssignment(assignment.id);
+      if (!mounted || fresh == null) return;
+
+      if (result.remainingAmount <= 0.0001) {
+        await widget.onDeliveredRequested(fresh);
+      } else {
+        setState(() {
+          _actionError =
+              '${context.tr('driver.collection.remaining')}: '
+              '${result.remainingAmount.toStringAsFixed(3)} ${result.currency}';
+        });
+      }
+      await _load();
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } on DriverOfflineException {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.offline'));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.error'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busyAssignments.remove(assignment.id));
+      }
+    }
+  }
+
   Future<void> _requestDelivered(DriverAssignment assignment) async {
     if (!_allows(assignment, 'delivered') ||
         _busyAssignments.contains(assignment.id)) {
@@ -558,9 +669,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               : () => _runDetailAction(
                     sheetContext,
                     assignment,
-                    () => _requestDelivered(assignment),
+                    () => _completeDelivery(assignment),
                   ),
-          child: Text(context.tr('driver.action.delivered')),
+          child: Text(_deliveryActionLabel(assignment)),
         ),
       );
     }
@@ -718,8 +829,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       buttons.add(
         FilledButton(
           key: Key('driver-active-delivered-${assignment.id}'),
-          onPressed: busy ? null : () => _requestDelivered(assignment),
-          child: Text(context.tr('driver.action.delivered')),
+          onPressed: busy ? null : () => _completeDelivery(assignment),
+          child: Text(_deliveryActionLabel(assignment)),
         ),
       );
     }

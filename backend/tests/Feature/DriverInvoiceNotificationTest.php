@@ -175,8 +175,17 @@ class DriverInvoiceNotificationTest extends TestCase
         ]);
 
         $this->postJson('/api/v1/driver/assignments/'.$assignmentId.'/status', [
+            'status' => 'picked_up',
+        ])->assertOk()->assertJsonPath('data.status', 'picked_up');
+
+        $this->postJson('/api/v1/driver/assignments/'.$assignmentId.'/status', [
+            'status' => 'out_for_delivery',
+        ])->assertOk()->assertJsonPath('data.status', 'out_for_delivery');
+
+        $this->postJson('/api/v1/driver/assignments/'.$assignmentId.'/status', [
             'status' => 'delivered',
-        ])->assertConflict();
+        ])->assertConflict()
+            ->assertSeeText('Required collection must be completed before delivery can be finalized.');
 
         Sanctum::actingAs($otherDriverUser);
         $this->getJson('/api/v1/driver/assignments/'.$assignmentId)->assertNotFound();
