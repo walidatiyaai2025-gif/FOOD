@@ -159,12 +159,32 @@ class FlashOfferNotificationIntegrationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table('customers')->insert([
+        $outsiderCustomerId = (int) DB::table('customers')->insertGetId([
             'user_id' => $outsider->id,
             'type' => 'b2c',
             'name' => 'Outsider Customer',
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+        DB::table('b2c_customers')->insert([
+            [
+                'legacy_customer_id' => $customerId,
+                'store_id' => $storeId,
+                'user_id' => $target->id,
+                'name' => 'Target Customer',
+                'email' => $target->email,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'legacy_customer_id' => $outsiderCustomerId,
+                'store_id' => $storeId,
+                'user_id' => $outsider->id,
+                'name' => 'Outsider Customer',
+                'email' => $outsider->email,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
         $this->flag('customer_flash_popup_enabled', false);
 
