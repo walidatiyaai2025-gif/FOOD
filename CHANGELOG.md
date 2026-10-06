@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.59 - 2026-10-07
+
+- Publish the terminal UIUX-V42 mission release after #1002-#1012 convergence, preserving the accepted Customer, Driver, Van and Dashboard behavior on the exact frozen implementation lineage.
+- Ship compact/full-width mobile UX parity, Remember Me and biometric unlock parity, Driver live order alerts/deep links, unified Driver + Van Live Tracking, the real Customer invoice surface, and final Arabic/English RTL/LTR localization acceptance.
+- Build synchronized Customer, Driver and Van Android artifacts at 1.0.59+59 together with the Dashboard update package and the owner-downloadable Laravel Setup ZIP from one release source commit.
+- Validate a completely clean installation from the exact generated Setup ZIP using empty MySQL/Redis state, create the first Super Admin, verify installer lock/version state and the final commercial/Flash/field-operations Dashboard surfaces.
+- Publish the same Setup/APK/manifest bytes to the immutable GitHub Release, generated distribution branch and canonical terminal branch `release/1021-uiux-v42-final-real-build`, with SHA-256/source provenance checks.
+- Keep `main` untouched by this mission release.
+
 ## 1.0.58 - 2026-10-06
 
 - Consolidate the complete FOODEX Van field-operations release and #983 commercial program into the single canonical branch `release/1.0.58-van-complete`, without merging to `main`.

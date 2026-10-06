@@ -1,7 +1,7 @@
 name: foodex_van_app
 description: FOODEX Van field operations Wave-0 scaffold.
 publish_to: "none"
-version: 1.0.58+58
+version: 1.0.59+59
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
