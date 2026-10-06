@@ -1,16 +1,16 @@
 import '../wallet/van_wallet_contract.dart';
 
 const vanCommercialReasonCodes = <String>{
+  'PRODUCT_INACTIVE',
   'PRODUCT_CLOSED',
-  'CUSTOMER_NOT_ELIGIBLE',
-  'CHANNEL_NOT_ALLOWED',
-  'ORDER_LIMIT_EXCEEDED',
-  'DAILY_LIMIT_REACHED',
-  'WEEKLY_LIMIT_REACHED',
-  'MONTHLY_LIMIT_REACHED',
-  'LIFETIME_LIMIT_REACHED',
-  'UNIT_NOT_ALLOWED',
-  'INSUFFICIENT_STOCK',
+  'PRODUCT_RESTRICTED',
+  'CHANNEL_BLOCKED',
+  'OUTSIDE_AVAILABILITY',
+  'MAX_PER_ORDER_EXCEEDED',
+  'MAX_PER_DAY_EXCEEDED',
+  'MAX_PER_WEEK_EXCEEDED',
+  'MAX_PER_MONTH_EXCEEDED',
+  'MAX_LIFETIME_EXCEEDED',
   'FLASH_NOT_ACTIVE',
   'FLASH_SOLD_OUT',
   'FLASH_CUSTOMER_LIMIT_REACHED',
@@ -79,14 +79,68 @@ class VanCommercialOffer {
   }
 }
 
+class VanNormalOffer {
+  const VanNormalOffer({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.value,
+  });
+
+  final int id;
+  final String name;
+  final String type;
+  final double? value;
+}
+
 class VanCommercialOfferFeed {
   const VanCommercialOfferFeed({
     required this.serverTime,
     required this.offers,
+    required this.normalOffers,
   });
 
   final DateTime serverTime;
   final List<VanCommercialOffer> offers;
+  final List<VanNormalOffer> normalOffers;
+}
+
+class VanSellingUnit {
+  const VanSellingUnit({
+    required this.code,
+    required this.name,
+    required this.conversionFactor,
+    this.price,
+    this.sku,
+    this.barcode,
+    this.isBase = false,
+  });
+
+  final String code;
+  final String name;
+  final double conversionFactor;
+  final double? price;
+  final String? sku;
+  final String? barcode;
+  final bool isBase;
+}
+
+class VanCommercialQuote {
+  const VanCommercialQuote({
+    required this.allowed,
+    required this.status,
+    required this.reasonCodes,
+    required this.sellingUnit,
+    required this.sellingUnits,
+    required this.overrideApplied,
+  });
+
+  final bool allowed;
+  final String status;
+  final List<String> reasonCodes;
+  final VanSellingUnit sellingUnit;
+  final List<VanSellingUnit> sellingUnits;
+  final bool overrideApplied;
 }
 
 class VanCommercialPolicyDecision {
@@ -119,6 +173,14 @@ abstract interface class VanCommercialRepository {
   /// contract; the authenticated Van operator must never be substituted for it.
   /// Implementations MUST NOT fall back to local/offline eligibility or stock
   /// calculations when this operation cannot reach the canonical backend.
+  Future<VanCommercialQuote> quoteForCustomer({
+    required VanCustomerScope customer,
+    required int productId,
+    required String sellingUnitCode,
+    required double quantity,
+    String? overrideReason,
+  });
+
   Future<void> reserveFlashForCustomer({
     required VanCustomerScope customer,
     required int offerProductId,
