@@ -52,7 +52,8 @@ The worker must discover #1001 from live GitHub state and continue the Mission/D
 | #1009 | `ci/1009-release-artifact-contract-audit` | Release artifact automation acceptance | Ready; audit existing implementation |
 | #1010 | `test/1010-localization-data-parity-audit` | Final localization/bilingual-data audit | After #1003-#1008 |
 | #1011 | `test/1011-v42-cross-app-regression` | Cross-app integrated regression | After #1002-#1010 |
-| #1012 | `test/1012-v42-final-convergence` | Final convergence + umbrella closure | After #1011 |
+| #1012 | `test/1012-v42-final-convergence` | Final code convergence | After #1011 |
+| #1021 | `release/1021-uiux-v42-final-real-build` | Final real release + clean Setup build | After #1012 PASS |
 
 ## Fastest-safe first wave
 
@@ -73,9 +74,10 @@ As a slot becomes free, take #1002 and #1009. Do not exceed six active implement
 
 - #1010 becomes actionable after the implementation lanes that can introduce localized UI/data are integrated: #1003, #1004, #1005, #1006, #1007 and #1008.
 - #1011 starts only after #1002-#1010 are complete/integrated as required.
-- #1012 starts only after #1011 passes.
-- #1012 must then converge the accepted implementation into `release/1.0.58-van-complete` and require the canonical Fresh Setup workflow to build and clean-install-test the Setup ZIP from that exact final implementation source SHA.
-- #1001 closes only from #1012 after the complete mission matrix is green **and** the terminal real release build requirement below passes.
+- #1012 starts only after #1011 passes and freezes/converges the accepted implementation into `release/1.0.58-van-complete`.
+- #1012 records the exact final implementation source SHA and unblocks #1021.
+- #1021 starts only after #1012 PASS and is the terminal real-release branch.
+- #1001 closes only from #1021 after the complete mission matrix is green **and** the terminal real release build requirement below passes.
 
 ## Connection-loss / crash-safe protocol
 
@@ -139,25 +141,35 @@ The Mission is not complete until the integrated result proves:
 
 ## Terminal real release build / owner Setup source
 
-The last phase of the Mission is not another feature branch. It is a **real release build on the canonical release branch**:
+The final phase is a dedicated child Issue and dedicated last branch:
 
-`release/1.0.58-van-complete`
+- Issue: **#1021**
+- Canonical branch: `release/1021-uiux-v42-final-real-build`
+- Dependency: **#1012 PASS**
+- Purpose: produce the exact real installable release the owner will use for server setup.
 
-After all product/code convergence is accepted:
+#1012 freezes the final implementation SHA. #1021 must branch from that exact converged state and may not start earlier.
 
-1. record the exact final implementation source SHA on `release/1.0.58-van-complete`;
-2. run/observe `FOODEX Van 1.0.58 Fresh Setup` for that exact source SHA;
-3. require it to build `Release/FOODEX-Laravel-Setup.zip`;
-4. require clean-install validation using the ZIP only, including migrations, seed, first owner, permissions, Van/Flash/field operations and fresh-install acceptance;
-5. require `Release/BUILD_INFO.json.source_commit` and `Release/FRESH_INSTALL_EVIDENCE.json.source_commit` to equal that exact implementation source SHA;
-6. require the Setup ZIP bytes/SHA-256 recorded in BUILD_INFO to match the published ZIP;
-7. require the workflow to publish the generated Setup/evidence/update artifacts back to `release/1.0.58-van-complete`;
-8. allow only a generated-artifact publication commit after the implementation source SHA; that publication commit must not add business code;
-9. verify no code delivered by Setup is newer than the recorded Setup source and no stale/older Setup ZIP remains;
-10. declare the canonical release branch to be the owner-facing source for the final installable Setup.
+At execution time #1021 must:
 
-A GREEN product CI matrix without this exact-head Fresh Setup publication is **not Mission completion**.
+1. read live `VERSION` and `docs/release/RELEASE_REGISTRY.json`;
+2. promote to the next unpublished semantic patch version only after code freeze — expected **1.0.59** if 1.0.58 remains latest at that moment;
+3. never reuse/move an immutable published release tag;
+4. build `Release/FOODEX-Laravel-Setup.zip` from the exact final release source;
+5. build synchronized versioned Customer + Driver + Van APKs;
+6. build/refresh Dashboard Update Center artifacts;
+7. write `BUILD_INFO.json` and `LATEST_RELEASE.json` with exact version/source/checksum provenance;
+8. validate a completely clean fresh installation **from the Setup ZIP only**;
+9. verify first Super Admin, installer lock/version, required permissions, and the final Van/commercial/Flash/UIUX mission behavior available after first login;
+10. verify no `.env`, private key, signing file or other secret is packaged;
+11. publish the immutable GitHub Release/tag and download/hash-verify its assets;
+12. refresh the generated distribution branch with exactly the same final Setup/APK/manifest bytes;
+13. keep all repository-controlled build/setup failures on this same branch/PR until green.
+
+If the initial VERSION-promotion workflow fails after the version has already been bumped, repair on the same branch and use supported manual workflow dispatch for that same version rather than incrementing another version just to retrigger automation.
+
+A GREEN code/CI matrix without #1021's exact-head real Setup build and clean-install proof is **not Mission completion**.
 
 ## Completion
 
-Only #1012 may declare the Mission converged. It must post the final evidence matrix to #1001 and close #1001 only when every required child is genuinely complete **and the terminal real release build above is published and verified**.
+#1012 may declare only code convergence. **Only #1021** may declare the Mission COMPLETE, post the terminal release evidence matrix to #1001, and close #1001 after the real release build above is published and verified.
