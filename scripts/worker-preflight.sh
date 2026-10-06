@@ -39,6 +39,8 @@ bash ./scripts/validate-premerge-release-version.sh "$base" WORKTREE
 
 python3 ./scripts/localization-quality-gate.py --base "$base" --head WORKTREE
 
+python3 ./scripts/mobile-ux-contract-guard.py --base "$base" --head WORKTREE
+
 changed_files="$(
   {
     git diff --name-only "$base"

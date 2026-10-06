@@ -133,6 +133,12 @@ jobs:
       - name: Validate mobile artifact packaging
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_artifact.py'
 
+      - name: Test mobile UX v4.2 guard
+        run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_ux_contract_guard.py'
+
+      - name: Enforce mobile UX v4.2 anti-regression guard
+        run: python3 scripts/mobile-ux-contract-guard.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
       - name: Require issue-style PR branch
         shell: bash
         run: |
