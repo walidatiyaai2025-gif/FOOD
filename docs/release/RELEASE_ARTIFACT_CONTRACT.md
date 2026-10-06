@@ -100,3 +100,23 @@ A version promotion is incomplete if any of the following is true:
 - `FOODEX-Laravel-Setup.zip` was not rebuilt from the exact final implementation source SHA;
 - clean installation from the Setup ZIP only did not pass;
 - the canonical release branch contains a stale Setup ZIP from an older implementation head.
+
+### Terminal owner-downloadable release branch
+
+When an active Mission defines a dedicated terminal release branch, Mission completion requires the final build to be persisted there in addition to normal GitHub Release/generated-distribution publication.
+
+For UIUX-V42 this branch is:
+
+`release/1021-uiux-v42-final-real-build`
+
+After its release workflow passes:
+
+- the branch must contain the actual final `Release/FOODEX-Laravel-Setup.zip`;
+- the branch may contain a final generated-artifact publication commit after the source/version-promotion commit;
+- that generated commit may modify only release artifacts/evidence, not business/application source;
+- `BUILD_INFO.json` / `LATEST_RELEASE.json` retain the exact source commit that produced the build;
+- the Setup ZIP SHA-256 on the final branch must match the immutable GitHub Release asset and the generated distribution branch copy;
+- a user must be able to obtain the real installable Setup directly from that final branch without rebuilding source.
+
+A Mission must remain open if its terminal branch points at newer code than the available Setup build, or if the branch contains only source code without the final owner-downloadable Setup artifact.
+
