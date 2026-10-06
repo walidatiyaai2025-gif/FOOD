@@ -521,7 +521,9 @@ Therefore:
 - do not rely on private chat context for critical next steps;
 - commit coherent progress before long waits when safe;
 - record blockers/next actions in GitHub;
-- a new worker should be able to resume without asking the user to reconstruct history.
+- a new worker should be able to resume without asking the user to reconstruct history;
+- after any connection interruption or uncertain GitHub mutation result, re-fetch the live Issue/branch/PR/head before retrying the mutation;
+- branch creation, PR creation, workflow rerun and completion mutations must be idempotent: discover/reuse existing state before creating or rerunning anything.
 
 If a worker/session hangs, another worker should take over the same task using the same branch/PR.
 
@@ -746,6 +748,14 @@ That command means:
 - stop only at a genuine external/human gate or when no safe actionable managed work remains.
 
 The user may still provide `HANDOFF #<issue>` when they want to force a specific task, but the longer AUTO-HANDOFF prompt is no longer required.
+
+The owner may also use the bare active-project commands:
+
+- `حرك مشروع FOOD`
+- `اشتغل على مشروع FOOD`
+- `FOOD MISSION`
+
+These commands must resolve the current open `[MISSION][ACTIVE]` FOOD umbrella from live GitHub state and execute it using Section 20. The user does not need to know or repeat the umbrella number.
 
 
 ---
@@ -1176,3 +1186,37 @@ A worker must never report **"C13 finished"** while:
 - any required AR/EN, RTL/LTR, authorization, isolation or integrated E2E gate is red.
 
 - **Multiline PHP method signatures:** do not infer brace/operator style from older files. The current CI-resolved Pint contract is authoritative: for multiline methods/functions with a declared return type, Pint places the opening `{` on the same line as `): ReturnType {`; for negated `isset` guards, preserve Pint's exact spacing (`! isset(...)`). If dependency drift changes formatter output again, run Pint on the affected file and promote the generated diff here before repeated pushes.
+
+---
+
+## 25. Active FOOD Mission resolution — UI/UX v4.2
+
+The current active mission is registered by live GitHub Issue state and, on the mission integration branch, by:
+
+`docs/execution/ACTIVE_FOOD_MISSION.json`
+
+For the current mission:
+
+- umbrella: **#1001**;
+- mission ID: `UIUX-V42`;
+- execution plan: `docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`;
+- integration target: `release/1.0.58-van-complete`;
+- final convergence gate: **#1012**;
+- maximum implementation parallelism: **6 active lanes**.
+
+When the repository owner says `حرك مشروع FOOD`, `اشتغل على مشروع FOOD`, or `FOOD MISSION`:
+
+1. search live GitHub for the open `[MISSION][ACTIVE]` umbrella;
+2. treat the result as `FOOD #<umbrella> AUTO-HANDOFF`;
+3. reconstruct every required child from the umbrella and live GitHub state;
+4. prioritize repository-local red CI/conflicts, then merge-ready/takeover lanes, then dependency-critical ready lanes;
+5. reuse the exact canonical branch recorded in the child Issue;
+6. never create a duplicate branch or PR to recover from a failed/disconnected chat;
+7. preserve latest-head running CI and use another safe lane rather than duplicating the run;
+8. after each child completes, return to the umbrella and continue draining;
+9. stop only at COMPLETE or a genuine all-remaining-lanes HUMAN_GATE state.
+
+For #1001, only #1012 may declare the plan fully converged and close the umbrella.
+
+If the machine-readable registry ever disagrees with live Issue/branch/PR state, **live GitHub state wins**. The registry locates the mission; it is not a cached status database.
+
