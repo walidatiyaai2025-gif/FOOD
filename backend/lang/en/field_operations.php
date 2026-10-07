@@ -219,4 +219,20 @@ return [
     'collection_context' => 'Collection context',
     'latest_visit' => 'Latest visit',
 
+    'customer_types' => [
+        'b2b' => 'B2B',
+        'b2c' => 'B2C',
+    ],
+    'order_statuses' => [
+        'pending' => 'Pending',
+        'confirmed' => 'Confirmed',
+        'processing' => 'Processing',
+        'preparing' => 'Preparing',
+        'ready' => 'Ready',
+        'out_for_delivery' => 'Out for delivery',
+        'delivered' => 'Delivered',
+        'cancelled' => 'Cancelled',
+        'failed' => 'Failed',
+    ],
+
 ];
