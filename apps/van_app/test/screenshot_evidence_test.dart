@@ -11,6 +11,7 @@ import 'package:foodex_van_app/core/auth/van_auth_persistence.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/core/auth/van_session_store.dart';
 import 'package:foodex_van_app/core/theme/foodex_van_theme.dart';
+import 'package:foodex_van_app/features/commercial/van_commercial_contract.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
@@ -44,12 +45,21 @@ void main() {
 
     for (final screen in const [
       VanScreenId.dashboard,
+      VanScreenId.routes,
       VanScreenId.routeMap,
+      VanScreenId.routeDetail,
+      VanScreenId.customers,
       VanScreenId.visit,
+      VanScreenId.customer360,
       VanScreenId.catalog,
+      VanScreenId.orderBuilder,
       VanScreenId.orderReview,
       VanScreenId.orders,
+      VanScreenId.offers,
+      VanScreenId.wallet,
       VanScreenId.collection,
+      VanScreenId.receipt,
+      VanScreenId.remittance,
       VanScreenId.notifications,
       VanScreenId.profile,
     ]) {
@@ -70,6 +80,7 @@ void main() {
                 permissions: const {'van.login', 'finance.view'},
               ),
               walletRepository: const _Wallet(),
+              commercialRepository: const _Commercial(),
               visitRepository: const _Visits(),
               orderRepository: _Orders(),
               notificationRepository: const _Notifications(),
@@ -123,6 +134,7 @@ void main() {
                 permissions: const {'van.login', 'finance.view'},
               ),
               walletRepository: const _Wallet(),
+              commercialRepository: const _Commercial(),
               visitRepository: const _Visits(),
               orderRepository: _Orders(),
               notificationRepository: const _Notifications(),
@@ -371,6 +383,81 @@ class _Wallet implements VanWalletRepository {
         receipts: [],
         remittances: [],
       );
+}
+
+class _Commercial implements VanCommercialRepository {
+  const _Commercial();
+
+  @override
+  Future<VanCommercialOfferFeed> offersFor(VanCustomerScope customer) async =>
+      VanCommercialOfferFeed(
+        serverTime: DateTime.parse('2026-10-07T09:00:00+03:00'),
+        offers: const [
+          VanCommercialOffer(
+            id: 801,
+            storeId: 7,
+            titleAr: 'عرض المسار اليوم',
+            titleEn: 'Today route offer',
+            bodyAr: 'سعر خاص لعملاء المسار.',
+            bodyEn: 'Special price for route customers.',
+            status: 'active',
+            startsAt: null,
+            endsAt: null,
+            priority: 10,
+            reservationSeconds: 300,
+            products: [
+              VanCommercialOfferProduct(
+                id: 901,
+                productId: 301,
+                sellingUnitCode: 'CASE',
+                conversionFactor: 1,
+                flashPrice: 10.5,
+              ),
+            ],
+          ),
+        ],
+        normalOffers: const [
+          VanNormalOffer(id: 701, name: 'Route discount', type: 'percentage', value: 5),
+        ],
+      );
+
+  @override
+  Future<VanCommercialQuote> quoteForCustomer({
+    required VanCustomerScope customer,
+    required int productId,
+    required String sellingUnitCode,
+    required double quantity,
+    String? overrideReason,
+  }) async =>
+      const VanCommercialQuote(
+        allowed: true,
+        status: 'allowed',
+        reasonCodes: [],
+        sellingUnit: VanSellingUnit(
+          code: 'CASE',
+          name: 'Case',
+          conversionFactor: 1,
+          price: 10.5,
+        ),
+        sellingUnits: [
+          VanSellingUnit(
+            code: 'CASE',
+            name: 'Case',
+            conversionFactor: 1,
+            price: 10.5,
+          ),
+        ],
+        overrideApplied: false,
+      );
+
+  @override
+  Future<void> reserveFlashForCustomer({
+    required VanCustomerScope customer,
+    required int offerProductId,
+    required double quantity,
+    required String idempotencyKey,
+    String? overrideReason,
+  }) async {}
 }
 
 class _Visits implements VanVisitRepository {
