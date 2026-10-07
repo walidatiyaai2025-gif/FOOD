@@ -91,6 +91,44 @@ void main() {
     expect(opened, 42);
   });
 
+  testWidgets('already-open assignment notification refreshes instead of reopening',
+      (tester) async {
+    final repository = _FakeNotifications(const [
+      DriverNotification(
+        id: 9,
+        title: 'Assignment updated',
+        body: 'Refresh the active assignment',
+        readAt: null,
+        data: {
+          'assignment_id': 55,
+          'order_id': 155,
+          'access_revoked': false,
+        },
+      ),
+    ]);
+    int? opened;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: DriverNotificationPage(
+          repository: repository,
+          currentAssignmentId: 55,
+          onOpenAssignment: (value) => opened = value,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.listCount, 1);
+    await tester.tap(find.byKey(const Key('driver-notification-9')));
+    await tester.pumpAndSettle();
+
+    expect(repository.marked, [9]);
+    expect(opened, isNull);
+    expect(repository.listCount, 2);
+  });
+
   testWidgets('revoked assignment notification never opens order detail',
       (tester) async {
     final repository = _FakeNotifications(const [
