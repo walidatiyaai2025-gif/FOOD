@@ -2,8 +2,8 @@
   "schema_version": 1,
   "production_base_url": "https://vanfoodex.50sols.com",
   "release": {
-    "version": "1.0.59",
-    "build": "59"
+    "version": "1.0.60",
+    "build": "60"
   },
   "public_urls": {
     "privacy": "https://vanfoodex.50sols.com/privacy",
@@ -69,8 +69,8 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.59",
-      "build": "59",
+      "version": "1.0.60",
+      "build": "60",
       "support_url": "https://vanfoodex.50sols.com/support",
       "privacy_url": "https://vanfoodex.50sols.com/privacy",
       "terms_url": "https://vanfoodex.50sols.com/terms",
@@ -132,8 +132,8 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.59",
-      "build": "59",
+      "version": "1.0.60",
+      "build": "60",
       "support_url": "https://vanfoodex.50sols.com/support",
       "privacy_url": "https://vanfoodex.50sols.com/privacy",
       "terms_url": "https://vanfoodex.50sols.com/terms",
@@ -215,8 +215,8 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.59",
-      "build": "59",
+      "version": "1.0.60",
+      "build": "60",
       "support_url": "https://vanfoodex.50sols.com/support",
       "privacy_url": "https://vanfoodex.50sols.com/privacy",
       "terms_url": "https://vanfoodex.50sols.com/terms",
@@ -279,8 +279,8 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.59",
-      "build": "59",
+      "version": "1.0.60",
+      "build": "60",
       "support_url": "https://vanfoodex.50sols.com/support",
       "privacy_url": "https://vanfoodex.50sols.com/privacy",
       "terms_url": "https://vanfoodex.50sols.com/terms",
