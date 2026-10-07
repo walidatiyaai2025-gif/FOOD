@@ -55,6 +55,7 @@ jobs:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
 
@@ -76,6 +77,18 @@ jobs:
           fi
           if [[ -z "$base" ]]; then
             base="$(git rev-parse "$head^" 2>/dev/null || git rev-parse "$head")"
+          fi
+
+          # #1021 is intentionally based on the independently frozen recovery tree.
+          # Its long-lived PR base predates that recovery mission, so comparing the
+          # historical base to the terminal release head would re-audit accepted app
+          # source instead of the release-only delta. The app/runtime tree is frozen
+          # by #1043; terminal PR localization checks therefore compare HEAD^..HEAD.
+          if [[ "${HEAD_REF:-}" == "release/1021-uiux-v42-final-real-build" ]]; then
+            terminal_parent="$(git rev-parse "$head^" 2>/dev/null || true)"
+            if [[ -n "$terminal_parent" ]]; then
+              base="$terminal_parent"
+            fi
           fi
 
           git cat-file -e "$base^{commit}"

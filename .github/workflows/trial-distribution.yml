@@ -339,7 +339,7 @@ jobs:
 
           fresh="$(mktemp -d)"
           unzip -q Release/FOODEX-Laravel-Setup.zip -d "$fresh"
-          test "$(tr -d '[:space:]' < "$fresh/VERSION")" = "1.0.59"
+          test "$(tr -d '[:space:]' < "$fresh/VERSION")" = "$CURRENT_VERSION"
           test -d "$fresh/backend/public"
           test -s "$fresh/backend/vendor/autoload.php"
           test ! -e "$fresh/backend/.env"
@@ -404,6 +404,10 @@ jobs:
           }
 
           if ($mode === 'finish') {
+              $expectedVersion = getenv('CURRENT_VERSION') ?: '';
+              if ($expectedVersion === '') {
+                  throw new RuntimeException('CURRENT_VERSION is required for fresh-install validation.');
+              }
               $admin = $workflow->prepareSuperAdmin([
                   'name' => 'FOODEX Acceptance Owner',
                   'email' => 'acceptance-owner@example.test',
@@ -411,14 +415,14 @@ jobs:
                   'locale' => 'en',
               ]);
               $version = $workflow->finish($admin);
-              if ($version !== '1.0.59' || ! $state->isInstalled()) {
-                  throw new RuntimeException('Installer Finish did not lock 1.0.59.');
+              if ($version !== $expectedVersion || ! $state->isInstalled()) {
+                  throw new RuntimeException('Installer Finish did not lock '.$expectedVersion.'.');
               }
               $db = Illuminate\Support\Facades\DB::class;
               if (! $db::table('users')->where('email', 'acceptance-owner@example.test')->where('is_active', true)->exists()) {
                   throw new RuntimeException('First owner was not created.');
               }
-              if (! $db::table('system_versions')->where('version', '1.0.59')->exists()) {
+              if (! $db::table('system_versions')->where('version', $expectedVersion)->exists()) {
                   throw new RuntimeException('System version was not recorded.');
               }
 
@@ -852,7 +856,7 @@ jobs:
           grep -Fq 'FRESH-VAN-UI' /tmp/field-van-detail.html
 
           CAPTURED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json'             -o /tmp/van-heartbeat.json -w '%{http_code}' -X POST             --data "$(printf '{"van_id":%s,"assignment_id":%s,"route_key":"FRESH-ROUTE","store_id":%s,"channel":"b2b","latitude":29.3759,"longitude":47.9774,"accuracy":8,"speed":3.2,"heading":90,"captured_at":"%s","app_version":"1.0.59"}' "$VAN_ID" "$ASSIGNMENT_ID" "$B2B_STORE_ID" "$CAPTURED_AT")"             http://127.0.0.1:8099/api/v1/admin/field-operations/fleet/van-heartbeat)" = "200"
+          test "$(curl -sS -H "Authorization: Bearer $OWNER_TOKEN" -H 'Accept: application/json' -H 'Content-Type: application/json'             -o /tmp/van-heartbeat.json -w '%{http_code}' -X POST             --data "$(printf '{"van_id":%s,"assignment_id":%s,"route_key":"FRESH-ROUTE","store_id":%s,"channel":"b2b","latitude":29.3759,"longitude":47.9774,"accuracy":8,"speed":3.2,"heading":90,"captured_at":"%s","app_version":"%s"}' "$VAN_ID" "$ASSIGNMENT_ID" "$B2B_STORE_ID" "$CAPTURED_AT" "$CURRENT_VERSION")"             http://127.0.0.1:8099/api/v1/admin/field-operations/fleet/van-heartbeat)" = "200"
           test "$(curl -sS -b /tmp/foodex-cookies.txt -H 'Accept: application/json' -o /tmp/field-fleet-feed.json -w '%{http_code}'             "http://127.0.0.1:8099/admin/field-operations/fleet-map/feed?actor_type=van&channel=b2b&store_id=$B2B_STORE_ID")" = "200"
           python3 - <<'PY'
           import json
@@ -1100,7 +1104,7 @@ jobs:
           cat > Release/FRESH_INSTALL_EVIDENCE.json <<EOF
           {
             "schema_version": 2,
-            "version": "1.0.59",
+            "version": "$CURRENT_VERSION",
             "source_commit": "$GITHUB_SHA",
             "api_base_url": "https://vanfoodex.50sols.com",
             "setup_zip": "FOODEX-Laravel-Setup.zip",
