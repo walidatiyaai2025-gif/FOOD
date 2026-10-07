@@ -29,6 +29,10 @@ return [
         'global_roles' => 'Global roles',
         'store_assignments' => 'Store assignments',
     ],
+    'system_inspector_surface' => [
+        'store' => 'Store',
+        'all_stores' => 'All stores',
+    ],
     'nav_groups' => [
         'overview' => 'Overview',
         'field_operations' => 'Van & Field Operations',

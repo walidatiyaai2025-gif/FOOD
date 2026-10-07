@@ -29,6 +29,10 @@ return [
         'global_roles' => 'الأدوار العامة',
         'store_assignments' => 'أدوار المتاجر',
     ],
+    'system_inspector_surface' => [
+        'store' => 'المتجر',
+        'all_stores' => 'كل المتاجر',
+    ],
     'nav_groups' => [
         'overview' => 'نظرة عامة',
         'field_operations' => 'عمليات الفان والميدان',
