@@ -29,7 +29,8 @@ class AdminProfileNavigationBannerTest extends TestCase
         $admin = $this->globalUser('SUPER_ADMIN', 'owner@example.test');
         $keys = $this->navigationKeys($admin);
 
-        $this->assertContains('profile', $keys);
+        $this->assertContains('administration_hub', $keys);
+        $this->assertNotContains('profile', $keys);
         $this->assertContains('b2b_dashboard', $keys);
         $this->assertContains('retail_store_provisioning', $keys);
         $this->assertFalse(collect($keys)->contains(fn (string $key): bool => str_starts_with($key, 'b2c_')));
@@ -41,7 +42,8 @@ class AdminProfileNavigationBannerTest extends TestCase
         $admin = $this->storeAdmin($storeId, 'retail@example.test');
         $keys = $this->navigationKeys($admin);
 
-        $this->assertContains('profile', $keys);
+        $this->assertContains('administration_hub', $keys);
+        $this->assertNotContains('profile', $keys);
         $this->assertContains('b2c_dashboard', $keys);
         $this->assertContains('b2c_products', $keys);
         $this->assertNotContains('retail_store_provisioning', $keys);
