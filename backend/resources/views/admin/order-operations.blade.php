@@ -86,7 +86,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 <div class="timeline-item" data-order-authoritative-context>
 <strong>{{ strtoupper($detail['channel']) }} · {{ $detail['store'] }}</strong>
 <div>{{ $isAr?'المصدر':'Source' }}: {{ $detail['source'] }}</div>
-<small>store_id={{ $detail['store_id'] }} · channel={{ $detail['channel'] }}</small>
+<small>{{ $isAr?'القناة المعتمدة':'Authorized channel' }}: {{ strtoupper($detail['channel']) }}</small>
 </div>
 <h2 style="margin-top:16px">{{ $isAr?'عنوان التوصيل':'Delivery address' }}</h2>
 @if($detail['delivery_address'])
