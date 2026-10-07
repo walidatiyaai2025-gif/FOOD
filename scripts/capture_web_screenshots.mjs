@@ -512,15 +512,13 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
     throw new Error(`Flash Offers structured form is missing (${locale})`);
   }
 
-  const audienceNames = [
-    'audience_customer_ids[]',
-    'audience_customer_group_ids[]',
-    'audience_regions[]',
-    'audience_routes[]',
-  ];
-  for (const name of audienceNames) {
-    if (await flashForm.locator(`select[name="${name}"]`).count() !== 1) {
-      throw new Error(`Flash audience lookup missing: ${name} (${locale})`);
+  const audienceLookups = ['customers', 'customer-groups', 'regions', 'routes'];
+  for (const kind of audienceLookups) {
+    const lookup = flashForm.locator(`[data-flash-lookup-kind="${kind}"]`);
+    if (await lookup.count() !== 1
+        || await lookup.locator('[data-flash-lookup-toggle]').count() !== 1
+        || await lookup.locator('[data-flash-lookup-search]').count() !== 1) {
+      throw new Error(`Flash audience searchable dropdown missing: ${kind} (${locale})`);
     }
   }
   if (await flashForm.locator('input[name="channels[]"][value="van"]').count() !== 1) {
