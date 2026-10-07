@@ -150,6 +150,7 @@
                         <label>{{ $ar?'نوع المركبة':'Vehicle type' }}<input name="vehicle_type"></label>
                         <label>{{ $ar?'السعة بالوحدات':'Capacity units' }}<input type="number" min="0" name="capacity_units"></label>
                         <label>{{ $ar?'سعة الوزن':'Capacity weight' }}<input type="number" min="0" step=".001" name="capacity_weight"></label>
+                        <label>{{ $ar?'المخزن الرئيسي':'Home warehouse' }}<select name="home_warehouse_id"><option value="">—</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->name }} · {{ $warehouse->code }}</option>@endforeach</select></label>
                     </div>
                     <label>{{ $ar?'ملاحظات':'Notes' }}<textarea name="notes" rows="2"></textarea></label>
                     <button class="foodex-primary" type="submit">{{ $ar?'تسجيل الفان':'Register Van' }}</button>
@@ -166,14 +167,20 @@
                 <tr>
                     <td><a href="{{ route('admin.field-operations.vans.show',$van) }}"><strong>{{ $van->code }}</strong></a><div class="fieldops-muted">{{ $van->plate_number ?: '—' }} · {{ $van->vehicle_type ?: '—' }}</div></td>
                     <td><span class="fieldops-status">{{ $van->status }}</span></td>
-                    <td>@if($assignment)#{{ $assignment->id }} · {{ $assignment->assignment_type }}<br><span class="fieldops-muted">{{ $assignment->territory_key ?: '—' }}</span>@else—@endif</td>
+                    <td>@if($assignment){{ $assignment->assignment_type }}<br><span class="fieldops-muted">{{ $assignment->territory_key ?: '—' }}</span>@else—@endif</td>
                     <td>@if($location)<span class="fieldops-code">{{ number_format($location->latitude,5) }}, {{ number_format($location->longitude,5) }}</span>@else—@endif</td>
                     <td>{{ $location?->received_at?->diffForHumans() ?: '—' }}</td>
                     <td>
                         @if($canManageVan && $van->status !== 'suspended')
                         <details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                             <form method="post" action="{{ route('admin.field-operations.vans.suspend',$van) }}">@csrf
-                                <input name="transfer_target_van_id" type="number" placeholder="{{ $ar?'فان التحويل عند وجود حمولة':'Transfer Van ID if loaded' }}">
+                                <select name="transfer_target_van_id" data-van-transfer-lookup>
+                                    <option value="">{{ $ar?'بدون تحويل حمولة':'No load transfer' }}</option>
+                                    @foreach($transferVans as $targetVan)
+                                        @continue($targetVan->id === $van->id)
+                                        <option value="{{ $targetVan->id }}">{{ $targetVan->code }}{{ $targetVan->plate_number ? ' · '.$targetVan->plate_number : '' }}</option>
+                                    @endforeach
+                                </select>
                                 <input name="reason" placeholder="{{ $ar?'سبب الإيقاف':'Suspension reason' }}">
                                 <button class="danger" type="submit">{{ $ar?'إيقاف':'Suspend' }}</button>
                             </form>
@@ -194,7 +201,7 @@
                     <div class="control-row"><span>{{ $ar?'النوع':'Vehicle type' }}</span><strong>{{ $van->vehicle_type ?: '—' }}</strong></div>
                     <div class="control-row"><span>{{ $ar?'الحالة':'Status' }}</span><span class="fieldops-status">{{ $van->status }}</span></div>
                     <div class="control-row"><span>{{ $ar?'السعة':'Capacity' }}</span><strong>{{ $van->capacity_units ?? '—' }} / {{ $van->capacity_weight ?? '—' }}</strong></div>
-                    <div class="control-row"><span>{{ $ar?'المخزن الرئيسي':'Home warehouse' }}</span><strong>{{ $van->home_warehouse_id ? '#'.$van->home_warehouse_id : '—' }}</strong></div>
+                    <div class="control-row"><span>{{ $ar?'المخزن الرئيسي':'Home warehouse' }}</span><strong>{{ $homeWarehouseName ?: '—' }}</strong></div>
                     @if($van->notes)<p class="fieldops-muted">{{ $van->notes }}</p>@endif
                 </article>
                 <article class="fieldops-card"><h2>{{ $ar?'صحة الموقع':'Location health' }}</h2>
@@ -207,9 +214,9 @@
                 </article>
             </section>
             <section class="fieldops-card"><h2>{{ $ar?'سجل الإسنادات':'Assignment history' }}</h2>
-                <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'السائق':'Driver' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'النوع':'Type' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الفترة':'Window' }}</th></tr></thead><tbody>
-                @forelse($van->assignments as $a)<tr><td>{{ $a->id }}</td><td>{{ $a->driver_id ? '#'.$a->driver_id : '—' }}</td><td>{{ $a->representative_user_id ? '#'.$a->representative_user_id : '—' }}</td><td>{{ $a->territory_key ?: '—' }}</td><td>{{ $a->assignment_type }}</td><td>{{ $a->status }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
-                @empty<tr><td colspan="7">{{ $ar?'لا يوجد سجل إسنادات لهذا الفان.':'No assignment history for this Van.' }}</td></tr>@endforelse
+                <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'السائق':'Driver' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'النوع':'Type' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الفترة':'Window' }}</th></tr></thead><tbody>
+                @forelse($van->assignments as $a)<tr><td>{{ $driverNames->get($a->driver_id) ?: '—' }}</td><td>{{ $representativeNames->get($a->representative_user_id) ?: '—' }}</td><td>@php($territoryLabel=$territoryNames->get($a->territory_key)){{ $territoryLabel ? ($ar?$territoryLabel->name_ar:$territoryLabel->name_en) : ($a->territory_key ?: '—') }}</td><td>{{ $a->assignment_type }}</td><td>{{ $a->status }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
+                @empty<tr><td colspan="6">{{ $ar?'لا يوجد سجل إسنادات لهذا الفان.':'No assignment history for this Van.' }}</td></tr>@endforelse
                 </tbody></table></div>
             </section>
 
@@ -221,8 +228,9 @@
                     <div class="fieldops-form-grid">
                         <label>{{ $ar?'الفان':'Van' }}<select name="van_id" required onchange="this.form.action='{{ url('/admin/field-operations/vans') }}/'+this.value+'/assignments'"><option value="">{{ $ar?'اختر':'Select' }}</option>@foreach($vans as $van)<option value="{{ $van->id }}">{{ $van->code }}</option>@endforeach</select></label>
                         <label>{{ $ar?'السائق':'Driver' }}<select name="driver_id"><option value="">—</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" data-user="{{ $driver->user_id }}">{{ $driver->name ?: ('Driver #'.$driver->id) }}</option>@endforeach</select></label>
-                        <label>{{ $ar?'المستخدم/المندوب':'Representative user ID' }}<input type="number" min="1" name="representative_user_id"></label>
+                        <label>{{ $ar?'المستخدم/المندوب':'Representative / operator' }}<select name="representative_user_id" data-representative-lookup><option value="">—</option>@foreach($representatives as $representative)<option value="{{ $representative->id }}">{{ $representative->name }}{{ $representative->email ? ' · '.$representative->email : '' }}</option>@endforeach</select></label>
                         <label>{{ $ar?'المنطقة':'Territory' }}<select name="territory_key"><option value="">—</option>@foreach($territories as $territory)<option value="{{ $territory->code }}">{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</option>@endforeach</select></label>
+                        <label>{{ $ar?'المخزن':'Warehouse' }}<select name="warehouse_id" data-warehouse-lookup><option value="">—</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->name }} · {{ $warehouse->code }}</option>@endforeach</select></label>
                         <label>{{ $ar?'نوع الإسناد':'Assignment type' }}<select name="assignment_type"><option value="primary">primary</option><option value="backup">backup</option></select></label>
                         <label>{{ $ar?'من':'Effective from' }}<input type="datetime-local" name="effective_from" required></label>
                         <label>{{ $ar?'حتى':'Effective until' }}<input type="datetime-local" name="effective_until"></label>
@@ -232,8 +240,12 @@
                 </form>
             </details>
             @endif
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'الفان':'Van' }}</th><th>{{ $ar?'السائق/المشغل':'Driver/operator' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'النوع':'Type' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الفترة':'Window' }}</th></tr></thead><tbody>
-                @forelse($assignments as $a)<tr><td>{{ $a->id }}</td><td>{{ $a->van?->code ?: ('#'.$a->van_id) }}</td><td>{{ $a->driver_id ? 'Driver #'.$a->driver_id : '' }} {{ $a->representative_user_id ? 'User #'.$a->representative_user_id : '' }}</td><td>{{ $a->territory_key ?: '—' }}</td><td>{{ $a->assignment_type }}</td><td>{{ $a->status }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'الفان':'Van' }}</th><th>{{ $ar?'السائق/المشغل':'Driver/operator' }}</th><th>{{ $ar?'المخزن':'Warehouse' }}</th><th>{{ $ar?'المنطقة':'Territory' }}</th><th>{{ $ar?'النوع':'Type' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الفترة':'Window' }}</th></tr></thead><tbody>
+                @forelse($assignments as $a)
+                    @php($driverLabel=$drivers->firstWhere('id',$a->driver_id)?->name)
+                    @php($representativeLabel=$representatives->firstWhere('id',$a->representative_user_id)?->name)
+                    @php($warehouseLabel=$warehouses->firstWhere('id',$a->warehouse_id)?->name)
+                    <tr><td>{{ $a->van?->code ?: '—' }}</td><td>{{ trim(($driverLabel ?: '').' '.($representativeLabel ?: '')) ?: '—' }}</td><td>{{ $warehouseLabel ?: '—' }}</td><td>{{ $a->territory_key ?: '—' }}</td><td>{{ $a->assignment_type }}</td><td>{{ $a->status }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
                 @empty<tr><td colspan="7">{{ $ar?'لا توجد إسنادات.':'No assignments.' }}</td></tr>@endforelse
             </tbody></table></div>{{ $assignments->links() }}
 
@@ -279,27 +291,30 @@
                 <form method="post" action="{{ route('admin.field-operations.visits.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                     <div class="fieldops-form-grid">
                         <label>{{ $ar?'إسناد الفان':'Van assignment' }}<select name="assignment_id" required><option value="">—</option>@foreach($assignments as $a)<option value="{{ $a->id }}">{{ $a->van?->code ?: '#'.$a->van_id }} · {{ $a->territory_key ?: '—' }} · {{ $a->representative_user_id ? 'User #'.$a->representative_user_id : 'Driver #'.$a->driver_id }}</option>@endforeach</select></label>
-                        <label>{{ $ar?'نوع العميل':'Customer type' }}<select name="customer_type"><option value="b2b">B2B</option><option value="b2c">B2C</option></select></label>
-                        <label>{{ $ar?'رقم العميل':'Customer ID' }}<input type="number" min="1" name="customer_id" required></label>
+                        <label>{{ $ar?'نوع العميل':'Customer type' }}<select name="customer_type" data-visit-customer-type><option value="b2b">B2B</option><option value="b2c">B2C</option></select></label>
+                        <label>{{ $ar?'العميل':'Customer' }}<select name="customer_id" data-visit-customer required><option value="">—</option>@foreach($visitCustomers as $customer)<option value="{{ $customer->id }}" data-customer-type="{{ $customer->type }}">{{ $customer->label }} · {{ strtoupper($customer->type) }}</option>@endforeach</select></label>
                         <label>{{ $ar?'وقت الزيارة':'Planned at' }}<input type="datetime-local" name="planned_at"></label>
-                        <label>{{ $ar?'المتجر (اختياري)':'Store ID (optional)' }}<input type="number" min="1" name="store_id"></label>
-                        <label>{{ $ar?'كود المسار':'Route key' }}<input name="route_key"></label>
+                        <label>{{ $ar?'المتجر (اختياري)':'Store (optional)' }}<select name="store_id" data-store-lookup><option value="">—</option>@foreach($visitStores as $store)<option value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>@endforeach</select></label>
+                        <label>{{ $ar?'المسار':'Route' }}<select name="route_key" data-route-lookup><option value="">—</option>@foreach($visitRoutes as $route)<option value="{{ $route }}">{{ $route }}</option>@endforeach</select></label>
                     </div>
                     <button class="foodex-primary">{{ $ar?'إنشاء الزيارة':'Create planned visit' }}</button>
                 </form>
             </details>
             @endif
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الأوقات':'Timestamps' }}</th><th>{{ $ar?'النتيجة':'Result' }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'تاريخ الإنشاء':'Created' }}</th><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ $ar?'المشغل':'Operator' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الأوقات':'Timestamps' }}</th><th>{{ $ar?'النتيجة':'Result' }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
             @forelse($visits as $visit)
                 @php($allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string)$visit->status))
-                <tr><td>#{{ $visit->id }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ strtoupper($visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: ('#'.$visit->actor_user_id) }}</td><td>{{ $visit->status }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visit->order_id ? 'Order #'.$visit->order_id : ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
+                @php($visitOrder=$visit->order_id ? $visitOrders->firstWhere('id',$visit->order_id) : null)
+                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ strtoupper($visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ $visit->status }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder?->order_number ?: ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
                     @if($canManageVan && $allowed !== [])
-                    <form method="post" action="{{ route('admin.field-operations.visits.transition',$visit) }}" class="fieldops-actions">@csrf
-                        <select name="status">@foreach($allowed as $target)<option value="{{ $target }}">{{ $target }}</option>@endforeach</select>
-                        <select name="no_order_reason_id"><option value="">{{ $ar?'سبب عدم الطلب':'No-order reason' }}</option>@foreach($reasons as $reason)<option value="{{ $reason->id }}">{{ $ar?$reason->label_ar:$reason->label_en }}</option>@endforeach</select>
-                        <input type="number" name="order_id" min="1" placeholder="{{ $ar?'رقم الطلب':'Order ID' }}">
-                        <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
-                    </form>
+                    <details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
+                        <form method="post" action="{{ route('admin.field-operations.visits.transition',$visit) }}">@csrf
+                            <select name="status">@foreach($allowed as $target)<option value="{{ $target }}">{{ $target }}</option>@endforeach</select>
+                            <select name="no_order_reason_id"><option value="">{{ $ar?'سبب عدم الطلب':'No-order reason' }}</option>@foreach($reasons as $reason)<option value="{{ $reason->id }}">{{ $ar?$reason->label_ar:$reason->label_en }}</option>@endforeach</select>
+                            <select name="order_id" data-order-lookup><option value="">{{ $ar?'بدون طلب مرتبط':'No linked order' }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ $order->order_number ?: ($ar?'طلب':'Order') }} · {{ $order->status }}</option>@endforeach</select>
+                            <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
+                        </form>
+                    </div></details>
                     @else—@endif
                 </td></tr>
             @empty<tr><td colspan="7"><div class="foodex-ops-state">{{ $ar?'لا توجد زيارات.':'No visits.' }}</div></td></tr>@endforelse
@@ -345,13 +360,21 @@
                             </select>
                         </label>
                         <label>{{ $ar?'الرسم':'Drawing' }}
-                            <button type="button" id="fieldops-coverage-clear">{{ $ar?'مسح النقاط وإعادة الرسم':'Clear points & redraw' }}</button>
+                            <span class="fieldops-actions">
+                                <button type="button" id="fieldops-coverage-undo">{{ $ar?'تراجع عن آخر نقطة':'Undo last point' }}</button>
+                                <button type="button" id="fieldops-coverage-clear">{{ $ar?'مسح النقاط وإعادة الرسم':'Clear points & redraw' }}</button>
+                            </span>
                         </label>
                     </div>
-                    <details>
+                    <p class="fieldops-muted" id="fieldops-coverage-status" aria-live="polite">{{ $ar?'انقر لإضافة نقاط، اسحب النقطة لتحريكها، وانقر عليها مرتين لحذفها.':'Click to add points, drag a point to move it, and double-click a point to delete it.' }}</p>
+                    @if($isSuper)
+                    <details data-advanced-geojson>
                         <summary>{{ $ar?'متقدم: GeoJSON':'Advanced: GeoJSON' }}</summary>
                         <label style="margin-top:8px">GeoJSON<textarea id="fieldops-coverage-geojson" name="geojson" rows="5" required></textarea></label>
                     </details>
+                    @else
+                        <input type="hidden" id="fieldops-coverage-geojson" name="geojson" required>
+                    @endif
                     <button class="foodex-primary" type="submit">{{ $ar?'حفظ هندسة التغطية':'Save coverage geometry' }}</button>
                 </form>
                 @endif
@@ -377,7 +400,7 @@
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                     @foreach(['confirm','reject','reopen'] as $action)
                     <form method="post" action="{{ route('admin.field-operations.address-quality.action',['review'=>$review,'action'=>$action]) }}">@csrf
-                        @if($action==='confirm')<input name="territory_key" placeholder="{{ $ar?'كود المنطقة':'Territory key' }}" required>@endif
+                        @if($action==='confirm')<select name="territory_key" data-territory-lookup required><option value="">{{ $ar?'اختر المنطقة':'Select territory' }}</option>@foreach($territories as $territory)<option value="{{ $territory->code }}">{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</option>@endforeach</select>@endif
                         <input name="reason" placeholder="{{ $ar?'السبب':'Reason' }}" required>
                         <button type="submit">{{ $action }}</button>
                     </form>
@@ -419,6 +442,28 @@
         </div>
     </main>
 </div>
+@if($section === 'visits')
+<script>
+(() => {
+    const type = document.querySelector('[data-visit-customer-type]');
+    const customer = document.querySelector('[data-visit-customer]');
+    if (!type || !customer) return;
+    const sync = () => {
+        let first = null;
+        [...customer.options].forEach((option) => {
+            if (!option.dataset.customerType) return;
+            const visible = option.dataset.customerType === type.value;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (visible && first === null) first = option;
+        });
+        if (customer.selectedOptions[0]?.disabled) customer.value = '';
+    };
+    type.addEventListener('change', sync);
+    sync();
+})();
+</script>
+@endif
 @if($section === 'fleet')
     @include('admin._driver-live-map-scripts')
 @elseif($section === 'territories')
@@ -427,7 +472,7 @@
     (() => {
         const node = document.getElementById('fieldops-coverage-map');
         if (!node || !window.L) return;
-        const map = L.map(node).setView([29.3759,47.9774],10);
+        const map = L.map(node,{doubleClickZoom:false}).setView([29.3759,47.9774],10);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
         const existing = [];
         @foreach($territories as $territory)
@@ -453,23 +498,50 @@
         const select=document.getElementById('fieldops-coverage-territory');
         const output=document.getElementById('fieldops-coverage-geojson');
         const clear=document.getElementById('fieldops-coverage-clear');
+        const undo=document.getElementById('fieldops-coverage-undo');
+        const status=document.getElementById('fieldops-coverage-status');
         const base=@json(url('/admin/field-operations/territories'));
         let points=[];
         let draft=L.layerGroup().addTo(map);
+        const polygonArea=()=>Math.abs(points.reduce((sum,point,index)=>{
+            const next=points[(index+1)%points.length]||point;
+            return sum+(point[0]*next[1])-(next[0]*point[1]);
+        },0)/2);
+        const validPolygon=()=>points.length>=3&&new Set(points.map(point=>point.join(','))).size>=3&&polygonArea()>0.000000001;
         const redraw=()=>{
             draft.clearLayers();
-            points.forEach(point=>L.circleMarker([point[1],point[0]],{radius:5}).addTo(draft));
+            points.forEach((point,index)=>{
+                const marker=L.marker([point[1],point[0]],{draggable:true,title:@json($ar?'اسحب للتحريك، وانقر مرتين للحذف':'Drag to move; double-click to delete')}).addTo(draft);
+                marker.on('dragend',event=>{
+                    const pos=event.target.getLatLng();
+                    points[index]=[Number(pos.lng.toFixed(7)),Number(pos.lat.toFixed(7))];
+                    redraw();
+                });
+                marker.on('dblclick',event=>{
+                    L.DomEvent.stopPropagation(event);
+                    points.splice(index,1);
+                    redraw();
+                });
+            });
             if(points.length>=2)L.polyline(points.map(p=>[p[1],p[0]])).addTo(draft);
-            if(points.length>=3)L.polygon(points.map(p=>[p[1],p[0]])).addTo(draft);
-            if(points.length>=3){
+            if(validPolygon()){
+                L.polygon(points.map(p=>[p[1],p[0]])).addTo(draft);
                 const ring=[...points,points[0]];
                 output.value=JSON.stringify({type:'Polygon',coordinates:[ring]});
-            } else output.value='';
+                if(status) status.textContent=@json($ar?'المضلع صالح وجاهز للحفظ.':'Polygon is valid and ready to save.');
+            } else {
+                output.value='';
+                if(status) status.textContent=points.length<3
+                    ? @json($ar?'أضف ثلاث نقاط مختلفة على الأقل.':'Add at least three distinct points.')
+                    : @json($ar?'النقاط الحالية لا تكوّن مضلعًا صالحًا. حرّك أو احذف نقطة ثم أعد المحاولة.':'The current points do not form a valid polygon. Move or delete a point and try again.');
+            }
         };
         map.on('click',event=>{points.push([Number(event.latlng.lng.toFixed(7)),Number(event.latlng.lat.toFixed(7))]);redraw();});
+        undo.addEventListener('click',()=>{points.pop();redraw();});
         clear.addEventListener('click',()=>{points=[];redraw();});
         select.addEventListener('change',()=>{form.action=select.value ? base+'/'+select.value+'/geometry' : '';});
-        form.addEventListener('submit',event=>{if(!select.value||points.length<3){event.preventDefault();alert(@json($ar?'اختر منطقة وارسم ثلاث نقاط على الأقل.':'Select a territory and draw at least three points.'));}});
+        form.addEventListener('submit',event=>{if(!select.value||!validPolygon()){event.preventDefault();alert(@json($ar?'اختر منطقة وارسم مضلعًا صالحًا من ثلاث نقاط مختلفة على الأقل.':'Select a territory and draw a valid polygon with at least three distinct points.'));}});
+        redraw();
     })();
     </script>
 @endif

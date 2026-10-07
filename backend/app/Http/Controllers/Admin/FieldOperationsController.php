@@ -152,8 +152,16 @@ final class FieldOperationsController extends Controller
             ->whereIn('actor_id', $vans->getCollection()->pluck('id'))
             ->get()
             ->keyBy('actor_id');
+        $warehouses = DB::table('warehouses')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+        $transferVans = Van::query()
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get(['id', 'code', 'plate_number']);
 
-        return $this->render($request, 'vans', compact('vans', 'locations'));
+        return $this->render($request, 'vans', compact('vans', 'locations', 'warehouses', 'transferVans'));
     }
 
     public function showVan(Request $request, Van $van): View
@@ -167,8 +175,30 @@ final class FieldOperationsController extends Controller
             ->where('actor_id', $van->id)
             ->first();
         $locationStatus = $location === null ? null : app(FleetLocationService::class)->status($location);
+        $homeWarehouseName = $van->home_warehouse_id === null
+            ? null
+            : DB::table('warehouses')->where('id', $van->home_warehouse_id)->value('name');
+        $driverNames = DB::table('drivers')
+            ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+            ->whereIn('drivers.id', $van->assignments->pluck('driver_id')->filter())
+            ->pluck('users.name', 'drivers.id');
+        $representativeNames = DB::table('users')
+            ->whereIn('id', $van->assignments->pluck('representative_user_id')->filter())
+            ->pluck('name', 'id');
+        $territoryNames = ServiceTerritory::query()
+            ->whereIn('code', $van->assignments->pluck('territory_key')->filter())
+            ->get(['code', 'name_en', 'name_ar'])
+            ->keyBy('code');
 
-        return $this->render($request, 'van-detail', compact('van', 'location', 'locationStatus'));
+        return $this->render($request, 'van-detail', compact(
+            'van',
+            'location',
+            'locationStatus',
+            'homeWarehouseName',
+            'driverNames',
+            'representativeNames',
+            'territoryNames',
+        ));
     }
 
     public function storeVan(Request $request): RedirectResponse
@@ -219,8 +249,24 @@ final class FieldOperationsController extends Controller
             ->where('drivers.is_active', true)->orderBy('users.name')
             ->get(['drivers.id', 'drivers.user_id', 'users.name']);
         $territories = ServiceTerritory::query()->where('status', 'active')->orderBy('name_en')->get(['id', 'code', 'name_en', 'name_ar']);
+        $representatives = DB::table('users')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name', 'email']);
+        $warehouses = DB::table('warehouses')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
 
-        return $this->render($request, 'assignments', compact('assignments', 'vans', 'drivers', 'territories'));
+        return $this->render($request, 'assignments', compact(
+            'assignments',
+            'vans',
+            'drivers',
+            'territories',
+            'representatives',
+            'warehouses',
+        ));
     }
 
     public function storeAssignment(Request $request, Van $van): RedirectResponse
@@ -302,7 +348,71 @@ final class FieldOperationsController extends Controller
         $assignments = $this->registry->effectiveAssignments();
         $reasons = VanNoOrderReason::query()->where('is_active', true)->orderBy('sort_order')->get();
 
-        return $this->render($request, 'visits', compact('visits', 'assignments', 'reasons'));
+        $visitCustomers = DB::table('b2b_customers')
+            ->orderBy('name')
+            ->limit(300)
+            ->get(['id', 'name', 'email'])
+            ->map(static fn (object $row): object => (object) [
+                'type' => 'b2b',
+                'id' => (int) $row->id,
+                'label' => (string) ($row->name ?: $row->email ?: 'B2B customer'),
+                'store_id' => null,
+            ])
+            ->concat(
+                DB::table('b2c_customers')
+                    ->orderBy('name')
+                    ->limit(300)
+                    ->get(['id', 'store_id', 'name', 'email'])
+                    ->map(static fn (object $row): object => (object) [
+                        'type' => 'b2c',
+                        'id' => (int) $row->id,
+                        'label' => (string) ($row->name ?: $row->email ?: 'B2C customer'),
+                        'store_id' => (int) $row->store_id,
+                    ]),
+            )
+            ->values();
+
+        $visitStores = DB::table('stores')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
+        $visitRoutes = VanVisit::query()
+            ->get(['metadata'])
+            ->flatMap(static function (VanVisit $visit): array {
+                $metadata = is_array($visit->metadata) ? $visit->metadata : [];
+
+                return [
+                    trim((string) ($metadata['route_key'] ?? '')),
+                    trim((string) ($metadata['route_code'] ?? '')),
+                    trim((string) ($metadata['route'] ?? '')),
+                ];
+            })
+            ->merge(
+                FleetCurrentLocation::query()
+                    ->where('actor_type', 'van')
+                    ->whereNotNull('route_key')
+                    ->pluck('route_key'),
+            )
+            ->filter()
+            ->unique()
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $visitOrders = DB::table('orders')
+            ->orderByDesc('created_at')
+            ->limit(300)
+            ->get(['id', 'order_number', 'status', 'store_id']);
+
+        return $this->render($request, 'visits', compact(
+            'visits',
+            'assignments',
+            'reasons',
+            'visitCustomers',
+            'visitStores',
+            'visitRoutes',
+            'visitOrders',
+        ));
     }
 
     public function storeVisit(Request $request): RedirectResponse
@@ -368,7 +478,7 @@ final class FieldOperationsController extends Controller
 
         $data = $request->validate([
             'status' => ['required', 'string'],
-            'order_id' => ['nullable', 'integer'],
+            'order_id' => ['nullable', 'integer', 'exists:orders,id'],
             'no_order_reason_id' => ['nullable', 'integer', 'exists:van_no_order_reasons,id'],
         ]);
 
@@ -472,8 +582,12 @@ final class FieldOperationsController extends Controller
             ->orderByDesc('created_at')
             ->paginate(25)
             ->withQueryString();
+        $territories = ServiceTerritory::query()
+            ->where('status', 'active')
+            ->orderBy('name_en')
+            ->get(['code', 'name_en', 'name_ar']);
 
-        return $this->render($request, 'address-quality', compact('reviews', 'filters'));
+        return $this->render($request, 'address-quality', compact('reviews', 'filters', 'territories'));
     }
 
     public function addressAction(Request $request, AddressQualityReview $review, string $action): RedirectResponse

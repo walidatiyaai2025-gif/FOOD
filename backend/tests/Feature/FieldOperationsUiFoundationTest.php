@@ -33,4 +33,29 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('@media(max-width:767px){.foodex-ops-toolbar,.foodex-ops-detail-grid{', $brand);
         $this->assertStringContainsString('.foodex-ops-grid .foodex-ops-hide-mobile{display:none}', $brand);
     }
+
+    public function test_field_operations_business_workflows_use_lookups_and_map_edit_controls(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
+
+        $this->assertStringContainsString('data-van-transfer-lookup', $view);
+        $this->assertStringContainsString('data-representative-lookup', $view);
+        $this->assertStringContainsString('data-warehouse-lookup', $view);
+        $this->assertStringContainsString('data-visit-customer', $view);
+        $this->assertStringContainsString('data-store-lookup', $view);
+        $this->assertStringContainsString('data-route-lookup', $view);
+        $this->assertStringContainsString('data-order-lookup', $view);
+        $this->assertStringContainsString('data-territory-lookup', $view);
+        $this->assertStringContainsString('fieldops-coverage-undo', $view);
+        $this->assertStringContainsString('{draggable:true', $view);
+        $this->assertStringContainsString("marker.on('dblclick'", $view);
+        $this->assertStringContainsString('validPolygon', $view);
+
+        $this->assertStringNotContainsString('Transfer Van ID if loaded', $view);
+        $this->assertStringNotContainsString('Representative user ID', $view);
+        $this->assertStringNotContainsString('Customer ID', $view);
+        $this->assertStringNotContainsString('Store ID (optional)', $view);
+        $this->assertStringNotContainsString('placeholder="{{ $ar?\'كود المنطقة\':\'Territory key\' }}"', $view);
+    }
+
 }
