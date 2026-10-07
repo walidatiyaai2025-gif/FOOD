@@ -219,7 +219,7 @@ final class CommercialDashboardController extends Controller
     public function flashOffers(Request $request): View
     {
         [$user, $storeId] = $this->authorizedStore($request, 'promotions.view', true);
-        $lookups = $this->flashOfferLookups($storeId);
+        $lookups = $this->flashOfferLookups($storeId, $user);
 
         $editingOffer = null;
         $editingProducts = collect();
@@ -410,7 +410,7 @@ final class CommercialDashboardController extends Controller
         $audienceRegions = collect($data['audience_regions'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
         $audienceRoutes = collect($data['audience_routes'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
 
-        $lookups = $this->flashOfferLookups($storeId);
+        $lookups = $this->flashOfferLookups($storeId, $user);
         $this->validateFlashAudience(
             $audienceCustomerIds,
             $audienceCustomerGroupIds,
@@ -839,7 +839,7 @@ final class CommercialDashboardController extends Controller
      *   audienceRoutes:Collection
      * }
      */
-    private function flashOfferLookups(int $storeId): array
+    private function flashOfferLookups(int $storeId, User $user): array
     {
         $flashProducts = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
@@ -868,11 +868,22 @@ final class CommercialDashboardController extends Controller
             ])
             ->groupBy('product_id');
 
-        $legacyCustomerIds = DB::table('b2c_customers')
+        $retailCustomerIds = DB::table('b2c_customers')
             ->where('store_id', $storeId)
             ->whereNotNull('legacy_customer_id')
             ->pluck('legacy_customer_id')
-            ->map(static fn ($id): int => (int) $id)
+            ->map(static fn ($id): int => (int) $id);
+
+        $wholesaleCustomerIds = collect();
+        if ($user->hasRole('SUPER_ADMIN') || $user->hasPermission('b2b.accounts.view')) {
+            $wholesaleCustomerIds = DB::table('b2b_customers')
+                ->whereNotNull('legacy_customer_id')
+                ->pluck('legacy_customer_id')
+                ->map(static fn ($id): int => (int) $id);
+        }
+
+        $legacyCustomerIds = $retailCustomerIds
+            ->merge($wholesaleCustomerIds)
             ->unique()
             ->values();
 
