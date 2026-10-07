@@ -71,6 +71,9 @@ html[dir=ltr] .main{grid-column:2}
 @if($canPlatformManage)
 <a class="action secondary" href="{{ route('admin.app-versions.index', ['app'=>$app]) }}">{{ __('admin.app_versions') }}</a>
 @endif
+@if($canMobileSettings)
+<a class="action secondary" href="{{ route('admin.mobile-settings.index', ['app'=>$app, 'environment'=>'production']) }}">{{ __('admin.mobile_settings') }}</a>
+@endif
 </div>
 </article>
 @endforeach
