@@ -404,14 +404,14 @@
 
         @elseif($section === 'address-quality')
             <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ __('field_operations.search') }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>{{ __('field_operations.status') }}<select name="status"><option value="">{{ __('field_operations.all') }}</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ __('field_operations.review_statuses.'.$st) }}</option>@endforeach</select></label><button class="foodex-primary">{{ __('field_operations.apply') }}</button></form>
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.subject') }}</th><th>{{ __('field_operations.quality') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
-            @forelse($reviews as $review)<tr><td>{{ $review->id }}</td><td>{{ $review->subject_type }} #{{ $review->subject_id }}
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.subject') }}</th><th>{{ __('field_operations.quality') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.action') }}</th></tr></thead><tbody>
+            @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
                 <details style="margin-top:6px"><summary>{{ __('field_operations.details_history') }}</summary>
                     <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: __('field_operations.no_recorded_reason') }}</div>
-                    <div>{{ __('field_operations.source') }}: {{ $review->resolution_source ?: '—' }} · {{ __('field_operations.resolved_by') }}: {{ $review->resolved_by ? '#'.$review->resolved_by : '—' }} · {{ $review->resolved_at ?: '—' }}</div>
-                    @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ $event->event_type }} · {{ $event->old_status ?: '—' }} → {{ $event->new_status }} · {{ $event->reason ?: '—' }}</div>@endforeach
+                    <div>{{ __('field_operations.source') }}: {{ IlluminateSupportStr::headline((string)($review->resolution_source ?: '—')) }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
+                    @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ IlluminateSupportStr::headline((string)$event->event_type) }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>@endforeach
                 </details>
-            </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $review->territory_key ?: '—' }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
+            </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $territoryLabels->get($review->territory_key) ?: __('field_operations.unknown_territory') }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                     @foreach(['confirm','reject','reopen'] as $action)
                     <form method="post" action="{{ route('admin.field-operations.address-quality.action',['review'=>$review,'action'=>$action]) }}">@csrf
@@ -421,7 +421,7 @@
                     </form>
                     @endforeach
                 </div></details>@else—@endif
-            </td></tr>@empty<tr><td colspan="6"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endforelse
+            </td></tr>@empty<tr><td colspan="5"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $reviews->links() }}
 
         @elseif($section === 'routing')
