@@ -2363,6 +2363,89 @@ void main() {
     expect(api.lastPath, contains('per_page=30'));
   });
 
+  testWidgets(
+      '#1072 invoices use one-line header and compact responsive filters',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _FakeB2bApi(const {
+      'data': <Object?>[],
+      'summary': {
+        'totals': <Object?>[],
+      },
+      'meta': {
+        'page': 1,
+        'per_page': 20,
+        'total': 0,
+        'has_more': false,
+      },
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/invoices',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-invoices-screen')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoices-header-row')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-route-label')),
+      findsNothing,
+    );
+
+    final titleRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoices-header-title')),
+    );
+    final subtitleRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoices-header-subtitle')),
+    );
+    expect(
+      (titleRect.center.dy - subtitleRect.center.dy).abs(),
+      lessThan(3),
+    );
+
+    final filtersRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoices-filters')),
+    );
+    expect(filtersRect.height, lessThanOrEqualTo(844 * .20));
+
+    expect(find.byKey(const ValueKey('b2b-invoices-search')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-invoices-status')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-invoices-from')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-invoices-to')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoices-clear-filters')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('b2b-invoices-refresh')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-invoices-empty-icon')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('لا توجد فواتير مطابقة للفلاتر الحالية.'),
+      findsOneWidget,
+    );
+
+    final callsBeforeRefresh = api.calls;
+    await tester.tap(find.byKey(const ValueKey('b2b-invoices-refresh')));
+    await tester.pumpAndSettle();
+    expect(api.calls, callsBeforeRefresh + 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('B2B collections expose approved detail navigation', (tester) async {
     final api = _FakeB2bApi({
       'data': [
