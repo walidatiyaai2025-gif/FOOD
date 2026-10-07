@@ -281,6 +281,25 @@ jobs:
           grep -F "versionName='$CURRENT_VERSION'" build/trial-badging.txt
           cp "$apk" "$GITHUB_WORKSPACE/Release/FOODEX-Van.apk"
 
+      - name: Verify production API domain inside APK binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='https://foodex.50sols.com'
+          forbidden='https://vanfoodex.50sols.com'
+          for apk in             Release/FOODEX-Customer.apk             Release/FOODEX-Driver.apk             Release/FOODEX-Van.apk
+          do
+            binary_strings="$(unzip -p "$apk" lib/arm64-v8a/libapp.so | strings)"
+            if ! grep -Fq "$expected" <<<"$binary_strings"; then
+              echo "::error::$apk does not embed the production FOODEX API endpoint: $expected"
+              exit 1
+            fi
+            if grep -Fq "$forbidden" <<<"$binary_strings"; then
+              echo "::error::$apk still embeds forbidden legacy Van endpoint: $forbidden"
+              exit 1
+            fi
+          done
+
       - name: Create versioned mobile APK filenames
         shell: bash
         run: |
