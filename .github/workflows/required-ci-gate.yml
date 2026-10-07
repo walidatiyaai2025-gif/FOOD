@@ -83,6 +83,13 @@ jobs:
             van=true
           fi
 
+          if [[ "${GITHUB_HEAD_REF:-}" == "test/1041-uiux-requirement-coverage-audit" ]]; then
+            backend=true
+            customer=true
+            driver=true
+            van=true
+          fi
+
           if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-operational-completion-e2e$ ]]; then
             operational_completion_e2e=true
             backend=true
@@ -152,6 +159,24 @@ jobs:
 
       - name: Enforce mobile UX v4.2 anti-regression guard
         run: python3 scripts/mobile-ux-contract-guard.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
+      - name: Test UIUX v4.2 recovery independent audit
+        run: python3 -m unittest discover -s scripts/tests -p 'test_uiux_v42_recovery_audit.py'
+
+      - name: Run UIUX v4.2 recovery independent whole-tree audit
+        if: ${{ github.head_ref == 'test/1041-uiux-requirement-coverage-audit' }}
+        run: |
+          mkdir -p artifacts
+          python3 scripts/uiux-v42-recovery-audit.py --report artifacts/uiux-v42-recovery-static-audit.json
+
+      - name: Upload UIUX v4.2 static audit report
+        if: ${{ always() && github.head_ref == 'test/1041-uiux-requirement-coverage-audit' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: uiux-v42-recovery-static-audit-${{ github.event.pull_request.head.sha }}
+          path: artifacts/uiux-v42-recovery-static-audit.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Require issue-style PR branch
         shell: bash
