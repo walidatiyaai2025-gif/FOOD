@@ -261,6 +261,73 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('entitlements.principal_wholesale_store_id', $wholesaleStore);
     }
 
+    public function test_dashboard_created_wholesale_customer_recovers_when_configured_principal_code_is_stale(): void
+    {
+        config(['foodex.platform_wholesale_store_code' => 'MISSING-B2B']);
+
+        $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2bType,
+            'code' => 'EXISTING-B2B',
+            'name' => 'Existing Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tier = (int) DB::table('b2b_price_tiers')->insertGetId([
+            'code' => 'DASHBOARD-CUSTOMER',
+            'name' => 'Dashboard Customer',
+            'priority' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Dashboard Wholesale Buyer',
+            'email' => 'dashboard-wholesale@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $legacyCustomerId = (int) DB::table('customers')->insertGetId([
+            'user_id' => $user->id,
+            'type' => 'b2b',
+            'name' => 'Dashboard Wholesale Buyer',
+            'email' => $user->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $b2bCustomerId = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $legacyCustomerId,
+            'user_id' => $user->id,
+            'name' => 'Dashboard Wholesale Buyer',
+            'email' => $user->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('b2b_accounts')->insert([
+            'customer_id' => $legacyCustomerId,
+            'b2b_customer_id' => $b2bCustomerId,
+            'price_tier_id' => $tier,
+            'company_name' => 'Dashboard Wholesale Buyer',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withToken($user->createToken('customer-app')->plainTextToken)
+            ->getJson('/api/v1/store-selector')
+            ->assertOk()
+            ->assertJsonPath('entitlements.direct_b2b', true)
+            ->assertJsonPath('entitlements.principal_wholesale_store_id', $storeId)
+            ->assertJsonPath('wholesale_stores.0.id', $storeId);
+
+        $this->getJson('/api/v1/platform/storefront')
+            ->assertOk()
+            ->assertJsonPath('store.id', $storeId);
+    }
+
     public function test_registered_customer_identity_materializes_per_store_and_routes_carts_by_purchase_store(): void
     {
         [$wholesaleStore, $retailStore, $wholesaleProduct, $retailProduct] = $this->marketplaceFixture();
