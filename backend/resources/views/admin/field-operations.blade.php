@@ -340,14 +340,14 @@
                             <label>{{ __('field_operations.type') }}<select name="type">@foreach(['country','governorate','region','city','markaz','district','area'] as $type)<option value="{{ $type }}">{{ __('field_operations.geography_types.'.$type) }}</option>@endforeach</select></label>
                             <label>{{ __('field_operations.parent') }}<select name="parent_id"><option value="">—</option>@foreach($nodes as $node)<option value="{{ $node->id }}">{{ $node->localized_name }} · {{ __('field_operations.geography_types.'.$node->type) }}</option>@endforeach</select></label>
                             <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.country_code') }}<input name="country_code" value="KW" required></label>
-                            <label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label>
+                            <label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label> {{-- localization-gate: allow — name_ar/name_en are backend field keys; visible labels are localized --}}
                         </div><button class="foodex-primary">{{ __('field_operations.save') }}</button>
                     </form>
                 </details>
                 <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.territories.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
-                            <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label>
+                            <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label> {{-- localization-gate: allow — name_ar/name_en are backend field keys; visible labels are localized --}}
                             <label>{{ __('field_operations.country_node') }}<select name="country_node_id" required>
                                 @foreach($nodes->where('type','country') as $node)
                                     <option value="{{ $node->id }}">{{ $node->localized_name }}</option>
