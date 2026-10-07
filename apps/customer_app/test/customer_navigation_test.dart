@@ -291,7 +291,6 @@ void main() {
 
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
-    expect(find.text('تسجيل دخول العميل'), findsNothing);
     expect(
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
