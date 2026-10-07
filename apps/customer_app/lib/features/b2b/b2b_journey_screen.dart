@@ -2605,35 +2605,42 @@ class _PurchaseReportRemoteStateState
                 ],
               ),
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    key: const ValueKey('b2b-purchases-from'),
-                    onPressed: () => _pickDate(from: true),
-                    icon: const Icon(Icons.calendar_today_outlined),
-                    label: Text(
-                      '${context.tr('b2b.purchase_reports.from')}: '
-                      '${_from == null ? '—' : _isoDate(_from!)}',
+              SingleChildScrollView(
+                key: const ValueKey('b2b-purchases-date-actions-row'),
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-purchases-from'),
+                      onPressed: () => _pickDate(from: true),
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text(
+                        '${context.tr('b2b.purchase_reports.from')}: '
+                        '${_from == null ? '—' : _isoDate(_from!)}',
+                        maxLines: 1,
+                      ),
                     ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('b2b-purchases-to'),
-                    onPressed: () => _pickDate(from: false),
-                    icon: const Icon(Icons.event_available_outlined),
-                    label: Text(
-                      '${context.tr('b2b.purchase_reports.to')}: '
-                      '${_to == null ? '—' : _isoDate(_to!)}',
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-purchases-to'),
+                      onPressed: () => _pickDate(from: false),
+                      icon: const Icon(Icons.event_available_outlined),
+                      label: Text(
+                        '${context.tr('b2b.purchase_reports.to')}: '
+                        '${_to == null ? '—' : _isoDate(_to!)}',
+                        maxLines: 1,
+                      ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    key: const ValueKey('b2b-purchases-refresh'),
-                    tooltip: context.tr('b2b.purchase_reports.refresh'),
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      key: const ValueKey('b2b-purchases-refresh'),
+                      tooltip: context.tr('b2b.purchase_reports.refresh'),
+                      onPressed: _reload,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -5813,13 +5820,32 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    key: const ValueKey('b2b-invoice-brand'),
+                    width: 72,
+                    height: 54,
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.receipt_long_rounded),
+                    child: (seller['logo_url']?.toString().trim().isNotEmpty ??
+                            false)
+                        ? Image.network(
+                            seller['logo_url'].toString(),
+                            fit: BoxFit.contain,
+                            semanticLabel: seller['name']?.toString() ??
+                                'FOODEX',
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              'assets/branding/foodex-economical-group.webp',
+                              fit: BoxFit.contain,
+                              semanticLabel: context.tr('customer.brand.economic_group'),
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/branding/foodex-economical-group.webp',
+                            fit: BoxFit.contain,
+                            semanticLabel: context.tr('customer.brand.economic_group'),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

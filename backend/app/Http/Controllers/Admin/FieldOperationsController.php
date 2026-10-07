@@ -152,8 +152,16 @@ final class FieldOperationsController extends Controller
             ->whereIn('actor_id', $vans->getCollection()->pluck('id'))
             ->get()
             ->keyBy('actor_id');
+        $warehouses = DB::table('warehouses')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+        $transferVans = Van::query()
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get(['id', 'code', 'plate_number']);
 
-        return $this->render($request, 'vans', compact('vans', 'locations'));
+        return $this->render($request, 'vans', compact('vans', 'locations', 'warehouses', 'transferVans'));
     }
 
     public function showVan(Request $request, Van $van): View
@@ -167,8 +175,36 @@ final class FieldOperationsController extends Controller
             ->where('actor_id', $van->id)
             ->first();
         $locationStatus = $location === null ? null : app(FleetLocationService::class)->status($location);
+        $homeWarehouseName = $van->home_warehouse_id === null
+            ? null
+            : DB::table('warehouses')->where('id', $van->home_warehouse_id)->value('name');
+        $driverNames = DB::table('drivers')
+            ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+            ->whereIn('drivers.id', $van->assignments->pluck('driver_id')->filter())
+            ->pluck('users.name', 'drivers.id');
+        $representativeNames = DB::table('users')
+            ->whereIn('id', $van->assignments->pluck('representative_user_id')->filter())
+            ->pluck('name', 'id');
+        $territoryNames = ServiceTerritory::query()
+            ->whereIn('code', $van->assignments->pluck('territory_key')->filter())
+            ->get(['code', 'name_en', 'name_ar'])
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            })
+            ->keyBy('code');
 
-        return $this->render($request, 'van-detail', compact('van', 'location', 'locationStatus'));
+        return $this->render($request, 'van-detail', compact(
+            'van',
+            'location',
+            'locationStatus',
+            'homeWarehouseName',
+            'driverNames',
+            'representativeNames',
+            'territoryNames',
+        ));
     }
 
     public function storeVan(Request $request): RedirectResponse
@@ -218,9 +254,34 @@ final class FieldOperationsController extends Controller
         $drivers = DB::table('drivers')->leftJoin('users', 'users.id', '=', 'drivers.user_id')
             ->where('drivers.is_active', true)->orderBy('users.name')
             ->get(['drivers.id', 'drivers.user_id', 'users.name']);
-        $territories = ServiceTerritory::query()->where('status', 'active')->orderBy('name_en')->get(['id', 'code', 'name_en', 'name_ar']);
+        $territories = ServiceTerritory::query()
+            ->where('status', 'active')
+            ->orderBy('name_en')
+            ->get(['id', 'code', 'name_en', 'name_ar'])
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            });
+        $representatives = DB::table('users')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name', 'email']);
+        $warehouses = DB::table('warehouses')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
 
-        return $this->render($request, 'assignments', compact('assignments', 'vans', 'drivers', 'territories'));
+        return $this->render($request, 'assignments', compact(
+            'assignments',
+            'vans',
+            'drivers',
+            'territories',
+            'representatives',
+            'warehouses',
+        ));
     }
 
     public function storeAssignment(Request $request, Van $van): RedirectResponse
@@ -296,13 +357,97 @@ final class FieldOperationsController extends Controller
         $visits = VanVisit::query()->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
+            $reason = $visit->noOrderReason;
+            if ($reason !== null) {
+                $reason->setAttribute(
+                    'localized_label',
+                    $this->localizedText(
+                        $reason->getAttribute('label_ar'),
+                        $reason->getAttribute('label_en'),
+                    ),
+                );
+            }
 
             return $visit;
         }));
         $assignments = $this->registry->effectiveAssignments();
-        $reasons = VanNoOrderReason::query()->where('is_active', true)->orderBy('sort_order')->get();
+        $reasons = VanNoOrderReason::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->each(function (VanNoOrderReason $reason): void {
+                $reason->setAttribute(
+                    'localized_label',
+                    $this->localizedText($reason->label_ar, $reason->label_en),
+                );
+            });
 
-        return $this->render($request, 'visits', compact('visits', 'assignments', 'reasons'));
+        $visitCustomers = DB::table('b2b_customers')
+            ->orderBy('name')
+            ->limit(300)
+            ->get(['id', 'name', 'email'])
+            ->map(static fn (object $row): object => (object) [
+                'type' => 'b2b',
+                'id' => (int) $row->id,
+                'label' => (string) ($row->name ?: $row->email ?: 'B2B customer'),
+                'store_id' => null,
+            ])
+            ->concat(
+                DB::table('b2c_customers')
+                    ->orderBy('name')
+                    ->limit(300)
+                    ->get(['id', 'store_id', 'name', 'email'])
+                    ->map(static fn (object $row): object => (object) [
+                        'type' => 'b2c',
+                        'id' => (int) $row->id,
+                        'label' => (string) ($row->name ?: $row->email ?: 'B2C customer'),
+                        'store_id' => (int) $row->store_id,
+                    ]),
+            )
+            ->values();
+
+        $visitStores = DB::table('stores')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
+        $visitRoutes = VanVisit::query()
+            ->get(['metadata'])
+            ->flatMap(static function (VanVisit $visit): array {
+                $rawMetadata = $visit->getAttribute('metadata');
+                $metadata = is_array($rawMetadata) ? $rawMetadata : [];
+
+                return [
+                    trim((string) ($metadata['route_key'] ?? '')),
+                    trim((string) ($metadata['route_code'] ?? '')),
+                    trim((string) ($metadata['route'] ?? '')),
+                ];
+            })
+            ->merge(
+                FleetCurrentLocation::query()
+                    ->where('actor_type', 'van')
+                    ->whereNotNull('route_key')
+                    ->pluck('route_key'),
+            )
+            ->filter()
+            ->unique()
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $visitOrders = DB::table('orders')
+            ->orderByDesc('created_at')
+            ->limit(300)
+            ->get(['id', 'order_number', 'status', 'store_id']);
+
+        return $this->render($request, 'visits', compact(
+            'visits',
+            'assignments',
+            'reasons',
+            'visitCustomers',
+            'visitStores',
+            'visitRoutes',
+            'visitOrders',
+        ));
     }
 
     public function storeVisit(Request $request): RedirectResponse
@@ -368,7 +513,7 @@ final class FieldOperationsController extends Controller
 
         $data = $request->validate([
             'status' => ['required', 'string'],
-            'order_id' => ['nullable', 'integer'],
+            'order_id' => ['nullable', 'integer', 'exists:orders,id'],
             'no_order_reason_id' => ['nullable', 'integer', 'exists:van_no_order_reasons,id'],
         ]);
 
@@ -388,8 +533,38 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['territories.manage', 'field_ops.manage']);
 
-        $nodes = GeographyNode::query()->with('parent')->orderBy('country_code')->orderBy('type')->orderBy('name_en')->get();
-        $territories = ServiceTerritory::query()->with(['country', 'geometries'])->orderByDesc('priority')->orderBy('name_en')->get();
+        $nodes = GeographyNode::query()
+            ->with('parent')
+            ->orderBy('country_code')
+            ->orderBy('type')
+            ->orderBy('name_en')
+            ->get()
+            ->each(function (GeographyNode $node): void {
+                $node->setAttribute(
+                    'localized_name',
+                    $this->localizedText($node->name_ar, $node->name_en),
+                );
+                if ($node->parent !== null) {
+                    $node->parent->setAttribute(
+                        'localized_name',
+                        $this->localizedText(
+                            $node->parent->getAttribute('name_ar'),
+                            $node->parent->getAttribute('name_en'),
+                        ),
+                    );
+                }
+            });
+        $territories = ServiceTerritory::query()
+            ->with(['country', 'geometries'])
+            ->orderByDesc('priority')
+            ->orderBy('name_en')
+            ->get()
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            });
 
         return $this->render($request, 'territories', compact('nodes', 'territories'));
     }
@@ -472,8 +647,49 @@ final class FieldOperationsController extends Controller
             ->orderByDesc('created_at')
             ->paginate(25)
             ->withQueryString();
+        $reviewRows = $reviews->getCollection();
+        $resolvedByIds = $reviewRows
+            ->pluck('resolved_by')
+            ->filter()
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $reviewTerritoryCodes = $reviewRows
+            ->pluck('territory_key')
+            ->filter()
+            ->map(static fn ($code): string => (string) $code)
+            ->unique()
+            ->values()
+            ->all();
 
-        return $this->render($request, 'address-quality', compact('reviews', 'filters'));
+        $resolverNames = User::query()
+            ->whereIn('id', $resolvedByIds)
+            ->pluck('name', 'id');
+        $territoryLabels = ServiceTerritory::query()
+            ->whereIn('code', $reviewTerritoryCodes)
+            ->get(['code', 'name_en', 'name_ar'])
+            ->mapWithKeys(fn (ServiceTerritory $territory): array => [
+                (string) $territory->code => $this->localizedText($territory->name_ar, $territory->name_en),
+            ]);
+        $territories = ServiceTerritory::query()
+            ->where('status', 'active')
+            ->orderBy('name_en')
+            ->get(['code', 'name_en', 'name_ar'])
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            });
+
+        return $this->render($request, 'address-quality', compact(
+            'reviews',
+            'filters',
+            'territories',
+            'resolverNames',
+            'territoryLabels',
+        ));
     }
 
     public function addressAction(Request $request, AddressQualityReview $review, string $action): RedirectResponse
@@ -619,6 +835,14 @@ final class FieldOperationsController extends Controller
             },
             'featureFlags' => $this->featureFlags->snapshot(),
         ]);
+    }
+
+    private function localizedText(?string $arabic, ?string $english): string
+    {
+        $primary = app()->getLocale() === 'ar' ? $arabic : $english;
+        $fallback = app()->getLocale() === 'ar' ? $english : $arabic;
+
+        return trim((string) ($primary ?: $fallback ?: ''));
     }
 
     private function actor(Request $request): User

@@ -34,8 +34,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.text('تسجيل دخول العميل'), findsNothing);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
@@ -145,6 +145,41 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
     await tester.pumpAndSettle();
     expect(api.calls, 2);
+  });
+
+  testWidgets('B2B orders refresh automatically when app resumes',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'id': 77,
+          'order_number': 'B2B-77',
+          'status': 'processing',
+          'grand_total': 48.0,
+          'currency': 'KWD',
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 1);
+    expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -1898,6 +1933,11 @@ void main() {
   });
 
   testWidgets('C13 Screen 3 renders period summary trend categories and drill-through', (tester) async {
+    tester.view.physicalSize = const Size(320, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final api = _FakeB2bApi({
       'currency': 'KWD',
       'period': {'from': null, 'to': null},
@@ -1971,6 +2011,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('b2b-purchases-filters')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-purchases-date-actions-row')),
+      findsOneWidget,
+    );
+    final fromRect =
+        tester.getRect(find.byKey(const ValueKey('b2b-purchases-from')));
+    final toRect =
+        tester.getRect(find.byKey(const ValueKey('b2b-purchases-to')));
+    final refreshRect =
+        tester.getRect(find.byKey(const ValueKey('b2b-purchases-refresh')));
+    expect((fromRect.center.dy - toRect.center.dy).abs(), lessThan(1));
+    expect((toRect.center.dy - refreshRect.center.dy).abs(), lessThan(1));
     expect(find.byKey(const ValueKey('b2b-purchases-summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-purchases-categories')), findsOneWidget);
@@ -2366,7 +2418,11 @@ void main() {
         'order_id': 77,
         'issued_at': '2026-10-01T10:00:00Z',
         'due_at': '2026-10-20T10:00:00Z',
-        'seller': {'store_id': 7, 'name': 'FOODEX Wholesale'},
+        'seller': {
+          'store_id': 7,
+          'name': 'FOODEX Wholesale',
+          'logo_url': null,
+        },
         'customer': {
           'name': 'Buyer Co',
           'email': 'buyer@example.test',
@@ -2433,6 +2489,10 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('b2b-invoice-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-brand')),
       findsOneWidget,
     );
     expect(

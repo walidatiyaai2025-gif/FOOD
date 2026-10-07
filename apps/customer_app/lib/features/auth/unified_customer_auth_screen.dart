@@ -731,21 +731,41 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                SizedBox.shrink(
-                                  child: Text(
-                                    context.tr('b2b.login.title'),
-                                    key: const ValueKey('c13-business-login-title'),
-                                  ),
+                                Text(
+                                  context.tr('customer.app.identity'),
+                                  key: const ValueKey('customer-app-identity'),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        color: CustomerUiColors.deepGreen,
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                 ),
-                                SizedBox.shrink(
-                                  child: Text(
-                                    context.tr('b2b.login.subtitle'),
-                                    key: const ValueKey(
-                                      'unified-customer-auth-subtitle',
-                                    ),
-                                  ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  context.tr('customer.auth.title'),
+                                  key: const ValueKey('c13-business-login-title'),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 4),
+                                Text(
+                                  context.tr('customer.auth.subtitle'),
+                                  key: const ValueKey(
+                                    'unified-customer-auth-subtitle',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: CustomerUiColors.muted),
+                                ),
+                                const SizedBox(height: 14),
                                 if (showRememberedBiometricCard)
                                   _buildC13SavedBiometricCard(context)
                                 else ...[
@@ -1173,6 +1193,16 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Text(
+                      context.tr('customer.app.identity'),
+                      key: const ValueKey('customer-app-identity'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: CustomerUiColors.deepGreen,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: CustomerUiSpacing.xs),
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleLarge,

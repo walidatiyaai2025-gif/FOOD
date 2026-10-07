@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdministrationHubController;
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
 use App\Http\Controllers\Admin\StoreSubmissionController;
+use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\SystemInspectorController;
 use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
@@ -103,6 +105,8 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/administration', AdministrationHubController::class)->name('administration.index');
+        Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
             ->name('assistant.')
             ->middleware('throttle:assistant')

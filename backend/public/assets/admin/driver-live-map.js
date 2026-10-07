@@ -9,11 +9,18 @@
 
         const find = role => root.querySelector('[data-live-map="' + role + '"]');
         const i18nNode = root.querySelector('[data-driver-live-map-i18n]');
+        const storesNode = root.querySelector('[data-driver-live-map-stores]');
         let i18n = {};
+        let storeLabels = {};
         try {
             i18n = JSON.parse(i18nNode?.textContent || '{}');
         } catch (_) {
             i18n = {};
+        }
+        try {
+            storeLabels = JSON.parse(storesNode?.textContent || '{}');
+        } catch (_) {
+            storeLabels = {};
         }
 
         const mapNode = find('map');
@@ -140,6 +147,7 @@
         const entityName = row => row.entity_name
             || row.driver_name
             || (kindLabel(rowKind(row))+' #'+entityId(row));
+        const storeLabel = row => storeLabels[String(row.store_id)] || i18n.store || 'Store';
         const routeOrOrder = row => rowKind(row) === 'van'
             ? (row.route_key || '—')
             : (row.order?.number || '—');
@@ -148,7 +156,7 @@
             const kind = rowKind(row);
             const box = document.createElement('div');
             box.append(text('strong', kindLabel(kind)+': '+entityName(row)));
-            box.append(text('div', (row.channel || '').toUpperCase()+' · '+i18n.store+' '+(row.store_id ?? '—')));
+            box.append(text('div', (row.channel || '').toUpperCase()+' · '+storeLabel(row)));
             box.append(text('div', i18n.status+': '+statusLabel(row.status)));
             box.append(text('div', (kind === 'van' ? (i18n.route || 'Route') : i18n.order)+': '+routeOrOrder(row)));
             if (kind === 'van' && row.assignment) {
@@ -254,7 +262,7 @@
                     button.append(title);
                     button.append(text(
                         'small',
-                        (row.channel || '').toUpperCase()+' · '+i18n.store+' '+(row.store_id ?? '—')+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
+                        (row.channel || '').toUpperCase()+' · '+storeLabel(row)+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
                     ));
                     button.addEventListener('click',() => {
                         map.setView([lat,lng],16);
