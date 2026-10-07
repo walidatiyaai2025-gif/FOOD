@@ -612,8 +612,21 @@ Acceptance includes:
 
 Passing one application in isolation is not sufficient evidence for project-wide completion.
 
-The active execution Mission for this contract is tracked by GitHub umbrella **#1001** and:
-`docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`.
+The active recovery Mission for this contract is tracked by GitHub umbrella **#1034** and:
 
-Only the final convergence gate defined by that Mission may declare the complete v4.2 plan finished.
+- `docs/execution/UIUX_V42_RECOVERY_MISSION_PLAN.md`
+- `docs/execution/UIUX_V42_RECOVERY_REQUIREMENT_MATRIX.md`
+- `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
+
+### 20.1 Evidence rule
+
+A requirement is not PASS merely because its Issue is closed, its PR is merged, or CI is green.
+
+For visual/interaction requirements, real integrated runtime evidence is mandatory. Legacy/current routes are in scope even when they were not modified by the current diff. Backend persistence tests and static/diff guards prove only the properties they directly inspect.
+
+### 20.2 Final convergence rule
+
+The independent final gate **#1043** must re-read the requirement matrix, actual integrated source, automated evidence and runtime evidence. If any row is OPEN, PARTIAL, FAIL, UNKNOWN or UNOWNED, v4.2 recovery convergence fails.
+
+Only after #1043 records a 100% PASS matrix and freezes the exact recovered implementation SHA may existing release gate **#1021** build/publish the next real release from that exact source.
 
