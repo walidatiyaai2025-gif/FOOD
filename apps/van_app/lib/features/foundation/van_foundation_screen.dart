@@ -206,9 +206,10 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
       appBar: AppBar(
         title: Text(_screen.label(_arabic)),
         actions: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 120),
+          SizedBox(
+            width: MediaQuery.sizeOf(context).width * 0.28,
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
               child: Text(
                 widget.session.name,
                 key: const Key('van-session-name'),
