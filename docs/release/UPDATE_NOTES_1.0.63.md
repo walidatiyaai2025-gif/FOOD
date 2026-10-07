@@ -9,3 +9,5 @@
 - Keep production API/runtime origin at `https://foodex.50sols.com`.
 - Publish synchronized Customer, Driver and Van identities as 1.0.63+63.
 - Do not move, replace, or republish the immutable `v1.0.62` tag.
+
+Release baseline: published FOODEX 1.0.62 recovery lineage with normalized release-registry metadata.
