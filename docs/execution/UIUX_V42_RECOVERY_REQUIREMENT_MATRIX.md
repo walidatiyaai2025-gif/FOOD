@@ -37,14 +37,14 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | F04 | Address Quality Territory uses authoritative lookup, not typed territory_key | #1037 | tests + runtime | OPEN |
 | F05 | Territory create/edit is map-first with edit/move/delete point, Undo, Clear and polygon validation | #1037 | interaction tests + runtime map evidence | OPEN |
 | F06 | Field Operations grids are informative/compact and use ellipsis row actions | #1037 | visual runtime responsive | OPEN |
-| MC01 | Customer compact header/full usable viewport on all audited screens | #1038 | route inventory + runtime narrow/wide | OPEN |
-| MC02 | Customer Start/End/action filters remain one line | #1038 | widget/static + runtime | OPEN |
-| MC03 | Customer order/reference identifiers do not wrap ambiguously | #1038 | tests + runtime | OPEN |
-| MC04 | Customer rows/cards compact; row actions use ellipsis where applicable | #1038 | runtime visual | OPEN |
-| MC05 | Customer dynamic surfaces auto-refresh foreground/resume and truthfully show stale/offline; manual refresh fallback only | #1038 | runtime/state tests | OPEN |
-| AC01 | Customer login visibly says Customer App / تطبيق العميل | #1038 | AR/EN runtime | OPEN |
-| AC02 | Customer Remember Me + biometric secure-session behavior remains valid | #1038 | tests + runtime | OPEN |
-| IC01 | Customer real invoice visibly includes configured FOODEX/company identity/logo and authoritative invoice fields/totals | #1038 | backend/widget tests + AR/EN runtime | OPEN |
+| MC01 | Customer compact header/full usable viewport on all audited screens | #1038 | route inventory + runtime narrow/wide + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| MC02 | Customer Start/End/action filters remain one line | #1038 | widget/static + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| MC03 | Customer order/reference identifiers do not wrap ambiguously | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| MC04 | Customer rows/cards compact; row actions use ellipsis where applicable | #1038 | runtime visual + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| MC05 | Customer dynamic surfaces auto-refresh foreground/resume and truthfully show stale/offline; manual refresh fallback only | #1038 | runtime/state tests + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| AC01 | Customer login visibly says Customer App / تطبيق العميل | #1038 | AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| AC02 | Customer Remember Me + biometric secure-session behavior remains valid | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
+| IC01 | Customer real invoice visibly includes configured FOODEX/company identity/logo and authoritative invoice fields/totals | #1038 | backend/widget tests + AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
 | MD01 | Driver compact/full-width data-first layout across audited screens | #1039 | route inventory + runtime | OPEN |
 | MD02 | Driver one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1039 | tests + runtime | OPEN |
 | MD03 | Driver dynamic surfaces auto-refresh + stale/offline truthfulness | #1039 | state tests + runtime | OPEN |
