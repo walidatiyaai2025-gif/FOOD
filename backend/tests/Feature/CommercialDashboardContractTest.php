@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\B2bCustomerService;
 use App\Services\CommercialFeatureFlags;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -395,7 +396,7 @@ class CommercialDashboardContractTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        $b2bCustomer = app(\App\Services\B2bCustomerService::class)->create([
+        $b2bCustomer = app(B2bCustomerService::class)->create([
             'name' => 'Dashboard Wholesale Buyer',
             'phone' => '55501067',
             'email' => 'dashboard-wholesale-buyer@example.test',
