@@ -196,7 +196,9 @@ final class CommercialDashboardController extends Controller
                     'customer_id' => $rule['customer_id'] ?? null,
                     'customer_group_id' => $rule['customer_group_id'] ?? null,
                     'channel' => $rule['channel'] ?? null,
-                    'is_allowed' => array_key_exists('is_allowed', $rule) ? (bool) $rule['is_allowed'] : null,
+                    'is_allowed' => array_key_exists('is_allowed', $rule) && $rule['is_allowed'] !== null
+                        ? (bool) $rule['is_allowed']
+                        : null,
                     'max_per_order' => $rule['max_per_order'] ?? null,
                     'max_per_day' => $rule['max_per_day'] ?? null,
                     'max_per_week' => $rule['max_per_week'] ?? null,
