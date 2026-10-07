@@ -35,8 +35,8 @@ match() {
 }
 
 match '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' && backend=true
-match '^(apps/customer_app/|packages/design_tokens/|scripts/package-mobile-artifact\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/customer-app-ci\.yml$)' && customer=true
-match '^(apps/driver_app/|packages/design_tokens/|scripts/package-mobile-artifact\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/driver-app-ci\.yml$)' && driver=true
+match '^(apps/customer_app/|packages/design_tokens/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\.py$|\.github/workflows/customer-app-ci\.yml$)' && customer=true
+match '^(apps/driver_app/|packages/design_tokens/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\.py$|\.github/workflows/driver-app-ci\.yml$)' && driver=true
 match '^(AGENTS\.md|docs/worker-rules/|scripts/(worker-preflight|detect-changed-areas)\.sh|\.github/workflows/(repository-policy|required-ci-gate)\.yml)$' && policy=true
 
 if match '^(\.github/workflows/required-ci-gate\.yml|\.github/workflows/release-validation\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/release-readiness\.sh|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)'; then
