@@ -48,6 +48,8 @@ final class MobileSettingsController extends Controller
             'devices' => PushDeviceToken::query()->with('user:id,name,email')->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
             'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
+            'submissionMasterAssetStates' => ['repository-controlled', 'external-manual', 'blocked'],
+            'submissionUploadAssetStates' => ['repository-controlled', 'external-manual-final-upload', 'external-manual-if-required', 'blocked'],
             'storeSubmissions' => MobileStoreSubmission::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
             'reviewerAccounts' => StoreReviewerAccount::query()->orderBy('app')->orderBy('platform')->orderBy('persona')->get(),
             'reviewerStores' => DB::table('stores')

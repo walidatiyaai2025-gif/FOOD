@@ -102,7 +102,7 @@
                     @if($isSuper)
                     <details class="sf-label wide" data-advanced>
                         <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
-                        <label>Config JSON <textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
+                        <label>{{ app()->getLocale()==='ar'?'إعدادات JSON':'Config JSON' }} <textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
                     </details>
                     @endif
                 </div>
@@ -129,7 +129,7 @@
                             @if($isSuper)
                             <details class="sf-label wide" data-advanced>
                                 <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
-                                <label>Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
+                                <label>{{ app()->getLocale()==='ar'?'إعدادات JSON':'Config JSON' }}<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
                             </details>
                             @endif
                         </div>

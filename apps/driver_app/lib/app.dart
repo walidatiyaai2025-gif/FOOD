@@ -346,9 +346,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
 
     if (!mounted) return;
     if (assignmentId == null) {
-      final context = _messengerKey.currentState?.context;
-      if (context != null) {
-        _messengerKey.currentState?.showSnackBar(
+      final messenger = _messengerKey.currentState;
+      if (messenger != null) {
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               context.tr('driver.notifications.order_unavailable'),

@@ -86,10 +86,19 @@ async function assertNoOverflow(page, label) {
 
 async function captureCase(page, locale, entry, state, width, height) {
   await page.setViewportSize({ width, height });
-  await page.goto(`${baseUrl}${entry.route}`, {
+  const response = await page.goto(`${baseUrl}${entry.route}`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+  if (!response || !response.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\\s+/g, ' ')
+      .slice(0, 2400);
+    throw new Error(
+      `FieldOps evidence page failed: HTTP ${response?.status() ?? 'no-response'} on ${entry.route}`
+      + (failureBody ? ` · ${failureBody}` : ''),
+    );
+  }
   if (page.url().includes('/login')) {
     throw new Error(`Unexpected auth redirect for ${entry.route}`);
   }
