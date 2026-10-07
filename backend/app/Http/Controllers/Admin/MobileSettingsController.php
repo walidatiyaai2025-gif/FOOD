@@ -44,7 +44,7 @@ final class MobileSettingsController extends Controller
             'selectedSetting' => $selectedSetting,
             'currentReleaseVersion' => $this->currentReleaseVersion(),
             'providers' => PushProviderSetting::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
-            'devices' => PushDeviceToken::query()->whereNull('revoked_at')->latest()->limit(100)->get(),
+            'devices' => PushDeviceToken::query()->with('user:id,name,email')->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
             'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
             'storeSubmissions' => MobileStoreSubmission::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
