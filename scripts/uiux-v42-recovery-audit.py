@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -34,6 +35,27 @@ LEGACY_INVENTORY = (
     "docs/execution/UIUX_V42_RECOVERY_1039_DRIVER_ROUTE_INVENTORY.md",
     "apps/van_app/lib/features/foundation/van_screen_inventory.dart",
 )
+
+REQUIRED_BACKEND_CONTRACT_GUARDS = {
+    "backend/tests/Feature/AdministrationHubTest.php": (
+        "test_administration_hub_exposes_customer_driver_and_van_as_first_class_apps",
+        "test_sidebar_groups_follow_business_domain_order_and_keep_administration_last",
+    ),
+    "backend/tests/Feature/DashboardUiComplianceTest.php": (
+        "test_owned_dashboard_views_use_shared_foodex_shell_contract",
+        "test_owned_dashboard_views_do_not_expose_routine_raw_identifiers_or_json",
+        "test_notification_surfaces_follow_record_action_contract",
+        "test_mobile_settings_expose_customer_driver_and_van_as_first_class_apps",
+    ),
+    "backend/tests/Feature/AdminNavigationAuthorizationAuditTest.php": (
+        "test_every_visible_super_admin_navigation_target_opens_without_authorization_or_route_errors",
+        "test_every_visible_b2b_admin_navigation_target_opens_without_authorization_or_route_errors",
+        "test_every_visible_retail_admin_navigation_target_opens_without_authorization_or_route_errors",
+    ),
+    "backend/tests/Feature/AdminFilterActionVisualContractTest.php": (
+        "test_dashboard_filter_actions_use_canonical_green_style",
+    ),
+}
 
 MATRIX_ROW_RE = re.compile(
     r"^\|\s*(?P<id>[A-Z]+\d+)\s*\|\s*(?P<summary>.*?)\s*\|\s*#(?P<owner>\d+)\s*\|\s*(?P<evidence>.*?)\s*\|\s*(?P<status>[A-Z_]+)\s*\|\s*$"
@@ -164,6 +186,60 @@ def validate_requirement_coverage(root: Path = ROOT) -> tuple[list[str], dict[st
     return errors, report
 
 
+def validate_backend_contract_guards(root: Path = ROOT) -> list[str]:
+    errors: list[str] = []
+    for relative, required_tokens in REQUIRED_BACKEND_CONTRACT_GUARDS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"required Dashboard contract guard is missing: {relative}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in required_tokens:
+            if token not in text:
+                errors.append(f"{relative}: required contract guard is missing: {token}")
+    return errors
+
+
+def run_full_mobile_contract_guard(root: Path = ROOT) -> tuple[list[str], str]:
+    guard = root / "scripts/mobile-ux-contract-guard.py"
+    if not guard.is_file():
+        return ["whole-tree mobile v4.2 guard is missing"], ""
+
+    empty_tree = subprocess.run(
+        ["git", "mktree"],
+        cwd=root,
+        input="",
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if empty_tree.returncode != 0 or not empty_tree.stdout.strip():
+        detail = empty_tree.stderr.strip() or empty_tree.stdout.strip()
+        return [f"could not create empty Git tree for whole-tree mobile audit: {detail}"], ""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(guard),
+            "--base",
+            empty_tree.stdout.strip(),
+            "--head",
+            "HEAD",
+        ],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    output = (result.stdout + result.stderr).strip()
+    if result.returncode != 0:
+        return [
+            "whole-tree Customer/Driver/Van mobile v4.2 contract audit failed"
+            + (f": {output}" if output else "")
+        ], output
+    return [], output
+
+
 def _attrs(tag: str) -> dict[str, str]:
     return {m.group("name").lower(): m.group("value") for m in ATTR_RE.finditer(tag)}
 
@@ -210,9 +286,9 @@ def scan_admin_raw_inputs(root: Path = ROOT) -> list[str]:
             attrs = _attrs(tag)
             name = attrs.get("name", "")
             input_type = attrs.get("type", "text").lower()
-            if name.endswith("_id") and input_type == "number":
+            if name.endswith("_id") and input_type != "hidden":
                 findings.append(
-                    f"{relative}:{_line_number(text, match.start())}: routine numeric internal-ID input {name}"
+                    f"{relative}:{_line_number(text, match.start())}: routine typed internal-ID input {name}"
                 )
 
             if not name.endswith("_json") or input_type == "hidden":
@@ -266,14 +342,21 @@ def scan_mobile_dynamic_enums(root: Path = ROOT) -> list[str]:
 
 def run_audit(root: Path = ROOT) -> tuple[list[str], dict[str, object]]:
     errors, report = validate_requirement_coverage(root)
+    backend_contract_errors = validate_backend_contract_guards(root)
     admin_findings = scan_admin_raw_inputs(root)
     mobile_findings = scan_mobile_dynamic_enums(root)
+    mobile_contract_errors, mobile_contract_output = run_full_mobile_contract_guard(root)
+    errors.extend(backend_contract_errors)
     errors.extend(admin_findings)
     errors.extend(mobile_findings)
+    errors.extend(mobile_contract_errors)
     report.update(
         {
+            "backend_contract_guard_errors": len(backend_contract_errors),
             "admin_raw_input_findings": len(admin_findings),
             "mobile_dynamic_enum_findings": len(mobile_findings),
+            "whole_tree_mobile_contract_errors": len(mobile_contract_errors),
+            "whole_tree_mobile_contract_output": mobile_contract_output,
             "result": "PASS" if not errors else "FAIL",
             "errors": errors,
         }

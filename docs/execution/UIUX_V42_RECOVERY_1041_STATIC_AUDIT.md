@@ -16,6 +16,8 @@ The gate verifies:
 - legacy Dashboard route audits plus Customer/Driver/Van route/screen inventories;
 - all admin Blade surfaces for routine numeric internal-ID entry and visible raw JSON controls;
 - direct unlocalized status/state/channel/role/type/payment/unit rendering across admin Blade and all three mobile UI trees.
+- the existing mobile v4.2 anti-regression guard re-run against an empty Git tree, making **every** Customer/Driver/Van Dart source file part of the audit instead of only changed lines;
+- required Dashboard deterministic contracts for shared shells, compact row actions, navigation authorization and Customer/Driver/Van first-class administration.
 
 ## Independent finding fixed by #1041
 
