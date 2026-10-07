@@ -1,20 +1,20 @@
-# FOODEX 1.0.60 Release Notes
+# FOODEX 1.0.62 Release Notes
 
-Status: corrective UIUX-V42 FOODEX 1.0.60 release for #1021, restoring the accepted premium Sales Control surface while preserving Van/commercial behavior and cross-app UI/UX convergence. Repository-controlled release; Apple/Google console/signing actions remain external.
+Status: corrective UIUX-V42 FOODEX 1.0.62 release for #1021, restoring the accepted premium Sales Control surface while preserving Van/commercial behavior and cross-app UI/UX convergence. Repository-controlled release; Apple/Google console/signing actions remain external.
 
 Release branch: `release/1021-uiux-v42-final-real-build`
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.60`
-- Customer app: `1.0.60+60`
-- Driver/Van app: `1.0.60+60`
-- Customer runtime/footer identity: `1.0.60`
-- Driver runtime/footer identity: `1.0.60`
-- Driver diagnostics current identity: `1.0.60`
+- Dashboard / repository release: `1.0.62`
+- Customer app: `1.0.62+62`
+- Driver/Van app: `1.0.62+62`
+- Customer runtime/footer identity: `1.0.62`
+- Driver runtime/footer identity: `1.0.62`
+- Driver diagnostics current identity: `1.0.62`
 - Driver diagnostics build identity: `58`
 
-- Production API: `https://vanfoodex.50sols.com`
+- Production API: `https://foodex.50sols.com`
 
 ## Included changes
 
