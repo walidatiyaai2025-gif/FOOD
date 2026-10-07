@@ -200,6 +200,73 @@ async function captureMixedTrackingEvidence(page, locale) {
   );
 }
 
+async function captureMobileSettingsParityEvidence(page, locale) {
+  const response = await page.goto(
+    `${baseUrl}/admin/settings/mobile?app=van&environment=production`,
+    { waitUntil: 'networkidle' },
+  );
+  if (!response || !response.ok()) {
+    throw new Error(
+      `Mobile Settings evidence page failed: HTTP ${response?.status() ?? 'no-response'}`,
+    );
+  }
+
+  const proof = await page.evaluate((expectedDir) => {
+    const runtimeApp = document.querySelector('.runtime-picker select[name="app"]');
+    const pushVan = document.querySelector(
+      'form[action*="/admin/settings/mobile/push"] select[name="app"] option[value="van"]',
+    );
+    const submissionVan = document.querySelectorAll(
+      '[data-store-submission-center] input[name="app"][value="van"]',
+    );
+    const reviewerVan = document.querySelector(
+      '[data-reviewer-accounts] select[name="app"] option[value="van"]',
+    );
+    const forbiddenRoutineJson = [
+      'deep_link_json',
+      'store_readiness_json',
+      'asset_checklist_json',
+      'permission_declarations_json',
+      'privacy_checklist_json',
+      'manual_gaps_json',
+      'context_json',
+    ].filter((name) => document.querySelector(`[name="${name}"]`));
+
+    return {
+      dir: document.documentElement.dir,
+      shell: Boolean(document.querySelector('.foodex-admin-layout')),
+      main: Boolean(document.querySelector('main.foodex-admin-main')),
+      header: Boolean(document.querySelector('header.foodex-page-header')),
+      runtimeApp: runtimeApp?.value ?? '',
+      pushVan: Boolean(pushVan),
+      submissionVanCount: submissionVan.length,
+      reviewerVan: Boolean(reviewerVan),
+      forbiddenRoutineJson,
+      dirMatches: document.documentElement.dir === expectedDir,
+    };
+  }, locale === 'ar' ? 'rtl' : 'ltr');
+
+  if (
+    !proof.shell
+    || !proof.main
+    || !proof.header
+    || !proof.dirMatches
+    || proof.runtimeApp !== 'van'
+    || !proof.pushVan
+    || proof.submissionVanCount !== 2
+    || !proof.reviewerVan
+    || proof.forbiddenRoutineJson.length
+  ) {
+    throw new Error(`Mobile Settings runtime parity evidence incomplete: ${JSON.stringify(proof)}`);
+  }
+
+  await assertNoPageOverflow(page, `mobile-settings/runtime/${locale}`);
+  await snap(
+    page,
+    `02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__${locale}.png`,
+  );
+}
+
 async function captureLocale(browser, locale) {
   const context = await browser.newContext({
     locale: locale === 'ar' ? 'ar-KW' : 'en-US',
@@ -217,6 +284,7 @@ async function captureLocale(browser, locale) {
 
   await login(page, 'b2b', locale, email);
   await captureMixedTrackingEvidence(page, locale);
+  await captureMobileSettingsParityEvidence(page, locale);
   await context.clearCookies();
 
   await login(page, 'b2c', locale, email);
