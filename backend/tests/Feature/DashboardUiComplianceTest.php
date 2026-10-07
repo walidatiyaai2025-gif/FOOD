@@ -177,4 +177,18 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'", $view);
         $this->assertStringNotContainsString("$ar ? '", $view);
     }
+
+    public function test_notifications_use_business_user_lookup_instead_of_raw_ids(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/notifications.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/NotificationController.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($controller);
+        $this->assertStringContainsString('name="user_id"><select', str_replace(["\n", "\r"], '', $view));
+        $this->assertStringContainsString('$userTargets', $view);
+        $this->assertStringNotContainsString('type="number" min="1"', $view);
+        $this->assertStringNotContainsString('<strong>#{{ $notification->id }}</strong>', $view);
+        $this->assertStringContainsString("select(['id', 'name', 'email'])", $controller);
+    }
 }
