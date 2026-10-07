@@ -148,6 +148,27 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('10.000');
     }
 
+    public function test_sales_control_uses_premium_dashboard_shell_instead_of_legacy_standalone_surface(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $this->flashProduct($storeId);
+
+        $response = $this->actingAs($manager)
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]));
+
+        $response
+            ->assertOk()
+            ->assertSee('commercial-admin-layout', false)
+            ->assertSee('data-foodex-sidebar-toggle', false)
+            ->assertSee('Commercial & Sales')
+            ->assertSee('Product policies')
+            ->assertSee('Availability & channels')
+            ->assertSee('Selling unit & break-pack')
+            ->assertSee('Default quotas')
+            ->assertSee('Advanced: selling units, availability windows & targeting rules')
+            ->assertDontSee('Channels JSON');
+    }
+
     private function flashProduct(int $storeId): int
     {
         $unitId = (int) DB::table('units')->insertGetId([
