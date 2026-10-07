@@ -10,6 +10,7 @@ import '../wallet/van_remittance_page.dart';
 import '../wallet/van_wallet_contract.dart';
 import '../wallet/van_wallet_page.dart';
 import 'van_customer_360_page.dart';
+import 'van_dashboard_page.dart';
 import 'van_profile_page.dart';
 import 'van_customers_page.dart';
 import 'van_screen_inventory.dart';
@@ -46,6 +47,11 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
 
   Widget _body() {
     switch (_screen) {
+      case VanScreenId.dashboard:
+        return VanDashboardPage(
+          repository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
       case VanScreenId.offers:
         return VanOffersPage(
           session: widget.session,
