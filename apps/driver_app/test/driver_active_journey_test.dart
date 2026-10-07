@@ -137,9 +137,10 @@ Widget _host(
 }
 
 Future<void> _openCardActions(WidgetTester tester, int assignmentId) async {
-  await tester.tap(
-    find.byKey(Key('driver-active-actions-$assignmentId')),
-  );
+  final actions = find.byKey(Key('driver-active-actions-$assignmentId'));
+  await tester.ensureVisible(actions);
+  await tester.pumpAndSettle();
+  await tester.tap(actions);
   await tester.pumpAndSettle();
 }
 
