@@ -2908,14 +2908,18 @@ class _PurchaseReportRemoteStateState
                         },
                 );
               }),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   Text(
                     '${context.tr('b2b.purchase_reports.page')} $currentPage',
                   ),
                   Wrap(
                     spacing: 6,
+                    runSpacing: 6,
                     children: [
                       TextButton.icon(
                         key: const ValueKey('b2b-purchases-previous-page'),

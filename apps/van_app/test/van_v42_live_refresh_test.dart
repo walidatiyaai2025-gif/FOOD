@@ -31,10 +31,10 @@ void main() {
     expect(find.text('Flash Offer'), findsOneWidget);
 
     commercial.failNext = true;
-    await tester.binding.handleAppLifecycleStateChanged(
+    tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.paused,
     );
-    await tester.binding.handleAppLifecycleStateChanged(
+    tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.resumed,
     );
     await tester.pumpAndSettle();
@@ -66,10 +66,10 @@ void main() {
     expect(find.text('10.000 EGP'), findsNWidgets(2));
 
     wallet.failNext = true;
-    await tester.binding.handleAppLifecycleStateChanged(
+    tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.paused,
     );
-    await tester.binding.handleAppLifecycleStateChanged(
+    tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.resumed,
     );
     await tester.pumpAndSettle();

@@ -40,7 +40,7 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(TabBar), findsNothing);
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -77,7 +77,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -116,7 +116,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -162,7 +162,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -199,7 +199,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -244,7 +244,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -298,7 +298,7 @@ void main() {
   testWidgets('Van Visit Workspace uses canonical visit lifecycle transitions',
       (tester) async {
     await tester.pumpWidget(
-      const FoodexVanApp(
+      FoodexVanApp(
         locale: Locale('en'),
         walletRepository: _CustomerWalletRepository(),
         visitRepository: _VisitRepository(),
@@ -314,7 +314,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -387,7 +387,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -427,7 +427,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -468,7 +468,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final target = find.byKey(const ValueKey('van-screen-routeMap'));
@@ -508,7 +508,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    var scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    var scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
@@ -567,7 +567,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final target = find.byKey(const ValueKey('van-screen-visit'));

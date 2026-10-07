@@ -491,24 +491,16 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         if (tab.error != null) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  '${context.tr('customer.orders.stale')} '
-                  '${_errorText(context, tab.error!)}',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  key: ValueKey('customer-orders-retry-$channel'),
-                  onPressed: tab.loadingMore
-                      ? null
-                      : () => unawaited(
-                            _loadChannel(channel, reset: false),
-                          ),
-                  child: Text(context.tr('customer.action.retry')),
-                ),
-              ],
+            child: Center(
+              child: OutlinedButton(
+                key: ValueKey('customer-orders-retry-$channel'),
+                onPressed: tab.loadingMore
+                    ? null
+                    : () => unawaited(
+                          _loadChannel(channel, reset: false),
+                        ),
+                child: Text(context.tr('customer.action.retry')),
+              ),
             ),
           );
         }
