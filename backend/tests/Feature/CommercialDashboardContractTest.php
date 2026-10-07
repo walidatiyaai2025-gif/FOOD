@@ -511,10 +511,10 @@ class CommercialDashboardContractTest extends TestCase
                 'status' => 'OPEN',
                 'channels_json' => '["customer","van"]',
                 'break_pack_policy' => 'one-unit-type',
-                'break_pack_unit_code' => 'CARTON',
+                'break_pack_unit_code' => 'CASE12',
                 'business_timezone' => 'Asia/Kuwait',
                 'week_starts_on' => 1,
-                'selling_units_json' => '[{"code":"PIECE","name":"Piece","conversion_factor":1,"is_base":true,"is_active":true},{"code":"CARTON","name":"Carton","conversion_factor":10,"is_base":false,"is_active":true}]',
+                'selling_units_json' => '[{"code":"PIECE","name":"Piece","conversion_factor":1,"is_base":true,"is_active":true},{"code":"CASE12","name":"Case 12","conversion_factor":12,"is_base":false,"is_active":true}]',
                 'availability_windows_json' => '[{"recurrence":"yearly","start_month":1,"start_day":1,"end_month":12,"end_day":31,"is_active":true}]',
                 'rules_json' => '[{"customer_id":'.$audienceCustomerId.',"channel":"van","is_allowed":null,"max_per_day":25}]',
             ])
@@ -523,12 +523,12 @@ class CommercialDashboardContractTest extends TestCase
         $this->assertDatabaseHas('product_commercial_policies', [
             'product_id' => $productId,
             'break_pack_policy' => 'one-unit-type',
-            'break_pack_unit_code' => 'CARTON',
+            'break_pack_unit_code' => 'CASE12',
         ]);
         $this->assertDatabaseHas('product_selling_units', [
             'product_id' => $productId,
-            'code' => 'CARTON',
-            'conversion_factor' => 10,
+            'code' => 'CASE12',
+            'conversion_factor' => 12,
             'is_active' => true,
         ]);
         $this->assertDatabaseHas('product_availability_windows', [
@@ -571,7 +571,7 @@ class CommercialDashboardContractTest extends TestCase
                 'popup_frequency' => 'once_per_session',
                 'products' => [[
                     'product_id' => $productId,
-                    'selling_unit_code' => 'CARTON',
+                    'selling_unit_code' => 'CASE12',
                     'flash_price' => 7,
                     'allocation_base' => 100,
                 ]],
