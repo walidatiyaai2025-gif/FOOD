@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "mission_id": "UIUX-V42-RECOVERY",
+  "gate_issue": 1042,
+  "decision": "PASS",
+  "integration_target": "release/1034-uiux-v42-recovery",
+  "integrated_head": "1049663772d3106b6ce57c13470730a72241db0d",
+  "runtime_source_head": "28000baf73ecfb29a83ccecb49746b2040a651cc",
+  "lineage": {
+    "runtime_source_is_parent_of_integrated_merge": true,
+    "compare_changed_files": 0,
+    "statement": "The integrated merge tree is file-identical to the exact runtime/build source tree."
+  },
+  "evidence_runs": [
+    {
+      "name": "FOODEX UI Visual QA",
+      "run_id": 37599427509,
+      "job_id": 112719883897,
+      "artifact_id": 11471224337,
+      "artifact_name": "foodex-ui-visual-qa-1052",
+      "sha256": "e12c26b954229bbec09a6546862c78cbdaaf819f9145256c30506413aeeda7e1",
+      "status": "PASS"
+    },
+    {
+      "name": "FOODEX Mobile Screenshot Capture",
+      "run_id": 37599427493,
+      "job_id": 112719883416,
+      "artifact_id": 11471599809,
+      "artifact_name": "foodex-mobile-screenshot-qa-1052",
+      "sha256": "697854d3c839a0486393826012da3e511559d13d6ea8ba8c985efb90ab52d45c",
+      "status": "PASS"
+    },
+    {
+      "name": "FOODEX Field Operations Runtime Evidence",
+      "run_id": 37599427586,
+      "job_id": 112719884225,
+      "artifact_id": 11472405452,
+      "artifact_name": "foodex-field-operations-runtime-1052",
+      "sha256": "7bd86ed459b4e33142635190fd242b510dc943a759984ca832fdbb25bedcc41c",
+      "status": "PASS"
+    },
+    {
+      "name": "FOODEX Required CI Gate",
+      "run_id": 37599427933,
+      "status": "PASS"
+    }
+  ],
+  "evidence_counts": {
+    "web_runtime_pngs": 138,
+    "web_responsive_pngs": 64,
+    "field_operations_pngs": 30,
+    "mobile_standard_geometry": "430x932",
+    "van_compact_geometry": "360x800",
+    "van_surfaces": 19
+  },
+  "accepted_requirement_ids": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06",
+    "D08",
+    "D09",
+    "D10",
+    "D11",
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "F05",
+    "F06",
+    "MC01",
+    "MC02",
+    "MC03",
+    "MC04",
+    "MC05",
+    "AC01",
+    "AC02",
+    "IC01",
+    "MD01",
+    "MD02",
+    "MD03",
+    "AD01",
+    "AD02",
+    "LD01",
+    "LD02",
+    "LD03",
+    "MV01",
+    "MV02",
+    "MV03",
+    "AV01",
+    "AV02",
+    "AV03",
+    "Q01",
+    "Q02",
+    "Q03",
+    "V01",
+    "V02"
+  ],
+  "deferred_by_design": [
+    {
+      "id": "G01",
+      "owner_issue": 1043,
+      "status": "OPEN"
+    },
+    {
+      "id": "G02",
+      "owner_issue": 1043,
+      "status": "OPEN"
+    },
+    {
+      "id": "R01",
+      "owner_issue": 1021,
+      "status": "OPEN"
+    }
+  ],
+  "gate_harness": {
+    "commercial_structured_interactions": "scripts/capture_web_screenshots.mjs",
+    "territory_map_interactions": "scripts/capture_field_operations_screenshots.mjs"
+  }
+}
