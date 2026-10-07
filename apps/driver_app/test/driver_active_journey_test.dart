@@ -135,6 +135,13 @@ Widget _host(
   );
 }
 
+Future<void> _openCardActions(WidgetTester tester, int assignmentId) async {
+  await tester.tap(
+    find.byKey(Key('driver-active-actions-$assignmentId')),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('active deliveries refresh when Driver app resumes', (tester) async {
     final repo = _FakeActiveRepo(
@@ -173,8 +180,11 @@ void main() {
     await tester.pumpWidget(_host(repo));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-active-accept-1')), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-actions-1')), findsOneWidget);
     expect(find.byKey(const Key('driver-active-pickup-1')), findsNothing);
+
+    await _openCardActions(tester, 1);
+    expect(find.byKey(const Key('driver-active-accept-1')), findsOneWidget);
     expect(find.byKey(const Key('driver-active-start-1')), findsNothing);
 
     await tester.tap(find.byKey(const Key('driver-active-accept-1')));
@@ -183,6 +193,7 @@ void main() {
     expect(repo.transitionedStatus, 'accepted');
     expect(repo.transitionCount, 1);
     expect(find.byKey(const Key('driver-active-pickup-1')), findsNothing);
+    await _openCardActions(tester, 1);
     expect(
       find.byKey(const Key('driver-active-card-failed-1')),
       findsOneWidget,
@@ -213,6 +224,7 @@ void main() {
         find.byKey(Key('driver-active-pickup-$id')),
         findsNothing,
       );
+      await _openCardActions(tester, id);
       expect(
         find.byKey(Key('driver-active-card-failed-$id')),
         findsOneWidget,
@@ -221,6 +233,8 @@ void main() {
         find.byKey(Key('driver-active-start-$id')),
         findsNothing,
       );
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(Key('driver-active-assignment-$id')));
       await tester.pumpAndSettle();
@@ -234,6 +248,7 @@ void main() {
       expect(repo.transitionedStatuses, ['picked_up', 'out_for_delivery']);
       expect(repo.transitionCount, 2);
       expect(repo.current.status, 'out_for_delivery');
+      await _openCardActions(tester, id);
       expect(
         find.byKey(Key('driver-active-delivered-$id')),
         findsOneWidget,
@@ -256,6 +271,7 @@ void main() {
     await tester.pumpWidget(_host(repo));
     await tester.pumpAndSettle();
 
+    await _openCardActions(tester, 2);
     await tester.tap(find.byKey(const Key('driver-active-start-2')));
     await tester.pumpAndSettle();
 
@@ -277,6 +293,7 @@ void main() {
 
     expect(repo.transitionedStatus, 'out_for_delivery');
     expect(repo.transitionedNote, 'Leaving store now');
+    await _openCardActions(tester, 2);
     expect(
       find.byKey(const Key('driver-active-delivered-2')),
       findsOneWidget,
@@ -308,6 +325,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _openCardActions(tester, 3);
     await tester.tap(find.byKey(const Key('driver-active-start-3')));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -344,6 +362,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _openCardActions(tester, 4);
     expect(
       find.byKey(const Key('driver-active-delivered-4')),
       findsOneWidget,
