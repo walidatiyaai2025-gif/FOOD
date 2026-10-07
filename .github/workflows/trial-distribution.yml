@@ -60,8 +60,13 @@ jobs:
           previous_version="$(git show HEAD^:VERSION 2>/dev/null | tr -d '[:space:]' || true)"
           changed_paths="$(git diff --name-only HEAD^ HEAD || true)"
 
-          if [[ "$GITHUB_REF_NAME" == "main" ]] && printf '%s\n' "$changed_paths" | grep -Eq '^(\.github/workflows/(customer-app-ci|driver-app-ci|van-app-ci|required-ci-gate|trial-distribution)\.yml|scripts/(verify-mobile-runtime-endpoint\.py|tests/test_mobile_runtime_endpoint\.py))          if [[ "$GITHUB_REF_NAME" == "release/1021-uiux-v42-final-real-build" ]]; then
-            changed_paths="$(git diff --name-only HEAD^ HEAD || true)"
+          if [[ "$GITHUB_REF_NAME" == "main" ]] && printf '%s\n' "$changed_paths" | grep -Eq '^(\.github/workflows/(customer-app-ci|driver-app-ci|van-app-ci|required-ci-gate|trial-distribution)\.yml|scripts/(verify-mobile-runtime-endpoint\.py|tests/test_mobile_runtime_endpoint\.py))$'; then
+            echo "release_intent=true" >> "$GITHUB_OUTPUT"
+            echo "Mobile endpoint release gate changed on main; rebuilding current VERSION=$current_version."
+            exit 0
+          fi
+
+          if [[ "$GITHUB_REF_NAME" == "release/1021-uiux-v42-final-real-build" ]]; then
             if [[ -n "$changed_paths" ]] && ! printf '%s\n' "$changed_paths" | grep -Ev '^Release/' >/dev/null; then
               echo "release_intent=false" >> "$GITHUB_OUTPUT"
               echo "Terminal generated-artifact-only publication detected; release rebuild is not required."
