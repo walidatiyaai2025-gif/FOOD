@@ -374,8 +374,9 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('OPS-ALL-RETAIL-1001')
             ->assertSee('OPS-ALL-WHOLESALE-2001')
             ->assertDontSee('OPS-ALL-ROGUE-3001')
-            ->assertSee('customer_checkout')
-            ->assertSee('dashboard');
+            ->assertSee('Customer checkout')
+            ->assertSee('Dashboard')
+            ->assertDontSee('customer_checkout');
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=all&order='.$retailOrder)
@@ -383,7 +384,8 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('data-order-authoritative-context', false)
             ->assertSee('store_id='.$retailStore, false)
             ->assertSee('channel=b2c', false)
-            ->assertSee('customer_checkout');
+            ->assertSee('Customer checkout')
+            ->assertDontSee('customer_checkout');
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b&order='.$retailOrder)
