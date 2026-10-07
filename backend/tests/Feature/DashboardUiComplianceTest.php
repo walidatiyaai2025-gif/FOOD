@@ -127,4 +127,17 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'تفاصيل العميل':'Customer details'", $view);
         $this->assertStringNotContainsString("$ar ? 'الجملة' : 'Wholesale'", $view);
     }
+
+
+    public function test_customer_360_finance_copy_uses_locale_catalog(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("__('customer_360.finance.current_balance')", $view);
+        $this->assertStringContainsString("__('customer_360.finance.entry_type')", $view);
+        $this->assertStringContainsString("__('customer_360.finance.record')", $view);
+        $this->assertStringNotContainsString("$ar?'الرصيد الحالي':'Current balance'", $view);
+        $this->assertStringNotContainsString("$ar?'تسجيل حركة مالية':'Record financial entry'", $view);
+    }
 }
