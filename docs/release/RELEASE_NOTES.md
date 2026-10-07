@@ -2,7 +2,7 @@
 
 Status: production-domain mobile hotfix release for #1062. Rebuild Customer, Driver and Van from the final main integration so the actual APK binaries target `https://foodex.50sols.com` and reject the obsolete `vanfoodex.50sols.com` endpoint.
 
-Release branch: `release/1062-mobile-domain-hotfix-1.0.61`
+Release branch: `release/1062-mobile-domain-hotfix`
 
 ## Release identity
 
@@ -19,6 +19,7 @@ Release branch: `release/1062-mobile-domain-hotfix-1.0.61`
 ## Included changes
 
 - Rebuild all three Android APKs from the final `main` implementation with `FOODEX_API_BASE_URL=https://foodex.50sols.com` and add binary-level release validation that fails if `vanfoodex.50sols.com` is embedded.
+- Fix Van Arabic mobile navigation so the hamburger and overlay drawer are on the physical left; selecting a menu item closes the drawer before showing the selected screen, eliminating nested dashboard navigation.
 
 - Include the canonical commercial policy engine, break-pack rules, feature flags, Flash lifecycle/audience targeting, Dashboard preview/analytics, Customer Flash checkout and Van online-only Flash/commercial enforcement from #983/#991.
 
