@@ -146,6 +146,7 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         return VanVisitWorkspacePage(
           visitRepository: widget.visitRepository,
           customerRepository: widget.walletRepository,
+          orderRepository: widget.orderRepository,
           onSessionExpired: widget.onLogout,
         );
       case VanScreenId.customer360:
