@@ -6,6 +6,7 @@ use App\Services\PlatformCustomerService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class ScreenshotEvidenceSeeder extends Seeder
@@ -300,6 +301,93 @@ class ScreenshotEvidenceSeeder extends Seeder
             'assignment_type' => 'b2b',
             'status' => 'assigned',
             'assigned_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $driverStaleAt = $now->copy()->subSeconds(55);
+        DB::table('driver_current_locations')->insert([
+            'driver_id' => $driverId,
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'latitude' => 29.3768000,
+            'longitude' => 47.9822000,
+            'accuracy' => 8.0,
+            'speed' => 0.0,
+            'heading' => 90.0,
+            'captured_at' => $driverStaleAt,
+            'received_at' => $driverStaleAt,
+            'app_version' => '1.0.60',
+            'is_mocked' => false,
+            'active_assignment_id' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $vanOperatorId = (int) DB::table('users')->insertGetId([
+            'name' => 'نورة · مشغلة فان FOODEX',
+            'email' => 'van.operator@foodex.test',
+            'email_verified_at' => $now,
+            'password' => Hash::make('Evidence123!'),
+            'locale' => 'ar',
+            'is_active' => true,
+            'last_seen_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'VAN-EVID-01',
+            'plate_number' => 'FOODEX-801',
+            'vehicle_type' => 'sales_van',
+            'status' => 'active',
+            'capacity_units' => 120,
+            'capacity_weight' => 1500,
+            'home_warehouse_id' => $warehouseId,
+            'notes' => 'Deterministic mixed live-tracking visual evidence.',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $vanAssignmentId = (int) DB::table('van_assignments')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'van_id' => $vanId,
+            'driver_id' => null,
+            'representative_user_id' => $vanOperatorId,
+            'warehouse_id' => $warehouseId,
+            'territory_key' => 'KW-EVIDENCE',
+            'van_pool_key' => 'EVIDENCE',
+            'assignment_type' => 'primary',
+            'status' => 'active',
+            'effective_from' => $now->copy()->subHour(),
+            'effective_until' => null,
+            'loaded_work_count' => 12,
+            'transferred_to_van_id' => null,
+            'transfer_reason' => null,
+            'created_by' => $superAdminId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('fleet_current_locations')->insert([
+            'actor_type' => 'van',
+            'actor_id' => $vanId,
+            'vehicle_id' => $vanId,
+            'assignment_id' => $vanAssignmentId,
+            'route_key' => 'ROUTE-EVID-01',
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'latitude' => 29.3826000,
+            'longitude' => 47.9894000,
+            'accuracy' => 5.0,
+            'speed' => 3.2,
+            'heading' => 180.0,
+            'captured_at' => $now,
+            'received_at' => $now,
+            'source_app' => 'van',
+            'app_version' => '1.0.60',
+            'is_mocked' => false,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
