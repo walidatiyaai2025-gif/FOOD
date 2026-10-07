@@ -516,8 +516,12 @@ async function captureLocale(browser, locale) {
     { waitUntil: 'networkidle' },
   );
   if (!customer360DetailResponse || !customer360DetailResponse.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 2400);
     throw new Error(
-      `Customer 360 detail evidence page failed: HTTP ${customer360DetailResponse?.status() ?? 'no-response'}`,
+      `Customer 360 detail evidence page failed: HTTP ${customer360DetailResponse?.status() ?? 'no-response'}`
+      + (failureBody ? ` · ${failureBody}` : ''),
     );
   }
   await assertSharedAdminRuntimeShell(page, `customer-360/detail/${locale}`);

@@ -55,18 +55,8 @@ void main() {
     expect(vanProductionScreenInventory.contains(VanScreenId.notifications), isTrue);
     expect(vanProductionScreenInventory.contains(VanScreenId.profile), isTrue);
 
-    final customersTarget =
-        find.byKey(const ValueKey('van-screen-customers'));
-    await tester.scrollUntilVisible(
-      customersTarget,
-      180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
-    );
-    final customersTile = tester.widget<ListTile>(customersTarget);
-    customersTile.onTap!.call();
+    final navigation = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    navigation.onDestinationSelected?.call(2);
     await tester.pumpAndSettle();
     expect(find.text('No assigned customers'), findsOneWidget);
   });
@@ -448,36 +438,13 @@ void main() {
       (tester) async {
     final notifications = _NotificationRepository();
     await tester.pumpWidget(
-      FoodexVanApp(
-        locale: const Locale('en'),
-        walletRepository: const _EmptyWalletRepository(),
-        notificationRepository: notifications,
-        initialSession: const VanSession(
-          token: 'test-token',
-          name: 'Van Operator',
-          email: 'van@example.test',
-          locale: 'en',
-          permissions: {'van.login'},
+      MaterialApp(
+        home: VanNotificationsPage(
+          repository: notifications,
+          onSessionExpired: () async {},
         ),
       ),
     );
-    await tester.pumpAndSettle();
-
-    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
-    scaffold.openDrawer();
-    await tester.pumpAndSettle();
-
-    final target = find.byKey(const ValueKey('van-screen-notifications'));
-    await tester.scrollUntilVisible(
-      target,
-      180,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('van-production-screen-menu')),
-        matching: find.byType(Scrollable),
-      ).first,
-    );
-    final notificationTile = tester.widget<ListTile>(target);
-    notificationTile.onTap!.call();
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-notifications-page')), findsOneWidget);
