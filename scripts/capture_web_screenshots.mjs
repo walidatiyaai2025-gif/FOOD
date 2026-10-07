@@ -496,9 +496,17 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
     throw new Error(`Targeting rule builder did not serialize Van access rule (${locale})`);
   }
 
-  await addedUnit.locator('[data-selling-unit-remove]').click();
   await addedWindow.locator('[data-availability-remove]').click();
   await addedRule.locator('[data-rule-remove]').click();
+
+  await Promise.all([
+    page.waitForLoadState('networkidle'),
+    policyForm.locator('button[type="submit"]').click(),
+  ]);
+  if (page.url().includes('/login')
+      || await page.locator(`.commercial-policy-form [data-break-pack-selling-unit] option[value="${runtimeCode}"]`).count() !== 1) {
+    throw new Error(`Structured Selling Unit did not persist through the authoritative Sales Control route (${locale})`);
+  }
 
   response = await page.goto(`${baseUrl}/admin/b2c/commercial/flash-offers`, {
     waitUntil: 'networkidle',
