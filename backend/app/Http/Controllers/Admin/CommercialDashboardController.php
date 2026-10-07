@@ -580,31 +580,6 @@ final class CommercialDashboardController extends Controller
         ));
     }
 
-    /** @return list<int> */
-    private function integerJsonList(?string $json, string $field): array
-    {
-        $items = $this->optionalJsonArray($json, $field);
-
-        return collect($items)
-            ->map(static fn (mixed $item): int => (int) $item)
-            ->filter(static fn (int $item): bool => $item > 0)
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-    /** @return list<string> */
-    private function stringJsonList(?string $json, string $field): array
-    {
-        $items = $this->optionalJsonArray($json, $field);
-
-        return collect($items)
-            ->map(static fn (mixed $item): string => trim((string) $item))
-            ->filter(static fn (string $item): bool => $item !== '')
-            ->unique()
-            ->values()
-            ->all();
-    }
 
     /** @return list<mixed> */
     private function optionalJsonArray(?string $json, string $field): array
