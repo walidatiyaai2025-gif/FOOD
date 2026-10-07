@@ -195,9 +195,52 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('Availability & channels')
             ->assertSee('Selling unit & break-pack')
             ->assertSee('data-break-pack-selling-unit', false)
+            ->assertSee('data-selling-unit-editor', false)
+            ->assertSee('data-availability-editor', false)
+            ->assertSee('data-targeting-rule-editor', false)
+            ->assertSee('data-selling-units-json', false)
+            ->assertSee('data-availability-json', false)
+            ->assertSee('data-rules-json', false)
             ->assertSee('Default quotas')
+            ->assertDontSee('data-privileged-commercial-json', false)
             ->assertDontSee('Selling units (JSON)')
             ->assertDontSee('Channels JSON');
+
+        $manager->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($manager->fresh())
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('وحدات البيع')
+            ->assertSee('نوافذ الإتاحة')
+            ->assertSee('قواعد الاستهداف والحصص');
+    }
+
+    public function test_platform_admin_keeps_advanced_json_behind_privileged_section(): void
+    {
+        [, $storeId] = $this->retailManager();
+        $this->flashProduct($storeId);
+
+        $superAdmin = User::query()->create([
+            'name' => 'Commercial Platform Advanced',
+            'email' => 'commercial-advanced@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $superAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('data-selling-unit-editor', false)
+            ->assertSee('data-availability-editor', false)
+            ->assertSee('data-targeting-rule-editor', false)
+            ->assertSee('data-privileged-commercial-json', false)
+            ->assertSee('data-commercial-advanced-json="selling_units_json"', false)
+            ->assertSee('data-commercial-advanced-json="availability_windows_json"', false)
+            ->assertSee('data-commercial-advanced-json="rules_json"', false);
     }
 
     public function test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring(): void
