@@ -8,7 +8,9 @@ Canonical production branch: `feat/1040-van-v42-full-sweep`
 
 The standalone Van mockup is the literal UI/UX target for the production Van application.
 
-- Reference branch: `prototype/van-uiux-mockup`
+- Reference archive branch: `archive/uiux-approved-mockups`
+- Archived source path: `prototypes/van_uiux_mockup/`
+- Former standalone branch (consolidated): `prototype/van-uiux-mockup`
 - Frozen approved SHA: `59335d21879736d075404c8cb1483dc9f0f09686`
 - Reference source: `prototypes/van_uiux_mockup/lib/main.dart`
 - Successful APK build run: `37573461843`

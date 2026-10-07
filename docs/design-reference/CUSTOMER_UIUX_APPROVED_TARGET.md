@@ -8,7 +8,9 @@ Runtime visual gate: #1042
 
 The standalone Customer mockup is now an approved implementation reference for the production Customer App.
 
-- Prototype branch: `prototype/customer-uiux-mockup`
+- Prototype archive branch: `archive/uiux-approved-mockups`
+- Archived source path: `prototypes/customer_uiux_mockup/`
+- Former standalone branch (consolidated): `prototype/customer-uiux-mockup`
 - Last UI/layout commit: `0f17aba7ada2fad05f27bd969f0c54478c280079`
 - Frozen mockup source: `prototypes/customer_uiux_mockup/lib/main.dart`
 - Frozen mockup blob SHA: `12f2eccd53b0d09eb9b0c0963cd83d7641514426`
