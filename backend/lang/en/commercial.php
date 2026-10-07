@@ -304,6 +304,9 @@ return [
         'flash_active_selling_unit' => 'Select an active selling unit for this product.',
         'json_array_required' => 'A JSON array is required.',
         'selling_unit_factor' => 'Selling unit conversion factor must be greater than zero.',
+        'sales_channel' => 'Select a supported sales channel.',
+        'selling_unit_reference' => 'Selected unit reference is not available.',
+
         'duplicate_selling_unit_code' => 'Selling unit codes must be unique for the product.',
         'availability_recurrence' => 'Availability recurrence must be Fixed or Yearly.',
         'availability_yearly_fields' => 'Yearly availability requires valid start/end month and day values.',
@@ -312,6 +315,8 @@ return [
         'sales_rule_group_scope' => 'Select an active customer group available to this store.',
         'sales_rule_subject_exclusive' => 'Choose either a customer or a customer group for one rule, not both.',
         'sales_rule_channel' => 'Select a supported sales channel.',
+        'sales_rule_access' => 'Rule access must be Allow, Block, or Inherit.',
+
         'sales_rule_limit' => 'Quota limits must be zero or greater.',
         'audience_customer_scope' => 'One or more selected customers are not available in this store.',
         'audience_group_scope' => 'One or more selected customer groups are not available to this store.',
