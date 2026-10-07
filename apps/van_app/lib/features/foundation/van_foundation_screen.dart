@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
-import '../wallet/van_wallet_contract.dart';
 import '../commercial/van_commercial_contract.dart';
 import '../commercial/van_offers_page.dart';
+import '../wallet/van_wallet_contract.dart';
 import '../wallet/van_wallet_page.dart';
+import 'van_screen_inventory.dart';
 
-class VanFoundationScreen extends StatelessWidget {
+class VanFoundationScreen extends StatefulWidget {
   const VanFoundationScreen({
     super.key,
     required this.session,
@@ -21,104 +22,169 @@ class VanFoundationScreen extends StatelessWidget {
   final VanWalletRepository walletRepository;
   final VanCommercialRepository commercialRepository;
 
-  String _text(BuildContext context, String en, String ar) =>
-      Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
+  @override
+  State<VanFoundationScreen> createState() => _VanFoundationScreenState();
+}
+
+class _VanFoundationScreenState extends State<VanFoundationScreen> {
+  VanScreenId _screen = VanScreenId.dashboard;
+
+  bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
+
+  String _text(String en, String ar) => _arabic ? ar : en;
+
+  void _open(VanScreenId screen) {
+    setState(() => _screen = screen);
+    Navigator.of(context).maybePop();
+  }
+
+  Widget _body() {
+    switch (_screen) {
+      case VanScreenId.offers:
+        return VanOffersPage(
+          session: widget.session,
+          commercialRepository: widget.commercialRepository,
+          customerRepository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.wallet:
+      case VanScreenId.collection:
+      case VanScreenId.receipt:
+      case VanScreenId.remittance:
+        return VanWalletPage(
+          repository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.login:
+        return _OperationalState(
+          screen: _screen,
+          arabic: _arabic,
+          message: _text(
+            'Authentication is handled by the secure Van login flow before this shell is opened.',
+            'تتم المصادقة عبر شاشة دخول الفان الآمنة قبل فتح هذه الواجهة.',
+          ),
+        );
+      default:
+        return _OperationalState(
+          screen: _screen,
+          arabic: _arabic,
+          message: _text(
+            'This production surface is available in the Van navigation. It shows no sample records; operational data remains backend-authoritative.',
+            'هذه الشاشة متاحة ضمن تنقل تطبيق الفان. لا تعرض بيانات تجريبية؛ وتظل البيانات التشغيلية معتمدة من الخادم.',
+          ),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final arabic = Localizations.localeOf(context).languageCode == 'ar';
-    final tabs = arabic
-        ? const ['نظرة عامة', 'المسارات', 'الزيارات', 'العروض', 'المحفظة']
-        : const ['Overview', 'Routes', 'Visits', 'Offers', 'Wallet'];
+    final screens = vanProductionScreenInventory
+        .where((screen) => screen != VanScreenId.login)
+        .toList(growable: false);
 
-    return DefaultTabController(
-      length: 5,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('FOODEX Van'),
-          actions: [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  session.name,
-                  key: const Key('van-session-name'),
-                  overflow: TextOverflow.ellipsis,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_screen.label(_arabic)),
+        actions: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 120),
+              child: Text(
+                widget.session.name,
+                key: const Key('van-session-name'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          IconButton(
+            key: const Key('van-logout'),
+            tooltip: _text('Sign out', 'تسجيل الخروج'),
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.local_shipping_outlined,
+                  color: FoodexVanTokens.green,
+                ),
+                title: Text(
+                  _text('FOODEX Van', 'فودكس · تطبيق الفان'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(widget.session.name),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  key: const Key('van-production-screen-menu'),
+                  itemCount: screens.length,
+                  itemBuilder: (context, index) {
+                    final screen = screens[index];
+                    return ListTile(
+                      key: ValueKey('van-screen-${screen.name}'),
+                      selected: screen == _screen,
+                      leading: Icon(screen.icon),
+                      title: Text(screen.label(_arabic)),
+                      onTap: () => _open(screen),
+                    );
+                  },
                 ),
               ),
-            ),
-            IconButton(
-              key: const Key('van-logout'),
-              tooltip: _text(context, 'Sign out', 'تسجيل الخروج'),
-              onPressed: onLogout,
-              icon: const Icon(Icons.logout),
-            ),
-          ],
-          bottom: TabBar(
-            isScrollable: true,
-            tabs: tabs.map((label) => Tab(text: label)).toList(growable: false),
+            ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _FoundationState(
-              icon: Icons.local_shipping_outlined,
-              title: _text(context, 'Van foundation ready', 'تطبيق سيارة البيع جاهز'),
-              subtitle: _text(
-                context,
-                'Operational modules plug into this authenticated shell without duplicating business domains.',
-                'تعمل الوحدات التشغيلية داخل جلسة مصادق عليها دون تكرار منطق الأعمال.',
-              ),
+      ),
+      body: _body(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _primaryIndex(_screen),
+        onDestinationSelected: (index) => _open(_primaryScreens[index]),
+        destinations: [
+          for (final screen in _primaryScreens)
+            NavigationDestination(
+              icon: Icon(screen.icon),
+              label: screen.label(_arabic),
             ),
-            _FoundationState(
-              icon: Icons.route_outlined,
-              title: tabs[1],
-              subtitle: _text(
-                context,
-                'Routing remains backend-authoritative and configuration-driven.',
-                'تظل سياسات المسارات معتمدة من الخادم وقابلة للتهيئة.',
-              ),
-            ),
-            _FoundationState(
-              icon: Icons.people_outline,
-              title: tabs[2],
-              subtitle: _text(
-                context,
-                'Field visits and order capture reuse canonical customer and commerce APIs.',
-                'تعيد الزيارات والطلبات استخدام واجهات العملاء والتجارة المعتمدة.',
-              ),
-            ),
-            VanOffersPage(
-              session: session,
-              commercialRepository: commercialRepository,
-              customerRepository: walletRepository,
-              onSessionExpired: onLogout,
-            ),
-            VanWalletPage(
-              repository: walletRepository,
-              onSessionExpired: onLogout,
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _FoundationState extends StatelessWidget {
-  const _FoundationState({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
+const _primaryScreens = <VanScreenId>[
+  VanScreenId.dashboard,
+  VanScreenId.routes,
+  VanScreenId.customers,
+  VanScreenId.orders,
+  VanScreenId.wallet,
+];
+
+int _primaryIndex(VanScreenId screen) {
+  final index = _primaryScreens.indexOf(screen);
+  return index >= 0 ? index : 0;
+}
+
+class _OperationalState extends StatelessWidget {
+  const _OperationalState({
+    required this.screen,
+    required this.arabic,
+    required this.message,
   });
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
+  final VanScreenId screen;
+  final bool arabic;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
+      key: ValueKey('van-production-surface-${screen.name}'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       children: [
         DecoratedBox(
@@ -132,23 +198,23 @@ class _FoundationState extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 32, color: FoodexVanTokens.green),
+                Icon(screen.icon, size: 32, color: FoodexVanTokens.green),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        screen.label(arabic),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        subtitle,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                        message,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: FoodexVanTokens.muted,
                             ),
