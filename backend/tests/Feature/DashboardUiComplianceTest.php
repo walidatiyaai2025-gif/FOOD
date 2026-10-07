@@ -33,7 +33,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertIsString($view);
         $this->assertStringContainsString('data-order-row-actions', $view);
         $this->assertStringContainsString('>⋮</summary>', $view);
-        $this->assertStringContainsString('View order', $view);
+        $this->assertStringContainsString("__('order_operations.view_order')", $view);
         $this->assertStringNotContainsString('<td><div class="actions">', $view);
         $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
         $this->assertStringNotContainsString('channel={{ $detail[\'channel\'] }}', $view);
@@ -74,7 +74,8 @@ class DashboardUiComplianceTest extends TestCase
         $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('$businessLabel', $view);
+        $this->assertStringContainsString('channel_label', $view);
+        $this->assertStringContainsString('status_label', $view);
         $this->assertStringNotContainsString('<p>#{{ $customer->id }}', $view);
         $this->assertStringNotContainsString('رقم الفاتورة الداخلي', $view);
         $this->assertStringNotContainsString('Invoice ID', $view);
@@ -140,7 +141,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('__(\'customer_360.title\')', $view);
         $this->assertStringContainsString('__(\'customer_360.sections\')', $view);
         $this->assertStringContainsString('__(\'customer_360.tabs.addresses\')', $view);
-        $this->assertStringContainsString('customer_360.business_labels.', $view);
+        $this->assertStringContainsString("__('customer_360.identity.origin_channel')", $view);
+        $this->assertStringContainsString("__('customer_360.identity.registration_source')", $view);
         $this->assertStringNotContainsString('$ar?\'تفاصيل العميل\':\'Customer details\'', $view);
         $this->assertStringNotContainsString('$ar ? \'الجملة\' : \'Wholesale\'', $view);
     }
@@ -198,7 +200,7 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertIsString($controller);
-        $this->assertStringContainsString('name="user_id"><select', str_replace(["\n", "\r"], '', $view));
+        $this->assertStringContainsString('<select name="user_id">', str_replace(["\n", "\r"], '', $view));
         $this->assertStringContainsString('$userTargets', $view);
         $this->assertStringNotContainsString('type="number" min="1"', $view);
         $this->assertStringNotContainsString('<strong>#{{ $notification->id }}</strong>', $view);
@@ -250,11 +252,11 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertIsString($controller);
-        $this->assertStringContainsString('@foreach([\'customer\',\'driver\',\'van\'] as \$submissionApp)', $view);
+        $this->assertStringContainsString('@foreach([\'customer\',\'driver\',\'van\'] as $submissionApp)', $view);
         $this->assertStringContainsString('<option value="van">{{ __(\'mobile_settings.apps.van\') }}</option>', $view);
         $this->assertStringContainsString('\'van\'=>\'com.foodex.van\'', $view);
         $this->assertSame(2, substr_count($controller, "'app' => ['required', 'in:customer,driver,van']"));
-        $this->assertStringContainsString('if (\$reviewer->app === \'van\')', $controller);
+        $this->assertStringContainsString('if ($reviewer->app === \'van\')', $controller);
         $this->assertStringContainsString('hasPermission(\'van.login\')', $controller);
     }
 
@@ -286,7 +288,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="deep_link_json"', $view);
         $this->assertStringNotContainsString('name="store_readiness_json"', $view);
         $this->assertStringContainsString('\'deep_link_scheme\' => [\'sometimes\', \'nullable\', \'string\', \'max:64\']', $controller);
-        $this->assertStringContainsString('\$readiness[\'android\'] = \$request->boolean(\'readiness_android\');', $controller);
+        $this->assertStringContainsString('$readiness[\'android\'] = $request->boolean(\'readiness_android\');', $controller);
     }
 
     public function test_mobile_settings_runtime_readiness_is_structured(): void
@@ -318,8 +320,10 @@ class DashboardUiComplianceTest extends TestCase
     public function test_mobile_store_submission_uses_structured_checklists(): void
     {
         $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/MobileSettingsController.php'));
 
         $this->assertIsString($view);
+        $this->assertIsString($controller);
         $this->assertStringContainsString('name="asset_icon_master"', $view);
         $this->assertStringContainsString('name="asset_splash_master"', $view);
         $this->assertStringContainsString('name="asset_screenshots"', $view);
@@ -331,8 +335,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="permission_declarations_json"', $view);
         $this->assertStringNotContainsString('name="privacy_checklist_json"', $view);
         $this->assertStringNotContainsString('name="manual_gaps_json"', $view);
-        $this->assertStringContainsString('$submissionMasterAssetStates = [', $view);
-        $this->assertStringContainsString('$submissionUploadAssetStates = [', $view);
+        $this->assertStringContainsString("'submissionMasterAssetStates' => [", $controller);
+        $this->assertStringContainsString("'submissionUploadAssetStates' => [", $controller);
         $this->assertStringContainsString('name="asset_icon_master"><option value="">—</option>@foreach($submissionMasterAssetStates', $view);
         $this->assertStringContainsString('name="asset_screenshots"><option value="">—</option>@foreach($submissionUploadAssetStates', $view);
         $this->assertStringNotContainsString('$submissionAssetStates = [', $view);
