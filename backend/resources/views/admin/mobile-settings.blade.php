@@ -171,6 +171,41 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <h3>{{ __('mobile_settings.delivery_log') }}</h3>
 @forelse($logs as $log)<div class="log">{{ __('mobile_settings.apps.'.$log->app) }} · {{ strtoupper($log->platform) }} · {{ __('mobile_settings.environments.'.$log->environment) }} · <strong>{{ __('mobile_settings.delivery_status.'.$log->status) }}</strong>@if($log->error_code)<br><strong>{{ __('mobile_settings.delivery_issue') }}:</strong> {{ $log->error_message ?: __('mobile_settings.test_failed') }}@endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
 </section>
+@php
+$submissionListText = static function ($value): string {
+    if (! is_array($value)) {
+        return '';
+    }
+
+    return collect($value)->map(static function ($item, $key): string {
+        if (is_string($item) || is_numeric($item)) {
+            return trim((string) $item);
+        }
+
+        if (is_array($item)) {
+            $name = trim((string) ($item['name'] ?? ''));
+            $reason = trim((string) ($item['reason'] ?? ''));
+            if ($name !== '' || $reason !== '') {
+                return trim($name.($reason !== '' ? ' — '.$reason : ''));
+            }
+
+            return collect($item)
+                ->filter(static fn ($value): bool => is_scalar($value))
+                ->map(static fn ($value, $itemKey): string => $itemKey.': '.$value)
+                ->implode(' · ');
+        }
+
+        return '';
+    })->filter()->implode("\n");
+};
+$submissionAssetStates = [
+    'repository-controlled',
+    'external-manual',
+    'external-manual-final-upload',
+    'external-manual-if-required',
+    'blocked',
+];
+@endphp
 <section class="card" style="grid-column:1/-1" data-store-submission-center>
 <h2>{{ $ar?'النشر / تجهيز الرفع للمتاجر':'Publishing / Store Submission' }}</h2>
 <p class="muted">{{ $ar?'ستة مسارات مستقلة: العميل والسائق والفان على أندرويد وiOS. حالة الجاهزية هنا لا تتجاوز نتائج التدقيق الآلي أو المتطلبات الخارجية.':'Six independent lanes: Customer, Driver and Van across Android and iOS. Readiness does not override automated audit evidence or external console/signing requirements.' }}</p>
@@ -200,8 +235,18 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <label>Full description</label><textarea name="full_description">{{ $submission?->full_description }}</textarea>
 <div class="row"><div><label>Category</label><input name="category" value="{{ $submission?->category }}"></div><div><label>Keywords</label><input name="keywords" value="{{ $submission?->keywords }}"></div></div>
 <label>Reviewer notes</label><textarea name="reviewer_notes">{{ $submission?->reviewer_notes }}</textarea>
-<div class="row"><div><label>Screenshot / assets readiness JSON</label><textarea name="asset_checklist_json">{{ $submission?->asset_checklist ? json_encode($submission->asset_checklist, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '{}' }}</textarea></div><div><label>Permissions / store privacy impact JSON</label><textarea name="permission_declarations_json">{{ $submission?->permission_declarations ? json_encode($submission->permission_declarations, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '{}' }}</textarea></div></div>
-<div class="row"><div><label>Privacy/data declaration checklist JSON</label><textarea name="privacy_checklist_json">{{ $submission?->privacy_checklist ? json_encode($submission->privacy_checklist, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '{}' }}</textarea></div><div><label>EXTERNAL MANUAL gaps JSON</label><textarea name="manual_gaps_json">{{ $submission?->manual_gaps ? json_encode($submission->manual_gaps, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) : '[]' }}</textarea></div></div>
+<label>{{ __('mobile_settings.submission_assets') }}</label>
+<div class="policy-grid">
+<div><label>{{ __('mobile_settings.asset_icon') }}</label><select name="asset_icon_master"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'icon_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_splash') }}</label><select name="asset_splash_master"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'splash_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_screenshots') }}</label><select name="asset_screenshots"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'screenshots')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_promotional') }}</label><select name="asset_promotional_assets"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'promotional_assets')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+</div>
+<div class="row">
+<div><label>{{ __('mobile_settings.submission_permissions') }}</label><textarea name="permission_declarations_text" placeholder="{{ __('mobile_settings.one_per_line') }}">{{ $submissionListText($submission?->permission_declarations) }}</textarea></div>
+<div><label>{{ __('mobile_settings.submission_privacy') }}</label><textarea name="privacy_checklist_text" placeholder="{{ __('mobile_settings.one_per_line') }}">{{ $submissionListText($submission?->privacy_checklist) }}</textarea></div>
+</div>
+<label>{{ __('mobile_settings.submission_manual_gaps') }}</label><textarea name="manual_gaps_text" placeholder="{{ __('mobile_settings.one_per_line') }}">{{ $submissionListText($submission?->manual_gaps) }}</textarea>
 <div class="policy-grid">
 @foreach(['signing_readiness'=>'Signing','firebase_readiness'=>'Firebase','apns_readiness'=>'APNs','deep_link_readiness'=>'Deep links','production_environment_readiness'=>'Production env','readiness_state'=>'Overall'] as $field=>$label)
 <div><label>{{ $label }}</label><select name="{{ $field }}">@foreach(['PASS','WARN','BLOCKED'] as $state)<option value="{{ $state }}" @selected(($submission?->{$field} ?? 'BLOCKED')===$state)>{{ $state }}</option>@endforeach</select></div>
