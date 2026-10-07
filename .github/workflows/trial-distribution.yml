@@ -117,7 +117,7 @@ jobs:
           --health-retries=12
 
     env:
-      FOODEX_API_BASE_URL: https://vanfoodex.50sols.com
+      FOODEX_API_BASE_URL: https://foodex.50sols.com
       CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_CUSTOMER_FIREBASE_API_KEY }}
       CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_APP_ID }}
       CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
@@ -346,7 +346,7 @@ jobs:
           test ! -e "$fresh/backend/.env"
 
           cp "$fresh/backend/.env.production.example" "$fresh/backend/.env"
-          sed -i             -e 's|^APP_URL=.*|APP_URL=https://vanfoodex.50sols.com|'             -e 's|^DB_HOST=.*|DB_HOST=127.0.0.1|'             -e 's|^DB_PORT=.*|DB_PORT=3306|'             -e 's|^DB_DATABASE=.*|DB_DATABASE=foodex_acceptance|'             -e 's|^DB_USERNAME=.*|DB_USERNAME=root|'             -e 's|^DB_PASSWORD=.*|DB_PASSWORD=root|'             -e 's|^CACHE_STORE=.*|CACHE_STORE=redis|'             -e 's|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|'             -e 's|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|'             "$fresh/backend/.env"
+          sed -i             -e 's|^APP_URL=.*|APP_URL=https://foodex.50sols.com|'             -e 's|^DB_HOST=.*|DB_HOST=127.0.0.1|'             -e 's|^DB_PORT=.*|DB_PORT=3306|'             -e 's|^DB_DATABASE=.*|DB_DATABASE=foodex_acceptance|'             -e 's|^DB_USERNAME=.*|DB_USERNAME=root|'             -e 's|^DB_PASSWORD=.*|DB_PASSWORD=root|'             -e 's|^CACHE_STORE=.*|CACHE_STORE=redis|'             -e 's|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|'             -e 's|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|'             "$fresh/backend/.env"
 
           cat > /tmp/foodex-fresh-install.php <<'PHP'
           <?php
@@ -375,7 +375,7 @@ jobs:
               ]);
               $workflow->savePlatformInformation([
                   'name' => 'FOODEX',
-                  'url' => 'https://vanfoodex.50sols.com',
+                  'url' => 'https://foodex.50sols.com',
                   'locale' => 'ar',
               ]);
               $workflow->saveCacheQueueConfiguration([
@@ -1116,7 +1116,7 @@ jobs:
             "schema_version": 2,
             "version": "$CURRENT_VERSION",
             "source_commit": "$GITHUB_SHA",
-            "api_base_url": "https://vanfoodex.50sols.com",
+            "api_base_url": "https://foodex.50sols.com",
             "setup_zip": "FOODEX-Laravel-Setup.zip",
             "document_root": "backend/public",
             "installer_path": "/install",
