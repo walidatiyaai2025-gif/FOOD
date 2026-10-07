@@ -38,10 +38,10 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
 <p><strong>{{ __('mobile_settings.selected_record') }}:</strong> {{ __('mobile_settings.apps.'.$selectedApp) }} · {{ __('mobile_settings.environments.'.$selectedEnvironment) }} @if(!$selectedSetting)<span class="muted">({{ __('mobile_settings.new_record') }})</span>@endif</p>
 
-<label>{{ __('mobile_settings.display_name') }}</label><input name="display_name" value="{{ old('display_name', $selectedSetting?->display_name) }}" placeholder="{{ $ar?'مثال: فودكس العميل':'e.g. FOODEX Customer' }}" required>
+<label>{{ __('mobile_settings.display_name') }}</label><input name="display_name" value="{{ old('display_name', $selectedSetting?->display_name) }}" placeholder="{{ __('mobile_settings.ui.display_name_placeholder') }}" required>
 <div class="row">
-<div><label>{{ $ar?'معرّف حزمة أندرويد':'Android package ID' }}</label><input name="android_package_id" value="{{ old('android_package_id', $selectedSetting?->android_package_id) }}" placeholder="com.fiftysolution.foodex.customer"></div>
-<div><label>{{ $ar?'معرّف حزمة آي أو إس':'iOS bundle ID' }}</label><input name="ios_bundle_id" value="{{ old('ios_bundle_id', $selectedSetting?->ios_bundle_id) }}" placeholder="com.fiftysolution.foodex.customer"></div>
+<div><label>{{ __('mobile_settings.ui.android_package_id') }}</label><input name="android_package_id" value="{{ old('android_package_id', $selectedSetting?->android_package_id) }}" placeholder="com.fiftysolution.foodex.customer"></div>
+<div><label>{{ __('mobile_settings.ui.ios_bundle_id') }}</label><input name="ios_bundle_id" value="{{ old('ios_bundle_id', $selectedSetting?->ios_bundle_id) }}" placeholder="com.fiftysolution.foodex.customer"></div>
 </div>
 <div class="row">
 <div><label>{{ __('mobile_settings.published_version') }}</label><input name="published_version" value="{{ old('published_version', $selectedSetting?->published_version) }}" placeholder="1.0.40"></div>
@@ -57,21 +57,21 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <div><label>{{ __('mobile_settings.message_ar') }}</label><textarea name="maintenance_message_ar" placeholder="رسالة الصيانة بالعربية">{{ old('maintenance_message_ar', $selectedSetting?->maintenance_message_ar) }}</textarea></div>
 <div><label>{{ __('mobile_settings.message_en') }}</label><textarea name="maintenance_message_en" placeholder="Maintenance message in English">{{ old('maintenance_message_en', $selectedSetting?->maintenance_message_en) }}</textarea></div>
 </div>
-<label>{{ $ar?'رابط متجر جوجل بلاي':'Google Play URL' }}</label><input type="url" name="google_play_url" value="{{ old('google_play_url', $selectedSetting?->google_play_url) }}" placeholder="https://play.google.com/store/apps/details?id=...">
-<label>{{ $ar?'رابط متجر آب ستور':'App Store URL' }}</label><input type="url" name="app_store_url" value="{{ old('app_store_url', $selectedSetting?->app_store_url) }}" placeholder="https://apps.apple.com/app/id...">
+<label>{{ __('mobile_settings.ui.google_play_url') }}</label><input type="url" name="google_play_url" value="{{ old('google_play_url', $selectedSetting?->google_play_url) }}" placeholder="https://play.google.com/store/apps/details?id=...">
+<label>{{ __('mobile_settings.ui.app_store_url') }}</label><input type="url" name="app_store_url" value="{{ old('app_store_url', $selectedSetting?->app_store_url) }}" placeholder="https://apps.apple.com/app/id...">
 <div class="row">
-<div><label>{{ $ar?'رابط سياسة الخصوصية':'Privacy URL' }}</label><input type="url" name="privacy_url" value="{{ old('privacy_url', $selectedSetting?->privacy_url) }}" placeholder="https://example.com/privacy"></div>
-<div><label>{{ $ar?'رابط الشروط والأحكام':'Terms URL' }}</label><input type="url" name="terms_url" value="{{ old('terms_url', $selectedSetting?->terms_url) }}" placeholder="https://example.com/terms"></div>
+<div><label>{{ __('mobile_settings.ui.privacy_url') }}</label><input type="url" name="privacy_url" value="{{ old('privacy_url', $selectedSetting?->privacy_url) }}" placeholder="https://example.com/privacy"></div>
+<div><label>{{ __('mobile_settings.ui.terms_url') }}</label><input type="url" name="terms_url" value="{{ old('terms_url', $selectedSetting?->terms_url) }}" placeholder="https://example.com/terms"></div>
 </div>
-<label>{{ $ar?'رابط الدعم':'Support URL' }}</label><input type="url" name="support_url" value="{{ old('support_url', $selectedSetting?->support_url) }}" placeholder="https://example.com/support">
-<label>{{ $ar?'رابط حذف الحساب العام':'Delete Account public URL' }}</label><input type="url" name="delete_account_url" value="{{ old('delete_account_url', $selectedSetting?->delete_account_url) }}" placeholder="{{ url('/account-deletion') }}">
-<label>{{ $ar?'عرض شريط الإصدار الدائم':'Persistent footer display' }}</label>
+<label>{{ __('mobile_settings.ui.support_url') }}</label><input type="url" name="support_url" value="{{ old('support_url', $selectedSetting?->support_url) }}" placeholder="https://example.com/support">
+<label>{{ __('mobile_settings.ui.delete_account_url') }}</label><input type="url" name="delete_account_url" value="{{ old('delete_account_url', $selectedSetting?->delete_account_url) }}" placeholder="{{ url('/account-deletion') }}">
+<label>{{ __('mobile_settings.ui.footer_display') }}</label>
 <select name="footer_display_mode">
-<option value="persistent" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode ?? 'persistent')==='persistent')>{{ $ar?'تشغيل':'ON — persistent' }}</option>
-<option value="about_only" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode)==='about_only')>{{ $ar?'إخفاء الدائم وإبقاؤه في حول/التشخيص':'OFF — About/Diagnostics only' }}</option>
-<option value="hidden" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode)==='hidden')>{{ $ar?'إخفاء الشريط الدائم':'OFF — zero persistent footer space' }}</option>
+<option value="persistent" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode ?? 'persistent')==='persistent')>{{ __('mobile_settings.ui.footer_persistent') }}</option>
+<option value="about_only" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode)==='about_only')>{{ __('mobile_settings.ui.footer_about_only') }}</option>
+<option value="hidden" @selected(old('footer_display_mode', $selectedSetting?->footer_display_mode)==='hidden')>{{ __('mobile_settings.ui.footer_hidden') }}</option>
 </select>
-<p class="muted">{{ $ar?'هذا الإعداد يتحكم في الظهور فقط. رقم الإصدار/البناء الفعلي يأتي من التطبيق المثبت ولا يتم تزويره من الإعدادات البعيدة.':'Visibility only. The installed binary remains authoritative for version/build; remote settings never fake it.' }}</p>
+<p class="muted">{{ __('mobile_settings.ui.footer_help') }}</p>
 <div class="row">
 <div><label>{{ __('mobile_settings.release_ar') }}</label><textarea name="release_notes_ar" placeholder="ملاحظات الإصدار بالعربية">{{ old('release_notes_ar', $selectedSetting?->release_notes_ar) }}</textarea></div>
 <div><label>{{ __('mobile_settings.release_en') }}</label><textarea name="release_notes_en" placeholder="Release notes in English">{{ old('release_notes_en', $selectedSetting?->release_notes_en) }}</textarea></div>
@@ -92,32 +92,32 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 </section>
 
 <section class="card" data-driver-location-policy>
-<h2>{{ $ar?'سياسة الموقع الإلزامية للسائق':'Driver location enforcement' }}</h2>
-<p class="muted">{{ $ar?'تتحكم هذه السياسة في واجهات عمليات السائق على الخادم. الجاهزية أدناه مأخوذة من AppVersion الرسمية، وليس من حقول Mobile Runtime الوصفية.':'This server policy gates Driver operational APIs. Readiness below is derived from authoritative AppVersion policy, not informational Mobile Runtime fields.' }}</p>
-<p><strong>{{ $ar?'الإصدار الداعم للنبضات من':'Heartbeat-capable minimum' }}:</strong> <code>{{ $driverLocationPolicy['minimum_heartbeat_version'] }}</code></p>
+<h2>{{ __('mobile_settings.ui.driver_location_title') }}</h2>
+<p class="muted">{{ __('mobile_settings.ui.driver_location_info') }}</p>
+<p><strong>{{ __('mobile_settings.ui.heartbeat_minimum') }}:</strong> <code>{{ $driverLocationPolicy['minimum_heartbeat_version'] }}</code></p>
 
 <div class="policy-grid">
 @foreach(['android','ios'] as $platform)
 @php($platformPolicy = $driverLocationPolicy['platforms'][$platform])
 <div class="policy" data-driver-policy="{{ $platform }}">
-<h3>{{ strtoupper($platform) }} — <span class="{{ $platformPolicy['ready']?'status-ready':'status-blocked' }}">{{ $platformPolicy['ready']?($ar?'جاهز':'READY'):($ar?'محجوب':'BLOCKED') }}</span></h3>
-<p><strong>{{ $ar?'أحدث إصدار':'Latest' }}:</strong> <code>{{ $platformPolicy['latest_version'] ?? '—' }}</code></p>
-<p><strong>{{ $ar?'الحد الأدنى':'Minimum supported' }}:</strong> <code>{{ $platformPolicy['minimum_supported_version'] ?? '—' }}</code></p>
-<p><strong>{{ $ar?'إجبار التحديث':'Force update' }}:</strong> {{ $platformPolicy['force_update']?($ar?'نعم':'ON'):($ar?'لا':'OFF') }}</p>
-<p><strong>{{ $ar?'رابط التحديث':'Update URL' }}:</strong>
+<h3>{{ strtoupper($platform) }} — <span class="{{ $platformPolicy['ready']?'status-ready':'status-blocked' }}">{{ $platformPolicy['ready'] ? __('mobile_settings.ui.ready') : __('mobile_settings.ui.blocked') }}</span></h3>
+<p><strong>{{ __('mobile_settings.ui.latest') }}:</strong> <code>{{ $platformPolicy['latest_version'] ?? '—' }}</code></p>
+<p><strong>{{ __('mobile_settings.ui.minimum_supported') }}:</strong> <code>{{ $platformPolicy['minimum_supported_version'] ?? '—' }}</code></p>
+<p><strong>{{ __('mobile_settings.ui.force_update_label') }}:</strong> {{ $platformPolicy['force_update'] ? __('mobile_settings.ui.yes') : __('mobile_settings.ui.no') }}</p>
+<p><strong>{{ __('mobile_settings.ui.update_url') }}:</strong>
 @if($platformPolicy['update_url_valid'] && $platformPolicy['update_url'])
-<a href="{{ $platformPolicy['update_url'] }}" rel="noopener" target="_blank">{{ $ar?'صالح':'valid' }}</a>
+<a href="{{ $platformPolicy['update_url'] }}" rel="noopener" target="_blank">{{ __('mobile_settings.ui.valid') }}</a>
 @elseif($platformPolicy['update_url'])
-<span class="status-blocked">{{ $ar?'غير صالح':'invalid' }}</span> · <code>{{ $platformPolicy['update_url'] }}</code>
+<span class="status-blocked">{{ __('mobile_settings.ui.invalid') }}</span> · <code>{{ $platformPolicy['update_url'] }}</code>
 @else
-<span class="status-blocked">{{ $ar?'مفقود':'missing' }}</span>
+<span class="status-blocked">{{ __('mobile_settings.ui.missing') }}</span>
 @endif
 </p>
 @if($platformPolicy['blockers'])
 <ul class="blockers">@foreach($platformPolicy['blockers'] as $blocker)<li><code>{{ $blocker }}</code></li>@endforeach</ul>
 @endif
 @can('platform.manage')
-<a class="button secondary" href="{{ route('admin.app-versions.index', ['app'=>'driver','platform'=>$platform]) }}">{{ $ar?'تعديل سياسة AppVersion':'Edit authoritative AppVersion' }}</a>
+<a class="button secondary" href="{{ route('admin.app-versions.index', ['app'=>'driver','platform'=>$platform]) }}">{{ __('mobile_settings.ui.edit_app_version') }}</a>
 @endcan
 </div>
 @endforeach
@@ -126,37 +126,37 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <form method="post" action="{{ route('admin.mobile-settings.driver-location-policy') }}">
 @csrf @method('put')
 <input type="hidden" name="enabled" value="0">
-<label class="check"><input type="checkbox" name="enabled" value="1" @checked($driverLocationPolicy['enabled'])>{{ $ar?'تفعيل فرض الموقع الحديث على عمليات السائق':'Require a fresh location for Driver operations' }}</label>
-<label>{{ $ar?'الحد الأقصى لعمر آخر موقع مستلم (ثانية)':'Maximum received-location age (seconds)' }}</label>
+<label class="check"><input type="checkbox" name="enabled" value="1" @checked($driverLocationPolicy['enabled'])>{{ __('mobile_settings.ui.require_fresh_location') }}</label>
+<label>{{ __('mobile_settings.ui.freshness_seconds') }}</label>
 <input type="number" name="freshness_seconds" min="30" max="600" step="1" value="{{ $driverLocationPolicy['freshness_seconds'] }}" required>
-<p class="muted">{{ $ar?'القيمة الافتراضية 90 ثانية. يعتمد الخادم على received_at الذي يسجله الخادم، وليس ساعة جهاز السائق.':'Default is 90 seconds. Enforcement uses server-owned received_at, not the Driver device clock.' }}</p>
-<p><strong>{{ $ar?'الحالة الحالية':'Current status' }}:</strong> {{ $driverLocationPolicy['enabled'] ? ($ar?'مفعّل':'ON') : ($ar?'متوقف':'OFF') }}</p>
-<p><strong>{{ $ar?'جاهزية التفعيل':'Rollout gate' }}:</strong> <span class="{{ $driverLocationPolicy['rollout_ready']?'status-ready':'status-blocked' }}">{{ $driverLocationPolicy['rollout_ready'] ? ($ar?'جاهز':'READY') : ($ar?'غير جاهز':'BLOCKED') }}</span></p>
+<p class="muted">{{ __('mobile_settings.ui.freshness_help') }}</p>
+<p><strong>{{ __('mobile_settings.ui.current_status') }}:</strong> {{ $driverLocationPolicy['enabled'] ? __('mobile_settings.on') : __('mobile_settings.off') }}</p>
+<p><strong>{{ __('mobile_settings.ui.rollout_gate') }}:</strong> <span class="{{ $driverLocationPolicy['rollout_ready']?'status-ready':'status-blocked' }}">{{ $driverLocationPolicy['rollout_ready'] ? __('mobile_settings.ui.rollout_ready') : __('mobile_settings.ui.rollout_blocked') }}</span></p>
 @if(!$driverLocationPolicy['rollout_ready'])
 <div class="warning">
-<strong>{{ $ar?'أسباب الحظر الفعلية':'Exact rollout blockers' }}:</strong>
+<strong>{{ __('mobile_settings.ui.rollout_blockers') }}:</strong>
 <ul class="blockers">@foreach($driverLocationPolicy['rollout_blockers'] as $blocker)<li><code>{{ $blocker }}</code></li>@endforeach</ul>
 </div>
 @endif
-<button class="button">{{ $ar?'حفظ سياسة الموقع':'Save location policy' }}</button>
+<button class="button">{{ __('mobile_settings.ui.save_location_policy') }}</button>
 </form>
 </section>
 
 <section class="card">
 <h2>{{ __('mobile_settings.push_title') }}</h2>
 <form method="post" action="{{ route('admin.mobile-settings.push') }}">@csrf @method('put')
-<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">{{ $ar?'أندرويد / إشعارات فايربيز':'Android / FCM' }}</option><option value="ios">{{ $ar?'آي أو إس / إشعارات فايربيز':'iOS / FCM (APNs)' }}</option></select></div></div>
-<label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development">{{ $ar?'تطوير':'Development' }}</option><option value="staging">{{ $ar?'اختبار':'Staging' }}</option><option value="production" selected>{{ $ar?'إنتاج':'Production' }}</option></select>
+<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">{{ __('mobile_settings.ui.android_fcm') }}</option><option value="ios">{{ __('mobile_settings.ui.ios_fcm') }}</option></select></div></div>
+<label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development">{{ __('mobile_settings.environments.development') }}</option><option value="staging">{{ __('mobile_settings.environments.staging') }}</option><option value="production" selected>{{ __('mobile_settings.environments.production') }}</option></select>
 <label class="check"><input type="checkbox" name="enabled" value="1">{{ __('mobile_settings.enabled') }}</label>
-<label>{{ __('mobile_settings.credentials') }}</label><textarea name="credentials_json" placeholder="{{ $ar?'ألصق Service Account JSON من Firebase / Google Cloud ويشمل project_id و client_email و private_key':'Paste the Firebase / Google Cloud Service Account JSON including project_id, client_email and private_key' }}"></textarea>
-<p class="muted">{{ $ar?'يحفظ مشفراً. يقوم FOODEX بإنشاء وتجديد OAuth access token تلقائياً؛ لا تحتاج لإدخال access_token يدوياً.':'Stored encrypted. FOODEX generates and refreshes the OAuth access token automatically; no manual access_token is required.' }}</p>
-<div class="row"><div><label>{{ $ar?'الصوت الافتراضي':'Sound' }}</label><input name="default_sound" placeholder="default"></div><div><label>{{ $ar?'قناة الإشعارات':'Channel' }}</label><input name="default_channel" placeholder="foodex_default"></div></div>
-<div class="row"><div><label>{{ $ar?'أيقونة الإشعار':'Icon' }}</label><input name="default_icon" placeholder="ic_notification"></div><div><label>{{ $ar?'فئة الإشعار':'Category' }}</label><input name="default_category" placeholder="general"></div></div>
+<label>{{ __('mobile_settings.credentials') }}</label><textarea name="credentials_json" placeholder="{{ __('mobile_settings.ui.credentials_placeholder') }}"></textarea>
+<p class="muted">{{ __('mobile_settings.ui.credentials_help') }}</p>
+<div class="row"><div><label>{{ __('mobile_settings.ui.sound') }}</label><input name="default_sound" placeholder="default"></div><div><label>{{ __('mobile_settings.ui.channel') }}</label><input name="default_channel" placeholder="foodex_default"></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.ui.icon') }}</label><input name="default_icon" placeholder="ic_notification"></div><div><label>{{ __('mobile_settings.ui.category') }}</label><input name="default_category" placeholder="general"></div></div>
 <button class="button">{{ __('mobile_settings.save_push') }}</button>
 </form>
 <h3>{{ __('mobile_settings.configured') }}</h3>
 @forelse($providers as $p)
-<div class="log" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>{{ $p->app }} · {{ $p->platform }} · {{ $p->environment }} · {{ $p->enabled?__('mobile_settings.on'):__('mobile_settings.off') }}</span><form method="post" action="{{ route('admin.mobile-settings.push.test') }}" style="margin:0">@csrf<input type="hidden" name="app" value="{{ $p->app }}"><input type="hidden" name="platform" value="{{ $p->platform }}"><input type="hidden" name="environment" value="{{ $p->environment }}"><button class="button" type="submit" style="margin:0">{{ $ar?'اختبار اتصال Firebase':'Test Firebase connection' }}</button></form></div>
+<div class="log" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>{{ __('mobile_settings.apps.'.$p->app) }} · {{ strtoupper($p->platform) }} · {{ __('mobile_settings.environments.'.$p->environment) }} · {{ $p->enabled ? __('mobile_settings.on') : __('mobile_settings.off') }}</span><form method="post" action="{{ route('admin.mobile-settings.push.test') }}" style="margin:0">@csrf<input type="hidden" name="app" value="{{ $p->app }}"><input type="hidden" name="platform" value="{{ $p->platform }}"><input type="hidden" name="environment" value="{{ $p->environment }}"><button class="button" type="submit" style="margin:0">{{ __('mobile_settings.ui.test_firebase') }}</button></form></div>
 @empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
 </section>
 
@@ -211,8 +211,8 @@ $submissionUploadAssetStates = [
 ];
 @endphp
 <section class="card" style="grid-column:1/-1" data-store-submission-center>
-<h2>{{ $ar?'النشر / تجهيز الرفع للمتاجر':'Publishing / Store Submission' }}</h2>
-<p class="muted">{{ $ar?'ستة مسارات مستقلة: العميل والسائق والفان على أندرويد وiOS. حالة الجاهزية هنا لا تتجاوز نتائج التدقيق الآلي أو المتطلبات الخارجية.':'Six independent lanes: Customer, Driver and Van across Android and iOS. Readiness does not override automated audit evidence or external console/signing requirements.' }}</p>
+<h2>{{ __('mobile_settings.ui.publishing_title') }}</h2>
+<p class="muted">{{ __('mobile_settings.ui.publishing_info') }}</p>
 @foreach(['customer','driver','van'] as $submissionApp)
 @foreach(['android','ios'] as $submissionPlatform)
 @php($submission = $storeSubmissions->first(fn($item)=>$item->app===$submissionApp && $item->platform===$submissionPlatform && $item->environment===$selectedEnvironment))
@@ -225,7 +225,7 @@ $submissionUploadAssetStates = [
 <div class="row">
 @php($submissionPackage = ['customer'=>'com.fiftysolution.foodex.customer','driver'=>'com.fiftysolution.foodex.driver','van'=>'com.foodex.van'][$submissionApp])
 <div><label>Package / Bundle ID</label><input name="package_identifier" value="{{ $submission?->package_identifier }}" placeholder="{{ $submissionPackage }}"></div>
-<div><label>{{ $ar?'الحالة في المتجر':'Submission status' }}</label><select name="submission_status">@foreach(['NOT_READY','READY','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','PUBLISHED'] as $status)<option value="{{ $status }}" @selected(($submission?->submission_status ?? 'NOT_READY')===$status)>{{ $status }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.ui.submission_status') }}</label><select name="submission_status">@foreach(['NOT_READY','READY','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','PUBLISHED'] as $status)<option value="{{ $status }}" @selected(($submission?->submission_status ?? 'NOT_READY')===$status)>{{ $status }}</option>@endforeach</select></div>
 </div>
 <div class="row"><div><label>Current version</label><input name="current_version" value="{{ $submission?->current_version }}"></div><div><label>Current build</label><input name="current_build" value="{{ $submission?->current_build }}"></div></div>
 <div class="row"><div><label>Minimum version</label><input name="minimum_version" value="{{ $submission?->minimum_version }}"></div><div><label>Recommended version</label><input name="recommended_version" value="{{ $submission?->recommended_version }}"></div></div>
@@ -256,22 +256,22 @@ $submissionUploadAssetStates = [
 <div><label>{{ $label }}</label><select name="{{ $field }}">@foreach(['PASS','WARN','BLOCKED'] as $state)<option value="{{ $state }}" @selected(($submission?->{$field} ?? 'BLOCKED')===$state)>{{ $state }}</option>@endforeach</select></div>
 @endforeach
 </div>
-<button class="button">{{ $ar?'حفظ بيانات الرفع':'Save submission metadata' }}</button>
+<button class="button">{{ __('mobile_settings.ui.save_submission') }}</button>
 </form>
 @endforeach
 @endforeach
 </section>
 
 <section class="card" style="grid-column:1/-1" data-reviewer-accounts>
-<h2>{{ $ar?'حسابات مراجعي المتاجر':'Store Reviewer / Test Accounts' }}</h2>
-<p class="warning">{{ $ar?'كلمة المرور لا تُعرض أبداً بعد الحفظ، ولا تُعاد في API أو السجلات أو الـAudit. الاختبار يتم على الخادم فقط.':'Reviewer passwords are write-only: never returned in API, Dashboard, logs, or audit. Readiness testing occurs server-side.' }}</p>
+<h2>{{ __('mobile_settings.ui.reviewers_title') }}</h2>
+<p class="warning">{{ __('mobile_settings.ui.reviewer_warning') }}</p>
 <form method="post" action="{{ route('admin.mobile-settings.reviewer') }}">
 @csrf @method('put')
 <div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">Android</option><option value="ios">iOS</option></select></div></div>
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
 <div class="row"><div><label>Persona</label><input name="persona" placeholder="customer_reviewer" required></div><div><label>Identifier type</label><select name="identifier_type"><option value="email">email</option><option value="username">username</option><option value="phone">phone</option></select></div></div>
 <label>Identifier</label><input name="identifier" required>
-<label>{{ $ar?'كلمة مرور/سر المراجع (كتابة فقط)':'Reviewer secret (write-only)' }}</label><input type="password" name="reviewer_secret" autocomplete="new-password">
+<label>{{ __('mobile_settings.ui.reviewer_secret') }}</label><input type="password" name="reviewer_secret" autocomplete="new-password">
 <div class="row">
 <div><label>{{ __('mobile_settings.reviewer_channel') }}</label><select name="reviewer_channel"><option value="">—</option><option value="b2b">{{ __('mobile_settings.channels.b2b') }}</option><option value="b2c">{{ __('mobile_settings.channels.b2c') }}</option></select></div>
 <div><label>{{ __('mobile_settings.reviewer_store') }}</label><select name="reviewer_store_id"><option value="">{{ __('mobile_settings.reviewer_no_store') }}</option>@foreach($reviewerStores as $reviewerStore)<option value="{{ $reviewerStore->id }}" data-channel="{{ strtolower((string)$reviewerStore->channel) }}">{{ $reviewerStore->name }} · {{ __('mobile_settings.channels.'.strtolower((string)$reviewerStore->channel)) }}</option>@endforeach</select></div>
