@@ -83,7 +83,7 @@ These rows intentionally remain `OPEN` until required runtime evidence is comple
 | D08 | Administration sidebar collapses to one entry opening the card-based Admin Hub; covered by Administration Hub tests. Runtime AR/EN still required. |
 | D09 | Admin Hub and Mobile Settings expose Customer/Driver/Van as first-class apps; direct per-app Preview/App Version/Settings actions exist; Push Provider, Store Submission, and Reviewer/Test Account administration separate Van from Driver; store-submission metadata now has Van Android/iOS lanes and CI registers a dedicated Van Android release-AAB validation job. Runtime proof still required. |
 | D10 | Shared `foodex-admin-layout` / `foodex-admin-main` / Sidebar / page-header contract is statically enforced across eight audited owned Dashboard views. Runtime shell audit still required. |
-| D11 | Live Tracking store filtering uses authorized human-readable Store lookup; Driver/Van combined identity/stale-state acceptance still requires exact runtime map proof. |
+| D11 | Live Tracking uses authorized human-readable Store lookup and a mixed Driver+Van runtime with distinct entity symbols; Browser tests cover mixed-feed merge and stale/online/offline states. Visual QA now seeds Driver stale + Van online fixtures and requires AR/EN mixed-runtime screenshots before evidence is accepted. Later independent runtime review still required. |
 
 ## Worker update rule
 
