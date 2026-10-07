@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 import 'package:foodex_driver_app/features/delivery/active/driver_active_journey.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 
@@ -609,6 +610,55 @@ void main() {
 
     expect(find.text('B2C-18'), findsOneWidget);
     expect(find.text('B2B-19'), findsNothing);
+  });
+
+  testWidgets(
+      'delivery card keeps no-wrap reference and green ellipsis in compact header',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 919,
+        channel: DriverChannel.b2c,
+        reference: 'ORDER-REFERENCE-919-VERY-LONG-NO-WRAP-CHECK',
+        status: 'assigned',
+        availableStatuses: ['accepted'],
+      ),
+    ]);
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+
+    final referenceFinder =
+        find.byKey(const Key('driver-active-reference-919'));
+    final actionFinder =
+        find.byKey(const Key('driver-active-actions-919'));
+    final iconFinder =
+        find.byKey(const Key('driver-active-actions-icon-919'));
+
+    expect(referenceFinder, findsOneWidget);
+    expect(actionFinder, findsOneWidget);
+    expect(iconFinder, findsOneWidget);
+
+    final reference = tester.widget<Text>(referenceFinder);
+    expect(reference.maxLines, 1);
+    expect(reference.overflow, TextOverflow.ellipsis);
+
+    final icon = tester.widget<Icon>(iconFinder);
+    expect(icon.color, FoodexBrand.green);
+    expect(
+      (tester.getCenter(referenceFinder).dy -
+              tester.getCenter(actionFinder).dy)
+          .abs(),
+      lessThan(12),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('delivery filters stay on one compact row at narrow phone width',
