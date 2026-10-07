@@ -232,6 +232,10 @@ final class CommercialDashboardController extends Controller
         $row = $this->flashOfferRow($storeId, $offer);
         $products = DB::table('flash_offer_products')
             ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
+            ->leftJoin('product_selling_units as preview_units', function ($join): void {
+                $join->on('preview_units.product_id', '=', 'flash_offer_products.product_id')
+                    ->on('preview_units.code', '=', 'flash_offer_products.selling_unit_code');
+            })
             ->where('flash_offer_products.flash_offer_id', $offer)
             ->orderBy('flash_offer_products.id')
             ->get([
@@ -240,6 +244,7 @@ final class CommercialDashboardController extends Controller
                 'products.name as product_name',
                 'products.sku as product_sku',
                 'flash_offer_products.selling_unit_code',
+                'preview_units.name as selling_unit_name',
                 'flash_offer_products.conversion_factor',
                 'flash_offer_products.flash_price',
                 'flash_offer_products.allocation_base',
