@@ -3,7 +3,7 @@
   "version": "1.0.60",
   "source_commit": "289f6c5573521baa5b0800fd29197df918de7151",
   "github_run_number": "338",
-  "api_base_url": "https://vanfoodex.50sols.com",
+  "api_base_url": "https://foodex.50sols.com",
   "android_signing": "flutter-template-debug-key-test-only",
   "production_store_ready": false,
   "customer": {
