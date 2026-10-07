@@ -1040,10 +1040,13 @@
     builder?.querySelectorAll('[data-flash-product-row]').forEach(setupProductRow);
     addButton?.addEventListener('click', () => {
         if (!builder || !template) return;
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextProductIndex++));
-        const row = wrapper.firstElementChild;
-        if (!row) return;
+        if (!(template instanceof HTMLTemplateElement)) return;
+        const row = template.content.firstElementChild?.cloneNode(true);
+        if (!(row instanceof HTMLElement)) return;
+        const index = String(nextProductIndex++);
+        row.querySelectorAll('[name]').forEach((field) => {
+            field.name = field.name.replaceAll('__INDEX__', index);
+        });
         builder.appendChild(row);
         setupProductRow(row);
     });
