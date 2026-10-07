@@ -85,4 +85,17 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('value="van"', $view);
         $this->assertStringContainsString("@selected($selectedApp==='van')", $view);
     }
+
+
+    public function test_notification_campaigns_hide_internal_identifiers_from_business_users(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/notification-campaigns.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringNotContainsString('#{{ $campaign->id }}', $view);
+        $this->assertStringNotContainsString('<td>{{ $run->id }}</td>', $view);
+        $this->assertStringNotContainsString("'#'.$run->notification_id", $view);
+        $this->assertStringNotContainsString('{{ $run->error_code ??', $view);
+        $this->assertStringContainsString('{{ $loop->iteration }}', $view);
+    }
 }
