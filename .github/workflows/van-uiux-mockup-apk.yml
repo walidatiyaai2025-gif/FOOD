@@ -1,0 +1,59 @@
+name: Build VAN UIUX Mockup APK
+
+on:
+  push:
+    branches:
+      - archive/uiux-approved-mockups
+    paths:
+      - "prototypes/van_uiux_mockup/**"
+      - ".github/workflows/van-uiux-mockup-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create isolated Android shell
+        run: |
+          rm -rf /tmp/foodex-van-uiux
+          flutter create --platforms=android --org com.foodex.uiux --project-name foodex_van_uiux_mockup /tmp/foodex-van-uiux
+          cp prototypes/van_uiux_mockup/pubspec.yaml /tmp/foodex-van-uiux/pubspec.yaml
+          cp prototypes/van_uiux_mockup/lib/main.dart /tmp/foodex-van-uiux/lib/main.dart
+          rm -rf /tmp/foodex-van-uiux/test
+          sed -i 's/android:label="foodex_van_uiux_mockup"/android:label="FOODEX Van UIUX"/' /tmp/foodex-van-uiux/android/app/src/main/AndroidManifest.xml
+
+      - name: Analyze prototype
+        working-directory: /tmp/foodex-van-uiux
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos
+
+      - name: Build release APK
+        working-directory: /tmp/foodex-van-uiux
+        run: flutter build apk --release
+
+      - name: Stage APK
+        run: |
+          cp /tmp/foodex-van-uiux/build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/FOODEX-Van-UIUX-Mockup.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-Van-UIUX-Mockup-APK
+          path: FOODEX-Van-UIUX-Mockup.apk
+          if-no-files-found: error
+          retention-days: 30
