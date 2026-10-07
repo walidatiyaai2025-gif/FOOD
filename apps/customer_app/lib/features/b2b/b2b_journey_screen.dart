@@ -5831,13 +5831,13 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                             errorBuilder: (_, __, ___) => Image.asset(
                               'assets/branding/foodex-economical-group.webp',
                               fit: BoxFit.contain,
-                              semanticLabel: 'FOODEX Economic Group',
+                              semanticLabel: context.tr('customer.brand.economic_group'),
                             ),
                           )
                         : Image.asset(
                             'assets/branding/foodex-economical-group.webp',
                             fit: BoxFit.contain,
-                            semanticLabel: 'FOODEX Economic Group',
+                            semanticLabel: context.tr('customer.brand.economic_group'),
                           ),
                   ),
                   const SizedBox(width: 12),
