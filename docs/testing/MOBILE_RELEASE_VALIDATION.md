@@ -20,11 +20,11 @@ Download from the corresponding completed Actions run and verify `sha256sum -c S
 
 These are **validation-only artifacts**, not production distribution packages:
 
-- Builds target the approved first-install production origin `https://vanfoodex.50sols.com`; unsigned validation artifacts can exercise the real endpoint when installed through an authorized validation path.
+- Builds target the approved first-install production origin `https://foodex.50sols.com`; unsigned validation artifacts can exercise the real endpoint when installed through an authorized validation path.
 - Android release mode uses the generated Flutter template debug key. It is not production-signed.
 - iOS uses `--release --no-codesign`; the archived `.app` is not a signed/installable IPA.
 - Native identifiers are now fixed and CI-verified as `com.fiftysolution.foodex.customer` and `com.fiftysolution.foodex.driver`. The existing FOODEX Flutter theme remains unchanged.
-- The production HTTPS API URL is approved as `https://vanfoodex.50sols.com`. #125 still requires production signing/provisioning and final installation/device acceptance.
+- The production HTTPS API URL is approved as `https://foodex.50sols.com`. #125 still requires production signing/provisioning and final installation/device acceptance.
 - No app-store upload, deployment or release publication occurs.
 
 ## Reproduction
