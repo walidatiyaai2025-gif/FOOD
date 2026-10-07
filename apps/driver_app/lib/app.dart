@@ -346,14 +346,15 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
 
     if (!mounted || assignmentId == null) {
       final context = _messengerKey.currentContext;
-      _messengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text(
-            context?.tr('driver.notifications.order_unavailable') ??
-                'This order is no longer available to this driver.',
+      if (context != null) {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              context.tr('driver.notifications.order_unavailable'),
+            ),
           ),
-        ),
-      );
+        );
+      }
       return;
     }
 
@@ -378,14 +379,14 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     }
 
     final context = _messengerKey.currentContext;
-    final identity = driverPushIdentityLabel(
-      alert.open,
-      orderLabel:
-          context?.tr('driver.notifications.order_identity') ?? 'Order',
-      assignmentLabel:
-          context?.tr('driver.notifications.assignment_identity') ??
-              'Assignment',
-    );
+    final identity = context == null
+        ? null
+        : driverPushIdentityLabel(
+            alert.open,
+            orderLabel: context.tr('driver.notifications.order_identity'),
+            assignmentLabel:
+                context.tr('driver.notifications.assignment_identity'),
+          );
     final payloadMessage = alert.body.isEmpty
         ? alert.title
         : '${alert.title}\n${alert.body}'; // localization-gate: allow — server-localized push payload.
