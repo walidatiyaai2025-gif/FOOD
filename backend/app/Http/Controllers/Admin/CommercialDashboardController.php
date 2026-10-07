@@ -100,16 +100,16 @@ final class CommercialDashboardController extends Controller
         $sellingUnits = $this->jsonArray($data['selling_units_json'], 'selling_units_json');
         $windows = $this->jsonArray($data['availability_windows_json'], 'availability_windows_json');
         $rules = $this->jsonArray($data['rules_json'], 'rules_json');
-        $this->validateStructuredSalesConfiguration($storeId, $sellingUnits, $windows, $rules);
+        $this->validateStructuredSalesConfiguration($storeId, $channels, $sellingUnits, $windows, $rules);
 
         if ($data['break_pack_policy'] === 'one-unit-type') {
             $breakPackCode = trim((string) ($data['break_pack_unit_code'] ?? ''));
             $validSellingUnit = $breakPackCode !== ''
-                && DB::table('product_selling_units')
-                    ->where('product_id', $product)
-                    ->where('code', $breakPackCode)
-                    ->where('is_active', true)
-                    ->exists();
+                && collect($sellingUnits)->contains(static function (mixed $unit) use ($breakPackCode): bool {
+                    return is_array($unit)
+                        && strcasecmp(trim((string) ($unit['code'] ?? '')), $breakPackCode) === 0
+                        && (bool) ($unit['is_active'] ?? true);
+                });
 
             if (! $validSellingUnit) {
                 throw ValidationException::withMessages([
@@ -375,7 +375,7 @@ final class CommercialDashboardController extends Controller
             'retry_count' => ['required', 'integer', 'min:0'],
             'cooldown_seconds' => ['required', 'integer', 'min:0'],
             'priority' => ['required', 'integer'],
-            'popup_frequency' => ['required', 'string', 'max:32'],
+            'popup_frequency' => ['required', 'in:once_per_session,once_per_day,always'],
             'counts_toward_normal_quota' => ['sometimes', 'boolean'],
             'stackable' => ['sometimes', 'boolean'],
             'kill_switch' => ['sometimes', 'boolean'],
@@ -595,18 +595,26 @@ final class CommercialDashboardController extends Controller
     }
 
     /**
+     * @param  list<mixed>  $channels
      * @param  list<mixed>  $sellingUnits
      * @param  list<mixed>  $windows
      * @param  list<mixed>  $rules
      */
     private function validateStructuredSalesConfiguration(
         int $storeId,
+        array $channels,
         array $sellingUnits,
         array $windows,
         array $rules,
     ): void {
         $errors = [];
         $seenCodes = [];
+
+        foreach ($channels as $index => $channel) {
+            if (! is_string($channel) || ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {
+                $errors["channels_json.$index"] = [__('commercial.validation.sales_channel')];
+            }
+        }
 
         foreach ($sellingUnits as $index => $unit) {
             if (! is_array($unit)) {
@@ -624,6 +632,14 @@ final class CommercialDashboardController extends Controller
             }
             if (! is_numeric($factor) || (float) $factor <= 0) {
                 $errors["selling_units_json.$index.conversion_factor"] = [__('commercial.validation.selling_unit_factor')];
+            }
+
+            $unitId = $unit['unit_id'] ?? null;
+            if ($unitId !== null && $unitId !== '' && (
+                ! is_numeric($unitId)
+                || ! DB::table('units')->where('id', (int) $unitId)->exists()
+            )) {
+                $errors["selling_units_json.$index.unit_id"] = [__('commercial.validation.selling_unit_reference')];
             }
             if ($code !== '' && isset($seenCodes[$code])) {
                 $errors["selling_units_json.$index.code"] = [__('commercial.validation.duplicate_selling_unit_code')];
@@ -705,6 +721,12 @@ final class CommercialDashboardController extends Controller
                 : '';
             if ($channel !== '' && ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {
                 $errors["rules_json.$index.channel"] = [__('commercial.validation.sales_rule_channel')];
+            }
+
+            if (array_key_exists('is_allowed', $rule)
+                && $rule['is_allowed'] !== null
+                && ! is_bool($rule['is_allowed'])) {
+                $errors["rules_json.$index.is_allowed"] = [__('commercial.validation.sales_rule_access')];
             }
 
             foreach (['max_per_order', 'max_per_day', 'max_per_week', 'max_per_month', 'max_lifetime'] as $field) {
