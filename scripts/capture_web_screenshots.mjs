@@ -145,7 +145,7 @@ async function captureLocale(browser, locale) {
     );
   }
   await Promise.all([
-    page.waitForLoadState('networkidle'),
+    page.waitForURL(/\/admin\/customer-360\/\d+/, { waitUntil: 'networkidle' }),
     customer360Link.click(),
   ]);
   const addressesTab = page.locator('[data-c360-tab="addresses"]');
