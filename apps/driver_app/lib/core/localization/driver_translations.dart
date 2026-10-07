@@ -19,7 +19,8 @@ class DriverTranslations extends InheritedWidget {
   final Map<String, String> overrides;
 
   static const Map<String, String> _ar = {
-    'driver.app.title': 'فودكس للسائق',
+    'driver.app.title': 'تطبيق السائق',
+    'driver.brand.economical_group': 'مجموعة فودكس الاقتصادية',
     'driver.home.title': 'الرئيسية',
     'driver.home.subtitle': 'ابدأ يومك وراجع التوصيلات المسندة لك',
     'driver.home.channel': 'قناة العمل',
@@ -258,7 +259,8 @@ class DriverTranslations extends InheritedWidget {
   };
 
   static const Map<String, String> _en = {
-    'driver.app.title': 'FOODEX Driver',
+    'driver.app.title': 'Driver App',
+    'driver.brand.economical_group': 'FOODEX Economical Group',
     'driver.home.title': 'Driver Home',
     'driver.home.subtitle': 'Start your shift and review your assigned deliveries',
     'driver.home.channel': 'Work channel',
