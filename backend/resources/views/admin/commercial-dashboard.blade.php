@@ -77,69 +77,67 @@
 </head>
 <body>
 <div class="foodex-admin-layout commercial-admin-layout" data-commercial-page="{{ $section }}">
-    <aside class="sidebar">@include('admin._sidebar', ['user' => $user, 'navGroups' => $navGroups, 'navContext' => $navContext])</aside>
+    <aside class="sidebar">
+        @include('admin._sidebar', ['user' => $user, 'navGroups' => $navGroups, 'navContext' => $navContext])
+    </aside>
     <main class="foodex-admin-main foodex-admin-page commercial-shell">
         <header class="commercial-page-header">
             <div>
-                <span class="commercial-eyebrow">FOODEX · {{ $ar ? 'التجارة والمبيعات' : 'Commercial & Sales' }}</span>
-                <h1>{{ $section === 'sales-control' ? ($ar ? 'التحكم التجاري للمنتجات' : 'Product Sales Control') : ($ar ? 'العروض السريعة' : 'Flash Offers') }}</h1>
-                <p>{{ $section === 'sales-control'
-                    ? ($ar ? 'إدارة إتاحة المنتجات ووحدات البيع والحصص والقنوات وسياسة فك العبوة من واجهة تشغيل موحدة.' : 'Manage product availability, selling units, quotas, channels and break-pack policy from one operational workspace.')
-                    : ($ar ? 'إدارة دورة حياة العروض السريعة والجمهور والتخصيص والحجز والتحليلات.' : 'Manage flash-offer lifecycle, audience, allocation, reservations and analytics.') }}</p>
+                <span class="commercial-eyebrow">FOODEX · {{ __('commercial.eyebrow') }}</span>
+                <h1>{{ $section === 'sales-control' ? __('commercial.sales.title') : __('commercial.flash.title') }}</h1>
+                <p>{{ $section === 'sales-control' ? __('commercial.sales.description') : __('commercial.flash.description') }}</p>
             </div>
             @include('admin._live-notifications', ['user' => $user])
         </header>
-    <div class="commercial-tabs" aria-label="{{ $ar ? 'إدارة السياسات التجارية' : 'Commercial policy administration' }}">
-        <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ $ar ? 'التحكم في المبيعات' : 'Sales Control' }}</a>
-        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ $ar ? 'العروض السريعة' : 'Flash Offers' }}</a>
-        <a href="{{ route('admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ $ar ? 'العودة لمساحة المتجر' : 'Back to store workspace' }}</a>
+    <div class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
+        <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>
+        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
+        <a href="{{ route('admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
     </div>
 
     <section class="contract-banner {{ $contractReady ? '' : 'pending' }}" data-contract-ready="{{ $contractReady ? '1' : '0' }}">
-        <strong>{{ $contractReady ? ($ar ? 'العقد المركزي متاح' : 'Canonical contract detected') : ($ar ? 'بانتظار العقد المركزي' : 'Canonical contract pending') }}</strong>
+        <strong>{{ $contractReady ? __('commercial.contract.ready_title') : __('commercial.contract.pending_title') }}</strong>
         <span class="muted">
-            {{ $contractReady
-                ? ($ar ? 'ستظل قواعد الأهلية والحصص والحسابات معتمدة على الخادم فقط.' : 'Eligibility, quota and pricing decisions remain server-authoritative.')
-                : ($ar ? 'تم تجهيز واجهة الإدارة بدون تكرار محرك القواعد. الحفظ والتفعيل يظلان معطلين حتى تنشر #984/#985 العقود المركزية.' : 'The admin surface is prepared without duplicating the rule engine. Save/activation stays disabled until #984/#985 publish canonical contracts.') }}
+            {{ $contractReady ? __('commercial.contract.ready_description') : __('commercial.contract.pending_description') }}
         </span>
     </section>
 
     <section class="commercial-card feature-flags-card" data-commercial-feature-flags>
         <div class="feature-flags-head">
             <div>
-                <h2>{{ $ar ? 'حالة الوظائف التجارية' : 'Commercial capabilities' }}</h2>
-                <p class="muted">{{ $ar ? 'مفاتيح مركزية يفرضها الخادم على كل القنوات.' : 'Server-authoritative switches enforced consistently across channels.' }}</p>
+                <h2>{{ __('commercial.flags.title') }}</h2>
+                <p class="muted">{{ __('commercial.flags.description') }}</p>
             </div>
-            <span class="commercial-status">{{ $ar ? 'إعداد مركزي' : 'Central policy' }}</span>
+            <span class="commercial-status">{{ __('commercial.flags.central_policy') }}</span>
         </div>
         @if($canManageFeatureFlags)
             <form method="post" action="{{ route('admin.commercial.feature-flags.save', $scope) }}" class="control-list">
                 @csrf @method('put')
                 <div class="feature-flag-grid">
                 @foreach([
-                    'commercial_rules_enabled' => [$ar ? 'قواعد البيع' : 'Commercial rules', $ar ? 'الأهلية والحصص' : 'Eligibility & quotas'],
-                    'flash_offers_enabled' => [$ar ? 'العروض السريعة' : 'Flash offers', $ar ? 'عروض محدودة' : 'Limited offers'],
-                    'customer_flash_popup_enabled' => [$ar ? 'نافذة عروض العميل' : 'Customer Flash popup', $ar ? 'ظهور داخل تطبيق العميل' : 'Customer app popup'],
-                    'van_offers_enabled' => [$ar ? 'عروض الفان' : 'Van offers', $ar ? 'العروض داخل تطبيق الفان' : 'Van app offers'],
+                    'commercial_rules_enabled' => ['commercial.flags.commercial_rules.label', 'commercial.flags.commercial_rules.description'],
+                    'flash_offers_enabled' => ['commercial.flags.flash_offers.label', 'commercial.flags.flash_offers.description'],
+                    'customer_flash_popup_enabled' => ['commercial.flags.customer_flash_popup.label', 'commercial.flags.customer_flash_popup.description'],
+                    'van_offers_enabled' => ['commercial.flags.van_offers.label', 'commercial.flags.van_offers.description'],
                 ] as $flagKey => $flagMeta)
                     <label class="feature-flag">
                         <input type="hidden" name="{{ $flagKey }}" value="0">
                         <input type="checkbox" name="{{ $flagKey }}" value="1" @checked((bool)($featureFlags[$flagKey] ?? false))>
-                        <span class="flag-copy"><span>{{ $flagMeta[0] }}</span><small>{{ $flagMeta[1] }}</small></span>
+                        <span class="flag-copy"><span>{{ __($flagMeta[0]) }}</span><small>{{ __($flagMeta[1]) }}</small></span>
                     </label>
                 @endforeach
                 </div>
-                <div class="feature-save"><button type="submit" class="foodex-primary">{{ $ar ? 'حفظ حالة الوظائف' : 'Save capability state' }}</button></div>
+                <div class="feature-save"><button type="submit" class="foodex-primary">{{ __('commercial.flags.save') }}</button></div>
             </form>
         @else
             <div class="feature-flag-grid">
                 @foreach([
-                    'commercial_rules_enabled' => [$ar ? 'قواعد البيع' : 'Commercial rules', $ar ? 'الأهلية والحصص' : 'Eligibility & quotas'],
-                    'flash_offers_enabled' => [$ar ? 'العروض السريعة' : 'Flash offers', $ar ? 'عروض محدودة' : 'Limited offers'],
-                    'customer_flash_popup_enabled' => [$ar ? 'نافذة عروض العميل' : 'Customer Flash popup', $ar ? 'ظهور داخل تطبيق العميل' : 'Customer app popup'],
-                    'van_offers_enabled' => [$ar ? 'عروض الفان' : 'Van offers', $ar ? 'العروض داخل تطبيق الفان' : 'Van app offers'],
+                    'commercial_rules_enabled' => ['commercial.flags.commercial_rules.label', 'commercial.flags.commercial_rules.description'],
+                    'flash_offers_enabled' => ['commercial.flags.flash_offers.label', 'commercial.flags.flash_offers.description'],
+                    'customer_flash_popup_enabled' => ['commercial.flags.customer_flash_popup.label', 'commercial.flags.customer_flash_popup.description'],
+                    'van_offers_enabled' => ['commercial.flags.van_offers.label', 'commercial.flags.van_offers.description'],
                 ] as $flagKey => $flagMeta)
-                    <div class="feature-flag"><span class="commercial-status">{{ ($featureFlags[$flagKey] ?? false) ? 'ON' : 'OFF' }}</span><span class="flag-copy"><span>{{ $flagMeta[0] }}</span><small>{{ $flagMeta[1] }}</small></span></div>
+                    <div class="feature-flag"><span class="commercial-status">{{ ($featureFlags[$flagKey] ?? false) ? __('commercial.flags.on') : __('commercial.flags.off') }}</span><span class="flag-copy"><span>{{ __($flagMeta[0]) }}</span><small>{{ __($flagMeta[1]) }}</small></span></div>
                 @endforeach
             </div>
         @endif
@@ -149,10 +147,10 @@
         <section class="commercial-card">
             <div class="feature-flags-head">
                 <div>
-                    <h2>{{ $ar ? 'سياسات المنتجات' : 'Product policies' }}</h2>
-                    <p class="muted">{{ $ar ? 'اضبط الإتاحة والقنوات ووحدة البيع والحصص لكل منتج بدون تغيير منطق الخادم.' : 'Configure availability, channels, selling units and quotas per product without changing backend authority.' }}</p>
+                    <h2>{{ __('commercial.sales.policies_title') }}</h2>
+                    <p class="muted">{{ __('commercial.sales.policies_description') }}</p>
                 </div>
-                <span class="commercial-status">{{ $products->count() }} {{ $ar ? 'منتج' : 'products' }}</span>
+                <span class="commercial-status">{{ __('commercial.sales.products_count', ['count' => $products->count()]) }}</span>
             </div>
         </section>
         <div class="commercial-product-grid">
@@ -160,7 +158,7 @@
                 <article class="commercial-card commercial-product" data-product-id="{{ $product->id }}">
                     <div class="commercial-product-head">
                         <div><h3>{{ $product->name }}</h3><div class="muted">{{ $product->sku ?: '—' }}</div></div>
-                        <span class="commercial-status">{{ $product->is_active ? ($ar ? 'نشط' : 'Active') : ($ar ? 'غير نشط' : 'Inactive') }}</span>
+                        <span class="commercial-status">{{ $product->is_active ? __('commercial.common.active') : __('commercial.common.inactive') }}</span>
                     </div>
                     <div class="commercial-product-body">
                     @php
@@ -182,68 +180,73 @@
                         @csrf @method('put')
                         @php($selectedChannels = collect(json_decode((string)($policy->channels ?? '["customer","van","admin","api"]'), true) ?: []))
                         <section class="policy-section">
-                            <div class="policy-section-title"><span>{{ $ar ? 'الإتاحة والقنوات' : 'Availability & channels' }}</span></div>
+                            <div class="policy-section-title"><span>{{ __('commercial.sales.availability_channels') }}</span></div>
                             <div class="commercial-form-grid">
-                                <label>{{ $ar ? 'حالة البيع' : 'Sales status' }}<select name="status">@foreach(['OPEN','RESTRICTED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($policy->status ?? 'OPEN')===$status)>{{ $status }}</option>@endforeach</select></label>
-                                <label>{{ $ar ? 'المنطقة الزمنية' : 'Business timezone' }}<input name="business_timezone" value="{{ $policy->business_timezone ?? 'Asia/Kuwait' }}"></label>
+                                <label>{{ __('commercial.sales.sales_status') }}<select name="status">@foreach(['OPEN','RESTRICTED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($policy->status ?? 'OPEN')===$status)>{{ __('commercial.sales.statuses.'.strtolower($status)) }}</option>@endforeach</select></label>
+                                <label>{{ __('commercial.sales.business_timezone') }}<input name="business_timezone" value="{{ $policy->business_timezone ?? 'Asia/Kuwait' }}"></label>
                             </div>
                             <div class="commercial-choice-grid" data-commercial-channel-picker>
-                                @foreach(['customer'=>($ar?'العميل':'Customer'),'van'=>($ar?'الفان':'Van'),'admin'=>($ar?'لوحة الإدارة':'Admin'),'api'=>'API'] as $channel=>$channelLabel)
-                                    <label class="commercial-choice"><input type="checkbox" value="{{ $channel }}" data-commercial-channel @checked($selectedChannels->contains($channel))><span>{{ $channelLabel }}</span></label>
+                                @foreach(['customer','van','admin','api'] as $channel)
+                                    <label class="commercial-choice"><input type="checkbox" value="{{ $channel }}" data-commercial-channel @checked($selectedChannels->contains($channel))><span>{{ __('commercial.channels.'.$channel) }}</span></label>
                                 @endforeach
                                 <input type="hidden" name="channels_json" data-commercial-channels-json value="{{ $policy->channels ?? '[&quot;customer&quot;,&quot;van&quot;,&quot;admin&quot;,&quot;api&quot;]' }}">
                             </div>
                         </section>
 
                         <section class="policy-section">
-                            <div class="policy-section-title"><span>{{ $ar ? 'وحدة البيع وفك العبوة' : 'Selling unit & break-pack' }}</span></div>
+                            <div class="policy-section-title"><span>{{ __('commercial.sales.selling_break_pack') }}</span></div>
                             <div class="commercial-form-grid">
-                                <label>{{ $ar ? 'سياسة فك العبوة' : 'Break-pack policy' }}
+                                <label>{{ __('commercial.sales.break_pack_policy') }}
                                     <select name="break_pack_policy">
-                                        @foreach(['mixed','full-pack-only','loose-only','one-unit-type'] as $mode)
-                                            <option value="{{ $mode }}" @selected(($policy->break_pack_policy ?? 'mixed') === $mode)>{{ $mode }}</option>
+                                        @foreach([
+                                            'mixed' => 'commercial.sales.break_pack_modes.mixed',
+                                            'full-pack-only' => 'commercial.sales.break_pack_modes.full_pack_only',
+                                            'loose-only' => 'commercial.sales.break_pack_modes.loose_only',
+                                            'one-unit-type' => 'commercial.sales.break_pack_modes.one_unit_type',
+                                        ] as $mode => $modeLabel)
+                                            <option value="{{ $mode }}" @selected(($policy->break_pack_policy ?? 'mixed') === $mode)>{{ __($modeLabel) }}</option>
                                         @endforeach
                                     </select>
                                 </label>
-                                <label>{{ $ar ? 'كود الوحدة الإلزامية' : 'One-unit-type code' }}<input name="break_pack_unit_code" value="{{ $policy->break_pack_unit_code ?? '' }}" placeholder="{{ $ar ? 'مثال: CARTON' : 'e.g. CARTON' }}"></label>
+                                <label>{{ __('commercial.sales.one_unit_code') }}<input name="break_pack_unit_code" value="{{ $policy->break_pack_unit_code ?? '' }}" placeholder="{{ __('commercial.sales.one_unit_code_placeholder') }}"></label>
                             </div>
                         </section>
 
                         <section class="policy-section">
-                            <div class="policy-section-title"><span>{{ $ar ? 'الحصص الافتراضية' : 'Default quotas' }}</span><span class="muted">{{ $ar ? 'اترك الحقل فارغًا لعدم وضع حد' : 'Leave blank for no limit' }}</span></div>
+                            <div class="policy-section-title"><span>{{ __('commercial.sales.default_quotas') }}</span><span class="muted">{{ __('commercial.sales.no_limit_hint') }}</span></div>
                             <div class="commercial-form-grid five">
                                 @foreach([
-                                    'default_max_per_order'=>($ar?'لكل طلب':'Per order'),
-                                    'default_max_per_day'=>($ar?'يومي':'Per day'),
-                                    'default_max_per_week'=>($ar?'أسبوعي':'Per week'),
-                                    'default_max_per_month'=>($ar?'شهري':'Per month'),
-                                    'default_max_lifetime'=>($ar?'إجمالي':'Lifetime'),
+                                    'default_max_per_order'=>'commercial.sales.quotas.per_order',
+                                    'default_max_per_day'=>'commercial.sales.quotas.per_day',
+                                    'default_max_per_week'=>'commercial.sales.quotas.per_week',
+                                    'default_max_per_month'=>'commercial.sales.quotas.per_month',
+                                    'default_max_lifetime'=>'commercial.sales.quotas.lifetime',
                                 ] as $field=>$label)
-                                    <label>{{ $label }}<input type="number" step="0.001" min="0" name="{{ $field }}" value="{{ $policy?->{$field} }}"></label>
+                                    <label>{{ __($label) }}<input type="number" step="0.001" min="0" name="{{ $field }}" value="{{ $policy?->{$field} }}"></label>
                                 @endforeach
                             </div>
                             <div class="commercial-form-grid">
-                                <label>{{ $ar ? 'بداية الأسبوع (0-6)' : 'Week starts on (0-6)' }}<input type="number" min="0" max="6" name="week_starts_on" value="{{ $policy->week_starts_on ?? 1 }}"></label>
+                                <label>{{ __('commercial.sales.week_starts') }}<input type="number" min="0" max="6" name="week_starts_on" value="{{ $policy->week_starts_on ?? 1 }}"></label>
                             </div>
                         </section>
 
                         <section class="policy-section">
-                            <div class="policy-section-title"><span>{{ $ar ? 'سلوك الإغلاق والتجاوز' : 'Close & override behavior' }}</span></div>
+                            <div class="policy-section-title"><span>{{ __('commercial.sales.close_override') }}</span></div>
                             <div class="commercial-toggles">
-                                <label class="commercial-choice"><input type="checkbox" name="hide_when_closed" value="1" @checked((bool)($policy->hide_when_closed ?? false))><span>{{ $ar ? 'إخفاء المنتج عند الإغلاق' : 'Hide product when closed' }}</span></label>
-                                <label class="commercial-choice"><input type="checkbox" name="override_allowed" value="1" @checked((bool)($policy->override_allowed ?? false))><span>{{ $ar ? 'السماح بالتجاوز بصلاحية وسبب مدقق' : 'Allow permissioned, audited override' }}</span></label>
+                                <label class="commercial-choice"><input type="checkbox" name="hide_when_closed" value="1" @checked((bool)($policy->hide_when_closed ?? false))><span>{{ __('commercial.sales.hide_when_closed') }}</span></label>
+                                <label class="commercial-choice"><input type="checkbox" name="override_allowed" value="1" @checked((bool)($policy->override_allowed ?? false))><span>{{ __('commercial.sales.override_allowed') }}</span></label>
                             </div>
                         </section>
 
                         <details class="commercial-advanced">
-                            <summary>{{ $ar ? 'إعدادات متقدمة: وحدات البيع ونوافذ الإتاحة وقواعد الاستهداف' : 'Advanced: selling units, availability windows & targeting rules' }}</summary>
+                            <summary>{{ __('commercial.sales.advanced_title') }}</summary>
                             <div class="commercial-advanced-body">
-                                <label>{{ $ar ? 'وحدات البيع (JSON)' : 'Selling units (JSON)' }}<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                                <label>{{ $ar ? 'نوافذ الإتاحة (JSON)' : 'Availability windows (JSON)' }}<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                                <label>{{ $ar ? 'قواعد العميل/المجموعة/القناة (JSON)' : 'Customer/group/channel rules (JSON)' }}<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                <label>{{ __('commercial.sales.selling_units_json') }}<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                <label>{{ __('commercial.sales.availability_windows_json') }}<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                <label>{{ __('commercial.sales.targeting_rules_json') }}<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
                             </div>
                         </details>
-                        <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ سياسة المنتج' : 'Save product policy' }}</button>
+                        <button type="submit" class="foodex-primary">{{ __('commercial.sales.save_policy') }}</button>
                     </form>
                     </div>
                 </article>
@@ -252,9 +255,9 @@
         @if($products->isEmpty())
             <div class="commercial-empty">
                 <div>
-                    <strong>{{ $ar ? 'لا توجد منتجات قابلة للإدارة بعد' : 'No products are available for sales control yet' }}</strong>
-                    <p>{{ $ar ? 'أضف منتجات إلى كتالوج المتجر أولاً، ثم ارجع لضبط الإتاحة والحصص والقنوات.' : 'Add products to the store catalog first, then return here to configure availability, quotas and channels.' }}</p>
-                    <div style="margin-top:14px"><a class="foodex-primary" href="{{ route('admin.b2c.module', ['module'=>'products'] + $scope) }}">{{ $ar ? 'فتح المنتجات' : 'Open products' }}</a></div>
+                    <strong>{{ __('commercial.sales.empty_title') }}</strong>
+                    <p>{{ __('commercial.sales.empty_description') }}</p>
+                    <div style="margin-top:14px"><a class="foodex-primary" href="{{ route('admin.b2c.module', ['module'=>'products'] + $scope) }}">{{ __('commercial.sales.open_products') }}</a></div>
                 </div>
             </div>
         @endif
