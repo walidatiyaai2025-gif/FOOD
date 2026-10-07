@@ -7,20 +7,12 @@
     $overviewVisibility = $overviewVisibility ?? [];
     $canCatalog = $isSuper || $user->hasPermission('catalog.view');
     $canPromotions = $isSuper || $user->hasPermission('promotions.view');
-    $titles = [
-        'overview' => [$ar ? 'مركز عمليات الفان' : 'Van & Field Operations', $ar ? 'لوحة تحكم تشغيلية تجمع الأسطول والزيارات والمناطق والتحصيل في مكان واحد.' : 'Operational control center for fleet, visits, territories and field finance.'],
-        'fleet' => [$ar ? 'خريطة الأسطول الحية' : 'Live Fleet Map', $ar ? 'الموقع الحالي للفانات وحالة آخر اتصال والإسناد والمسار.' : 'Current Van positions, heartbeat health, assignment and route context.'],
-        'vans' => [$ar ? 'الفانات' : 'Vans', $ar ? 'سجل الفانات وحالتها التشغيلية وآخر إسناد وموقع.' : 'Van registry, operational state, latest assignment and location health.'],
-        'van-detail' => [$ar ? 'تفاصيل الفان' : 'Van Details', $ar ? 'الهوية والحالة والموقع وسجل الإسنادات للفان المحدد.' : 'Identity, operational state, location health and assignment history for the selected Van.'],
-        'assignments' => [$ar ? 'إسنادات الفانات' : 'Van Assignments', $ar ? 'إدارة ربط الفان بالسائق أو المندوب والمنطقة والمخزن.' : 'Manage Van-to-driver/operator, territory and warehouse assignments.'],
-        'customers' => [$ar ? 'عملاء الفان' : 'Van Customers', $ar ? 'العلاقة الفعلية بين العميل والزيارة والمشغل والفان والمنطقة.' : 'Canonical customer-to-visit/operator/Van/territory relationship view.'],
-        'visits' => [$ar ? 'الزيارات والمسارات' : 'Visits & Routes', $ar ? 'خطط الزيارات ومتابعة دورة الحياة ونتائج عدم الطلب.' : 'Plan visits and manage lifecycle, route context and no-order outcomes.'],
-        'territories' => [$ar ? 'المناطق والتغطية' : 'Territories & Geography', $ar ? 'إدارة التسلسل الجغرافي ومناطق الخدمة والهندسة الجغرافية.' : 'Manage geography hierarchy, service territories and coverage geometry.'],
-        'address-quality' => [$ar ? 'جودة العناوين' : 'Address Quality', $ar ? 'مراجعة العناوين غير المحسومة وتأكيد أو رفض أو إعادة فتح القرار.' : 'Review unresolved address records and confirm, reject or reopen decisions.'],
-        'routing' => [$ar ? 'سياسات التوجيه' : 'Routing Policies', $ar ? 'إنشاء ونشر ومحاكاة والتراجع عن سياسات التوجيه المركزية.' : 'Create, publish, simulate and roll back canonical routing policies.'],
-        'finance' => [$ar ? 'تحصيل ومالية الفان' : 'Van Finance & Collections', $ar ? 'المحافظ والتحصيلات والتوريدات والمطابقة من السجل المالي المشترك.' : 'Wallets, collections, remittances and reconciliation from the shared finance ledger.'],
-    ];
-    [$pageTitle, $pageDescription] = $titles[$section] ?? $titles['overview'];
+    $pageTitle = __('field_operations.pages.'.$section.'.title');
+    $pageDescription = __('field_operations.pages.'.$section.'.description');
+    if ($pageTitle === 'field_operations.pages.'.$section.'.title') {
+        $pageTitle = __('field_operations.pages.overview.title');
+        $pageDescription = __('field_operations.pages.overview.description');
+    }
 @endphp
 <!doctype html>
 <html lang="{{ app()->getLocale() }}" dir="{{ $ar ? 'rtl' : 'ltr' }}">
@@ -59,7 +51,7 @@
     <main class="foodex-admin-main foodex-admin-page">
         <header class="foodex-page-header fieldops-header">
             <div>
-                <span class="foodex-subtitle">FOODEX · {{ $ar ? 'عمليات الفان والميدان' : 'Van & Field Operations' }}</span>
+                <span class="foodex-subtitle">FOODEX · {{ __('field_operations.subtitle') }}</span>
                 <h1>{{ $pageTitle }}</h1>
                 <p>{{ $pageDescription }}</p>
             </div>
@@ -67,57 +59,57 @@
         </header>
 
         @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
-        @if($errors->any())<div class="foodex-state" role="alert"><strong>{{ $ar?'تعذر الحفظ':'Unable to save' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        @if($errors->any())<div class="foodex-state" role="alert"><strong>{{ __('field_operations.unable_to_save') }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
         <div class="foodex-ops-shell">
         @if($section === 'overview')
             @php($s = $summary ?? [])
             <section class="fieldops-kpis">
                 @foreach([
-                    ['active_vans',$ar?'فانات نشطة':'Active Vans'],
-                    ['suspended_vans',$ar?'فانات موقوفة':'Suspended Vans'],
-                    ['assigned_vans',$ar?'فانات مسندة':'Assigned Vans'],
-                    ['unassigned_vans',$ar?'فانات بدون إسناد':'Unassigned Vans'],
-                    ['operators',$ar?'مشغلون/مندوبون':'Operators'],
-                    ['customers_served',$ar?'عملاء مخدومون':'Served Customers'],
-                    ['active_visits',$ar?'زيارات نشطة':'Active Visits'],
-                    ['completed_visits',$ar?'زيارات مكتملة':'Completed Visits'],
-                    ['no_order_visits',$ar?'زيارات بدون طلب':'No-order Visits'],
-                    ['territories',$ar?'مناطق نشطة':'Active Territories'],
-                    ['unresolved_addresses',$ar?'عناوين تحتاج مراجعة':'Address Reviews'],
-                    ['pending_remittances',$ar?'توريدات معلقة':'Pending Remittances'],
+                    ['active_vans',__('field_operations.overview.active_vans')],
+                    ['suspended_vans',__('field_operations.overview.suspended_vans')],
+                    ['assigned_vans',__('field_operations.overview.assigned_vans')],
+                    ['unassigned_vans',__('field_operations.overview.unassigned_vans')],
+                    ['operators',__('field_operations.overview.operators')],
+                    ['customers_served',__('field_operations.overview.customers_served')],
+                    ['active_visits',__('field_operations.overview.active_visits')],
+                    ['completed_visits',__('field_operations.overview.completed_visits')],
+                    ['no_order_visits',__('field_operations.overview.no_order_visits')],
+                    ['territories',__('field_operations.overview.territories')],
+                    ['unresolved_addresses',__('field_operations.overview.unresolved_addresses')],
+                    ['pending_remittances',__('field_operations.overview.pending_remittances')],
                 ] as [$key,$label])
                     <article class="fieldops-card fieldops-kpi"><strong>{{ number_format((int)($s[$key] ?? 0)) }}</strong><small>{{ $label }}</small></article>
                 @endforeach
             </section>
             <section class="fieldops-grid">
                 <article class="fieldops-card">
-                    <h2>{{ $ar?'صحة الاتصال بالأسطول':'Fleet reporting health' }}</h2>
-                    @foreach(['online'=>$ar?'متصل':'Online','stale'=>$ar?'متأخر':'Stale','offline'=>$ar?'غير متصل':'Offline'] as $key=>$label)
+                    <h2>{{ __('field_operations.overview.fleet_health') }}</h2>
+                    @foreach(['online'=>__('field_operations.overview.online'),'stale'=>__('field_operations.overview.stale'),'offline'=>__('field_operations.overview.offline')] as $key=>$label)
                         <div class="control-row"><span>{{ $label }}</span><strong>{{ (int)($s['location_health'][$key] ?? 0) }}</strong></div>
                     @endforeach
-                    @if($overviewVisibility['tracking'] ?? false)<div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ $ar?'فتح الخريطة':'Open live map' }}</a></div>@endif
+                    @if($overviewVisibility['tracking'] ?? false)<div class="fieldops-actions"><a class="foodex-action-primary" href="{{ route('admin.field-operations.fleet') }}">{{ __('field_operations.overview.open_map') }}</a></div>@endif
                 </article>
                 <article class="fieldops-card">
-                    <h2>{{ $ar?'التحصيلات تحت العهدة':'Outstanding field custody' }}</h2>
+                    <h2>{{ __('field_operations.overview.custody') }}</h2>
                     <strong style="font-size:1.8rem">{{ number_format((float)($s['outstanding_collections'] ?? 0),3) }}</strong>
-                    <p class="fieldops-muted">{{ $ar?'القيمة الإجمالية الحالية في سجل عهدة تحصيل الفانات.':'Current aggregate amount in Van collection custody ledger.' }}</p>
-                    @if($overviewVisibility['finance'] ?? false)<a href="{{ route('admin.field-operations.finance') }}">{{ $ar?'فتح المالية':'Open finance' }}</a>@endif
+                    <p class="fieldops-muted">{{ __('field_operations.overview.custody_help') }}</p>
+                    @if($overviewVisibility['finance'] ?? false)<a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.overview.open_finance') }}</a>@endif
                 </article>
                 <article class="fieldops-card">
-                    <h2>{{ $ar?'اختصارات التشغيل':'Operational shortcuts' }}</h2>
+                    <h2>{{ __('field_operations.overview.shortcuts') }}</h2>
                     <div class="fieldops-section-nav">
-                        @if($overviewVisibility['drivers'] ?? false)<a href="{{ route('admin.field-operations.vans') }}">{{ $ar?'الفانات':'Vans' }}</a><a href="{{ route('admin.field-operations.assignments') }}">{{ $ar?'الإسنادات':'Assignments' }}</a>@endif
-                        @if($overviewVisibility['visits'] ?? false)<a href="{{ route('admin.field-operations.visits') }}">{{ $ar?'الزيارات':'Visits' }}</a>@endif
-                        @if($overviewVisibility['territories'] ?? false)<a href="{{ route('admin.field-operations.territories') }}">{{ $ar?'المناطق':'Territories' }}</a>@endif
+                        @if($overviewVisibility['drivers'] ?? false)<a href="{{ route('admin.field-operations.vans') }}">{{ $ar?'الفانات':'Vans' }}</a><a href="{{ route('admin.field-operations.assignments') }}">{{ __('field_operations.overview.assignments') }}</a>@endif
+                        @if($overviewVisibility['visits'] ?? false)<a href="{{ route('admin.field-operations.visits') }}">{{ __('field_operations.overview.visits') }}</a>@endif
+                        @if($overviewVisibility['territories'] ?? false)<a href="{{ route('admin.field-operations.territories') }}">{{ __('field_operations.overview.territories_shortcut') }}</a>@endif
                     </div>
                 </article>
                 <article class="fieldops-card">
-                    <h2>{{ $ar?'التحكم التجاري المرتبط بالفان':'Van commercial controls' }}</h2>
-                    <p class="fieldops-muted">{{ $ar?'تظل القواعد والعروض في صفحاتها التجارية الأصلية؛ هذه اختصارات سياقية فقط لمنع تكرار روابط القائمة.' : 'Rules and offers remain in their canonical commercial pages; these are contextual shortcuts so the sidebar is not duplicated.' }}</p>
+                    <h2>{{ __('field_operations.overview.commercial_controls') }}</h2>
+                    <p class="fieldops-muted">{{ __('field_operations.overview.commercial_help') }}</p>
                     <div class="fieldops-section-nav">
-                        @if(($featureFlags['commercial_rules_enabled'] ?? false) && $canCatalog)<a href="{{ route('admin.commercial.sales-control') }}">{{ $ar?'قواعد البيع والحصص':'Sales rules & quotas' }}</a>@endif
-                        @if(($featureFlags['van_offers_enabled'] ?? false) && ($featureFlags['flash_offers_enabled'] ?? false) && $canPromotions)<a href="{{ route('admin.commercial.flash-offers') }}">{{ $ar?'عروض الفان وFlash':'Van & Flash Offers' }}</a>@endif
+                        @if(($featureFlags['commercial_rules_enabled'] ?? false) && $canCatalog)<a href="{{ route('admin.commercial.sales-control') }}">{{ __('field_operations.overview.sales_rules') }}</a>@endif
+                        @if(($featureFlags['van_offers_enabled'] ?? false) && ($featureFlags['flash_offers_enabled'] ?? false) && $canPromotions)<a href="{{ route('admin.commercial.flash-offers') }}">{{ __('field_operations.overview.van_flash_offers') }}</a>@endif
                     </div>
                 </article>
             </section>
@@ -131,11 +123,11 @@
                 'showSummary' => true,
                 'trackingActor' => 'van',
                 'trackingI18n' => [
-                    'noDrivers' => $ar ? 'لا توجد فانات بموقع متاح ضمن النطاق الحالي.' : 'No Vans with available location in the current scope.',
-                    'entitySingular' => $ar ? 'فان' : 'Van',
-                    'entities' => $ar ? 'الفانات' : 'Vans',
-                    'entityId' => $ar ? 'رقم الفان' : 'Van ID',
-                    'route' => $ar ? 'المسار' : 'Route',
+                    'noDrivers' => __('field_operations.fleet_i18n.no_vans'),
+                    'entitySingular' => __('field_operations.fleet_i18n.entity_singular'),
+                    'entities' => __('field_operations.fleet_i18n.entities'),
+                    'entityId' => __('field_operations.fleet_i18n.entity_id'),
+                    'route' => __('field_operations.fleet_i18n.route'),
                 ],
             ])
 
@@ -251,10 +243,10 @@
 
         @elseif($section === 'customers')
             <div class="fieldops-card">
-                <strong>{{ $ar?'كيف يتم الربط؟':'How the relationship is derived' }}</strong>
-                <p class="fieldops-muted">{{ $ar?'تُعرض العلاقة من الزيارة الفعلية + المشغل + إسناد الفان والمنطقة، بدون إنشاء نموذج ربط موازٍ.' : 'The relationship is derived from the canonical visit + operator + Van assignment/territory structures; no parallel customer-assignment model is introduced.' }}</p>
+                <strong>{{ __('field_operations.relationship_intro_title') }}</strong>
+                <p class="fieldops-muted">{{ __('field_operations.relationship_intro_body') }}</p>
             </div>
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.customer') }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.route') }}</th><th>{{ $ar?'التحصيل':'Collection context' }}</th><th>{{ $ar?'آخر زيارة':'Latest visit' }}</th><th>{{ __('field_operations.status') }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.customer') }}</th><th>{{ __('field_operations.channel') }}</th><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.route') }}</th><th>{{ __('field_operations.collection_context') }}</th><th>{{ __('field_operations.latest_visit') }}</th><th>{{ __('field_operations.status') }}</th></tr></thead><tbody>
             @forelse($relationships as $visit)
                 @php($a = $visit->getRelation('servingAssignment'))
                 @php($collectionContext = $visit->collection_context)
