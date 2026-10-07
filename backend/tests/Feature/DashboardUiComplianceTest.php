@@ -74,4 +74,15 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("@include('admin._sidebar'", $view);
         $this->assertStringContainsString('foodex-admin-main', $view);
     }
+
+    public function test_mobile_settings_expose_customer_driver_and_van_as_first_class_apps(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('value="customer"', $view);
+        $this->assertStringContainsString('value="driver"', $view);
+        $this->assertStringContainsString('value="van"', $view);
+        $this->assertStringContainsString("@selected($selectedApp==='van')", $view);
+    }
 }
