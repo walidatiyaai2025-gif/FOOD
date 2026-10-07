@@ -144,13 +144,23 @@ async function captureLocale(browser, locale) {
       `Deterministic Customer 360 evidence fixture was not found. Page: ${bodyText}`,
     );
   }
-  await Promise.all([
-    page.waitForURL(/\/admin\/customer-360\/\d+/, { waitUntil: 'networkidle' }),
-    customer360Link.click(),
-  ]);
-  const addressesTab = page.locator('[data-c360-tab="addresses"]');
+  const customer360Href = await customer360Link.getAttribute('href');
+  if (!customer360Href) {
+    throw new Error('Customer 360 evidence link did not expose a usable href.');
+  }
+  const customer360DetailResponse = await page.goto(
+    new URL(customer360Href, baseUrl).toString(),
+    { waitUntil: 'networkidle' },
+  );
+  if (!customer360DetailResponse || !customer360DetailResponse.ok()) {
+    throw new Error(
+      `Customer 360 detail evidence page failed: HTTP ${customer360DetailResponse?.status() ?? 'no-response'}`,
+    );
+  }
+  const addressesTab = page.locator('[data-c360-tab="addresses"], #tab-addresses').first();
   if (await addressesTab.count() !== 1) {
-    throw new Error('Customer 360 addresses tab was not rendered.');
+    const bodyText = (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 1200);
+    throw new Error(`Customer 360 addresses tab was not rendered. Page: ${bodyText}`);
   }
   await addressesTab.click();
   const addressesPanel = page.locator('[data-c360-panel="addresses"]');
