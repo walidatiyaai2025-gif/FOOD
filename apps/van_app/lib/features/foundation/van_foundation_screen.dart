@@ -4,6 +4,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../commercial/van_commercial_contract.dart';
 import '../commercial/van_offers_page.dart';
+import '../wallet/van_collection_page.dart';
 import '../wallet/van_wallet_contract.dart';
 import '../wallet/van_wallet_page.dart';
 import 'van_customer_360_page.dart';
@@ -60,10 +61,14 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
           onSessionExpired: widget.onLogout,
         );
       case VanScreenId.wallet:
-      case VanScreenId.collection:
       case VanScreenId.receipt:
       case VanScreenId.remittance:
         return VanWalletPage(
+          repository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.collection:
+        return VanCollectionPage(
           repository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
         );
