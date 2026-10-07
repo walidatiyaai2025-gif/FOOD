@@ -88,6 +88,125 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
 
 
 
+
+
+async function assertSharedAdminRuntimeShell(page, label) {
+  const proof = await page.evaluate(() => ({
+    layout: Boolean(document.querySelector('.foodex-admin-layout')),
+    main: Boolean(document.querySelector('.foodex-admin-main')),
+    header: Boolean(document.querySelector('.foodex-page-header')),
+    nav: Boolean(document.querySelector('[data-foodex-nav]')),
+    routineJsonEditors: [...document.querySelectorAll('textarea[name$="_json"],input[name$="_json"]')]
+      .map((field) => field.getAttribute('name'))
+      .filter((name) => name && name !== 'credentials_json'),
+    numericIdInputs: [...document.querySelectorAll('input[type="number"][name$="_id"]')]
+      .map((field) => field.getAttribute('name'))
+      .filter(Boolean),
+  }));
+
+  if (!proof.layout || !proof.main || !proof.header || !proof.nav) {
+    throw new Error(`Shared admin shell contract failed for ${label}: ${JSON.stringify(proof)}`);
+  }
+  if (proof.routineJsonEditors.length > 0) {
+    throw new Error(`Routine JSON editor returned for ${label}: ${JSON.stringify(proof.routineJsonEditors)}`);
+  }
+  if (proof.numericIdInputs.length > 0) {
+    throw new Error(`Routine numeric ID input returned for ${label}: ${JSON.stringify(proof.numericIdInputs)}`);
+  }
+
+  await assertNoPageOverflow(page, label);
+}
+
+async function openFirstRecordActionMenu(page, selector, label) {
+  const details = page.locator(selector).first();
+  if (await details.count() !== 1) {
+    throw new Error(`Missing runtime record-action menu for ${label}`);
+  }
+  const summary = details.locator('summary').first();
+  await summary.click();
+  if (!(await details.evaluate((node) => node.hasAttribute('open')))) {
+    throw new Error(`Record-action menu did not open for ${label}`);
+  }
+  const menu = details.locator('.row-action-menu').first();
+  await menu.waitFor({ state: 'visible' });
+}
+
+async function captureOwnedDashboardRuntimeEvidence(page, locale) {
+  const shellRoutes = [
+    ['administration', '/admin/administration'],
+    ['live-tracking', '/admin/driver-live-tracking'],
+    ['mobile-settings', '/admin/settings/mobile?app=van&environment=production'],
+    ['notifications', '/admin/notifications'],
+    ['notification-campaigns', '/admin/notification-campaigns'],
+    ['order-operations', '/admin/operations/orders'],
+    ['reports', '/admin/reports'],
+  ];
+
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  for (const [name, route] of shellRoutes) {
+    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+    if (!response || !response.ok() || page.url().includes('/login')) {
+      throw new Error(`Owned Dashboard runtime route failed for ${name}: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
+    }
+    await assertSharedAdminRuntimeShell(page, `owned/${name}/${locale}`);
+  }
+
+  await page.goto(`${baseUrl}/admin/settings/mobile?app=van&environment=production`, { waitUntil: 'networkidle' });
+  const mobileSettingsProof = await page.evaluate(() => {
+    const has = (name) => Boolean(document.querySelector(`[name="${name}"]`));
+    return {
+      vanOption: Boolean(document.querySelector('select[name="app"] option[value="van"]')),
+      deepLinkScheme: has('deep_link_scheme'),
+      deepLinkHost: has('deep_link_host'),
+      readinessAndroid: has('readiness_android'),
+      readinessIos: has('readiness_ios'),
+      readinessPrivacy: has('readiness_privacy'),
+      reviewerChannel: has('reviewer_channel'),
+      reviewerStore: has('reviewer_store_id'),
+      assetIcon: has('asset_icon_master'),
+      permissionList: has('permission_declarations_text'),
+      privacyList: has('privacy_checklist_text'),
+      manualGaps: has('manual_gaps_text'),
+    };
+  });
+  if (Object.values(mobileSettingsProof).some((value) => value !== true)) {
+    throw new Error(`Van Mobile Settings structured runtime evidence incomplete: ${JSON.stringify(mobileSettingsProof)}`);
+  }
+  await snap(page, `02_Web/B2C_Admin/19_mobile_settings_van_structured__desktop__${locale}.png`);
+
+  await page.goto(`${baseUrl}/admin/notifications`, { waitUntil: 'networkidle' });
+  await assertSharedAdminRuntimeShell(page, `notifications/actions/desktop/${locale}`);
+  if (await page.locator('[data-notification-edit]').count() < 1) {
+    throw new Error('Notification runtime evidence did not render an explicit Edit record affordance.');
+  }
+  await openFirstRecordActionMenu(page, '[data-notification-row-actions]', `notifications/${locale}`);
+  await snap(page, `02_Web/B2C_Admin/17_notification_actions__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}/admin/notifications`, { waitUntil: 'networkidle' });
+  await openFirstRecordActionMenu(page, '[data-notification-row-actions]', `notifications/mobile/${locale}`);
+  await assertNoPageOverflow(page, `notifications/actions/mobile/${locale}`);
+  await snap(page, `02_Web/B2C_Admin/17_notification_actions__mobile-390__${locale}.png`);
+
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  await page.goto(`${baseUrl}/admin/notification-campaigns`, { waitUntil: 'networkidle' });
+  await assertSharedAdminRuntimeShell(page, `campaigns/actions/desktop/${locale}`);
+  if (await page.locator('details:has(summary:text-is("Edit campaign")), details:has(summary:text-is("تعديل الحملة"))').count() < 1
+      && await page.locator('[data-notification-campaign-actions]').count() < 1) {
+    throw new Error('Campaign runtime evidence did not render the expected record affordances.');
+  }
+  await openFirstRecordActionMenu(page, '[data-notification-campaign-actions]', `campaigns/${locale}`);
+  await snap(page, `02_Web/B2C_Admin/18_campaign_actions__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}/admin/notification-campaigns`, { waitUntil: 'networkidle' });
+  await openFirstRecordActionMenu(page, '[data-notification-campaign-actions]', `campaigns/mobile/${locale}`);
+  await assertNoPageOverflow(page, `campaigns/actions/mobile/${locale}`);
+  await snap(page, `02_Web/B2C_Admin/18_campaign_actions__mobile-390__${locale}.png`);
+
+  await page.setViewportSize({ width: 1440, height: 1080 });
+}
+
 async function captureAdministrationRuntimeEvidence(page, locale) {
   const response = await page.goto(`${baseUrl}/admin/administration`, { waitUntil: 'networkidle' });
   if (!response || !response.ok()) {
@@ -296,6 +415,7 @@ async function captureLocale(browser, locale) {
   }
 
   await captureAdministrationRuntimeEvidence(page, locale);
+  await captureOwnedDashboardRuntimeEvidence(page, locale);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
@@ -345,6 +465,7 @@ async function captureLocale(browser, locale) {
       `Customer 360 detail evidence page failed: HTTP ${customer360DetailResponse?.status() ?? 'no-response'}`,
     );
   }
+  await assertSharedAdminRuntimeShell(page, `customer-360/detail/${locale}`);
   const addressesTab = page.locator('[data-c360-tab="addresses"], #tab-addresses').first();
   if (await addressesTab.count() !== 1) {
     const bodyText = (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 1200);
