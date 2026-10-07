@@ -219,4 +219,20 @@ return [
     'collection_context' => 'التحصيل',
     'latest_visit' => 'آخر زيارة',
 
+    'customer_types' => [
+        'b2b' => 'جملة B2B',
+        'b2c' => 'تجزئة B2C',
+    ],
+    'order_statuses' => [
+        'pending' => 'قيد الانتظار',
+        'confirmed' => 'مؤكد',
+        'processing' => 'قيد المعالجة',
+        'preparing' => 'قيد التجهيز',
+        'ready' => 'جاهز',
+        'out_for_delivery' => 'جاري التوصيل',
+        'delivered' => 'تم التسليم',
+        'cancelled' => 'ملغي',
+        'failed' => 'فشل',
+    ],
+
 ];
