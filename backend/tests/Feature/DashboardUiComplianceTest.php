@@ -113,4 +113,18 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$isAr?'إدارة الطلبات':'Order Management'", $view);
         $this->assertStringNotContainsString("$isAr?'إجراءات الطلب':'Order actions'", $view);
     }
+
+
+    public function test_customer_360_shell_copy_uses_locale_catalog(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("__('customer_360.title')", $view);
+        $this->assertStringContainsString("__('customer_360.sections')", $view);
+        $this->assertStringContainsString("__('customer_360.tabs.addresses')", $view);
+        $this->assertStringContainsString("customer_360.business_labels.", $view);
+        $this->assertStringNotContainsString("$ar?'تفاصيل العميل':'Customer details'", $view);
+        $this->assertStringNotContainsString("$ar ? 'الجملة' : 'Wholesale'", $view);
+    }
 }
