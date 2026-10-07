@@ -117,4 +117,13 @@ class AdministrationHubTest extends TestCase
         $this->assertSame($sortedPositions, $positions);
         $this->assertSame('administration', $groups->last());
     }
+
+    public function test_admin_hub_links_each_first_class_app_to_its_settings(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/administration-hub.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("route('admin.mobile-settings.index', ['app'=>$app, 'environment'=>'production'])", $view);
+        $this->assertStringContainsString("@foreach(['customer','driver','van'] as $app)", $view);
+    }
 }
