@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           flutter build appbundle --release \
             --build-number="$GITHUB_RUN_NUMBER" \
-            --dart-define=FOODEX_API_BASE_URL=https://vanfoodex.50sols.com
+            --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
           aab=build/app/outputs/bundle/release/app-release.aab
           test -s "$aab"
           jarsigner -verify -verbose -certs "$aab" > build/store-aab-signature.txt
