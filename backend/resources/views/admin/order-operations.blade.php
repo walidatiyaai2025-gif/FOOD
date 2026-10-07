@@ -96,56 +96,56 @@ $businessLabel = static function ($value): string {
 @if($detail)
 <section class="detail-grid" style="margin-top:18px">
 <div class="foodex-card panel">
-<h2>{{ $isAr?'سياق الطلب':'Order context' }} · {{ $detail['number'] }}</h2>
+<h2>{{ __('order_operations.detail.context') }} · {{ $detail['number'] }}</h2>
 <div class="timeline-item" data-order-authoritative-context>
 <strong>{{ $businessLabel($detail['channel']) }} · {{ $detail['store'] }}</strong>
-<div>{{ $isAr?'المصدر':'Source' }}: {{ $businessLabel($detail['source']) }}</div>
-<small>{{ $isAr?'القناة المعتمدة':'Authorized channel' }}: {{ $businessLabel($detail['channel']) }}</small>
+<div>{{ __('order_operations.detail.source') }}: {{ $businessLabel($detail['source']) }}</div>
+<small>{{ __('order_operations.detail.authorized_channel') }}: {{ $businessLabel($detail['channel']) }}</small>
 </div>
-<h2 style="margin-top:16px">{{ $isAr?'عنوان التوصيل':'Delivery address' }}</h2>
+<h2 style="margin-top:16px">{{ __('order_operations.detail.delivery_address') }}</h2>
 @if($detail['delivery_address'])
 @php($delivery=$detail['delivery_address'])
 <div class="timeline">
 <div class="timeline-item">
-<strong>{{ $delivery['formatted'] ?: ($isAr?'عنوان محفوظ للطلب':'Saved order address') }}</strong>
-@if(!empty($delivery['recipient_name']))<div>{{ $isAr?'المستلم':'Recipient' }}: {{ $delivery['recipient_name'] }}</div>@endif
-@if(!empty($delivery['delivery_phone']))<div>{{ $isAr?'الهاتف':'Phone' }}: {{ $delivery['delivery_phone'] }}</div>@endif
-@if(!empty($delivery['landmark']))<div>{{ $isAr?'علامة مميزة':'Landmark' }}: {{ $delivery['landmark'] }}</div>@endif
-@if(!empty($delivery['delivery_notes']))<div>{{ $isAr?'ملاحظات التوصيل':'Delivery notes' }}: {{ $delivery['delivery_notes'] }}</div>@endif
+<strong>{{ $delivery['formatted'] ?: __('order_operations.detail.saved_address') }}</strong>
+@if(!empty($delivery['recipient_name']))<div>{{ __('order_operations.detail.recipient') }}: {{ $delivery['recipient_name'] }}</div>@endif
+@if(!empty($delivery['delivery_phone']))<div>{{ __('order_operations.detail.phone') }}: {{ $delivery['delivery_phone'] }}</div>@endif
+@if(!empty($delivery['landmark']))<div>{{ __('order_operations.detail.landmark') }}: {{ $delivery['landmark'] }}</div>@endif
+@if(!empty($delivery['delivery_notes']))<div>{{ __('order_operations.detail.delivery_notes') }}: {{ $delivery['delivery_notes'] }}</div>@endif
 @if(!empty($delivery['has_coordinates']))
 <div style="margin-top:10px">
 <small>{{ number_format((float)$delivery['latitude'],7,'.','') }}, {{ number_format((float)$delivery['longitude'],7,'.','') }}</small>
 <br>
-<a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ $isAr?'فتح الموقع على الخريطة':'Open in map' }}</a>
+<a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ __('order_operations.detail.open_map') }}</a>
 </div>
 @else
-<small>{{ $isAr?'لا توجد إحداثيات محفوظة لهذا الطلب.':'No coordinates were saved for this order.' }}</small>
+<small>{{ __('order_operations.detail.no_coordinates') }}</small>
 @endif
 </div>
 </div>
 @else
-<div class="foodex-empty-state">{{ $isAr?'لا توجد لقطة عنوان محفوظة لهذا الطلب القديم.':'No delivery snapshot is available for this legacy order.' }}</div>
+<div class="foodex-empty-state">{{ __('order_operations.detail.no_snapshot') }}</div>
 @endif
 </div>
-<div class="foodex-card panel"><h2>{{ $isAr?'سجل حالات الطلب':'Order status timeline' }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $businessLabel($entry['from']) }} → {{ $businessLabel($entry['to']) }}</strong><div>{{ $businessLabel($entry['note']) }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ $isAr?'لا يوجد سجل.':'No history.' }}</div>@endforelse</div></div>
-<div class="foodex-card panel"><h2>{{ $isAr?'سجل السائقين':'Driver assignment history' }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ str_starts_with((string)$entry['driver'],'#') ? ($isAr?'سائق بدون اسم':'Unnamed driver') : $entry['driver'] }}</strong><div>{{ $businessLabel($entry['status']) }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>@empty<div class="foodex-empty-state">{{ $isAr?'لا توجد تعيينات.':'No assignments.' }}</div>@endforelse</div></div>
+<div class="foodex-card panel"><h2>{{ __('order_operations.detail.status_timeline') }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $businessLabel($entry['from']) }} → {{ $businessLabel($entry['to']) }}</strong><div>{{ $businessLabel($entry['note']) }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_history') }}</div>@endforelse</div></div>
+<div class="foodex-card panel"><h2>{{ __('order_operations.detail.driver_history') }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ str_starts_with((string)$entry['driver'],'#') ? __('order_operations.detail.unnamed_driver') : $entry['driver'] }}</strong><div>{{ $businessLabel($entry['status']) }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_assignments') }}</div>@endforelse</div></div>
 <div class="foodex-card panel" data-delivery-evidence>
-<h2>{{ $isAr?'سجل التوصيل وإثبات التسليم':'Delivery timeline & proof' }}</h2>
+<h2>{{ __('order_operations.detail.delivery_timeline') }}</h2>
 <div class="timeline">
 @forelse($detail['delivery_evidence'] as $assignment)
 <div class="timeline-item" data-delivery-evidence-assignment="{{ $assignment['id'] }}">
-<strong>{{ str_starts_with((string)$assignment['driver_name'],'#') ? ($isAr?'سائق بدون اسم':'Unnamed driver') : $assignment['driver_name'] }} · {{ $businessLabel($assignment['status']) }}</strong>
+<strong>{{ str_starts_with((string)$assignment['driver_name'],'#') ? __('order_operations.detail.unnamed_driver') : $assignment['driver_name'] }} · {{ $businessLabel($assignment['status']) }}</strong>
 @if(empty($assignment['timeline']))
-<small>{{ $isAr?'لا توجد أحداث توصيل محفوظة لهذا التعيين.':'No delivery evidence events are recorded for this assignment.' }}</small>
+<small>{{ __('order_operations.detail.no_assignment_events') }}</small>
 @else
 <div class="timeline" style="margin-top:10px">
 @foreach($assignment['timeline'] as $event)
 <div class="timeline-item" data-delivery-evidence-event="{{ $event['id'] }}">
 <strong>{{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['reason_code'])<div>{{ $isAr?'سبب التعذر':'Failure reason' }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ $isAr?'ملاحظة السائق':'Driver note' }}: {{ $event['note'] }}</div>@endif
+@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
+@if($event['note'])<div>{{ __('order_operations.detail.driver_note') }}: {{ $event['note'] }}</div>@endif
 @if($event['proof'])
-<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ $isAr?'عرض إثبات التسليم':'View delivery proof' }}</a></div>
+<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a></div>
 @endif
 <small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
 </div>
@@ -154,7 +154,7 @@ $businessLabel = static function ($value): string {
 @endif
 </div>
 @empty
-<div class="foodex-empty-state">{{ $isAr?'لا يوجد سجل توصيل أو إثبات محفوظ لهذا الطلب.':'No delivery timeline or proof is recorded for this order.' }}</div>
+<div class="foodex-empty-state">{{ __('order_operations.detail.no_delivery_evidence') }}</div>
 @endforelse
 </div>
 </div>
