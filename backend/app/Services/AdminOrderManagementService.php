@@ -36,43 +36,6 @@ final class AdminOrderManagementService
         $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
         [$customer] = $this->customer($channel, $storeId, (int) $data['customer_id']);
         $customerId = (int) $customer->getKey();
-        $resolvedIdempotencyKey = trim((string) $idempotencyKey);
-        if ($resolvedIdempotencyKey !== '' && (strlen($resolvedIdempotencyKey) < 16 || strlen($resolvedIdempotencyKey) > 100)) {
-            throw ValidationException::withMessages([
-                'Idempotency-Key' => ['A valid Idempotency-Key between 16 and 100 characters is required.'],
-            ]);
-        }
-        $requestHash = $resolvedIdempotencyKey === ''
-            ? null
-            : hash('sha256', json_encode([
-                'source' => $source,
-                'channel' => $channel,
-                'store_id' => $storeId,
-                'customer_id' => $customerId,
-                'warehouse_id' => $data['warehouse_id'] ?? null,
-                'address_id' => $data['address_id'] ?? null,
-                'payment_method' => $data['payment_method'] ?? null,
-                'coupon_code' => $data['coupon_code'] ?? null,
-                'customer_note' => $data['customer_note'] ?? null,
-                'items' => $data['items'],
-            ], JSON_THROW_ON_ERROR));
-
-        if ($resolvedIdempotencyKey !== '') {
-            $existing = Order::query()
-                ->where('customer_id', $legacyCustomerId)
-                ->where('checkout_idempotency_key', $resolvedIdempotencyKey)
-                ->first();
-            if ($existing instanceof Order) {
-                abort_if(
-                    ! hash_equals((string) $existing->checkout_request_hash, (string) $requestHash),
-                    409,
-                    'Idempotency key was already used for a different order request.',
-                );
-
-                return $existing;
-            }
-        }
-
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
         $paymentMethod = $this->paymentMethod(
             (string) ($data['payment_method'] ?? config('checkout.default_payment_method')),
@@ -145,6 +108,44 @@ final class AdminOrderManagementService
         $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
         [$customer, $legacyCustomerId] = $this->customer($channel, $storeId, (int) $data['customer_id']);
         $customerId = (int) $customer->getKey();
+
+        $resolvedIdempotencyKey = trim((string) $idempotencyKey);
+        if ($resolvedIdempotencyKey !== '' && (strlen($resolvedIdempotencyKey) < 16 || strlen($resolvedIdempotencyKey) > 100)) {
+            throw ValidationException::withMessages([
+                'Idempotency-Key' => ['A valid Idempotency-Key between 16 and 100 characters is required.'],
+            ]);
+        }
+        $requestHash = $resolvedIdempotencyKey === ''
+            ? null
+            : hash('sha256', json_encode([
+                'source' => $source,
+                'channel' => $channel,
+                'store_id' => $storeId,
+                'customer_id' => $customerId,
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+                'address_id' => $data['address_id'] ?? null,
+                'payment_method' => $data['payment_method'] ?? null,
+                'coupon_code' => $data['coupon_code'] ?? null,
+                'customer_note' => $data['customer_note'] ?? null,
+                'items' => $data['items'],
+            ], JSON_THROW_ON_ERROR));
+
+        if ($resolvedIdempotencyKey !== '') {
+            $existing = Order::query()
+                ->where('customer_id', $legacyCustomerId)
+                ->where('checkout_idempotency_key', $resolvedIdempotencyKey)
+                ->first();
+            if ($existing instanceof Order) {
+                abort_if(
+                    ! hash_equals((string) $existing->checkout_request_hash, (string) $requestHash),
+                    409,
+                    'Idempotency key was already used for a different order request.',
+                );
+
+                return $existing;
+            }
+        }
+
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
         $address = $addressId === null ? null : Address::query()->findOrFail($addressId);
         $paymentMethod = $this->paymentMethod(
