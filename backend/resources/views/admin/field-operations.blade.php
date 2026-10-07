@@ -502,6 +502,7 @@
                         territory_id: @json($territory->id),
                         code: @json($territory->code),
                         name: @json($territory->localized_name),
+                        version: @json($geometry->version),
                     },
                     geometry: @json($geometry->geojson),
                 });
@@ -555,10 +556,42 @@
                     : @json(__('field_operations.polygon_invalid'));
             }
         };
+        const editableRing=feature=>{
+            const geometry=feature?.geometry;
+            if(!geometry) return null;
+            if(geometry.type==='Polygon') return geometry.coordinates?.[0]||null;
+            if(geometry.type==='MultiPolygon') return geometry.coordinates?.[0]?.[0]||null;
+            return null;
+        };
+        const loadSelectedGeometry=()=>{
+            form.action=select.value ? base+'/'+select.value+'/geometry' : '';
+            if(!select.value){
+                points=[];
+                redraw();
+                return;
+            }
+            const candidates=existing
+                .filter(feature=>String(feature.properties?.territory_id)===String(select.value))
+                .sort((a,b)=>Number(b.properties?.version||0)-Number(a.properties?.version||0));
+            const ring=editableRing(candidates[0]);
+            if(!Array.isArray(ring)||ring.length<4){
+                points=[];
+                redraw();
+                return;
+            }
+            points=ring.map(point=>[Number(point[0]),Number(point[1])]);
+            if(points.length>1&&points[0][0]===points[points.length-1][0]&&points[0][1]===points[points.length-1][1]){
+                points.pop();
+            }
+            redraw();
+            if(points.length){
+                map.fitBounds(L.latLngBounds(points.map(point=>[point[1],point[0]])),{padding:[24,24],maxZoom:15});
+            }
+        };
         map.on('click',event=>{points.push([Number(event.latlng.lng.toFixed(7)),Number(event.latlng.lat.toFixed(7))]);redraw();});
         undo.addEventListener('click',()=>{points.pop();redraw();});
         clear.addEventListener('click',()=>{points=[];redraw();});
-        select.addEventListener('change',()=>{form.action=select.value ? base+'/'+select.value+'/geometry' : '';});
+        select.addEventListener('change',loadSelectedGeometry);
         form.addEventListener('submit',event=>{if(!select.value||!validPolygon()){event.preventDefault();alert(@json(__('field_operations.polygon_submit_invalid')));}});
         redraw();
     })();
