@@ -152,10 +152,15 @@ Future<void> _openScreen(WidgetTester tester, VanScreenId screen) async {
   scaffold.openDrawer();
   await tester.pumpAndSettle();
   final target = find.byKey(ValueKey('van-screen-' + screen.name));
+  final menu = find.byKey(const ValueKey('van-production-screen-menu'));
+  final menuScrollable = find.descendant(
+    of: menu,
+    matching: find.byType(Scrollable),
+  );
   await tester.scrollUntilVisible(
     target,
     180,
-    scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    scrollable: menuScrollable.first,
   );
   await tester.tap(target);
   await tester.pumpAndSettle();

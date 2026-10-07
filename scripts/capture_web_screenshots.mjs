@@ -358,8 +358,12 @@ async function captureMobileSettingsParityEvidence(page, locale) {
     { waitUntil: 'networkidle' },
   );
   if (!response || !response.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 2400);
     throw new Error(
-      `Mobile Settings evidence page failed: HTTP ${response?.status() ?? 'no-response'}`,
+      `Mobile Settings evidence page failed: HTTP ${response?.status() ?? 'no-response'}`
+      + (failureBody ? ` · ${failureBody}` : ''),
     );
   }
 
