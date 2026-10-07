@@ -239,11 +239,11 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertIsString($controller);
-        $this->assertStringContainsString("@foreach(['customer','driver','van'] as $submissionApp)", $view);
+        $this->assertStringContainsString("@foreach(['customer','driver','van'] as \$submissionApp)", $view);
         $this->assertStringContainsString('<option value="van">{{ __(\'mobile_settings.apps.van\') }}</option>', $view);
         $this->assertStringContainsString("'van'=>'com.foodex.van'", $view);
         $this->assertSame(2, substr_count($controller, "'app' => ['required', 'in:customer,driver,van']"));
-        $this->assertStringContainsString("if ($reviewer->app === 'van')", $controller);
+        $this->assertStringContainsString("if (\$reviewer->app === 'van')", $controller);
         $this->assertStringContainsString("hasPermission('van.login')", $controller);
     }
 }
