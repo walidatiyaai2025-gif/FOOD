@@ -91,6 +91,13 @@ jobs:
             fi
           fi
 
+          # A force-with-lease realignment can leave github.event.before unreachable
+          # from the fetched refs. Fall back to the current head parent instead of
+          # failing range resolution on an orphaned pre-realignment SHA.
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git rev-parse "$head^" 2>/dev/null || git rev-parse "$head")"
+          fi
+
           git cat-file -e "$base^{commit}"
           git cat-file -e "$head^{commit}"
 
