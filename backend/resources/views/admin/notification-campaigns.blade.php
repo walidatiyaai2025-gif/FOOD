@@ -65,7 +65,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ old('popup_cta_target') }}" placeholder="/offers" dir="ltr"></div>
                 <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ old('popup_cta_label_ar') }}" dir="rtl"></div>
                 <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ old('popup_cta_label_en') }}" dir="ltr"></div>
-                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'رقم المستخدم - اختياري':'User ID - optional' }}"></div>
+                <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)old('user_id')===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
 
                 <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="عنوان الحملة بالعربية"></div>
                 <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="Campaign title in English"></div>
@@ -142,7 +142,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                         <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ $campaign->popup_cta_target }}" placeholder="/offers" dir="ltr"></div>
                         <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ $campaign->popup_cta_label_ar }}" dir="rtl"></div>
                         <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ $campaign->popup_cta_label_en }}" dir="ltr"></div>
-                        <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" value="{{ $campaign->user_id }}"></div>
+                        <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)$campaign->user_id===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $campaign->title_ar }}" required dir="rtl"></div>
                         <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $campaign->title_en }}" required dir="ltr"></div>
                         <div class="full preview">
