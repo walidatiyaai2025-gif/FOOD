@@ -447,6 +447,45 @@ void main() {
     expect(notifications.markedRead, 91);
   });
 
+
+  testWidgets('Van Route Map plots only authoritative visit coordinates',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _RouteCustomersRepository(),
+        visitRepository: _RoutesVisitRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final target = find.byKey(const ValueKey('van-screen-routeMap'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-route-map-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-route-map-canvas')), findsOneWidget);
+    expect(find.text('ROUTE-A'), findsOneWidget);
+    expect(find.text('0/2'), findsOneWidget);
+    expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
+    expect(find.text('Block 3 · Street 17'), findsOneWidget);
+  });
+
 }
 
 
@@ -871,6 +910,9 @@ class _RoutesVisitRepository implements VanVisitRepository {
           customerId: 42,
           storeId: 7,
           routeKey: 'ROUTE-A',
+          latitude: 29.3375,
+          longitude: 47.6581,
+          address: 'Block 3 · Street 17',
           status: 'planned',
           plannedAt: '2026-10-07T10:00:00+03:00',
           allowedTransitions: ['started', 'customer_unavailable'],
@@ -881,6 +923,9 @@ class _RoutesVisitRepository implements VanVisitRepository {
           customerId: 43,
           storeId: 8,
           routeKey: 'ROUTE-A',
+          latitude: 29.3412,
+          longitude: 47.6654,
+          address: 'Block 5 · Street 9',
           status: 'started',
           plannedAt: '2026-10-07T11:00:00+03:00',
           allowedTransitions: [
@@ -924,5 +969,47 @@ class _NotificationRepository implements VanNotificationRepository {
   @override
   Future<void> markRead(int notificationId) async {
     markedRead = notificationId;
+  }
+}
+
+
+class _RouteCustomersRepository implements VanWalletRepository {
+  const _RouteCustomersRepository();
+
+  @override
+  Future<List<VanCustomerScope>> customers() async => const [
+        VanCustomerScope(type: 'b2b', id: 42, name: 'Acme Grocery', storeId: 7),
+        VanCustomerScope(type: 'b2c', id: 43, name: 'City Market', storeId: 8),
+      ];
+
+  @override
+  Future<List<VanWalletAccount>> wallet() async => const [];
+
+  @override
+  Future<VanCollectionContext> collectionContext(
+    VanCustomerScope customer,
+  ) async =>
+      VanCollectionContext(storeId: customer.storeId, invoices: const []);
+
+  @override
+  Future<VanCollectionResult> collect({
+    required VanCustomerScope customer,
+    required int invoiceId,
+    required double amount,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<VanWalletAccount> remit({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    required String idempotencyKey,
+    String? reference,
+    String? note,
+  }) {
+    throw UnimplementedError();
   }
 }
