@@ -276,6 +276,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="deep_link_json"', $view);
         $this->assertStringNotContainsString('name="store_readiness_json"', $view);
         $this->assertStringContainsString("'deep_link_scheme' => ['sometimes', 'nullable', 'string', 'max:64']", $controller);
-        $this->assertStringContainsString("$readiness['android'] = $request->boolean('readiness_android');", $controller);
+        $this->assertStringContainsString("\$readiness['android'] = \$request->boolean('readiness_android');", $controller);
     }
 }
