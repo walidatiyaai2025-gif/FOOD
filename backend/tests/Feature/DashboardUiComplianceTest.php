@@ -330,4 +330,56 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('name="asset_screenshots"><option value="">—</option>@foreach($submissionUploadAssetStates', $view);
         $this->assertStringNotContainsString('$submissionAssetStates = [', $view);
     }
+
+
+    public function test_owned_dashboard_views_do_not_expose_routine_raw_identifiers_or_json(): void
+    {
+        $views = [
+            'administration-hub.blade.php',
+            'customer-360-show.blade.php',
+            'driver-live-tracking.blade.php',
+            'mobile-settings.blade.php',
+            'notification-campaigns.blade.php',
+            'notifications.blade.php',
+            'order-operations.blade.php',
+            'reports.blade.php',
+        ];
+
+        foreach ($views as $viewName) {
+            $view = file_get_contents(resource_path('views/admin/'.$viewName));
+
+            $this->assertIsString($view, $viewName);
+
+            // Internal IDs may back named <select> lookups, but routine numeric-ID entry must never return.
+            $this->assertDoesNotMatchRegularExpression(
+                '/<input[^>]+name="[^"]*_id"[^>]+type="number"|<input[^>]+type="number"[^>]+name="[^"]*_id"/i',
+                $view,
+                $viewName,
+            );
+
+            // Firebase Service Account credentials are the one intentional technical JSON exception.
+            $withoutCredentialJson = str_replace('name="credentials_json"', 'name="credentials_payload"', $view);
+            $this->assertDoesNotMatchRegularExpression(
+                '/<(?:textarea|input)[^>]+name="[^"]*_json"/i',
+                $withoutCredentialJson,
+                $viewName,
+            );
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/>\s*(?:User|Store|Driver|Order|Invoice|Campaign|Notification|Device|Log) ID\s*</i',
+                $view,
+                $viewName,
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/#\s*{{\s*\$[^}]*->id\s*}}/',
+                $view,
+                $viewName,
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/{{\s*\$[^}]*->(?:error_code|response_code)\s*}}/',
+                $view,
+                $viewName,
+            );
+        }
+    }
 }
