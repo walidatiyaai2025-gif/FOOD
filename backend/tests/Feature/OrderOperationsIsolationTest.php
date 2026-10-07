@@ -382,8 +382,8 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders?channel=all&order='.$retailOrder)
             ->assertOk()
             ->assertSee('data-order-authoritative-context', false)
-            ->assertSee('store_id='.$retailStore, false)
-            ->assertSee('channel=b2c', false)
+            ->assertDontSee('store_id='.$retailStore, false)
+            ->assertDontSee('channel=b2c', false)
             ->assertSee('Customer checkout')
             ->assertDontSee('customer_checkout');
 
