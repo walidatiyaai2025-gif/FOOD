@@ -514,9 +514,9 @@ class CommercialDashboardContractTest extends TestCase
                 'break_pack_unit_code' => 'CARTON',
                 'business_timezone' => 'Asia/Kuwait',
                 'week_starts_on' => 1,
-                'selling_units_json' => '[{"code":"PIECE","name":"Piece","conversion_factor":1,"is_base":true},{"code":"CARTON","name":"Carton","conversion_factor":10,"is_base":false}]',
-                'availability_windows_json' => '[]',
-                'rules_json' => '[]',
+                'selling_units_json' => '[{"code":"PIECE","name":"Piece","conversion_factor":1,"is_base":true,"is_active":true},{"code":"CARTON","name":"Carton","conversion_factor":10,"is_base":false,"is_active":true}]',
+                'availability_windows_json' => '[{"recurrence":"yearly","start_month":1,"start_day":1,"end_month":12,"end_day":31,"is_active":true}]',
+                'rules_json' => '[{"customer_id":'.$audienceCustomerId.',"channel":"van","is_allowed":null,"max_per_day":25}]',
             ])
             ->assertRedirect();
 
@@ -524,6 +524,29 @@ class CommercialDashboardContractTest extends TestCase
             'product_id' => $productId,
             'break_pack_policy' => 'one-unit-type',
             'break_pack_unit_code' => 'CARTON',
+        ]);
+        $this->assertDatabaseHas('product_selling_units', [
+            'product_id' => $productId,
+            'code' => 'CARTON',
+            'conversion_factor' => 10,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('product_availability_windows', [
+            'product_id' => $productId,
+            'recurrence' => 'yearly',
+            'start_month' => 1,
+            'start_day' => 1,
+            'end_month' => 12,
+            'end_day' => 31,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('product_commercial_rules', [
+            'product_id' => $productId,
+            'customer_id' => $audienceCustomerId,
+            'customer_group_id' => null,
+            'channel' => 'van',
+            'is_allowed' => null,
+            'max_per_day' => 25,
         ]);
 
         $this->actingAs($manager)
