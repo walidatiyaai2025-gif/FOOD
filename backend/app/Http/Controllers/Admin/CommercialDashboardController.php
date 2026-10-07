@@ -100,6 +100,7 @@ final class CommercialDashboardController extends Controller
         $sellingUnits = $this->jsonArray($data['selling_units_json'], 'selling_units_json');
         $windows = $this->jsonArray($data['availability_windows_json'], 'availability_windows_json');
         $rules = $this->jsonArray($data['rules_json'], 'rules_json');
+        $this->validateStructuredSalesConfiguration($storeId, $sellingUnits, $windows, $rules);
 
         if ($data['break_pack_policy'] === 'one-unit-type') {
             $breakPackCode = trim((string) ($data['break_pack_unit_code'] ?? ''));
@@ -390,6 +391,13 @@ final class CommercialDashboardController extends Controller
         $audienceRoutes = collect($data['audience_routes'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
 
         $lookups = $this->flashOfferLookups($storeId);
+        $this->validateFlashAudience(
+            $audienceCustomerIds,
+            $audienceCustomerGroupIds,
+            $audienceRegions,
+            $audienceRoutes,
+            $lookups,
+        );
         $allowedProducts = $lookups['flashProducts']->keyBy('id');
         $unitsByProduct = $lookups['flashSellingUnits'];
         $products = [];
@@ -582,6 +590,175 @@ final class CommercialDashboardController extends Controller
         }
 
         return $decoded;
+    }
+
+    /**
+     * @param  list<mixed>  $sellingUnits
+     * @param  list<mixed>  $windows
+     * @param  list<mixed>  $rules
+     */
+    private function validateStructuredSalesConfiguration(
+        int $storeId,
+        array $sellingUnits,
+        array $windows,
+        array $rules,
+    ): void {
+        $errors = [];
+        $seenCodes = [];
+
+        foreach ($sellingUnits as $index => $unit) {
+            if (! is_array($unit)) {
+                $errors["selling_units_json.$index"] = [__('commercial.validation.selling_unit_code_name')];
+
+                continue;
+            }
+
+            $code = strtoupper(trim((string) ($unit['code'] ?? '')));
+            $name = trim((string) ($unit['name'] ?? ''));
+            $factor = $unit['conversion_factor'] ?? 1;
+
+            if ($code === '' || $name === '') {
+                $errors["selling_units_json.$index"] = [__('commercial.validation.selling_unit_code_name')];
+            }
+            if (! is_numeric($factor) || (float) $factor <= 0) {
+                $errors["selling_units_json.$index.conversion_factor"] = [__('commercial.validation.selling_unit_factor')];
+            }
+            if ($code !== '' && isset($seenCodes[$code])) {
+                $errors["selling_units_json.$index.code"] = [__('commercial.validation.duplicate_selling_unit_code')];
+            }
+            if ($code !== '') {
+                $seenCodes[$code] = true;
+            }
+        }
+
+        foreach ($windows as $index => $window) {
+            if (! is_array($window)) {
+                $errors["availability_windows_json.$index"] = [__('commercial.validation.availability_recurrence')];
+
+                continue;
+            }
+
+            $recurrence = strtolower(trim((string) ($window['recurrence'] ?? 'fixed')));
+            if (! in_array($recurrence, ['fixed', 'yearly'], true)) {
+                $errors["availability_windows_json.$index.recurrence"] = [__('commercial.validation.availability_recurrence')];
+
+                continue;
+            }
+
+            if ($recurrence === 'yearly') {
+                foreach (['start_month', 'start_day', 'end_month', 'end_day'] as $field) {
+                    $value = $window[$field] ?? null;
+                    $max = str_contains($field, 'month') ? 12 : 31;
+                    if (! is_numeric($value) || (int) $value < 1 || (int) $value > $max) {
+                        $errors["availability_windows_json.$index.$field"] = [__('commercial.validation.availability_yearly_fields')];
+                    }
+                }
+            }
+        }
+
+        $legacyCustomerIds = DB::table('b2c_customers')
+            ->where('store_id', $storeId)
+            ->whereNotNull('legacy_customer_id')
+            ->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $allowedCustomerIds = array_fill_keys($legacyCustomerIds, true);
+
+        $allowedGroupIds = DB::table('commercial_customer_groups')
+            ->where('is_active', true)
+            ->where(function ($query) use ($storeId): void {
+                $query->whereNull('store_id')->orWhere('store_id', $storeId);
+            })
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $allowedGroupIds = array_fill_keys($allowedGroupIds, true);
+
+        foreach ($rules as $index => $rule) {
+            if (! is_array($rule)) {
+                $errors["rules_json.$index"] = [__('commercial.validation.sales_rule_invalid')];
+
+                continue;
+            }
+
+            $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== null && $rule['customer_id'] !== ''
+                ? (int) $rule['customer_id']
+                : null;
+            $groupId = isset($rule['customer_group_id']) && $rule['customer_group_id'] !== null && $rule['customer_group_id'] !== ''
+                ? (int) $rule['customer_group_id']
+                : null;
+
+            if ($customerId !== null && ! isset($allowedCustomerIds[$customerId])) {
+                $errors["rules_json.$index.customer_id"] = [__('commercial.validation.sales_rule_customer_scope')];
+            }
+            if ($groupId !== null && ! isset($allowedGroupIds[$groupId])) {
+                $errors["rules_json.$index.customer_group_id"] = [__('commercial.validation.sales_rule_group_scope')];
+            }
+            if ($customerId !== null && $groupId !== null) {
+                $errors["rules_json.$index.customer_group_id"] = [__('commercial.validation.sales_rule_subject_exclusive')];
+            }
+
+            $channel = isset($rule['channel']) && $rule['channel'] !== null
+                ? trim((string) $rule['channel'])
+                : '';
+            if ($channel !== '' && ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {
+                $errors["rules_json.$index.channel"] = [__('commercial.validation.sales_rule_channel')];
+            }
+
+            foreach (['max_per_order', 'max_per_day', 'max_per_week', 'max_per_month', 'max_lifetime'] as $field) {
+                $value = $rule[$field] ?? null;
+                if ($value !== null && $value !== '' && (! is_numeric($value) || (float) $value < 0)) {
+                    $errors["rules_json.$index.$field"] = [__('commercial.validation.sales_rule_limit')];
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * @param  list<int>  $customerIds
+     * @param  list<int>  $groupIds
+     * @param  list<string>  $regions
+     * @param  list<string>  $routes
+     * @param  array{
+     *   flashProducts:Collection,
+     *   flashSellingUnits:Collection,
+     *   audienceCustomers:Collection,
+     *   audienceGroups:Collection,
+     *   audienceRegions:Collection,
+     *   audienceRoutes:Collection
+     * }  $lookups
+     */
+    private function validateFlashAudience(
+        array $customerIds,
+        array $groupIds,
+        array $regions,
+        array $routes,
+        array $lookups,
+    ): void {
+        $errors = [];
+        $allowedCustomerIds = $lookups['audienceCustomers']->pluck('id')->map(static fn ($id): int => (int) $id);
+        $allowedGroupIds = $lookups['audienceGroups']->pluck('id')->map(static fn ($id): int => (int) $id);
+
+        if (collect($customerIds)->diff($allowedCustomerIds)->isNotEmpty()) {
+            $errors['audience_customer_ids'] = [__('commercial.validation.audience_customer_scope')];
+        }
+        if (collect($groupIds)->diff($allowedGroupIds)->isNotEmpty()) {
+            $errors['audience_customer_group_ids'] = [__('commercial.validation.audience_group_scope')];
+        }
+        if (collect($regions)->diff($lookups['audienceRegions'])->isNotEmpty()) {
+            $errors['audience_regions'] = [__('commercial.validation.audience_region_scope')];
+        }
+        if (collect($routes)->diff($lookups['audienceRoutes'])->isNotEmpty()) {
+            $errors['audience_routes'] = [__('commercial.validation.audience_route_scope')];
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     private function flashOfferRow(int $storeId, int $offer): object
