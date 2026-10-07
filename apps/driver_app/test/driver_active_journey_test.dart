@@ -561,6 +561,35 @@ void main() {
     expect(find.text('B2B-19'), findsNothing);
   });
 
+  testWidgets('delivery filters stay on one compact row at narrow phone width',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 19,
+        channel: DriverChannel.b2c,
+        reference: 'FILTER-19',
+        status: 'assigned',
+      ),
+    ]);
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+
+    final row = find.byKey(const Key('driver-filter-single-row'));
+    expect(row, findsOneWidget);
+    expect(tester.getSize(row).height, 48);
+    expect(find.byKey(const Key('driver-delivery-date-range')), findsOneWidget);
+    expect(find.byKey(const Key('driver-filter-today')), findsOneWidget);
+    expect(find.byKey(const Key('driver-filter-all')), findsOneWidget);
+  });
+
   testWidgets('exact status route filters the authoritative assignment list',
       (tester) async {
     const repo = _StaticActiveRepo([
