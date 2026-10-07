@@ -12,6 +12,7 @@
     $sfCanPublish = $storeId > 0 && ($user->hasPermission('app_preview.publish', $storeId) || $user->hasPermission('app_preview.publish'));
     $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2c','store_id'=>$storeId,'persona'=>'guest','mode'=>'draft'] + ($supportAccess ? ['support_access'=>1] : []));
     $canManageStorefront = $storeId > 0 && ($user->hasPermission('settings.manage', $storeId) || $user->hasPermission('settings.manage'));
+    $isSuper = $user->hasRole('SUPER_ADMIN');
     $canManageBanners = $storeId > 0 && ($user->hasPermission('promotions.manage', $storeId) || $user->hasPermission('promotions.manage'));
     $primary = $sfSettings['primary_color'] ?? '#078A43';
     $primaryDark = $sfSettings['primary_dark_color'] ?? '#006736';
@@ -98,7 +99,12 @@
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" maxlength="255" placeholder="Featured products"></label>
                     <label class="sf-label">{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input name="sort_order" type="number" min="0" max="9999" value="50" required></label>
                     <label class="sf-label" style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
-                    <label class="sf-label wide">Config JSON <textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
+                    @if($isSuper)
+                    <details class="sf-label wide" data-advanced>
+                        <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
+                        <label>Config JSON <textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
+                    </details>
+                    @endif
                 </div>
                 <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة للقسم في المسودة':'Add section to Draft' }}</button></div>
             </form>
@@ -120,7 +126,12 @@
                             <label class="sf-label">{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" value="{{ $section['title_en'] }}"></label>
                             <label class="sf-label">{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input name="sort_order" type="number" min="0" max="9999" value="{{ $section['sort_order'] }}" required></label>
                             <label class="sf-label" style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
-                            <label class="sf-label wide">Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
+                            @if($isSuper)
+                            <details class="sf-label wide" data-advanced>
+                                <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
+                                <label>Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
+                            </details>
+                            @endif
                         </div>
                         <div class="sf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                     </form>
