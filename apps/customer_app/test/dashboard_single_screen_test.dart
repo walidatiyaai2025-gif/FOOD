@@ -30,6 +30,7 @@ Map<String, Object?> dashboardResponse({bool second = false}) => {
         : 'customer_owes_company',
     'credit_limit': second ? 7000 : 5000,
     'available_credit_line': second ? 7000 : 3765.5,
+    'customer_credit_balance': second ? 200 : 1234.5,
     'open_amount': second ? 0 : 1234.5,
     'overdue_amount': second ? 0 : 123,
   },
@@ -44,6 +45,7 @@ Map<String, Object?> dashboardResponse({bool second = false}) => {
     'generated_at': DateTime.now().toUtc().toIso8601String(),
     'stale': false,
   },
+  'purchase_total': second ? 640 : 12876.5,
 };
 
 class DashboardApi implements B2bApi {
@@ -253,7 +255,6 @@ void main() {
       'order-count': CustomerRoutePaths.b2bOrders,
       'active-orders': CustomerRoutePaths.b2bOrders,
       'offers': CustomerRoutePaths.b2bTopProducts,
-      'balance-hero': CustomerRoutePaths.b2bAccountStatement,
       'notifications': CustomerRoutePaths.b2bNotifications,
     };
     for (final entry in destinations.entries) {
@@ -320,7 +321,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.textContaining('1234.500 KWD'), findsWidgets);
         api.response = dashboardResponse(second: true);
-        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-hero')));
         await tester.pumpAndSettle();
         expect(api.calls, 2);
         expect(api.lastPath, '/api/v1/b2b/dashboard?store_id=7');
@@ -328,13 +329,13 @@ void main() {
         expect(find.textContaining('200.000 USD'), findsWidgets);
         expect(find.textContaining('1234.500 KWD'), findsNothing);
         api.response = <String, Object?>{};
-        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-hero')));
         await tester.pumpAndSettle();
         expect(find.text('0'), findsNothing);
         expect(find.textContaining('0.000'), findsNothing);
         final failedResponse = Completer<Object?>();
         api.response = failedResponse.future;
-        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+        await tester.tap(find.byKey(const ValueKey('b2b-dashboard-hero')));
         await tester.pump();
         // Complete after the loading state is attached, as a real HTTP request does.
         failedResponse.completeError(
