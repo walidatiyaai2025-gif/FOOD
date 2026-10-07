@@ -78,7 +78,7 @@ $businessLabel = static function ($value): string {
 <main class="foodex-admin-main foodex-admin-page">
 <div class="c360-shell">
 
-<div class="c360-topline">
+<div class="c360-topline foodex-page-header">
 <div>
 <h1 style="margin:0">{{ __('customer_360.title') }}</h1>
 <div class="c360-breadcrumbs">
