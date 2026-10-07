@@ -17,6 +17,7 @@ use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class MobileSettingsController extends Controller
@@ -49,6 +50,11 @@ final class MobileSettingsController extends Controller
             'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
             'storeSubmissions' => MobileStoreSubmission::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
             'reviewerAccounts' => StoreReviewerAccount::query()->orderBy('app')->orderBy('platform')->orderBy('persona')->get(),
+            'reviewerStores' => DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.is_active', true)
+                ->orderBy('stores.name')
+                ->get(['stores.id', 'stores.name', 'store_types.code as channel']),
         ]);
     }
 
