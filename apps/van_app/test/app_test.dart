@@ -4,6 +4,7 @@ import 'package:foodex_van_app/app.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
+import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 
 void main() {
   test('approved Van production inventory stays locked to 19 surfaces', () {
@@ -289,6 +290,52 @@ void main() {
     expect(find.text('15.000 KWD'), findsOneWidget);
     expect(find.text('9.000 KWD'), findsOneWidget);
     expect(find.text('1'), findsWidgets);
+  });
+
+
+  testWidgets('Van Visit Workspace uses canonical visit lifecycle transitions',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _CustomerWalletRepository(),
+        visitRepository: _VisitRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-visit'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('van-visit-workspace-page')),
+      findsOneWidget,
+    );
+    expect(find.text('Acme Grocery'), findsOneWidget);
+    expect(find.text('Planned'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-visit-start-501')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Started'), findsOneWidget);
+    expect(find.text('Planned'), findsNothing);
   });
 
 }
@@ -656,5 +703,49 @@ class _DashboardWalletRepository implements VanWalletRepository {
     String? note,
   }) {
     throw UnimplementedError();
+  }
+}
+
+
+class _VisitRepository implements VanVisitRepository {
+  const _VisitRepository();
+
+  @override
+  Future<List<VanVisitRecord>> visits({String? status}) async => const [
+        VanVisitRecord(
+          id: 501,
+          customerType: 'b2b',
+          customerId: 42,
+          storeId: 7,
+          status: 'planned',
+          plannedAt: '2026-10-07T10:00:00+03:00',
+          allowedTransitions: ['started', 'customer_unavailable'],
+        ),
+      ];
+
+  @override
+  Future<VanVisitRecord> transition({
+    required int visitId,
+    required String status,
+    int? orderId,
+    int? noOrderReasonId,
+  }) async {
+    if (visitId != 501 || status != 'started') {
+      throw StateError('Unexpected visit transition in test.');
+    }
+    return const VanVisitRecord(
+      id: 501,
+      customerType: 'b2b',
+      customerId: 42,
+      storeId: 7,
+      status: 'started',
+      plannedAt: '2026-10-07T10:00:00+03:00',
+      startedAt: '2026-10-07T10:01:00+03:00',
+      allowedTransitions: [
+        'completed_with_order',
+        'completed_no_order',
+        'customer_unavailable',
+      ],
+    );
   }
 }
