@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $started_at
  * @property Carbon|null $completed_at
  * @property Carbon|null $closed_at
+ * @property array<string, mixed>|null $metadata
  */
 class VanVisit extends Model
 {

@@ -19,7 +19,7 @@ final class StoreSubmissionController extends Controller
     {
         $actor = $this->authorize($request);
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'package_identifier' => ['nullable', 'string', 'max:255'],
@@ -41,6 +41,14 @@ final class StoreSubmissionController extends Controller
             'category' => ['nullable', 'string', 'max:255'],
             'keywords' => ['nullable', 'string', 'max:2000'],
             'reviewer_notes' => ['nullable', 'string', 'max:10000'],
+            'asset_icon_master' => ['nullable', 'in:repository-controlled,external-manual,blocked'],
+            'asset_splash_master' => ['nullable', 'in:repository-controlled,external-manual,blocked'],
+            'asset_screenshots' => ['nullable', 'in:repository-controlled,external-manual-final-upload,external-manual-if-required,blocked'],
+            'asset_promotional_assets' => ['nullable', 'in:repository-controlled,external-manual-final-upload,external-manual-if-required,blocked'],
+            'permission_declarations_text' => ['nullable', 'string', 'max:10000'],
+            'privacy_checklist_text' => ['nullable', 'string', 'max:10000'],
+            'manual_gaps_text' => ['nullable', 'string', 'max:10000'],
+            // Legacy compatibility only; Dashboard uses structured business controls.
             'asset_checklist_json' => ['nullable', 'json'],
             'permission_declarations_json' => ['nullable', 'json'],
             'privacy_checklist_json' => ['nullable', 'json'],
@@ -63,17 +71,49 @@ final class StoreSubmissionController extends Controller
 
         $values = collect($data)->except([
             'app', 'platform', 'environment',
+            'asset_icon_master', 'asset_splash_master', 'asset_screenshots', 'asset_promotional_assets',
+            'permission_declarations_text', 'privacy_checklist_text', 'manual_gaps_text',
             'asset_checklist_json', 'permission_declarations_json',
             'privacy_checklist_json', 'manual_gaps_json',
         ])->all();
 
+        if (array_key_exists('asset_icon_master', $data)
+            || array_key_exists('asset_splash_master', $data)
+            || array_key_exists('asset_screenshots', $data)
+            || array_key_exists('asset_promotional_assets', $data)) {
+            $assets = is_array($before?->asset_checklist) ? $before->asset_checklist : [];
+            foreach ([
+                'asset_icon_master' => 'icon_master',
+                'asset_splash_master' => 'splash_master',
+                'asset_screenshots' => 'screenshots',
+                'asset_promotional_assets' => 'promotional_assets',
+            ] as $input => $key) {
+                if (! array_key_exists($input, $data)) {
+                    continue;
+                }
+
+                $value = trim((string) ($data[$input] ?? ''));
+                if ($value === '') {
+                    unset($assets[$key]);
+                } else {
+                    $assets[$key] = $value;
+                }
+            }
+            $values['asset_checklist'] = $assets;
+        } elseif (array_key_exists('asset_checklist_json', $data)) {
+            $values['asset_checklist'] = $this->decode($data['asset_checklist_json'] ?? null);
+        }
+
         foreach ([
-            'asset_checklist_json' => 'asset_checklist',
-            'permission_declarations_json' => 'permission_declarations',
-            'privacy_checklist_json' => 'privacy_checklist',
-            'manual_gaps_json' => 'manual_gaps',
-        ] as $input => $column) {
-            $values[$column] = $this->decode($data[$input] ?? null);
+            'permission_declarations_text' => ['column' => 'permission_declarations', 'legacy' => 'permission_declarations_json'],
+            'privacy_checklist_text' => ['column' => 'privacy_checklist', 'legacy' => 'privacy_checklist_json'],
+            'manual_gaps_text' => ['column' => 'manual_gaps', 'legacy' => 'manual_gaps_json'],
+        ] as $textInput => $mapping) {
+            if (array_key_exists($textInput, $data)) {
+                $values[$mapping['column']] = $this->lines($data[$textInput] ?? null);
+            } elseif (array_key_exists($mapping['legacy'], $data)) {
+                $values[$mapping['column']] = $this->decode($data[$mapping['legacy']] ?? null);
+            }
         }
 
         $submission = MobileStoreSubmission::query()->updateOrCreate($scope, $values);
@@ -95,13 +135,16 @@ final class StoreSubmissionController extends Controller
     {
         $actor = $this->authorize($request);
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'persona' => ['required', 'string', 'max:64'],
             'identifier_type' => ['required', 'in:email,username,phone'],
             'identifier' => ['required', 'string', 'max:255'],
             'reviewer_secret' => ['nullable', 'string', 'min:8', 'max:255'],
+            'reviewer_channel' => ['nullable', 'in:b2b,b2c'],
+            'reviewer_store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            // Legacy compatibility only; Dashboard uses structured context controls.
             'context_json' => ['nullable', 'json'],
             'reviewer_instructions' => ['nullable', 'string', 'max:10000'],
             'is_active' => ['nullable', 'boolean'],
@@ -117,10 +160,39 @@ final class StoreSubmissionController extends Controller
             ]);
         }
 
+        $context = is_array($reviewer?->context) ? $reviewer->context : [];
+        if (array_key_exists('reviewer_channel', $data) || array_key_exists('reviewer_store_id', $data)) {
+            $channel = trim((string) ($data['reviewer_channel'] ?? ''));
+            $storeId = isset($data['reviewer_store_id']) ? (int) $data['reviewer_store_id'] : 0;
+
+            if ($channel === '') {
+                unset($context['channel']);
+            } else {
+                $context['channel'] = $channel;
+            }
+
+            if ($storeId <= 0) {
+                unset($context['store_id']);
+            } else {
+                $storeChannel = strtolower((string) DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.id', $storeId)
+                    ->value('store_types.code'));
+                if ($channel !== '' && $storeChannel !== $channel) {
+                    throw ValidationException::withMessages([
+                        'reviewer_store_id' => ['The selected store does not belong to the selected business channel.'],
+                    ]);
+                }
+                $context['store_id'] = $storeId;
+            }
+        } elseif (array_key_exists('context_json', $data)) {
+            $context = $this->decode($data['context_json'] ?? null) ?? [];
+        }
+
         $values = [
             'identifier_type' => $data['identifier_type'],
             'identifier' => trim($data['identifier']),
-            'context' => $this->decode($data['context_json'] ?? null),
+            'context' => $context,
             'reviewer_instructions' => $data['reviewer_instructions'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'readiness_status' => 'BLOCKED',
@@ -258,6 +330,10 @@ final class StoreSubmissionController extends Controller
 
     private function matchesApp(StoreReviewerAccount $reviewer, User $user): bool
     {
+        if ($reviewer->app === 'van') {
+            return $user->hasPermission('van.login');
+        }
+
         if ($reviewer->app === 'driver') {
             return DB::table('drivers')
                 ->where('user_id', $user->getKey())
@@ -294,6 +370,17 @@ final class StoreSubmissionController extends Controller
         $decoded = json_decode($json, true);
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    /** @return list<string> */
+    private function lines(?string $value): array
+    {
+        return collect(preg_split('/\R/u', (string) $value) ?: [])
+            ->map(static fn ($line): string => trim((string) $line))
+            ->filter(static fn (string $line): bool => $line !== '')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function backToSettings(string $app, string $environment): RedirectResponse

@@ -17,6 +17,7 @@ use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class MobileSettingsController extends Controller
@@ -44,11 +45,16 @@ final class MobileSettingsController extends Controller
             'selectedSetting' => $selectedSetting,
             'currentReleaseVersion' => $this->currentReleaseVersion(),
             'providers' => PushProviderSetting::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
-            'devices' => PushDeviceToken::query()->whereNull('revoked_at')->latest()->limit(100)->get(),
+            'devices' => PushDeviceToken::query()->with('user:id,name,email')->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
             'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
             'storeSubmissions' => MobileStoreSubmission::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
             'reviewerAccounts' => StoreReviewerAccount::query()->orderBy('app')->orderBy('platform')->orderBy('persona')->get(),
+            'reviewerStores' => DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.is_active', true)
+                ->orderBy('stores.name')
+                ->get(['stores.id', 'stores.name', 'store_types.code as channel']),
         ]);
     }
 
@@ -78,6 +84,11 @@ final class MobileSettingsController extends Controller
             'footer_display_mode' => ['sometimes', 'in:persistent,about_only,hidden'],
             'release_notes_ar' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'release_notes_en' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'deep_link_scheme' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'deep_link_host' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'readiness_android' => ['sometimes', 'boolean'],
+            'readiness_ios' => ['sometimes', 'boolean'],
+            'readiness_privacy' => ['sometimes', 'boolean'],
             'deep_link_json' => ['sometimes', 'nullable', 'json'],
             'store_readiness_json' => ['sometimes', 'nullable', 'json'],
         ]);
@@ -127,11 +138,34 @@ final class MobileSettingsController extends Controller
             }
         }
 
-        if (array_key_exists('deep_link_json', $data)) {
+        if (array_key_exists('deep_link_scheme', $data) || array_key_exists('deep_link_host', $data)) {
+            $deepLinks = is_array($before?->deep_link_config) ? $before->deep_link_config : [];
+
+            foreach (['deep_link_scheme' => 'scheme', 'deep_link_host' => 'host'] as $input => $key) {
+                if (! array_key_exists($input, $data)) {
+                    continue;
+                }
+
+                $value = trim((string) ($data[$input] ?? ''));
+                if ($value === '') {
+                    unset($deepLinks[$key]);
+                } else {
+                    $deepLinks[$key] = $value;
+                }
+            }
+
+            $values['deep_link_config'] = $deepLinks;
+        } elseif (array_key_exists('deep_link_json', $data)) {
             $values['deep_link_config'] = $this->decode($data['deep_link_json']);
         }
 
-        if (array_key_exists('store_readiness_json', $data)) {
+        if (array_key_exists('readiness_android', $data) || array_key_exists('readiness_ios', $data) || array_key_exists('readiness_privacy', $data)) {
+            $readiness = is_array($before?->store_readiness) ? $before->store_readiness : [];
+            $readiness['android'] = $request->boolean('readiness_android');
+            $readiness['ios'] = $request->boolean('readiness_ios');
+            $readiness['privacy'] = $request->boolean('readiness_privacy');
+            $values['store_readiness'] = $readiness;
+        } elseif (array_key_exists('store_readiness_json', $data)) {
             $values['store_readiness'] = $this->decode($data['store_readiness_json']);
         }
 

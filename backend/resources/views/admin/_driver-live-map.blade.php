@@ -8,6 +8,7 @@
     $pollMs = $pollMs ?? 5000;
     $ctaUrl = $ctaUrl ?? null;
     $ctaLabel = $ctaLabel ?? __('admin.driver_live_tracking.view_full');
+    $trackingStores = collect($trackingStores ?? [])->values();
     $trackingI18n = array_merge($trackingI18n ?? [], [
         'assetsFailed' => __('admin.driver_live_tracking.assets_failed'),
         'mapFailed' => __('admin.driver_live_tracking.map_failed'),
@@ -60,6 +61,7 @@
     data-assets-failed="{{ __('admin.driver_live_tracking.assets_failed') }}"
 >
     <script type="application/json" data-driver-live-map-i18n>@json($trackingI18n)</script>
+    <script type="application/json" data-driver-live-map-stores>@json($trackingStores->keyBy('id')->map(fn (array $store): string => $store['name']))</script> {{-- localization-gate: allow serialized business store labels --}}
 
     @if ($showFilters)
         <section class="foodex-card tracking-filter-card" aria-label="{{ __('admin.driver_live_tracking.title') }}">
@@ -71,7 +73,14 @@
                         <option value="b2c">B2C</option>
                     </select>
                 </label>
-                <label>{{ __('admin.driver_live_tracking.store_id') }}<input data-live-map="store" type="number" min="1" inputmode="numeric"></label>
+                <label>{{ __('admin.driver_live_tracking.store') }}
+                    <select data-live-map="store">
+                        <option value="">{{ __('admin.driver_live_tracking.all_stores') }}</option>
+                        @foreach($trackingStores as $store)
+                            <option value="{{ $store['id'] }}">{{ $store['name'] }}@if($store['code'] !== '') · {{ $store['code'] }}@endif</option>
+                        @endforeach
+                    </select>
+                </label>
                 @if($trackingActor === 'mixed')
                     <label>{{ __('admin.driver_live_tracking.entity_type') }}
                         <select data-live-map="entity-type">
