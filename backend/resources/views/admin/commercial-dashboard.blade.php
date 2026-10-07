@@ -66,13 +66,24 @@
         .commercial-advanced summary{cursor:pointer;padding:12px 14px;font-weight:800;color:var(--foodex-green-dark)}
         .commercial-advanced-body{padding:0 14px 14px;display:grid;gap:12px}
         .commercial-advanced textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;min-height:110px}
+        .flash-form-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
+        .flash-form-section h3{margin:0;font-size:.92rem}
+        .flash-multi{min-height:112px}
+        .flash-product-builder{display:grid;gap:10px}
+        .flash-product-row{display:grid;grid-template-columns:2fr 1.35fr 1fr 1fr auto;gap:10px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd}
+        .flash-product-row label{display:grid;gap:6px;font-weight:700;font-size:.8rem}
+        .flash-product-row select,.flash-product-row input{width:100%}
+        .flash-row-remove{min-height:42px;border:1px solid #f2b8b5;border-radius:10px;background:#fff;color:#a61b1b;font-weight:800;cursor:pointer;padding:0 12px}
+        .flash-form-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+        .flash-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;text-decoration:none;font-weight:800;color:var(--foodex-green-dark)}
         .commercial-empty{min-height:220px;display:grid;place-items:center;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-card);background:linear-gradient(145deg,#fff,#fbfcfd);padding:var(--foodex-space-6)}
         .commercial-empty strong{display:block;font-size:1.05rem;margin-bottom:6px}.commercial-empty p{margin:0;color:var(--foodex-muted)}
         .commercial-table{width:100%;border-collapse:collapse}.commercial-table th,.commercial-table td{padding:11px;border-bottom:1px solid var(--foodex-border);text-align:start}
         .commercial-policy-form.foodex-premium-auto-form,.feature-flags-card form.foodex-premium-auto-form{display:grid!important;grid-template-columns:1fr!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;gap:12px!important}
         @media(max-width:1100px){.feature-flag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.commercial-form-grid.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:1023px){.commercial-admin-layout,.commercial-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr!important}.commercial-admin-layout>.sidebar,.commercial-admin-layout>.commercial-shell{grid-column:1!important;grid-row:auto!important}.commercial-admin-layout>.sidebar{min-height:auto}.commercial-shell{padding:14px}.commercial-product-grid{grid-template-columns:1fr}}
-        @media(max-width:680px){.feature-flag-grid,.commercial-form-grid,.commercial-form-grid.five,.commercial-toggles{grid-template-columns:1fr}.contract-banner{grid-template-columns:1fr}.commercial-card{padding:14px}.commercial-product-head{align-items:flex-start;flex-direction:column}}
+        @media(max-width:820px){.flash-product-row{grid-template-columns:1fr 1fr}.flash-product-row .flash-row-remove{grid-column:1/-1}}
+        @media(max-width:680px){.feature-flag-grid,.commercial-form-grid,.commercial-form-grid.five,.commercial-toggles,.flash-product-row{grid-template-columns:1fr}.contract-banner{grid-template-columns:1fr}.commercial-card{padding:14px}.commercial-product-head{align-items:flex-start;flex-direction:column}.flash-product-row .flash-row-remove{grid-column:auto}}
     </style>
 </head>
 <body>
@@ -208,7 +219,14 @@
                                         @endforeach
                                     </select>
                                 </label>
-                                <label>{{ __('commercial.sales.one_unit_code') }}<input name="break_pack_unit_code" value="{{ $policy->break_pack_unit_code ?? '' }}" placeholder="{{ __('commercial.sales.one_unit_code_placeholder') }}"></label>
+                                <label>{{ __('commercial.sales.one_unit_code') }}
+                                    <select name="break_pack_unit_code" data-break-pack-selling-unit>
+                                        <option value="">{{ __('commercial.sales.select_selling_unit') }}</option>
+                                        @foreach($units->where('is_active', true) as $unit)
+                                            <option value="{{ $unit->code }}" @selected(($policy->break_pack_unit_code ?? '') === $unit->code)>{{ $unit->name }} · {{ $unit->code }} · ×{{ rtrim(rtrim(number_format((float)$unit->conversion_factor, 3, '.', ''), '0'), '.') }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
                             </div>
                         </section>
 
@@ -238,14 +256,21 @@
                             </div>
                         </section>
 
-                        <details class="commercial-advanced">
-                            <summary>{{ __('commercial.sales.advanced_title') }}</summary>
-                            <div class="commercial-advanced-body">
-                                <label>{{ __('commercial.sales.selling_units_json') }}<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                                <label>{{ __('commercial.sales.availability_windows_json') }}<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                                <label>{{ __('commercial.sales.targeting_rules_json') }}<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                            </div>
-                        </details>
+                        @if($canManageFeatureFlags)
+                            <details class="commercial-advanced" data-privileged-commercial-json>
+                                <summary>{{ __('commercial.sales.advanced_privileged_title') }}</summary>
+                                <div class="commercial-advanced-body">
+                                    <p class="muted">{{ __('commercial.sales.advanced_privileged_hint') }}</p>
+                                    <label>{{ __('commercial.sales.selling_units_json') }}<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                    <label>{{ __('commercial.sales.availability_windows_json') }}<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                    <label>{{ __('commercial.sales.targeting_rules_json') }}<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                </div>
+                            </details>
+                        @else
+                            <input type="hidden" name="selling_units_json" value="{{ e($units->toJson(JSON_UNESCAPED_SLASHES)) }}">
+                            <input type="hidden" name="availability_windows_json" value="{{ e($windows->toJson(JSON_UNESCAPED_SLASHES)) }}">
+                            <input type="hidden" name="rules_json" value="{{ e($rules->toJson(JSON_UNESCAPED_SLASHES)) }}">
+                        @endif
                         <button type="submit" class="foodex-primary">{{ __('commercial.sales.save_policy') }}</button>
                     </form>
                     </div>
@@ -262,58 +287,206 @@
             </div>
         @endif
     @else
-        <header>
-            <h1>{{ $ar ? 'Promotions > Flash Offers' : 'Promotions > Flash Offers' }}</h1>
-            <p class="muted">{{ $ar ? 'دورة الحياة، التخصيص، الجمهور، القنوات، سياسة الـpopup، الحجز، الأولوية وpreflight تعتمد على #985.' : 'Lifecycle, allocation, audience, channels, popup policy, reservation, priority and preflight depend on #985.' }}</p>
-        </header>
-        <section class="commercial-card">
-            <h2>{{ $ar ? 'إنشاء / تعديل Flash Offer' : 'Create / Edit Flash Offer' }}</h2>
+        @php
+            $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ['customer','van']));
+            $selectedCustomerIds = collect(old('audience_customer_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
+            $selectedGroupIds = collect(old('audience_customer_group_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_group_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
+            $selectedRegions = collect(old('audience_regions', $editingOffer ? (json_decode((string)$editingOffer->audience_regions, true) ?: []) : []));
+            $selectedRoutes = collect(old('audience_routes', $editingOffer ? (json_decode((string)$editingOffer->audience_routes, true) ?: []) : []));
+            $editingStarts = $editingOffer ? \Illuminate\Support\Carbon::parse($editingOffer->starts_at)->format('Y-m-d\TH:i') : '';
+            $editingEnds = $editingOffer ? \Illuminate\Support\Carbon::parse($editingOffer->ends_at)->format('Y-m-d\TH:i') : '';
+            $offerProductRows = collect(old('products', $editingProducts->map(fn($row)=>[
+                'product_id'=>(int)$row->product_id,
+                'selling_unit_code'=>$row->selling_unit_code,
+                'flash_price'=>$row->flash_price,
+                'allocation_base'=>$row->allocation_base,
+            ])->all()));
+            if($offerProductRows->isEmpty()) {
+                $offerProductRows = collect([['product_id'=>'','selling_unit_code'=>'','flash_price'=>'','allocation_base'=>'']]);
+            }
+            $unitCatalog = $flashSellingUnits->mapWithKeys(fn($items,$productId)=>[(string)$productId=>$items->map(fn($unit)=>[
+                'code'=>$unit->code,
+                'name'=>$unit->name,
+                'factor'=>(float)$unit->conversion_factor,
+            ])->values()->all()]);
+        @endphp
+
+        <section class="commercial-card" data-flash-offer-form>
+            <div class="feature-flags-head">
+                <div>
+                    <h2>{{ $editingOffer ? __('commercial.flash.edit_title') : __('commercial.flash.create_title') }}</h2>
+                    <p class="muted">{{ __('commercial.flash.form_description') }}</p>
+                </div>
+                @if($editingOffer)
+                    <a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.create_new') }}</a>
+                @endif
+            </div>
             @if($storeId > 0)
             <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list">
                 @csrf
-                <input type="number" name="offer_id" placeholder="Offer ID (blank = new)">
-                <div class="commercial-grid"><label>Name<input name="name" required></label><label>Status<select name="status">@foreach(['draft','scheduled','active','paused','sold_out','expired','cancelled','completed'] as $status)<option>{{ $status }}</option>@endforeach</select></label></div>
-                <div class="commercial-grid"><label>Title AR<input name="title_ar" required></label><label>Title EN<input name="title_en" required></label></div>
-                <div class="commercial-grid"><label>Body AR<textarea name="body_ar"></textarea></label><label>Body EN<textarea name="body_en"></textarea></label></div>
-                <div class="commercial-grid"><label>Starts<input type="datetime-local" name="starts_at" required></label><label>Ends<input type="datetime-local" name="ends_at" required></label><label>Timezone<input name="timezone" value="Asia/Kuwait" required></label></div>
-                <label>Channels JSON<input name="channels_json" value='["customer","van"]' required></label>
-                <div class="commercial-grid">
-                    <label>Audience customer IDs JSON<textarea name="audience_customer_ids_json" rows="3">[]</textarea></label>
-                    <label>Audience customer-group IDs JSON<textarea name="audience_customer_group_ids_json" rows="3">[]</textarea></label>
-                    <label>Audience regions JSON<textarea name="audience_regions_json" rows="3">[]</textarea></label>
-                    <label>Audience routes JSON<textarea name="audience_routes_json" rows="3">[]</textarea></label>
+                @if($editingOffer)<input type="hidden" name="offer_id" value="{{ $editingOffer->id }}">@endif
+
+                <section class="flash-form-section">
+                    <h3>{{ __('commercial.flash.basics') }}</h3>
+                    <div class="commercial-grid">
+                        <label>{{ __('commercial.flash.name') }}<input name="name" value="{{ old('name', $editingOffer->name ?? '') }}" required></label>
+                        <label>{{ __('commercial.flash.status') }}
+                            <select name="status">
+                                @foreach(['draft','scheduled','active','paused','sold_out','expired','cancelled','completed'] as $status)
+                                    <option value="{{ $status }}" @selected(old('status', $editingOffer->status ?? 'draft') === $status)>{{ __('commercial.flash.statuses.'.$status) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                    </div>
+                    <div class="commercial-grid">
+                        <label>{{ __('commercial.flash.title_ar') }}<input name="title_ar" value="{{ old('title_ar', $editingOffer->title_ar ?? '') }}" required></label>
+                        <label>{{ __('commercial.flash.title_en') }}<input name="title_en" value="{{ old('title_en', $editingOffer->title_en ?? '') }}" required></label>
+                    </div>
+                    <div class="commercial-grid">
+                        <label>{{ __('commercial.flash.body_ar') }}<textarea name="body_ar">{{ old('body_ar', $editingOffer->body_ar ?? '') }}</textarea></label>
+                        <label>{{ __('commercial.flash.body_en') }}<textarea name="body_en">{{ old('body_en', $editingOffer->body_en ?? '') }}</textarea></label>
+                    </div>
+                    <div class="commercial-grid">
+                        <label>{{ __('commercial.flash.starts') }}<input type="datetime-local" name="starts_at" value="{{ old('starts_at', $editingStarts) }}" required></label>
+                        <label>{{ __('commercial.flash.ends') }}<input type="datetime-local" name="ends_at" value="{{ old('ends_at', $editingEnds) }}" required></label>
+                        <label>{{ __('commercial.flash.timezone') }}<input name="timezone" value="{{ old('timezone', $editingOffer->timezone ?? 'Asia/Kuwait') }}" required></label>
+                    </div>
+                </section>
+
+                <section class="flash-form-section">
+                    <h3>{{ __('commercial.flash.channels') }}</h3>
+                    <div class="commercial-choice-grid">
+                        @foreach(['customer','van'] as $channel)
+                            <label class="commercial-choice"><input type="checkbox" name="channels[]" value="{{ $channel }}" @checked($selectedFlashChannels->contains($channel))><span>{{ __('commercial.channels.'.$channel) }}</span></label>
+                        @endforeach
+                    </div>
+                </section>
+
+                <section class="flash-form-section">
+                    <h3>{{ __('commercial.flash.audience') }}</h3>
+                    <p class="muted">{{ __('commercial.flash.audience_hint') }}</p>
+                    <div class="commercial-grid">
+                        <label>{{ __('commercial.flash.customers') }}
+                            <select class="flash-multi" name="audience_customer_ids[]" multiple>
+                                @foreach($audienceCustomers as $customer)
+                                    <option value="{{ $customer->id }}" @selected($selectedCustomerIds->contains((int)$customer->id))>{{ $customer->name }}{{ $customer->email ? ' · '.$customer->email : '' }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('commercial.flash.customer_groups') }}
+                            <select class="flash-multi" name="audience_customer_group_ids[]" multiple>
+                                @foreach($audienceGroups as $group)
+                                    <option value="{{ $group->id }}" @selected($selectedGroupIds->contains((int)$group->id))>{{ $group->name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('commercial.flash.regions') }}
+                            <select class="flash-multi" name="audience_regions[]" multiple>
+                                @foreach($audienceRegions as $region)
+                                    <option value="{{ $region }}" @selected($selectedRegions->contains($region))>{{ $region }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('commercial.flash.routes') }}
+                            <select class="flash-multi" name="audience_routes[]" multiple>
+                                @foreach($audienceRoutes as $route)
+                                    <option value="{{ $route }}" @selected($selectedRoutes->contains($route))>{{ $route }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                    </div>
+                </section>
+
+                <section class="flash-form-section">
+                    <div class="feature-flags-head">
+                        <div><h3>{{ __('commercial.flash.products') }}</h3><p class="muted">{{ __('commercial.flash.products_hint') }}</p></div>
+                        <button type="button" class="flash-secondary" data-flash-product-add>{{ __('commercial.flash.add_product') }}</button>
+                    </div>
+                    <div class="flash-product-builder" data-flash-product-builder>
+                        @foreach($offerProductRows as $index=>$row)
+                            <div class="flash-product-row" data-flash-product-row>
+                                <label>{{ __('commercial.flash.product') }}
+                                    <select name="products[{{ $index }}][product_id]" data-flash-product required>
+                                        <option value="">{{ __('commercial.flash.select_product') }}</option>
+                                        @foreach($flashProducts as $product)
+                                            <option value="{{ $product->id }}" @selected((int)($row['product_id'] ?? 0)===(int)$product->id)>{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label>{{ __('commercial.flash.selling_unit') }}
+                                    <select name="products[{{ $index }}][selling_unit_code]" data-flash-unit data-selected-unit="{{ $row['selling_unit_code'] ?? '' }}" required>
+                                        <option value="">{{ __('commercial.flash.select_selling_unit') }}</option>
+                                    </select>
+                                </label>
+                                <label>{{ __('commercial.flash.flash_price') }}<input type="number" min="0" step="0.001" name="products[{{ $index }}][flash_price]" value="{{ $row['flash_price'] ?? '' }}" required></label>
+                                <label>{{ __('commercial.flash.allocation') }}<input type="number" min="0" step="0.001" name="products[{{ $index }}][allocation_base]" value="{{ $row['allocation_base'] ?? '' }}"></label>
+                                <button type="button" class="flash-row-remove" data-flash-product-remove>{{ __('commercial.flash.remove_product') }}</button>
+                            </div>
+                        @endforeach
+                    </div>
+                    <script type="application/json" data-flash-unit-catalog>@json($unitCatalog, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)</script>
+                    <template data-flash-product-template>
+                        <div class="flash-product-row" data-flash-product-row>
+                            <label>{{ __('commercial.flash.product') }}
+                                <select name="products[__INDEX__][product_id]" data-flash-product required>
+                                    <option value="">{{ __('commercial.flash.select_product') }}</option>
+                                    @foreach($flashProducts as $product)<option value="{{ $product->id }}">{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }}</option>@endforeach
+                                </select>
+                            </label>
+                            <label>{{ __('commercial.flash.selling_unit') }}<select name="products[__INDEX__][selling_unit_code]" data-flash-unit required><option value="">{{ __('commercial.flash.select_selling_unit') }}</option></select></label>
+                            <label>{{ __('commercial.flash.flash_price') }}<input type="number" min="0" step="0.001" name="products[__INDEX__][flash_price]" required></label>
+                            <label>{{ __('commercial.flash.allocation') }}<input type="number" min="0" step="0.001" name="products[__INDEX__][allocation_base]"></label>
+                            <button type="button" class="flash-row-remove" data-flash-product-remove>{{ __('commercial.flash.remove_product') }}</button>
+                        </div>
+                    </template>
+                </section>
+
+                <section class="flash-form-section">
+                    <h3>{{ __('commercial.flash.rules') }}</h3>
+                    <div class="commercial-grid">
+                        <label>{{ __('commercial.flash.allocation_mode') }}<select name="allocation_mode"><option value="shared" @selected(old('allocation_mode', $editingOffer->allocation_mode ?? 'shared')==='shared')>{{ __('commercial.flash.shared') }}</option><option value="reserved" @selected(old('allocation_mode', $editingOffer->allocation_mode ?? 'shared')==='reserved')>{{ __('commercial.flash.reserved') }}</option></select></label>
+                        <label>{{ __('commercial.flash.total_allocation') }}<input type="number" step="0.001" min="0" name="total_allocation_base" value="{{ old('total_allocation_base', $editingOffer->total_allocation_base ?? '') }}"></label>
+                        <label>{{ __('commercial.flash.per_customer_limit') }}<input type="number" step="0.001" min="0" name="per_customer_limit_base" value="{{ old('per_customer_limit_base', $editingOffer->per_customer_limit_base ?? '') }}"></label>
+                        <label>{{ __('commercial.flash.reservation_seconds') }}<input type="number" name="reservation_seconds" value="{{ old('reservation_seconds', $editingOffer->reservation_seconds ?? 300) }}" min="30" required></label>
+                        <label>{{ __('commercial.flash.retry_count') }}<input type="number" name="retry_count" value="{{ old('retry_count', $editingOffer->retry_count ?? 0) }}" min="0" required></label>
+                        <label>{{ __('commercial.flash.cooldown_seconds') }}<input type="number" name="cooldown_seconds" value="{{ old('cooldown_seconds', $editingOffer->cooldown_seconds ?? 0) }}" min="0" required></label>
+                        <label>{{ __('commercial.flash.priority') }}<input type="number" name="priority" value="{{ old('priority', $editingOffer->priority ?? 0) }}" required></label>
+                        <label>{{ __('commercial.flash.popup_frequency') }}<select name="popup_frequency"><option value="once_per_session" @selected(old('popup_frequency', $editingOffer->popup_frequency ?? 'once_per_session')==='once_per_session')>{{ __('commercial.flash.once_per_session') }}</option><option value="once_per_day" @selected(old('popup_frequency', $editingOffer->popup_frequency ?? '')==='once_per_day')>{{ __('commercial.flash.once_per_day') }}</option><option value="always" @selected(old('popup_frequency', $editingOffer->popup_frequency ?? '')==='always')>{{ __('commercial.flash.always') }}</option></select></label>
+                    </div>
+                    <div class="commercial-choice-grid">
+                        <label class="commercial-choice"><input type="checkbox" name="counts_toward_normal_quota" value="1" @checked((bool)old('counts_toward_normal_quota', $editingOffer->counts_toward_normal_quota ?? true))><span>{{ __('commercial.flash.counts_quota') }}</span></label>
+                        <label class="commercial-choice"><input type="checkbox" name="stackable" value="1" @checked((bool)old('stackable', $editingOffer->stackable ?? false))><span>{{ __('commercial.flash.stackable') }}</span></label>
+                        <label class="commercial-choice"><input type="checkbox" name="kill_switch" value="1" @checked((bool)old('kill_switch', $editingOffer->kill_switch ?? false))><span>{{ __('commercial.flash.kill_switch') }}</span></label>
+                    </div>
+                </section>
+
+                <div class="flash-form-actions">
+                    @if($editingOffer)<a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.cancel_edit') }}</a>@endif
+                    <button type="submit" class="foodex-primary">{{ $editingOffer ? __('commercial.flash.save_changes') : __('commercial.flash.create_offer') }}</button>
                 </div>
-                <p class="muted">{{ $ar ? 'عند تحديد أكثر من بُعد جمهور، يجب أن يطابق العميل جميع الأبعاد المحددة. اترك [] للجمهور المفتوح.' : 'When multiple audience dimensions are configured, the customer must match all configured dimensions. Use [] for an unrestricted dimension.' }}</p>
-                <div class="commercial-grid"><label>Allocation mode<select name="allocation_mode"><option value="shared">shared</option><option value="reserved">reserved</option></select></label><label>Total allocation base<input type="number" step="0.001" name="total_allocation_base"></label><label>Per-customer base limit<input type="number" step="0.001" name="per_customer_limit_base"></label></div>
-                <div class="commercial-grid"><label>Reservation seconds<input type="number" name="reservation_seconds" value="300" min="30"></label><label>Retry count<input type="number" name="retry_count" value="0" min="0"></label><label>Cooldown seconds<input type="number" name="cooldown_seconds" value="0" min="0"></label><label>Priority<input type="number" name="priority" value="0"></label></div>
-                <label>Popup frequency<input name="popup_frequency" value="once_per_session"></label>
-                <label><input type="checkbox" name="counts_toward_normal_quota" value="1" checked> Count toward normal quota</label>
-                <label><input type="checkbox" name="stackable" value="1"> Stackable</label>
-                <label><input type="checkbox" name="kill_switch" value="1"> Kill switch</label>
-                <label>Products JSON<textarea name="products_json" rows="6" required>[{"product_id":1,"selling_unit_code":"carton","conversion_factor":10,"flash_price":7,"allocation_base":1000}]</textarea></label>
-                <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ العرض' : 'Save Flash Offer' }}</button>
             </form>
             @else
-                <p class="muted">{{ $ar ? 'الخطة التجارية مفعلة. أنشئ متجر تجزئة أولاً لإضافة عروض Flash.' : 'The commercial plan is enabled. Create a Retail store before adding Flash Offers.' }}</p>
+                <p class="muted">{{ __('commercial.flash.store_required') }}</p>
             @endif
         </section>
 
         <section class="commercial-card">
-            <h2>{{ $ar ? 'Flash Offers الحالية' : 'Current Flash Offers' }}</h2>
+            <h2>{{ __('commercial.flash.current_offers') }}</h2>
             @forelse($flashOffers as $offer)
                 <div class="control-row">
-                    <span>#{{ $offer->id }} · {{ $offer->name }} · <strong>{{ $offer->status }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
+                    <span>{{ $offer->name }} · <strong>{{ __('commercial.flash.statuses.'.$offer->status) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ $ar ? 'معاينة' : 'Preview' }}</a>
-                        <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ $ar ? 'التحليلات' : 'Analytics' }}</a>
+                        <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
+                        <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
+                        <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
                         <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
-                            <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option>{{ $action }}</option>@endforeach</select>
-                            <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
+                            <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option value="{{ $action }}">{{ __('commercial.flash.actions.'.$action) }}</option>@endforeach</select>
+                            <button type="submit">{{ __('commercial.flash.apply') }}</button>
                         </form>
                     </div>
                 </div>
             @empty
-                <p class="muted">{{ $ar?'لا توجد Flash Offers.':'No Flash Offers yet.' }}</p>
+                <p class="muted">{{ __('commercial.flash.no_offers') }}</p>
             @endforelse
         </section>
 
@@ -351,6 +524,55 @@
         };
         boxes.forEach((box) => box.addEventListener('change', sync));
         sync();
+    });
+
+    const builder = document.querySelector('[data-flash-product-builder]');
+    const template = document.querySelector('[data-flash-product-template]');
+    const addButton = document.querySelector('[data-flash-product-add]');
+    const catalogNode = document.querySelector('[data-flash-unit-catalog]');
+    let unitCatalog = {};
+    try { unitCatalog = catalogNode ? JSON.parse(catalogNode.textContent || '{}') : {}; } catch (_) { unitCatalog = {}; }
+    let nextProductIndex = builder ? builder.querySelectorAll('[data-flash-product-row]').length : 0;
+
+    const syncSellingUnits = (row, preserve = true) => {
+        const product = row.querySelector('[data-flash-product]');
+        const unit = row.querySelector('[data-flash-unit]');
+        if (!product || !unit) return;
+        const wanted = preserve ? (unit.dataset.selectedUnit || unit.value) : '';
+        unit.replaceChildren();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = @json(__('commercial.flash.select_selling_unit'));
+        unit.appendChild(placeholder);
+        (unitCatalog[String(product.value)] || []).forEach((item) => {
+            const option = document.createElement('option');
+            option.value = item.code;
+            option.textContent = item.name + ' · ' + item.code + ' · ×' + item.factor;
+            option.selected = item.code === wanted;
+            unit.appendChild(option);
+        });
+        delete unit.dataset.selectedUnit;
+    };
+
+    const setupProductRow = (row) => {
+        const product = row.querySelector('[data-flash-product]');
+        product?.addEventListener('change', () => syncSellingUnits(row, false));
+        row.querySelector('[data-flash-product-remove]')?.addEventListener('click', () => {
+            if (!builder || builder.querySelectorAll('[data-flash-product-row]').length <= 1) return;
+            row.remove();
+        });
+        syncSellingUnits(row, true);
+    };
+
+    builder?.querySelectorAll('[data-flash-product-row]').forEach(setupProductRow);
+    addButton?.addEventListener('click', () => {
+        if (!builder || !template) return;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextProductIndex++));
+        const row = wrapper.firstElementChild;
+        if (!row) return;
+        builder.appendChild(row);
+        setupProductRow(row);
     });
 })();
 </script>

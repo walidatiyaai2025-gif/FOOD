@@ -164,8 +164,9 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('Product policies')
             ->assertSee('Availability & channels')
             ->assertSee('Selling unit & break-pack')
+            ->assertSee('data-break-pack-selling-unit', false)
             ->assertSee('Default quotas')
-            ->assertSee('Advanced: selling units, availability windows & targeting rules')
+            ->assertDontSee('Selling units (JSON)')
             ->assertDontSee('Channels JSON');
     }
 
@@ -219,7 +220,59 @@ class CommercialDashboardContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        DB::table('product_selling_units')->insert([
+            [
+                'product_id' => $productId,
+                'unit_id' => $unitId,
+                'code' => 'PIECE',
+                'name' => 'Piece',
+                'conversion_factor' => 1,
+                'price' => 10,
+                'sku' => 'COMM-FLASH-001',
+                'barcode' => null,
+                'is_base' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $productId,
+                'unit_id' => $unitId,
+                'code' => 'CARTON',
+                'name' => 'Carton',
+                'conversion_factor' => 10,
+                'price' => 90,
+                'sku' => 'COMM-FLASH-001-C',
+                'barcode' => null,
+                'is_base' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
         return $productId;
+    }
+
+    public function test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $this->flashProduct($storeId);
+
+        $response = $this->actingAs($manager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-flash-offer-form', false)
+            ->assertSee('data-flash-product-builder', false)
+            ->assertSee('name="channels[]"', false)
+            ->assertSee('name="products[0][product_id]"', false)
+            ->assertSee('name="products[0][selling_unit_code]"', false)
+            ->assertDontSee('Channels JSON')
+            ->assertDontSee('Products JSON')
+            ->assertDontSee('Offer ID (blank = new)')
+            ->assertDontSee('Audience customer IDs JSON');
     }
 
     public function test_final_gate_configuration_persists_break_pack_audience_and_authoritative_flags(): void
@@ -259,24 +312,23 @@ class CommercialDashboardContractTest extends TestCase
                 'starts_at' => now()->addMinutes(5)->format('Y-m-d H:i:s'),
                 'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
                 'timezone' => 'Asia/Kuwait',
-                'channels_json' => '["customer","van"]',
-                'audience_customer_ids_json' => '[11]',
-                'audience_customer_group_ids_json' => '[22]',
-                'audience_regions_json' => '["Hawalli"]',
-                'audience_routes_json' => '["ROUTE-A"]',
+                'channels' => ['customer','van'],
+                'audience_customer_ids' => [11],
+                'audience_customer_group_ids' => [22],
+                'audience_regions' => ['Hawalli'],
+                'audience_routes' => ['ROUTE-A'],
                 'allocation_mode' => 'shared',
                 'reservation_seconds' => 300,
                 'retry_count' => 1,
                 'cooldown_seconds' => 60,
                 'priority' => 10,
                 'popup_frequency' => 'once_per_session',
-                'products_json' => json_encode([[
+                'products' => [[
                     'product_id' => $productId,
                     'selling_unit_code' => 'CARTON',
-                    'conversion_factor' => 10,
                     'flash_price' => 7,
                     'allocation_base' => 100,
-                ]], JSON_THROW_ON_ERROR),
+                ]],
             ])
             ->assertRedirect();
 
