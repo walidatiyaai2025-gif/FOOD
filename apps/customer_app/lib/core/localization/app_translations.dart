@@ -744,6 +744,7 @@ class AppTranslations extends InheritedWidget {
     'customer.orders.reorder_failed': 'Could not reorder. Check current item availability and quantities',
     'customer.orders.open_cart': 'Open cart',
     'customer.orders.stale': 'Showing the last confirmed orders; a fresh update could not be loaded.',
+    'customer.orders.last_confirmed_update': 'Last confirmed update',
     'customer.orders.approval.label': 'Approval',
     'customer.orders.approval.pending': 'Pending customer-service approval',
     'customer.orders.approval.approved': 'Approved',
