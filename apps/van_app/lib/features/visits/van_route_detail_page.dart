@@ -313,7 +313,7 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(label: Text('$label · $value'));
+    return Chip(label: Text([label, value].join(' · ')));
   }
 }
 
