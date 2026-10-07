@@ -6,6 +6,11 @@ import '../commercial/van_commercial_contract.dart';
 import '../commercial/van_offers_page.dart';
 import '../notifications/van_notification_contract.dart';
 import '../notifications/van_notifications_page.dart';
+import '../orders/van_order_contract.dart';
+import '../orders/van_product_catalog_page.dart';
+import '../orders/van_order_builder_page.dart';
+import '../orders/van_order_review_page.dart';
+import '../orders/van_orders_page.dart';
 import '../wallet/van_collection_page.dart';
 import '../wallet/van_receipts_page.dart';
 import '../wallet/van_remittance_page.dart';
@@ -31,6 +36,7 @@ class VanFoundationScreen extends StatefulWidget {
     required this.commercialRepository,
     required this.visitRepository,
     required this.notificationRepository,
+    required this.orderRepository,
   });
 
   final VanSession session;
@@ -39,6 +45,7 @@ class VanFoundationScreen extends StatefulWidget {
   final VanCommercialRepository commercialRepository;
   final VanVisitRepository visitRepository;
   final VanNotificationRepository notificationRepository;
+  final VanOrderRepository orderRepository;
 
   @override
   State<VanFoundationScreen> createState() => _VanFoundationScreenState();
@@ -46,6 +53,19 @@ class VanFoundationScreen extends StatefulWidget {
 
 class _VanFoundationScreenState extends State<VanFoundationScreen> {
   VanScreenId _screen = VanScreenId.dashboard;
+  late final VanOrderDraftController _orderDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _orderDraft = VanOrderDraftController();
+  }
+
+  @override
+  void dispose() {
+    _orderDraft.dispose();
+    super.dispose();
+  }
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -77,6 +97,37 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
       case VanScreenId.routeDetail:
         return VanRouteDetailPage(
           repository: widget.visitRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.catalog:
+        return VanProductCatalogPage(
+          repository: widget.orderRepository,
+          customerRepository: widget.walletRepository,
+          draft: _orderDraft,
+          onOpenBuilder: () => _open(VanScreenId.orderBuilder),
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.orderBuilder:
+        return VanOrderBuilderPage(
+          repository: widget.orderRepository,
+          draft: _orderDraft,
+          onReview: () => _open(VanScreenId.orderReview),
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.orderReview:
+        return VanOrderReviewPage(
+          repository: widget.orderRepository,
+          draft: _orderDraft,
+          onSubmitted: (_) {
+            _orderDraft.reset();
+            _open(VanScreenId.orders);
+          },
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.orders:
+        return VanOrdersPage(
+          repository: widget.orderRepository,
+          customerRepository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
         );
       case VanScreenId.offers:
