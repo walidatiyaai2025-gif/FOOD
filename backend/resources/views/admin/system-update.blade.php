@@ -89,10 +89,21 @@
             </thead>
             <tbody>
             @forelse ($historyRows as $row)
+                @php
+                    $updateStatusCode = strtolower((string)$row->status);
+                    $updateStatusLabel = match($updateStatusCode) {
+                        'pending', 'queued' => app()->getLocale()==='ar' ? 'قيد الانتظار' : 'Pending',
+                        'running', 'in_progress' => app()->getLocale()==='ar' ? 'قيد التنفيذ' : 'Running',
+                        'completed', 'success', 'succeeded' => app()->getLocale()==='ar' ? 'مكتمل' : 'Completed',
+                        'failed', 'error' => app()->getLocale()==='ar' ? 'فشل' : 'Failed',
+                        'rolled_back' => app()->getLocale()==='ar' ? 'تم التراجع' : 'Rolled back',
+                        default => app()->getLocale()==='ar' ? 'حالة التحديث' : 'Update status',
+                    };
+                @endphp
                 <tr>
                     <td>{{ $row->from_version ?: '—' }}</td>
                     <td>{{ $row->to_version }}</td>
-                    <td>{{ $row->status }}</td>
+                    <td>{{ $updateStatusLabel }}</td>
                     <td>{{ $row->started_at ?: '—' }}</td>
                     <td>{{ $row->failure_reason ?: '—' }}</td>
                 </tr>

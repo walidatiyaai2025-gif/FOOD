@@ -26,11 +26,11 @@
 <section class="foodex-card profile-card">
     <div class="profile-identity"><div class="profile-avatar">{{ mb_strtoupper(mb_substr($user->name,0,1)) }}</div><div><h2>{{ $user->name }}</h2><p>{{ $user->email }}</p><span class="badge active">{{ $user->is_active?($ar?'حساب نشط':'Active account'):($ar?'غير نشط':'Inactive') }}</span></div></div>
 
-    <div class="profile-section"><h3>{{ $ar?'الأدوار العامة':'Global roles' }}</h3><div class="chips">@forelse($globalRoles as $role)<span class="permission-chip">{{ $role->name }} · {{ $role->code }}</span>@empty<span class="foodex-subtitle">{{ $ar?'لا توجد أدوار عامة.':'No global roles.' }}</span>@endforelse</div></div>
+    <div class="profile-section"><h3>{{ $ar?'الأدوار العامة':'Global roles' }}</h3><div class="chips">@forelse($globalRoles as $role)<span class="permission-chip">{{ $role->name }}</span>@empty<span class="foodex-subtitle">{{ $ar?'لا توجد أدوار عامة.':'No global roles.' }}</span>@endforelse</div></div>
 
     <div class="profile-section"><h3>{{ $ar?'أدوار المتاجر':'Store assignments' }}</h3>
         @forelse($storeAssignments as $assignment)
-            <div class="assignment"><strong>{{ $assignment->store?->name ?? '—' }} · {{ $assignment->role?->name ?? '—' }}</strong><small>{{ $assignment->store?->code }} · {{ $assignment->role?->code }}</small>
+            <div class="assignment"><strong>{{ $assignment->store?->name ?? '—' }} · {{ $assignment->role?->name ?? '—' }}</strong><small>{{ $assignment->store?->code }}</small>
             @if($assignment->store)<div class="chips" style="margin-top:9px">@foreach($storePermissions[(int)$assignment->store->id] ?? [] as $permission)<span class="permission-chip">{{ $permission }}</span>@endforeach</div>@endif</div>
         @empty<div class="foodex-empty-state">{{ $ar?'لا توجد أدوار مرتبطة بمتاجر.':'No store-scoped role assignments.' }}</div>@endforelse
     </div>
