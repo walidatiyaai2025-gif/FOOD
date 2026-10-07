@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.60",
-  "minimum_current_version": "1.0.59",
-  "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
-  "contains_migrations": false,
+  "target_version": "1.0.61",
+  "minimum_current_version": "1.0.57",
+  "sha256": "c13b2a04030303c5963c2ccfa97741661c9f38fcdf19da5401c6cdd0161bc01d",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "ci(release): align clean-install assertions with frozen commercial UI",
+  "release_notes": "release(#1062): rebuild 1.0.61 mobile artifacts for foodex.50sols.com",
   "dashboard_fields": {
-    "target_version": "1.0.60",
-    "minimum_current_version": "1.0.59",
-    "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
-    "contains_migrations": false,
-    "release_notes": "ci(release): align clean-install assertions with frozen commercial UI"
+    "target_version": "1.0.61",
+    "minimum_current_version": "1.0.57",
+    "sha256": "c13b2a04030303c5963c2ccfa97741661c9f38fcdf19da5401c6cdd0161bc01d",
+    "contains_migrations": true,
+    "release_notes": "release(#1062): rebuild 1.0.61 mobile artifacts for foodex.50sols.com"
   }
 }
