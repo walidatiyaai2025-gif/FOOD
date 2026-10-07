@@ -59,7 +59,16 @@
         </header>
 
         @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
-        @if($errors->any())<div class="foodex-state" role="alert"><strong>{{ __('field_operations.unable_to_save') }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        @if($errors->any())
+            <div class="foodex-state" role="alert">
+                <strong>{{ __('field_operations.unable_to_save') }}</strong>
+                <ul>
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <div class="foodex-ops-shell">
         @if($section === 'overview')
@@ -207,8 +216,18 @@
             </section>
             <section class="fieldops-card"><h2>{{ __('field_operations.assignment_history') }}</h2>
                 <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.driver') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th></tr></thead><tbody>
-                @forelse($van->assignments as $a)<tr><td>{{ $driverNames->get($a->driver_id) ?: '—' }}</td><td>{{ $representativeNames->get($a->representative_user_id) ?: '—' }}</td><td>@php($territoryLabel=$territoryNames->get($a->territory_key)){{ $territoryLabel?->localized_name ?: ($a->territory_key ?: '—') }}</td><td>{{ __('field_operations.assignment_types.'.$a->assignment_type) }}</td><td>{{ __('field_operations.statuses.'.$a->status) }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
-                @empty<tr><td colspan="6">{{ __('field_operations.no_assignment_history') }}</td></tr>@endforelse
+                @forelse($van->assignments as $a)
+                    <tr>
+                        <td>{{ $driverNames->get($a->driver_id) ?: '—' }}</td>
+                        <td>{{ $representativeNames->get($a->representative_user_id) ?: '—' }}</td>
+                        <td>@php($territoryLabel=$territoryNames->get($a->territory_key)){{ $territoryLabel?->localized_name ?: ($a->territory_key ?: '—') }}</td>
+                        <td>{{ __('field_operations.assignment_types.'.$a->assignment_type) }}</td>
+                        <td>{{ __('field_operations.statuses.'.$a->status) }}</td>
+                        <td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6">{{ __('field_operations.no_assignment_history') }}</td></tr>
+                @endforelse
                 </tbody></table></div>
             </section>
 
@@ -223,7 +242,7 @@
                         <label>{{ __('field_operations.representative_operator') }}<select name="representative_user_id" data-representative-lookup><option value="">—</option>@foreach($representatives as $representative)<option value="{{ $representative->id }}">{{ $representative->name }}{{ $representative->email ? ' · '.$representative->email : '' }}</option>@endforeach</select></label>
                         <label>{{ __('field_operations.territory') }}<select name="territory_key"><option value="">—</option>@foreach($territories as $territory)<option value="{{ $territory->code }}">{{ $territory->localized_name }} · {{ $territory->code }}</option>@endforeach</select></label>
                         <label>{{ __('field_operations.warehouse') }}<select name="warehouse_id" data-warehouse-lookup><option value="">—</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->name }} · {{ $warehouse->code }}</option>@endforeach</select></label>
-                        <label>{{ __('field_operations.assignment_type') }}<select name="assignment_type"><option value="primary">primary</option><option value="backup">backup</option></select></label>
+                        <label>{{ __('field_operations.assignment_type') }}<select name="assignment_type"><option value="primary">{{ __('field_operations.assignment_types.primary') }}</option><option value="backup">{{ __('field_operations.assignment_types.backup') }}</option></select></label>
                         <label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from" required></label>
                         <label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label>
                         <label>{{ __('field_operations.loaded_work') }}<input type="number" min="0" name="loaded_work_count" value="0"></label>
@@ -319,25 +338,29 @@
                     <form method="post" action="{{ route('admin.field-operations.geography.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
                             <label>{{ __('field_operations.type') }}<select name="type">@foreach(['country','governorate','region','city','markaz','district','area'] as $type)<option value="{{ $type }}">{{ __('field_operations.geography_types.'.$type) }}</option>@endforeach</select></label>
-                            <label>{{ __('field_operations.parent') }}<select name="parent_id"><option value="">—</option>@foreach($nodes as $node)<option value="{{ $node->id }}">{{ $node->name_en }} · {{ __('field_operations.geography_types.'.$node->type) }}</option>@endforeach</select></label>
-                            <label>Code<input name="code" required></label><label>Country code<input name="country_code" value="KW" required></label>
-                            <label>العربية<input name="name_ar" required></label><label>English<input name="name_en" required></label>
+                            <label>{{ __('field_operations.parent') }}<select name="parent_id"><option value="">—</option>@foreach($nodes as $node)<option value="{{ $node->id }}">{{ $node->localized_name }} · {{ __('field_operations.geography_types.'.$node->type) }}</option>@endforeach</select></label>
+                            <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.country_code') }}<input name="country_code" value="KW" required></label>
+                            <label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label>
                         </div><button class="foodex-primary">{{ __('field_operations.save') }}</button>
                     </form>
                 </details>
                 <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.territories.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
-                            <label>Code<input name="code" required></label><label>العربية<input name="name_ar" required></label><label>English<input name="name_en" required></label>
-                            <label>{{ __('field_operations.country_node') }}<select name="country_node_id" required>@foreach($nodes->where('type','country') as $node)<option value="{{ $node->id }}">{{ $node->name_en }}</option>@endforeach</select></label>
-                            <label>Status<select name="status"><option>draft</option><option>active</option><option>inactive</option></select></label>
-                            <label>Priority<input type="number" min="0" name="priority" value="0"></label>
-                        </div><label>Notes<textarea name="notes"></textarea></label><button class="foodex-primary">{{ __('field_operations.save_territory') }}</button>
+                            <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label>
+                            <label>{{ __('field_operations.country_node') }}<select name="country_node_id" required>
+                                @foreach($nodes->where('type','country') as $node)
+                                    <option value="{{ $node->id }}">{{ $node->localized_name }}</option>
+                                @endforeach
+                            </select></label>
+                            <label>{{ __('field_operations.status') }}<select name="status"><option value="draft">{{ __('field_operations.statuses.draft') }}</option><option value="active">{{ __('field_operations.statuses.active') }}</option><option value="inactive">{{ __('field_operations.statuses.inactive') }}</option></select></label>
+                            <label>{{ __('field_operations.priority') }}<input type="number" min="0" name="priority" value="0"></label>
+                        </div><label>{{ __('field_operations.notes') }}<textarea name="notes"></textarea></label><button class="foodex-primary">{{ __('field_operations.save_territory') }}</button>
                     </form>
                 </details>
             </section>
             @endif
-            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>Code</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@forelse($nodes as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $node->localized_name }}</td><td>{{ $node->parent?->localized_name ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endforelse</tbody></table></div></section>
+            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.code') }}</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@forelse($nodes as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $node->localized_name }}</td><td>{{ $node->parent?->localized_name ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endforelse</tbody></table></div></section>
             <section class="fieldops-card">
                 <h2>{{ __('field_operations.coverage_map') }}</h2>
                 <p class="fieldops-muted">{{ __('field_operations.coverage_map_help') }}</p>
@@ -405,7 +428,7 @@
             @if($canManageTerritories)
             <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
-                    <div class="fieldops-form-grid"><label>Code<input name="code" required></label><label>{{ __('field_operations.mode') }}<input name="mode" value="MANUAL" required></label><label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from"></label><label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label></div>
+                    <div class="fieldops-form-grid"><label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.mode') }}<input name="mode" value="MANUAL" required></label><label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from"></label><label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label></div>
                     <label>{{ __('field_operations.rules_json') }}<textarea name="rules_json" rows="6" required>[{"name":"Default","conditions":[],"actions":[],"enabled":true}]</textarea></label>
                     <label>{{ __('field_operations.reason') }}<input name="reason"></label><button class="foodex-primary">{{ __('field_operations.create_draft') }}</button>
                 </form>
@@ -415,8 +438,12 @@
             @forelse($policies as $policy)
             <article class="fieldops-card"><div class="fieldops-actions"><h3 style="margin:0">{{ $policy->code }} v{{ $policy->version }}</h3><span class="fieldops-status">{{ __('field_operations.statuses.'.$policy->status) }}</span><span>{{ $policy->mode }}</span><span>{{ $policy->rules->count() }} {{ __('field_operations.rules') }}</span></div>
                 @if($canManageTerritories)<div class="fieldops-grid" style="margin-top:12px">
-                    @if($policy->status==='draft')<form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'publish']) }}">@csrf<button>{{ __('field_operations.publish') }}</button></form>@endif
-                    @if(in_array($policy->status,['published','retired'],true))<form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'rollback']) }}">@csrf<input name="reason" placeholder="{{ __('field_operations.rollback_reason') }}"><button>{{ __('field_operations.rollback') }}</button></form>@endif
+                    @if($policy->status === 'draft')
+                        <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'publish']) }}">@csrf<button>{{ __('field_operations.publish') }}</button></form>
+                    @endif
+                    @if(in_array($policy->status, ['published', 'retired'], true))
+                        <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'rollback']) }}">@csrf<input name="reason" placeholder="{{ __('field_operations.rollback_reason') }}"><button>{{ __('field_operations.rollback') }}</button></form>
+                    @endif
                     <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'simulate']) }}" class="fieldops-form">@csrf<label>{{ __('field_operations.input_json') }}<textarea name="input_json" rows="3">{}</textarea></label><label>{{ __('field_operations.scope_json') }}<textarea name="scope_json" rows="2">{}</textarea></label><button>{{ __('field_operations.simulate') }}</button></form>
                 </div>@endif
             </article>
