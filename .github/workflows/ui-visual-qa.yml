@@ -67,6 +67,7 @@ jobs:
           touch database/database.sqlite
           php artisan migrate:fresh --force
           php artisan db:seed --class=Database\\Seeders\\ScreenshotEvidenceSeeder --force
+          php artisan db:seed --class=Database\\Seeders\\RefreshTimeSensitiveVisualEvidenceSeeder --force
 
       - name: Start FOODEX runtime
         working-directory: backend
