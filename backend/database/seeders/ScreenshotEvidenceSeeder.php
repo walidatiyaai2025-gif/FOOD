@@ -447,5 +447,58 @@ class ScreenshotEvidenceSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+
+        $collectionAccountId = (int) DB::table('collection_accounts')->insertGetId([
+            'actor_type' => 'van',
+            'actor_id' => $vanId,
+            'store_id' => $storeId,
+            'currency' => 'KWD',
+            'status' => 'active',
+            'custody_limit' => 500,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $collectionTransactionId = (int) DB::table('collection_transactions')->insertGetId([
+            'collection_account_id' => $collectionAccountId,
+            'payment_id' => null,
+            'idempotency_key' => 'EVIDENCE-VAN-COLLECTION-001',
+            'type' => 'collection',
+            'status' => 'posted',
+            'amount' => 87.500,
+            'currency' => 'KWD',
+            'source' => 'cash_on_delivery',
+            'created_by' => $superAdminId,
+            'created_at' => $now->copy()->subMinutes(18),
+            'updated_at' => $now->copy()->subMinutes(18),
+        ]);
+
+        DB::table('custody_ledger_entries')->insert([
+            'collection_account_id' => $collectionAccountId,
+            'entry_type' => 'collection',
+            'amount' => 87.500,
+            'currency' => 'KWD',
+            'reference_type' => 'collection_transaction',
+            'reference_id' => $collectionTransactionId,
+            'created_by' => $superAdminId,
+            'created_at' => $now->copy()->subMinutes(18),
+            'updated_at' => $now->copy()->subMinutes(18),
+        ]);
+
+        DB::table('remittances')->insert([
+            'collection_account_id' => $collectionAccountId,
+            'idempotency_key' => 'EVIDENCE-VAN-REMIT-001',
+            'amount' => 25.000,
+            'currency' => 'KWD',
+            'method' => 'bank_transfer',
+            'reference' => 'VAN-REMIT-EVID-001',
+            'status' => 'pending',
+            'note' => 'Deterministic Van finance support runtime evidence.',
+            'submitted_by' => $vanOperatorId,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'created_at' => $now->copy()->subMinutes(8),
+            'updated_at' => $now->copy()->subMinutes(8),
+        ]);
     }
 }
