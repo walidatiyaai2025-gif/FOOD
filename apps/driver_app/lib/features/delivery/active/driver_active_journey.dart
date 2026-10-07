@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -814,62 +815,65 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
 
   Widget _actions(DriverAssignment assignment) {
     final busy = _busyAssignments.contains(assignment.id);
-    final buttons = <Widget>[];
+    final canAccept =
+        assignment.status == 'assigned' && _allows(assignment, 'accepted');
+    final canStart =
+        const {'accepted', 'picked_up'}.contains(assignment.status) &&
+            _allows(assignment, 'out_for_delivery');
+    final canDeliver = assignment.status == 'out_for_delivery' &&
+        _allows(assignment, 'delivered');
+    final canFail = _allows(assignment, 'failed');
 
-    if (assignment.status == 'assigned' &&
-        _allows(assignment, 'accepted')) {
-      buttons.add(
-        FilledButton(
-          key: Key('driver-active-accept-${assignment.id}'),
-          onPressed:
-              busy ? null : () => _transition(assignment, 'accepted'),
-          child: Text(_statusLabel('accepted')),
-        ),
-      );
-    }
-
-    if (const {'accepted', 'picked_up'}.contains(assignment.status) &&
-        _allows(assignment, 'out_for_delivery')) {
-      buttons.add(
-        FilledButton(
-          key: Key('driver-active-start-${assignment.id}'),
-          onPressed:
-              busy ? null : () => _showStartDeliverySheet(assignment),
-          child: Text(context.tr('driver.action.start_delivery')),
-        ),
-      );
-    }
-
-    if (assignment.status == 'out_for_delivery' &&
-        _allows(assignment, 'delivered')) {
-      buttons.add(
-        FilledButton(
-          key: Key('driver-active-delivered-${assignment.id}'),
-          onPressed: busy ? null : () => _completeDelivery(assignment),
-          child: Text(_deliveryActionLabel(assignment)),
-        ),
-      );
-    }
-
-    if (_allows(assignment, 'failed')) {
-      buttons.add(
-        FilledButton.tonalIcon(
-          key: Key('driver-active-card-failed-${assignment.id}'),
-          onPressed: busy ? null : () => _requestFailure(assignment, ''),
-          icon: const Icon(Icons.report_problem_outlined),
-          label: Text(context.tr('driver.action.delivery_failed')),
-        ),
-      );
-    }
-
-    if (buttons.isEmpty) {
+    if (!canAccept && !canStart && !canDeliver && !canFail) {
       return Text(context.tr('driver.action.none'));
     }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: buttons,
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: PopupMenuButton<String>(
+        key: Key('driver-active-actions-${assignment.id}'),
+        enabled: !busy,
+        tooltip: context.tr('driver.detail.actions'),
+        icon: const Icon(Icons.more_horiz_rounded),
+        onSelected: (action) {
+          switch (action) {
+            case 'accepted':
+              unawaited(_transition(assignment, 'accepted'));
+            case 'start':
+              unawaited(_showStartDeliverySheet(assignment));
+            case 'delivered':
+              unawaited(_completeDelivery(assignment));
+            case 'failed':
+              unawaited(_requestFailure(assignment, ''));
+          }
+        },
+        itemBuilder: (context) => [
+          if (canAccept)
+            PopupMenuItem<String>(
+              key: Key('driver-active-accept-${assignment.id}'),
+              value: 'accepted',
+              child: Text(_statusLabel('accepted')),
+            ),
+          if (canStart)
+            PopupMenuItem<String>(
+              key: Key('driver-active-start-${assignment.id}'),
+              value: 'start',
+              child: Text(context.tr('driver.action.start_delivery')),
+            ),
+          if (canDeliver)
+            PopupMenuItem<String>(
+              key: Key('driver-active-delivered-${assignment.id}'),
+              value: 'delivered',
+              child: Text(_deliveryActionLabel(assignment)),
+            ),
+          if (canFail)
+            PopupMenuItem<String>(
+              key: Key('driver-active-card-failed-${assignment.id}'),
+              value: 'failed',
+              child: Text(context.tr('driver.action.delivery_failed')),
+            ),
+        ],
+      ),
     );
   }
 
