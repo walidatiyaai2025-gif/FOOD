@@ -410,4 +410,33 @@ class DashboardUiComplianceTest extends TestCase
             $campaigns,
         );
     }
+
+
+    public function test_van_dashboard_parity_contract_covers_1035_owned_domains(): void
+    {
+        $contract = file_get_contents(base_path('../docs/design-reference/VAN_DASHBOARD_PARITY_CONTRACT.md'));
+
+        $this->assertIsString($contract);
+        foreach ([
+            '/admin/administration',
+            '/admin/security',
+            '/admin/driver-live-tracking',
+            '/admin/customer-360',
+            '/admin/operations/orders',
+            '/admin/settings/app-versions',
+            '/admin/settings/mobile',
+            'Notification Center',
+            'Promotional Notification Campaigns',
+            '#1036',
+            '#1037',
+            'no unresolved Van↔Dashboard gap',
+        ] as $required) {
+            $this->assertStringContainsString($required, $contract);
+        }
+
+        $this->assertStringContainsString('| 18. Notifications |', $contract);
+        $this->assertStringContainsString('| 19. Profile & Settings |', $contract);
+        $this->assertStringContainsString('**Covered**', $contract);
+        $this->assertStringContainsString('**Delegated — not a #1035 gap**', $contract);
+    }
 }
