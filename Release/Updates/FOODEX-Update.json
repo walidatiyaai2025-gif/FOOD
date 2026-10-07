@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.59",
-  "minimum_current_version": "1.0.57",
-  "sha256": "9bad78cdd8ff3c39af7d171e25fc892bd5ad5e9b973da8724ddeb3b0a784eca8",
-  "contains_migrations": true,
+  "target_version": "1.0.60",
+  "minimum_current_version": "1.0.59",
+  "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
+  "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#1021): prevent terminal artifact rebuild loop",
+  "release_notes": "ci(release): align clean-install assertions with frozen commercial UI",
   "dashboard_fields": {
-    "target_version": "1.0.59",
-    "minimum_current_version": "1.0.57",
-    "sha256": "9bad78cdd8ff3c39af7d171e25fc892bd5ad5e9b973da8724ddeb3b0a784eca8",
-    "contains_migrations": true,
-    "release_notes": "release(#1021): prevent terminal artifact rebuild loop"
+    "target_version": "1.0.60",
+    "minimum_current_version": "1.0.59",
+    "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
+    "contains_migrations": false,
+    "release_notes": "ci(release): align clean-install assertions with frozen commercial UI"
   }
 }
