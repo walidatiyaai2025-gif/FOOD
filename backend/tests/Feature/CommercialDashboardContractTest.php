@@ -133,19 +133,49 @@ class CommercialDashboardContractTest extends TestCase
         $this->actingAs($manager)
             ->get(route('admin.commercial.flash-offers.preview', $scope))
             ->assertOk()
+            ->assertSee('data-commercial-preview', false)
+            ->assertSee('data-foodex-sidebar-toggle', false)
             ->assertSee('Customer Popup Preview')
             ->assertSee('Product Card Preview')
             ->assertSee('Notification Preview')
             ->assertSee('Dashboard Flash')
-            ->assertSee('Flash Product');
+            ->assertSee('Flash Product')
+            ->assertSee('Carton')
+            ->assertDontSee('#'.$offerId);
 
         $this->actingAs($manager)
             ->get(route('admin.commercial.flash-offers.analytics', $scope))
             ->assertOk()
+            ->assertSee('data-commercial-analytics', false)
+            ->assertSee('data-foodex-sidebar-toggle', false)
             ->assertSee('Flash Analytics')
-            ->assertSee('confirmed')
-            ->assertSee('reservation_confirmed')
-            ->assertSee('10.000');
+            ->assertSee('Confirmed')
+            ->assertSee('Reservation confirmed')
+            ->assertSee('Customer')
+            ->assertSee('10.000')
+            ->assertDontSee('reservation_confirmed')
+            ->assertDontSee('#'.$offerId);
+
+        $manager->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($manager->fresh())
+            ->get(route('admin.commercial.flash-offers.preview', $scope))
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('معاينة العرض السريع')
+            ->assertSee('معاينة نافذة العميل')
+            ->assertSee('اشترِ الآن')
+            ->assertSee('وحدة البيع');
+
+        $this->actingAs($manager->fresh())
+            ->get(route('admin.commercial.flash-offers.analytics', $scope))
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('تحليلات العرض السريع')
+            ->assertSee('مؤكد')
+            ->assertSee('تم تأكيد الحجز')
+            ->assertSee('العميل')
+            ->assertDontSee('reservation_confirmed');
     }
 
     public function test_sales_control_uses_premium_dashboard_shell_instead_of_legacy_standalone_surface(): void
