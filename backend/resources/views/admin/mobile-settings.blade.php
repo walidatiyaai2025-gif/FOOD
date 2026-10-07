@@ -198,9 +198,13 @@ $submissionListText = static function ($value): string {
         return '';
     })->filter()->implode("\n");
 };
-$submissionAssetStates = [
+$submissionMasterAssetStates = [
     'repository-controlled',
     'external-manual',
+    'blocked',
+];
+$submissionUploadAssetStates = [
+    'repository-controlled',
     'external-manual-final-upload',
     'external-manual-if-required',
     'blocked',
@@ -237,10 +241,10 @@ $submissionAssetStates = [
 <label>Reviewer notes</label><textarea name="reviewer_notes">{{ $submission?->reviewer_notes }}</textarea>
 <label>{{ __('mobile_settings.submission_assets') }}</label>
 <div class="policy-grid">
-<div><label>{{ __('mobile_settings.asset_icon') }}</label><select name="asset_icon_master"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'icon_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
-<div><label>{{ __('mobile_settings.asset_splash') }}</label><select name="asset_splash_master"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'splash_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
-<div><label>{{ __('mobile_settings.asset_screenshots') }}</label><select name="asset_screenshots"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'screenshots')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
-<div><label>{{ __('mobile_settings.asset_promotional') }}</label><select name="asset_promotional_assets"><option value="">—</option>@foreach($submissionAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'promotional_assets')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_icon') }}</label><select name="asset_icon_master"><option value="">—</option>@foreach($submissionMasterAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'icon_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_splash') }}</label><select name="asset_splash_master"><option value="">—</option>@foreach($submissionMasterAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'splash_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_screenshots') }}</label><select name="asset_screenshots"><option value="">—</option>@foreach($submissionUploadAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'screenshots')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.asset_promotional') }}</label><select name="asset_promotional_assets"><option value="">—</option>@foreach($submissionUploadAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'promotional_assets')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
 </div>
 <div class="row">
 <div><label>{{ __('mobile_settings.submission_permissions') }}</label><textarea name="permission_declarations_text" placeholder="{{ __('mobile_settings.one_per_line') }}">{{ $submissionListText($submission?->permission_declarations) }}</textarea></div>
