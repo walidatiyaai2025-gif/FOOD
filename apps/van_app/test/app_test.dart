@@ -2,10 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_van_app/app.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
+import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 
 void main() {
-  testWidgets('authenticated Van shell exposes tabs-first foundation', (tester) async {
+  test('approved Van production inventory stays locked to 19 surfaces', () {
+    expect(vanProductionScreenInventory.length, 19);
+    expect(vanProductionScreenInventory.first, VanScreenId.login);
+    expect(vanProductionScreenInventory.last, VanScreenId.profile);
+    expect(
+      vanProductionScreenInventory.toSet().length,
+      vanProductionScreenInventory.length,
+    );
+  });
+
+  testWidgets('authenticated Van shell exposes current foundation while recovery remains open', (tester) async {
     await tester.pumpWidget(
       const FoodexVanApp(
         locale: Locale('en'),
