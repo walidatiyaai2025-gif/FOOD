@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "mission_id": "UIUX-V42-RECOVERY",
+  "gate_issue": 1043,
+  "decision": "PASS",
+  "integration_target": "release/1034-uiux-v42-recovery",
+  "frozen_recovery_implementation_sha": "4c0af747939f735334164d43a4e729ac8074b1a4",
+  "requirement_counts": {
+    "total_rows": 52,
+    "pre_release_applicable_rows": 51,
+    "pre_release_pass": 51,
+    "pre_release_coverage_percent": 100,
+    "downstream_open_rows": 1
+  },
+  "forbidden_status_counts": {
+    "FAIL": 0,
+    "PARTIAL": 0,
+    "UNKNOWN": 0,
+    "UNOWNED": 0
+  },
+  "downstream_only": [
+    {
+      "id": "R01",
+      "owner_issue": 1021,
+      "status": "OPEN",
+      "reason": "Exact-head release and clean-install runs only after #1043 freezes source."
+    }
+  ],
+  "lineage": {
+    "owner_and_gate_prs": [
+      {
+        "issue": 1035,
+        "pr": 1044,
+        "merge_sha": "8b55916ce4e8a50c9be6836566657d5da5b27c7e"
+      },
+      {
+        "issue": 1036,
+        "pr": 1047,
+        "merge_sha": "9ddea3137e471753eee1c753703d56bd2f7965aa"
+      },
+      {
+        "issue": 1037,
+        "pr": 1048,
+        "merge_sha": "61072b152e2d66c92d5009eb98d8fb5c5497f2d7"
+      },
+      {
+        "issue": 1038,
+        "pr": 1049,
+        "merge_sha": "b012b1373e0cc02642c3d3245fedae6d86b29d59"
+      },
+      {
+        "issue": 1039,
+        "pr": 1050,
+        "merge_sha": "878f0ebdcf538c96b0296a539680bcc922b4ecb1"
+      },
+      {
+        "issue": 1040,
+        "pr": 1051,
+        "merge_sha": "c7f2dbe74a7519768dc41913e32d76dc3ce46a25"
+      },
+      {
+        "issue": 1041,
+        "pr": 1052,
+        "merge_sha": "1049663772d3106b6ce57c13470730a72241db0d"
+      },
+      {
+        "issue": 1042,
+        "pr": 1056,
+        "merge_sha": "4c0af747939f735334164d43a4e729ac8074b1a4"
+      }
+    ],
+    "runtime_gate_head": "b9f9d75a9df49b20c15ffc087c9854d1a7c86165",
+    "runtime_gate_to_frozen_changed_files": 0
+  },
+  "evidence": {
+    "static_report": "docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md",
+    "runtime_report": "docs/execution/UIUX_V42_RECOVERY_1042_RUNTIME_EVIDENCE.md",
+    "runtime_machine_report": "docs/execution/UIUX_V42_RECOVERY_1042_RUNTIME_EVIDENCE.json",
+    "static_required_ci_run": 37599427933,
+    "runtime_required_ci_run": 37603635538,
+    "web_runtime": {
+      "run_id": 37603635221,
+      "artifact_id": 11474330987,
+      "sha256": "58d036aed1fb21b0724f4603704d752e6f2fc6a5a5433108984697397a0bcbef"
+    },
+    "field_runtime": {
+      "run_id": 37603635032,
+      "artifact_id": 11474047226,
+      "sha256": "75a1be31aec94f71f5d67b3d8901af24d3c4640f867587425f688b97eb1d894e"
+    },
+    "mobile_runtime": {
+      "artifact_id": 11471599809,
+      "sha256": "697854d3c839a0486393826012da3e511559d13d6ea8ba8c985efb90ab52d45c"
+    }
+  },
+  "live_repository_state_at_freeze": {
+    "open_recovery_target_prs": 0,
+    "open_issue_numbers": [
+      1034,
+      1043,
+      1021
+    ],
+    "open_requirement_defect_issues": 0
+  },
+  "release_handoff": {
+    "issue": 1021,
+    "source_sha": "4c0af747939f735334164d43a4e729ac8074b1a4"
+  }
+}
