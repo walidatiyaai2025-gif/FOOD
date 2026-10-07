@@ -581,6 +581,11 @@ async function captureLocale(browser, locale) {
 
   await captureAdministrationRuntimeEvidence(page, locale);
   await captureOwnedDashboardRuntimeEvidence(page, locale);
+
+  // Long-running evidence navigation can rotate or invalidate the admin session.
+  // Re-establish the B2C actor before exercising mutation-adjacent commercial UI.
+  await context.clearCookies();
+  await login(page, 'b2c', locale, email);
   await exerciseCommercialRuntimeInteractions(page, locale);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
