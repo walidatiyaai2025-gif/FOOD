@@ -254,9 +254,9 @@ $businessLabel = static function ($value): string {
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.stores') }}</h2></div>
 @if($access['mode']!=='b2b')
-<div class="c360-list">@forelse($retailStores as $store)<span class="c360-store">{{ $store['name'] }} · {{ $store['code'] }}</span>@empty<div class="c360-empty" style="width:100%">{{ $ar?'لا توجد متاجر ضمن النطاق الحالي.':'No Retail stores in the current scope.' }}</div>@endforelse</div>
+<div class="c360-list">@forelse($retailStores as $store)<span class="c360-store">{{ $store['name'] }} · {{ $store['code'] }}</span>@empty<div class="c360-empty" style="width:100%">{{ __('customer_360.records.no_retail_stores') }}</div>@endforelse</div>
 @else
-<div class="c360-empty">{{ $ar?'لا تتوفر متاجر تجزئة ضمن هذا النطاق.':'Retail stores are not available in this scope.' }}</div>
+<div class="c360-empty">{{ __('customer_360.records.retail_unavailable') }}</div>
 @endif
 </div>
 </section>
@@ -264,9 +264,9 @@ $businessLabel = static function ($value): string {
 <section class="c360-panel" id="panel-orders" role="tabpanel" aria-labelledby="tab-orders" data-c360-panel="orders" hidden>
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.orders') }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
-@if(empty($orders))<div class="c360-empty">{{ $ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.' }}</div>@else
-<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ __('customer_360.finance.date') }}</th><th></th></tr></thead><tbody>
-@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $businessLabel($order['channel']) }}</span></td><td>{{ $businessLabel($order['status']) }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td></tr>@endforeach
+@if(empty($orders))<div class="c360-empty">{{ __('customer_360.records.no_orders') }}</div>@else
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.records.order') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.finance.date') }}</th><th></th></tr></thead><tbody>
+@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $businessLabel($order['channel']) }}</span></td><td>{{ $businessLabel($order['status']) }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ __('customer_360.records.manage_order') }}</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 </section>
@@ -274,9 +274,9 @@ $businessLabel = static function ($value): string {
 <section class="c360-panel" id="panel-invoices" role="tabpanel" aria-labelledby="tab-invoices" data-c360-panel="invoices" hidden>
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.invoices') }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
-@if(empty($invoices))<div class="c360-empty">{{ $ar?'لا توجد فواتير داخل النطاق الحالي.':'No invoices in the current scope.' }}</div>@else
-<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead><tbody>
-@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $businessLabel($invoice['channel']) }}</span></td><td>{{ $businessLabel($invoice['status']) }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
+@if(empty($invoices))<div class="c360-empty">{{ __('customer_360.records.no_invoices') }}</div>@else
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.records.issued') }}</th><th></th></tr></thead><tbody>
+@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $businessLabel($invoice['channel']) }}</span></td><td>{{ $businessLabel($invoice['status']) }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 </section>
