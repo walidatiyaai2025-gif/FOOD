@@ -11,45 +11,24 @@
 </head>
 <body>
 @php
-$ar = app()->getLocale() === 'ar';
-$reportLabel = static function ($value) use ($ar): string {
+$reportLabel = static function ($value): string {
     $key = strtolower(trim((string) ($value ?? '')));
-    $labels = [
-        'b2b' => $ar ? 'الجملة' : 'Wholesale',
-        'b2c' => $ar ? 'التجزئة' : 'Retail',
-        'pending' => $ar ? 'قيد الانتظار' : 'Pending',
-        'accepted' => $ar ? 'مقبول' : 'Accepted',
-        'assigned' => $ar ? 'تم التعيين' : 'Assigned',
-        'picked_up' => $ar ? 'تم الاستلام' : 'Picked up',
-        'out_for_delivery' => $ar ? 'في طريق التوصيل' : 'Out for delivery',
-        'delivered' => $ar ? 'تم التوصيل' : 'Delivered',
-        'completed' => $ar ? 'مكتمل' : 'Completed',
-        'failed' => $ar ? 'متعذر' : 'Failed',
-        'cancelled' => $ar ? 'ملغي' : 'Cancelled',
-        'paid' => $ar ? 'مدفوع' : 'Paid',
-        'captured' => $ar ? 'محصل' : 'Captured',
-        'refunded' => $ar ? 'مسترد' : 'Refunded',
-    ];
+    if ($key === '') {
+        return '—';
+    }
 
-    return $labels[$key] ?? ucwords(str_replace(['_', '-'], ' ', $key));
+    $translated = __('reports.business_labels.'.$key);
+
+    return $translated !== 'reports.business_labels.'.$key
+        ? $translated
+        : ucwords(str_replace(['_', '-'], ' ', $key));
 };
-$breakdownHeader = static function (string $key) use ($ar): string {
-    $labels = [
-        'status' => $ar ? 'الحالة' : 'Status',
-        'orders' => $ar ? 'الطلبات' : 'Orders',
-        'value' => $ar ? 'القيمة' : 'Value',
-        'provider' => $ar ? 'مزود الدفع' : 'Payment provider',
-        'payments' => $ar ? 'المدفوعات' : 'Payments',
-        'amount' => $ar ? 'المبلغ' : 'Amount',
-        'category' => $ar ? 'التصنيف' : 'Category',
-        'quantity' => $ar ? 'الكمية' : 'Quantity',
-        'revenue' => $ar ? 'الإيراد' : 'Revenue',
-        'sku' => $ar ? 'رمز المنتج' : 'SKU',
-        'name' => $ar ? 'الاسم' : 'Name',
-        'count' => $ar ? 'العدد' : 'Count',
-    ];
+$breakdownHeader = static function (string $key): string {
+    $translated = __('reports.breakdown_headers.'.$key);
 
-    return $labels[$key] ?? ucwords(str_replace(['_', '-'], ' ', $key));
+    return $translated !== 'reports.breakdown_headers.'.$key
+        ? $translated
+        : ucwords(str_replace(['_', '-'], ' ', $key));
 };
 @endphp
 <div class="layout foodex-admin-layout" data-foodex-utility="reports">
@@ -82,7 +61,7 @@ $breakdownHeader = static function (string $key) use ($ar): string {
                     <div><label>{{ __('reports.filters.from') }}</label><input type="date" name="from" value="{{ $data['filters']['from'] }}"></div>
                     <div><label>{{ __('reports.filters.to') }}</label><input type="date" name="to" value="{{ $data['filters']['to'] }}"></div>
                     <div><label>{{ __('reports.filters.store') }}</label><select name="store_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['stores'] as $store)<option value="{{ $store->id }}" @selected((string)request('store_id') === (string)$store->id)>{{ $store->name }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.channel') }}</label><select name="channel"><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ app()->getLocale()==='ar'?'التجزئة':'Retail' }}</option><option value="b2b" @selected(request('channel')==='b2b')>B2B</option></select></div>
+                    <div><label>{{ __('reports.filters.channel') }}</label><select name="channel"><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ __('reports.business_labels.b2c') }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ __('reports.business_labels.b2b') }}</option></select></div>
                     <div><label>{{ __('reports.filters.status') }}</label><select name="status"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['statuses'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $reportLabel($status) }}</option>@endforeach</select></div>
                     <div><label>{{ __('reports.filters.category') }}</label><select name="category_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['categories'] as $category)<option value="{{ $category->id }}" @selected((string)request('category_id') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select></div>
                     <div><label>{{ __('reports.filters.product') }}</label><select name="product_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['products'] as $product)<option value="{{ $product->id }}" @selected((string)request('product_id') === (string)$product->id)>{{ $product->sku }} · {{ $product->name }}</option>@endforeach</select></div>
