@@ -671,6 +671,211 @@
         sync();
     });
 
+    const numberOrNull = (input) => {
+        if (!input || input.value === '') return null;
+        const value = Number(input.value);
+        return Number.isFinite(value) ? value : null;
+    };
+    const textOrNull = (input) => {
+        const value = (input?.value || '').trim();
+        return value === '' ? null : value;
+    };
+
+    document.querySelectorAll('.commercial-policy-form').forEach((form) => {
+        const hiddenFor = (name) => form.querySelector('input[type="hidden"][name="' + name + '"]');
+        const advancedChanged = (name) => Boolean(
+            form.querySelector('[data-commercial-advanced-json="' + name + '"][data-advanced-changed="1"]')
+        );
+
+        form.querySelectorAll('[data-commercial-advanced-json]').forEach((textarea) => {
+            textarea.addEventListener('input', () => {
+                textarea.dataset.advancedChanged = '1';
+                const target = hiddenFor(textarea.dataset.commercialAdvancedJson || '');
+                if (target) target.value = textarea.value;
+            });
+        });
+
+        const unitRows = form.querySelector('[data-selling-unit-rows]');
+        const unitTemplate = form.querySelector('[data-selling-unit-template]');
+        const unitAdd = form.querySelector('[data-selling-unit-add]');
+        const unitOutput = form.querySelector('[data-selling-units-json]');
+        const breakPack = form.querySelector('[data-break-pack-selling-unit]');
+
+        const serializeUnits = () => {
+            if (!unitRows || !unitOutput) return;
+            const payload = [...unitRows.querySelectorAll('[data-selling-unit-row]')].map((row) => {
+                const unitId = Number(row.dataset.unitId || 0);
+                const item = {
+                    code: textOrNull(row.querySelector('[data-unit-field="code"]')) || '',
+                    name: textOrNull(row.querySelector('[data-unit-field="name"]')) || '',
+                    conversion_factor: numberOrNull(row.querySelector('[data-unit-field="conversion_factor"]')) ?? 1,
+                    price: numberOrNull(row.querySelector('[data-unit-field="price"]')),
+                    sku: textOrNull(row.querySelector('[data-unit-field="sku"]')),
+                    barcode: textOrNull(row.querySelector('[data-unit-field="barcode"]')),
+                    is_base: Boolean(row.querySelector('[data-unit-field="is_base"]')?.checked),
+                    is_active: Boolean(row.querySelector('[data-unit-field="is_active"]')?.checked),
+                };
+                if (unitId > 0) item.unit_id = unitId;
+                return item;
+            });
+            unitOutput.value = JSON.stringify(payload);
+        };
+
+        const syncBreakPack = () => {
+            if (!unitRows || !breakPack) return;
+            const wanted = breakPack.value;
+            breakPack.replaceChildren();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = @json(__('commercial.sales.select_selling_unit'));
+            breakPack.appendChild(placeholder);
+            [...unitRows.querySelectorAll('[data-selling-unit-row]')].forEach((row) => {
+                const code = textOrNull(row.querySelector('[data-unit-field="code"]'));
+                const name = textOrNull(row.querySelector('[data-unit-field="name"]'));
+                const factor = numberOrNull(row.querySelector('[data-unit-field="conversion_factor"]')) ?? 1;
+                const active = Boolean(row.querySelector('[data-unit-field="is_active"]')?.checked);
+                if (!active || !code || !name) return;
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = name + ' · ' + code + ' · ×' + factor;
+                option.selected = code === wanted;
+                breakPack.appendChild(option);
+            });
+        };
+
+        const setupUnitRow = (row) => {
+            row.querySelector('[data-selling-unit-remove]')?.addEventListener('click', () => {
+                if (!unitRows || unitRows.querySelectorAll('[data-selling-unit-row]').length <= 1) return;
+                row.remove();
+                serializeUnits();
+                syncBreakPack();
+            });
+            row.querySelectorAll('[data-unit-field]').forEach((input) => {
+                input.addEventListener('input', () => {
+                    serializeUnits();
+                    syncBreakPack();
+                });
+                input.addEventListener('change', () => {
+                    serializeUnits();
+                    syncBreakPack();
+                });
+            });
+        };
+
+        unitRows?.querySelectorAll('[data-selling-unit-row]').forEach(setupUnitRow);
+        unitAdd?.addEventListener('click', () => {
+            if (!unitRows || !unitTemplate) return;
+            const row = unitTemplate.content.firstElementChild?.cloneNode(true);
+            if (!(row instanceof HTMLElement)) return;
+            unitRows.appendChild(row);
+            setupUnitRow(row);
+            serializeUnits();
+            syncBreakPack();
+        });
+        serializeUnits();
+        syncBreakPack();
+
+        const availabilityRows = form.querySelector('[data-availability-rows]');
+        const availabilityTemplate = form.querySelector('[data-availability-template]');
+        const availabilityAdd = form.querySelector('[data-availability-add]');
+        const availabilityOutput = form.querySelector('[data-availability-json]');
+
+        const serializeAvailability = () => {
+            if (!availabilityRows || !availabilityOutput) return;
+            const payload = [...availabilityRows.querySelectorAll('[data-availability-row]')].map((row) => ({
+                recurrence: textOrNull(row.querySelector('[data-window-field="recurrence"]')) || 'fixed',
+                starts_at: textOrNull(row.querySelector('[data-window-field="starts_at"]')),
+                ends_at: textOrNull(row.querySelector('[data-window-field="ends_at"]')),
+                start_month: numberOrNull(row.querySelector('[data-window-field="start_month"]')),
+                start_day: numberOrNull(row.querySelector('[data-window-field="start_day"]')),
+                end_month: numberOrNull(row.querySelector('[data-window-field="end_month"]')),
+                end_day: numberOrNull(row.querySelector('[data-window-field="end_day"]')),
+                is_active: Boolean(row.querySelector('[data-window-field="is_active"]')?.checked),
+            }));
+            availabilityOutput.value = JSON.stringify(payload);
+        };
+
+        const setupAvailabilityRow = (row) => {
+            row.querySelector('[data-availability-remove]')?.addEventListener('click', () => {
+                row.remove();
+                serializeAvailability();
+            });
+            row.querySelectorAll('[data-window-field]').forEach((input) => {
+                input.addEventListener('input', serializeAvailability);
+                input.addEventListener('change', serializeAvailability);
+            });
+        };
+        availabilityRows?.querySelectorAll('[data-availability-row]').forEach(setupAvailabilityRow);
+        availabilityAdd?.addEventListener('click', () => {
+            if (!availabilityRows || !availabilityTemplate) return;
+            const row = availabilityTemplate.content.firstElementChild?.cloneNode(true);
+            if (!(row instanceof HTMLElement)) return;
+            availabilityRows.appendChild(row);
+            setupAvailabilityRow(row);
+            serializeAvailability();
+        });
+        serializeAvailability();
+
+        const ruleRows = form.querySelector('[data-rule-rows]');
+        const ruleTemplate = form.querySelector('[data-rule-template]');
+        const ruleAdd = form.querySelector('[data-rule-add]');
+        const rulesOutput = form.querySelector('[data-rules-json]');
+
+        const serializeRules = () => {
+            if (!ruleRows || !rulesOutput) return;
+            const payload = [...ruleRows.querySelectorAll('[data-rule-row]')].map((row) => {
+                const access = row.querySelector('[data-rule-field="is_allowed"]')?.value || '';
+                return {
+                    customer_id: numberOrNull(row.querySelector('[data-rule-field="customer_id"]')),
+                    customer_group_id: numberOrNull(row.querySelector('[data-rule-field="customer_group_id"]')),
+                    channel: textOrNull(row.querySelector('[data-rule-field="channel"]')),
+                    is_allowed: access === '' ? null : access === '1',
+                    max_per_order: numberOrNull(row.querySelector('[data-rule-field="max_per_order"]')),
+                    max_per_day: numberOrNull(row.querySelector('[data-rule-field="max_per_day"]')),
+                    max_per_week: numberOrNull(row.querySelector('[data-rule-field="max_per_week"]')),
+                    max_per_month: numberOrNull(row.querySelector('[data-rule-field="max_per_month"]')),
+                    max_lifetime: numberOrNull(row.querySelector('[data-rule-field="max_lifetime"]')),
+                };
+            }).filter((rule) => rule.customer_id !== null
+                || rule.customer_group_id !== null
+                || rule.channel !== null
+                || rule.is_allowed !== null
+                || rule.max_per_order !== null
+                || rule.max_per_day !== null
+                || rule.max_per_week !== null
+                || rule.max_per_month !== null
+                || rule.max_lifetime !== null);
+            rulesOutput.value = JSON.stringify(payload);
+        };
+
+        const setupRuleRow = (row) => {
+            row.querySelector('[data-rule-remove]')?.addEventListener('click', () => {
+                row.remove();
+                serializeRules();
+            });
+            row.querySelectorAll('[data-rule-field]').forEach((input) => {
+                input.addEventListener('input', serializeRules);
+                input.addEventListener('change', serializeRules);
+            });
+        };
+        ruleRows?.querySelectorAll('[data-rule-row]').forEach(setupRuleRow);
+        ruleAdd?.addEventListener('click', () => {
+            if (!ruleRows || !ruleTemplate) return;
+            const row = ruleTemplate.content.firstElementChild?.cloneNode(true);
+            if (!(row instanceof HTMLElement)) return;
+            ruleRows.appendChild(row);
+            setupRuleRow(row);
+            serializeRules();
+        });
+        serializeRules();
+
+        form.addEventListener('submit', () => {
+            if (!advancedChanged('selling_units_json')) serializeUnits();
+            if (!advancedChanged('availability_windows_json')) serializeAvailability();
+            if (!advancedChanged('rules_json')) serializeRules();
+        });
+    });
+
     const builder = document.querySelector('[data-flash-product-builder]');
     const template = document.querySelector('[data-flash-product-template]');
     const addButton = document.querySelector('[data-flash-product-add]');
