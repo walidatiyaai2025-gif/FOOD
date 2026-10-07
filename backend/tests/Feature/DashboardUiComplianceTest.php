@@ -246,4 +246,19 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("if (\$reviewer->app === 'van')", $controller);
         $this->assertStringContainsString("hasPermission('van.login')", $controller);
     }
+
+
+    public function test_mobile_settings_hide_raw_push_identifiers(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("mobile_settings.unknown_user", $view);
+        $this->assertStringContainsString("mobile_settings.delivery_status.", $view);
+        $this->assertStringContainsString("mobile_settings.delivery_issue", $view);
+        $this->assertStringNotContainsString('#{{ $d->id }}', $view);
+        $this->assertStringNotContainsString('#{{ $log->id }}', $view);
+        $this->assertStringNotContainsString('{{ $log->error_code }}', $view);
+        $this->assertStringNotContainsString('HTTP {{ $log->response_code }}', $view);
+    }
 }
