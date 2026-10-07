@@ -16,8 +16,8 @@ const double customerMapSavedPointZoom = 14;
   final hasSavedPoint = initialLatitude != null && initialLongitude != null;
   return (
     center: LatLng(
-      hasSavedPoint ? initialLatitude! : customerMapDefaultLatitude,
-      hasSavedPoint ? initialLongitude! : customerMapDefaultLongitude,
+      hasSavedPoint ? initialLatitude : customerMapDefaultLatitude,
+      hasSavedPoint ? initialLongitude : customerMapDefaultLongitude,
     ),
     zoom: hasSavedPoint ? customerMapSavedPointZoom : customerMapDefaultZoom,
   );
