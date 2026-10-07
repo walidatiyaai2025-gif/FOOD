@@ -128,6 +128,8 @@ jobs:
           test -s "ScreenShots/02_Web/B2C_Admin/18_campaign_actions__mobile-390__en.png"
           test -s "ScreenShots/02_Web/B2C_Admin/19_mobile_settings_van_structured__desktop__ar.png"
           test -s "ScreenShots/02_Web/B2C_Admin/19_mobile_settings_van_structured__desktop__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/20_van_finance_support__desktop__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/20_van_finance_support__desktop__en.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__ar.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__en.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_التتبع_الحي_للسائقين_والفانات__populated__ar.png"
