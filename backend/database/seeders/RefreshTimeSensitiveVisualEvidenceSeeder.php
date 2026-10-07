@@ -30,12 +30,16 @@ class RefreshTimeSensitiveVisualEvidenceSeeder extends Seeder
         $vanId = (int) DB::table('vans')->where('code', 'VAN-EVID-01')->value('id');
 
         if ($vanId > 0) {
+            // Keep the Van fixture inside the 45-second online window for the
+            // full bilingual screenshot run; the suite can take several minutes.
+            $vanOnlineAt = $now->copy()->addMinutes(10);
+
             DB::table('fleet_current_locations')
                 ->where('actor_type', 'van')
                 ->where('actor_id', $vanId)
                 ->update([
-                    'captured_at' => $now,
-                    'received_at' => $now,
+                    'captured_at' => $vanOnlineAt,
+                    'received_at' => $vanOnlineAt,
                     'updated_at' => $now,
                 ]);
         }
