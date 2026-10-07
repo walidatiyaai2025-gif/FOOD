@@ -169,7 +169,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <button class="button">{{ __('mobile_settings.send_test') }}</button>
 </form>
 <h3>{{ __('mobile_settings.delivery_log') }}</h3>
-@forelse($logs as $log)<div class="log">{{ __('mobile_settings.apps.'.$log->app) }} · {{ strtoupper($log->platform) }} · {{ __('mobile_settings.environments.'.$log->environment) }} · <strong>{{ __('mobile_settings.delivery_status.'.$log->status) }}</strong>@if($log->error_code)<br><strong>{{ __('mobile_settings.delivery_issue') }}:</strong> {{ $log->error_message ?: __('mobile_settings.test_failed') }}@endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
+@forelse($logs as $log)<div class="log">{{ __('mobile_settings.apps.'.$log->app) }} · {{ __('mobile_settings.ui.platforms.'.$log->platform) }} · {{ __('mobile_settings.environments.'.$log->environment) }} · <strong>{{ __('mobile_settings.delivery_status.'.$log->status) }}</strong>@if($log->error_code)<br><strong>{{ __('mobile_settings.delivery_issue') }}:</strong> {{ $log->error_message ?: __('mobile_settings.test_failed') }}@endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse {{-- localization-gate: allow Blade control directive around localized delivery issue --}}
 </section>
 @php
 $submissionListText = static function ($value): string {
