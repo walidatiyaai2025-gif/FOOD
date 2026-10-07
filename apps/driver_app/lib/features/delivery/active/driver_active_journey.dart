@@ -54,6 +54,7 @@ enum _DriverDeliveryPeriod { today, all, custom }
 
 class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     with WidgetsBindingObserver {
+  static const Duration _refreshInterval = Duration(seconds: 15);
   static const Set<String> _terminalStatuses = {
     'delivered',
     'failed',
@@ -66,6 +67,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   List<DriverAssignment> _assignments = const [];
   final Set<int> _busyAssignments = <int>{};
   String? _actionError;
+  String? _staleErrorKey;
+  DateTime? _lastSuccessfulAt;
+  Timer? _refreshTimer;
+  bool _loadInFlight = false;
   bool _focusedAssignmentOpened = false;
   _DriverDeliveryPeriod _period = _DriverDeliveryPeriod.today;
   DateTimeRange? _dateRange;
@@ -78,18 +83,41 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       _period = _DriverDeliveryPeriod.all;
     }
     _load();
+    _startLiveRefresh();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _state != _DriverActiveLoadState.loading) {
-      _load();
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load(silent: _assignments.isNotEmpty));
+      _startLiveRefresh();
+      return;
     }
+
+    _stopLiveRefresh();
+  }
+
+  void _startLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      if (!mounted ||
+          _loadInFlight ||
+          _busyAssignments.isNotEmpty ||
+          _state == _DriverActiveLoadState.loading) {
+        return;
+      }
+      unawaited(_load(silent: true));
+    });
+  }
+
+  void _stopLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   @override
   void dispose() {
+    _stopLiveRefresh();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -97,8 +125,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   bool _allows(DriverAssignment assignment, String status) =>
       assignment.availableStatuses.contains(status);
 
-  Future<void> _load() async {
-    if (mounted) {
+  Future<void> _load({bool silent = false}) async {
+    if (_loadInFlight) return;
+    _loadInFlight = true;
+
+    if (mounted && !silent) {
       setState(() {
         _state = _DriverActiveLoadState.loading;
         _actionError = null;
@@ -139,6 +170,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         _state = visible.isEmpty
             ? _DriverActiveLoadState.empty
             : _DriverActiveLoadState.ready;
+        _staleErrorKey = null;
+        _lastSuccessfulAt = DateTime.now();
       });
       _openFocusedAssignmentIfNeeded();
     } on DriverSessionExpiredException {
@@ -148,12 +181,28 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       }
     } on DriverOfflineException {
       if (mounted) {
-        setState(() => _state = _DriverActiveLoadState.offline);
+        setState(() {
+          if (silent && _assignments.isNotEmpty) {
+            _staleErrorKey = 'driver.offline';
+            _state = _DriverActiveLoadState.ready;
+          } else {
+            _state = _DriverActiveLoadState.offline;
+          }
+        });
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _state = _DriverActiveLoadState.error);
+        setState(() {
+          if (silent && _assignments.isNotEmpty) {
+            _staleErrorKey = 'driver.error';
+            _state = _DriverActiveLoadState.ready;
+          } else {
+            _state = _DriverActiveLoadState.error;
+          }
+        });
       }
+    } finally {
+      _loadInFlight = false;
     }
   }
 
@@ -1130,8 +1179,70 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
               ),
             ],
           ),
+        if (_staleErrorKey != null && _assignments.isNotEmpty)
+          _DriverStaleDataBanner(
+            errorKey: _staleErrorKey!,
+            lastSuccessfulAt: _lastSuccessfulAt,
+          ),
         Expanded(child: body),
       ],
+    );
+  }
+}
+
+class _DriverStaleDataBanner extends StatelessWidget {
+  const _DriverStaleDataBanner({
+    required this.errorKey,
+    required this.lastSuccessfulAt,
+  });
+
+  final String errorKey;
+  final DateTime? lastSuccessfulAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final lastSuccessfulAt = this.lastSuccessfulAt;
+    final time = lastSuccessfulAt == null
+        ? null
+        : '${lastSuccessfulAt.hour.toString().padLeft(2, '0')}:'
+            '${lastSuccessfulAt.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      key: const Key('driver-active-stale'),
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1D39A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 18,
+            color: Color(0xFF8A5A00),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              [
+                context.tr('driver.data.stale'),
+                context.tr(errorKey),
+                if (time != null)
+                  '${context.tr('driver.data.last_confirmed_update')}: $time',
+              ].join(' · '),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6B4A00),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
