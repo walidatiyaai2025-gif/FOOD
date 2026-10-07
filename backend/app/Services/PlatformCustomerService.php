@@ -276,7 +276,7 @@ final class PlatformCustomerService
 
         if ($channel === 'b2b') {
             $principalStoreId = $this->mainWholesaleStoreId();
-            if ($principalStoreId !== null && $principalStoreId !== (int) $store->id) {
+            if ($principalStoreId !== (int) $store->id) {
                 throw ValidationException::withMessages([
                     'store_id' => ['Customer registration is allowed only from the main Wholesale store.'],
                 ]);
