@@ -13,6 +13,7 @@ class DriverNotificationPage extends StatefulWidget {
     this.homeRoute,
     this.deliveriesRoute,
     this.notificationsRoute,
+    this.currentAssignmentId,
   });
 
   final DriverNotificationRepository repository;
@@ -21,6 +22,7 @@ class DriverNotificationPage extends StatefulWidget {
   final String? homeRoute;
   final String? deliveriesRoute;
   final String? notificationsRoute;
+  final int? currentAssignmentId;
 
   @override
   State<DriverNotificationPage> createState() => _DriverNotificationPageState();
@@ -94,10 +96,15 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
 
       if (!mounted) return;
 
+      final assignmentId = notification.assignmentId;
       if (!notification.accessRevoked &&
-          notification.assignmentId != null &&
-          notification.assignmentId! > 0) {
-        widget.onOpenAssignment(notification.assignmentId!);
+          assignmentId != null &&
+          assignmentId > 0) {
+        if (widget.currentAssignmentId == assignmentId) {
+          await _load();
+          return;
+        }
+        widget.onOpenAssignment(assignmentId);
         return;
       }
 
