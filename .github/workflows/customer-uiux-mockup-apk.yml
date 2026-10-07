@@ -1,0 +1,71 @@
+name: Build Customer UIUX Mockup APK
+
+on:
+  push:
+    branches:
+      - archive/uiux-approved-mockups
+    paths:
+      - "prototypes/customer_uiux_mockup/**"
+      - ".github/workflows/customer-uiux-mockup-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create isolated Android shell
+        run: |
+          rm -rf /tmp/foodex-customer-uiux
+          flutter create --platforms=android --org com.foodex.mockup --project-name foodex_customer_uiux_mockup /tmp/foodex-customer-uiux
+          cp prototypes/customer_uiux_mockup/pubspec.yaml /tmp/foodex-customer-uiux/pubspec.yaml
+          cp prototypes/customer_uiux_mockup/lib/main.dart /tmp/foodex-customer-uiux/lib/main.dart
+          rm -rf /tmp/foodex-customer-uiux/test
+          sed -i 's/android:label="foodex_customer_uiux_mockup"/android:label="FOODEX Customer Mockup"/' /tmp/foodex-customer-uiux/android/app/src/main/AndroidManifest.xml
+
+      - name: Install stable mockup signing key
+        run: |
+          mkdir -p "$HOME/.android"
+          base64 -d prototypes/customer_uiux_mockup/android/customer-mockup-debug.keystore.b64 > "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+
+      - name: Analyze prototype
+        working-directory: /tmp/foodex-customer-uiux
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos
+
+      - name: Build release APK
+        working-directory: /tmp/foodex-customer-uiux
+        run: flutter build apk --release
+
+      - name: Verify APK identity
+        run: |
+          APK="/tmp/foodex-customer-uiux/build/app/outputs/flutter-apk/app-release.apk"
+          test -f "$APK"
+          apksigner verify --print-certs "$APK" || true
+
+      - name: Stage APK
+        run: |
+          cp /tmp/foodex-customer-uiux/build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/FOODEX-Customer-UIUX-Mockup.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-Customer-UIUX-Mockup-APK
+          path: FOODEX-Customer-UIUX-Mockup.apk
+          if-no-files-found: error
+          retention-days: 30
