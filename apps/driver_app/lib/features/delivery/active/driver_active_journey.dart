@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/auth/driver_session.dart';
 import '../../../core/localization/driver_translations.dart';
 import '../../../core/preview/driver_preview_context.dart';
+import '../../../core/theme/foodex_theme.dart';
 import '../driver_assignment_contract.dart';
 import '../../wallet/driver_wallet_contract.dart';
 
@@ -874,7 +875,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final canFail = _allows(assignment, 'failed');
 
     if (!canAccept && !canStart && !canDeliver && !canFail) {
-      return Text(context.tr('driver.action.none'));
+      return const SizedBox.shrink();
     }
 
     return Align(
@@ -883,7 +884,12 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         key: Key('driver-active-actions-${assignment.id}'),
         enabled: !busy,
         tooltip: context.tr('driver.detail.actions'),
-        icon: const Icon(Icons.more_horiz_rounded),
+        icon: Icon(
+          Icons.more_horiz_rounded,
+          key: Key('driver-active-actions-icon-${assignment.id}'),
+          color: FoodexBrand.green,
+          size: 22,
+        ),
         onSelected: (action) {
           switch (action) {
             case 'accepted':
@@ -1096,6 +1102,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                     Expanded(
                                       child: Text(
                                         assignment.reference,
+                                        key: Key(
+                                          'driver-active-reference-${assignment.id}',
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: Theme.of(context)
@@ -1106,12 +1115,17 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                             ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                       label: Text(
                                         _statusLabel(assignment.status),
                                       ),
                                     ),
+                                    const SizedBox(width: 2),
+                                    _actions(assignment),
                                   ],
                                 ),
                                 if (assignment.storeName.isNotEmpty) ...[
@@ -1130,8 +1144,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-                                const SizedBox(height: 14),
-                                _actions(assignment),
+
                               ],
                             ),
                           ),
