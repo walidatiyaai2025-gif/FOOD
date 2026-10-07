@@ -251,12 +251,35 @@ final class VanVisitController extends Controller
         ])->map(static fn (mixed $value): string => trim((string) $value))
             ->first(static fn (string $value): bool => $value !== '');
 
+        $customerType = (string) $visit->customer_type;
+        $customerId = (int) $visit->customer_id;
+        $customerColumn = $customerType === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
+        $address = DB::table('addresses')
+            ->where($customerColumn, $customerId)
+            ->whereNull('deleted_at')
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->first(['latitude', 'longitude', 'label', 'line1', 'area', 'city']);
+
+        $latitude = $address?->latitude === null ? null : (float) $address->latitude;
+        $longitude = $address?->longitude === null ? null : (float) $address->longitude;
+        $addressText = $address === null
+            ? null
+            : collect([$address->label, $address->line1, $address->area, $address->city])
+                ->map(static fn (mixed $value): string => trim((string) $value))
+                ->filter(static fn (string $value): bool => $value !== '')
+                ->unique()
+                ->implode(' · ');
+
         return [
             'id' => (int) $visit->getKey(),
-            'customer_type' => (string) $visit->customer_type,
-            'customer_id' => (int) $visit->customer_id,
+            'customer_type' => $customerType,
+            'customer_id' => $customerId,
             'store_id' => $visit->store_id === null ? null : (int) $visit->store_id,
             'route_key' => $routeKey === null || $routeKey === '' ? null : $routeKey,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'address' => $addressText === '' ? null : $addressText,
             'status' => (string) $visit->status,
             'order_id' => $visit->order_id === null ? null : (int) $visit->order_id,
             'no_order_reason_id' => $visit->no_order_reason_id === null ? null : (int) $visit->no_order_reason_id,
