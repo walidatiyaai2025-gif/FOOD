@@ -16,7 +16,7 @@ void main() {
     );
   });
 
-  testWidgets('authenticated Van shell exposes current foundation while recovery remains open', (tester) async {
+  testWidgets('authenticated Van shell exposes production navigation instead of legacy tabs', (tester) async {
     await tester.pumpWidget(
       const FoodexVanApp(
         locale: Locale('en'),
@@ -33,10 +33,24 @@ void main() {
 
     expect(find.text('FOODEX Van'), findsOneWidget);
     expect(find.text('Van Operator'), findsOneWidget);
-    expect(find.text('Overview'), findsOneWidget);
-    expect(find.text('Routes'), findsOneWidget);
-    expect(find.text('Visits'), findsOneWidget);
-    expect(find.text('Wallet'), findsOneWidget);
+    expect(find.text('Home Dashboard'), findsWidgets);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(TabBar), findsNothing);
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('van-production-screen-menu')),
+      findsOneWidget,
+    );
+    expect(find.text('Routes'), findsWidgets);
+    expect(find.text('Customers'), findsWidgets);
+    expect(find.text('Product Catalog'), findsOneWidget);
+    expect(find.text('Order Builder'), findsOneWidget);
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('Profile & Settings'), findsOneWidget);
   });
 }
 
