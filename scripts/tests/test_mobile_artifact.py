@@ -29,7 +29,7 @@ class MobileArtifactTest(unittest.TestCase):
                     self.assertEqual("a" * 40, manifest["source_commit"])
                     self.assertFalse(manifest["production_ready"])
                     self.assertEqual("ci-validation-only", manifest["purpose"])
-                    self.assertEqual("https://vanfoodex.50sols.com", manifest["api_base_url"])
+                    self.assertEqual("https://foodex.50sols.com", manifest["api_base_url"])
                     expected_id = (
                         "com.foodex.van"
                         if app == "van"
