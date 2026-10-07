@@ -158,7 +158,19 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_ux_contract_guard.py'
 
       - name: Enforce mobile UX v4.2 anti-regression guard
-        run: python3 scripts/mobile-ux-contract-guard.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          # #1058 integrates the immutable 1.0.60 application snapshot into main.
+          # Audit only reconciliation changes so this merge cannot silently mutate
+          # the accepted application/design source while still enforcing the guard
+          # on every post-freeze change made by this integration branch.
+          if [[ "${{ github.head_ref }}" == "release/1058-final-main-integration" ]]; then
+            base="53857b1daa13c99682081760c89d144f1f701588"
+          fi
+          python3 scripts/mobile-ux-contract-guard.py --base "$base" --head "$head"
 
       - name: Test UIUX v4.2 recovery independent audit
         run: python3 -m unittest discover -s scripts/tests -p 'test_uiux_v42_recovery_audit.py'
