@@ -54,8 +54,8 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <input type="hidden" name="force_update" value="0"><label class="check"><input type="checkbox" name="force_update" value="1" @checked((bool) old('force_update', $selectedSetting?->force_update ?? false))>{{ __('mobile_settings.force_update') }}</label>
 <input type="hidden" name="maintenance_mode" value="0"><label class="check"><input type="checkbox" name="maintenance_mode" value="1" @checked((bool) old('maintenance_mode', $selectedSetting?->maintenance_mode ?? false))>{{ __('mobile_settings.maintenance') }}</label>
 <div class="row">
-<div><label>{{ __('mobile_settings.message_ar') }}</label><textarea name="maintenance_message_ar" placeholder="رسالة الصيانة بالعربية">{{ old('maintenance_message_ar', $selectedSetting?->maintenance_message_ar) }}</textarea></div>
-<div><label>{{ __('mobile_settings.message_en') }}</label><textarea name="maintenance_message_en" placeholder="Maintenance message in English">{{ old('maintenance_message_en', $selectedSetting?->maintenance_message_en) }}</textarea></div>
+<div><label>{{ __('mobile_settings.message_ar') }}</label><textarea name="maintenance_message_ar" placeholder="{{ __('mobile_settings.ui.maintenance_ar_placeholder') }}">{{ old('maintenance_message_ar', $selectedSetting?->maintenance_message_ar) }}</textarea></div>
+<div><label>{{ __('mobile_settings.message_en') }}</label><textarea name="maintenance_message_en" placeholder="{{ __('mobile_settings.ui.maintenance_en_placeholder') }}">{{ old('maintenance_message_en', $selectedSetting?->maintenance_message_en) }}</textarea></div>
 </div>
 <label>{{ __('mobile_settings.ui.google_play_url') }}</label><input type="url" name="google_play_url" value="{{ old('google_play_url', $selectedSetting?->google_play_url) }}" placeholder="https://play.google.com/store/apps/details?id=...">
 <label>{{ __('mobile_settings.ui.app_store_url') }}</label><input type="url" name="app_store_url" value="{{ old('app_store_url', $selectedSetting?->app_store_url) }}" placeholder="https://apps.apple.com/app/id...">
@@ -73,13 +73,13 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 </select>
 <p class="muted">{{ __('mobile_settings.ui.footer_help') }}</p>
 <div class="row">
-<div><label>{{ __('mobile_settings.release_ar') }}</label><textarea name="release_notes_ar" placeholder="ملاحظات الإصدار بالعربية">{{ old('release_notes_ar', $selectedSetting?->release_notes_ar) }}</textarea></div>
-<div><label>{{ __('mobile_settings.release_en') }}</label><textarea name="release_notes_en" placeholder="Release notes in English">{{ old('release_notes_en', $selectedSetting?->release_notes_en) }}</textarea></div>
+<div><label>{{ __('mobile_settings.release_ar') }}</label><textarea name="release_notes_ar" placeholder="{{ __('mobile_settings.ui.release_ar_placeholder') }}">{{ old('release_notes_ar', $selectedSetting?->release_notes_ar) }}</textarea></div>
+<div><label>{{ __('mobile_settings.release_en') }}</label><textarea name="release_notes_en" placeholder="{{ __('mobile_settings.ui.release_en_placeholder') }}">{{ old('release_notes_en', $selectedSetting?->release_notes_en) }}</textarea></div>
 </div>
 <label>{{ __('mobile_settings.deep_links') }}</label>
 <div class="row">
-<div><label>{{ __('mobile_settings.deep_link_scheme') }}</label><input name="deep_link_scheme" value="{{ old('deep_link_scheme', data_get($selectedSetting?->deep_link_config, 'scheme')) }}" placeholder="foodex"></div>
-<div><label>{{ __('mobile_settings.deep_link_host') }}</label><input name="deep_link_host" value="{{ old('deep_link_host', data_get($selectedSetting?->deep_link_config, 'host')) }}" placeholder="app"></div>
+<div><label>{{ __('mobile_settings.deep_link_scheme') }}</label><input name="deep_link_scheme" value="{{ old('deep_link_scheme', data_get($selectedSetting?->deep_link_config, 'scheme')) }}" placeholder="{{ __('mobile_settings.ui.deep_link_scheme_placeholder') }}"></div>
+<div><label>{{ __('mobile_settings.deep_link_host') }}</label><input name="deep_link_host" value="{{ old('deep_link_host', data_get($selectedSetting?->deep_link_config, 'host')) }}" placeholder="{{ __('mobile_settings.ui.deep_link_host_placeholder') }}"></div>
 </div>
 <label>{{ __('mobile_settings.readiness') }}</label>
 <div class="row">
@@ -150,8 +150,8 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <label class="check"><input type="checkbox" name="enabled" value="1">{{ __('mobile_settings.enabled') }}</label>
 <label>{{ __('mobile_settings.credentials') }}</label><textarea name="credentials_json" placeholder="{{ __('mobile_settings.ui.credentials_placeholder') }}"></textarea>
 <p class="muted">{{ __('mobile_settings.ui.credentials_help') }}</p>
-<div class="row"><div><label>{{ __('mobile_settings.ui.sound') }}</label><input name="default_sound" placeholder="default"></div><div><label>{{ __('mobile_settings.ui.channel') }}</label><input name="default_channel" placeholder="foodex_default"></div></div>
-<div class="row"><div><label>{{ __('mobile_settings.ui.icon') }}</label><input name="default_icon" placeholder="ic_notification"></div><div><label>{{ __('mobile_settings.ui.category') }}</label><input name="default_category" placeholder="general"></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.ui.sound') }}</label><input name="default_sound" placeholder="{{ __('mobile_settings.ui.push_sound_placeholder') }}"></div><div><label>{{ __('mobile_settings.ui.channel') }}</label><input name="default_channel" placeholder="foodex_default"></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.ui.icon') }}</label><input name="default_icon" placeholder="{{ __('mobile_settings.ui.push_icon_placeholder') }}"></div><div><label>{{ __('mobile_settings.ui.category') }}</label><input name="default_category" placeholder="{{ __('mobile_settings.ui.push_category_placeholder') }}"></div></div>
 <button class="button">{{ __('mobile_settings.save_push') }}</button>
 </form>
 <h3>{{ __('mobile_settings.configured') }}</h3>
@@ -164,8 +164,8 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <h2>{{ __('mobile_settings.test_title') }}</h2>
 <form method="post" action="{{ route('admin.mobile-settings.test') }}">@csrf
 <label>{{ __('mobile_settings.device') }}</label><select name="device_id">@foreach($devices as $d)<option value="{{ $d->id }}">{{ $d->user?->name ?: ($d->user?->email ?: __('mobile_settings.unknown_user')) }} · {{ __('mobile_settings.apps.'.$d->app) }} · {{ strtoupper($d->platform) }} · {{ __('mobile_settings.environments.'.$d->environment) }}</option>@endforeach</select>
-<div class="row"><div><label>{{ __('mobile_settings.title_ar') }}</label><input name="title_ar" placeholder="عنوان الإشعار بالعربية" required></div><div><label>{{ __('mobile_settings.title_en') }}</label><input name="title_en" placeholder="Notification title in English" required></div></div>
-<div class="row"><div><label>{{ __('mobile_settings.body_ar') }}</label><textarea name="body_ar" placeholder="نص الإشعار بالعربية" required></textarea></div><div><label>{{ __('mobile_settings.body_en') }}</label><textarea name="body_en" placeholder="Notification body in English" required></textarea></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.title_ar') }}</label><input name="title_ar" placeholder="{{ __('mobile_settings.ui.test_title_ar_placeholder') }}" required></div><div><label>{{ __('mobile_settings.title_en') }}</label><input name="title_en" placeholder="{{ __('mobile_settings.ui.test_title_en_placeholder') }}" required></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.body_ar') }}</label><textarea name="body_ar" placeholder="{{ __('mobile_settings.ui.test_body_ar_placeholder') }}" required></textarea></div><div><label>{{ __('mobile_settings.body_en') }}</label><textarea name="body_en" placeholder="{{ __('mobile_settings.ui.test_body_en_placeholder') }}" required></textarea></div></div>
 <button class="button">{{ __('mobile_settings.send_test') }}</button>
 </form>
 <h3>{{ __('mobile_settings.delivery_log') }}</h3>
@@ -221,24 +221,24 @@ $submissionUploadAssetStates = [
 <input type="hidden" name="app" value="{{ $submissionApp }}">
 <input type="hidden" name="platform" value="{{ $submissionPlatform }}">
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
-<h3>{{ __('mobile_settings.apps.'.$submissionApp) }} · {{ strtoupper($submissionPlatform) }} · {{ __('mobile_settings.environments.'.$selectedEnvironment) }} — <span class="{{ ($submission?->readiness_state)==='PASS'?'status-ready':'status-blocked' }}">{{ $submission?->readiness_state ?? 'BLOCKED' }}</span></h3>
+<h3>{{ __('mobile_settings.apps.'.$submissionApp) }} · {{ __('mobile_settings.ui.platforms.'.$submissionPlatform) }} · {{ __('mobile_settings.environments.'.$selectedEnvironment) }} — <span class="{{ ($submission?->readiness_state)==='PASS'?'status-ready':'status-blocked' }}">{{ __('mobile_settings.ui.readiness_states.'.($submission?->readiness_state ?? 'BLOCKED')) }}</span></h3>
 <div class="row">
 @php($submissionPackage = ['customer'=>'com.fiftysolution.foodex.customer','driver'=>'com.fiftysolution.foodex.driver','van'=>'com.foodex.van'][$submissionApp])
-<div><label>Package / Bundle ID</label><input name="package_identifier" value="{{ $submission?->package_identifier }}" placeholder="{{ $submissionPackage }}"></div>
-<div><label>{{ __('mobile_settings.ui.submission_status') }}</label><select name="submission_status">@foreach(['NOT_READY','READY','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','PUBLISHED'] as $status)<option value="{{ $status }}" @selected(($submission?->submission_status ?? 'NOT_READY')===$status)>{{ $status }}</option>@endforeach</select></div>
+<div><label>{{ __('mobile_settings.ui.package_identifier') }}</label><input name="package_identifier" value="{{ $submission?->package_identifier }}" placeholder="{{ $submissionPackage }}"></div>
+<div><label>{{ __('mobile_settings.ui.submission_status') }}</label><select name="submission_status">@foreach(['NOT_READY','READY','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','PUBLISHED'] as $status)<option value="{{ $status }}" @selected(($submission?->submission_status ?? 'NOT_READY')===$status)>{{ __('mobile_settings.ui.submission_statuses.'.$status) }}</option>@endforeach</select></div>
 </div>
-<div class="row"><div><label>Current version</label><input name="current_version" value="{{ $submission?->current_version }}"></div><div><label>Current build</label><input name="current_build" value="{{ $submission?->current_build }}"></div></div>
-<div class="row"><div><label>Minimum version</label><input name="minimum_version" value="{{ $submission?->minimum_version }}"></div><div><label>Recommended version</label><input name="recommended_version" value="{{ $submission?->recommended_version }}"></div></div>
-<label>Update policy</label><select name="update_policy">@foreach(['optional','recommended','required'] as $policy)<option value="{{ $policy }}" @selected(($submission?->update_policy ?? 'optional')===$policy)>{{ $policy }}</option>@endforeach</select>
-<label>Store URL</label><input type="url" name="store_url" value="{{ $submission?->store_url }}">
-<div class="row"><div><label>Privacy URL</label><input type="url" name="privacy_url" value="{{ $submission?->privacy_url ?: url('/privacy') }}"></div><div><label>Terms URL</label><input type="url" name="terms_url" value="{{ $submission?->terms_url ?: url('/terms') }}"></div></div>
-<div class="row"><div><label>Support URL</label><input type="url" name="support_url" value="{{ $submission?->support_url ?: url('/support') }}"></div><div><label>Delete Account URL</label><input type="url" name="delete_account_url" value="{{ $submission?->delete_account_url ?: url('/account-deletion') }}"></div></div>
-<div class="row"><div><label>Release notes AR</label><textarea name="release_notes_ar">{{ $submission?->release_notes_ar }}</textarea></div><div><label>Release notes EN</label><textarea name="release_notes_en">{{ $submission?->release_notes_en }}</textarea></div></div>
-<label>Store title</label><input name="title" value="{{ $submission?->title }}">
-<label>Short description</label><input name="short_description" value="{{ $submission?->short_description }}">
-<label>Full description</label><textarea name="full_description">{{ $submission?->full_description }}</textarea>
-<div class="row"><div><label>Category</label><input name="category" value="{{ $submission?->category }}"></div><div><label>Keywords</label><input name="keywords" value="{{ $submission?->keywords }}"></div></div>
-<label>Reviewer notes</label><textarea name="reviewer_notes">{{ $submission?->reviewer_notes }}</textarea>
+<div class="row"><div><label>{{ __('mobile_settings.ui.current_version') }}</label><input name="current_version" value="{{ $submission?->current_version }}"></div><div><label>{{ __('mobile_settings.ui.current_build') }}</label><input name="current_build" value="{{ $submission?->current_build }}"></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.ui.submission_minimum_version') }}</label><input name="minimum_version" value="{{ $submission?->minimum_version }}"></div><div><label>{{ __('mobile_settings.ui.submission_recommended_version') }}</label><input name="recommended_version" value="{{ $submission?->recommended_version }}"></div></div>
+<label>{{ __('mobile_settings.ui.update_policy') }}</label><select name="update_policy">@foreach(['optional','recommended','required'] as $policy)<option value="{{ $policy }}" @selected(($submission?->update_policy ?? 'optional')===$policy)>{{ __('mobile_settings.ui.update_policies.'.$policy) }}</option>@endforeach</select>
+<label>{{ __('mobile_settings.ui.store_url') }}</label><input type="url" name="store_url" value="{{ $submission?->store_url }}">
+<div class="row"><div><label>{{ __('mobile_settings.ui.submission_privacy_url') }}</label><input type="url" name="privacy_url" value="{{ $submission?->privacy_url ?: url('/privacy') }}"></div><div><label>{{ __('mobile_settings.ui.submission_terms_url') }}</label><input type="url" name="terms_url" value="{{ $submission?->terms_url ?: url('/terms') }}"></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.ui.submission_support_url') }}</label><input type="url" name="support_url" value="{{ $submission?->support_url ?: url('/support') }}"></div><div><label>{{ __('mobile_settings.ui.submission_delete_account_url') }}</label><input type="url" name="delete_account_url" value="{{ $submission?->delete_account_url ?: url('/account-deletion') }}"></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.ui.submission_release_ar') }}</label><textarea name="release_notes_ar">{{ $submission?->release_notes_ar }}</textarea></div><div><label>{{ __('mobile_settings.ui.submission_release_en') }}</label><textarea name="release_notes_en">{{ $submission?->release_notes_en }}</textarea></div></div>
+<label>{{ __('mobile_settings.ui.store_title') }}</label><input name="title" value="{{ $submission?->title }}">
+<label>{{ __('mobile_settings.ui.short_description') }}</label><input name="short_description" value="{{ $submission?->short_description }}">
+<label>{{ __('mobile_settings.ui.full_description') }}</label><textarea name="full_description">{{ $submission?->full_description }}</textarea>
+<div class="row"><div><label>{{ __('mobile_settings.ui.category') }}</label><input name="category" value="{{ $submission?->category }}"></div><div><label>{{ __('mobile_settings.ui.keywords') }}</label><input name="keywords" value="{{ $submission?->keywords }}"></div></div>
+<label>{{ __('mobile_settings.ui.reviewer_notes') }}</label><textarea name="reviewer_notes">{{ $submission?->reviewer_notes }}</textarea>
 <label>{{ __('mobile_settings.submission_assets') }}</label>
 <div class="policy-grid">
 <div><label>{{ __('mobile_settings.asset_icon') }}</label><select name="asset_icon_master"><option value="">—</option>@foreach($submissionMasterAssetStates as $assetState)<option value="{{ $assetState }}" @selected(data_get($submission?->asset_checklist, 'icon_master')===$assetState)>{{ __('mobile_settings.asset_states.'.$assetState) }}</option>@endforeach</select></div>
@@ -252,8 +252,8 @@ $submissionUploadAssetStates = [
 </div>
 <label>{{ __('mobile_settings.submission_manual_gaps') }}</label><textarea name="manual_gaps_text" placeholder="{{ __('mobile_settings.one_per_line') }}">{{ $submissionListText($submission?->manual_gaps) }}</textarea>
 <div class="policy-grid">
-@foreach(['signing_readiness'=>'Signing','firebase_readiness'=>'Firebase','apns_readiness'=>'APNs','deep_link_readiness'=>'Deep links','production_environment_readiness'=>'Production env','readiness_state'=>'Overall'] as $field=>$label)
-<div><label>{{ $label }}</label><select name="{{ $field }}">@foreach(['PASS','WARN','BLOCKED'] as $state)<option value="{{ $state }}" @selected(($submission?->{$field} ?? 'BLOCKED')===$state)>{{ $state }}</option>@endforeach</select></div>
+@foreach(['signing_readiness'=>'signing','firebase_readiness'=>'firebase','apns_readiness'=>'apns','deep_link_readiness'=>'deep_links_readiness','production_environment_readiness'=>'production_env','readiness_state'=>'overall'] as $field=>$labelKey)
+<div><label>{{ __('mobile_settings.ui.'.$labelKey) }}</label><select name="{{ $field }}">@foreach(['PASS','WARN','BLOCKED'] as $state)<option value="{{ $state }}" @selected(($submission?->{$field} ?? 'BLOCKED')===$state)>{{ __('mobile_settings.ui.readiness_states.'.$state) }}</option>@endforeach</select></div>
 @endforeach
 </div>
 <button class="button">{{ __('mobile_settings.ui.save_submission') }}</button>
@@ -267,28 +267,28 @@ $submissionUploadAssetStates = [
 <p class="warning">{{ __('mobile_settings.ui.reviewer_warning') }}</p>
 <form method="post" action="{{ route('admin.mobile-settings.reviewer') }}">
 @csrf @method('put')
-<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">Android</option><option value="ios">iOS</option></select></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">{{ __('mobile_settings.ui.platforms.android') }}</option><option value="ios">{{ __('mobile_settings.ui.platforms.ios') }}</option></select></div></div>
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
-<div class="row"><div><label>Persona</label><input name="persona" placeholder="customer_reviewer" required></div><div><label>Identifier type</label><select name="identifier_type"><option value="email">email</option><option value="username">username</option><option value="phone">phone</option></select></div></div>
-<label>Identifier</label><input name="identifier" required>
+<div class="row"><div><label>{{ __('mobile_settings.ui.persona') }}</label><input name="persona" placeholder="customer_reviewer" required></div><div><label>{{ __('mobile_settings.ui.identifier_type') }}</label><select name="identifier_type"><option value="email">{{ __('mobile_settings.ui.identifier_types.email') }}</option><option value="username">{{ __('mobile_settings.ui.identifier_types.username') }}</option><option value="phone">{{ __('mobile_settings.ui.identifier_types.phone') }}</option></select></div></div>
+<label>{{ __('mobile_settings.ui.identifier') }}</label><input name="identifier" required>
 <label>{{ __('mobile_settings.ui.reviewer_secret') }}</label><input type="password" name="reviewer_secret" autocomplete="new-password">
 <div class="row">
 <div><label>{{ __('mobile_settings.reviewer_channel') }}</label><select name="reviewer_channel"><option value="">—</option><option value="b2b">{{ __('mobile_settings.channels.b2b') }}</option><option value="b2c">{{ __('mobile_settings.channels.b2c') }}</option></select></div>
 <div><label>{{ __('mobile_settings.reviewer_store') }}</label><select name="reviewer_store_id"><option value="">{{ __('mobile_settings.reviewer_no_store') }}</option>@foreach($reviewerStores as $reviewerStore)<option value="{{ $reviewerStore->id }}" data-channel="{{ strtolower((string)$reviewerStore->channel) }}">{{ $reviewerStore->name }} · {{ __('mobile_settings.channels.'.strtolower((string)$reviewerStore->channel)) }}</option>@endforeach</select></div>
 </div>
-<label>Deterministic reviewer instructions</label><textarea name="reviewer_instructions"></textarea>
-<input type="hidden" name="is_active" value="0"><label class="check"><input type="checkbox" name="is_active" value="1" checked>Active</label>
-<button class="button">Save reviewer persona</button>
+<label>{{ __('mobile_settings.ui.reviewer_instructions') }}</label><textarea name="reviewer_instructions"></textarea>
+<input type="hidden" name="is_active" value="0"><label class="check"><input type="checkbox" name="is_active" value="1" checked>{{ __('mobile_settings.ui.active') }}</label>
+<button class="button">{{ __('mobile_settings.ui.save_reviewer') }}</button>
 </form>
-<h3>Configured personas</h3>
+<h3>{{ __('mobile_settings.ui.configured_personas') }}</h3>
 @forelse($reviewerAccounts as $reviewer)
 <div class="policy">
-<strong>{{ __('mobile_settings.apps.'.$reviewer->app) }} · {{ strtoupper($reviewer->platform) }} · {{ __('mobile_settings.environments.'.$reviewer->environment) }} · {{ $reviewer->persona }}</strong>
-<p>{{ $reviewer->identifier_type }}: <code>{{ $reviewer->identifier }}</code> · secret: <strong>{{ $reviewer->maskedSecret() }}</strong> · readiness: <strong>{{ $reviewer->readiness_status }}</strong></p>
+<strong>{{ __('mobile_settings.apps.'.$reviewer->app) }} · {{ __('mobile_settings.ui.platforms.'.$reviewer->platform) }} · {{ __('mobile_settings.environments.'.$reviewer->environment) }} · {{ $reviewer->persona }}</strong>
+<p>{{ __('mobile_settings.ui.identifier_types.'.$reviewer->identifier_type) }}: <code>{{ $reviewer->identifier }}</code> · {{ __('mobile_settings.ui.secret') }}: <strong>{{ $reviewer->maskedSecret() }}</strong> · {{ __('mobile_settings.ui.readiness_label') }}: <strong>{{ __('mobile_settings.ui.readiness_states.'.$reviewer->readiness_status) }}</strong></p>
 @if($reviewer->reviewer_instructions)<p class="muted">{{ $reviewer->reviewer_instructions }}</p>@endif
 <div style="display:flex;gap:8px;flex-wrap:wrap">
-<form method="post" action="{{ route('admin.mobile-settings.reviewer.test',$reviewer) }}">@csrf<button class="button secondary" type="submit">Readiness test</button></form>
-<form method="post" action="{{ route('admin.mobile-settings.reviewer.rotate',$reviewer) }}">@csrf<label>Rotate secret</label><input type="password" name="reviewer_secret" autocomplete="new-password" required><button class="button secondary" type="submit">Rotate</button></form>
+<form method="post" action="{{ route('admin.mobile-settings.reviewer.test',$reviewer) }}">@csrf<button class="button secondary" type="submit">{{ __('mobile_settings.ui.readiness_test') }}</button></form>
+<form method="post" action="{{ route('admin.mobile-settings.reviewer.rotate',$reviewer) }}">@csrf<label>{{ __('mobile_settings.ui.rotate_secret') }}</label><input type="password" name="reviewer_secret" autocomplete="new-password" required><button class="button secondary" type="submit">{{ __('mobile_settings.ui.rotate') }}</button></form>
 </div>
 </div>
 @empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
