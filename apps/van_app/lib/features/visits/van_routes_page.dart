@@ -131,6 +131,9 @@ class _VanRoutesPageState extends State<VanRoutesPage>
     }
   }
 
+  String _visitStatusLabel(VanVisitRecord visit) =>
+      _statusLabel(visit.status);
+
   @override
   Widget build(BuildContext context) {
     if (_loading && _visits.isEmpty) {
@@ -242,7 +245,7 @@ class _VanRoutesPageState extends State<VanRoutesPage>
                                 overflow: TextOverflow.ellipsis,
                               ),
                         trailing: Chip(
-                          label: Text(_statusLabel(visit.status)),
+                          label: Text(_visitStatusLabel(visit)),
                         ),
                       ),
                   ],
