@@ -65,6 +65,6 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('$review->public_id', $view);
         $this->assertStringNotContainsString('<td>{{ $review->id }}</td>', $view);
         $this->assertStringNotContainsString('{{ $review->subject_type }} #{{ $review->subject_id }}', $view);
-        $this->assertStringNotContainsString("{{ $review->resolved_by ? '#'.$review->resolved_by : '—' }}", $view);
+        $this->assertStringNotContainsString('{{ $review->resolved_by ? \'#\'.$review->resolved_by : \'—\' }}', $view);
     }
 }
