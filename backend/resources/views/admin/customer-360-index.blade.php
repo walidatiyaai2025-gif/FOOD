@@ -116,9 +116,9 @@
                                 @php
                                     $originChannel = strtolower((string)($row['origin']['channel'] ?? ''));
                                     $originChannelLabel = match($originChannel) {
-                                        'b2b', 'wholesale' => $ar ? 'جملة' : 'Wholesale',
-                                        'b2c', 'retail' => $ar ? 'تجزئة' : 'Retail',
-                                        default => $ar ? 'عميل' : 'Customer',
+                                        'b2b', 'wholesale' => app()->getLocale()==='ar' ? 'جملة' : 'Wholesale',
+                                        'b2c', 'retail' => app()->getLocale()==='ar' ? 'تجزئة' : 'Retail',
+                                        default => app()->getLocale()==='ar' ? 'عميل' : 'Customer',
                                     };
                                 @endphp
                                 <td data-label="{{ $ar?'مصدر التسجيل':'Registration origin' }}">

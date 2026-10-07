@@ -399,19 +399,22 @@ class _VanOffersPageState extends State<VanOffersPage>
 
   Widget _normalOfferCard(VanNormalOffer offer) {
     final value = offer.value == null ? '' : ' · ${offer.value}';
+    final offerTypeLabel = _offerTypeLabel(offer.type);
+    final subtitle = '$offerTypeLabel$value';
     return Card(
       key: Key('van-normal-offer-${offer.id}'),
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: const Icon(Icons.local_offer_outlined),
         title: Text(offer.name),
-        subtitle: Text('${_offerTypeLabel(offer.type)}$value'),
+        subtitle: Text(subtitle),
       ),
     );
   }
 
   Widget _offerCard(VanCommercialOffer offer, String languageCode) {
     final body = offer.bodyFor(languageCode);
+    final offerStatusLabel = _offerStatusLabel(offer.status);
     return Card(
       key: Key('van-offer-${offer.id}'),
       margin: const EdgeInsets.only(bottom: 12),
@@ -430,7 +433,7 @@ class _VanOffersPageState extends State<VanOffersPage>
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Text(_offerStatusLabel(offer.status)),
+                Text(offerStatusLabel),
               ],
             ),
             if (body != null) ...[

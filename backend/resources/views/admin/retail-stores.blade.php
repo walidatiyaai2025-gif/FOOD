@@ -313,7 +313,7 @@ body.foodex-modal-open{overflow:hidden}
                                 @forelse($store->storeRoleAssignments as $assignment)
                                     <div class="store-assignment">
                                         <span>
-                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->name ?? ($ar?'دور المتجر':'Store role') }}</strong>
+                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->name ?? '—' }}</strong>
                                             @if((int)$store->primary_owner_user_id===(int)$assignment->user_id && $assignment->role?->code==='B2C_STORE_ADMIN')
                                                 <span class="badge active">{{ $ar?'المالك الأساسي':'Primary Owner' }}</span>
                                             @endif

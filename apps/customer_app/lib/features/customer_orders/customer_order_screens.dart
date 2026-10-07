@@ -1505,11 +1505,17 @@ class _PaymentSummary extends StatelessWidget {
     final payment = details.payment;
     final receipts = details.collectionReceipts;
     final outstanding = details.summary.invoiceOutstandingAmount;
+    final paymentMethodLabel =
+        _paymentMethodLabel(context, details.paymentMethod);
+    final paymentProviderLabel = payment == null
+        ? null
+        : _paymentProviderLabel(context, payment.provider);
+    final paymentStatusLabel = payment == null
+        ? null
+        : _paymentStatusLabel(context, payment.status);
 
     if (payment == null && receipts.isEmpty && outstanding == null) {
-      return Text(
-        _paymentMethodLabel(context, details.paymentMethod),
-      );
+      return Text(paymentMethodLabel);
     }
 
     return Column(
@@ -1519,8 +1525,8 @@ class _PaymentSummary extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.payments_outlined),
-            title: Text(_paymentProviderLabel(context, payment.provider)),
-            subtitle: Text(_paymentStatusLabel(context, payment.status)),
+            title: Text(paymentProviderLabel!),
+            subtitle: Text(paymentStatusLabel!),
             trailing: Text(
               '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
               style: const TextStyle(fontWeight: FontWeight.w700),

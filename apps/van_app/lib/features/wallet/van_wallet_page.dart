@@ -431,6 +431,7 @@ class _WalletCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pending =
         account.remittances.where((item) => item.status == 'pending').length;
+    final accountStatusLabel = _statusLabel(account.status);
 
     return Card(
       key: Key('van-wallet-account-${account.id}'),
@@ -448,7 +449,7 @@ class _WalletCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Chip(label: Text(_statusLabel(account.status))),
+                Chip(label: Text(accountStatusLabel)),
               ],
             ),
             const SizedBox(height: 12),
