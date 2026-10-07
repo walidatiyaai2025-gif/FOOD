@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.60",
-  "minimum_current_version": "1.0.59",
-  "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
+  "target_version": "1.0.62",
+  "minimum_current_version": "1.0.60",
+  "sha256": "e654641d1bd581b7a059ffb6e101c70b35287b5adab99009972f489bec286e06",
   "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "ci(release): align clean-install assertions with frozen commercial UI",
+  "release_notes": "release(#1021): promote recovered terminal release 1.0.62",
   "dashboard_fields": {
-    "target_version": "1.0.60",
-    "minimum_current_version": "1.0.59",
-    "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
+    "target_version": "1.0.62",
+    "minimum_current_version": "1.0.60",
+    "sha256": "e654641d1bd581b7a059ffb6e101c70b35287b5adab99009972f489bec286e06",
     "contains_migrations": false,
-    "release_notes": "ci(release): align clean-install assertions with frozen commercial UI"
+    "release_notes": "release(#1021): promote recovered terminal release 1.0.62"
   }
 }
