@@ -45,6 +45,9 @@ class HttpVanVisitRepository implements VanVisitRepository {
       customerId: _requiredInt(data['customer_id']),
       storeId: _int(data['store_id']),
       routeKey: _nullableString(data['route_key']),
+      latitude: _double(data['latitude']),
+      longitude: _double(data['longitude']),
+      address: _nullableString(data['address']),
       status: _string(data['status']),
       orderId: _int(data['order_id']),
       noOrderReasonId: _int(data['no_order_reason_id']),
@@ -81,6 +84,11 @@ class HttpVanVisitRepository implements VanVisitRepository {
   int? _int(Object? value) {
     if (value is int) return value;
     return int.tryParse(value?.toString() ?? '');
+  }
+
+  double? _double(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
   }
 
   String _string(Object? value) => value?.toString() ?? '';
