@@ -643,17 +643,20 @@
                     <tbody>
                     @forelse($existingPromotions as $promotion)
                         @php
-                            $promotionTypeCode = strtolower((string)$promotion->type);
-                            $promotionTypeLabel = match($promotionTypeCode) {
-                                'percentage', 'percent' => app()->getLocale()==='ar' ? 'خصم بالنسبة المئوية' : 'Percentage discount',
-                                'fixed', 'fixed_amount', 'amount' => app()->getLocale()==='ar' ? 'خصم بقيمة ثابتة' : 'Fixed discount',
-                                'bundle', 'buy_x_get_y' => app()->getLocale()==='ar' ? 'عرض باقة' : 'Bundle offer',
-                                default => app()->getLocale()==='ar' ? 'عرض ترويجي' : 'Promotion',
-                            };
+                            $promotionTypeCode = strtolower((string) $promotion->type);
+                            $promotionTypeKey = [
+                                'percentage' => 'percentage',
+                                'percent' => 'percentage',
+                                'fixed' => 'fixed',
+                                'fixed_amount' => 'fixed',
+                                'amount' => 'fixed',
+                                'bundle' => 'bundle',
+                                'buy_x_get_y' => 'bundle',
+                            ][$promotionTypeCode] ?? 'generic';
                         @endphp
                         <tr>
                             <td>{{ $promotion->name }}</td>
-                            <td>{{ $promotionTypeLabel }}</td>
+                            <td>{{ __('commercial.flash.promotion_types.'.$promotionTypeKey) }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
                             <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>
