@@ -72,7 +72,9 @@
             <label>{{ $ar?'القناة':'Channel' }}
                 <select name="channel"><option value="">{{ $ar?'الكل':'All' }}</option><option value="b2b" @selected($channel==='b2b')>B2B</option><option value="b2c" @selected($channel==='b2c')>B2C</option></select>
             </label>
-            <label>{{ $ar?'المتجر':'Store ID' }}<input name="store_id" type="number" min="1" value="{{ $storeId > 0 ? $storeId : '' }}"></label>
+            <label>{{ $ar?'المتجر':'Store' }}
+                <select name="store_id"><option value="">{{ $ar?'كل المتاجر':'All stores' }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected($storeId===(int)$store->id)>{{ $store->name }} · {{ $store->code }}</option>@endforeach</select>
+            </label>
             <label>{{ $ar?'بحث':'Search' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'الرسالة أو الراوت أو Correlation ID':'Message, route or correlation ID' }}"></label>
             <button class="foodex-action-primary foodex-filter-action" type="submit">{{ $ar?'تصفية':'Filter' }}</button>
         </form>

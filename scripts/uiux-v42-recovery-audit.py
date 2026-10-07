@@ -116,6 +116,7 @@ TAG_RE = re.compile(r"<(?P<tag>input|textarea)\b(?P<attrs>[^>]*)>", re.IGNORECAS
 ATTR_RE = re.compile(r"\b(?P<name>[a-zA-Z_:.-]+)\s*=\s*([\"'])(?P<value>.*?)\2", re.DOTALL)
 
 TECHNICAL_JSON_FIELDS = {"credentials_json"}
+BUSINESS_IDENTIFIER_FIELDS = {"android_package_id", "ios_bundle_id"}
 LOCALIZATION_MARKERS = (
     "__(",
     "trans(",
@@ -378,7 +379,7 @@ def scan_admin_raw_inputs(root: Path = ROOT) -> list[str]:
             attrs = _attrs(tag)
             name = attrs.get("name", "")
             input_type = attrs.get("type", "text").lower()
-            if name.endswith("_id") and input_type != "hidden":
+            if name.endswith("_id") and input_type != "hidden" and name not in BUSINESS_IDENTIFIER_FIELDS:
                 findings.append(
                     f"{relative}:{_line_number(text, match.start())}: routine typed internal-ID input {name}"
                 )

@@ -329,7 +329,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             ),
           DropdownButtonFormField<VanCustomerScope>(
             key: const ValueKey('van-collection-customer'),
-            value: _customer,
+            initialValue: _customer,
             isExpanded: true,
             decoration: InputDecoration(
               labelText: _text('Customer', 'العميل'),
@@ -377,7 +377,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
           else ...[
             DropdownButtonFormField<VanInvoiceBalance>(
               key: const ValueKey('van-collection-invoice'),
-              value: _invoice,
+              initialValue: _invoice,
               isExpanded: true,
               decoration: InputDecoration(
                 labelText: _text('Invoice', 'الفاتورة'),
