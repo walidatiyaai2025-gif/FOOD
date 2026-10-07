@@ -836,12 +836,19 @@ jobs:
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"
           grep -Fq 'FRESH-VAN-UI' /tmp/field-assignments-populated.html
+          # The recovered assignment grid shows business labels, not internal IDs.
+          # Read the ID from the actual visit form lookup after verifying the row.
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-assignment-lookup.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
           ASSIGNMENT_ID="$(python3 - <<'PY'
           import re
           text=open('/tmp/field-assignments-populated.html',encoding='utf-8').read()
-          match=re.search(r'<td>(\d+)</td><td>FRESH-VAN-UI</td>',text)
-          assert match, 'Created Van assignment row missing.'
-          print(match.group(1))
+          assert re.search(r'<tr>\s*<td>FRESH-VAN-UI</td>', text), 'Created Van assignment row missing.'
+          lookup=open('/tmp/field-visits-assignment-lookup.html',encoding='utf-8').read()
+          select=re.search(r'<select\b[^>]*\bname="assignment_id"[^>]*>(.*?)</select>', lookup, re.S)
+          assert select, 'Visit assignment lookup missing.'
+          matches=re.findall(r'<option\b[^>]*\bvalue="(\d+)"[^>]*>\s*FRESH-VAN-UI\s*·', select.group(1))
+          assert len(matches) == 1, 'Created Van assignment lookup must contain exactly one matching option.'
+          print(matches[0])
           PY
           )"
 
