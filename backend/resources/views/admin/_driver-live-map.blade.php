@@ -61,7 +61,7 @@
     data-assets-failed="{{ __('admin.driver_live_tracking.assets_failed') }}"
 >
     <script type="application/json" data-driver-live-map-i18n>@json($trackingI18n)</script>
-    <script type="application/json" data-driver-live-map-stores>@json($trackingStores->keyBy('id')->map(fn (array $store): string => $store['name']))</script>
+    <script type="application/json" data-driver-live-map-stores>@json($trackingStores->keyBy('id')->map(fn (array $store): string => $store['name']))</script> {{-- localization-gate: allow serialized business store labels --}}
 
     @if ($showFilters)
         <section class="foodex-card tracking-filter-card" aria-label="{{ __('admin.driver_live_tracking.title') }}">
