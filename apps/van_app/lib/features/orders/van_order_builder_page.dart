@@ -98,7 +98,16 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  subtitle: Text(customer.type.toUpperCase()),
+                  subtitle: Text(
+                    _text(
+                      customer.type.toUpperCase(),
+                      customer.type == 'b2b'
+                          ? 'جملة'
+                          : customer.type == 'b2c'
+                              ? 'تجزئة'
+                              : customer.type.toUpperCase(),
+                    ),
+                  ),
                 ),
               ),
             const SizedBox(height: 8),
