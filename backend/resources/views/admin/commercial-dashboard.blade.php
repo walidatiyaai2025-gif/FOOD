@@ -166,7 +166,7 @@
         @endif
     </section>
 
-    @if($section === 'sales-control')
+    <?php if ($section === 'sales-control') { ?>
         <section class="commercial-card">
             <div class="feature-flags-head">
                 <div>
@@ -428,8 +428,8 @@
                 </div>
             </div>
         @endif
-    @endif
-    @if($section !== 'sales-control')
+    <?php } ?>
+    <?php if ($section !== 'sales-control') { ?>
         @php
             $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ['customer','van']));
             $selectedCustomerIds = collect(old('audience_customer_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
@@ -657,7 +657,7 @@
                 </table>
             </div>
         </section>
-    @endif
+    <?php } ?>
     </main>
 </div>
 <script>
