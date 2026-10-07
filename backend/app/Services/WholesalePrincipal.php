@@ -21,8 +21,11 @@ final class WholesalePrincipal
                 ]);
             }
 
+            $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
+            $canonicalCode = $configuredCode !== '' ? $configuredCode : self::STORE_CODE;
+
             $canonical = DB::table('stores')
-                ->where('code', self::STORE_CODE)
+                ->where('code', $canonicalCode)
                 ->where('store_type_id', $typeId)
                 ->first(['id', 'is_active']);
 
@@ -42,20 +45,22 @@ final class WholesalePrincipal
                 ->where('is_active', true)
                 ->where('code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
                 ->orderBy('id')
-                ->first(['id']);
+                ->first(['id', 'code']);
 
             if ($existing !== null) {
-                DB::table('stores')->where('id', $existing->id)->update([
-                    'code' => self::STORE_CODE,
-                    'updated_at' => now(),
-                ]);
+                if ($configuredCode === '' && (string) $existing->code !== self::STORE_CODE) {
+                    DB::table('stores')->where('id', $existing->id)->update([
+                        'code' => self::STORE_CODE,
+                        'updated_at' => now(),
+                    ]);
+                }
 
                 return (int) $existing->id;
             }
 
             return (int) DB::table('stores')->insertGetId([
                 'store_type_id' => $typeId,
-                'code' => self::STORE_CODE,
+                'code' => $canonicalCode,
                 'name' => 'FOODEX Wholesale',
                 'is_active' => true,
                 'created_at' => now(),
