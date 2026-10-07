@@ -225,12 +225,17 @@ class StoreSubmissionReadinessTest extends TestCase
         $admin = $this->admin('structured-reviewer-admin@example.test');
         $reviewer = $this->customer('structured-reviewer@example.test', 'reviewer-pass-123');
 
-        $storeId = (int) DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('store_types.code', 'b2c')
-            ->value('stores.id');
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $this->assertGreaterThan(0, $storeTypeId);
 
-        $this->assertGreaterThan(0, $storeId);
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'REVIEWER-STRUCTURED-B2C',
+            'name' => 'Reviewer Structured Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->actingAs($admin)->put('/admin/settings/mobile/reviewer', [
             'app' => 'customer',
