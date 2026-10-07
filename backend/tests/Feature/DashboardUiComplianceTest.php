@@ -22,4 +22,19 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('#{{ $assignment[\'id\'] }}', $view);
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
+
+
+    public function test_live_tracking_uses_authorized_store_lookup_instead_of_raw_store_id(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_driver-live-map.blade.php'));
+        $script = file_get_contents(public_path('assets/admin/driver-live-map.js'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($script);
+        $this->assertStringContainsString('<select data-live-map="store">', $view);
+        $this->assertStringContainsString('data-driver-live-map-stores', $view);
+        $this->assertStringNotContainsString("driver_live_tracking.store_id') }}<input data-live-map=\"store\"", $view);
+        $this->assertStringContainsString('storeLabel(row)', $script);
+        $this->assertStringNotContainsString("i18n.store+' '+(row.store_id", $script);
+    }
 }
