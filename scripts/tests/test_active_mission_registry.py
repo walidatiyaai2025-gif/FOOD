@@ -34,6 +34,17 @@ class ActiveMissionRegistryTest(unittest.TestCase):
     def test_valid_registry_passes(self):
         self.assertEqual([], module.validate_registry(valid_registry()))
 
+    def test_schema_v2_registry_passes(self):
+        data = valid_registry()
+        data["schema_version"] = 2
+        self.assertEqual([], module.validate_registry(data))
+
+    def test_unsupported_schema_version_fails(self):
+        data = valid_registry()
+        data["schema_version"] = 3
+        errors = module.validate_registry(data)
+        self.assertTrue(any("schema_version must be one of: 1, 2" in e for e in errors))
+
     def test_release_branch_with_matching_issue_is_valid(self):
         data = valid_registry()
         data["children"][1]["branch"] = "release/12-final-real-build"
