@@ -26,6 +26,7 @@ class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
     super.key,
     this.locale = const Locale('ar'),
+    this.theme,
     this.authRepository,
     this.sessionStore,
     this.authPreferenceStore,
@@ -40,6 +41,7 @@ class FoodexVanApp extends StatefulWidget {
   });
 
   final Locale locale;
+  final ThemeData? theme;
   final VanAuthRepository? authRepository;
   final VanSessionStore? sessionStore;
   final VanAuthPreferenceStore? authPreferenceStore;
@@ -210,7 +212,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: widget.locale.languageCode == 'ar' ? 'فودكس للفان' : 'FOODEX Van',
-      theme: FoodexVanTheme.light(),
+      theme: widget.theme ?? FoodexVanTheme.light(),
       locale: widget.locale,
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
