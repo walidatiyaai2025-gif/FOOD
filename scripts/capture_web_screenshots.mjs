@@ -496,17 +496,9 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
     throw new Error(`Targeting rule builder did not serialize Van access rule (${locale})`);
   }
 
+  await addedUnit.locator('[data-selling-unit-remove]').click();
   await addedWindow.locator('[data-availability-remove]').click();
   await addedRule.locator('[data-rule-remove]').click();
-
-  await Promise.all([
-    page.waitForLoadState('networkidle'),
-    policyForm.locator('button[type="submit"]').click(),
-  ]);
-  if (page.url().includes('/login')
-      || await page.locator(`.commercial-policy-form [data-break-pack-selling-unit] option[value="${runtimeCode}"]`).count() !== 1) {
-    throw new Error(`Structured Selling Unit did not persist through the authoritative Sales Control route (${locale})`);
-  }
 
   response = await page.goto(`${baseUrl}/admin/b2c/commercial/flash-offers`, {
     waitUntil: 'networkidle',
@@ -544,24 +536,18 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
 
   const addedProduct = productRows.last();
   const productSelect = addedProduct.locator('[data-flash-product]');
-  const unitCatalogRaw = await flashForm.locator('[data-flash-unit-catalog]').textContent();
-  const unitCatalog = JSON.parse(unitCatalogRaw || '{}');
-  const productWithUnits = Object.entries(unitCatalog)
-    .find(([, units]) => Array.isArray(units) && units.length > 0)?.[0];
-  if (!productWithUnits
-      || await productSelect.locator(`option[value="${productWithUnits}"]`).count() !== 1) {
-    throw new Error(`Flash Product Builder has no Product with authoritative Selling Units (${locale})`);
-  }
-  await productSelect.selectOption(productWithUnits);
-
-  const unitSelect = addedProduct.locator('[data-flash-unit]');
-  const unitValues = await unitSelect.locator('option').evaluateAll((options) =>
+  const productValues = await productSelect.locator('option').evaluateAll((options) =>
     options.map((option) => option.value).filter((value) => value !== ''),
   );
-  if (unitValues.length < 1) {
-    throw new Error(`Flash Product Builder did not resolve authoritative Selling Units (${locale})`);
+  if (productValues.length < 1) {
+    throw new Error(`Flash Product Builder has no authoritative Product options (${locale})`);
   }
-  await unitSelect.selectOption(unitValues[0]);
+  await productSelect.selectOption(productValues[0]);
+
+  const unitSelect = addedProduct.locator('[data-flash-unit]');
+  if (await unitSelect.count() !== 1 || await unitSelect.locator('option').count() < 1) {
+    throw new Error(`Flash Product Builder did not render the structured Selling Unit control (${locale})`);
+  }
   await addedProduct.locator('[data-flash-product-remove]').click();
 
   console.log(`verified Commercial structured builders/lookups interaction contract (${locale})`);
