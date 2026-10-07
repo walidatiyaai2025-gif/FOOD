@@ -302,6 +302,7 @@ void main() {
         locale: Locale('en'),
         walletRepository: _CustomerWalletRepository(),
         visitRepository: _VisitRepository(),
+        orderRepository: _OrderRepository(),
         initialSession: VanSession(
           token: 'test-token',
           name: 'Van Operator',
@@ -542,6 +543,55 @@ void main() {
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
     expect(find.text('12.000 KWD'), findsOneWidget);
     expect(orders.createdCount, 1);
+  });
+
+
+  testWidgets('Van Visit Workspace completes with authoritative order lookup',
+      (tester) async {
+    final visits = _StartedVisitRepository();
+    final orders = _OrderRepository()..createdCount = 1;
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _CustomerWalletRepository(),
+        visitRepository: visits,
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final target = find.byKey(const ValueKey('van-screen-visit'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.text('FDX-B2B-TEST-001 · 12.000 KWD'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('van-visit-order-801')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('FDX-B2B-TEST-001 · 12.000 KWD').last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('van-visit-complete-order-801')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(visits.lastStatus, 'completed_with_order');
+    expect(visits.lastOrderId, 7001);
+    expect(find.text('Completed with order'), findsOneWidget);
   });
 
 }
@@ -930,6 +980,16 @@ class _VisitRepository implements VanVisitRepository {
       ];
 
   @override
+  Future<List<VanNoOrderReasonRecord>> noOrderReasons() async => const [
+        VanNoOrderReasonRecord(
+          id: 9,
+          code: 'customer_declined',
+          labelEn: 'Customer declined',
+          labelAr: 'رفض العميل',
+        ),
+      ];
+
+  @override
   Future<VanVisitRecord> transition({
     required int visitId,
     required String status,
@@ -991,6 +1051,16 @@ class _RoutesVisitRepository implements VanVisitRepository {
             'completed_no_order',
             'customer_unavailable',
           ],
+        ),
+      ];
+
+  @override
+  Future<List<VanNoOrderReasonRecord>> noOrderReasons() async => const [
+        VanNoOrderReasonRecord(
+          id: 9,
+          code: 'customer_declined',
+          labelEn: 'Customer declined',
+          labelAr: 'رفض العميل',
         ),
       ];
 
@@ -1176,4 +1246,57 @@ class _OrderRepository implements VanOrderRepository {
                 createdAt: '2026-10-07T10:00:00+03:00',
               ),
             ];
+}
+
+
+class _StartedVisitRepository implements VanVisitRepository {
+  String? lastStatus;
+  int? lastOrderId;
+
+  @override
+  Future<List<VanVisitRecord>> visits({String? status}) async => const [
+        VanVisitRecord(
+          id: 801,
+          customerType: 'b2b',
+          customerId: 42,
+          storeId: 7,
+          status: 'started',
+          allowedTransitions: [
+            'completed_with_order',
+            'completed_no_order',
+            'customer_unavailable',
+          ],
+        ),
+      ];
+
+  @override
+  Future<List<VanNoOrderReasonRecord>> noOrderReasons() async => const [
+        VanNoOrderReasonRecord(
+          id: 9,
+          code: 'customer_declined',
+          labelEn: 'Customer declined',
+          labelAr: 'رفض العميل',
+        ),
+      ];
+
+  @override
+  Future<VanVisitRecord> transition({
+    required int visitId,
+    required String status,
+    int? orderId,
+    int? noOrderReasonId,
+  }) async {
+    lastStatus = status;
+    lastOrderId = orderId;
+    return VanVisitRecord(
+      id: visitId,
+      customerType: 'b2b',
+      customerId: 42,
+      storeId: 7,
+      status: status,
+      orderId: orderId,
+      noOrderReasonId: noOrderReasonId,
+      allowedTransitions: const ['closed'],
+    );
+  }
 }
