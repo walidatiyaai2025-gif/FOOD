@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
@@ -17,9 +19,15 @@ class DriverWalletPage extends StatefulWidget {
 
 class _DriverWalletPageState extends State<DriverWalletPage>
     with WidgetsBindingObserver {
+  static const Duration _refreshInterval = Duration(seconds: 15);
+
   bool _loading = true;
   bool _submitting = false;
+  bool _loadInFlight = false;
+  bool _stale = false;
   Object? _error;
+  DateTime? _lastSuccessfulAt;
+  Timer? _refreshTimer;
   List<DriverWalletAccount> _accounts = const [];
 
   @override
@@ -27,23 +35,45 @@ class _DriverWalletPageState extends State<DriverWalletPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    _startLiveRefresh();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_loading && !_submitting) {
-      _load();
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load(silent: _accounts.isNotEmpty));
+      _startLiveRefresh();
+      return;
     }
+
+    _stopLiveRefresh();
+  }
+
+  void _startLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      if (!mounted || _loadInFlight || _loading || _submitting) return;
+      unawaited(_load(silent: true));
+    });
+  }
+
+  void _stopLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   @override
   void dispose() {
+    _stopLiveRefresh();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _load() async {
-    if (mounted) {
+  Future<void> _load({bool silent = false}) async {
+    if (_loadInFlight) return;
+    _loadInFlight = true;
+
+    if (mounted && !silent) {
       setState(() {
         _loading = true;
         _error = null;
@@ -55,13 +85,23 @@ class _DriverWalletPageState extends State<DriverWalletPage>
       setState(() {
         _accounts = accounts;
         _loading = false;
+        _error = null;
+        _stale = false;
+        _lastSuccessfulAt = DateTime.now();
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error;
+        if (silent && _accounts.isNotEmpty) {
+          _stale = true;
+          _error = null;
+        } else {
+          _error = error;
+        }
       });
+    } finally {
+      _loadInFlight = false;
     }
   }
 
@@ -136,7 +176,12 @@ class _DriverWalletPageState extends State<DriverWalletPage>
           ),
         ],
       ),
-      body: _loading
+      body: Column(
+        children: [
+          if (_stale && _accounts.isNotEmpty)
+            _WalletStaleBanner(lastSuccessfulAt: _lastSuccessfulAt),
+          Expanded(
+            child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
@@ -229,6 +274,38 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                         },
                       ),
                     ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletStaleBanner extends StatelessWidget {
+  const _WalletStaleBanner({required this.lastSuccessfulAt});
+
+  final DateTime? lastSuccessfulAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final last = lastSuccessfulAt;
+    final time = last == null
+        ? null
+        : '${last.hour.toString().padLeft(2, '0')}:${last.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      key: const Key('driver-wallet-stale'),
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      child: Text(
+        [
+          context.tr('driver.data.stale'),
+          if (time != null)
+            '${context.tr('driver.data.last_confirmed_update')}: $time',
+        ].join(' · '),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }
