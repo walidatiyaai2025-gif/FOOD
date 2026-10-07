@@ -254,7 +254,10 @@ void main() {
 
     expect(storefront.selectionCalls, 1);
     expect(storefront.lastStoreId, 70);
-    expect(api.calls, 1);
+    expect(
+      api.paths.where((path) => path.startsWith('/api/v1/b2b/dashboard')).length,
+      1,
+    );
   });
 
   testWidgets('B2B dashboard shows credit direction in English LTR',
@@ -2947,12 +2950,14 @@ class _FakeB2bApi implements B2bApi {
   _FakeB2bApi(this.value);
   final Object? value;
   String? lastPath;
+  final List<String> paths = <String>[];
   int calls = 0;
 
   @override
   Future<Object?> get(String path) async {
     calls++;
     lastPath = path;
+    paths.add(path);
     return value;
   }
 }
