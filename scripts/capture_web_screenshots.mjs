@@ -140,6 +140,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     ['notification-campaigns', '/admin/notification-campaigns'],
     ['order-operations', '/admin/operations/orders'],
     ['reports', '/admin/reports'],
+    ['van-finance-support', '/admin/van-finance-support'],
   ];
 
   await page.setViewportSize({ width: 1440, height: 1080 });
@@ -174,6 +175,36 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   }
   await snap(page, `02_Web/B2C_Admin/19_mobile_settings_van_structured__desktop__${locale}.png`);
 
+  await page.goto(`${baseUrl}/admin/van-finance-support`, { waitUntil: 'networkidle' });
+  await assertSharedAdminRuntimeShell(page, `van-finance-support/wallets/${locale}`);
+  if (await page.locator('[data-van-finance-support]').count() !== 1) {
+    throw new Error('Van Finance Support runtime shell was not rendered.');
+  }
+  const financeWalletText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+  for (const required of ['VAN-EVID-01', 'FOODEX-801', 'FOODEX Wholesale Evidence Branch', '87.500', '25.000', '62.500']) {
+    if (!financeWalletText.includes(required)) {
+      throw new Error(`Van Finance Support wallet evidence missing ${required}: ${financeWalletText.slice(0, 1800)}`);
+    }
+  }
+  if (financeWalletText.includes('van #')) {
+    throw new Error('Van Finance Support exposed a raw Van internal ID.');
+  }
+  await snap(page, `02_Web/B2C_Admin/20_van_finance_support__desktop__${locale}.png`);
+
+  await page.goto(`${baseUrl}/admin/van-finance-support?ops_tab=collections`, { waitUntil: 'networkidle' });
+  await assertSharedAdminRuntimeShell(page, `van-finance-support/collections/${locale}`);
+  const collectionText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+  if (!collectionText.includes('VAN-EVID-01') || collectionText.includes('EVIDENCE-VAN-COLLECTION-001')) {
+    throw new Error(`Van collection/receipt support evidence failed: ${collectionText.slice(0, 1800)}`);
+  }
+
+  await page.goto(`${baseUrl}/admin/van-finance-support?ops_tab=remittances`, { waitUntil: 'networkidle' });
+  await assertSharedAdminRuntimeShell(page, `van-finance-support/remittances/${locale}`);
+  const remittanceText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+  if (!remittanceText.includes('VAN-REMIT-EVID-001') || remittanceText.includes('EVIDENCE-VAN-REMIT-001')) {
+    throw new Error(`Van remittance support evidence failed: ${remittanceText.slice(0, 1800)}`);
+  }
+
   await page.goto(`${baseUrl}/admin/notifications`, { waitUntil: 'networkidle' });
   await assertSharedAdminRuntimeShell(page, `notifications/actions/desktop/${locale}`);
   if (await page.locator('[data-notification-edit]').count() < 1) {
@@ -191,9 +222,9 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   await page.setViewportSize({ width: 1440, height: 1080 });
   await page.goto(`${baseUrl}/admin/notification-campaigns`, { waitUntil: 'networkidle' });
   await assertSharedAdminRuntimeShell(page, `campaigns/actions/desktop/${locale}`);
-  if (await page.locator('details:has(summary:text-is("Edit campaign")), details:has(summary:text-is("تعديل الحملة"))').count() < 1
-      && await page.locator('[data-notification-campaign-actions]').count() < 1) {
-    throw new Error('Campaign runtime evidence did not render the expected record affordances.');
+  const editCampaignLabel = locale === 'ar' ? 'تعديل الحملة' : 'Edit campaign';
+  if (await page.locator('details > summary').filter({ hasText: editCampaignLabel }).count() < 1) {
+    throw new Error(`Campaign runtime evidence did not render explicit Edit: ${editCampaignLabel}`);
   }
   await openFirstRecordActionMenu(page, '[data-notification-campaign-actions]', `campaigns/${locale}`);
   await snap(page, `02_Web/B2C_Admin/18_campaign_actions__desktop__${locale}.png`);
