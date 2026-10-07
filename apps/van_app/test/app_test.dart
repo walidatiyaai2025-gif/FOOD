@@ -95,6 +95,52 @@ void main() {
     expect(find.text('12.500 KWD'), findsOneWidget);
   });
 
+
+  testWidgets('Van Collection posts through authoritative repository contract',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _CollectionWalletRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-collection'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-collection-page')), findsOneWidget);
+    expect(find.textContaining('INV-42'), findsWidgets);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('van-collection-amount')),
+      '5.000',
+    );
+    await tester.tap(find.byKey(const ValueKey('van-collection-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-collection-receipt')), findsOneWidget);
+    expect(find.textContaining('#77'), findsOneWidget);
+    expect(find.textContaining('7.500 KWD'), findsOneWidget);
+  });
+
 }
 
 
@@ -179,6 +225,81 @@ class _CustomerWalletRepository implements VanWalletRepository {
   }) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<VanWalletAccount> remit({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    required String idempotencyKey,
+    String? reference,
+    String? note,
+  }) {
+    throw UnimplementedError();
+  }
+}
+
+
+class _CollectionWalletRepository implements VanWalletRepository {
+  const _CollectionWalletRepository();
+
+  @override
+  Future<List<VanWalletAccount>> wallet() async => const [];
+
+  @override
+  Future<List<VanCustomerScope>> customers() async => const [
+        VanCustomerScope(
+          type: 'b2b',
+          id: 42,
+          name: 'Acme Grocery',
+          storeId: 7,
+        ),
+      ];
+
+  @override
+  Future<VanCollectionContext> collectionContext(
+    VanCustomerScope customer,
+  ) async =>
+      const VanCollectionContext(
+        storeId: 7,
+        invoices: [
+          VanInvoiceBalance(
+            id: 42,
+            number: 'INV-42',
+            currency: 'KWD',
+            total: 20,
+            outstandingAmount: 12.5,
+          ),
+        ],
+      );
+
+  @override
+  Future<VanCollectionResult> collect({
+    required VanCustomerScope customer,
+    required int invoiceId,
+    required double amount,
+    required String idempotencyKey,
+  }) async =>
+      const VanCollectionResult(
+        receipt: VanReceipt(
+          id: 77,
+          amount: 5,
+          currency: 'KWD',
+          status: 'posted',
+          createdAt: '2026-10-07T08:30:00+03:00',
+        ),
+        remainingOutstanding: 7.5,
+        wallet: VanWalletAccount(
+          id: 5,
+          storeId: 7,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 5,
+          availableToRemit: 5,
+          receipts: [],
+          remittances: [],
+        ),
+      );
 
   @override
   Future<VanWalletAccount> remit({
