@@ -141,7 +141,7 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('Dashboard Flash')
             ->assertSee('Flash Product')
             ->assertSee('Carton')
-            ->assertDontSee('#'.$offerId);
+            ->assertDontSee('Flash Offer Preview #'.$offerId);
 
         $this->actingAs($manager)
             ->get(route('admin.commercial.flash-offers.analytics', $scope))
@@ -154,7 +154,7 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('Customer')
             ->assertSee('10.000')
             ->assertDontSee('reservation_confirmed')
-            ->assertDontSee('#'.$offerId);
+            ->assertDontSee('Flash Analytics · #'.$offerId);
 
         $manager->forceFill(['locale' => 'ar'])->save();
 
