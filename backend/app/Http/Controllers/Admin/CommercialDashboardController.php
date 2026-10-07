@@ -887,11 +887,34 @@ final class CommercialDashboardController extends Controller
             ->unique()
             ->values();
 
+        $retailOwnerMeta = DB::table('retail_wholesale_accounts as retail_links')
+            ->join('b2b_customers as retail_b2b', 'retail_b2b.id', '=', 'retail_links.b2b_customer_id')
+            ->join('stores as retail_stores', 'retail_stores.id', '=', 'retail_links.retail_store_id')
+            ->leftJoin('users as retail_owners', 'retail_owners.id', '=', 'retail_links.owner_user_id')
+            ->whereNotNull('retail_b2b.legacy_customer_id')
+            ->where('retail_stores.is_active', true)
+            ->get([
+                'retail_b2b.legacy_customer_id as legacy_customer_id',
+                'retail_stores.name as store_name',
+                'retail_owners.name as owner_name',
+                'retail_owners.email as owner_email',
+            ])
+            ->keyBy(static fn (object $row): int => (int) $row->legacy_customer_id);
+
         $audienceCustomers = DB::table('customers')
             ->whereIn('id', $legacyCustomerIds)
             ->orderBy('name')
             ->limit(300)
-            ->get(['id', 'name', 'email', 'phone']);
+            ->get(['id', 'name', 'email', 'phone'])
+            ->map(static function (object $customer) use ($retailOwnerMeta): object {
+                $retail = $retailOwnerMeta->get((int) $customer->id);
+                $customer->audience_kind = $retail === null ? 'customer' : 'retail_owner';
+                $customer->retail_store_name = $retail?->store_name;
+                $customer->owner_name = $retail?->owner_name;
+                $customer->owner_email = $retail?->owner_email;
+
+                return $customer;
+            });
 
         $audienceGroups = DB::table('commercial_customer_groups')
             ->where('is_active', true)
