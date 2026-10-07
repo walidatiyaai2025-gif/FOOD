@@ -19,6 +19,20 @@ class HttpVanVisitRepository implements VanVisitRepository {
   }
 
   @override
+  Future<List<VanNoOrderReasonRecord>> noOrderReasons() async {
+    final decoded = _map(await api.getJson('van/no-order-reasons'));
+    return _list(decoded['data']).map((row) {
+      final data = _map(row);
+      return VanNoOrderReasonRecord(
+        id: _requiredInt(data['id']),
+        code: _string(data['code']),
+        labelEn: _string(data['label_en']),
+        labelAr: _string(data['label_ar']),
+      );
+    }).toList(growable: false);
+  }
+
+  @override
   Future<VanVisitRecord> transition({
     required int visitId,
     required String status,
