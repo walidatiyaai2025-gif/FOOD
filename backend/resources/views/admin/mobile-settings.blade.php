@@ -21,22 +21,22 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <div class="grid">
 <section class="card">
 <h2>{{ __('mobile_settings.runtime_title') }}</h2>
-<p class="muted">{{ $ar?'هذه البيانات وصفية لتشغيل التطبيق والمتاجر والصيانة. سياسة الحد الأدنى/الإجبارية الرسمية عند بدء التطبيق موجودة في AppVersion ولا يتم استبدالها بهذه الحقول.':'These fields are informational mobile runtime/store/maintenance metadata. The authoritative startup minimum/force-update policy lives in AppVersion and is not replaced by these fields.' }}</p>
-<p><strong>{{ $ar?'هوية إصدار FOODEX الحالية':'Current FOODEX release identity' }}:</strong> <code>{{ $currentReleaseVersion }}</code></p>
+<p class="muted">{{ __('mobile_settings.runtime_info') }}</p>
+<p><strong>{{ __('mobile_settings.release_identity') }}:</strong> <code>{{ $currentReleaseVersion }}</code></p>
 
 <form class="runtime-picker" method="get" action="{{ route('admin.mobile-settings.index') }}">
 <div class="row">
-<div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer" @selected($selectedApp==='customer')>{{ $ar?'العميل':'Customer' }}</option><option value="driver" @selected($selectedApp==='driver')>{{ $ar?'السائق':'Driver' }}</option><option value="van" @selected($selectedApp==='van')>{{ $ar?'الفان':'Van' }}</option></select></div>
-<div><label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development" @selected($selectedEnvironment==='development')>{{ $ar?'تطوير':'Development' }}</option><option value="staging" @selected($selectedEnvironment==='staging')>{{ $ar?'اختبار':'Staging' }}</option><option value="production" @selected($selectedEnvironment==='production')>{{ $ar?'إنتاج':'Production' }}</option></select></div>
+<div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer" @selected($selectedApp==='customer')>{{ __('mobile_settings.apps.customer') }}</option><option value="driver" @selected($selectedApp==='driver')>{{ __('mobile_settings.apps.driver') }}</option><option value="van" @selected($selectedApp==='van')>{{ __('mobile_settings.apps.van') }}</option></select></div>
+<div><label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development" @selected($selectedEnvironment==='development')>{{ __('mobile_settings.environments.development') }}</option><option value="staging" @selected($selectedEnvironment==='staging')>{{ __('mobile_settings.environments.staging') }}</option><option value="production" @selected($selectedEnvironment==='production')>{{ __('mobile_settings.environments.production') }}</option></select></div>
 </div>
-<button class="button secondary" type="submit">{{ $ar?'تحميل الإعداد المحفوظ':'Load saved setting' }}</button>
+<button class="button secondary" type="submit">{{ __('mobile_settings.load_saved') }}</button>
 </form>
 
 <form method="post" action="{{ route('admin.mobile-settings.app') }}">
 @csrf @method('put')
 <input type="hidden" name="app" value="{{ $selectedApp }}">
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
-<p><strong>{{ $ar?'السجل المحدد':'Selected record' }}:</strong> {{ $selectedApp }} · {{ $selectedEnvironment }} @if(!$selectedSetting)<span class="muted">({{ $ar?'جديد':'new' }})</span>@endif</p>
+<p><strong>{{ __('mobile_settings.selected_record') }}:</strong> {{ __('mobile_settings.apps.'.$selectedApp) }} · {{ __('mobile_settings.environments.'.$selectedEnvironment) }} @if(!$selectedSetting)<span class="muted">({{ __('mobile_settings.new_record') }})</span>@endif</p>
 
 <label>{{ __('mobile_settings.display_name') }}</label><input name="display_name" value="{{ old('display_name', $selectedSetting?->display_name) }}" placeholder="{{ $ar?'مثال: فودكس العميل':'e.g. FOODEX Customer' }}" required>
 <div class="row">
