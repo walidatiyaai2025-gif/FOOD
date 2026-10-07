@@ -2605,35 +2605,42 @@ class _PurchaseReportRemoteStateState
                 ],
               ),
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    key: const ValueKey('b2b-purchases-from'),
-                    onPressed: () => _pickDate(from: true),
-                    icon: const Icon(Icons.calendar_today_outlined),
-                    label: Text(
-                      '${context.tr('b2b.purchase_reports.from')}: '
-                      '${_from == null ? '—' : _isoDate(_from!)}',
+              SingleChildScrollView(
+                key: const ValueKey('b2b-purchases-date-actions-row'),
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-purchases-from'),
+                      onPressed: () => _pickDate(from: true),
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text(
+                        '${context.tr('b2b.purchase_reports.from')}: '
+                        '${_from == null ? '—' : _isoDate(_from!)}',
+                        maxLines: 1,
+                      ),
                     ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('b2b-purchases-to'),
-                    onPressed: () => _pickDate(from: false),
-                    icon: const Icon(Icons.event_available_outlined),
-                    label: Text(
-                      '${context.tr('b2b.purchase_reports.to')}: '
-                      '${_to == null ? '—' : _isoDate(_to!)}',
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      key: const ValueKey('b2b-purchases-to'),
+                      onPressed: () => _pickDate(from: false),
+                      icon: const Icon(Icons.event_available_outlined),
+                      label: Text(
+                        '${context.tr('b2b.purchase_reports.to')}: '
+                        '${_to == null ? '—' : _isoDate(_to!)}',
+                        maxLines: 1,
+                      ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    key: const ValueKey('b2b-purchases-refresh'),
-                    tooltip: context.tr('b2b.purchase_reports.refresh'),
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      key: const ValueKey('b2b-purchases-refresh'),
+                      tooltip: context.tr('b2b.purchase_reports.refresh'),
+                      onPressed: _reload,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
