@@ -13,57 +13,57 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 
 **Issue closure or green CI alone never changes a row to PASS.**
 
-| ID | Requirement | Owner | Required evidence | Initial status |
+| ID | Requirement | Owner | Required evidence | Status |
 |---|---|---:|---|---|
-| D01 | Sidebar organized by business domain | #1035 | source + runtime AR/EN | OPEN |
-| D02 | Page header + related-function horizontal tabs in owned Dashboard scope | #1035 | source + runtime responsive | OPEN |
-| D03 | Add/Create uses clear primary workflow; View/Edit/Manage opens exact record in owned Dashboard scope | #1035 | interaction tests + runtime | OPEN |
-| D04 | FOODEX green/white action contract in owned Dashboard scope | #1035 | visual runtime | OPEN |
-| D05 | Informative Orders-style grids + one compact ellipsis row-action menu in owned Dashboard scope | #1035 | source + runtime responsive | OPEN |
-| D06 | No routine raw IDs/keys/codes/JSON in general Dashboard scope outside Commercial/FieldOps | #1035 | static audit + runtime | OPEN |
-| D08 | Administration is one Sidebar entry opening a true icon/card Admin Hub | #1035 | route tests + runtime AR/EN | OPEN |
-| D09 | Dashboard application administration treats Customer/Driver/Van as first-class apps | #1035 | source tests + runtime | OPEN |
-| D10 | Shared FOODEX admin shell/design components; no owned legacy standalone shells | #1035 | static route audit + runtime | OPEN |
-| D11 | Main Dashboard Live Tracking truthfully combines Driver + Van with distinct identity/stale state | #1035 | tests + runtime map evidence | OPEN |
-| C01 | Sales Control uses authoritative premium Dashboard shell | #1036 | shell regression tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
-| C02 | Sales Control normal flow uses structured controls, not routine raw JSON/internal IDs | #1036 | tests + runtime interaction + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
-| C03 | Break-pack unit is an authoritative Selling Unit lookup | #1036 | lookup tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
-| C04 | Flash Offers live under Marketing/Promotions and Create/Edit is Wizard/Modal/business workflow | #1036 | route/interaction tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
-| C05 | Flash audience Customer/Group/Region/Route uses lookups/multi-select, not JSON entry | #1036 | tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
-| C06 | Flash products use Product Builder + Selling Unit lookup; Channels use structured toggles/selectors | #1036 | tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
-| F01 | Van transfer target uses searchable Van lookup | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
-| F02 | Assignment representative/operator and Warehouse use authoritative lookups | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
-| F03 | Visit/route Customer, Store, Route and Order references use authoritative lookups | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
-| F04 | Address Quality Territory uses authoritative lookup, not typed territory_key | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
-| F05 | Territory create/edit is map-first with edit/move/delete point, Undo, Clear and polygon validation | #1037 | interaction tests + runtime map evidence + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
-| F06 | Field Operations grids are informative/compact and use ellipsis row actions | #1037 | visual runtime responsive + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
-| MC01 | Customer compact header/full usable viewport on all audited screens | #1038 | route inventory + runtime narrow/wide + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| MC02 | Customer Start/End/action filters remain one line | #1038 | widget/static + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| MC03 | Customer order/reference identifiers do not wrap ambiguously | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| MC04 | Customer rows/cards compact; row actions use ellipsis where applicable | #1038 | runtime visual + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| MC05 | Customer dynamic surfaces auto-refresh foreground/resume and truthfully show stale/offline; manual refresh fallback only | #1038 | runtime/state tests + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| AC01 | Customer login visibly says Customer App / تطبيق العميل | #1038 | AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| AC02 | Customer Remember Me + biometric secure-session behavior remains valid | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| IC01 | Customer real invoice visibly includes configured FOODEX/company identity/logo and authoritative invoice fields/totals | #1038 | backend/widget tests + AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| MD01 | Driver compact/full-width data-first layout across audited screens | #1039 | route inventory + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| MD02 | Driver one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| MD03 | Driver dynamic surfaces auto-refresh + stale/offline truthfulness | #1039 | state tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| AD01 | Driver login visibly says Driver App / تطبيق السائق | #1039 | AR/EN runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| AD02 | Driver Remember Me + biometric secure-session behavior remains valid | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| LD01 | Foreground new-order alert has authoritative identity and direct View/Open action | #1039 | push tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| LD02 | Notification/deep link opens exact authoritative assignment/order instead of generic list | #1039 | navigation tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| LD03 | Driver duplicate events dedupe; already-open record refreshes instead of stacking alerts | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
-| MV01 | Van compact/full-width data-first layout across audited screens | #1040 | `van_screen_inventory.dart`; explicit 19-case `van_foundation_screen.dart`; `screenshot_evidence_test.dart` 430x932 + 360x800 AR/EN | OPEN |
-| MV02 | Van one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1040 | production Routes/Visits/Catalog/Orders/finance surfaces + `app_test.dart` navigation/sales/visit tests + screenshot evidence | OPEN |
-| MV03 | Van dynamic surfaces auto-refresh + stale/offline truthfulness | #1040 | lifecycle observers + stale/offline states across dashboard/routes/map/detail/customers/visits/orders/finance/notifications; `app_test.dart` | OPEN |
-| AV01 | Van login visibly says Van App / تطبيق الفان | #1040 | `van_login_screen.dart` + AR/EN `screenshot_evidence_test.dart` login capture | OPEN |
-| AV02 | Van Remember Me + biometric secure-session behavior remains valid | #1040 | `app.dart`, `van_auth_persistence.dart`, `van_session_store.dart`, auth widget tests + AR/EN evidence | OPEN |
-| AV03 | Van application-level capability exceptions are explicitly evaluated/documented | #1040 | `apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md` + contract/widget/backend tests | OPEN |
-| Q01 | Project-wide AR/EN localization; no raw state/channel/role/type/payment/unit text where localized UI is required | #1041 | whole-tree static audit + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md); runtime localization remains independently reviewed by #1042 | OPEN |
-| Q02 | Every requirement has exactly one owner and source/test evidence; no UNKNOWN/UNOWNED row | #1041 | generated `uiux-v42-recovery-static-audit.json` + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | OPEN |
-| Q03 | Legacy route/screen inventory is included; diff-based guards do not grandfather violations | #1041 | whole-tree route/source inventories + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | OPEN |
-| V01 | Integrated Dashboard + Customer + Driver + Van real runtime evidence exists for all visual/interaction rows | #1042 | evidence manifest/screenshots | OPEN |
-| V02 | Required AR/EN + RTL/LTR + responsive states have no overflow/hidden action/mixed-language failures | #1042 | reviewed runtime evidence | OPEN |
+| D01 | Sidebar organized by business domain | #1035 | source + runtime AR/EN | PASS |
+| D02 | Page header + related-function horizontal tabs in owned Dashboard scope | #1035 | source + runtime responsive | PASS |
+| D03 | Add/Create uses clear primary workflow; View/Edit/Manage opens exact record in owned Dashboard scope | #1035 | interaction tests + runtime | PASS |
+| D04 | FOODEX green/white action contract in owned Dashboard scope | #1035 | visual runtime | PASS |
+| D05 | Informative Orders-style grids + one compact ellipsis row-action menu in owned Dashboard scope | #1035 | source + runtime responsive | PASS |
+| D06 | No routine raw IDs/keys/codes/JSON in general Dashboard scope outside Commercial/FieldOps | #1035 | static audit + runtime | PASS |
+| D08 | Administration is one Sidebar entry opening a true icon/card Admin Hub | #1035 | route tests + runtime AR/EN | PASS |
+| D09 | Dashboard application administration treats Customer/Driver/Van as first-class apps | #1035 | source tests + runtime | PASS |
+| D10 | Shared FOODEX admin shell/design components; no owned legacy standalone shells | #1035 | static route audit + runtime | PASS |
+| D11 | Main Dashboard Live Tracking truthfully combines Driver + Van with distinct identity/stale state | #1035 | tests + runtime map evidence | PASS |
+| C01 | Sales Control uses authoritative premium Dashboard shell | #1036 | shell regression tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | PASS |
+| C02 | Sales Control normal flow uses structured controls, not routine raw JSON/internal IDs | #1036 | tests + runtime interaction + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | PASS |
+| C03 | Break-pack unit is an authoritative Selling Unit lookup | #1036 | lookup tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | PASS |
+| C04 | Flash Offers live under Marketing/Promotions and Create/Edit is Wizard/Modal/business workflow | #1036 | route/interaction tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | PASS |
+| C05 | Flash audience Customer/Group/Region/Route uses lookups/multi-select, not JSON entry | #1036 | tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | PASS |
+| C06 | Flash products use Product Builder + Selling Unit lookup; Channels use structured toggles/selectors | #1036 | tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | PASS |
+| F01 | Van transfer target uses searchable Van lookup | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | PASS |
+| F02 | Assignment representative/operator and Warehouse use authoritative lookups | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | PASS |
+| F03 | Visit/route Customer, Store, Route and Order references use authoritative lookups | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | PASS |
+| F04 | Address Quality Territory uses authoritative lookup, not typed territory_key | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | PASS |
+| F05 | Territory create/edit is map-first with edit/move/delete point, Undo, Clear and polygon validation | #1037 | interaction tests + runtime map evidence + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | PASS |
+| F06 | Field Operations grids are informative/compact and use ellipsis row actions | #1037 | visual runtime responsive + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | PASS |
+| MC01 | Customer compact header/full usable viewport on all audited screens | #1038 | route inventory + runtime narrow/wide + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| MC02 | Customer Start/End/action filters remain one line | #1038 | widget/static + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| MC03 | Customer order/reference identifiers do not wrap ambiguously | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| MC04 | Customer rows/cards compact; row actions use ellipsis where applicable | #1038 | runtime visual + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| MC05 | Customer dynamic surfaces auto-refresh foreground/resume and truthfully show stale/offline; manual refresh fallback only | #1038 | runtime/state tests + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| AC01 | Customer login visibly says Customer App / تطبيق العميل | #1038 | AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| AC02 | Customer Remember Me + biometric secure-session behavior remains valid | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| IC01 | Customer real invoice visibly includes configured FOODEX/company identity/logo and authoritative invoice fields/totals | #1038 | backend/widget tests + AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | PASS |
+| MD01 | Driver compact/full-width data-first layout across audited screens | #1039 | route inventory + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| MD02 | Driver one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| MD03 | Driver dynamic surfaces auto-refresh + stale/offline truthfulness | #1039 | state tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| AD01 | Driver login visibly says Driver App / تطبيق السائق | #1039 | AR/EN runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| AD02 | Driver Remember Me + biometric secure-session behavior remains valid | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| LD01 | Foreground new-order alert has authoritative identity and direct View/Open action | #1039 | push tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| LD02 | Notification/deep link opens exact authoritative assignment/order instead of generic list | #1039 | navigation tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| LD03 | Driver duplicate events dedupe; already-open record refreshes instead of stacking alerts | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | PASS |
+| MV01 | Van compact/full-width data-first layout across audited screens | #1040 | `van_screen_inventory.dart`; explicit 19-case `van_foundation_screen.dart`; `screenshot_evidence_test.dart` 430x932 + 360x800 AR/EN | PASS |
+| MV02 | Van one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1040 | production Routes/Visits/Catalog/Orders/finance surfaces + `app_test.dart` navigation/sales/visit tests + screenshot evidence | PASS |
+| MV03 | Van dynamic surfaces auto-refresh + stale/offline truthfulness | #1040 | lifecycle observers + stale/offline states across dashboard/routes/map/detail/customers/visits/orders/finance/notifications; `app_test.dart` | PASS |
+| AV01 | Van login visibly says Van App / تطبيق الفان | #1040 | `van_login_screen.dart` + AR/EN `screenshot_evidence_test.dart` login capture | PASS |
+| AV02 | Van Remember Me + biometric secure-session behavior remains valid | #1040 | `app.dart`, `van_auth_persistence.dart`, `van_session_store.dart`, auth widget tests + AR/EN evidence | PASS |
+| AV03 | Van application-level capability exceptions are explicitly evaluated/documented | #1040 | `apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md` + contract/widget/backend tests | PASS |
+| Q01 | Project-wide AR/EN localization; no raw state/channel/role/type/payment/unit text where localized UI is required | #1041 | whole-tree static audit + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md); runtime localization remains independently reviewed by #1042 | PASS |
+| Q02 | Every requirement has exactly one owner and source/test evidence; no UNKNOWN/UNOWNED row | #1041 | generated `uiux-v42-recovery-static-audit.json` + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | PASS |
+| Q03 | Legacy route/screen inventory is included; diff-based guards do not grandfather violations | #1041 | whole-tree route/source inventories + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | PASS |
+| V01 | Integrated Dashboard + Customer + Driver + Van real runtime evidence exists for all visual/interaction rows | #1042 | evidence manifest/screenshots | PASS |
+| V02 | Required AR/EN + RTL/LTR + responsive states have no overflow/hidden action/mixed-language failures | #1042 | reviewed runtime evidence | PASS |
 | G01 | Final integrated matrix is 100% PASS on exact recovery implementation HEAD | #1043 | independent matrix/source recheck | OPEN |
 | G02 | Exact frozen SHA and evidence lineage recorded; child closure not used as substitute proof | #1043 | convergence report | OPEN |
 | R01 | Next real Setup/APKs/update artifacts are built/clean-installed/published from exact #1043 frozen SHA | #1021 | release manifests + hashes + clean-install proof | OPEN |
@@ -102,7 +102,7 @@ Owner implementation evidence is recorded here before child closure. Per the mis
 
 ## #1035 owner evidence checkpoint
 
-These rows intentionally remain `OPEN` until required runtime evidence is complete and later independent gates confirm them.
+At the owner checkpoint below these rows remained `OPEN`. #1042 has now independently reviewed the integrated runtime; the authoritative status table above records the accepted rows as `PASS`. The checkpoint text is retained as historical owner evidence.
 
 | ID | Current owner evidence on canonical #1035 lane |
 |---|---|

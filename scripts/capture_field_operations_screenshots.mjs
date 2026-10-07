@@ -138,6 +138,84 @@ async function captureCase(page, locale, entry, state, width, height) {
   }
 }
 
+async function exerciseTerritoryMapInteraction(page, locale) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const response = await page.goto(`${baseUrl}/admin/field-operations/territories`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Territory interaction evidence route failed for ${locale}`);
+  }
+
+  const territory = page.locator('#fieldops-coverage-territory');
+  const values = await territory.locator('option').evaluateAll((options) =>
+    options.map((option) => option.value).filter((value) => value !== ''),
+  );
+  if (values.length < 1) {
+    throw new Error(`No authoritative Territory option available for interaction evidence (${locale})`);
+  }
+  await territory.selectOption(values[0]);
+
+  const mapNode = page.locator('#fieldops-coverage-map');
+  await mapNode.scrollIntoViewIfNeeded();
+  const geojson = page.locator('#fieldops-coverage-geojson');
+  const waitForValidPolygon = async () => {
+    await page.waitForFunction(() => {
+      const raw = document.getElementById('fieldops-coverage-geojson')?.value ?? '';
+      if (!raw) return false;
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed.type === 'Polygon'
+          && Array.isArray(parsed.coordinates?.[0])
+          && parsed.coordinates[0].length >= 4;
+      } catch {
+        return false;
+      }
+    });
+  };
+
+  await waitForValidPolygon();
+  const initial = await geojson.inputValue();
+  const markers = page.locator('#fieldops-coverage-map .leaflet-marker-icon');
+  if (await markers.count() < 4) {
+    throw new Error(`Seeded Territory polygon did not render editable markers (${locale})`);
+  }
+
+  const firstMarker = markers.first();
+  const markerBox = await firstMarker.boundingBox();
+  if (!markerBox) throw new Error(`Editable Territory marker missing (${locale})`);
+  await page.mouse.move(markerBox.x + markerBox.width / 2, markerBox.y + markerBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    markerBox.x + markerBox.width / 2 + 28,
+    markerBox.y + markerBox.height / 2 + 18,
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  await page.waitForFunction(
+    (previous) => document.getElementById('fieldops-coverage-geojson')?.value !== previous,
+    initial,
+  );
+  const afterDrag = await geojson.inputValue();
+
+  await page.locator('#fieldops-coverage-undo').click();
+  await page.waitForFunction(
+    (previous) => {
+      const value = document.getElementById('fieldops-coverage-geojson')?.value ?? '';
+      return value !== '' && value !== previous;
+    },
+    afterDrag,
+  );
+
+  await page.locator('#fieldops-coverage-clear').click();
+  await page.waitForFunction(
+    () => (document.getElementById('fieldops-coverage-geojson')?.value ?? '') === '',
+  );
+
+  console.log(`verified Territory map drag/Undo/Clear interaction contract (${locale})`);
+}
+
 const browser = await chromium.launch({ headless: true });
 try {
   for (const locale of ['ar', 'en']) {
@@ -155,6 +233,7 @@ try {
       }
     }
 
+    await exerciseTerritoryMapInteraction(page, locale);
     await context.close();
   }
 } finally {
