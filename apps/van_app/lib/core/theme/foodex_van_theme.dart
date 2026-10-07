@@ -17,7 +17,7 @@ abstract final class FoodexVanTokens {
 }
 
 abstract final class FoodexVanTheme {
-  static ThemeData light() {
+  static ThemeData light({String? fontFamily}) {
     const scheme = ColorScheme.light(
       primary: FoodexVanTokens.green,
       onPrimary: Colors.white,
@@ -32,6 +32,7 @@ abstract final class FoodexVanTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: FoodexVanTokens.background,
       dividerColor: FoodexVanTokens.border,
+      fontFamily: fontFamily,
       appBarTheme: const AppBarTheme(
         backgroundColor: FoodexVanTokens.surface,
         foregroundColor: FoodexVanTokens.ink,

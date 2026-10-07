@@ -46,6 +46,7 @@ use App\Http\Controllers\Api\V1\TranslationController;
 use App\Http\Controllers\Api\V1\VanCollectionController;
 use App\Http\Controllers\Api\V1\VanCommercialPolicyController;
 use App\Http\Controllers\Api\V1\VanFlashOfferController;
+use App\Http\Controllers\Api\V1\VanOrderController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
 use App\Http\Controllers\Api\V1\VanVisitController;
 use Illuminate\Support\Facades\Route;
@@ -189,6 +190,19 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/visits/{visit}/transition', [VanVisitController::class, 'transition'])
                 ->whereNumber('visit');
             Route::get('/no-order-reasons', [VanVisitController::class, 'noOrderReasons']);
+            Route::get('/customers/{type}/{customer}/catalog', [VanOrderController::class, 'catalog'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::get('/customers/{type}/{customer}/order-options', [VanOrderController::class, 'options'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::post('/customers/{type}/{customer}/order-quote', [VanOrderController::class, 'quote'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::post('/customers/{type}/{customer}/orders', [VanOrderController::class, 'store'])
+                ->whereIn('type', ['b2b', 'b2c'])
+                ->whereNumber('customer');
+            Route::get('/orders', [VanOrderController::class, 'index']);
         });
         Route::prefix('/admin/field-operations')->group(function (): void {
             Route::post('/geography', [TerritoryController::class, 'storeGeography']);

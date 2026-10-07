@@ -52,12 +52,12 @@ def package(root, app, platform, source, output, commit, build_number):
             "android": {
                 "customer": "com.fiftysolution.foodex.customer",
                 "driver": "com.fiftysolution.foodex.driver",
-                "van": "com.fiftysolution.foodex.van",
+                "van": "com.foodex.van",
             },
             "ios": {
                 "customer": "com.fiftysolution.foodex.customer",
                 "driver": "com.fiftysolution.foodex.driver",
-                "van": "com.fiftysolution.foodex.van",
+                "van": "com.foodex.van",
             },
         }[platform][app],
         "signing": "flutter-template-debug-key" if platform == "android" else "none",
