@@ -93,7 +93,7 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
     final rows = <_ReceiptRow>[];
     for (final account in _accounts) {
       for (final receipt in account.receipts) {
-        rows.add(_ReceiptRow(account: account, receipt: receipt));
+        rows.add(_ReceiptRow(receipt: receipt));
       }
     }
     rows.sort(
@@ -220,12 +220,8 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
 }
 
 class _ReceiptRow {
-  const _ReceiptRow({
-    required this.account,
-    required this.receipt,
-  });
+  const _ReceiptRow({required this.receipt});
 
-  final VanWalletAccount account;
   final VanReceipt receipt;
 }
 
