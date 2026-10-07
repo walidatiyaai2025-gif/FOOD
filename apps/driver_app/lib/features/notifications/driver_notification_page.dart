@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
@@ -30,8 +32,14 @@ class DriverNotificationPage extends StatefulWidget {
 
 class _DriverNotificationPageState extends State<DriverNotificationPage>
     with WidgetsBindingObserver {
+  static const Duration _refreshInterval = Duration(seconds: 15);
+
   bool _loading = true;
   bool _failed = false;
+  bool _stale = false;
+  bool _loadInFlight = false;
+  DateTime? _lastSuccessfulAt;
+  Timer? _refreshTimer;
   List<DriverNotification> _items = const [];
 
   @override
@@ -39,23 +47,45 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    _startLiveRefresh();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_loading) {
-      _load();
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load(silent: _items.isNotEmpty));
+      _startLiveRefresh();
+      return;
     }
+
+    _stopLiveRefresh();
+  }
+
+  void _startLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      if (!mounted || _loadInFlight || _loading) return;
+      unawaited(_load(silent: true));
+    });
+  }
+
+  void _stopLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   @override
   void dispose() {
+    _stopLiveRefresh();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _load() async {
-    if (mounted) {
+  Future<void> _load({bool silent = false}) async {
+    if (_loadInFlight) return;
+    _loadInFlight = true;
+
+    if (mounted && !silent) {
       setState(() {
         _loading = true;
         _failed = false;
@@ -69,6 +99,9 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
       setState(() {
         _items = items;
         _loading = false;
+        _failed = false;
+        _stale = false;
+        _lastSuccessfulAt = DateTime.now();
       });
     } on DriverNotificationException catch (error) {
       if (error.code == 'session_expired') {
@@ -77,14 +110,26 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _failed = true;
+        if (silent && _items.isNotEmpty) {
+          _stale = true;
+          _failed = false;
+        } else {
+          _failed = true;
+        }
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _failed = true;
+        if (silent && _items.isNotEmpty) {
+          _stale = true;
+          _failed = false;
+        } else {
+          _failed = true;
+        }
       });
+    } finally {
+      _loadInFlight = false;
     }
   }
 
@@ -154,7 +199,14 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
         ],
       ),
       body: SafeArea(
-        child: _loading
+        child: Column(
+          children: [
+            if (_stale && _items.isNotEmpty)
+              _NotificationStaleBanner(
+                lastSuccessfulAt: _lastSuccessfulAt,
+              ),
+            Expanded(
+              child: _loading
             ? const Center(
                 child: CircularProgressIndicator(
                   key: Key('driver-notifications-loading'),
@@ -227,6 +279,38 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
                           },
                         ),
                       ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationStaleBanner extends StatelessWidget {
+  const _NotificationStaleBanner({required this.lastSuccessfulAt});
+
+  final DateTime? lastSuccessfulAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final last = lastSuccessfulAt;
+    final time = last == null
+        ? null
+        : '${last.hour.toString().padLeft(2, '0')}:${last.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      key: const Key('driver-notifications-stale'),
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      child: Text(
+        [
+          context.tr('driver.data.stale'),
+          if (time != null)
+            '${context.tr('driver.data.last_confirmed_update')}: $time',
+        ].join(' · '),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
