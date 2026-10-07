@@ -964,18 +964,25 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                               ),
                         ),
                         if ((customer['email']?.toString() ?? '').isNotEmpty)
-                          Text(
-                            customer['email'].toString(),
-                            textDirection: TextDirection.ltr,
-                            textAlign: TextAlign.right,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: Text(
+                                customer['email'].toString(),
+                                textDirection: TextDirection.ltr,
+                                textAlign: TextAlign.right,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
                                       fontSize: 11,
                                       height: 1.2,
                                       color: CustomerUiColors.muted,
                                     ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -1321,16 +1328,18 @@ class _HeroValue extends StatelessWidget {
                 Icon(icon, size: 14, color: CustomerUiColors.deepGreen),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 9.5,
-                          height: 1,
-                          color: CustomerUiColors.muted,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 9.5,
+                            height: 1,
+                            color: CustomerUiColors.muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
