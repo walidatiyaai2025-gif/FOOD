@@ -203,7 +203,15 @@ class DriverPushDeviceRegistry {
   }
 }
 
-class DriverFirebasePushService {
+abstract interface class DriverPushService {
+  Stream<DriverPushOpen> get opens;
+  Stream<DriverPushAlert> get alerts;
+  DriverPushOpen? takePendingOpen();
+  Future<void> bindSession(String accessToken);
+  Future<void> revokeSession();
+}
+
+class DriverFirebasePushService implements DriverPushService {
   DriverFirebasePushService._({required this.registry, required FirebaseMessaging? messaging}) : _messaging = messaging;
   final DriverPushDeviceRegistry registry;
   final FirebaseMessaging? _messaging;
