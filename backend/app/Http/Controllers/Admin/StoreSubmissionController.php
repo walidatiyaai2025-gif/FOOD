@@ -19,7 +19,7 @@ final class StoreSubmissionController extends Controller
     {
         $actor = $this->authorize($request);
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'package_identifier' => ['nullable', 'string', 'max:255'],
@@ -95,7 +95,7 @@ final class StoreSubmissionController extends Controller
     {
         $actor = $this->authorize($request);
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'persona' => ['required', 'string', 'max:64'],
@@ -258,6 +258,10 @@ final class StoreSubmissionController extends Controller
 
     private function matchesApp(StoreReviewerAccount $reviewer, User $user): bool
     {
+        if ($reviewer->app === 'van') {
+            return $user->hasPermission('van.login');
+        }
+
         if ($reviewer->app === 'driver') {
             return DB::table('drivers')
                 ->where('user_id', $user->getKey())
