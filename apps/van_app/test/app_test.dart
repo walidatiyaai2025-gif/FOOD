@@ -6,6 +6,7 @@ import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
+import 'package:foodex_van_app/features/orders/van_order_contract.dart';
 
 void main() {
   test('approved Van production inventory stays locked to 19 surfaces', () {
@@ -484,6 +485,63 @@ void main() {
     expect(find.text('0/2'), findsOneWidget);
     expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
     expect(find.text('Block 3 · Street 17'), findsOneWidget);
+  });
+
+
+  testWidgets('Van sales flow reaches Catalog Builder Review and Orders',
+      (tester) async {
+    final orders = _OrderRepository();
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _CustomerWalletRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
+    await tester.scrollUntilVisible(
+      catalogTarget,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(catalogTarget);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-catalog-page')), findsOneWidget);
+    expect(find.text('Water Case'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('van-catalog-add-301')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('van-catalog-open-cart')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('van-order-builder-page')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('van-order-builder-review')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-review-page')), findsOneWidget);
+    expect(find.text('12.000 KWD'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('van-order-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-orders-page')), findsOneWidget);
+    expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
+    expect(find.text('12.000 KWD'), findsOneWidget);
+    expect(orders.createdCount, 1);
   });
 
 }
@@ -1012,4 +1070,110 @@ class _RouteCustomersRepository implements VanWalletRepository {
   }) {
     throw UnimplementedError();
   }
+}
+
+
+class _OrderRepository implements VanOrderRepository {
+  int createdCount = 0;
+
+  @override
+  Future<List<VanCatalogProduct>> catalog(
+    VanCustomerScope customer, {
+    String search = '',
+  }) async =>
+      const [
+        VanCatalogProduct(
+          id: 301,
+          name: 'Water Case',
+          sku: 'WATER-CASE',
+          unitPrice: 12,
+          minimumQuantity: 1,
+          orderingIncrement: 1,
+          isAvailable: true,
+          availableQuantity: 20,
+          currency: 'KWD',
+        ),
+      ];
+
+  @override
+  Future<VanOrderOptions> options(VanCustomerScope customer) async =>
+      const VanOrderOptions(
+        addresses: [
+          VanOrderAddressOption(
+            id: 11,
+            label: 'Main',
+            address: 'Block 3 · Street 17',
+            isDefault: true,
+          ),
+        ],
+        warehouses: [
+          VanWarehouseOption(id: 21, code: 'WH-A', name: 'Main Warehouse'),
+        ],
+        paymentMethods: ['cash_on_delivery'],
+        defaultPaymentMethod: 'cash_on_delivery',
+      );
+
+  @override
+  Future<VanOrderQuote> quote({
+    required VanCustomerScope customer,
+    required List<VanOrderLine> lines,
+    required String paymentMethod,
+    int? addressId,
+    int? warehouseId,
+    String? customerNote,
+  }) async =>
+      const VanOrderQuote(
+        currency: 'KWD',
+        subtotal: 12,
+        discountTotal: 0,
+        deliveryTotal: 0,
+        taxTotal: 0,
+        grandTotal: 12,
+        hasUnavailableItems: false,
+      );
+
+  @override
+  Future<VanOrderRecord> createOrder({
+    required VanCustomerScope customer,
+    required List<VanOrderLine> lines,
+    required String paymentMethod,
+    required String idempotencyKey,
+    int? addressId,
+    int? warehouseId,
+    String? customerNote,
+  }) async {
+    createdCount += 1;
+    return const VanOrderRecord(
+      id: 7001,
+      orderNumber: 'FDX-B2B-TEST-001',
+      customerType: 'b2b',
+      customerId: 42,
+      storeId: 7,
+      status: 'pending',
+      currency: 'KWD',
+      grandTotal: 12,
+      createdAt: '2026-10-07T10:00:00+03:00',
+    );
+  }
+
+  @override
+  Future<List<VanOrderRecord>> orders({
+    VanCustomerScope? customer,
+    String? status,
+  }) async =>
+      createdCount == 0
+          ? const []
+          : const [
+              VanOrderRecord(
+                id: 7001,
+                orderNumber: 'FDX-B2B-TEST-001',
+                customerType: 'b2b',
+                customerId: 42,
+                storeId: 7,
+                status: 'pending',
+                currency: 'KWD',
+                grandTotal: 12,
+                createdAt: '2026-10-07T10:00:00+03:00',
+              ),
+            ];
 }
