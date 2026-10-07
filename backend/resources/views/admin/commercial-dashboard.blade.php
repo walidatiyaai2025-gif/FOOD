@@ -508,7 +508,9 @@
                     <div class="commercial-grid">
                         <label>{{ __('commercial.flash.starts') }}<input type="datetime-local" name="starts_at" value="{{ old('starts_at', $editingStarts) }}" required></label>
                         <label>{{ __('commercial.flash.ends') }}<input type="datetime-local" name="ends_at" value="{{ old('ends_at', $editingEnds) }}" required></label>
-                        @php($selectedTimezone = old('timezone', $editingOffer->timezone ?? 'Asia/Kuwait'))
+                        @php
+                            $selectedTimezone = old('timezone', $editingOffer->timezone ?? 'Asia/Kuwait');
+                        @endphp
                         <label>{{ __('commercial.flash.timezone') }}
                             <select name="timezone" required>
                                 @foreach(timezone_identifiers_list() as $timezone)
