@@ -50,6 +50,21 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('<pre style="white-space:pre-wrap;margin:0">', $view);
     }
 
+    public function test_customer_360_hides_internal_ids_and_uses_business_labels(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('$businessLabel', $view);
+        $this->assertStringNotContainsString('<p>#{{ $customer->id }}', $view);
+        $this->assertStringNotContainsString("رقم الفاتورة الداخلي", $view);
+        $this->assertStringNotContainsString("Invoice ID", $view);
+        $this->assertStringContainsString('<select name="invoice_id">', $view);
+        $this->assertStringContainsString("{{ $invoice['number'] }}", $view);
+        $this->assertStringNotContainsString("{{ strtoupper($order['channel']) }}", $view);
+        $this->assertStringNotContainsString("<td>{{ $order['status'] }}</td>", $view);
+    }
+
     public function test_notifications_use_shared_foodex_admin_shell(): void
     {
         $view = file_get_contents(resource_path('views/admin/notifications.blade.php'));
