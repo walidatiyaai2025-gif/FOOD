@@ -205,6 +205,7 @@ class DashboardUiComplianceTest extends TestCase
             'notifications.blade.php',
             'order-operations.blade.php',
             'reports.blade.php',
+            'van-finance-support.blade.php',
         ];
 
         foreach ($views as $viewName) {
@@ -225,8 +226,8 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString("notifications.choose_user", $view);
-        $this->assertStringContainsString("$targetUser->name", $view);
-        $this->assertStringContainsString("$targetUser->email", $view);
+        $this->assertStringContainsString('$targetUser->name', $view);
+        $this->assertStringContainsString('$targetUser->email', $view);
         $this->assertStringNotContainsString('name="user_id" type="number"', $view);
         $this->assertStringNotContainsString('User ID - optional', $view);
         $this->assertStringNotContainsString('رقم المستخدم - اختياري', $view);
@@ -343,6 +344,7 @@ class DashboardUiComplianceTest extends TestCase
             'notifications.blade.php',
             'order-operations.blade.php',
             'reports.blade.php',
+            'van-finance-support.blade.php',
         ];
 
         foreach ($views as $viewName) {
@@ -418,25 +420,27 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($contract);
         foreach ([
-            '/admin/administration',
-            '/admin/security',
-            '/admin/driver-live-tracking',
+            'Status: OWNER APPROVED',
             '/admin/customer-360',
             '/admin/operations/orders',
-            '/admin/settings/app-versions',
-            '/admin/settings/mobile',
-            'Notification Center',
-            'Promotional Notification Campaigns',
-            '#1036',
-            '#1037',
-            'no unresolved Van↔Dashboard gap',
+            '/admin/van-finance-support',
+            'Notification Center + Campaigns + Push Settings',
+            'Wallet/Collection/Receipt/Remittance visibility/audit/support',
+            '#1035 / #1036',
+            '#1037 Field Operations',
+            'Finance mutation ownership is not duplicated',
+            '#1042 performs integrated Van ↔ Dashboard runtime verification',
         ] as $required) {
             $this->assertStringContainsString($required, $contract);
         }
 
-        $this->assertStringContainsString('| 18. Notifications |', $contract);
-        $this->assertStringContainsString('| 19. Profile & Settings |', $contract);
-        $this->assertStringContainsString('**Covered**', $contract);
-        $this->assertStringContainsString('**Delegated — not a #1035 gap**', $contract);
+        foreach (['Wallet', 'Collection', 'Receipt', 'Remittance', 'Notifications', 'Profile & Settings'] as $surface) {
+            $this->assertStringContainsString('| '.$surface.' |', $contract);
+        }
+
+        $this->assertStringContainsString(
+            'Shared Van Finance Support covers Wallet / Collection / Receipt / Remittance inspection',
+            $contract,
+        );
     }
 }
