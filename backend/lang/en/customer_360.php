@@ -118,6 +118,18 @@ return [
         'no_orders' => 'No orders in the current scope.',
         'no_invoices' => 'No invoices in the current scope.',
     ],
+    'map' => [
+        'title' => 'Choose customer location',
+        'description' => 'Search for a place or click directly on the map to choose the point.',
+        'close' => 'Close',
+        'search_placeholder' => 'Search area, street, or place...',
+        'search' => 'Search',
+        'aria_label' => 'Customer location map',
+        'choose_point' => 'Choose a point on the map',
+        'cancel' => 'Cancel',
+        'use_location' => 'Use this location',
+        'selected_editable' => 'Location selected; you can edit it on the map',
+    ],
     'business_labels' => [
         'b2b' => 'Wholesale',
         'b2c' => 'Retail',
