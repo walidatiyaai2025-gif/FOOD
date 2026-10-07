@@ -62,6 +62,56 @@ void main() {
     expect(find.text('No assigned customers'), findsOneWidget);
   });
 
+  testWidgets(
+      'Arabic Van menu opens from physical left as overlay and closes after selection',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('ar'),
+        walletRepository: _EmptyWalletRepository(),
+        visitRepository: _RoutesVisitRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'مشغل الفان',
+          email: 'van@example.test',
+          locale: 'ar',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffoldFinder = find.byType(Scaffold).last;
+    final scaffold = tester.state<ScaffoldState>(scaffoldFinder);
+    final menuToggle = find.byKey(const Key('van-menu-toggle'));
+
+    expect(menuToggle, findsOneWidget);
+    expect(tester.getCenter(menuToggle).dx, lessThan(390 / 2));
+    expect(scaffold.isDrawerOpen, isFalse);
+    expect(scaffold.isEndDrawerOpen, isFalse);
+
+    await tester.tap(menuToggle);
+    await tester.pumpAndSettle();
+
+    expect(scaffold.isDrawerOpen, isFalse);
+    expect(scaffold.isEndDrawerOpen, isTrue);
+
+    final drawer = find.byKey(const Key('van-navigation-drawer'));
+    expect(drawer, findsOneWidget);
+    expect(tester.getTopLeft(drawer).dx, closeTo(0, 0.1));
+
+    await tester.tap(find.byKey(const ValueKey('van-screen-routes')));
+    await tester.pumpAndSettle();
+
+    expect(scaffold.isEndDrawerOpen, isFalse);
+    expect(find.text('المسارات'), findsWidgets);
+  });
+
   testWidgets('Van Customer 360 renders authoritative customer financial context',
       (tester) async {
     await tester.pumpWidget(

@@ -52,6 +52,7 @@ class VanFoundationScreen extends StatefulWidget {
 }
 
 class _VanFoundationScreenState extends State<VanFoundationScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   VanScreenId _screen = VanScreenId.dashboard;
   late final VanOrderDraftController _orderDraft;
 
@@ -72,8 +73,67 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
   String _text(String en, String ar) => _arabic ? ar : en;
 
   void _open(VanScreenId screen) {
+    if (_screen == screen) return;
     setState(() => _screen = screen);
-    Navigator.of(context).maybePop();
+  }
+
+  void _openNavigationDrawer() {
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold == null) return;
+
+    if (_arabic) {
+      scaffold.openEndDrawer();
+    } else {
+      scaffold.openDrawer();
+    }
+  }
+
+  void _selectFromNavigationDrawer(
+    BuildContext drawerContext,
+    VanScreenId screen,
+  ) {
+    Navigator.of(drawerContext).pop();
+    _open(screen);
+  }
+
+  Widget _navigationDrawer(List<VanScreenId> screens) {
+    return Drawer(
+      key: const Key('van-navigation-drawer'),
+      child: SafeArea(
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.local_shipping_outlined,
+                color: FoodexVanTokens.green,
+              ),
+              title: Text(
+                _text('FOODEX Van', 'فودكس · تطبيق الفان'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(widget.session.name),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                key: const Key('van-production-screen-menu'),
+                itemCount: screens.length,
+                itemBuilder: (context, index) {
+                  final screen = screens[index];
+                  return ListTile(
+                    key: ValueKey('van-screen-${screen.name}'),
+                    selected: screen == _screen,
+                    leading: Icon(screen.icon),
+                    title: Text(screen.label(_arabic)),
+                    onTap: () => _selectFromNavigationDrawer(context, screen),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _body() {
@@ -202,8 +262,20 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         .where((screen) => screen != VanScreenId.login)
         .toList(growable: false);
 
+    final navigationDrawer = _navigationDrawer(screens);
+
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: _arabic
+            ? null
+            : IconButton(
+                key: const Key('van-menu-toggle'),
+                tooltip: _text('Open navigation menu', 'فتح قائمة التنقل'),
+                onPressed: _openNavigationDrawer,
+                icon: const Icon(Icons.menu),
+              ),
         title: Text(_screen.label(_arabic)),
         actions: [
           SizedBox(
@@ -224,44 +296,17 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
             onPressed: widget.onLogout,
             icon: const Icon(Icons.logout),
           ),
+          if (_arabic)
+            IconButton(
+              key: const Key('van-menu-toggle'),
+              tooltip: _text('Open navigation menu', 'فتح قائمة التنقل'),
+              onPressed: _openNavigationDrawer,
+              icon: const Icon(Icons.menu),
+            ),
         ],
       ),
-      drawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.local_shipping_outlined,
-                  color: FoodexVanTokens.green,
-                ),
-                title: Text(
-                  _text('FOODEX Van', 'فودكس · تطبيق الفان'),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: Text(widget.session.name),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.builder(
-                  key: const Key('van-production-screen-menu'),
-                  itemCount: screens.length,
-                  itemBuilder: (context, index) {
-                    final screen = screens[index];
-                    return ListTile(
-                      key: ValueKey('van-screen-${screen.name}'),
-                      selected: screen == _screen,
-                      leading: Icon(screen.icon),
-                      title: Text(screen.label(_arabic)),
-                      onTap: () => _open(screen),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      drawer: _arabic ? null : navigationDrawer,
+      endDrawer: _arabic ? navigationDrawer : null,
       body: _body(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _primaryIndex(_screen),
