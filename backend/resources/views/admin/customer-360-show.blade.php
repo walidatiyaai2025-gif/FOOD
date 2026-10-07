@@ -181,15 +181,15 @@ $businessLabel = static function ($value): string {
 
 <section class="c360-panel" id="panel-identity" role="tabpanel" aria-labelledby="tab-identity" data-c360-panel="identity" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ __('customer_360.tabs.identity') }}</h2><span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.identity') }}</h2><span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['active'] ? __('customer_360.active') : __('customer_360.inactive') }}</span></div>
 <div class="c360-info">
-<div><small>{{ $ar?'الاسم':'Name' }}</small><strong>{{ $customer->name }}</strong></div>
-<div><small>{{ $ar?'البريد الإلكتروني':'Email' }}</small><strong>{{ $customer->email }}</strong></div>
-<div><small>{{ $ar?'الهاتف':'Phone' }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
-<div><small>{{ $ar?'تاريخ التسجيل':'Registered at' }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
-<div><small>{{ $ar?'قناة التسجيل الأصلية':'Origin channel' }}</small><strong>{{ $businessLabel($customer->origin_channel ?: 'unknown') }}</strong></div>
-<div><small>{{ $ar?'مصدر التسجيل':'Registration source' }}</small><strong>{{ $businessLabel($customer->registration_source) }}</strong></div>
-<div><small>{{ $ar?'مصدر/متجر التسجيل':'Registration origin' }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
+<div><small>{{ __('customer_360.identity.name') }}</small><strong>{{ $customer->name }}</strong></div>
+<div><small>{{ __('customer_360.identity.email') }}</small><strong>{{ $customer->email }}</strong></div>
+<div><small>{{ __('customer_360.identity.phone') }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
+<div><small>{{ __('customer_360.identity.registered_at') }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
+<div><small>{{ __('customer_360.identity.origin_channel') }}</small><strong>{{ $businessLabel($customer->origin_channel ?: 'unknown') }}</strong></div>
+<div><small>{{ __('customer_360.identity.registration_source') }}</small><strong>{{ $businessLabel($customer->registration_source) }}</strong></div>
+<div><small>{{ __('customer_360.identity.registration_origin') }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
 </div>
 </div>
 </section>
