@@ -475,15 +475,18 @@
             @forelse($flashOffers as $offer)
                 <div class="control-row">
                     <span>{{ $offer->name }} · <strong>{{ __('commercial.flash.statuses.'.$offer->status) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
-                        <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
-                        <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
-                        <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
-                            <select name="action">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option value="{{ $action }}">{{ __('commercial.flash.actions.'.$action) }}</option>@endforeach</select>
-                            <button type="submit">{{ __('commercial.flash.apply') }}</button>
-                        </form>
-                    </div>
+                    <details class="foodex-ops-actions" data-flash-offer-actions>
+                        <summary aria-label="{{ __('commercial.flash.actions_menu') }}">⋮</summary>
+                        <div class="foodex-ops-menu">
+                            <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
+                            <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
+                            <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
+                            <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
+                                <select name="action" aria-label="{{ __('commercial.flash.action') }}">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option value="{{ $action }}">{{ __('commercial.flash.actions.'.$action) }}</option>@endforeach</select>
+                                <button type="submit">{{ __('commercial.flash.apply') }}</button>
+                            </form>
+                        </div>
+                    </details>
                 </div>
             @empty
                 <p class="muted">{{ __('commercial.flash.no_offers') }}</p>
@@ -491,10 +494,10 @@
         </section>
 
         <section class="commercial-card">
-            <h2>{{ $ar ? 'العروض العادية الحالية' : 'Existing normal promotions' }}</h2>
+            <h2>{{ __('commercial.flash.existing_promotions') }}</h2>
             <div style="overflow:auto">
                 <table class="commercial-table">
-                    <thead><tr><th>{{ $ar ? 'الاسم' : 'Name' }}</th><th>{{ $ar ? 'النوع' : 'Type' }}</th><th>{{ $ar ? 'القيمة' : 'Value' }}</th><th>{{ $ar ? 'الفترة' : 'Period' }}</th><th>{{ $ar ? 'الحالة' : 'Status' }}</th></tr></thead>
+                    <thead><tr><th>{{ __('commercial.flash.promotion_name') }}</th><th>{{ __('commercial.flash.promotion_type') }}</th><th>{{ __('commercial.flash.promotion_value') }}</th><th>{{ __('commercial.flash.promotion_period') }}</th><th>{{ __('commercial.flash.status') }}</th></tr></thead>
                     <tbody>
                     @forelse($existingPromotions as $promotion)
                         <tr>
@@ -502,10 +505,10 @@
                             <td>{{ $promotion->type }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
-                            <td>{{ $promotion->is_active ? ($ar ? 'نشط' : 'Active') : ($ar ? 'غير نشط' : 'Inactive') }}</td>
+                            <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5">{{ $ar ? 'لا توجد عروض عادية حالياً.' : 'No normal promotions currently exist.' }}</td></tr>
+                        <tr><td colspan="5">{{ __('commercial.flash.no_existing_promotions') }}</td></tr>
                     @endforelse
                     </tbody>
                 </table>
