@@ -269,6 +269,39 @@ def _dart_text_blocks(text: str) -> Iterable[tuple[int, str]]:
         yield index + 1, "\n".join(block)
 
 
+def _dart_text_value(block: str) -> str:
+    match = re.search(r"\bText(?:\.rich)?\s*\(", block)
+    if not match:
+        return ""
+    source = block[match.end():]
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(source):
+        if quote is not None:
+            if escaped:
+                escaped = False
+                continue
+            if char == "\\":
+                escaped = True
+                continue
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            continue
+        if char in "([{":
+            depth += 1
+            continue
+        if char in ")]}":
+            depth = max(0, depth - 1)
+            continue
+        if char == "," and depth == 0:
+            return source[:index].strip()
+    return source.strip()
+
+
 def scan_mobile_layout_guardrails(root: Path = ROOT) -> list[str]:
     findings: list[str] = []
     for app, path in iter_mobile_ui_files(root):
@@ -288,7 +321,8 @@ def scan_mobile_layout_guardrails(root: Path = ROOT) -> list[str]:
                 )
 
         for lineno, block in _dart_text_blocks(text):
-            if ORDER_VALUE_RE.search(block) and not re.search(
+            value = _dart_text_value(block)
+            if ORDER_VALUE_RE.search(value) and not re.search(
                 r"(maxLines\s*:\s*1\b|softWrap\s*:\s*false\b|overflow\s*:\s*TextOverflow\.)",
                 block,
             ):
@@ -387,9 +421,10 @@ def scan_mobile_dynamic_enums(root: Path = ROOT) -> list[str]:
         text = path.read_text(encoding="utf-8")
         relative = path.relative_to(root).as_posix()
         for lineno, block in _dart_text_blocks(text):
-            if not DYNAMIC_DART_RE.search(block):
+            value = _dart_text_value(block)
+            if not DYNAMIC_DART_RE.search("Text(" + value):
                 continue
-            lower = block.lower()
+            lower = value.lower()
             if any(marker.lower() in lower for marker in LOCALIZATION_MARKERS):
                 continue
             findings.append(
