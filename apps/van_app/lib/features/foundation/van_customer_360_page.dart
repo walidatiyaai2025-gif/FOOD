@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
 
 class VanCustomer360Page extends StatefulWidget {
@@ -354,7 +355,7 @@ class _InlineError extends StatelessWidget {
           children: [
             Text(text, textAlign: TextAlign.center),
             const SizedBox(height: 10),
-            OutlinedButton(
+            VanActionButton.secondary(
               onPressed: onAction,
               child: Text(actionLabel),
             ),
@@ -420,7 +421,7 @@ class _StateCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(body, textAlign: TextAlign.center),
                 const SizedBox(height: 14),
-                FilledButton(
+                VanActionButton(
                   onPressed: onAction,
                   child: Text(actionLabel),
                 ),
