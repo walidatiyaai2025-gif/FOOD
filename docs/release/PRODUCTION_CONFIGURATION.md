@@ -2,11 +2,11 @@
 
 Public deployment identity approved for the first FOODEX installation:
 
-- Web/API origin: `https://vanfoodex.50sols.com`
-- MySQL/MariaDB database: `solscool_vanfoodex`
-- MySQL/MariaDB username: `solscool_vanfoodex`
-- Customer mobile API default: `https://vanfoodex.50sols.com`
-- Driver mobile API default: `https://vanfoodex.50sols.com`
+- Web/API origin: `https://foodex.50sols.com`
+- MySQL/MariaDB database: `solscool_foodex`
+- MySQL/MariaDB username: `solscool_foodex`
+- Customer mobile API default: `https://foodex.50sols.com`
+- Driver mobile API default: `https://foodex.50sols.com`
 
 Use `backend/.env.production.example` as the non-secret first-install template.
 
@@ -65,9 +65,9 @@ usable-product completion scope.
 
 The supported production distribution target is same-origin static hosting:
 
-- Customer runtime: `https://vanfoodex.50sols.com/preview/customer/`
-- Driver runtime: `https://vanfoodex.50sols.com/preview/driver/`
-- Runtime/allowed origin: `https://vanfoodex.50sols.com`
+- Customer runtime: `https://foodex.50sols.com/preview/customer/`
+- Driver runtime: `https://foodex.50sols.com/preview/driver/`
+- Runtime/allowed origin: `https://foodex.50sols.com`
 - Contract: `shared-flutter-v1`
 
 The release package is built by `.github/workflows/preview-runtime-distribution.yml`.
