@@ -4,6 +4,8 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../commercial/van_commercial_contract.dart';
 import '../commercial/van_offers_page.dart';
+import '../notifications/van_notification_contract.dart';
+import '../notifications/van_notifications_page.dart';
 import '../wallet/van_collection_page.dart';
 import '../wallet/van_receipts_page.dart';
 import '../wallet/van_remittance_page.dart';
@@ -27,6 +29,7 @@ class VanFoundationScreen extends StatefulWidget {
     required this.walletRepository,
     required this.commercialRepository,
     required this.visitRepository,
+    required this.notificationRepository,
   });
 
   final VanSession session;
@@ -34,6 +37,7 @@ class VanFoundationScreen extends StatefulWidget {
   final VanWalletRepository walletRepository;
   final VanCommercialRepository commercialRepository;
   final VanVisitRepository visitRepository;
+  final VanNotificationRepository notificationRepository;
 
   @override
   State<VanFoundationScreen> createState() => _VanFoundationScreenState();
@@ -109,6 +113,11 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
       case VanScreenId.collection:
         return VanCollectionPage(
           repository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.notifications:
+        return VanNotificationsPage(
+          repository: widget.notificationRepository,
           onSessionExpired: widget.onLogout,
         );
       case VanScreenId.profile:
