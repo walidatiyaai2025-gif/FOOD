@@ -349,8 +349,8 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('العروض العادية الحالية');
 
         $view = file_get_contents(resource_path('views/admin/commercial-dashboard.blade.php'));
-        $this->assertStringNotContainsString("{{ $ar ? 'العروض العادية الحالية' : 'Existing normal promotions' }}", $view);
-        $this->assertStringNotContainsString("{{ $promotion->is_active ? ($ar ?", $view);
+        $this->assertStringNotContainsString('{{ $ar ? \'العروض العادية الحالية\' : \'Existing normal promotions\' }}', $view);
+        $this->assertStringNotContainsString('{{ $promotion->is_active ? ($ar ?', $view);
     }
 
     public function test_final_gate_configuration_persists_break_pack_audience_and_authoritative_flags(): void
