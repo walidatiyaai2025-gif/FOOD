@@ -382,4 +382,32 @@ class DashboardUiComplianceTest extends TestCase
             );
         }
     }
+
+
+    public function test_notification_surfaces_follow_record_action_contract(): void
+    {
+        $campaigns = file_get_contents(resource_path('views/admin/notification-campaigns.blade.php'));
+        $notifications = file_get_contents(resource_path('views/admin/notifications.blade.php'));
+
+        $this->assertIsString($campaigns);
+        $this->assertIsString($notifications);
+
+        $this->assertStringContainsString("__('notifications.edit_campaign')", $campaigns);
+        $this->assertStringContainsString('data-notification-campaign-actions', $campaigns);
+        $this->assertStringContainsString("__('notifications.actions')", $campaigns);
+        $this->assertStringContainsString('background:var(--foodex-green)', $campaigns);
+        $this->assertStringContainsString('background:#fff;color:var(--foodex-green-dark)', $campaigns);
+
+        $this->assertStringContainsString("__('notifications.edit_notification')", $notifications);
+        $this->assertStringContainsString('data-notification-edit', $notifications);
+        $this->assertStringContainsString('data-notification-row-actions', $notifications);
+        $this->assertStringContainsString("__('notifications.actions')", $notifications);
+        $this->assertStringContainsString('background:var(--foodex-green)', $notifications);
+        $this->assertStringContainsString('background:#fff;color:var(--foodex-green-dark)', $notifications);
+
+        $this->assertStringNotContainsString(
+            '<div class="actions" style="margin-top:12px">',
+            $campaigns,
+        );
+    }
 }
