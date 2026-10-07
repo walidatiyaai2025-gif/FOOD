@@ -204,10 +204,14 @@ class VanOrderDraftController extends ChangeNotifier {
 
   void applyOptions(VanOrderOptions value) {
     options = value;
-    addressId ??= value.addresses
-        .where((item) => item.isDefault)
-        .map((item) => item.id)
-        .firstOrNull;
+    if (addressId == null) {
+      for (final item in value.addresses) {
+        if (item.isDefault) {
+          addressId = item.id;
+          break;
+        }
+      }
+    }
     addressId ??= value.addresses.isEmpty ? null : value.addresses.first.id;
     warehouseId ??=
         value.warehouses.isEmpty ? null : value.warehouses.first.id;
