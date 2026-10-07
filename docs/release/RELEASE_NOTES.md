@@ -14,7 +14,7 @@ Release branch: `release/1021-uiux-v42-final-real-build`
 - Driver diagnostics current identity: `1.0.60`
 - Driver diagnostics build identity: `58`
 
-- Production API: `https://vanfoodex.50sols.com`
+- Production API: `https://foodex.50sols.com`
 
 ## Included changes
 
