@@ -361,7 +361,10 @@ final class FieldOperationsController extends Controller
             if ($reason !== null) {
                 $reason->setAttribute(
                     'localized_label',
-                    $this->localizedText($reason->label_ar, $reason->label_en),
+                    $this->localizedText(
+                        $reason->getAttribute('label_ar'),
+                        $reason->getAttribute('label_en'),
+                    ),
                 );
             }
 
@@ -544,7 +547,10 @@ final class FieldOperationsController extends Controller
                 if ($node->parent !== null) {
                     $node->parent->setAttribute(
                         'localized_name',
-                        $this->localizedText($node->parent->name_ar, $node->parent->name_en),
+                        $this->localizedText(
+                            $node->parent->getAttribute('name_ar'),
+                            $node->parent->getAttribute('name_en'),
+                        ),
                     );
                 }
             });
