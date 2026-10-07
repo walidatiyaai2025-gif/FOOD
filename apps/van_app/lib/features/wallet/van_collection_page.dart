@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../../shared/van_action_button.dart';
 import 'van_wallet_contract.dart';
 
 class VanCollectionPage extends StatefulWidget {
@@ -409,7 +410,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               ),
             ),
             const SizedBox(height: 12),
-            FilledButton.icon(
+            VanActionButton.icon(
               key: const ValueKey('van-collection-submit'),
               onPressed: _submitting ? null : _collect,
               icon: _submitting
@@ -483,7 +484,7 @@ class _StateCard extends StatelessWidget {
           children: [
             Text(title, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(
+            VanActionButton.secondary(
               onPressed: onAction,
               child: Text(actionLabel),
             ),
