@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../../shared/van_action_button.dart';
 import '../orders/van_order_contract.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_visit_contract.dart';
@@ -306,7 +307,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
             ],
             if (visit.allowedTransitions.contains('started')) ...[
               const SizedBox(height: 12),
-              FilledButton.icon(
+              VanActionButton.icon(
                 key: ValueKey('van-visit-start-${visit.id}'),
                 onPressed:
                     _submitting ? null : () => _transition(visit, 'started'),
@@ -347,7 +348,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                           setState(() => _selectedOrderByVisit[visit.id] = value),
                 ),
                 const SizedBox(height: 8),
-                FilledButton.icon(
+                VanActionButton.icon(
                   key: ValueKey('van-visit-complete-order-${visit.id}'),
                   onPressed: _submitting || selectedOrder == null
                       ? null
@@ -406,7 +407,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                           ),
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton.icon(
+                VanActionButton.secondaryIcon(
                   key: ValueKey('van-visit-complete-no-order-${visit.id}'),
                   onPressed: _submitting || selectedReason == null
                       ? null
@@ -424,7 +425,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
             ],
             if (visit.allowedTransitions.contains('customer_unavailable')) ...[
               const SizedBox(height: 8),
-              OutlinedButton.icon(
+              VanActionButton.secondaryIcon(
                 key: ValueKey('van-visit-unavailable-${visit.id}'),
                 onPressed: _submitting
                     ? null
@@ -437,7 +438,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
             ],
             if (visit.allowedTransitions.contains('closed')) ...[
               const SizedBox(height: 8),
-              FilledButton.icon(
+              VanActionButton.icon(
                 key: ValueKey('van-visit-close-${visit.id}'),
                 onPressed:
                     _submitting ? null : () => _transition(visit, 'closed'),
@@ -483,7 +484,7 @@ class _StateCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(body, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
+            VanActionButton.secondary(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
       ),
