@@ -40,7 +40,13 @@ final class NotificationController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.notifications', compact('notifications', 'search', 'status'));
+        $userTargets = User::query()
+            ->select(['id', 'name', 'email'])
+            ->orderBy('name')
+            ->orderBy('email')
+            ->get();
+
+        return view('admin.notifications', compact('notifications', 'search', 'status', 'userTargets'));
     }
 
     public function live(Request $request): JsonResponse
