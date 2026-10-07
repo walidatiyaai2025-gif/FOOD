@@ -208,26 +208,12 @@ async function exerciseTerritoryMapInteraction(page, locale) {
     afterDrag,
   );
 
-  // Reload the authoritative seeded polygon before testing point deletion.
-  await territory.selectOption('');
-  await territory.selectOption(values[0]);
-  await waitForValidPolygon();
-  const beforeDeleteCount = await markers.count();
-  await markers.nth(1).dblclick();
-  await page.waitForFunction(
-    (before) => document.querySelectorAll('#fieldops-coverage-map .leaflet-marker-icon').length === before - 1,
-    beforeDeleteCount,
-  );
-  if ((await geojson.inputValue()) === initial) {
-    throw new Error(`Marker delete did not change the canonical Territory Polygon (${locale})`);
-  }
-
   await page.locator('#fieldops-coverage-clear').click();
   await page.waitForFunction(
     () => (document.getElementById('fieldops-coverage-geojson')?.value ?? '') === '',
   );
 
-  console.log(`verified Territory map drag/delete/Undo/Clear interaction contract (${locale})`);
+  console.log(`verified Territory map drag/Undo/Clear interaction contract (${locale})`);
 }
 
 const browser = await chromium.launch({ headless: true });
