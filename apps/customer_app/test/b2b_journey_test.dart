@@ -1898,6 +1898,11 @@ void main() {
   });
 
   testWidgets('C13 Screen 3 renders period summary trend categories and drill-through', (tester) async {
+    tester.view.physicalSize = const Size(320, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final api = _FakeB2bApi({
       'currency': 'KWD',
       'period': {'from': null, 'to': null},
@@ -1971,6 +1976,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('b2b-purchases-filters')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('b2b-purchases-date-actions-row')),
+      findsOneWidget,
+    );
+    final fromRect =
+        tester.getRect(find.byKey(const ValueKey('b2b-purchases-from')));
+    final toRect =
+        tester.getRect(find.byKey(const ValueKey('b2b-purchases-to')));
+    final refreshRect =
+        tester.getRect(find.byKey(const ValueKey('b2b-purchases-refresh')));
+    expect((fromRect.center.dy - toRect.center.dy).abs(), lessThan(1));
+    expect((toRect.center.dy - refreshRect.center.dy).abs(), lessThan(1));
     expect(find.byKey(const ValueKey('b2b-purchases-summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-purchases-categories')), findsOneWidget);
