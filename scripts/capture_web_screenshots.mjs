@@ -536,13 +536,15 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
 
   const addedProduct = productRows.last();
   const productSelect = addedProduct.locator('[data-flash-product]');
-  const productValues = await productSelect.locator('option').evaluateAll((options) =>
-    options.map((option) => option.value).filter((value) => value !== ''),
-  );
-  if (productValues.length < 1) {
-    throw new Error(`Flash Product Builder has no authoritative Product options (${locale})`);
+  const unitCatalogRaw = await flashForm.locator('[data-flash-unit-catalog]').textContent();
+  const unitCatalog = JSON.parse(unitCatalogRaw || '{}');
+  const productWithUnits = Object.entries(unitCatalog)
+    .find(([, units]) => Array.isArray(units) && units.length > 0)?.[0];
+  if (!productWithUnits
+      || await productSelect.locator(`option[value="${productWithUnits}"]`).count() !== 1) {
+    throw new Error(`Flash Product Builder has no Product with authoritative Selling Units (${locale})`);
   }
-  await productSelect.selectOption(productValues[0]);
+  await productSelect.selectOption(productWithUnits);
 
   const unitSelect = addedProduct.locator('[data-flash-unit]');
   const unitValues = await unitSelect.locator('option').evaluateAll((options) =>
