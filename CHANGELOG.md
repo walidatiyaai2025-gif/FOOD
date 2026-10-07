@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.60 - 2026-10-07
+
+- Correct the UIUX-V42 Commercial / Sales Control regression discovered after the 1.0.59 fresh release: the route now uses the authoritative FOODEX premium Dashboard shell and sidebar instead of the legacy standalone commercial page.
+- Rebuild Product Sales Control hierarchy for responsive Arabic RTL / English LTR operation with clear product policy sections for availability, channels, selling units, break-pack behavior, quotas and controlled advanced targeting data.
+- Preserve the canonical server-authoritative commercial policy engine, permissions, store scoping, feature flags, audit behavior and existing persistence contracts while adding regression coverage for Dashboard-shell parity.
+
 ## 1.0.59 - 2026-10-07
 
 - Publish the terminal UIUX-V42 mission release after #1002-#1012 convergence, preserving the accepted Customer, Driver, Van and Dashboard behavior on the exact frozen implementation lineage.
