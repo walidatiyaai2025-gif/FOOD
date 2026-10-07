@@ -2366,7 +2366,11 @@ void main() {
         'order_id': 77,
         'issued_at': '2026-10-01T10:00:00Z',
         'due_at': '2026-10-20T10:00:00Z',
-        'seller': {'store_id': 7, 'name': 'FOODEX Wholesale'},
+        'seller': {
+          'store_id': 7,
+          'name': 'FOODEX Wholesale',
+          'logo_url': null,
+        },
         'customer': {
           'name': 'Buyer Co',
           'email': 'buyer@example.test',
@@ -2433,6 +2437,10 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('b2b-invoice-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-invoice-brand')),
       findsOneWidget,
     );
     expect(

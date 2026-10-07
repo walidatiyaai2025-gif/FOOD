@@ -5813,13 +5813,32 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    key: const ValueKey('b2b-invoice-brand'),
+                    width: 72,
+                    height: 54,
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.receipt_long_rounded),
+                    child: (seller['logo_url']?.toString().trim().isNotEmpty ??
+                            false)
+                        ? Image.network(
+                            seller['logo_url'].toString(),
+                            fit: BoxFit.contain,
+                            semanticLabel: seller['name']?.toString() ??
+                                'FOODEX',
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              'assets/branding/foodex-economical-group.webp',
+                              fit: BoxFit.contain,
+                              semanticLabel: 'FOODEX Economic Group',
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/branding/foodex-economical-group.webp',
+                            fit: BoxFit.contain,
+                            semanticLabel: 'FOODEX Economic Group',
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
