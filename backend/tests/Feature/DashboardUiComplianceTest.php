@@ -293,4 +293,17 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="deep_link_json"', $view);
         $this->assertStringNotContainsString('name="store_readiness_json"', $view);
     }
+
+
+    public function test_mobile_settings_reviewer_context_uses_business_controls(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('name="reviewer_channel"', $view);
+        $this->assertStringContainsString('name="reviewer_store_id"', $view);
+        $this->assertStringContainsString('mobile_settings.reviewer_store', $view);
+        $this->assertStringNotContainsString('name="context_json"', $view);
+        $this->assertStringNotContainsString('Store / tenant / customer / driver / van context JSON', $view);
+    }
 }
