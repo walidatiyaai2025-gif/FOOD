@@ -14,40 +14,17 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 </head>
 <body>
 @php
-$businessLabel = static function ($value) use ($isAr): string {
+$businessLabel = static function ($value): string {
     $key = strtolower(trim((string) ($value ?? '')));
     if ($key === '') {
         return '—';
     }
-    $labels = [
-        'b2b' => [$isAr ? 'الجملة' : 'Wholesale'],
-        'b2c' => [$isAr ? 'التجزئة' : 'Retail'],
-        'dashboard' => [$isAr ? 'لوحة الإدارة' : 'Dashboard'],
-        'customer_checkout' => [$isAr ? 'طلب العميل' : 'Customer checkout'],
-        'legacy' => [$isAr ? 'سجل سابق' : 'Legacy record'],
-        'pending' => [$isAr ? 'قيد الانتظار' : 'Pending'],
-        'accepted' => [$isAr ? 'مقبول' : 'Accepted'],
-        'assigned' => [$isAr ? 'تم التعيين' : 'Assigned'],
-        'picked_up' => [$isAr ? 'تم الاستلام' : 'Picked up'],
-        'out_for_delivery' => [$isAr ? 'في طريق التوصيل' : 'Out for delivery'],
-        'delivered' => [$isAr ? 'تم التوصيل' : 'Delivered'],
-        'failed' => [$isAr ? 'متعذر' : 'Failed'],
-        'cancelled' => [$isAr ? 'ملغي' : 'Cancelled'],
-        'unassigned' => [$isAr ? 'غير معين' : 'Unassigned'],
-        'reassigned' => [$isAr ? 'أعيد التعيين' : 'Reassigned'],
-        'paid' => [$isAr ? 'مدفوع' : 'Paid'],
-        'authorized' => [$isAr ? 'مصرح' : 'Authorized'],
-        'refunded' => [$isAr ? 'مسترد' : 'Refunded'],
-        'partially_refunded' => [$isAr ? 'مسترد جزئياً' : 'Partially refunded'],
-        'customer_no_answer' => [$isAr ? 'العميل لا يجيب' : 'Customer did not answer'],
-        'customer_unavailable' => [$isAr ? 'العميل غير متاح' : 'Customer unavailable'],
-        'address_not_found' => [$isAr ? 'تعذر العثور على العنوان' : 'Address not found'],
-    ];
-    if (isset($labels[$key])) {
-        return $labels[$key][0];
-    }
 
-    return ucwords(str_replace(['_', '-'], ' ', $key));
+    $translated = __('order_operations.business_labels.'.$key);
+
+    return $translated !== 'order_operations.business_labels.'.$key
+        ? $translated
+        : ucwords(str_replace(['_', '-'], ' ', $key));
 };
 @endphp
 <div class="shell foodex-admin-layout">
