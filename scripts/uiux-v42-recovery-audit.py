@@ -39,11 +39,14 @@ MATRIX_ROW_RE = re.compile(
     r"^\|\s*(?P<id>[A-Z]+\d+)\s*\|\s*(?P<summary>.*?)\s*\|\s*#(?P<owner>\d+)\s*\|\s*(?P<evidence>.*?)\s*\|\s*(?P<status>[A-Z_]+)\s*\|\s*$"
 )
 DYNAMIC_BLADE_RE = re.compile(
-    r"\{\{[^}\n]*(?:->|\[['\"])(?:status|state|channel|role|type|payment_method|unit_code)(?:['\"]\])?[^}\n]*\}\}",
+    r"\{\{[^}\n]*(?:(?:->)(?:status|state|channel|role|type|payment_method|unit_code)(?![A-Za-z0-9_])|"
+    r"\[['\"](?:status|state|channel|role|type|payment_method|unit_code)['\"]\])[^}\n]*\}\}",
     re.IGNORECASE,
 )
 DYNAMIC_DART_RE = re.compile(
-    r"\bText(?:\.rich)?\([^;\n]*(?:\.(?:status|state|channel|role|type|paymentMethod|payment_method|unitCode|unit_code)|\[['\"](?:status|state|channel|role|type|payment_method|unit_code)['\"]\])",
+    r"\bText(?:\.rich)?\([^;\n]*(?:"
+    r"\.(?:status|state|channel|role|type|paymentMethod|payment_method|unitCode|unit_code)(?![A-Za-z0-9_])|"
+    r"\[['\"](?:status|state|channel|role|type|payment_method|unit_code)['\"]\])",
     re.IGNORECASE,
 )
 RAW_ID_LABEL_RE = re.compile(
