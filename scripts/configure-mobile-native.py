@@ -29,7 +29,7 @@ IDENTITIES = {
         'label': 'FOODEX Driver',
     },
     'van': {
-        'bundle_id': 'com.foodex.van',
+        'bundle_id': 'com.fiftysolution.foodex.van',
         'label': 'FOODEX Van',
     },
 }
