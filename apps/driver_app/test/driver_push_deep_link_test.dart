@@ -119,4 +119,97 @@ void main() {
     expect(find.text('ORDER-100'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+  testWidgets(
+      'order-only foreground alert resolves exact authoritative assignment',
+      (tester) async {
+    final push = _PushHarness();
+    addTearDown(push.dispose);
+
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        locale: const Locale('en'),
+        initialSession: const DriverSession(
+          token: 'driver-token',
+          name: 'Driver One',
+          email: 'driver@example.test',
+          locale: 'en',
+          channel: DriverChannel.b2c,
+        ),
+        assignmentRepositoryFactory: (_) => const _Assignments(),
+        pushService: push,
+        showPersistentFooter: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    push.emitAlert(
+      const DriverPushAlert(
+        title: 'Order update',
+        body: 'Ready for delivery',
+        open: DriverPushOpen(orderId: 99),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Order #99'), findsOneWidget);
+    await tester.tap(find.text('View order'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('driver-active-detail-42')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-active-detail-43')),
+      findsNothing,
+    );
+    expect(find.text('ORDER-99'), findsWidgets);
+    expect(find.text('ORDER-100'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'revoked order-only alert cannot grant access',
+      (tester) async {
+    final push = _PushHarness();
+    addTearDown(push.dispose);
+
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        locale: const Locale('en'),
+        initialSession: const DriverSession(
+          token: 'driver-token',
+          name: 'Driver One',
+          email: 'driver@example.test',
+          locale: 'en',
+          channel: DriverChannel.b2c,
+        ),
+        assignmentRepositoryFactory: (_) => const _Assignments(),
+        pushService: push,
+        showPersistentFooter: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    push.emitAlert(
+      const DriverPushAlert(
+        title: 'Order revoked',
+        body: 'No longer assigned',
+        open: DriverPushOpen(
+          orderId: 99,
+          accessRevoked: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Order #99'), findsOneWidget);
+    expect(find.text('View order'), findsNothing);
+    expect(
+      find.byKey(const Key('driver-active-detail-42')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
 }
