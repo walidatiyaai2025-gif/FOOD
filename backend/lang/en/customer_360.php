@@ -16,6 +16,15 @@ return [
         'orders' => 'Recent orders',
         'invoices' => 'Invoices',
     ],
+    'identity' => [
+        'name' => 'Name',
+        'email' => 'Email',
+        'phone' => 'Phone',
+        'registered_at' => 'Registered at',
+        'origin_channel' => 'Origin channel',
+        'registration_source' => 'Registration source',
+        'registration_origin' => 'Registration origin',
+    ],
     'finance' => [
         'current_balance' => 'Current balance',
         'customer_owes_company' => 'Customer owes company',
