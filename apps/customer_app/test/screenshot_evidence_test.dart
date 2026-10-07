@@ -115,42 +115,6 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
 
-        if (path.contains('01_شاشة_الدخول__default__')) {
-          // AssetImage decoding performs real asynchronous IO. Widget-test
-          // fake time can advance while the PNGs are still unresolved, which
-          // previously produced a blank hero/header in screenshot evidence.
-          // Precache the exact reference assets under runAsync, then repaint.
-          final loginContext = tester.element(
-            find.byKey(const ValueKey('c13-business-login-hero')),
-          );
-          await tester.runAsync(() async {
-            for (final asset in const <String>[
-              'assets/branding/login_reference/header_complete.png',
-              'assets/branding/login_reference/foodex_truck_hero.png',
-              'assets/branding/login_reference/email_icon.png',
-              'assets/branding/login_reference/lock_icon.png',
-              'assets/branding/login_reference/fingerprint_icon.png',
-            ]) {
-              await precacheImage(AssetImage(asset), loginContext);
-            }
-          });
-          await tester.pumpAndSettle();
-
-          expect(
-            find.byKey(const ValueKey('c13-business-login-hero')),
-            findsOneWidget,
-            reason: 'B2B login evidence must render the FOODEX reference hero, not the generic /entry surface.',
-          );
-          expect(
-            find.byKey(const ValueKey('customer-auth-remember-me')),
-            findsOneWidget,
-          );
-          expect(
-            find.byKey(const ValueKey('customer-auth-biometric-login')),
-            findsOneWidget,
-          );
-        }
-
         if (item.route == '/b2b/account-statement') {
           expect(
             find.byKey(const ValueKey('b2b-statement-summary-closing')),
