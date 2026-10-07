@@ -121,6 +121,7 @@ run_flutter() {
 
     if [[ "$mode" == "full" ]]; then
       flutter build apk --debug --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
+      python3 ../../scripts/verify-mobile-runtime-endpoint.py build/app/outputs/flutter-apk/app-debug.apk
     fi
   )
 }
