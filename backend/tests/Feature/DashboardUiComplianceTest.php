@@ -261,4 +261,21 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('{{ $log->error_code }}', $view);
         $this->assertStringNotContainsString('HTTP {{ $log->response_code }}', $view);
     }
+
+    public function test_mobile_settings_replace_routine_json_editors_with_structured_controls(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/MobileSettingsController.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($controller);
+        $this->assertStringContainsString('name="deep_link_scheme"', $view);
+        $this->assertStringContainsString('name="deep_link_host"', $view);
+        $this->assertStringContainsString('name="readiness_android"', $view);
+        $this->assertStringContainsString('name="readiness_ios"', $view);
+        $this->assertStringNotContainsString('name="deep_link_json"', $view);
+        $this->assertStringNotContainsString('name="store_readiness_json"', $view);
+        $this->assertStringContainsString("'deep_link_scheme' => ['sometimes', 'nullable', 'string', 'max:64']", $controller);
+        $this->assertStringContainsString("$readiness['android'] = $request->boolean('readiness_android');", $controller);
+    }
 }
