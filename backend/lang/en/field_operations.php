@@ -142,4 +142,23 @@ return [
         'area' => 'Area',
     ],
 
+    'map_drag_delete' => 'Drag to move; double-click to delete',
+    'polygon_valid' => 'Polygon is valid and ready to save.',
+    'polygon_need_three' => 'Add at least three distinct points.',
+    'polygon_invalid' => 'The current points do not form a valid polygon. Move or delete a point and try again.',
+    'polygon_submit_invalid' => 'Select a territory and draw a valid polygon with at least three distinct points.',
+    'create_routing_policy' => 'Create routing policy',
+    'mode' => 'Mode',
+    'rules_json' => 'Rules JSON',
+    'create_draft' => 'Create draft',
+    'simulation_result' => 'Simulation result',
+    'rules' => 'rules',
+    'publish' => 'Publish',
+    'rollback_reason' => 'Rollback reason',
+    'rollback' => 'Rollback',
+    'input_json' => 'Input JSON',
+    'scope_json' => 'Scope JSON',
+    'simulate' => 'Simulate',
+    'no_routing_policies' => 'No routing policies.',
+
 ];
