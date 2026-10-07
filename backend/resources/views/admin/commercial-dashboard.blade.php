@@ -644,11 +644,7 @@
                     @forelse($existingPromotions as $promotion)
                         <tr>
                             <td>{{ $promotion->name }}</td>
-                            <td>{{ __('commercial.flash.promotion_types.'.(
-                                in_array(strtolower((string) $promotion->type), ['percentage','percent'], true) ? 'percentage' :
-                                (in_array(strtolower((string) $promotion->type), ['fixed','fixed_amount','amount'], true) ? 'fixed' :
-                                (in_array(strtolower((string) $promotion->type), ['bundle','buy_x_get_y'], true) ? 'bundle' : 'generic'))
-                            )) }}</td>
+                            <td>{{ $promotion->type_label }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
                             <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>
