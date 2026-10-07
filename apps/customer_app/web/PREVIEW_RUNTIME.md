@@ -10,8 +10,8 @@ flutter build web \
   --release \
   --target=lib/preview_main.dart \
   --base-href=/preview/customer/ \
-  --dart-define=FOODEX_API_BASE_URL=https://vanfoodex.50sols.com \
-  --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://vanfoodex.50sols.com \
+  --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com \
+  --dart-define=FOODEX_PREVIEW_PARENT_ORIGIN=https://foodex.50sols.com \
   --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
 ```
 
