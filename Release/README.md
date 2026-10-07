@@ -17,7 +17,7 @@
 
 الـ APKs مبنية Release mode ومربوطة افتراضيًا على:
 
-`https://vanfoodex.50sols.com`
+`https://foodex.50sols.com`
 
 الهويات الأصلية:
 
@@ -40,7 +40,7 @@
    - Username: `solscool_vanfoodex`
    - Password: يتم إدخاله على السيرفر ولا يُحفظ في Git.
 6. اجعل `backend/storage` و`backend/bootstrap/cache` قابلين للكتابة بواسطة مستخدم PHP/Web.
-7. افتح `https://vanfoodex.50sols.com/install` وأكمل الـwizard حتى Finish.
+7. افتح `https://foodex.50sols.com/install` وأكمل الـwizard حتى Finish.
 8. بعد Finish يتم قفل `/install` تلقائيًا، وتتم الإدارة من الـDashboard.
 
 الحزمة تتضمن Composer production dependencies لتسهيل أول Setup، لكنها لا تتضمن `.env` أو كلمات مرور أو مفاتيح signing.
