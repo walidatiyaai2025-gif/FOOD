@@ -91,6 +91,18 @@ jobs:
             fi
           fi
 
+          # #1058 is the controlled final integration of the already-frozen
+          # 1.0.60 application tree into main. Re-auditing main..HEAD would
+          # re-open accepted frozen application source and mutate the release
+          # we are explicitly integrating. Audit only reconciliation changes
+          # made after the immutable 1.0.60 source snapshot.
+          if [[ "${HEAD_REF:-}" == "release/1058-final-main-integration" ]]; then
+            frozen_source="53857b1daa13c99682081760c89d144f1f701588"
+            if git cat-file -e "$frozen_source^{commit}" 2>/dev/null; then
+              base="$frozen_source"
+            fi
+          fi
+
           # A force-with-lease realignment can leave github.event.before unreachable
           # from the fetched refs. Fall back to the current head parent instead of
           # failing range resolution on an orphaned pre-realignment SHA.
