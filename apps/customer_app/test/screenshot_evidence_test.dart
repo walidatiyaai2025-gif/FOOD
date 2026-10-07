@@ -826,6 +826,16 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
   Future<void> removeFavoriteForStore(int storeId, int productId) async {}
 
   @override
+  Future<Object?> accountDeletionStatus() async => {
+        'data': {'status': 'NONE'},
+      };
+
+  @override
+  Future<Object?> requestAccountDeletion(String password) async => {
+        'data': {'status': 'COMPLETED'},
+      };
+
+  @override
   Future<Object?> notifications({String locale = 'ar'}) async => {
         'data': [
           {

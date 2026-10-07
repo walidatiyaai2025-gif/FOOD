@@ -237,6 +237,8 @@
             <article class="b2b-ref-card b2b-ref-panel dashboard-live-map-card" data-dashboard-primary-card="driver-map" data-dashboard-live-driver-map>
                 @include('admin._driver-live-map', [
                     'feedUrl' => $driverTrackingFeedUrl,
+                    'secondaryFeedUrl' => $vanTrackingFeedUrl,
+                    'trackingActor' => 'mixed',
                     'liveMapMode' => 'compact',
                     'showFilters' => false,
                     'showList' => false,
@@ -421,6 +423,7 @@
               : 'Exports use the same filters and visible result set. With no matches, a valid file is generated with filter context and headers but no data rows.' }}
         </div>
       </div>
+      @include('admin._field-operations-finance', ['fieldFinance' => $moduleData['field_operations'] ?? []])
       @endif
 
       @if($module==='storefront')

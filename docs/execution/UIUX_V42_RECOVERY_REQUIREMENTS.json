@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "mission_id": "UIUX-V42-RECOVERY",
+  "umbrella_issue": 1034,
+  "integration_target": "release/1034-uiux-v42-recovery",
+  "status_values": [
+    "OPEN",
+    "PASS",
+    "FAIL",
+    "PARTIAL",
+    "UNKNOWN",
+    "UNOWNED"
+  ],
+  "final_forbidden_statuses": [
+    "OPEN",
+    "FAIL",
+    "PARTIAL",
+    "UNKNOWN",
+    "UNOWNED"
+  ],
+  "proof_rule": "Issue closure and green CI alone are never sufficient evidence.",
+  "implementation_issues": [
+    1035,
+    1036,
+    1037,
+    1038,
+    1039,
+    1040
+  ],
+  "gates": {
+    "coverage": 1041,
+    "runtime_visual": 1042,
+    "convergence": 1043,
+    "final_release": 1021
+  },
+  "requirements": [
+    {
+      "id": "D01",
+      "summary": "Sidebar business-domain organization",
+      "owner_issue": 1035,
+      "evidence": "runtime+source",
+      "status": "PASS"
+    },
+    {
+      "id": "D02",
+      "summary": "Dashboard page header and related tabs outside sibling scopes",
+      "owner_issue": 1035,
+      "evidence": "runtime+source",
+      "status": "PASS"
+    },
+    {
+      "id": "D03",
+      "summary": "Direct Add/Create and exact-record actions outside sibling scopes",
+      "owner_issue": 1035,
+      "evidence": "interaction+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "D04",
+      "summary": "FOODEX action visual contract outside sibling scopes",
+      "owner_issue": 1035,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "D05",
+      "summary": "Orders-style grids and ellipsis actions outside sibling scopes",
+      "owner_issue": 1035,
+      "evidence": "runtime+source",
+      "status": "PASS"
+    },
+    {
+      "id": "D06",
+      "summary": "No routine raw IDs/keys/JSON in general Dashboard scope",
+      "owner_issue": 1035,
+      "evidence": "static+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "D08",
+      "summary": "Administration single entry and icon/card Admin Hub",
+      "owner_issue": 1035,
+      "evidence": "runtime+tests",
+      "status": "PASS"
+    },
+    {
+      "id": "D09",
+      "summary": "Customer/Driver/Van first-class application administration",
+      "owner_issue": 1035,
+      "evidence": "runtime+tests",
+      "status": "PASS"
+    },
+    {
+      "id": "D10",
+      "summary": "Shared FOODEX admin shell in owned scope",
+      "owner_issue": 1035,
+      "evidence": "static+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "D11",
+      "summary": "Unified truthful Driver+Van Live Tracking",
+      "owner_issue": 1035,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "C01",
+      "summary": "Sales Control authoritative Dashboard shell",
+      "owner_issue": 1036,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "C02",
+      "summary": "Sales Control structured business controls",
+      "owner_issue": 1036,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "C03",
+      "summary": "Break-pack Selling Unit lookup",
+      "owner_issue": 1036,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "C04",
+      "summary": "Flash Offers Marketing/Promotions structured Create/Edit workflow",
+      "owner_issue": 1036,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "C05",
+      "summary": "Flash audience lookups/multiselects",
+      "owner_issue": 1036,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "C06",
+      "summary": "Flash product builder and structured channels",
+      "owner_issue": 1036,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "F01",
+      "summary": "Van transfer searchable lookup",
+      "owner_issue": 1037,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "F02",
+      "summary": "Representative/operator/Warehouse lookups",
+      "owner_issue": 1037,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "F03",
+      "summary": "Customer/Store/Route/Order lookups",
+      "owner_issue": 1037,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "F04",
+      "summary": "Address Quality Territory lookup",
+      "owner_issue": 1037,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "F05",
+      "summary": "Map-first territory editor with edit/delete/undo/clear/validation",
+      "owner_issue": 1037,
+      "evidence": "interaction+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "F06",
+      "summary": "FieldOps informative grids and ellipsis actions",
+      "owner_issue": 1037,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MC01",
+      "summary": "Customer compact/full viewport",
+      "owner_issue": 1038,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MC02",
+      "summary": "Customer one-line filters",
+      "owner_issue": 1038,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MC03",
+      "summary": "Customer no-wrap order references",
+      "owner_issue": 1038,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MC04",
+      "summary": "Customer compact rows and ellipsis actions",
+      "owner_issue": 1038,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MC05",
+      "summary": "Customer live refresh and stale/offline truthfulness",
+      "owner_issue": 1038,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "AC01",
+      "summary": "Customer visible app identity",
+      "owner_issue": 1038,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "AC02",
+      "summary": "Customer secure Remember Me/biometric",
+      "owner_issue": 1038,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "IC01",
+      "summary": "Customer real invoice with configured brand identity",
+      "owner_issue": 1038,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MD01",
+      "summary": "Driver compact/full viewport",
+      "owner_issue": 1039,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MD02",
+      "summary": "Driver filters/no-wrap/rows/ellipsis",
+      "owner_issue": 1039,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MD03",
+      "summary": "Driver live refresh and stale/offline truthfulness",
+      "owner_issue": 1039,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "AD01",
+      "summary": "Driver visible app identity",
+      "owner_issue": 1039,
+      "evidence": "runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "AD02",
+      "summary": "Driver secure Remember Me/biometric",
+      "owner_issue": 1039,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "LD01",
+      "summary": "Driver foreground exact new-order alert",
+      "owner_issue": 1039,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "LD02",
+      "summary": "Driver exact-record deep link",
+      "owner_issue": 1039,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "LD03",
+      "summary": "Driver event dedupe/already-open refresh",
+      "owner_issue": 1039,
+      "evidence": "tests+runtime",
+      "status": "PASS"
+    },
+    {
+      "id": "MV01",
+      "summary": "Van compact/full viewport",
+      "owner_issue": 1040,
+      "evidence": "apps/van_app/lib/features/foundation/van_screen_inventory.dart + van_foundation_screen.dart + apps/van_app/test/screenshot_evidence_test.dart (430x932/360x800 AR+EN)",
+      "status": "PASS"
+    },
+    {
+      "id": "MV02",
+      "summary": "Van filters/no-wrap/rows/ellipsis",
+      "owner_issue": 1040,
+      "evidence": "apps/van_app production routes/visits/catalog/orders/finance screens + apps/van_app/test/app_test.dart + screenshot evidence",
+      "status": "PASS"
+    },
+    {
+      "id": "MV03",
+      "summary": "Van live refresh and stale/offline truthfulness",
+      "owner_issue": 1040,
+      "evidence": "Van lifecycle resume refresh/stale-offline implementations across dynamic surfaces + apps/van_app/test/app_test.dart",
+      "status": "PASS"
+    },
+    {
+      "id": "AV01",
+      "summary": "Van visible app identity",
+      "owner_issue": 1040,
+      "evidence": "apps/van_app/lib/features/auth/van_login_screen.dart + AR/EN login screenshot evidence",
+      "status": "PASS"
+    },
+    {
+      "id": "AV02",
+      "summary": "Van secure Remember Me/biometric",
+      "owner_issue": 1040,
+      "evidence": "apps/van_app/lib/app.dart + core/auth/van_auth_persistence.dart + van_session_store.dart + auth tests",
+      "status": "PASS"
+    },
+    {
+      "id": "AV03",
+      "summary": "Van capability parity exceptions explicit",
+      "owner_issue": 1040,
+      "evidence": "apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md + widget/backend parity tests",
+      "status": "PASS"
+    },
+    {
+      "id": "Q01",
+      "summary": "Project-wide localization/raw-status audit",
+      "owner_issue": 1041,
+      "evidence": "scripts/uiux-v42-recovery-audit.py whole-tree static audit + docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md; runtime localization independently reviewed by #1042",
+      "status": "PASS"
+    },
+    {
+      "id": "Q02",
+      "summary": "100% requirement ownership/source-test evidence",
+      "owner_issue": 1041,
+      "evidence": "generated artifacts/uiux-v42-recovery-static-audit.json + docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md",
+      "status": "PASS"
+    },
+    {
+      "id": "Q03",
+      "summary": "Legacy route/screen inventory included",
+      "owner_issue": 1041,
+      "evidence": "whole-tree legacy route/screen inventory verification in scripts/uiux-v42-recovery-audit.py + docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md",
+      "status": "PASS"
+    },
+    {
+      "id": "V01",
+      "summary": "Real integrated runtime evidence for visual/interaction requirements",
+      "owner_issue": 1042,
+      "evidence": "evidence-manifest",
+      "status": "PASS"
+    },
+    {
+      "id": "V02",
+      "summary": "AR/EN RTL/LTR responsive evidence passes",
+      "owner_issue": 1042,
+      "evidence": "evidence-review",
+      "status": "PASS"
+    },
+    {
+      "id": "G01",
+      "summary": "100% matrix PASS exact integrated head",
+      "owner_issue": 1043,
+      "evidence": "convergence-report",
+      "status": "OPEN"
+    },
+    {
+      "id": "G02",
+      "summary": "Frozen SHA/evidence lineage independent of child closure",
+      "owner_issue": 1043,
+      "evidence": "convergence-report",
+      "status": "OPEN"
+    },
+    {
+      "id": "R01",
+      "summary": "Exact-head final release and clean install",
+      "owner_issue": 1021,
+      "evidence": "release-evidence",
+      "status": "OPEN"
+    }
+  ],
+  "runtime_gate": {
+    "issue": 1042,
+    "status": "PASS",
+    "evidence_manifest": "docs/execution/UIUX_V42_RECOVERY_1042_RUNTIME_EVIDENCE.md",
+    "machine_evidence": "docs/execution/UIUX_V42_RECOVERY_1042_RUNTIME_EVIDENCE.json",
+    "integrated_head": "1049663772d3106b6ce57c13470730a72241db0d",
+    "runtime_source_head": "28000baf73ecfb29a83ccecb49746b2040a651cc"
+  }
+}

@@ -17,9 +17,9 @@ permissions:
   contents: read
 
 env:
-  FOODEX_PREVIEW_API_BASE_URL: https://foodex.50sols.com
-  FOODEX_PREVIEW_PARENT_ORIGIN: https://foodex.50sols.com
-  FOODEX_PREVIEW_RUNTIME_ORIGIN: https://foodex.50sols.com
+  FOODEX_PREVIEW_API_BASE_URL: https://vanfoodex.50sols.com
+  FOODEX_PREVIEW_PARENT_ORIGIN: https://vanfoodex.50sols.com
+  FOODEX_PREVIEW_RUNTIME_ORIGIN: https://vanfoodex.50sols.com
   FOODEX_PREVIEW_CONTRACT_VERSION: shared-flutter-v1
   FOODEX_CUSTOMER_PREVIEW_BASE_HREF: /preview/customer/
   FOODEX_DRIVER_PREVIEW_BASE_HREF: /preview/driver/
@@ -126,8 +126,8 @@ jobs:
 
           manifest = json.loads(Path("dist/preview-runtime/preview-runtime-manifest.json").read_text(encoding="utf-8"))
           assert manifest["contract_version"] == "shared-flutter-v1"
-          assert manifest["runtimes"]["customer"]["runtime_url"] == "https://foodex.50sols.com/preview/customer/"
-          assert manifest["runtimes"]["driver"]["runtime_url"] == "https://foodex.50sols.com/preview/driver/"
+          assert manifest["runtimes"]["customer"]["runtime_url"] == "https://vanfoodex.50sols.com/preview/customer/"
+          assert manifest["runtimes"]["driver"]["runtime_url"] == "https://vanfoodex.50sols.com/preview/driver/"
           assert manifest["runtimes"]["customer"]["archive"]["sha256"]
           assert manifest["runtimes"]["driver"]["archive"]["sha256"]
           PY

@@ -11,7 +11,7 @@ from pathlib import Path
 
 def package(root, app, platform, source, output, commit, build_number):
     root, source, output = Path(root), Path(source), Path(output)
-    if app not in ("customer", "driver") or platform not in ("android", "ios"):
+    if app not in ("customer", "driver", "van") or platform not in ("android", "ios"):
         raise ValueError("Unsupported app/platform")
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("An exact source commit SHA is required")
@@ -47,15 +47,17 @@ def package(root, app, platform, source, output, commit, build_number):
         "build_mode": "release",
         "purpose": "ci-validation-only",
         "production_ready": False,
-        "api_base_url": "https://foodex.50sols.com",
+        "api_base_url": "https://vanfoodex.50sols.com",
         "native_identity": {
             "android": {
                 "customer": "com.fiftysolution.foodex.customer",
                 "driver": "com.fiftysolution.foodex.driver",
+                "van": "com.foodex.van",
             },
             "ios": {
                 "customer": "com.fiftysolution.foodex.customer",
                 "driver": "com.fiftysolution.foodex.driver",
+                "van": "com.foodex.van",
             },
         }[platform][app],
         "signing": "flutter-template-debug-key" if platform == "android" else "none",
@@ -77,7 +79,7 @@ def package(root, app, platform, source, output, commit, build_number):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--app", required=True, choices=("customer", "driver"))
+    parser.add_argument("--app", required=True, choices=("customer", "driver", "van"))
     parser.add_argument("--platform", required=True, choices=("android", "ios"))
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)

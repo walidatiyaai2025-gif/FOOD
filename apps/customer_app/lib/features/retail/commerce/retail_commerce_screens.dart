@@ -34,7 +34,8 @@ class RetailCartScreen extends StatefulWidget {
   State<RetailCartScreen> createState() => _RetailCartScreenState();
 }
 
-class _RetailCartScreenState extends State<RetailCartScreen> {
+class _RetailCartScreenState extends State<RetailCartScreen>
+    with WidgetsBindingObserver {
   late RetailCommerceApi _api = widget.api;
   late bool _authenticated = widget.isAuthenticated;
   RetailCartSnapshot? _cart;
@@ -44,7 +45,21 @@ class _RetailCartScreenState extends State<RetailCartScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _reload();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
   }
 
   Future<void> _reload() async {
@@ -332,7 +347,8 @@ class RetailCheckoutScreen extends StatefulWidget {
   State<RetailCheckoutScreen> createState() => _RetailCheckoutScreenState();
 }
 
-class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
+class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
+    with WidgetsBindingObserver {
   late final RetailCheckoutSubmissionGuard _submission =
       RetailCheckoutSubmissionGuard(widget.api);
   final TextEditingController _coupon = TextEditingController();
@@ -347,13 +363,22 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadOptions();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _coupon.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted && !_submitting) {
+      _loadOptions();
+    }
   }
 
   Future<void> _loadOptions() async {

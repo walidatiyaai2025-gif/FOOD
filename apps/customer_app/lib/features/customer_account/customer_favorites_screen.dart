@@ -25,13 +25,29 @@ class CustomerFavoritesScreen extends StatefulWidget {
   State<CustomerFavoritesScreen> createState() => _CustomerFavoritesScreenState();
 }
 
-class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen> {
+class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
+    with WidgetsBindingObserver {
   late Future<Object?> _future;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _future = _load();
+  }
+
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
   }
 
   @override

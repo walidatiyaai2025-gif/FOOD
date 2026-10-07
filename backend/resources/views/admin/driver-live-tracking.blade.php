@@ -22,6 +22,9 @@
 
         @include('admin._driver-live-map', [
             'feedUrl' => $feedUrl,
+            'secondaryFeedUrl' => $vanFeedUrl,
+            'trackingActor' => 'mixed',
+            'trackingStores' => $trackingStores,
             'trackingI18n' => $trackingI18n,
             'liveMapMode' => 'full',
             'showFilters' => true,

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.0.60 - 2026-10-07
+
+- Correct the UIUX-V42 Commercial / Sales Control regression discovered after the 1.0.59 fresh release: the route now uses the authoritative FOODEX premium Dashboard shell and sidebar instead of the legacy standalone commercial page.
+- Rebuild Product Sales Control hierarchy for responsive Arabic RTL / English LTR operation with clear product policy sections for availability, channels, selling units, break-pack behavior, quotas and controlled advanced targeting data.
+- Preserve the canonical server-authoritative commercial policy engine, permissions, store scoping, feature flags, audit behavior and existing persistence contracts while adding regression coverage for Dashboard-shell parity.
+
+## 1.0.59 - 2026-10-07
+
+- Publish the terminal UIUX-V42 mission release after #1002-#1012 convergence, preserving the accepted Customer, Driver, Van and Dashboard behavior on the exact frozen implementation lineage.
+- Ship compact/full-width mobile UX parity, Remember Me and biometric unlock parity, Driver live order alerts/deep links, unified Driver + Van Live Tracking, the real Customer invoice surface, and final Arabic/English RTL/LTR localization acceptance.
+- Build synchronized Customer, Driver and Van Android artifacts at 1.0.59+59 together with the Dashboard update package and the owner-downloadable Laravel Setup ZIP from one release source commit.
+- Validate a completely clean installation from the exact generated Setup ZIP using empty MySQL/Redis state, create the first Super Admin, verify installer lock/version state and the final commercial/Flash/field-operations Dashboard surfaces.
+- Publish the same Setup/APK/manifest bytes to the immutable GitHub Release, generated distribution branch and canonical terminal branch `release/1021-uiux-v42-final-real-build`, with SHA-256/source provenance checks.
+- Keep `main` untouched by this mission release.
+
+## 1.0.58 - 2026-10-06
+
+- Consolidate the complete FOODEX Van field-operations release and #983 commercial program into the single canonical branch `release/1.0.58-van-complete`, without merging to `main`.
+- Ship the canonical commercial policy engine with OPEN/RESTRICTED/CLOSED states, channel/schedule restrictions, independent selling units, base-unit authoritative inventory, quotas, break-pack rules, atomic reservations, audited overrides and Customer > group > channel/default precedence.
+- Ship Flash Offers end-to-end with server-authoritative time, allocation/reservation expiry and release, idempotency, non-stackable defaults, Customer popup/push/Buy Now, audience targeting, Van push-only online behavior, feature flags and kill switches.
+- Ship Van selected-customer commercial rules, quota/restriction reasons, explicit override, commercial offers and Flash online-only while preserving restricted inventory count/transfer/return/reconciliation operations.
+- Ship Dashboard Product Sales Control, Flash management, popup/product-card/notification preview and Flash analytics; preserve cross-channel order/invoice/finance/warehouse snapshots and notification/deep-link dedupe.
+- Ship Store Submission Readiness for Customer and Driver/Van Android/iOS, reviewer credential masking, legal/support/account-deletion surfaces, managed Driver/Van deactivation semantics, configurable version/footer visibility and deterministic PASS/WARN/BLOCKED audits.
+- Target the clean production installation at `https://vanfoodex.50sols.com` with database identity `solscool_vanfoodex`; generate a fresh Laravel Setup ZIP with production Composer dependencies and validate it from an empty MySQL/Redis environment.
+- Keep credentials, database passwords, private signing keys, Firebase service-account secrets and production store signing material outside Git.
+
 ## 1.0.57 - 2026-10-05
 
 - Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/auth/driver_session.dart';
 import '../../../core/localization/driver_translations.dart';
 import '../../../core/preview/driver_preview_context.dart';
+import '../../../core/theme/foodex_theme.dart';
 import '../driver_assignment_contract.dart';
+import '../../wallet/driver_wallet_contract.dart';
 
 typedef DriverActiveAssignmentCallback = Future<void> Function(
   DriverAssignment assignment,
@@ -50,7 +53,9 @@ enum _DriverActiveLoadState { loading, ready, empty, error, offline }
 
 enum _DriverDeliveryPeriod { today, all, custom }
 
-class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
+class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
+    with WidgetsBindingObserver {
+  static const Duration _refreshInterval = Duration(seconds: 15);
   static const Set<String> _terminalStatuses = {
     'delivered',
     'failed',
@@ -63,6 +68,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   List<DriverAssignment> _assignments = const [];
   final Set<int> _busyAssignments = <int>{};
   String? _actionError;
+  String? _staleErrorKey;
+  DateTime? _lastSuccessfulAt;
+  Timer? _refreshTimer;
+  bool _loadInFlight = false;
   bool _focusedAssignmentOpened = false;
   _DriverDeliveryPeriod _period = _DriverDeliveryPeriod.today;
   DateTimeRange? _dateRange;
@@ -70,17 +79,58 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.focusAssignmentId != null) {
       _period = _DriverDeliveryPeriod.all;
     }
     _load();
+    _startLiveRefresh();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load(silent: _assignments.isNotEmpty));
+      _startLiveRefresh();
+      return;
+    }
+
+    _stopLiveRefresh();
+  }
+
+  void _startLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      if (!mounted ||
+          _loadInFlight ||
+          _busyAssignments.isNotEmpty ||
+          _state == _DriverActiveLoadState.loading) {
+        return;
+      }
+      unawaited(_load(silent: true));
+    });
+  }
+
+  void _stopLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopLiveRefresh();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   bool _allows(DriverAssignment assignment, String status) =>
       assignment.availableStatuses.contains(status);
 
-  Future<void> _load() async {
-    if (mounted) {
+  Future<void> _load({bool silent = false}) async {
+    if (_loadInFlight) return;
+    _loadInFlight = true;
+
+    if (mounted && !silent) {
       setState(() {
         _state = _DriverActiveLoadState.loading;
         _actionError = null;
@@ -121,6 +171,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         _state = visible.isEmpty
             ? _DriverActiveLoadState.empty
             : _DriverActiveLoadState.ready;
+        _staleErrorKey = null;
+        _lastSuccessfulAt = DateTime.now();
       });
       _openFocusedAssignmentIfNeeded();
     } on DriverSessionExpiredException {
@@ -130,12 +182,28 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
       }
     } on DriverOfflineException {
       if (mounted) {
-        setState(() => _state = _DriverActiveLoadState.offline);
+        setState(() {
+          if (silent && _assignments.isNotEmpty) {
+            _staleErrorKey = 'driver.offline';
+            _state = _DriverActiveLoadState.ready;
+          } else {
+            _state = _DriverActiveLoadState.offline;
+          }
+        });
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _state = _DriverActiveLoadState.error);
+        setState(() {
+          if (silent && _assignments.isNotEmpty) {
+            _staleErrorKey = 'driver.error';
+            _state = _DriverActiveLoadState.ready;
+          } else {
+            _state = _DriverActiveLoadState.error;
+          }
+        });
       }
+    } finally {
+      _loadInFlight = false;
     }
   }
 
@@ -282,6 +350,116 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         assignment,
         note: note.trim().isEmpty ? null : note.trim(),
       );
+      await _load();
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } on DriverOfflineException {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.offline'));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _actionError = context.tr('driver.error'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busyAssignments.remove(assignment.id));
+      }
+    }
+  }
+
+  bool _requiresCollection(DriverAssignment assignment) =>
+      (assignment.settlement?.amountToCollectNow ?? 0) > 0.0001;
+
+  String _deliveryActionLabel(DriverAssignment assignment) => context.tr(
+        _requiresCollection(assignment)
+            ? 'driver.collection.collect_and_deliver'
+            : 'driver.collection.deliver_no_collection',
+      );
+
+  Future<void> _completeDelivery(DriverAssignment assignment) async {
+    if (!_requiresCollection(assignment)) {
+      await _requestDelivered(assignment);
+      return;
+    }
+
+    final repository = widget.repository;
+    final settlement = assignment.settlement;
+    if (repository is! DriverCollectionRepository || settlement == null) {
+      setState(() {
+        _actionError = context.tr('driver.collection.unavailable');
+      });
+      return;
+    }
+    final collectionRepository = repository as DriverCollectionRepository;
+
+    final amountController = TextEditingController(
+      text: settlement.amountToCollectNow.toStringAsFixed(3),
+    );
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('driver.collection.collect_and_deliver')),
+        content: TextField(
+          key: const Key('driver-collection-amount'),
+          controller: amountController,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: context.tr('driver.collection.amount'),
+            suffixText: settlement.currency,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.tr('driver.action.cancel')),
+          ),
+          FilledButton(
+            key: const Key('driver-collection-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(
+              double.tryParse(amountController.text.trim()),
+            ),
+            child: Text(context.tr('driver.action.confirm')),
+          ),
+        ],
+      ),
+    );
+    amountController.dispose();
+
+    if (amount == null || !mounted) return;
+    if (amount <= 0 || amount > settlement.amountToCollectNow + 0.0005) {
+      setState(() {
+        _actionError = context.tr('driver.collection.invalid_amount');
+      });
+      return;
+    }
+    if (_busyAssignments.contains(assignment.id)) return;
+
+    setState(() {
+      _busyAssignments.add(assignment.id);
+      _actionError = null;
+    });
+
+    try {
+      final result = await collectionRepository.collect(
+        assignment.id,
+        amount: amount,
+        idempotencyKey:
+            'driver-collect-${assignment.id}-${(settlement.remainingAmount * 1000).round()}-${(amount * 1000).round()}',
+      );
+      final fresh = await _fetchAuthoritativeAssignment(assignment.id);
+      if (!mounted || fresh == null) return;
+
+      if (result.remainingAmount <= 0.0001) {
+        await widget.onDeliveredRequested(fresh);
+      } else {
+        setState(() {
+          _actionError =
+              '${context.tr('driver.collection.remaining')}: '
+              '${result.remainingAmount.toStringAsFixed(3)} ${result.currency}';
+        });
+      }
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
@@ -558,9 +736,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               : () => _runDetailAction(
                     sheetContext,
                     assignment,
-                    () => _requestDelivered(assignment),
+                    () => _completeDelivery(assignment),
                   ),
-          child: Text(context.tr('driver.action.delivered')),
+          child: Text(_deliveryActionLabel(assignment)),
         ),
       );
     }
@@ -687,62 +865,74 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
 
   Widget _actions(DriverAssignment assignment) {
     final busy = _busyAssignments.contains(assignment.id);
-    final buttons = <Widget>[];
+    final canAccept =
+        assignment.status == 'assigned' && _allows(assignment, 'accepted');
+    final canStart =
+        const {'accepted', 'picked_up'}.contains(assignment.status) &&
+            _allows(assignment, 'out_for_delivery');
+    final canDeliver = assignment.status == 'out_for_delivery' &&
+        _allows(assignment, 'delivered');
+    final canFail = _allows(assignment, 'failed');
 
-    if (assignment.status == 'assigned' &&
-        _allows(assignment, 'accepted')) {
-      buttons.add(
-        FilledButton(
-          key: Key('driver-active-accept-${assignment.id}'),
-          onPressed:
-              busy ? null : () => _transition(assignment, 'accepted'),
-          child: Text(_statusLabel('accepted')),
+    if (!canAccept && !canStart && !canDeliver && !canFail) {
+      return const SizedBox.shrink();
+    }
+
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: PopupMenuButton<String>(
+        key: Key('driver-active-actions-${assignment.id}'),
+        enabled: !busy,
+        tooltip: context.tr('driver.detail.actions'),
+        icon: Icon(
+          Icons.more_horiz_rounded,
+          key: Key('driver-active-actions-icon-${assignment.id}'),
+          color: FoodexBrand.green,
+          size: 22,
         ),
-      );
-    }
-
-    if (const {'accepted', 'picked_up'}.contains(assignment.status) &&
-        _allows(assignment, 'out_for_delivery')) {
-      buttons.add(
-        FilledButton(
-          key: Key('driver-active-start-${assignment.id}'),
-          onPressed:
-              busy ? null : () => _showStartDeliverySheet(assignment),
-          child: Text(context.tr('driver.action.start_delivery')),
-        ),
-      );
-    }
-
-    if (assignment.status == 'out_for_delivery' &&
-        _allows(assignment, 'delivered')) {
-      buttons.add(
-        FilledButton(
-          key: Key('driver-active-delivered-${assignment.id}'),
-          onPressed: busy ? null : () => _requestDelivered(assignment),
-          child: Text(context.tr('driver.action.delivered')),
-        ),
-      );
-    }
-
-    if (_allows(assignment, 'failed')) {
-      buttons.add(
-        FilledButton.tonalIcon(
-          key: Key('driver-active-card-failed-${assignment.id}'),
-          onPressed: busy ? null : () => _requestFailure(assignment, ''),
-          icon: const Icon(Icons.report_problem_outlined),
-          label: Text(context.tr('driver.action.delivery_failed')),
-        ),
-      );
-    }
-
-    if (buttons.isEmpty) {
-      return Text(context.tr('driver.action.none'));
-    }
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: buttons,
+        onSelected: (action) {
+          switch (action) {
+            case 'accepted':
+              unawaited(_transition(assignment, 'accepted'));
+              break;
+            case 'start':
+              unawaited(_showStartDeliverySheet(assignment));
+              break;
+            case 'delivered':
+              unawaited(_completeDelivery(assignment));
+              break;
+            case 'failed':
+              unawaited(_requestFailure(assignment, ''));
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          if (canAccept)
+            PopupMenuItem<String>(
+              key: Key('driver-active-accept-${assignment.id}'),
+              value: 'accepted',
+              child: Text(_statusLabel('accepted')),
+            ),
+          if (canStart)
+            PopupMenuItem<String>(
+              key: Key('driver-active-start-${assignment.id}'),
+              value: 'start',
+              child: Text(context.tr('driver.action.start_delivery')),
+            ),
+          if (canDeliver)
+            PopupMenuItem<String>(
+              key: Key('driver-active-delivered-${assignment.id}'),
+              value: 'delivered',
+              child: Text(_deliveryActionLabel(assignment)),
+            ),
+          if (canFail)
+            PopupMenuItem<String>(
+              key: Key('driver-active-card-failed-${assignment.id}'),
+              value: 'failed',
+              child: Text(context.tr('driver.action.delivery_failed')),
+            ),
+        ],
+      ),
     );
   }
 
@@ -812,42 +1002,45 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
         : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          OutlinedButton.icon(
-            key: const Key('driver-delivery-date-range'),
-            onPressed: _pickDateRange,
-            icon: const Icon(Icons.date_range_rounded),
-            label: Text(rangeLabel),
-          ),
-          const SizedBox(height: 8),
-          Row(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+      child: SizedBox(
+        key: const Key('driver-filter-single-row'),
+        height: 48,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: ChoiceChip(
-                  key: const Key('driver-filter-today'),
-                  label: Text(context.tr('driver.filter.today')),
-                  selected: _period == _DriverDeliveryPeriod.today,
-                  onSelected: (_) => setState(() {
-                    _period = _DriverDeliveryPeriod.today;
-                  }),
+              OutlinedButton.icon(
+                key: const Key('driver-delivery-date-range'),
+                onPressed: _pickDateRange,
+                icon: const Icon(Icons.date_range_rounded),
+                label: Text(
+                  rangeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: ChoiceChip(
-                  key: const Key('driver-filter-all'),
-                  label: Text(context.tr('driver.filter.all')),
-                  selected: _period == _DriverDeliveryPeriod.all,
-                  onSelected: (_) => setState(() {
-                    _period = _DriverDeliveryPeriod.all;
-                  }),
-                ),
+              ChoiceChip(
+                key: const Key('driver-filter-today'),
+                label: Text(context.tr('driver.filter.today')),
+                selected: _period == _DriverDeliveryPeriod.today,
+                onSelected: (_) => setState(() {
+                  _period = _DriverDeliveryPeriod.today;
+                }),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                key: const Key('driver-filter-all'),
+                label: Text(context.tr('driver.filter.all')),
+                selected: _period == _DriverDeliveryPeriod.all,
+                onSelected: (_) => setState(() {
+                  _period = _DriverDeliveryPeriod.all;
+                }),
               ),
               if (_period == _DriverDeliveryPeriod.custom) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 IconButton(
                   key: const Key('driver-filter-clear-date'),
                   tooltip: context.tr('driver.filter.clear_date'),
@@ -860,7 +1053,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -889,7 +1082,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                     key: widget.initialAssignmentStatus != null
                         ? const Key('driver-active-status-filter')
                         : const Key('driver-active-assignment-list'),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
                     itemCount: rows.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -900,7 +1093,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                         child: InkWell(
                           onTap: () => _showDetail(assignment),
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -909,6 +1102,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                                     Expanded(
                                       child: Text(
                                         assignment.reference,
+                                        key: Key(
+                                          'driver-active-reference-${assignment.id}',
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: Theme.of(context)
@@ -919,12 +1115,17 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                                             ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                       label: Text(
                                         _statusLabel(assignment.status),
                                       ),
                                     ),
+                                    const SizedBox(width: 2),
+                                    _actions(assignment),
                                   ],
                                 ),
                                 if (assignment.storeName.isNotEmpty) ...[
@@ -943,8 +1144,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-                                const SizedBox(height: 14),
-                                _actions(assignment),
+
                               ],
                             ),
                           ),
@@ -992,8 +1192,70 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage> {
               ),
             ],
           ),
+        if (_staleErrorKey != null && _assignments.isNotEmpty)
+          _DriverStaleDataBanner(
+            errorKey: _staleErrorKey!,
+            lastSuccessfulAt: _lastSuccessfulAt,
+          ),
         Expanded(child: body),
       ],
+    );
+  }
+}
+
+class _DriverStaleDataBanner extends StatelessWidget {
+  const _DriverStaleDataBanner({
+    required this.errorKey,
+    required this.lastSuccessfulAt,
+  });
+
+  final String errorKey;
+  final DateTime? lastSuccessfulAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final lastSuccessfulAt = this.lastSuccessfulAt;
+    final time = lastSuccessfulAt == null
+        ? null
+        : '${lastSuccessfulAt.hour.toString().padLeft(2, '0')}:'
+            '${lastSuccessfulAt.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      key: const Key('driver-active-stale'),
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1D39A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 18,
+            color: Color(0xFF8A5A00),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              [
+                context.tr('driver.data.stale'),
+                context.tr(errorKey),
+                if (time != null)
+                  '${context.tr('driver.data.last_confirmed_update')}: $time',
+              ].join(' · '),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6B4A00),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1046,11 +1308,11 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
 
     return ListView(
       key: Key('driver-active-detail-${assignment.id}'),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 20),
       children: [
         Text(
           context.tr('driver.detail.title'),
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),

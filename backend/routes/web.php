@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdministrationHubController;
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
@@ -13,8 +14,10 @@ use App\Http\Controllers\Admin\B2bWorkspaceController;
 use App\Http\Controllers\Admin\B2cWorkspaceController;
 use App\Http\Controllers\Admin\BusinessManagementController;
 use App\Http\Controllers\Admin\CatalogManagementController;
+use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -25,10 +28,12 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
+use App\Http\Controllers\Admin\StoreSubmissionController;
 use App\Http\Controllers\Admin\SystemInspectorController;
 use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
+use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -39,6 +44,23 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', fn () => redirect()->route('admin.b2c.login'));
+
+Route::view('/privacy', 'public.legal', [
+    'title' => 'FOODEX Privacy Policy',
+    'content' => '<div class="card"><p>FOODEX processes account, order, delivery, device and support data only as needed to operate the service, secure accounts, fulfill transactions and meet legal or accounting obligations.</p><p>Store submission declarations must match the actual production build and configured integrations. Contact Support for privacy questions or deletion status.</p></div>',
+])->name('public.privacy');
+Route::view('/terms', 'public.legal', [
+    'title' => 'FOODEX Terms of Service',
+    'content' => '<div class="card"><p>Use of FOODEX is subject to the commercial, payment, delivery and account rules presented in the service. Operational Driver/Van accounts may be managed by the associated organization and are not treated as ordinary consumer accounts.</p></div>',
+])->name('public.terms');
+Route::view('/support', 'public.legal', [
+    'title' => 'FOODEX Support',
+    'content' => '<div class="card"><p>For account, order, delivery, privacy or store-review support, use the support contact configured for the production FOODEX release. This page is intentionally public so external store reviewers can reach the support surface.</p></div>',
+])->name('public.support');
+Route::view('/account-deletion', 'public.legal', [
+    'title' => 'FOODEX Account Deletion',
+    'content' => '<div class="card"><p>Customer accounts can request deletion from the authenticated app. Identity verification is required. Active orders or outstanding financial obligations may delay anonymization. Required order, invoice, payment, tax and audit records are retained where legally or operationally required.</p><p>Driver/Van operational accounts follow managed deactivation and retention rules and are not automatically destroyed as consumer accounts.</p></div>',
+])->name('public.account-deletion');
 
 Route::withoutMiddleware([
     EncryptCookies::class,
@@ -83,6 +105,8 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/administration', AdministrationHubController::class)->name('administration.index');
+        Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
             ->name('assistant.')
             ->middleware('throttle:assistant')
@@ -104,6 +128,35 @@ Route::prefix('admin')
         Route::delete('/app-preview/sessions/{sessionId}', [AppPreviewController::class, 'destroySession'])
             ->whereUuid('sessionId')
             ->name('app-preview.sessions.destroy');
+        Route::prefix('field-operations')->name('field-operations.')->group(function (): void {
+            Route::get('/', [FieldOperationsController::class, 'overview'])->name('overview');
+            Route::get('/fleet-map', [FieldOperationsController::class, 'fleet'])->name('fleet');
+            Route::get('/fleet-map/feed', [FieldOperationsController::class, 'fleetFeed'])->name('fleet.feed');
+            Route::get('/vans', [FieldOperationsController::class, 'vans'])->name('vans');
+            Route::get('/vans/{van}', [FieldOperationsController::class, 'showVan'])->whereNumber('van')->name('vans.show');
+            Route::post('/vans', [FieldOperationsController::class, 'storeVan'])->name('vans.store');
+            Route::post('/vans/{van}/suspend', [FieldOperationsController::class, 'suspendVan'])->whereNumber('van')->name('vans.suspend');
+            Route::get('/assignments', [FieldOperationsController::class, 'assignments'])->name('assignments');
+            Route::post('/vans/{van}/assignments', [FieldOperationsController::class, 'storeAssignment'])->whereNumber('van')->name('assignments.store');
+            Route::get('/customers', [FieldOperationsController::class, 'customers'])->name('customers');
+            Route::get('/visits', [FieldOperationsController::class, 'visits'])->name('visits');
+            Route::post('/visits', [FieldOperationsController::class, 'storeVisit'])->name('visits.store');
+            Route::post('/visits/{visit}/transition', [FieldOperationsController::class, 'transitionVisit'])->whereNumber('visit')->name('visits.transition');
+            Route::get('/territories', [FieldOperationsController::class, 'territories'])->name('territories');
+            Route::post('/geography', [FieldOperationsController::class, 'storeGeography'])->name('geography.store');
+            Route::post('/territories', [FieldOperationsController::class, 'storeTerritory'])->name('territories.store');
+            Route::post('/territories/{territory}/geometry', [FieldOperationsController::class, 'storeGeometry'])->whereNumber('territory')->name('territories.geometry.store');
+            Route::get('/address-quality', [FieldOperationsController::class, 'addressQuality'])->name('address-quality');
+            Route::post('/address-quality/{review}/{action}', [FieldOperationsController::class, 'addressAction'])
+                ->whereNumber('review')->whereIn('action', ['confirm', 'reject', 'reopen'])->name('address-quality.action');
+            Route::get('/routing-policies', [FieldOperationsController::class, 'routingPolicies'])->name('routing');
+            Route::post('/routing-policies', [FieldOperationsController::class, 'storeRoutingPolicy'])->name('routing.store');
+            Route::post('/routing-policies/{routingPolicy}/{action}', [FieldOperationsController::class, 'routingAction'])
+                ->whereNumber('routingPolicy')->whereIn('action', ['publish', 'simulate', 'rollback'])->name('routing.action');
+            Route::get('/finance', [FieldOperationsController::class, 'finance'])->name('finance');
+            Route::post('/finance/remittances/{remittance}/{action}', [FieldOperationsController::class, 'reviewRemittance'])
+                ->whereNumber('remittance')->whereIn('action', ['approve', 'reject', 'reconcile'])->name('finance.remittances.review');
+        });
         Route::get('/driver-live-tracking', [DriverLiveTrackingDashboardController::class, 'index'])->name('driver-live-tracking.index');
         Route::get('/driver-live-tracking/feed', [DriverLiveTrackingController::class, 'feed'])->name('driver-live-tracking.feed');
         Route::get('/driver-live-tracking/assignments/{assignment}/evidence', [DriverLiveTrackingDashboardController::class, 'evidence'])
@@ -158,10 +211,22 @@ Route::prefix('admin')
         Route::delete('/b2b/storefront/banners/{banner}', [StorefrontDraftEditorController::class, 'wholesaleBannerDestroy'])->name('b2b.storefront.banners.destroy');
         Route::post('/b2b/storefront/publish', [StorefrontDraftEditorController::class, 'wholesalePublish'])->name('b2b.storefront.publish');
         Route::post('/b2b/storefront/discard', [StorefrontDraftEditorController::class, 'wholesaleDiscard'])->name('b2b.storefront.discard');
+        Route::post('/b2b/finance/remittances/{remittance}/{action}', [B2bWorkspaceController::class, 'reviewRemittance'])
+            ->whereNumber('remittance')
+            ->whereIn('action', ['approve', 'reject', 'reconcile'])
+            ->name('b2b.finance.remittances.review');
         Route::get('/b2b/pricing-approvals', [B2bWorkspaceController::class, 'show'])->defaults('module', 'pricing')->name('b2b.pricing-approvals');
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
+        Route::get('/b2c/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
+        Route::put('/b2c/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
+        Route::put('/b2c/commercial/feature-flags', [CommercialDashboardController::class, 'saveFeatureFlags'])->name('commercial.feature-flags.save');
+        Route::get('/b2c/commercial/flash-offers', [CommercialDashboardController::class, 'flashOffers'])->name('commercial.flash-offers');
+        Route::get('/b2c/commercial/flash-offers/{offer}/preview', [CommercialDashboardController::class, 'flashPreview'])->whereNumber('offer')->name('commercial.flash-offers.preview');
+        Route::get('/b2c/commercial/flash-offers/{offer}/analytics', [CommercialDashboardController::class, 'flashAnalytics'])->whereNumber('offer')->name('commercial.flash-offers.analytics');
+        Route::post('/b2c/commercial/flash-offers', [CommercialDashboardController::class, 'saveFlashOffer'])->name('commercial.flash-offers.save');
+        Route::post('/b2c/commercial/flash-offers/{offer}/action', [CommercialDashboardController::class, 'flashAction'])->whereNumber('offer')->name('commercial.flash-offers.action');
         Route::post('/b2c/orders/quote', [B2cWorkspaceController::class, 'quoteOrder'])->name('b2c.orders.quote');
         Route::post('/b2c/orders', [B2cWorkspaceController::class, 'storeOrder'])->name('b2c.orders.store');
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
@@ -263,6 +328,7 @@ Route::prefix('admin')
         Route::delete('/security/roles/{role}', [SecurityController::class, 'destroyRole'])->name('security.roles.destroy');
         Route::get('/apps/customer/download', [MobileAppDownloadController::class, 'customer'])->name('mobile-apps.customer.download');
         Route::get('/apps/driver/download', [MobileAppDownloadController::class, 'driver'])->name('mobile-apps.driver.download');
+        Route::get('/apps/van/download', [MobileAppDownloadController::class, 'van'])->name('mobile-apps.van.download');
         Route::get('/settings/assistant', [AssistantSettingsController::class, 'index'])->name('assistant-settings.index');
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
@@ -273,6 +339,10 @@ Route::prefix('admin')
         Route::put('/settings/mobile/push', [MobileSettingsController::class, 'updateProvider'])->name('mobile-settings.push');
         Route::post('/settings/mobile/push/test-connection', [MobileSettingsController::class, 'testProvider'])->name('mobile-settings.push.test');
         Route::post('/settings/mobile/test-push', [MobileSettingsController::class, 'testPush'])->name('mobile-settings.test');
+        Route::put('/settings/mobile/submission', [StoreSubmissionController::class, 'updateSubmission'])->name('mobile-settings.submission');
+        Route::put('/settings/mobile/reviewer', [StoreSubmissionController::class, 'upsertReviewer'])->name('mobile-settings.reviewer');
+        Route::post('/settings/mobile/reviewer/{reviewer}/rotate', [StoreSubmissionController::class, 'rotateReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.rotate');
+        Route::post('/settings/mobile/reviewer/{reviewer}/test', [StoreSubmissionController::class, 'testReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.test');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');

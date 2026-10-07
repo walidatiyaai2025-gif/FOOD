@@ -19,6 +19,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       customer: ${{ steps.filter.outputs.customer }}
       driver: ${{ steps.filter.outputs.driver }}
+      van: ${{ steps.filter.outputs.van }}
       app_preview_visual: ${{ steps.filter.outputs.app_preview_visual }}
       preview_runtime_distribution: ${{ steps.filter.outputs.preview_runtime_distribution }}
       mobile_prod_ux_acceptance: ${{ steps.filter.outputs.mobile_prod_ux_acceptance }}
@@ -44,6 +45,7 @@ jobs:
           backend=false
           customer=false
           driver=false
+          van=false
           app_preview_visual=false
           preview_runtime_distribution=false
           mobile_prod_ux_acceptance=false
@@ -62,17 +64,30 @@ jobs:
             driver=true
           fi
 
-          if grep -Eq '^(\.github/workflows/release-validation\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/release-readiness\.sh|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
+          if grep -Eq '^(apps/van_app/|packages/design_tokens/|scripts/(configure-mobile-native|package-mobile-artifact)\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/van-app-ci\.yml$)' changed-files.txt; then
+            van=true
+          fi
+
+          if grep -Eq '^(\.github/workflows/(release-validation|trial-distribution)\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/(release-readiness\.sh|write-trial-bundle-manifest\.py|validate_release_artifact_contract\.py)|scripts/tests/test_release_artifact_contract\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
             backend=true
             customer=true
             driver=true
+            van=true
           fi
 
-          if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-mobile-prod-ux-final-acceptance$ ]]; then
+          if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-mobile-prod-ux-final-acceptance$ || "${GITHUB_HEAD_REF:-}" == "test/1011-v42-cross-app-regression" ]]; then
             mobile_prod_ux_acceptance=true
             backend=true
             customer=true
             driver=true
+            van=true
+          fi
+
+          if [[ "${GITHUB_HEAD_REF:-}" == "test/1041-uiux-requirement-coverage-audit" ]]; then
+            backend=true
+            customer=true
+            driver=true
+            van=true
           fi
 
           if [[ "${GITHUB_HEAD_REF:-}" =~ ^test/[0-9]+-operational-completion-e2e$ ]]; then
@@ -80,6 +95,7 @@ jobs:
             backend=true
             customer=true
             driver=true
+            van=true
             app_preview_visual=true
             preview_runtime_distribution=true
           fi
@@ -91,6 +107,7 @@ jobs:
             backend=true
             customer=true
             driver=true
+            van=true
             app_preview_visual=true
             preview_runtime_distribution=true
           fi
@@ -107,6 +124,7 @@ jobs:
             echo "backend=$backend"
             echo "customer=$customer"
             echo "driver=$driver"
+            echo "van=$van"
             echo "app_preview_visual=$app_preview_visual"
             echo "preview_runtime_distribution=$preview_runtime_distribution"
             echo "mobile_prod_ux_acceptance=$mobile_prod_ux_acceptance"
@@ -133,6 +151,33 @@ jobs:
       - name: Validate mobile artifact packaging
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_artifact.py'
 
+      - name: Validate synchronized release artifact contract
+        run: python3 -m unittest discover -s scripts/tests -p 'test_release_artifact_contract.py'
+
+      - name: Test mobile UX v4.2 guard
+        run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_ux_contract_guard.py'
+
+      - name: Enforce mobile UX v4.2 anti-regression guard
+        run: python3 scripts/mobile-ux-contract-guard.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
+      - name: Test UIUX v4.2 recovery independent audit
+        run: python3 -m unittest discover -s scripts/tests -p 'test_uiux_v42_recovery_audit.py'
+
+      - name: Run UIUX v4.2 recovery independent whole-tree audit
+        if: ${{ github.head_ref == 'test/1041-uiux-requirement-coverage-audit' }}
+        run: |
+          mkdir -p artifacts
+          python3 scripts/uiux-v42-recovery-audit.py --report artifacts/uiux-v42-recovery-static-audit.json
+
+      - name: Upload UIUX v4.2 static audit report
+        if: ${{ always() && github.head_ref == 'test/1041-uiux-requirement-coverage-audit' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: uiux-v42-recovery-static-audit-${{ github.event.pull_request.head.sha }}
+          path: artifacts/uiux-v42-recovery-static-audit.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Require issue-style PR branch
         shell: bash
         run: |
@@ -157,6 +202,19 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.driver == 'true' }}
     uses: ./.github/workflows/driver-app-ci.yml
+
+  van-validation:
+    name: Van validation
+    needs: changes
+    if: ${{ needs.changes.outputs.van == 'true' }}
+    uses: ./.github/workflows/van-app-ci.yml
+
+  localization-quality:
+    name: Localization quality
+    uses: ./.github/workflows/localization-quality-gate.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
 
   app-preview-visual-parity:
     name: APP-PREVIEW visual runtime parity
@@ -241,6 +299,8 @@ jobs:
       - backend-validation
       - customer-validation
       - driver-validation
+      - van-validation
+      - localization-quality
       - app-preview-visual-parity
       - preview-runtime-distribution
       - screenshot-evidence
@@ -259,6 +319,9 @@ jobs:
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
+          VAN_CHANGED: ${{ needs.changes.outputs.van }}
+          VAN_RESULT: ${{ needs.van-validation.result }}
+          LOCALIZATION_RESULT: ${{ needs.localization-quality.result }}
           APP_PREVIEW_VISUAL_CHANGED: ${{ needs.changes.outputs.app_preview_visual }}
           APP_PREVIEW_VISUAL_RESULT: ${{ needs.app-preview-visual-parity.result }}
           PREVIEW_RUNTIME_DISTRIBUTION_CHANGED: ${{ needs.changes.outputs.preview_runtime_distribution }}
@@ -300,6 +363,8 @@ jobs:
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
+          require_applicable_success "$VAN_CHANGED" "Van validation" "$VAN_RESULT"
+          require_success "Localization quality" "$LOCALIZATION_RESULT"
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
           require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"

@@ -329,6 +329,29 @@ final class CommerceQuoteService
     }
 
     /**
+     * Totals for a server-authoritative direct purchase whose merchandise price
+     * has already been resolved by another canonical pricing flow (for example Flash).
+     *
+     * @return array{currency:string,delivery_total:float,tax_rate:float,tax_total:float,grand_total:float}
+     */
+    public function directPurchaseTotals(int $storeId, float $netMerchandiseSubtotal): array
+    {
+        $subtotal = round(max(0.0, $netMerchandiseSubtotal), 3);
+        $deliveryTotal = $this->deliveryFee($storeId);
+        $taxRate = $this->taxRate($storeId);
+        $taxableAmount = max(0.0, $subtotal + $deliveryTotal);
+        $taxTotal = round($taxableAmount * ($taxRate / 100), 3);
+
+        return [
+            'currency' => $this->currency($storeId),
+            'delivery_total' => $deliveryTotal,
+            'tax_rate' => $taxRate,
+            'tax_total' => $taxTotal,
+            'grand_total' => round($taxableAmount + $taxTotal, 3),
+        ];
+    }
+
+    /**
      * @param  array{account:B2bAccount|null,tier:B2bPriceTier|null}  $b2bContext
      * @return array<string, mixed>
      */
@@ -385,6 +408,10 @@ final class CommerceQuoteService
                 'is_available' => false,
                 'available_quantity' => 0.0,
                 'availability_state' => 'OUT_OF_STOCK',
+                'commercial_status' => 'UNAVAILABLE',
+                'commercial_reason_codes' => ['PRODUCT_NOT_AVAILABLE'],
+                'commercial_limits' => [],
+                'selling_units' => [],
                 'minimum_order_quantity' => null,
                 'ordering_increment' => null,
                 'pack_size' => null,
@@ -413,7 +440,19 @@ final class CommerceQuoteService
                 ),
             );
 
-        $isAvailable = $availableQuantity === null || $quantity <= $availableQuantity + 0.0001;
+        $legacyCustomerId = $customer?->legacy_customer_id === null
+            ? null
+            : (int) $customer->legacy_customer_id;
+        $commercial = app(CommercialPolicyService::class)->evaluate(
+            $productId,
+            $legacyCustomerId,
+            'customer',
+            $quantity,
+        );
+        $sellingUnits = app(CommercialPolicyService::class)->sellingUnits($productId);
+
+        $isAvailable = ($availableQuantity === null || $quantity <= $availableQuantity + 0.0001)
+            && $commercial['allowed'];
         $unitPrice = (float) $product->price;
         $minimum = null;
         $increment = null;
@@ -460,6 +499,14 @@ final class CommerceQuoteService
         }
 
         if (! $isAvailable && $strict) {
+            if (! $commercial['allowed']) {
+                throw ValidationException::withMessages([
+                    'items' => [
+                        'Commercial policy rejected product '.$productId.': '.implode(',', $commercial['reason_codes']),
+                    ],
+                ]);
+            }
+
             abort(409, 'Requested quantity exceeds available stock.');
         }
 
@@ -480,7 +527,13 @@ final class CommerceQuoteService
             'line_total' => $lineSubtotal,
             'is_available' => $isAvailable,
             'available_quantity' => $availableQuantity,
-            'availability_state' => $availableQuantity !== null && $availableQuantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE',
+            'availability_state' => ! $commercial['allowed']
+                ? 'COMMERCIAL_POLICY_BLOCKED'
+                : ($availableQuantity !== null && $availableQuantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE'),
+            'commercial_status' => $commercial['status'],
+            'commercial_reason_codes' => $commercial['reason_codes'],
+            'commercial_limits' => $commercial['limits'],
+            'selling_units' => $sellingUnits,
             'minimum_order_quantity' => $minimum,
             'ordering_increment' => $increment,
             'pack_size' => $packSize,

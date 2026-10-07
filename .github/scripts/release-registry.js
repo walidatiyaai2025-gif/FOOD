@@ -39,7 +39,8 @@ function currentVersion(root) {
   return fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
 }
 
-function validateRegistry(root, registry) {
+function validateRegistry(root, registry, expectedVersion = null, options = {}) {
+  const allowReleaseCandidate = options.allowReleaseCandidate === true;
   if (registry.schema_version !== 1) fail('Release registry schema_version must be 1.');
   if (registry.policy !== 'main-authoritative-append-only') {
     fail('Release registry policy must be main-authoritative-append-only.');
@@ -48,7 +49,7 @@ function validateRegistry(root, registry) {
     fail('Release registry must contain at least one release.');
   }
 
-  const repoVersion = currentVersion(root);
+  const repoVersion = expectedVersion || currentVersion(root);
   if (registry.current_version !== repoVersion) {
     fail('VERSION (' + repoVersion + ') must match release registry current_version (' + registry.current_version + ').');
   }
@@ -63,7 +64,14 @@ function validateRegistry(root, registry) {
     if (i > 0 && compareVersions(registry.releases[i - 1].version, entry.version) >= 0) {
       fail('Release registry versions must be strictly increasing.');
     }
-    if (entry.state !== 'published') fail('Release ' + entry.version + ' must be registered as published.');
+    const isCurrentReleaseCandidate =
+      allowReleaseCandidate
+      && i === registry.releases.length - 1
+      && entry.version === repoVersion
+      && entry.state === 'release-candidate';
+    if (entry.state !== 'published' && !isCurrentReleaseCandidate) {
+      fail('Release ' + entry.version + ' must be registered as published.');
+    }
     if (!entry.release_notes || !fs.existsSync(path.join(root, entry.release_notes))) {
       fail('Release ' + entry.version + ' is missing its registered release-notes file.');
     }
@@ -143,6 +151,28 @@ function assertAppendOnly(base, head) {
   }
 }
 
+function validationVersionForCandidate(repoVersion, registry, baseRegistry) {
+  if (!baseRegistry || registry.current_version === repoVersion) {
+    return repoVersion;
+  }
+
+  if (JSON.stringify(registry) !== JSON.stringify(baseRegistry)) {
+    fail(
+      'A PR with an unpublished VERSION may not mutate the published release registry. ' +
+      'Register generated release artifacts in the dedicated release flow.'
+    );
+  }
+
+  if (compareVersions(repoVersion, baseRegistry.current_version) <= 0) {
+    fail(
+      'Candidate VERSION (' + repoVersion + ') must be greater than the published registry version (' +
+      baseRegistry.current_version + ').'
+    );
+  }
+
+  return baseRegistry.current_version;
+}
+
 function registryFromGit(root, ref) {
   try {
     const raw = execFileSync(
@@ -158,11 +188,30 @@ function registryFromGit(root, ref) {
 
 function runValidate(root) {
   const registry = readJson(path.join(root, REGISTRY_PATH));
-  const result = validateRegistry(root, registry);
-
+  const repoVersion = currentVersion(root);
   const baseRef = process.env.GITHUB_BASE_REF ? 'origin/' + process.env.GITHUB_BASE_REF : null;
-  if (baseRef) assertAppendOnly(registryFromGit(root, baseRef), registry);
+  const baseRegistry = baseRef ? registryFromGit(root, baseRef) : null;
+  const validationVersion = validationVersionForCandidate(
+    repoVersion,
+    registry,
+    baseRegistry,
+  );
+  const isReleaseBranchValidation =
+    (process.env.GITHUB_BASE_REF || '').startsWith('release/')
+    || (process.env.GITHUB_REF_NAME || '').startsWith('release/');
+  const result = validateRegistry(root, registry, validationVersion, {
+    allowReleaseCandidate: isReleaseBranchValidation,
+  });
 
+  if (baseRef) assertAppendOnly(baseRegistry, registry);
+
+  if (validationVersion !== repoVersion) {
+    console.log(
+      'Candidate VERSION ' + repoVersion +
+      ' is ahead of published registry ' + validationVersion +
+      '; published artifacts remain immutable until the release flow registers the candidate.'
+    );
+  }
   console.log('Release registry valid: ' + result.version + ' ' + result.digest);
 }
 
@@ -197,4 +246,5 @@ module.exports = {
   compareVersions,
   parseVersion,
   validateRegistry,
+  validationVersionForCandidate,
 };

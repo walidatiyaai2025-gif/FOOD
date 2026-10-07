@@ -15,6 +15,21 @@ fi
 base="$(git merge-base "$base_ref" HEAD)"
 
 echo "FOODEX worker bootstrap"
+echo
+echo "MANDATORY UI/UX CONTRACT:"
+echo "  docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md"
+echo "  Read before changing Dashboard/Admin/business-facing UI."
+echo "  No raw IDs/keys/codes/JSON when a Lookup/Enum/Builder is appropriate."
+echo "  Customer + Driver + Van application parity must be evaluated."
+echo "  Localization: every new UI/page/function must keep Arabic/English labels and localized business data aligned; no raw English in Arabic UI."
+echo "  Mobile UI: compact header, full viewport, one-line filters, no wrapped order numbers, compact rows, green ellipsis actions."
+echo "  Auth parity: Remember Me + biometric unlock for Customer/Driver/Van; never store plaintext passwords."
+echo "  Dashboard map: unified Live Tracking for Drivers (person icon) + Vans (vehicle icon)."
+echo "  Release contract: every VERSION release refreshes Release/Updates + versioned Customer/Driver/Van APKs + LATEST_RELEASE.json."
+echo "  Active FOOD mission: #1001 (UIUX-V42); bare commands 'حرك مشروع FOOD' / 'FOOD MISSION' mean drain #1001."
+echo "  Mission registry: docs/execution/ACTIVE_FOOD_MISSION.json"
+echo "  Connection safety: re-read GitHub before retrying uncertain branch/PR/workflow mutations; never duplicate branches/PRs."
+echo
 echo "branch=$branch"
 echo "head=$head"
 echo "base_ref=$base_ref"

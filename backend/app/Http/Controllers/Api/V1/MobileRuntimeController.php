@@ -13,7 +13,7 @@ final class MobileRuntimeController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'environment' => ['required', 'in:development,staging,production'],
             'locale' => ['nullable', 'in:ar,en'],
         ]);
@@ -66,6 +66,10 @@ final class MobileRuntimeController extends Controller
                 'privacy_url' => $setting->privacy_url,
                 'terms_url' => $setting->terms_url,
                 'support_url' => $setting->support_url,
+                'delete_account_url' => $setting->delete_account_url,
+                'footer_display_mode' => in_array($setting->footer_display_mode, ['persistent', 'about_only', 'hidden'], true)
+                    ? $setting->footer_display_mode
+                    : 'persistent',
                 'release_notes' => $locale === 'en'
                     ? $setting->release_notes_en
                     : $setting->release_notes_ar,

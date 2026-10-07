@@ -2622,6 +2622,40 @@ components:
         available_quantity:
           type: [number, "null"]
           minimum: 0
+        availability_state:
+          type: string
+        commercial_status:
+          type: string
+          description: Server-authoritative OPEN / RESTRICTED / CLOSED policy state when the product is resolvable.
+        commercial_reason_codes:
+          type: array
+          items:
+            type: string
+        commercial_limits:
+          type: object
+          additionalProperties:
+            type: [number, "null"]
+        selling_units:
+          type: array
+          items:
+            type: object
+            required: [code, name, conversion_factor, is_base]
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+              conversion_factor:
+                type: number
+                exclusiveMinimum: 0
+              price:
+                type: [number, "null"]
+              sku:
+                type: [string, "null"]
+              barcode:
+                type: [string, "null"]
+              is_base:
+                type: boolean
         minimum_order_quantity:
           type: [number, "null"]
         ordering_increment:
@@ -2739,6 +2773,26 @@ components:
           type: number
           exclusiveMinimum: 0
           multipleOf: 0.001
+        selling_unit_code:
+          type: [string, "null"]
+          description: Selling unit code captured when the order line was confirmed.
+        selling_unit_name:
+          type: [string, "null"]
+          description: Selling unit display name captured when the order line was confirmed.
+        selling_unit_quantity:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        base_quantity:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+          description: Authoritative inventory/quota quantity in the product base unit.
+        conversion_factor:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+          description: Immutable selling-unit to base-unit conversion captured at confirmation.
         unit_price:
           type: number
           multipleOf: 0.001

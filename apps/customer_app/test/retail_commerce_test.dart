@@ -12,6 +12,26 @@ import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+Future<void> _simulateAppResume(WidgetTester tester) async {
+  final state = tester.binding.lifecycleState;
+
+  if (state == AppLifecycleState.paused) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+  } else if (state == AppLifecycleState.detached) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+  }
+
+  if (tester.binding.lifecycleState != AppLifecycleState.inactive) {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+  }
+
+  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   test('checkout options come from authenticated backend contract', () async {
     final api = HttpRetailCheckoutOptionsApi(
@@ -180,6 +200,31 @@ void main() {
     expect(find.byKey(const ValueKey('retail-cart-summary')), findsOneWidget);
   });
 
+  testWidgets('cart refreshes authoritative snapshot on resume', (tester) async {
+    final api = _FakeRetailCommerceApi();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCartScreen(
+          storeId: 7,
+          api: api,
+          isAuthenticated: true,
+          onCheckout: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final beforeResume = api.loadCartCalls;
+    expect(beforeResume, 1);
+
+    await _simulateAppResume(tester);
+
+    expect(api.loadCartCalls, beforeResume + 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('cart V3 fits narrow RTL layout with larger text', (tester) async {
     final api = _FakeRetailCommerceApi();
     tester.view.physicalSize = const Size(360, 800);
@@ -290,6 +335,30 @@ void main() {
     expect(addAddressCalls, 1);
   });
 
+  testWidgets('checkout refreshes authoritative options on resume',
+      (tester) async {
+    final api = _FakeRetailCommerceApi();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCheckoutScreen(
+          storeId: 7,
+          api: api,
+          onOrderCreated: (_, __) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.checkoutOptionsCalls, 1);
+
+    await _simulateAppResume(tester);
+
+    expect(api.checkoutOptionsCalls, 2);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('checkout exposes backend payment options and created order',
       (tester) async {
     final api = _FakeRetailCommerceApi();
@@ -338,6 +407,8 @@ void main() {
 
 class _FakeRetailCommerceApi implements RetailCommerceApi {
   bool emptyAddresses = false;
+  int loadCartCalls = 0;
+  int checkoutOptionsCalls = 0;
   int mergeCalls = 0;
   int? lastMergeStore;
   int submitCalls = 0;
@@ -367,25 +438,28 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
       );
 
   @override
-  Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) async =>
-      RetailCheckoutOptions(
-        storeId: storeId,
-        addresses: emptyAddresses
-            ? const <RetailCheckoutAddress>[]
-            : const [
-                RetailCheckoutAddress(
-                  id: 9,
-                  label: 'Home',
-                  line1: 'Street 1',
-                  city: 'Kuwait City',
-                  isDefault: true,
-                ),
-              ],
-        paymentMethods: const ['cash_on_delivery', 'knet'],
-      );
+  Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) async {
+    checkoutOptionsCalls += 1;
+    return RetailCheckoutOptions(
+      storeId: storeId,
+      addresses: emptyAddresses
+          ? const <RetailCheckoutAddress>[]
+          : const [
+              RetailCheckoutAddress(
+                id: 9,
+                label: 'Home',
+                line1: 'Street 1',
+                city: 'Kuwait City',
+                isDefault: true,
+              ),
+            ],
+      paymentMethods: const ['cash_on_delivery', 'knet'],
+    );
+  }
 
   @override
   Future<RetailCartSnapshot> loadCart({required int storeId}) async {
+    loadCartCalls += 1;
     final pending = cartCompleter;
     if (pending != null) return pending.future;
     return cart;

@@ -7,7 +7,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
-    expect(find.text('فودكس للسائق'), findsOneWidget);
+    expect(find.text('تطبيق السائق'), findsOneWidget);
     expect(find.byKey(const Key('driver-config-missing')), findsNothing);
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
     expect(find.byKey(const Key('driver-login-password')), findsOneWidget);
@@ -54,4 +54,14 @@ void main() {
     );
     expect(directionality.textDirection, TextDirection.ltr);
   });
+  testWidgets('dashboard can remove persistent driver footer while diagnostics remain reachable',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexDriverApp(showPersistentFooter: false),
+    );
+
+    expect(find.byKey(const Key('driver-app-version-footer')), findsNothing);
+    expect(find.byKey(const Key('driver-floating-inspector')), findsOneWidget);
+  });
+
 }

@@ -1,0 +1,449 @@
+{
+  "schema_version": 1,
+  "production_base_url": "https://vanfoodex.50sols.com",
+  "release": {
+    "version": "1.0.60",
+    "build": "60"
+  },
+  "public_urls": {
+    "privacy": "https://vanfoodex.50sols.com/privacy",
+    "terms": "https://vanfoodex.50sols.com/terms",
+    "support": "https://vanfoodex.50sols.com/support",
+    "delete_account": "https://vanfoodex.50sols.com/account-deletion"
+  },
+  "lanes": [
+    {
+      "app": "customer",
+      "platform": "android",
+      "identifier": "com.fiftysolution.foodex.customer",
+      "title": "FOODEX",
+      "category": "Shopping",
+      "permissions": [
+        {
+          "name": "INTERNET",
+          "reason": "FOODEX API, storefront, authentication and push services"
+        },
+        {
+          "name": "ACCESS_COARSE_LOCATION",
+          "reason": "Optional delivery-address location selection"
+        },
+        {
+          "name": "ACCESS_FINE_LOCATION",
+          "reason": "Optional precise delivery-address location selection"
+        },
+        {
+          "name": "USE_BIOMETRIC",
+          "reason": "Optional biometric unlock for saved customer session"
+        }
+      ],
+      "external_manual": [
+        "Google Play Console app ownership/access",
+        "production upload signing key / Play App Signing enrollment",
+        "store screenshots and promotional asset upload",
+        "final Play Data safety declaration"
+      ],
+      "short_description": "Order from FOODEX retail and wholesale storefronts with account-aware ordering and delivery workflows.",
+      "full_description": "FOODEX Customer provides authenticated retail and wholesale shopping, product discovery, cart and checkout, order tracking, notifications, account management, addresses, favorites and support surfaces backed by the production FOODEX service.",
+      "keywords": [
+        "food delivery",
+        "shopping",
+        "retail",
+        "wholesale",
+        "orders"
+      ],
+      "reviewer_notes": "Use the Dashboard-managed Customer reviewer persona. Sign in, confirm the expected customer/store context, browse catalog, review account/settings and exercise the deletion-request entry without using production personal credentials.",
+      "release_notes_en": "Store-submission readiness, legal/support surfaces, secure reviewer configuration, account deletion workflow and configurable version-footer visibility.",
+      "release_notes_ar": "جاهزية الرفع للمتاجر وصفحات الدعم والسياسات وحساب المراجع الآمن وطلب حذف الحساب والتحكم في ظهور شريط الإصدار.",
+      "screenshots": [
+        "login",
+        "home/catalog",
+        "product/order flow",
+        "orders/tracking",
+        "account/settings"
+      ],
+      "privacy_working_checklist": [
+        "account identifiers",
+        "orders and transaction records",
+        "delivery/address data",
+        "device/push token",
+        "optional location",
+        "diagnostics/support data"
+      ],
+      "version": "1.0.60",
+      "build": "60",
+      "support_url": "https://vanfoodex.50sols.com/support",
+      "privacy_url": "https://vanfoodex.50sols.com/privacy",
+      "terms_url": "https://vanfoodex.50sols.com/terms",
+      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "asset_readiness": {
+        "icon_master": "repository-controlled",
+        "splash_master": "repository-controlled",
+        "screenshots": "EXTERNAL_MANUAL_FINAL_UPLOAD",
+        "promotional_assets": "EXTERNAL_MANUAL_IF_REQUIRED"
+      },
+      "readiness_semantics": {
+        "repository": "automated audit",
+        "external": "manual console/signing/store actions"
+      }
+    },
+    {
+      "app": "customer",
+      "platform": "ios",
+      "identifier": "com.fiftysolution.foodex.customer",
+      "title": "FOODEX",
+      "category": "Shopping",
+      "permissions": [
+        "NSLocationWhenInUseUsageDescription",
+        "NSCameraUsageDescription",
+        "NSFaceIDUsageDescription",
+        "aps-environment"
+      ],
+      "external_manual": [
+        "Apple Developer/App Store Connect access",
+        "distribution certificate and provisioning/App Store signing",
+        "APNs/Firebase production console association confirmation",
+        "store screenshots and promotional asset upload",
+        "final App Privacy declaration"
+      ],
+      "short_description": "Order from FOODEX retail and wholesale storefronts with account-aware ordering and delivery workflows.",
+      "full_description": "FOODEX Customer provides authenticated retail and wholesale shopping, product discovery, cart and checkout, order tracking, notifications, account management, addresses, favorites and support surfaces backed by the production FOODEX service.",
+      "keywords": [
+        "food delivery",
+        "shopping",
+        "retail",
+        "wholesale",
+        "orders"
+      ],
+      "reviewer_notes": "Use the Dashboard-managed Customer reviewer persona. Sign in, confirm the expected customer/store context, browse catalog, review account/settings and exercise the deletion-request entry without using production personal credentials.",
+      "release_notes_en": "Store-submission readiness, legal/support surfaces, secure reviewer configuration, account deletion workflow and configurable version-footer visibility.",
+      "release_notes_ar": "جاهزية الرفع للمتاجر وصفحات الدعم والسياسات وحساب المراجع الآمن وطلب حذف الحساب والتحكم في ظهور شريط الإصدار.",
+      "screenshots": [
+        "login",
+        "home/catalog",
+        "product/order flow",
+        "orders/tracking",
+        "account/settings"
+      ],
+      "privacy_working_checklist": [
+        "account identifiers",
+        "orders and transaction records",
+        "delivery/address data",
+        "device/push token",
+        "optional location",
+        "diagnostics/support data"
+      ],
+      "version": "1.0.60",
+      "build": "60",
+      "support_url": "https://vanfoodex.50sols.com/support",
+      "privacy_url": "https://vanfoodex.50sols.com/privacy",
+      "terms_url": "https://vanfoodex.50sols.com/terms",
+      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "asset_readiness": {
+        "icon_master": "repository-controlled",
+        "splash_master": "repository-controlled",
+        "screenshots": "EXTERNAL_MANUAL_FINAL_UPLOAD",
+        "promotional_assets": "EXTERNAL_MANUAL_IF_REQUIRED"
+      },
+      "readiness_semantics": {
+        "repository": "automated audit",
+        "external": "manual console/signing/store actions"
+      }
+    },
+    {
+      "app": "driver",
+      "platform": "android",
+      "identifier": "com.fiftysolution.foodex.driver",
+      "title": "FOODEX Driver",
+      "category": "Business",
+      "permissions": [
+        {
+          "name": "INTERNET",
+          "reason": "FOODEX operational APIs and push"
+        },
+        {
+          "name": "ACCESS_COARSE_LOCATION",
+          "reason": "Driver location during active operations"
+        },
+        {
+          "name": "ACCESS_FINE_LOCATION",
+          "reason": "Precise driver location during active delivery"
+        },
+        {
+          "name": "FOREGROUND_SERVICE",
+          "reason": "Continue active delivery location service when backgrounded"
+        },
+        {
+          "name": "FOREGROUND_SERVICE_LOCATION",
+          "reason": "Android foreground location service type"
+        },
+        {
+          "name": "USE_BIOMETRIC",
+          "reason": "Optional biometric unlock for saved driver session"
+        }
+      ],
+      "forbidden_permissions": [
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "external_manual": [
+        "Google Play Console app ownership/access",
+        "production upload signing key / Play App Signing enrollment",
+        "store screenshots and promotional asset upload",
+        "final Play Data safety declaration"
+      ],
+      "short_description": "FOODEX operational Driver/Van app for assigned delivery workflows and live operational status.",
+      "full_description": "FOODEX Driver/Van supports authenticated operational assignments, pickup and delivery execution, notifications, controlled active-delivery location reporting and diagnostics against the production FOODEX service.",
+      "keywords": [
+        "delivery",
+        "driver",
+        "van",
+        "operations"
+      ],
+      "reviewer_notes": "Use the Dashboard-managed Driver/Van reviewer persona. Sign in to the assigned operational identity, verify assignment/context and exercise the deterministic review journey. Driver accounts use managed deactivation/retention rather than Customer self-deletion semantics.",
+      "release_notes_en": "Store-submission readiness, secure reviewer configuration, release signing validation, permission declarations and configurable version-footer visibility.",
+      "release_notes_ar": "جاهزية الرفع للمتاجر وإعداد المراجع الآمن والتحقق من توقيع الإصدار وتوثيق الصلاحيات والتحكم في ظهور شريط الإصدار.",
+      "screenshots": [
+        "login",
+        "home/assignments",
+        "assignment details",
+        "pickup/delivery flow",
+        "diagnostics/settings"
+      ],
+      "privacy_working_checklist": [
+        "driver account identifier",
+        "assignment/order operational data",
+        "device/push token",
+        "precise active-delivery location",
+        "diagnostics/support data"
+      ],
+      "version": "1.0.60",
+      "build": "60",
+      "support_url": "https://vanfoodex.50sols.com/support",
+      "privacy_url": "https://vanfoodex.50sols.com/privacy",
+      "terms_url": "https://vanfoodex.50sols.com/terms",
+      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "asset_readiness": {
+        "icon_master": "repository-controlled",
+        "splash_master": "repository-controlled",
+        "screenshots": "EXTERNAL_MANUAL_FINAL_UPLOAD",
+        "promotional_assets": "EXTERNAL_MANUAL_IF_REQUIRED"
+      },
+      "readiness_semantics": {
+        "repository": "automated audit",
+        "external": "manual console/signing/store actions"
+      }
+    },
+    {
+      "app": "driver",
+      "platform": "ios",
+      "identifier": "com.fiftysolution.foodex.driver",
+      "title": "FOODEX Driver",
+      "category": "Business",
+      "permissions": [
+        "NSLocationWhenInUseUsageDescription",
+        "NSFaceIDUsageDescription",
+        "UIBackgroundModes.location",
+        "aps-environment"
+      ],
+      "forbidden_permissions": [
+        "NSLocationAlwaysAndWhenInUseUsageDescription"
+      ],
+      "external_manual": [
+        "Apple Developer/App Store Connect access",
+        "distribution certificate and provisioning/App Store signing",
+        "APNs/Firebase production console association confirmation",
+        "store screenshots and promotional asset upload",
+        "final App Privacy declaration"
+      ],
+      "short_description": "FOODEX operational Driver/Van app for assigned delivery workflows and live operational status.",
+      "full_description": "FOODEX Driver/Van supports authenticated operational assignments, pickup and delivery execution, notifications, controlled active-delivery location reporting and diagnostics against the production FOODEX service.",
+      "keywords": [
+        "delivery",
+        "driver",
+        "van",
+        "operations"
+      ],
+      "reviewer_notes": "Use the Dashboard-managed Driver/Van reviewer persona. Sign in to the assigned operational identity, verify assignment/context and exercise the deterministic review journey. Driver accounts use managed deactivation/retention rather than Customer self-deletion semantics.",
+      "release_notes_en": "Store-submission readiness, secure reviewer configuration, release signing validation, permission declarations and configurable version-footer visibility.",
+      "release_notes_ar": "جاهزية الرفع للمتاجر وإعداد المراجع الآمن والتحقق من توقيع الإصدار وتوثيق الصلاحيات والتحكم في ظهور شريط الإصدار.",
+      "screenshots": [
+        "login",
+        "home/assignments",
+        "assignment details",
+        "pickup/delivery flow",
+        "diagnostics/settings"
+      ],
+      "privacy_working_checklist": [
+        "driver account identifier",
+        "assignment/order operational data",
+        "device/push token",
+        "precise active-delivery location",
+        "diagnostics/support data"
+      ],
+      "version": "1.0.60",
+      "build": "60",
+      "support_url": "https://vanfoodex.50sols.com/support",
+      "privacy_url": "https://vanfoodex.50sols.com/privacy",
+      "terms_url": "https://vanfoodex.50sols.com/terms",
+      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "asset_readiness": {
+        "icon_master": "repository-controlled",
+        "splash_master": "repository-controlled",
+        "screenshots": "EXTERNAL_MANUAL_FINAL_UPLOAD",
+        "promotional_assets": "EXTERNAL_MANUAL_IF_REQUIRED"
+      },
+      "readiness_semantics": {
+        "repository": "automated audit",
+        "external": "manual console/signing/store actions"
+      }
+    },
+    {
+      "app": "van",
+      "platform": "android",
+      "identifier": "com.foodex.van",
+      "title": "FOODEX Van",
+      "category": "Business",
+      "permissions": [
+        {
+          "name": "INTERNET",
+          "reason": "FOODEX operational APIs and push"
+        },
+        {
+          "name": "ACCESS_COARSE_LOCATION",
+          "reason": "Driver location during active operations"
+        },
+        {
+          "name": "ACCESS_FINE_LOCATION",
+          "reason": "Precise driver location during active delivery"
+        },
+        {
+          "name": "FOREGROUND_SERVICE",
+          "reason": "Continue active delivery location service when backgrounded"
+        },
+        {
+          "name": "FOREGROUND_SERVICE_LOCATION",
+          "reason": "Android foreground location service type"
+        },
+        {
+          "name": "USE_BIOMETRIC",
+          "reason": "Optional biometric unlock for saved driver session"
+        }
+      ],
+      "forbidden_permissions": [
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "external_manual": [
+        "Google Play Console app ownership/access",
+        "production upload signing key / Play App Signing enrollment",
+        "store screenshots and promotional asset upload",
+        "final Play Data safety declaration"
+      ],
+      "short_description": "FOODEX Van field operations for authenticated mobile sales, route execution and operational workflows.",
+      "full_description": "FOODEX Van provides authenticated van operations, route and visit execution, mobile sales workflows, notifications, secure session access and operational diagnostics against the production FOODEX service.",
+      "keywords": [
+        "van",
+        "field sales",
+        "routes",
+        "operations",
+        "orders"
+      ],
+      "reviewer_notes": "Use the Dashboard-managed Van reviewer persona with an account authorized by van.login. Sign in, verify the assigned operational context and exercise the deterministic Van review journey without using production personal credentials.",
+      "release_notes_en": "Store-submission readiness, secure reviewer configuration, release signing validation, permission declarations and configurable version-footer visibility.",
+      "release_notes_ar": "جاهزية الرفع للمتاجر وإعداد المراجع الآمن والتحقق من توقيع الإصدار وتوثيق الصلاحيات والتحكم في ظهور شريط الإصدار.",
+      "screenshots": [
+        "login",
+        "home/assignments",
+        "assignment details",
+        "pickup/delivery flow",
+        "diagnostics/settings"
+      ],
+      "privacy_working_checklist": [
+        "van operator account identifier",
+        "route/visit/order operational data",
+        "device/push token",
+        "operational location where enabled",
+        "diagnostics/support data"
+      ],
+      "version": "1.0.60",
+      "build": "60",
+      "support_url": "https://vanfoodex.50sols.com/support",
+      "privacy_url": "https://vanfoodex.50sols.com/privacy",
+      "terms_url": "https://vanfoodex.50sols.com/terms",
+      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "asset_readiness": {
+        "icon_master": "repository-controlled",
+        "splash_master": "repository-controlled",
+        "screenshots": "EXTERNAL_MANUAL_FINAL_UPLOAD",
+        "promotional_assets": "EXTERNAL_MANUAL_IF_REQUIRED"
+      },
+      "readiness_semantics": {
+        "repository": "automated audit",
+        "external": "manual console/signing/store actions"
+      }
+    },
+    {
+      "app": "van",
+      "platform": "ios",
+      "identifier": "com.foodex.van",
+      "title": "FOODEX Van",
+      "category": "Business",
+      "permissions": [
+        "NSLocationWhenInUseUsageDescription",
+        "NSFaceIDUsageDescription",
+        "UIBackgroundModes.location",
+        "aps-environment"
+      ],
+      "forbidden_permissions": [
+        "NSLocationAlwaysAndWhenInUseUsageDescription"
+      ],
+      "external_manual": [
+        "Apple Developer/App Store Connect access",
+        "distribution certificate and provisioning/App Store signing",
+        "APNs/Firebase production console association confirmation",
+        "store screenshots and promotional asset upload",
+        "final App Privacy declaration"
+      ],
+      "short_description": "FOODEX Van field operations for authenticated mobile sales, route execution and operational workflows.",
+      "full_description": "FOODEX Van provides authenticated van operations, route and visit execution, mobile sales workflows, notifications, secure session access and operational diagnostics against the production FOODEX service.",
+      "keywords": [
+        "van",
+        "field sales",
+        "routes",
+        "operations",
+        "orders"
+      ],
+      "reviewer_notes": "Use the Dashboard-managed Van reviewer persona with an account authorized by van.login. Sign in, verify the assigned operational context and exercise the deterministic Van review journey without using production personal credentials.",
+      "release_notes_en": "Store-submission readiness, secure reviewer configuration, release signing validation, permission declarations and configurable version-footer visibility.",
+      "release_notes_ar": "جاهزية الرفع للمتاجر وإعداد المراجع الآمن والتحقق من توقيع الإصدار وتوثيق الصلاحيات والتحكم في ظهور شريط الإصدار.",
+      "screenshots": [
+        "login",
+        "home/assignments",
+        "assignment details",
+        "pickup/delivery flow",
+        "diagnostics/settings"
+      ],
+      "privacy_working_checklist": [
+        "van operator account identifier",
+        "route/visit/order operational data",
+        "device/push token",
+        "operational location where enabled",
+        "diagnostics/support data"
+      ],
+      "version": "1.0.60",
+      "build": "60",
+      "support_url": "https://vanfoodex.50sols.com/support",
+      "privacy_url": "https://vanfoodex.50sols.com/privacy",
+      "terms_url": "https://vanfoodex.50sols.com/terms",
+      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "asset_readiness": {
+        "icon_master": "repository-controlled",
+        "splash_master": "repository-controlled",
+        "screenshots": "EXTERNAL_MANUAL_FINAL_UPLOAD",
+        "promotional_assets": "EXTERNAL_MANUAL_IF_REQUIRED"
+      },
+      "readiness_semantics": {
+        "repository": "automated audit",
+        "external": "manual console/signing/store actions"
+      }
+    }
+  ]
+}

@@ -37,4 +37,16 @@ void main() {
     );
     expect(directionality.textDirection, TextDirection.ltr);
   });
+  testWidgets('dashboard can remove persistent customer footer with zero footer surface',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(showPersistentFooter: false),
+    );
+
+    expect(
+      find.byKey(const ValueKey('customer-app-version-footer')),
+      findsNothing,
+    );
+  });
+
 }

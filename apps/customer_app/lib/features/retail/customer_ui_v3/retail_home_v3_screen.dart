@@ -30,9 +30,16 @@ class RetailHomeV3Screen extends StatefulWidget {
   State<RetailHomeV3Screen> createState() => _RetailHomeV3ScreenState();
 }
 
-class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
+class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
+    with WidgetsBindingObserver {
   late Future<_RetailHomeV3Data> _future = _load();
   final TextEditingController _search = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   Future<_RetailHomeV3Data> _load() async {
     final values = await Future.wait<Object?>([
@@ -70,11 +77,23 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _search.dispose();
     super.dispose();
   }
 
-  void _reload() => setState(() => _future = _load());
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
+  }
+
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   Future<void> _refresh() async {
     _reload();

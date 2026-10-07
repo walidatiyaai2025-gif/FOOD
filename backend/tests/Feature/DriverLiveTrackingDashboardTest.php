@@ -35,6 +35,10 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertSee('/assets/admin/driver-live-map.js', false)
             ->assertSee('data-driver-live-map', false)
             ->assertSee('data-driver-live-map-i18n', false)
+            ->assertSee('data-actor-kind="mixed"', false)
+            ->assertSee('data-secondary-feed-url="', false)
+            ->assertSee('/admin/field-operations/fleet-map/feed', false)
+            ->assertSee('Live Tracking', false)
             ->assertSee('data-live-map="error-message"', false)
             ->assertSee('data-live-map="retry"', false)
             ->assertSee('data-assets-failed=', false)
@@ -57,13 +61,17 @@ class DriverLiveTrackingDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('data-mode="full"', false)
+            ->assertSee('data-actor-kind="mixed"', false)
+            ->assertSee('التتبع الحي', false)
             ->assertSee('تعذر تحميل ملفات الخريطة.', false)
             ->assertSee('data-live-map="retry"', false)
             ->assertViewHas('trackingI18n', static function (array $i18n): bool {
                 return $i18n['status'] === 'الحالة'
                     && $i18n['statuses']['online'] === 'متصل'
                     && $i18n['statuses']['stale'] === 'متأخر'
-                    && $i18n['statuses']['offline'] === 'غير متصل';
+                    && $i18n['statuses']['offline'] === 'غير متصل'
+                    && $i18n['driver'] === 'سائق'
+                    && $i18n['van'] === 'فان';
             });
     }
 

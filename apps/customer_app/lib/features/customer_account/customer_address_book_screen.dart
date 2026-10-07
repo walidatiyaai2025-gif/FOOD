@@ -10,6 +10,10 @@ import '../../core/location/customer_map_pin_selector.dart';
 import 'customer_account_data.dart';
 import 'customer_account_v3_widgets.dart';
 
+const String customerDefaultAddressCity = 'Cairo';
+const String customerDefaultAddressCountry = 'Egypt';
+const String customerDefaultAddressCountryCode = 'EG';
+
 class CustomerAddressBookScreen extends StatefulWidget {
   const CustomerAddressBookScreen({
     required this.api,
@@ -27,13 +31,29 @@ class CustomerAddressBookScreen extends StatefulWidget {
       _CustomerAddressBookScreenState();
 }
 
-class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
+class _CustomerAddressBookScreenState
+    extends State<CustomerAddressBookScreen> with WidgetsBindingObserver {
   late Future<Object?> _future;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _future = widget.api.addresses();
+  }
+
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload();
+    }
   }
 
   @override
@@ -139,13 +159,13 @@ class _CustomerAddressBookScreenState extends State<CustomerAddressBookScreen> {
         text: existing?['apartment']?.toString() ?? '',
       ),
       'city': TextEditingController(
-        text: existing?['city']?.toString() ?? 'Kuwait City',
+        text: existing?['city']?.toString() ?? customerDefaultAddressCity,
       ),
       'country': TextEditingController(
-        text: existing?['country']?.toString() ?? 'Kuwait',
+        text: existing?['country']?.toString() ?? customerDefaultAddressCountry,
       ),
       'country_code': TextEditingController(
-        text: existing?['country_code']?.toString() ?? 'KW',
+        text: existing?['country_code']?.toString() ?? customerDefaultAddressCountryCode,
       ),
       'landmark': TextEditingController(
         text: existing?['landmark']?.toString() ?? '',

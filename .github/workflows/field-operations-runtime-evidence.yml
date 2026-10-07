@@ -1,0 +1,119 @@
+name: FOODEX Field Operations Runtime Evidence
+
+on:
+  pull_request:
+    paths:
+      - "backend/app/Http/Controllers/Admin/FieldOperationsController.php"
+      - "backend/app/Models/VanVisit.php"
+      - "backend/lang/ar/field_operations.php"
+      - "backend/lang/en/field_operations.php"
+      - "backend/resources/views/admin/field-operations.blade.php"
+      - "backend/tests/Feature/FieldOperationsUiFoundationTest.php"
+      - "backend/database/seeders/FieldOperationsScreenshotEvidenceSeeder.php"
+      - "scripts/capture_field_operations_screenshots.mjs"
+      - ".github/workflows/field-operations-runtime-evidence.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  capture-field-operations:
+    name: Capture Field Operations AR EN runtime evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare deterministic Field Operations database
+        working-directory: backend
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: file
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          rm -f database/database.sqlite
+          touch database/database.sqlite
+          php artisan migrate:fresh --force
+          php artisan db:seed --class=Database\\Seeders\\ScreenshotEvidenceSeeder --force
+          php artisan db:seed --class=Database\\Seeders\\FieldOperationsScreenshotEvidenceSeeder --force
+
+      - name: Start FOODEX runtime
+        working-directory: backend
+        env:
+          APP_ENV: local
+          APP_URL: http://127.0.0.1:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: file
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/foodex-fieldops-evidence-server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/foodex-fieldops-evidence-server.log
+          exit 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture Field Operations runtime evidence
+        working-directory: backend
+        env:
+          FOODEX_SCREENSHOT_BASE_URL: http://127.0.0.1:8000
+        run: node ../scripts/capture_field_operations_screenshots.mjs
+
+      - name: Verify Field Operations evidence pack
+        run: |
+          set -euo pipefail
+          count="$(find ScreenShots/02_Web/FieldOperations -type f -name '*.png' | wc -l | tr -d ' ')"
+          test "$count" -eq 30
+          test -s "ScreenShots/02_Web/FieldOperations/vans__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/FieldOperations/vans__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/FieldOperations/visits__tablet-768__ar.png"
+          test -s "ScreenShots/02_Web/FieldOperations/territories-map__desktop-1280__en.png"
+          test -s "ScreenShots/02_Web/FieldOperations/territories-map__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/FieldOperations/address-quality__tablet-768__en.png"
+          echo "Captured Field Operations runtime PNGs: $count"
+
+      - name: Upload Field Operations evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-field-operations-runtime-${{ github.event.pull_request.number || github.run_id }}
+          path: ScreenShots/02_Web/FieldOperations/
+          if-no-files-found: error
+          retention-days: 14

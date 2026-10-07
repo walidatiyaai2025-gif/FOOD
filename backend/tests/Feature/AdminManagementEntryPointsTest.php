@@ -12,7 +12,7 @@ class AdminManagementEntryPointsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_can_move_between_translation_and_notification_centers(): void
+    public function test_super_admin_uses_administration_hub_and_management_centers_keep_cross_links(): void
     {
         $this->seed(CoreReferenceSeeder::class);
 
@@ -28,9 +28,7 @@ class AdminManagementEntryPointsTest extends TestCase
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee(route('admin.translations.index'))
-            ->assertSee(route('admin.notifications.index'))
-            ->assertSee(__('notifications.title'));
+            ->assertSee(route('admin.administration.index'));
 
         $this->actingAs($user)
             ->get('/admin/settings/translations')

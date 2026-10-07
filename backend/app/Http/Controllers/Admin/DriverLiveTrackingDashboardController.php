@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\DriverDeliveryEvidenceService;
+use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -18,6 +20,7 @@ final class DriverLiveTrackingDashboardController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly TenantContextResolver $tenantResolver,
+        private readonly OperationalTenantScope $operationalScope,
         private readonly DriverDeliveryEvidenceService $evidence,
     ) {}
 
@@ -27,11 +30,28 @@ final class DriverLiveTrackingDashboardController extends Controller
         abort_unless($user instanceof User, 401);
         abort_unless($this->canView($user), 403);
 
+        $storeIds = array_values(array_unique(array_merge(
+            $this->operationalScope->allowedStoreIds($user, 'drivers.tracking.view', 'b2b'),
+            $this->operationalScope->allowedStoreIds($user, 'drivers.tracking.view', 'b2c'),
+        )));
+        $trackingStores = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code'])
+            ->map(static fn (object $store): array => [
+                'id' => (int) $store->id,
+                'name' => (string) $store->name,
+                'code' => (string) ($store->code ?? ''),
+            ])
+            ->all();
+
         return view('admin.driver-live-tracking', [
             'user' => $user,
             'navGroups' => $this->navigation->groupsFor($user),
             'navContext' => 'driver_live_tracking',
             'feedUrl' => route('admin.driver-live-tracking.feed'),
+            'vanFeedUrl' => route('admin.field-operations.fleet.feed'),
+            'trackingStores' => $trackingStores,
             'trackingI18n' => [
                 'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
                 'loading' => __('admin.driver_live_tracking.loading'),
@@ -48,6 +68,13 @@ final class DriverLiveTrackingDashboardController extends Controller
                 'accuracy' => __('admin.driver_live_tracking.accuracy'),
                 'speed' => __('admin.driver_live_tracking.speed'),
                 'lastSeen' => __('admin.driver_live_tracking.last_seen'),
+                'driver' => __('admin.driver_live_tracking.driver'),
+                'van' => __('admin.driver_live_tracking.van'),
+                'entities' => __('admin.driver_live_tracking.entities'),
+                'entityType' => __('admin.driver_live_tracking.entity_type'),
+                'allEntities' => __('admin.driver_live_tracking.all_entities'),
+                'route' => __('admin.driver_live_tracking.route'),
+                'assignment' => __('admin.driver_live_tracking.assignment'),
             ],
         ]);
     }

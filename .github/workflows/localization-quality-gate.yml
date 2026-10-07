@@ -1,0 +1,139 @@
+name: FOODEX Localization Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: false
+        type: string
+      head_sha:
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+      - "release/**"
+    paths:
+      - "apps/**"
+      - "backend/resources/views/**"
+      - "backend/lang/**"
+      - "backend/config/ui_translations.php"
+      - "scripts/localization-quality-gate.py"
+      - "scripts/tests/test_localization_quality_gate.py"
+      - ".github/workflows/localization-quality-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: localization-quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  localization-quality:
+    name: Arabic / English localization quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP for backend language parity
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - name: Resolve comparison range
+        id: range
+        shell: bash
+        env:
+          INPUT_BASE: ${{ inputs.base_sha }}
+          INPUT_HEAD: ${{ inputs.head_sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          head="${INPUT_HEAD:-}"
+          base="${INPUT_BASE:-}"
+
+          if [[ -z "$head" ]]; then
+            head="${PR_HEAD:-}"
+          fi
+          if [[ -z "$head" ]]; then
+            head="$GITHUB_SHA"
+          fi
+
+          if [[ -z "$base" ]]; then
+            base="${PR_BASE:-}"
+          fi
+          if [[ -z "$base" && -n "${PUSH_BEFORE:-}" && ! "${PUSH_BEFORE}" =~ ^0+$ ]]; then
+            base="$PUSH_BEFORE"
+          fi
+          if [[ -z "$base" ]]; then
+            base="$(git rev-parse "$head^" 2>/dev/null || git rev-parse "$head")"
+          fi
+
+          # #1021 is intentionally based on the independently frozen recovery tree.
+          # Its long-lived PR base predates that recovery mission, so comparing the
+          # historical base to the terminal release head would re-audit accepted app
+          # source instead of the release-only delta. The app/runtime tree is frozen
+          # by #1043; terminal PR localization checks therefore compare HEAD^..HEAD.
+          if [[ "${HEAD_REF:-}" == "release/1021-uiux-v42-final-real-build" ]]; then
+            terminal_parent="$(git rev-parse "$head^" 2>/dev/null || true)"
+            if [[ -n "$terminal_parent" ]]; then
+              base="$terminal_parent"
+            fi
+          fi
+
+          # A force-with-lease realignment can leave github.event.before unreachable
+          # from the fetched refs. Fall back to the current head parent instead of
+          # failing range resolution on an orphaned pre-realignment SHA.
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git rev-parse "$head^" 2>/dev/null || git rev-parse "$head")"
+          fi
+
+          git cat-file -e "$base^{commit}"
+          git cat-file -e "$head^{commit}"
+
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo "Localization comparison: $base..$head"
+
+      - name: Test localization gate
+        run: python3 -m unittest discover -s scripts/tests -p 'test_localization_quality_gate.py'
+
+      - name: Enforce AR/EN localization contract
+        run: |
+          python3 scripts/localization-quality-gate.py \
+            --base "${{ steps.range.outputs.base }}" \
+            --head "${{ steps.range.outputs.head }}"
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Verify Customer localization runtime
+        working-directory: apps/customer_app
+        run: |
+          flutter pub get
+          flutter test test/localization_test.dart
+
+      - name: Verify Driver localization runtime
+        working-directory: apps/driver_app
+        run: |
+          flutter pub get
+          flutter test test/localization_test.dart
+
+      - name: Verify Van localization runtime
+        working-directory: apps/van_app
+        run: |
+          flutter pub get
+          flutter test test/localization_test.dart

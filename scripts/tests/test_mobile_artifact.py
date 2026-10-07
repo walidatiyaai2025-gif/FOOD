@@ -12,8 +12,8 @@ SPEC.loader.exec_module(MODULE)
 
 
 class MobileArtifactTest(unittest.TestCase):
-    def test_both_apps_and_platforms_produce_traceable_validation_evidence(self):
-        for app in ("customer", "driver"):
+    def test_supported_apps_and_platforms_produce_traceable_validation_evidence(self):
+        for app in ("customer", "driver", "van"):
             for platform, suffix in (("android", ".apk"), ("ios", ".zip")):
                 with self.subTest(app=app, platform=platform), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
@@ -29,8 +29,12 @@ class MobileArtifactTest(unittest.TestCase):
                     self.assertEqual("a" * 40, manifest["source_commit"])
                     self.assertFalse(manifest["production_ready"])
                     self.assertEqual("ci-validation-only", manifest["purpose"])
-                    self.assertEqual("https://foodex.50sols.com", manifest["api_base_url"])
-                    expected_id = f"com.fiftysolution.foodex.{app}"
+                    self.assertEqual("https://vanfoodex.50sols.com", manifest["api_base_url"])
+                    expected_id = (
+                        "com.foodex.van"
+                        if app == "van"
+                        else f"com.fiftysolution.foodex.{app}"
+                    )
                     self.assertEqual(expected_id, manifest["native_identity"])
                     self.assertEqual("flutter-template-debug-key" if platform == "android" else "none", manifest["signing"])
                     self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), manifest["sha256"])

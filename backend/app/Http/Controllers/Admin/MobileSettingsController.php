@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MobileAppSetting;
+use App\Models\MobileStoreSubmission;
 use App\Models\PushDeliveryLog;
 use App\Models\PushDeviceToken;
 use App\Models\PushProviderSetting;
+use App\Models\StoreReviewerAccount;
 use App\Models\SystemVersion;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -15,6 +17,7 @@ use App\Services\PushDeliveryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class MobileSettingsController extends Controller
@@ -24,7 +27,7 @@ final class MobileSettingsController extends Controller
         $this->authorizeAny($request);
 
         $settings = MobileAppSetting::query()->orderBy('app')->orderBy('environment')->get();
-        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver'], true)
+        $selectedApp = in_array((string) $request->query('app'), ['customer', 'driver', 'van'], true)
             ? (string) $request->query('app')
             : 'customer';
         $selectedEnvironment = in_array((string) $request->query('environment'), ['development', 'staging', 'production'], true)
@@ -42,9 +45,18 @@ final class MobileSettingsController extends Controller
             'selectedSetting' => $selectedSetting,
             'currentReleaseVersion' => $this->currentReleaseVersion(),
             'providers' => PushProviderSetting::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
-            'devices' => PushDeviceToken::query()->whereNull('revoked_at')->latest()->limit(100)->get(),
+            'devices' => PushDeviceToken::query()->with('user:id,name,email')->whereNull('revoked_at')->latest()->limit(100)->get(),
             'logs' => PushDeliveryLog::query()->latest()->limit(100)->get(),
             'driverLocationPolicy' => $driverLocationPolicy->snapshot(),
+            'submissionMasterAssetStates' => ['repository-controlled', 'external-manual', 'blocked'],
+            'submissionUploadAssetStates' => ['repository-controlled', 'external-manual-final-upload', 'external-manual-if-required', 'blocked'],
+            'storeSubmissions' => MobileStoreSubmission::query()->orderBy('app')->orderBy('platform')->orderBy('environment')->get(),
+            'reviewerAccounts' => StoreReviewerAccount::query()->orderBy('app')->orderBy('platform')->orderBy('persona')->get(),
+            'reviewerStores' => DB::table('stores')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('stores.is_active', true)
+                ->orderBy('stores.name')
+                ->get(['stores.id', 'stores.name', 'store_types.code as channel']),
         ]);
     }
 
@@ -52,7 +64,7 @@ final class MobileSettingsController extends Controller
     {
         $actor = $this->authorize($request, 'mobile_settings.manage');
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'environment' => ['required', 'in:development,staging,production'],
             'display_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'android_package_id' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -70,8 +82,15 @@ final class MobileSettingsController extends Controller
             'privacy_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
             'terms_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
             'support_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'delete_account_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'footer_display_mode' => ['sometimes', 'in:persistent,about_only,hidden'],
             'release_notes_ar' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'release_notes_en' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'deep_link_scheme' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'deep_link_host' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'readiness_android' => ['sometimes', 'boolean'],
+            'readiness_ios' => ['sometimes', 'boolean'],
+            'readiness_privacy' => ['sometimes', 'boolean'],
             'deep_link_json' => ['sometimes', 'nullable', 'json'],
             'store_readiness_json' => ['sometimes', 'nullable', 'json'],
         ]);
@@ -105,6 +124,8 @@ final class MobileSettingsController extends Controller
             'privacy_url',
             'terms_url',
             'support_url',
+            'delete_account_url',
+            'footer_display_mode',
             'release_notes_ar',
             'release_notes_en',
         ] as $key) {
@@ -119,11 +140,36 @@ final class MobileSettingsController extends Controller
             }
         }
 
-        if (array_key_exists('deep_link_json', $data)) {
+        if (array_key_exists('deep_link_scheme', $data) || array_key_exists('deep_link_host', $data)) {
+            $deepLinkConfig = $before?->getAttribute('deep_link_config');
+            $deepLinks = is_array($deepLinkConfig) ? $deepLinkConfig : [];
+
+            foreach (['deep_link_scheme' => 'scheme', 'deep_link_host' => 'host'] as $input => $key) {
+                if (! array_key_exists($input, $data)) {
+                    continue;
+                }
+
+                $value = trim((string) ($data[$input] ?? ''));
+                if ($value === '') {
+                    unset($deepLinks[$key]);
+                } else {
+                    $deepLinks[$key] = $value;
+                }
+            }
+
+            $values['deep_link_config'] = $deepLinks;
+        } elseif (array_key_exists('deep_link_json', $data)) {
             $values['deep_link_config'] = $this->decode($data['deep_link_json']);
         }
 
-        if (array_key_exists('store_readiness_json', $data)) {
+        if (array_key_exists('readiness_android', $data) || array_key_exists('readiness_ios', $data) || array_key_exists('readiness_privacy', $data)) {
+            $storeReadiness = $before?->getAttribute('store_readiness');
+            $readiness = is_array($storeReadiness) ? $storeReadiness : [];
+            $readiness['android'] = $request->boolean('readiness_android');
+            $readiness['ios'] = $request->boolean('readiness_ios');
+            $readiness['privacy'] = $request->boolean('readiness_privacy');
+            $values['store_readiness'] = $readiness;
+        } elseif (array_key_exists('store_readiness_json', $data)) {
             $values['store_readiness'] = $this->decode($data['store_readiness_json']);
         }
 
@@ -199,7 +245,7 @@ final class MobileSettingsController extends Controller
     ): RedirectResponse {
         $actor = $this->authorize($request, 'push_settings.manage');
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
             'enabled' => ['nullable', 'boolean'],
@@ -266,7 +312,7 @@ final class MobileSettingsController extends Controller
     ): RedirectResponse {
         $actor = $this->authorize($request, 'push_settings.manage');
         $data = $request->validate([
-            'app' => ['required', 'in:customer,driver'],
+            'app' => ['required', 'in:customer,driver,van'],
             'platform' => ['required', 'in:android,ios'],
             'environment' => ['required', 'in:development,staging,production'],
         ]);

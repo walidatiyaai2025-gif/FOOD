@@ -6,6 +6,7 @@ use App\Services\PlatformCustomerService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class ScreenshotEvidenceSeeder extends Seeder
@@ -46,6 +47,62 @@ class ScreenshotEvidenceSeeder extends Seeder
             'updated_at' => $now,
         ]);
         DB::table('role_user')->insert(['role_id' => $superRoleId, 'user_id' => $englishAdminId]);
+
+        DB::table('notifications')->insert([
+            'user_id' => null,
+            'created_by' => $superAdminId,
+            'channel' => 'both',
+            'type' => 'evidence',
+            'audience' => 'van',
+            'app' => 'van',
+            'target_channel' => 'all',
+            'status' => 'draft',
+            'title' => 'إشعار فان تجريبي',
+            'title_ar' => 'إشعار فان تجريبي',
+            'title_en' => 'Van evidence notification',
+            'body' => 'إشعار مخصص لإثبات واجهة الإدارة.',
+            'body_ar' => 'إشعار مخصص لإثبات واجهة الإدارة.',
+            'body_en' => 'Dashboard runtime evidence notification for Van.',
+            'data' => json_encode(['evidence' => true], JSON_THROW_ON_ERROR),
+            'published_at' => null,
+            'read_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('notification_campaigns')->insert([
+            'name' => 'Van Runtime Evidence Campaign',
+            'type' => 'promotion',
+            'title_ar' => 'حملة فان تجريبية',
+            'title_en' => 'Van runtime evidence campaign',
+            'body_ar' => 'حملة مخصصة لإثبات إجراءات السجل في لوحة الإدارة.',
+            'body_en' => 'Campaign used to prove Dashboard record actions for Van.',
+            'audience' => 'van',
+            'app' => 'van',
+            'target_channel' => 'all',
+            'delivery_channel' => 'both',
+            'popup_frequency' => 'once_per_session',
+            'popup_cta_label_ar' => 'فتح',
+            'popup_cta_label_en' => 'Open',
+            'popup_cta_target' => '/orders',
+            'user_id' => null,
+            'store_id' => null,
+            'created_by' => $superAdminId,
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'starts_at' => $now->addHour(),
+            'interval_value' => null,
+            'interval_unit' => null,
+            'ends_at' => null,
+            'max_runs' => 1,
+            'run_count' => 0,
+            'next_run_at' => $now->addHour(),
+            'last_run_at' => null,
+            'last_notification_id' => null,
+            'status' => 'draft',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
 
         $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $storeId = (int) DB::table('stores')->insertGetId([
@@ -114,6 +171,22 @@ class ScreenshotEvidenceSeeder extends Seeder
             'location_accuracy_meters' => 6.0,
             'location_source' => 'map_pin',
             'is_default' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('address_quality_reviews')->insert([
+            'public_id' => (string) Str::uuid(),
+            'subject_type' => 'platform_customer_address',
+            'subject_id' => $addressId,
+            'status' => 'unmapped',
+            'quality_class' => 'review_required',
+            'confidence' => 0.7200,
+            'territory_key' => null,
+            'resolution_source' => null,
+            'reason' => 'Deterministic Field Operations address-quality evidence.',
+            'resolved_by' => null,
+            'resolved_at' => null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -302,6 +375,146 @@ class ScreenshotEvidenceSeeder extends Seeder
             'assigned_at' => $now,
             'created_at' => $now,
             'updated_at' => $now,
+        ]);
+
+        $driverStaleAt = $now->copy()->subSeconds(55);
+        DB::table('driver_current_locations')->insert([
+            'driver_id' => $driverId,
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'latitude' => 29.3768000,
+            'longitude' => 47.9822000,
+            'accuracy' => 8.0,
+            'speed' => 0.0,
+            'heading' => 90.0,
+            'captured_at' => $driverStaleAt,
+            'received_at' => $driverStaleAt,
+            'app_version' => '1.0.60',
+            'is_mocked' => false,
+            'active_assignment_id' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $vanOperatorId = (int) DB::table('users')->insertGetId([
+            'name' => 'نورة · مشغلة فان FOODEX',
+            'email' => 'van.operator@foodex.test',
+            'email_verified_at' => $now,
+            'password' => Hash::make('Evidence123!'),
+            'locale' => 'ar',
+            'is_active' => true,
+            'last_seen_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'VAN-EVID-01',
+            'plate_number' => 'FOODEX-801',
+            'vehicle_type' => 'sales_van',
+            'status' => 'active',
+            'capacity_units' => 120,
+            'capacity_weight' => 1500,
+            'home_warehouse_id' => $warehouseId,
+            'notes' => 'Deterministic mixed live-tracking visual evidence.',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $vanAssignmentId = (int) DB::table('van_assignments')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'van_id' => $vanId,
+            'driver_id' => null,
+            'representative_user_id' => $vanOperatorId,
+            'warehouse_id' => $warehouseId,
+            'territory_key' => 'KW-EVIDENCE',
+            'van_pool_key' => 'EVIDENCE',
+            'assignment_type' => 'primary',
+            'status' => 'active',
+            'effective_from' => $now->copy()->subHour(),
+            'effective_until' => null,
+            'loaded_work_count' => 12,
+            'transferred_to_van_id' => null,
+            'transfer_reason' => null,
+            'created_by' => $superAdminId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('fleet_current_locations')->insert([
+            'actor_type' => 'van',
+            'actor_id' => $vanId,
+            'vehicle_id' => $vanId,
+            'assignment_id' => $vanAssignmentId,
+            'route_key' => 'ROUTE-EVID-01',
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'latitude' => 29.3826000,
+            'longitude' => 47.9894000,
+            'accuracy' => 5.0,
+            'speed' => 3.2,
+            'heading' => 180.0,
+            'captured_at' => $now,
+            'received_at' => $now,
+            'source_app' => 'van',
+            'app_version' => '1.0.60',
+            'is_mocked' => false,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $collectionAccountId = (int) DB::table('collection_accounts')->insertGetId([
+            'actor_type' => 'van',
+            'actor_id' => $vanId,
+            'store_id' => $storeId,
+            'currency' => 'KWD',
+            'status' => 'active',
+            'custody_limit' => 500,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $collectionTransactionId = (int) DB::table('collection_transactions')->insertGetId([
+            'collection_account_id' => $collectionAccountId,
+            'payment_id' => null,
+            'idempotency_key' => 'EVIDENCE-VAN-COLLECTION-001',
+            'type' => 'collection',
+            'status' => 'posted',
+            'amount' => 87.500,
+            'currency' => 'KWD',
+            'source' => 'cash_on_delivery',
+            'created_by' => $superAdminId,
+            'created_at' => $now->copy()->subMinutes(18),
+            'updated_at' => $now->copy()->subMinutes(18),
+        ]);
+
+        DB::table('custody_ledger_entries')->insert([
+            'collection_account_id' => $collectionAccountId,
+            'entry_type' => 'collection',
+            'amount' => 87.500,
+            'currency' => 'KWD',
+            'reference_type' => 'collection_transaction',
+            'reference_id' => $collectionTransactionId,
+            'created_by' => $superAdminId,
+            'created_at' => $now->copy()->subMinutes(18),
+            'updated_at' => $now->copy()->subMinutes(18),
+        ]);
+
+        DB::table('remittances')->insert([
+            'collection_account_id' => $collectionAccountId,
+            'idempotency_key' => 'EVIDENCE-VAN-REMIT-001',
+            'amount' => 25.000,
+            'currency' => 'KWD',
+            'method' => 'bank_transfer',
+            'reference' => 'VAN-REMIT-EVID-001',
+            'status' => 'pending',
+            'note' => 'Deterministic Van finance support runtime evidence.',
+            'submitted_by' => $vanOperatorId,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'created_at' => $now->copy()->subMinutes(8),
+            'updated_at' => $now->copy()->subMinutes(8),
         ]);
     }
 }
