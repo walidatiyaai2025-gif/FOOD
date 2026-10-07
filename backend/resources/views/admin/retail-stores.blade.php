@@ -320,7 +320,7 @@ $roleLabel = static function ($role): string {
                                 @forelse($store->storeRoleAssignments as $assignment)
                                     <div class="store-assignment">
                                         <span>
-                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $roleLabel($assignment->role) }}</strong>
+                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $roleLabel($assignment->role) }}</strong> {{-- localization-gate: allow — roleLabel resolves the role code through admin.role_names. --}}
                                             @if((int)$store->primary_owner_user_id===(int)$assignment->user_id && $assignment->role?->code==='B2C_STORE_ADMIN')
                                                 <span class="badge active">{{ $ar?'المالك الأساسي':'Primary Owner' }}</span>
                                             @endif

@@ -37,7 +37,7 @@ $roleLabel = static function ($role): string {
 
     <div class="profile-section"><h3>{{ __('admin.profile_surface.store_assignments') }}</h3>
         @forelse($storeAssignments as $assignment)
-            <div class="assignment"><strong>{{ $assignment->store?->name ?? '—' }} · {{ $roleLabel($assignment->role) }}</strong><small>{{ $assignment->store?->code }}</small>
+            <div class="assignment"><strong>{{ $assignment->store?->name ?? '—' }} · {{ $roleLabel($assignment->role) }}</strong><small>{{ $assignment->store?->code }}</small> {{-- localization-gate: allow — roleLabel resolves the role code through admin.role_names. --}}
             @if($assignment->store)<div class="chips" style="margin-top:9px">@foreach($storePermissions[(int)$assignment->store->id] ?? [] as $permission)<span class="permission-chip">{{ $permission }}</span>@endforeach</div>@endif</div>
         @empty<div class="foodex-empty-state">{{ $ar?'لا توجد أدوار مرتبطة بمتاجر.':'No store-scoped role assignments.' }}</div>@endforelse
     </div>

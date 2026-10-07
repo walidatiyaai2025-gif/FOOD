@@ -141,7 +141,8 @@ final class MobileSettingsController extends Controller
         }
 
         if (array_key_exists('deep_link_scheme', $data) || array_key_exists('deep_link_host', $data)) {
-            $deepLinks = is_array($before?->deep_link_config) ? $before->deep_link_config : [];
+            $deepLinkConfig = $before?->getAttribute('deep_link_config');
+            $deepLinks = is_array($deepLinkConfig) ? $deepLinkConfig : [];
 
             foreach (['deep_link_scheme' => 'scheme', 'deep_link_host' => 'host'] as $input => $key) {
                 if (! array_key_exists($input, $data)) {
@@ -162,7 +163,8 @@ final class MobileSettingsController extends Controller
         }
 
         if (array_key_exists('readiness_android', $data) || array_key_exists('readiness_ios', $data) || array_key_exists('readiness_privacy', $data)) {
-            $readiness = is_array($before?->store_readiness) ? $before->store_readiness : [];
+            $storeReadiness = $before?->getAttribute('store_readiness');
+            $readiness = is_array($storeReadiness) ? $storeReadiness : [];
             $readiness['android'] = $request->boolean('readiness_android');
             $readiness['ios'] = $request->boolean('readiness_ios');
             $readiness['privacy'] = $request->boolean('readiness_privacy');

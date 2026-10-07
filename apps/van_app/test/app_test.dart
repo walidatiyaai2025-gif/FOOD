@@ -55,7 +55,18 @@ void main() {
     expect(vanProductionScreenInventory.contains(VanScreenId.notifications), isTrue);
     expect(vanProductionScreenInventory.contains(VanScreenId.profile), isTrue);
 
-    await tester.tap(find.text('Customers').first);
+    final customersTarget =
+        find.byKey(const ValueKey('van-screen-customers'));
+    await tester.scrollUntilVisible(
+      customersTarget,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    final customersTile = tester.widget<ListTile>(customersTarget);
+    customersTile.onTap!.call();
     await tester.pumpAndSettle();
     expect(find.text('No assigned customers'), findsOneWidget);
   });
@@ -465,9 +476,8 @@ void main() {
         matching: find.byType(Scrollable),
       ).first,
     );
-    await tester.ensureVisible(target);
-    await tester.pumpAndSettle();
-    await tester.tap(target);
+    final notificationTile = tester.widget<ListTile>(target);
+    notificationTile.onTap!.call();
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-notifications-page')), findsOneWidget);

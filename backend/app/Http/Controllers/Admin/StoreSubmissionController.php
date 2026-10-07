@@ -81,7 +81,8 @@ final class StoreSubmissionController extends Controller
             || array_key_exists('asset_splash_master', $data)
             || array_key_exists('asset_screenshots', $data)
             || array_key_exists('asset_promotional_assets', $data)) {
-            $assets = is_array($before?->asset_checklist) ? $before->asset_checklist : [];
+            $assetChecklist = $before?->getAttribute('asset_checklist');
+            $assets = is_array($assetChecklist) ? $assetChecklist : [];
             foreach ([
                 'asset_icon_master' => 'icon_master',
                 'asset_splash_master' => 'splash_master',
@@ -160,7 +161,8 @@ final class StoreSubmissionController extends Controller
             ]);
         }
 
-        $context = is_array($reviewer?->context) ? $reviewer->context : [];
+        $reviewerContext = $reviewer?->getAttribute('context');
+        $context = is_array($reviewerContext) ? $reviewerContext : [];
         if (array_key_exists('reviewer_channel', $data) || array_key_exists('reviewer_store_id', $data)) {
             $channel = trim((string) ($data['reviewer_channel'] ?? ''));
             $storeId = isset($data['reviewer_store_id']) ? (int) $data['reviewer_store_id'] : 0;

@@ -699,10 +699,10 @@ final class CommercialDashboardController extends Controller
                 continue;
             }
 
-            $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== null && $rule['customer_id'] !== ''
+            $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== ''
                 ? (int) $rule['customer_id']
                 : null;
-            $groupId = isset($rule['customer_group_id']) && $rule['customer_group_id'] !== null && $rule['customer_group_id'] !== ''
+            $groupId = isset($rule['customer_group_id']) && $rule['customer_group_id'] !== ''
                 ? (int) $rule['customer_group_id']
                 : null;
 
@@ -716,7 +716,7 @@ final class CommercialDashboardController extends Controller
                 $errors["rules_json.$index.customer_group_id"] = [__('commercial.validation.sales_rule_subject_exclusive')];
             }
 
-            $channel = isset($rule['channel']) && $rule['channel'] !== null
+            $channel = isset($rule['channel'])
                 ? trim((string) $rule['channel'])
                 : '';
             if ($channel !== '' && ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {
