@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
-use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\Order;
 use App\Models\User;
@@ -204,8 +203,11 @@ final class VanOrderController extends Controller
                     $scope->whereIn('b2b_customer_id', $b2bIds);
                 }
                 if ($b2cIds->isNotEmpty()) {
-                    $method = $b2bIds->isNotEmpty() ? 'orWhereIn' : 'whereIn';
-                    $scope->{$method}('b2c_customer_id', $b2cIds);
+                    if ($b2bIds->isNotEmpty()) {
+                        $scope->orWhereIn('b2c_customer_id', $b2cIds);
+                    } else {
+                        $scope->whereIn('b2c_customer_id', $b2cIds);
+                    }
                 }
                 if ($b2bIds->isEmpty() && $b2cIds->isEmpty()) {
                     $scope->whereRaw('1 = 0');
