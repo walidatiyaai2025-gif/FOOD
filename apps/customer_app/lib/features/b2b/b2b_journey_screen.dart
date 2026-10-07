@@ -856,102 +856,241 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     return '$dateLabel $timeLabel';
   }
 
-  Widget _identity(BuildContext context, Map<Object?, Object?> customer,
-      Map<Object?, Object?> account, String? generatedAt, bool stale) => Material(
-    key: const ValueKey('b2b-dashboard-identity'),
-    color: CustomerUiColors.white,
-    shape: RoundedRectangleBorder(
+  Widget _ownerAvatar(
+    Map<Object?, Object?> customer,
+    Map<Object?, Object?> account,
+  ) {
+    final candidates = <Object?>[
+      customer['avatar_url'],
+      customer['photo_url'],
+      customer['image_url'],
+    ];
+    final avatarUrl = candidates
+        .map((value) => value?.toString().trim() ?? '')
+        .firstWhere((value) => value.isNotEmpty, orElse: () => '');
+    final displayName = (customer['name']?.toString().trim().isNotEmpty ?? false)
+        ? customer['name'].toString().trim()
+        : account['company_name']?.toString().trim() ?? '';
+    final initial =
+        displayName.isEmpty ? 'F' : displayName.substring(0, 1).toUpperCase();
+    final fallback = Container(
+      width: 64,
+      height: 64,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: CustomerUiColors.mint,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: CustomerUiColors.deepGreen,
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    if (avatarUrl.isEmpty) return fallback;
+    return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      side: const BorderSide(color: CustomerUiColors.border),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(children: [
-            const Icon(Icons.business_rounded, size: 22, color: CustomerUiColors.deepGreen),
-            const SizedBox(width: 4),
-            Expanded(child: Text(account['company_name']?.toString() ?? '—',
-              maxLines: 2, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13, height: 1.15, fontWeight: FontWeight.w800))),
-          ]),
-          const SizedBox(height: 3),
-          Text(customer['name']?.toString() ?? '—', maxLines: 1,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.15, color: CustomerUiColors.muted)),
-          if ((customer['email']?.toString() ?? '').isNotEmpty)
-            Text(customer['email'].toString(), textDirection: TextDirection.ltr, textAlign: TextAlign.right, maxLines: 1,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.2, color: CustomerUiColors.muted)),
-          const Spacer(),
-          Tooltip(
-            message: '${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}',
-            child: Text(
-              '${context.tr('b2b.dashboard.last_updated')}: \u2066${_shortTimestamp(context, generatedAt)}\u2069',
-              key: const ValueKey('b2b-dashboard-last-updated'),
-              maxLines: 2,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, height: 1.1, color: CustomerUiColors.muted),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+      child: Image.network(
+        avatarUrl,
+        width: 64,
+        height: 64,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
+    );
+  }
+
+  Widget _hero(
+    BuildContext context,
+    Map<Object?, Object?> customer,
+    Map<Object?, Object?> account,
+    String? generatedAt,
+    bool stale,
+    Object? creditBalance,
+    Object? purchaseValue,
+    String currency,
+  ) => Semantics(
+    button: true,
+    label: context.tr('b2b.dashboard.refresh'),
+    child: Material(
+      color: CustomerUiColors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: CustomerUiColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('b2b-dashboard-hero'),
+        onTap: _reload,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (stale) Expanded(child: Text(context.tr('b2b.dashboard.stale'),
-                key: const ValueKey('b2b-dashboard-stale'), maxLines: 2,
-                style: const TextStyle(fontSize: 11, height: 1.1, color: CustomerUiColors.warning))),
-              if (widget.storefrontApi != null)
-                IconButton(
-                  key: const ValueKey('b2b-dashboard-shopping'),
-                  tooltip: context.tr('customer.nav.shopping'),
-                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                  padding: EdgeInsets.zero,
-                  onPressed: _openingWholesale ? null : _openPrincipalWholesale,
-                  icon: const Icon(Icons.storefront_rounded, size: 22),
-                  style: IconButton.styleFrom(backgroundColor: CustomerUiColors.lime, foregroundColor: CustomerUiColors.deepGreen),
+              Row(
+                textDirection: TextDirection.ltr,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ownerAvatar(customer, account),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          account['company_name']?.toString() ?? '—',
+                          textAlign: TextAlign.right,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontSize: 15,
+                                height: 1.2,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          customer['name']?.toString() ?? '—',
+                          textAlign: TextAlign.right,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 12,
+                                height: 1.2,
+                                color: CustomerUiColors.muted,
+                              ),
+                        ),
+                        if ((customer['email']?.toString() ?? '').isNotEmpty)
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: Text(
+                                customer['email'].toString(),
+                                textDirection: TextDirection.ltr,
+                                textAlign: TextAlign.right,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontSize: 11,
+                                      height: 1.2,
+                                      color: CustomerUiColors.muted,
+                                    ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (widget.storefrontApi != null)
+                    TextButton.icon(
+                      key: const ValueKey('b2b-dashboard-shopping'),
+                      onPressed:
+                          _openingWholesale ? null : _openPrincipalWholesale,
+                      icon: const Icon(Icons.storefront_rounded, size: 20),
+                      label: Text(
+                        context.tr('b2b.dashboard.store'),
+                        maxLines: 1,
+                      ),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(82, 42),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        backgroundColor: CustomerUiColors.lime,
+                        foregroundColor: CustomerUiColors.deepGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1, color: CustomerUiColors.border),
+              const SizedBox(height: 7),
+              Expanded(
+                child: Row(
+                  textDirection: TextDirection.ltr,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _HeroValue(
+                        key: const ValueKey('b2b-dashboard-credit-balance'),
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: context.tr('b2b.dashboard.credit_balance'),
+                        value: _money(creditBalance, currency),
+                      ),
+                    ),
+                    const VerticalDivider(
+                      width: 18,
+                      thickness: 1,
+                      color: CustomerUiColors.border,
+                    ),
+                    Expanded(
+                      child: _HeroValue(
+                        key: const ValueKey('b2b-dashboard-purchase-value'),
+                        icon: Icons.stacked_bar_chart_rounded,
+                        label: context.tr('b2b.dashboard.purchase_value'),
+                        value: _money(purchaseValue, currency),
+                      ),
+                    ),
+                  ],
                 ),
-              const SizedBox(width: 4),
-              IconButton(
-                key: const ValueKey('b2b-dashboard-refresh'),
-                tooltip: context.tr('b2b.dashboard.refresh'),
-                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                padding: EdgeInsets.zero,
-                onPressed: _reload,
-                icon: const Icon(Icons.refresh_rounded, size: 22),
-                style: IconButton.styleFrom(backgroundColor: CustomerUiColors.lime, foregroundColor: CustomerUiColors.deepGreen),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time_rounded,
+                    size: 15,
+                    color: CustomerUiColors.muted,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Tooltip(
+                      message:
+                          '${context.tr('b2b.dashboard.last_updated')}: ${generatedAt ?? '—'}',
+                      child: Text(
+                        '${context.tr('b2b.dashboard.last_updated')}: \u2066${_shortTimestamp(context, generatedAt)}\u2069',
+                        key: const ValueKey('b2b-dashboard-last-updated'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontSize: 10.5,
+                                  height: 1.1,
+                                  color: CustomerUiColors.muted,
+                                ),
+                      ),
+                    ),
+                  ),
+                  if (stale)
+                    Flexible(
+                      child: Text(
+                        context.tr('b2b.dashboard.stale'),
+                        key: const ValueKey('b2b-dashboard-stale'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          height: 1.1,
+                          color: CustomerUiColors.warning,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _balance(BuildContext context, String directionLabel, double? balance,
-      Object? credit, String currency) => Material(
-    key: const ValueKey('b2b-dashboard-balance-hero'),
-    color: CustomerUiColors.deepGreen,
-    borderRadius: BorderRadius.circular(16),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: () => Navigator.of(context).pushNamed(_scopedRoute(CustomerRoutePaths.b2bAccountStatement)),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Row(children: [
-              const Icon(Icons.account_balance_wallet_outlined, color: CustomerUiColors.lime, size: 22),
-              const SizedBox(width: 5),
-              Expanded(child: Text(context.tr('b2b.dashboard.balance'), maxLines: 2,
-                style: const TextStyle(color: CustomerUiColors.white, fontSize: 13, height: 1.2))),
-            ]),
-            Text(directionLabel, maxLines: 2, style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 11, height: 1.1)),
-            Text(_money(balance?.abs(), currency), textDirection: TextDirection.ltr, maxLines: 2,
-              style: const TextStyle(color: CustomerUiColors.white, fontSize: 15, height: 1.2, fontWeight: FontWeight.w800)),
-            Text(context.tr('b2b.dashboard.available_credit'), maxLines: 2,
-              style: const TextStyle(color: CustomerUiColors.mintStrong, fontSize: 12, height: 1.15)),
-            Text(_money(credit, currency), textDirection: TextDirection.ltr, maxLines: 2,
-              style: const TextStyle(color: CustomerUiColors.lime, fontSize: 15, height: 1.2, fontWeight: FontWeight.w800)),
-          ],
         ),
       ),
     ),
@@ -1033,16 +1172,10 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               '';
           final rawBalance =
               double.tryParse(finance['balance']?.toString() ?? '');
-          final balanceDirection =
-              finance['balance_direction']?.toString();
-          final directionLabel = switch (balanceDirection) {
-            'customer_owes_company' =>
-              context.tr('b2b.dashboard.balance.you_owe'),
-            'company_owes_customer' =>
-              context.tr('b2b.dashboard.balance.credit'),
-            'settled' => context.tr('b2b.dashboard.balance.settled'),
-            _ => '—',
-          };
+          final creditBalance = finance['customer_credit_balance'] ??
+              (rawBalance == null ? null : math.max(rawBalance, 0));
+          final purchaseValue =
+              data['purchase_total'] ?? operations['purchases_this_month'];
           final generatedAt = freshness['generated_at']?.toString();
           final generatedDate =
               generatedAt == null ? null : DateTime.tryParse(generatedAt);
@@ -1135,8 +1268,16 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           ];
 
           return DashboardSingleScreen(
-            identity: _identity(context, customer, account, generatedAt, stale),
-            balance: _balance(context, directionLabel, rawBalance, finance['available_credit_line'], currency),
+            hero: _hero(
+              context,
+              customer,
+              account,
+              generatedAt,
+              stale,
+              creditBalance,
+              purchaseValue,
+              currency,
+            ),
             finance: DashboardPanel(
               title: context.tr('b2b.dashboard.finance'),
               icon: Icons.account_balance_outlined,
@@ -1160,6 +1301,109 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
               ),
             ),
             offers: _offers(context),
+          );
+        },
+      );
+}
+
+class _HeroValue extends StatelessWidget {
+  const _HeroValue({
+    required this.icon,
+    required this.label,
+    required this.value,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 38;
+          if (compact) {
+            return Row(
+              children: [
+                Icon(icon, size: 14, color: CustomerUiColors.deepGreen),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 9.5,
+                            height: 1,
+                            color: CustomerUiColors.muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Text(
+                      value,
+                      textDirection: TextDirection.ltr,
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 12.5,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: CustomerUiColors.deepGreen,
+                          ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 18, color: CustomerUiColors.deepGreen),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11.5,
+                            height: 1.15,
+                            color: CustomerUiColors.muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                textDirection: TextDirection.ltr,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      height: 1.1,
+                      fontWeight: FontWeight.w900,
+                      color: CustomerUiColors.deepGreen,
+                    ),
+              ),
+            ],
           );
         },
       );
