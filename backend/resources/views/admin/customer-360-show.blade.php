@@ -230,13 +230,13 @@ $businessLabel = static function ($value): string {
 <div class="c360-address-grid">
 @forelse($addresses as $address)
 <article class="c360-address-card">
-<div class="c360-actions" style="justify-content:space-between"><strong>{{ $address->label ?: __('customer_360.addresses.delivery_address') }}</strong>@if($address->is_default)<span class="c360-badge active">{{ __('customer_360.addresses.default') }}</span>@endif</div>
+<div class="c360-actions" style="justify-content:space-between"><strong>{{ $address->label ?: __('customer_360.addresses.delivery_address') }}</strong>@if($address->is_default)<span class="c360-badge active">{{ __('customer_360.addresses.default') }}</span>@endif {{-- localization-gate: allow Blade control directive --}}</div>
 <p style="margin:8px 0">{{ collect([$address->building,$address->street ?: $address->line1,$address->block,$address->area,$address->city,$address->governorate])->filter()->join(' · ') }}</p>
-@if($address->landmark)<small>{{ __('customer_360.addresses.landmark') }}: {{ $address->landmark }}</small>@endif
-@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><span class="c360-badge active">{{ __('customer_360.addresses.map_location_selected') }}</span></div>@endif
+@if($address->landmark)<small>{{ __('customer_360.addresses.landmark') }}: {{ $address->landmark }}</small>@endif {{-- localization-gate: allow Blade control directive --}}
+@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><span class="c360-badge active">{{ __('customer_360.addresses.map_location_selected') }}</span></div>@endif {{-- localization-gate: allow Blade control directive --}}
 @if($canManageAddresses)
 <div class="c360-address-actions" style="margin-top:12px">
-@if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.set_default') }}</button></form>@endif
+@if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.set_default') }}</button></form>@endif {{-- localization-gate: allow Blade control directive --}}
 <form method="post" action="{{ route('admin.customer-360.addresses.destroy',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" onsubmit="return confirm('{{ __('customer_360.addresses.delete_confirm') }}')">@csrf @method('DELETE')<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.delete') }}</button></form>
 </div>
 <details class="c360-form-details"><summary>{{ __('customer_360.addresses.edit_address') }}</summary>
