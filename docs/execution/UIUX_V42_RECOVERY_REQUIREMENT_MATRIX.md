@@ -25,12 +25,12 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | D09 | Dashboard application administration treats Customer/Driver/Van as first-class apps | #1035 | source tests + runtime | OPEN |
 | D10 | Shared FOODEX admin shell/design components; no owned legacy standalone shells | #1035 | static route audit + runtime | OPEN |
 | D11 | Main Dashboard Live Tracking truthfully combines Driver + Van with distinct identity/stale state | #1035 | tests + runtime map evidence | OPEN |
-| C01 | Sales Control uses authoritative premium Dashboard shell | #1036 | shell regression tests + runtime | OPEN |
-| C02 | Sales Control normal flow uses structured controls, not routine raw JSON/internal IDs | #1036 | tests + runtime interaction | OPEN |
-| C03 | Break-pack unit is an authoritative Selling Unit lookup | #1036 | lookup tests + runtime | OPEN |
-| C04 | Flash Offers live under Marketing/Promotions and Create/Edit is Wizard/Modal/business workflow | #1036 | route/interaction tests + runtime | OPEN |
-| C05 | Flash audience Customer/Group/Region/Route uses lookups/multi-select, not JSON entry | #1036 | tests + runtime | OPEN |
-| C06 | Flash products use Product Builder + Selling Unit lookup; Channels use structured toggles/selectors | #1036 | tests + runtime | OPEN |
+| C01 | Sales Control uses authoritative premium Dashboard shell | #1036 | shell regression tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
+| C02 | Sales Control normal flow uses structured controls, not routine raw JSON/internal IDs | #1036 | tests + runtime interaction + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
+| C03 | Break-pack unit is an authoritative Selling Unit lookup | #1036 | lookup tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
+| C04 | Flash Offers live under Marketing/Promotions and Create/Edit is Wizard/Modal/business workflow | #1036 | route/interaction tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
+| C05 | Flash audience Customer/Group/Region/Route uses lookups/multi-select, not JSON entry | #1036 | tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
+| C06 | Flash products use Product Builder + Selling Unit lookup; Channels use structured toggles/selectors | #1036 | tests + runtime + owner evidence: [Commercial #1036 manifest](UIUX_V42_RECOVERY_1036_COMMERCIAL_EVIDENCE.md) | OPEN |
 | F01 | Van transfer target uses searchable Van lookup | #1037 | tests + runtime | OPEN |
 | F02 | Assignment representative/operator and Warehouse use authoritative lookups | #1037 | tests + runtime | OPEN |
 | F03 | Visit/route Customer, Store, Route and Order references use authoritative lookups | #1037 | tests + runtime | OPEN |
