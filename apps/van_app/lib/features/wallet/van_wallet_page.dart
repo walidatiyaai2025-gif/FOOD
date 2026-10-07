@@ -35,6 +35,12 @@ class _VanWalletPageState extends State<VanWalletPage>
 
   String _t(String en, String ar) => _arabic ? ar : en;
 
+  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+        'b2b' || 'wholesale' => _t('Wholesale', 'جملة'),
+        'b2c' || 'retail' => _t('Retail', 'تجزئة'),
+        _ => _t('Customer', 'عميل'),
+      };
+
   @override
   void initState() {
     super.initState();
@@ -327,7 +333,7 @@ class _VanWalletPageState extends State<VanWalletPage>
                         : customer.name,
                   ),
                   subtitle: Text(
-                    '${customer.type.toUpperCase()} · '
+                    '${_customerTypeLabel(customer.type)} · '
                     '${_t('Store', 'المتجر')} #${customer.storeId}',
                   ),
                   onTap: _submitting ? null : () => _collect(customer),
@@ -413,6 +419,14 @@ class _WalletCard extends StatelessWidget {
 
   String _t(String en, String ar) => arabic ? ar : en;
 
+  String _statusLabel(String value) => switch (value.trim().toLowerCase()) {
+        'active' => _t('Active', 'نشط'),
+        'pending' || 'processing' => _t('Processing', 'قيد المعالجة'),
+        'suspended' || 'blocked' => _t('Suspended', 'موقوف'),
+        'closed' => _t('Closed', 'مغلق'),
+        _ => _t('Account status', 'حالة الحساب'),
+      };
+
   @override
   Widget build(BuildContext context) {
     final pending =
@@ -434,7 +448,7 @@ class _WalletCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Chip(label: Text(account.status)),
+                Chip(label: Text(_statusLabel(account.status))),
               ],
             ),
             const SizedBox(height: 12),
