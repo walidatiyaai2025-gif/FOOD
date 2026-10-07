@@ -59,9 +59,9 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | AV01 | Van login visibly says Van App / تطبيق الفان | #1040 | `van_login_screen.dart` + AR/EN `screenshot_evidence_test.dart` login capture | OPEN |
 | AV02 | Van Remember Me + biometric secure-session behavior remains valid | #1040 | `app.dart`, `van_auth_persistence.dart`, `van_session_store.dart`, auth widget tests + AR/EN evidence | OPEN |
 | AV03 | Van application-level capability exceptions are explicitly evaluated/documented | #1040 | `apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md` + contract/widget/backend tests | OPEN |
-| Q01 | Project-wide AR/EN localization; no raw state/channel/role/type/payment/unit text where localized UI is required | #1041 | independent static/runtime audit | OPEN |
-| Q02 | Every requirement has exactly one owner and source/test evidence; no UNKNOWN/UNOWNED row | #1041 | generated coverage report | OPEN |
-| Q03 | Legacy route/screen inventory is included; diff-based guards do not grandfather violations | #1041 | route/source inventory | OPEN |
+| Q01 | Project-wide AR/EN localization; no raw state/channel/role/type/payment/unit text where localized UI is required | #1041 | whole-tree static audit + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md); runtime localization remains independently reviewed by #1042 | OPEN |
+| Q02 | Every requirement has exactly one owner and source/test evidence; no UNKNOWN/UNOWNED row | #1041 | generated `uiux-v42-recovery-static-audit.json` + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | OPEN |
+| Q03 | Legacy route/screen inventory is included; diff-based guards do not grandfather violations | #1041 | whole-tree route/source inventories + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | OPEN |
 | V01 | Integrated Dashboard + Customer + Driver + Van real runtime evidence exists for all visual/interaction rows | #1042 | evidence manifest/screenshots | OPEN |
 | V02 | Required AR/EN + RTL/LTR + responsive states have no overflow/hidden action/mixed-language failures | #1042 | reviewed runtime evidence | OPEN |
 | G01 | Final integrated matrix is 100% PASS on exact recovery implementation HEAD | #1043 | independent matrix/source recheck | OPEN |
