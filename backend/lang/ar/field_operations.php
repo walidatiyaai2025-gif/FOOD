@@ -52,6 +52,7 @@ return [
     ],
     'statuses' => [
         'active' => 'نشط',
+        'inactive' => 'غير نشط',
         'suspended' => 'موقوف',
         'draft' => 'مسودة',
         'published' => 'منشور',
