@@ -166,6 +166,7 @@ class AppTranslations extends InheritedWidget {
     'customer.orders.reorder_failed': 'تعذر إعادة الطلب. راجع توفر الأصناف والكميات الحالية',
     'customer.orders.open_cart': 'فتح السلة',
     'customer.orders.stale': 'تعرض القائمة آخر بيانات مؤكدة؛ تعذر جلب تحديث جديد.',
+    'customer.orders.last_confirmed_update': 'آخر تحديث مؤكد',
     'customer.orders.approval.label': 'حالة الاعتماد',
     'customer.orders.approval.pending': 'بانتظار اعتماد خدمة العملاء',
     'customer.orders.approval.approved': 'تم اعتماد الطلب',
