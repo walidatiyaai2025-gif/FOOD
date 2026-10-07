@@ -185,6 +185,19 @@ return [
         'admin' => 'Admin',
         'api' => 'API',
     ],
+    'status' => [
+        'sales_control_saved' => 'Commercial sales control saved.',
+        'flash_offer_saved' => 'Flash Offer saved.',
+        'feature_flags_saved' => 'Commercial feature flags saved.',
+        'flash_action_applied' => 'Flash Offer action applied.',
+    ],
+    'validation' => [
+        'active_selling_unit' => 'Select an active selling unit for the product.',
+        'selling_unit_code_name' => 'Every selling unit needs code and name.',
+        'store_product' => 'Select a product assigned to this store.',
+        'flash_active_selling_unit' => 'Select an active selling unit for this product.',
+        'json_array_required' => 'A JSON array is required.',
+    ],
     'common' => [
         'active' => 'Active',
         'inactive' => 'Inactive',
