@@ -1312,46 +1312,91 @@ class _HeroValue extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: CustomerUiColors.deepGreen),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 11.5,
-                        height: 1.15,
-                        color: CustomerUiColors.muted,
-                        fontWeight: FontWeight.w700,
-                      ),
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 38;
+          if (compact) {
+            return Row(
+              children: [
+                Icon(icon, size: 14, color: CustomerUiColors.deepGreen),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 9.5,
+                          height: 1,
+                          color: CustomerUiColors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Text(
+                      value,
+                      textDirection: TextDirection.ltr,
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 12.5,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            color: CustomerUiColors.deepGreen,
+                          ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 18, color: CustomerUiColors.deepGreen),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11.5,
+                            height: 1.15,
+                            color: CustomerUiColors.muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                textDirection: TextDirection.ltr,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      height: 1.1,
+                      fontWeight: FontWeight.w900,
+                      color: CustomerUiColors.deepGreen,
+                    ),
               ),
             ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            textDirection: TextDirection.ltr,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 16,
-                  height: 1.1,
-                  fontWeight: FontWeight.w900,
-                  color: CustomerUiColors.deepGreen,
-                ),
-          ),
-        ],
+          );
+        },
       );
 }
 
