@@ -1,65 +1,79 @@
-# VAN ↔ Dashboard parity contract
+# VAN ↔ Dashboard Parity Contract
 
-Status: authoritative recovery contract for UIUX-V42-RECOVERY.
+Mission: UIUX-V42-RECOVERY  
+Van target owner: #1040  
+Dashboard owners: #1035 shared/admin, #1036 Commercial, #1037 Field Operations  
+Integration target: `release/1034-uiux-v42-recovery`
 
-The owner-approved Van production target remains the 19-screen inventory defined by Issue #1040 and the frozen Van target. A missing Dashboard control/support surface must be implemented by its owning Dashboard lane; Van functionality must not be deleted, downgraded, or replaced with fake data to hide a Dashboard gap.
+## Purpose
 
-## Ownership model
+The owner-approved 19-screen Van production target is a hard input to Dashboard recovery. A Van capability may not be removed, weakened, mocked, or kept mobile-only because its Dashboard control/support surface is missing.
 
-- **#1035 — Shared/Admin Dashboard:** application administration, access policy, shared live operational visibility, Customer 360 support outside Field Operations, exact-order support, Van notification administration, profile/settings/application settings/publishing readiness.
-- **#1036 — Commercial:** product/catalog commercial control, offer/promotion control, selling-unit/product-builder and commerce policy needed by Van ordering.
-- **#1037 — Field Operations:** Vans, routes, visits, assignments, route maps, operational customers, territories/geography, wallet/custody/collection/receipt/remittance operational reconciliation.
-- **#1040 — Van App:** production mobile implementation; consumes authoritative backend contracts and does not own Dashboard control-plane gaps.
+Each Van surface below has an explicit Dashboard counterpart or a justified no-duplicate-UI rule. The owning Dashboard lane is responsible for its own runtime evidence and later #1042 performs the integrated cross-surface verification.
 
-## 19-screen parity map
+## Ownership rules
 
-| Van target surface | Dashboard counterpart / support plane | Owner | #1035 disposition |
-|---|---|---|---|
-| 1. Login | Administration Hub → Users & Permissions; Security user status/role/access policy; Van app administration | #1035 | **Covered** |
-| 2. Home Dashboard | Shared Driver + Van Live Tracking and app administration/status visibility; operational route/visit summary belongs to Field Operations | #1035 + #1037 | **Covered in #1035 scope; Field Ops delegated** |
-| 3. Routes | Field Operations routing / visits / assignments | #1037 | **Delegated — not a #1035 gap** |
-| 4. Route Map | Field Operations fleet/routing maps | #1037 | **Delegated — not a #1035 gap** |
-| 5. Route Detail | Field Operations route/visit/assignment management | #1037 | **Delegated — not a #1035 gap** |
-| 6. Customers | Field Operations customer/visit operations; Customer 360 for shared support | #1037 + #1035 | **Customer 360 shared support covered** |
-| 7. Visit Workspace | Field Operations visits and assignment transitions | #1037 | **Delegated — not a #1035 gap** |
-| 8. Customer 360 | Dashboard Customer 360 identity/addresses/finance/orders/invoices support | #1035 | **Covered** |
-| 9. Product Catalog | Sales Control / commercial catalog control | #1036 | **Delegated — not a #1035 gap** |
-| 10. Order Builder | Commercial selling-unit/product/order policy + shared exact-order support after creation | #1036 + #1035 | **Exact-order support covered; builder delegated** |
-| 11. Order Review | Commercial quote/order policy + shared Order Operations manage/view after creation | #1036 + #1035 | **Exact-order support covered; review policy delegated** |
-| 12. Orders | Order Operations exact record, status, driver assignment, delivery evidence | #1035 | **Covered** |
-| 13. Offers | Flash Offers / Marketing commercial administration | #1036 | **Delegated — not a #1035 gap** |
-| 14. Wallet | Field Operations finance/custody reconciliation | #1037 | **Delegated — not a #1035 gap** |
-| 15. Collection | Field Operations finance/collection custody | #1037 | **Delegated — not a #1035 gap** |
-| 16. Receipt | Field Operations finance/receipt evidence and reconciliation | #1037 | **Delegated — not a #1035 gap** |
-| 17. Remittance | Field Operations finance remittance approve/reject/reconcile routes | #1037 | **Delegated — not a #1035 gap** |
-| 18. Notifications | Notification Center, Promotional Notification Campaigns, Push Provider settings/test delivery; Van audience/app supported independently | #1035 | **Covered** |
-| 19. Profile & Settings | Security/Profile, App Versions, Mobile Settings, Push Provider, Store Submission and Reviewer/Test Account administration | #1035 | **Covered** |
+- **#1035 Shared/Admin** owns application administration, access/settings/publishing, shared notifications, Customer 360 support outside Field Operations-specific controls, and exact Order operations/support outside Commercial-specific rules.
+- **#1036 Commercial** owns Product Catalog commercial configuration, Order commercial rules/validation, Offers, selling units/pricing/availability, and commercial finance semantics.
+- **#1037 Field Operations** owns Van registry/assignments, routes/maps/visits, operational customer/store context, and Field Operations finance/reconciliation.
+- A surface can have more than one counterpart when mobile behavior crosses domains. The row names one primary owner and any required supporting owner.
+- Internal IDs remain implementation details. Dashboard normal workflows use business-facing labels/lookups.
+- Runtime proof remains authoritative; this file is a control-plane contract, not evidence by itself.
 
-## #1035 concrete Dashboard counterparts
+## 19-screen parity matrix
 
-The following routes/surfaces are the shared/admin control plane required by the Van target:
+| # | Van surface | Dashboard counterpart | Primary owner | #1035 status / exception |
+|---|---|---|---|---|
+| 1 | Login | Administration Hub → Applications; Users & Permissions; Mobile Settings / app access policy | #1035 | **Implemented.** Customer/Driver/Van are first-class apps; access/settings/version/publishing administration is direct. Dashboard does not duplicate the mobile login screen itself. |
+| 2 | Home Dashboard | Field Operations overview + shared Driver/Van Live Tracking | #1037 + #1035 | #1035 shared tracking counterpart implemented; operational assignment KPIs belong to #1037. |
+| 3 | Routes | Field Operations → routes/visits/routing policy context | #1037 | Sibling-owned; no duplicate shared/admin surface required. |
+| 4 | Route Map | Field Operations → Fleet Map / tracking | #1037 | Sibling-owned. Shared mixed Driver/Van live map is additionally covered by #1035. |
+| 5 | Route Detail | Field Operations → Visits / route context | #1037 | Sibling-owned. |
+| 6 | Customers | Field Operations → Customers; shared Customer 360 support | #1037 + #1035 | **Implemented in #1035** for Customer 360 support; route/visit customer context is #1037. |
+| 7 | Visit Workspace | Field Operations → Visits lifecycle | #1037 | Sibling-owned. |
+| 8 | Customer 360 | `/admin/customer-360` exact customer support surface | #1035 | **Implemented.** Business labels, addresses/map, finance/support context, exact related-order management and no routine raw IDs. |
+| 9 | Product Catalog | Commercial Sales Control / catalog commercial rules | #1036 | Sibling-owned; no duplicate shared/admin UI. |
+| 10 | Order Builder | Commercial validation + shared exact Order Operations | #1036 + #1035 | **#1035 counterpart implemented** through `/admin/operations/orders` create/exact manage path. Pricing/selling-unit rules remain #1036. |
+| 11 | Order Review | Commercial validation + exact Order Operations | #1036 + #1035 | **#1035 exact-record support implemented.** Commercial approval/pricing semantics remain #1036. |
+| 12 | Orders | `/admin/operations/orders` + Commercial order rules | #1035 + #1036 | **Implemented in #1035** for shared operational management, direct View and compact row actions. |
+| 13 | Offers | Commercial Flash Offers / Marketing | #1036 | Sibling-owned. |
+| 14 | Wallet | Field Operations → Finance; commercial custody semantics where applicable | #1037 + #1036 | Existing Dashboard finance counterpart is sibling-owned; no second shared/admin wallet screen is justified. |
+| 15 | Collection | Field Operations → Finance / custody ledger; commercial validation where applicable | #1037 + #1036 | Sibling-owned authoritative reconciliation surface. |
+| 16 | Receipt | Field Operations → Finance / custody ledger history | #1037 + #1036 | Sibling-owned; receipt state is inspected through authoritative finance records rather than a duplicate shared/admin page. |
+| 17 | Remittance | Field Operations → Finance / remittance review (approve/reject/reconcile) | #1037 + #1036 | Sibling-owned authoritative reconciliation surface. |
+| 18 | Notifications | Notifications Center + Notification Campaigns + Mobile Push Settings | #1035 | **Implemented.** Van is a first-class audience/app, user targeting uses business lookups, actions use FOODEX compact patterns, push provider supports Van. |
+| 19 | Profile & Settings | Administration Hub → Van app Settings / App Versions / Publishing + Profile/Security | #1035 | **Implemented.** Dashboard administers app/runtime/push/store-review policy; secure mobile tokens/biometrics remain device/session concerns and are intentionally not exposed in Dashboard. |
 
-- `/admin/administration` — one-entry Admin Hub with explicit Customer / Driver / Van application cards.
-- `/admin/security` — Users & Permissions, user status, roles and access policy.
-- `/admin/driver-live-tracking` — combined Driver + Van identity/status visibility with stale/online/offline semantics.
-- `/admin/customer-360` — shared customer identity/address/finance/order/invoice support outside Field Operations.
-- `/admin/operations/orders` — exact order lookup/view/manage, driver assignment/status and delivery evidence.
-- Notification Center / Promotional Notification Campaigns — Van is an independent audience/application target.
-- `/admin/settings/app-versions` — per-app release/version policy.
-- `/admin/settings/mobile` — Customer / Driver / Van runtime settings, push, store readiness and reviewer/test-account administration.
+## #1035 closure checklist
 
-## No-gap rule for #1035 closure
+The following shared/admin capabilities are required before #1035 may close:
 
-#1035 has no unresolved Van↔Dashboard gap when all of the following are true:
+- [x] One Administration sidebar entry opens a true card-based Admin Hub.
+- [x] Customer / Driver / Van are first-class Applications with direct Preview, App Version and Settings actions.
+- [x] Van push-provider administration is separate from Driver.
+- [x] Van Store Submission and Reviewer/Test Account administration is separate from Driver.
+- [x] Van Android/iOS submission metadata exists; Van Android has an independent Store Readiness AAB validation job.
+- [x] Shared Notifications Center/Campaigns support Van as audience/app and business-facing user targeting.
+- [x] Customer 360 provides the shared support counterpart without routine raw IDs/JSON.
+- [x] Exact Order Operations provides shared create/view/manage support outside Commercial-specific configuration.
+- [x] Shared Live Tracking combines Driver + Van with distinct identity and stale/online/offline truth.
+- [x] Owned admin routes use the shared FOODEX shell and business-facing action patterns.
+- [x] Routine raw JSON/internal-ID workflows are removed from owned normal business paths; provider-required Firebase Service Account JSON is the explicit privileged technical exception.
+- [x] AR/EN, RTL/LTR and representative responsive/runtime evidence is enforced by the Visual QA workflow.
+- [x] Field Operations and Commercial capabilities are explicitly routed to #1037/#1036 rather than duplicated in #1035.
 
-1. Administration is one Sidebar entry and opens the real Admin Hub.
-2. Customer, Driver and Van are first-class applications with per-app Preview/App Version/Mobile Settings actions where authorized.
-3. Security/access policy can administer Van users/roles/permissions.
-4. shared Live Tracking exposes distinct Driver and Van runtime identity and truthful state.
-5. Customer 360 and Order Operations provide shared support outside sibling-lane ownership.
-6. Notification administration supports Van independently.
-7. App Version / Mobile Settings / Push / Store Submission / Reviewer administration support Van independently.
-8. Route/visit/territory/finance custody gaps are owned by #1037, and product/offers/order-builder commercial gaps are owned by #1036; those delegated domains are not reimplemented by #1035.
-9. Integrated gate #1042 verifies the combined runtime after sibling lanes converge.
+## Explicit justified exceptions
 
-This contract defines capability parity, not pixel-for-pixel duplication of the Van mobile layout.
+1. **Mobile Login UI** is not duplicated in Dashboard. Dashboard owns access policy, users/permissions, app versions/settings and publishing readiness.
+2. **Device biometric / Remember Me state and access tokens** remain mobile secure-session concerns. Dashboard must not render or store them as ordinary admin fields.
+3. **Route/visit/geography/Van-registry controls** belong to #1037 and are not duplicated in shared/admin pages.
+4. **Pricing/selling units/offers/commercial validation** belong to #1036 and are not duplicated in shared/admin pages.
+5. **Wallet/Collection/Receipt/Remittance operational reconciliation** already has an authoritative Field Operations Finance control plane, with commercial semantics shared with #1036. A second #1035 finance UI would create conflicting sources of truth.
+
+## Verification
+
+- #1035 deterministic source/tests prove Admin Hub, shared shell, three-app administration, business-facing controls and shared tracking/notification/order support.
+- #1035 Visual QA must fail if its required AR/EN runtime evidence is missing or if three-app/shared-tracking runtime assertions fail.
+- #1036 and #1037 close their rows independently.
+- #1042 performs integrated Van ↔ Dashboard runtime verification.
+- #1043 remains the final requirement-matrix convergence gate.
