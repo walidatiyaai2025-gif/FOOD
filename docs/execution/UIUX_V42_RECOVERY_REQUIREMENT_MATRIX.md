@@ -31,12 +31,12 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | C04 | Flash Offers live under Marketing/Promotions and Create/Edit is Wizard/Modal/business workflow | #1036 | route/interaction tests + runtime | OPEN |
 | C05 | Flash audience Customer/Group/Region/Route uses lookups/multi-select, not JSON entry | #1036 | tests + runtime | OPEN |
 | C06 | Flash products use Product Builder + Selling Unit lookup; Channels use structured toggles/selectors | #1036 | tests + runtime | OPEN |
-| F01 | Van transfer target uses searchable Van lookup | #1037 | tests + runtime | OPEN |
-| F02 | Assignment representative/operator and Warehouse use authoritative lookups | #1037 | tests + runtime | OPEN |
-| F03 | Visit/route Customer, Store, Route and Order references use authoritative lookups | #1037 | tests + runtime | OPEN |
-| F04 | Address Quality Territory uses authoritative lookup, not typed territory_key | #1037 | tests + runtime | OPEN |
-| F05 | Territory create/edit is map-first with edit/move/delete point, Undo, Clear and polygon validation | #1037 | interaction tests + runtime map evidence | OPEN |
-| F06 | Field Operations grids are informative/compact and use ellipsis row actions | #1037 | visual runtime responsive | OPEN |
+| F01 | Van transfer target uses searchable Van lookup | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
+| F02 | Assignment representative/operator and Warehouse use authoritative lookups | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
+| F03 | Visit/route Customer, Store, Route and Order references use authoritative lookups | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
+| F04 | Address Quality Territory uses authoritative lookup, not typed territory_key | #1037 | tests + runtime + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
+| F05 | Territory create/edit is map-first with edit/move/delete point, Undo, Clear and polygon validation | #1037 | interaction tests + runtime map evidence + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
+| F06 | Field Operations grids are informative/compact and use ellipsis row actions | #1037 | visual runtime responsive + owner evidence: [FieldOps #1037 manifest](UIUX_V42_RECOVERY_1037_FIELDOPS_EVIDENCE.md) | OPEN |
 | MC01 | Customer compact header/full usable viewport on all audited screens | #1038 | route inventory + runtime narrow/wide | OPEN |
 | MC02 | Customer Start/End/action filters remain one line | #1038 | widget/static + runtime | OPEN |
 | MC03 | Customer order/reference identifiers do not wrap ambiguously | #1038 | tests + runtime | OPEN |
