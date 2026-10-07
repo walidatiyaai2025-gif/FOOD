@@ -512,7 +512,7 @@
                         <label>{{ __('commercial.flash.timezone') }}
                             <select name="timezone" required>
                                 @foreach(timezone_identifiers_list() as $timezone)
-                                    <option value="{{ $timezone }}" @selected($selectedTimezone === $timezone)>{{ $timezone }}</option>
+                                    <option value="{{ $timezone }}" {{ $selectedTimezone === $timezone ? 'selected' : '' }}>{{ $timezone }}</option>
                                 @endforeach
                             </select>
                         </label>
@@ -549,7 +549,7 @@
                                                     : $customer->name.($customer->email ? ' · '.$customer->email : '');
                                             @endphp
                                             <label class="flash-lookup-option" data-flash-lookup-option data-flash-retail-owner="{{ $isRetailOwner ? '1' : '0' }}">
-                                                <input type="checkbox" name="audience_customer_ids[]" value="{{ $customer->id }}" @checked($selectedCustomerIds->contains((int)$customer->id))>
+                                                <input type="checkbox" name="audience_customer_ids[]" value="{{ $customer->id }}" {{ $selectedCustomerIds->contains((int)$customer->id) ? 'checked' : '' }}>
                                                 <span>{{ $customerLabel }}</span>
                                             </label>
                                         @empty
@@ -567,7 +567,7 @@
                                     <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
                                     <div class="flash-lookup-options" data-flash-lookup-options>
                                         @forelse($audienceGroups as $group)
-                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_customer_group_ids[]" value="{{ $group->id }}" @checked($selectedGroupIds->contains((int)$group->id))><span>{{ $group->name }}</span></label>
+                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_customer_group_ids[]" value="{{ $group->id }}" {{ $selectedGroupIds->contains((int)$group->id) ? 'checked' : '' }}><span>{{ $group->name }}</span></label>
                                         @empty
                                             <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
                                         @endforelse
@@ -583,7 +583,7 @@
                                     <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
                                     <div class="flash-lookup-options" data-flash-lookup-options>
                                         @forelse($audienceRegions as $region)
-                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_regions[]" value="{{ $region }}" @checked($selectedRegions->contains($region))><span>{{ $region }}</span></label>
+                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_regions[]" value="{{ $region }}" {{ $selectedRegions->contains($region) ? 'checked' : '' }}><span>{{ $region }}</span></label>
                                         @empty
                                             <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
                                         @endforelse
@@ -599,7 +599,7 @@
                                     <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
                                     <div class="flash-lookup-options" data-flash-lookup-options>
                                         @forelse($audienceRoutes as $route)
-                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_routes[]" value="{{ $route }}" @checked($selectedRoutes->contains($route))><span>{{ $route }}</span></label>
+                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_routes[]" value="{{ $route }}" {{ $selectedRoutes->contains($route) ? 'checked' : '' }}><span>{{ $route }}</span></label>
                                         @empty
                                             <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
                                         @endforelse
