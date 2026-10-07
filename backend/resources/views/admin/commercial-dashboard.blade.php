@@ -644,7 +644,7 @@
                     @forelse($existingPromotions as $promotion)
                         <tr>
                             <td>{{ $promotion->name }}</td>
-                            <td>{{ $promotion->type_label }}</td>
+                            <td>{{ $promotion->localized_label }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
                             <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>
