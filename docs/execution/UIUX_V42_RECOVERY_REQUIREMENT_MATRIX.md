@@ -100,6 +100,23 @@ Owner implementation evidence is recorded here before child closure. Per the mis
   - Source: `data-flash-product-builder`, authoritative per-product Selling Unit catalog/validation, Customer/Van channel checkboxes, Van parity regression.
   - Tests: `test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids`, `test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring`, final persistence test.
 
+## #1035 owner evidence checkpoint
+
+These rows intentionally remain `OPEN` until required runtime evidence is complete and later independent gates confirm them.
+
+| ID | Current owner evidence on canonical #1035 lane |
+|---|---|
+| D01 | `AdminNavigation` business-domain grouping + deterministic sidebar-order regression coverage are present; Visual QA now asserts the exact 11-group business-first Sidebar order in both AR and EN before accepting Admin Hub runtime evidence. Independent runtime review still required. |
+| D02 | Shared `foodex-page-header` is statically enforced across the nine #1035-owned Dashboard views, including Van Finance Support; Customer 360 exposes translated horizontal detail tabs. Visual QA performs shared-shell/overflow runtime assertions; exact-head runtime evidence is required before owner closure. |
+| D03 | Order Operations preserves direct exact-order View and primary Create/New Order; Notification Center and Campaigns expose explicit per-record Edit actions. Visual QA now opens real seeded record-action menus on desktop/mobile AR+EN; exact-head runtime evidence is required before owner closure. |
+| D04 | Owned hub/order/admin actions plus Notification Center/Campaigns use FOODEX green primary and white/green secondary styling with deterministic coverage; the Visual QA evidence pack captures these real actions in AR+EN. Exact-head visual evidence is required before owner closure. |
+| D05 | Order Operations, Notification Center and Notification Campaigns consolidate record actions into compact green ellipsis menus with deterministic coverage. Visual QA opens Notification/Campaign menus at desktop and mobile-390 in AR+EN; exact-head evidence is required before owner closure. |
+| D06 | Raw Store ID entry removed from Live Tracking; Order Operations/Reports/Customer 360 use business-facing presentation; Notifications/Campaigns use user lookups; Mobile Settings runtime/reviewer/submission workflows are structured. A deterministic cross-route audit covers all nine #1035-owned Dashboard views, including business-facing Van Finance Support, forbidding routine numeric-ID entry/raw IDs/error codes/routine JSON; Firebase Service Account JSON is the explicit privileged technical exception. Visual QA repeats the shell/raw-input checks at runtime; exact-head evidence is required before owner closure. |
+| D08 | Administration sidebar collapses to one entry opening the card-based Admin Hub; Visual QA now asserts exactly one Administration child linking to `/admin/administration` in AR and EN and requires dedicated runtime screenshots. Independent runtime review still required. |
+| D09 | Admin Hub and Mobile Settings expose Customer/Driver/Van as first-class apps; Visual QA asserts exactly those three cards plus per-app Preview/App Version/Settings links in AR/EN. Van Push, Store Submission, Reviewer/Test Account and the shared read-only Van Finance Support plane are independently reachable; Store Readiness validates Van Android AAB. Exact-head runtime evidence is required before owner closure. |
+| D10 | Shared `foodex-admin-layout` / `foodex-admin-main` / Sidebar / page-header contract is statically enforced across all nine #1035-owned Dashboard views. Visual QA executes the same shell/no-overflow/no-routine-raw-input contract across representative owned routes including Van Finance Support; exact-head evidence is required before owner closure. |
+| D11 | Live Tracking uses authorized human-readable Store lookup and a mixed Driver+Van runtime with distinct entity symbols; Browser tests cover mixed-feed merge and stale/online/offline states. Visual QA now seeds Driver stale + Van online fixtures and requires AR/EN mixed-runtime screenshots before evidence is accepted. Later independent runtime review still required. |
+
 ## Worker update rule
 
 When an owner believes a row is complete, the PR/Issue must record the exact source/test/runtime evidence. The row remains OPEN until the owning lane has evidence and the later independent gates confirm it.

@@ -42,6 +42,16 @@ jobs:
         working-directory: backend
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
       - name: Prepare deterministic visual-QA database
         working-directory: backend
         env:
@@ -57,6 +67,7 @@ jobs:
           touch database/database.sqlite
           php artisan migrate:fresh --force
           php artisan db:seed --class=Database\\Seeders\\ScreenshotEvidenceSeeder --force
+          php artisan db:seed --class=Database\\Seeders\\RefreshTimeSensitiveVisualEvidenceSeeder --force
 
       - name: Start FOODEX runtime
         working-directory: backend
@@ -77,29 +88,25 @@ jobs:
           cat /tmp/foodex-ui-qa-server.log
           exit 1
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-
-      - name: Install Playwright Chromium
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-
       - name: Capture Arabic and English Admin runtime screenshots
         working-directory: backend
         env:
           FOODEX_SCREENSHOT_BASE_URL: http://127.0.0.1:8000
-        run: node ../scripts/capture_web_screenshots.mjs
+        run: |
+          if ! node ../scripts/capture_web_screenshots.mjs; then
+            echo "::group::FOODEX runtime server log"
+            cat /tmp/foodex-ui-qa-server.log || true
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: Verify Web evidence pack
         run: |
           set -euo pipefail
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
           responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
-          test "$count" -ge 76
-          test "$responsive_count" -eq 48
+          test "$count" -ge 106
+          test "$responsive_count" -eq 64
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/sales-control__desktop-1280__ar.png"
@@ -108,6 +115,32 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/flash-offers__mobile-390__en.png"
           test -s "ScreenShots/02_Web/B2C_Admin/15_العروض_السريعة__populated__ar.png"
           test -s "ScreenShots/02_Web/B2C_Admin/15_العروض_السريعة__populated__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/administration-hub__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/administration-hub__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/live-tracking__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/live-tracking__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/15_مركز_الإدارة__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/15_مركز_الإدارة__populated__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/16_administration_runtime_contract__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/16_administration_runtime_contract__populated__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/17_notification_actions__desktop__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/17_notification_actions__desktop__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/17_notification_actions__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/17_notification_actions__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/18_campaign_actions__desktop__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/18_campaign_actions__desktop__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/18_campaign_actions__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/18_campaign_actions__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/19_mobile_settings_van_structured__desktop__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/19_mobile_settings_van_structured__desktop__en.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/20_van_finance_support__desktop__ar.png"
+          test -s "ScreenShots/02_Web/B2C_Admin/20_van_finance_support__desktop__en.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/16_mobile_settings_van_parity__populated__en.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_التتبع_الحي_للسائقين_والفانات__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_التتبع_الحي_للسائقين_والفانات__populated__en.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/orders__tablet-768__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/orders__mobile-390__en.png"
           test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__ar.png"

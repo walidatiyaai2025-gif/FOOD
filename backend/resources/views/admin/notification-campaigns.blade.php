@@ -12,7 +12,7 @@ html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0
 .panel,.card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm);padding:18px}.panel{margin-bottom:16px}.cards{display:grid;gap:14px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}.span2{grid-column:span 2}
 label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);margin-bottom:6px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px;background:#fff;color:inherit}textarea{min-height:96px;resize:vertical}
-.actions,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.primary,.secondary,.danger{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{background:var(--foodex-green);color:#fff}.secondary{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.danger{background:#fee2e2;color:#991b1b}
+.actions,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.primary,.secondary,.danger{border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{border:1px solid var(--foodex-green);background:var(--foodex-green);color:#fff}.secondary{border:1px solid var(--foodex-green);background:#fff;color:var(--foodex-green-dark)}.danger{border:1px solid #fecaca;background:#fff;color:#991b1b}.row-actions{position:relative;display:inline-block;margin-top:12px}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu form{margin:0 0 6px}.row-action-menu form:last-child{margin-bottom:0}.row-action-menu button{width:100%}
 .badge{display:inline-flex;padding:4px 9px;border-radius:999px;background:#eef2f7;font-size:.78rem;font-weight:700}.badge.active{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.paused{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.badge.cancelled{background:#fee2e2;color:#991b1b}
 .preview{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.preview>div{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.preview strong{display:block;margin-top:4px}
 .meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.meta div{background:#f8fafc;border-radius:10px;padding:10px}.meta small{display:block;color:var(--foodex-muted)}
@@ -23,9 +23,9 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 </style>
 </head>
 <body>
-<div class="layout">
+<div class="layout foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
-<main class="main foodex-admin-page">
+<main class="main foodex-admin-main foodex-admin-page">
     <div class="header foodex-page-header">
         <div>
             <h1>{{ __('notifications.campaigns') }}</h1>
@@ -45,7 +45,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
         <form method="post" action="{{ route('admin.notification-campaigns.store') }}" class="js-campaign-form" enctype="multipart/form-data">
             @csrf
             <div class="grid">
-                <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ old('name') }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: عرض نهاية الأسبوع':'e.g. Weekend promotion' }}" required></div>
+                <div><label>{{ __('notifications.campaign_name') }}</label><input name="name" value="{{ old('name') }}" placeholder="{{ __('notifications.campaign_name_placeholder') }}" required></div>
                 <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','van','user'] as $v)<option value="{{ $v }}">{{ __('notifications.audience_options.'.$v) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver','van'] as $v)<option value="{{ $v }}">{{ __('notifications.app_options.'.$v) }}</option>@endforeach</select></div>
 
@@ -65,14 +65,14 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ old('popup_cta_target') }}" placeholder="/offers" dir="ltr"></div>
                 <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ old('popup_cta_label_ar') }}" dir="rtl"></div>
                 <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ old('popup_cta_label_en') }}" dir="ltr"></div>
-                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'رقم المستخدم - اختياري':'User ID - optional' }}"></div>
+                <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)old('user_id')===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
 
                 <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" required dir="rtl" placeholder="عنوان الحملة بالعربية"></div>
                 <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" required dir="ltr" placeholder="Campaign title in English"></div>
                 <div class="full preview">
                     <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
                     <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
-                            <div><label>{{ app()->getLocale()==='ar'?'صورة الحملة':'Campaign image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
+                            <div><label>{{ __('notifications.campaign_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
                 </div>
 
                 <div><label>{{ __('notifications.schedule_kind') }}</label><select name="schedule_kind" class="js-schedule-kind"><option value="once">{{ __('notifications.once') }}</option><option value="recurring">{{ __('notifications.recurring') }}</option></select></div>
@@ -80,7 +80,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><label>{{ __('notifications.ends_at') }}</label><input name="ends_at" type="datetime-local"></div>
                 <div class="js-recurring"><label>{{ __('notifications.interval_value') }}</label><input name="interval_value" type="number" min="1" value="1" placeholder="1"></div>
                 <div class="js-recurring"><label>{{ __('notifications.interval_unit') }}</label><select name="interval_unit">@foreach(['minute','hour','day','week','month'] as $v)<option value="{{ $v }}">{{ __('notifications.'.$v) }}</option>@endforeach</select></div>
-                <div class="js-recurring"><label>{{ __('notifications.max_runs') }}</label><input name="max_runs" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'عدد مرات التشغيل - اختياري':'Maximum runs - optional' }}"></div>
+                <div class="js-recurring"><label>{{ __('notifications.max_runs') }}</label><input name="max_runs" type="number" min="1" placeholder="{{ __('notifications.max_runs_placeholder') }}"></div>
                 <div class="full row">
                     <label style="display:flex;align-items:center;gap:8px;margin:0"><input style="width:auto;min-height:auto" type="checkbox" name="activate" value="1" checked> {{ __('notifications.activate_now') }}</label>
                     <button class="primary" type="submit">{{ __('notifications.save_campaign') }}</button>
@@ -99,7 +99,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
     @forelse($campaigns as $campaign)
         <article class="card">
             <div class="row">
-                <strong>#{{ $campaign->id }} · {{ $campaign->name }}</strong>
+                <strong>{{ $campaign->name }}</strong>
                 <span class="badge {{ $campaign->status }}">{{ __('notifications.campaign_status.'.$campaign->status) }}</span>
                 <span class="badge">{{ __('notifications.channel_options.'.$campaign->target_channel) }}</span>
                 <span class="badge">{{ __('notifications.audience_options.'.$campaign->audience) }}</span>
@@ -121,7 +121,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
             @if(!in_array($campaign->status,['completed','cancelled'],true))
             <details>
-                <summary style="cursor:pointer;font-weight:800">{{ __('notifications.save') }}</summary>
+                <summary style="cursor:pointer;font-weight:800">{{ __('notifications.edit_campaign') }}</summary>
                 <form method="post" action="{{ route('admin.notification-campaigns.update',$campaign) }}" class="js-campaign-form" enctype="multipart/form-data" style="margin-top:12px">
                     @csrf @method('PATCH')
                     <div class="grid">
@@ -142,13 +142,13 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                         <div><label>{{ __('notifications.popup_cta_target') }}</label><input name="popup_cta_target" value="{{ $campaign->popup_cta_target }}" placeholder="/offers" dir="ltr"></div>
                         <div><label>{{ __('notifications.popup_cta_label_ar') }}</label><input name="popup_cta_label_ar" value="{{ $campaign->popup_cta_label_ar }}" dir="rtl"></div>
                         <div><label>{{ __('notifications.popup_cta_label_en') }}</label><input name="popup_cta_label_en" value="{{ $campaign->popup_cta_label_en }}" dir="ltr"></div>
-                        <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" value="{{ $campaign->user_id }}"></div>
+                        <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)$campaign->user_id===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
                         <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $campaign->title_ar }}" required dir="rtl"></div>
                         <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $campaign->title_en }}" required dir="ltr"></div>
                         <div class="full preview">
                             <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية">{{ $campaign->body_ar }}</textarea></div>
                             <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English">{{ $campaign->body_en }}</textarea></div>
-                            <div><label>{{ app()->getLocale()==='ar'?'صورة الحملة':'Campaign image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($campaign->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($campaign->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif</div>
+                            <div><label>{{ __('notifications.campaign_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($campaign->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($campaign->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif {{-- localization-gate: allow Blade image control directive --}}</div>
                         </div>
                         <div><label>{{ __('notifications.schedule_kind') }}</label><select name="schedule_kind" class="js-schedule-kind"><option value="once" @selected($campaign->schedule_kind==='once')>{{ __('notifications.once') }}</option><option value="recurring" @selected($campaign->schedule_kind==='recurring')>{{ __('notifications.recurring') }}</option></select></div>
                         <div><label>{{ __('notifications.starts_at') }}</label><input name="starts_at" type="datetime-local" value="{{ $campaign->starts_at?->timezone('Asia/Kuwait')->format('Y-m-d\TH:i') }}" required></div>
@@ -162,34 +162,39 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             </details>
             @endif
 
-            <div class="actions" style="margin-top:12px">
-                @if(!in_array($campaign->status,['completed','cancelled'],true))
-                    <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
-                @endif
-                @if($campaign->status==='active')
-                    <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="paused"><button class="secondary">{{ __('notifications.pause') }}</button></form>
-                @elseif(!in_array($campaign->status,['completed','cancelled'],true))
-                    <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="active"><button class="secondary">{{ __('notifications.activate') }}</button></form>
-                @endif
-                @if($campaign->status!=='cancelled')
-                    <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="cancelled"><button class="danger">{{ __('notifications.cancel') }}</button></form>
-                @endif
-            </div>
+            @if(!in_array($campaign->status,['completed','cancelled'],true) || $campaign->status!=='cancelled')
+            <details class="row-actions" data-notification-campaign-actions>
+                <summary aria-label="{{ __('notifications.actions') }}">⋮</summary>
+                <div class="row-action-menu">
+                    @if(!in_array($campaign->status,['completed','cancelled'],true))
+                        <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
+                    @endif
+                    @if($campaign->status==='active')
+                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="paused"><button class="secondary">{{ __('notifications.pause') }}</button></form>
+                    @elseif(!in_array($campaign->status,['completed','cancelled'],true))
+                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="active"><button class="secondary">{{ __('notifications.activate') }}</button></form>
+                    @endif
+                    @if($campaign->status!=='cancelled')
+                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="cancelled"><button class="danger">{{ __('notifications.cancel') }}</button></form>
+                    @endif
+                </div>
+            </details>
+            @endif
 
             <details style="margin-top:12px">
                 <summary style="cursor:pointer;font-weight:800">{{ __('notifications.history') }}</summary>
                 <div style="overflow:auto">
                 <table class="history">
-                    <thead><tr><th>#</th><th>{{ __('notifications.scheduled_for') }}</th><th>{{ __('notifications.executed_at') }}</th><th>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}</th><th>{{ __('notifications.generated_notification') }}</th><th>{{ app()->getLocale()==='ar'?'الخطأ':'Error' }}</th></tr></thead>
+                    <thead><tr><th>{{ __('notifications.history_run') }}</th><th>{{ __('notifications.scheduled_for') }}</th><th>{{ __('notifications.executed_at') }}</th><th>{{ __('notifications.history_status') }}</th><th>{{ __('notifications.generated_notification') }}</th><th>{{ __('notifications.history_result') }}</th></tr></thead>
                     <tbody>
                     @forelse($campaign->runs as $run)
                         <tr>
-                            <td>{{ $run->id }}</td>
+                            <td>{{ $loop->iteration }}</td>
                             <td>{{ $run->scheduled_for?->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') }}</td>
                             <td>{{ $run->completed_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') ?? '—' }}</td>
-                            <td>{{ $run->status }}</td>
-                            <td>{{ $run->notification_id ? '#'.$run->notification_id : '—' }}</td>
-                            <td>{{ $run->error_code ?? '—' }}</td>
+                            <td>{{ __("notifications.run_status.$run->status") }}</td>
+                            <td>{{ $run->notification_id ? __('notifications.generated') : '—' }}</td>
+                            <td>{{ $run->error_code ? __('notifications.review_run_status') : __('notifications.successful') }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="6">—</td></tr>

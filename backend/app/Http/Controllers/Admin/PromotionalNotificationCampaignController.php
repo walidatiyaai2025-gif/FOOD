@@ -55,6 +55,11 @@ final class PromotionalNotificationCampaignController extends Controller
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
             'b2bStores' => $this->allowedStores($actor, 'b2b'),
             'b2cStores' => $this->allowedStores($actor, 'b2c'),
+            'userTargets' => User::query()
+                ->select(['id', 'name', 'email'])
+                ->orderBy('name')
+                ->orderBy('email')
+                ->get(),
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'notification_campaigns',

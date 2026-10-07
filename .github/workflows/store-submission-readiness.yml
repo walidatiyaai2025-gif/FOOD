@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/customer_app/**"
       - "apps/driver_app/**"
+      - "apps/van_app/**"
       - "backend/**"
       - "scripts/configure-mobile-native.py"
       - "scripts/configure-android-store-signing.py"
@@ -47,6 +48,9 @@ jobs:
           - app: driver
             project: foodex_driver_app
             label: Driver Android
+          - app: van
+            project: foodex_van_app
+            label: Van Android
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}_app
