@@ -237,7 +237,7 @@
                                     <select name="break_pack_unit_code" data-break-pack-selling-unit>
                                         <option value="">{{ __('commercial.sales.select_selling_unit') }}</option>
                                         @foreach($units->where('is_active', true) as $unit)
-                                            <option value="{{ $unit->code }}" @selected(($policy->break_pack_unit_code ?? '') === $unit->code)>{{ $unit->name }} · {{ $unit->code }} · ×{{ rtrim(rtrim(number_format((float)$unit->conversion_factor, 3, '.', ''), '0'), '.') }}</option>
+                                            <option value="{{ $unit['code'] ?? '' }}" @selected(($policy->break_pack_unit_code ?? '') === ($unit['code'] ?? ''))>{{ $unit['name'] ?? '' }} · {{ $unit['code'] ?? '' }} · ×{{ rtrim(rtrim(number_format((float)($unit['conversion_factor'] ?? 1), 3, '.', ''), '0'), '.') }}</option>
                                         @endforeach
                                     </select>
                                 </label>
