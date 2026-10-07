@@ -91,7 +91,13 @@ jobs:
         working-directory: backend
         env:
           FOODEX_SCREENSHOT_BASE_URL: http://127.0.0.1:8000
-        run: node ../scripts/capture_web_screenshots.mjs
+        run: |
+          if ! node ../scripts/capture_web_screenshots.mjs; then
+            echo "::group::FOODEX runtime server log"
+            cat /tmp/foodex-ui-qa-server.log || true
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: Verify Web evidence pack
         run: |
