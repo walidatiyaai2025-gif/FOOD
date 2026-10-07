@@ -6,7 +6,7 @@
     <title>{{ __('notifications.title') }} · FOODEX</title>
     <style>
         :root{color:#17202a;background:#f5f7fa}
-        *{box-sizing:border-box}body{margin:0;padding:28px}.wrap{max-width:1500px;margin:auto}
+        *{box-sizing:border-box}body{margin:0}.foodex-admin-layout{min-height:100vh}.notifications-main{min-width:0;padding:28px}.wrap{max-width:1500px;margin:auto}
         .top,.row,.actions{display:flex;gap:12px;align-items:center}.top{justify-content:space-between;margin-bottom:18px}
         .panel,.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px}.panel{margin-bottom:16px}
         .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
@@ -17,11 +17,15 @@
         .preview{display:grid;grid-template-columns:1fr 1fr;gap:12px}.preview>div{padding:12px;border:1px solid #e2e8f0;border-radius:12px}
         .flash{background:#ecfdf5;border:1px solid #a7f3d0;padding:12px 16px;border-radius:12px;margin-bottom:16px}
         label{display:block;font-size:.8rem;font-weight:700;margin-bottom:6px;color:#475569}
-        @media(max-width:850px){body{padding:16px}.grid,.preview{grid-template-columns:1fr}.top,.row{align-items:stretch;flex-direction:column}}
+        @media(max-width:1023px){.notifications-main{padding:18px}}@media(max-width:850px){.notifications-main{padding:16px}.grid,.preview{grid-template-columns:1fr}.top,.row{align-items:stretch;flex-direction:column}}
     </style>
     @include('admin._brand-components')
 </head>
-<body><div class="wrap foodex-admin-page" data-foodex-utility="notifications">
+<body>
+<div class="foodex-admin-layout">
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'notification_campaigns', 'user' => auth()->user()])</aside>
+    <main class="notifications-main foodex-admin-main">
+<div class="wrap foodex-admin-page" data-foodex-utility="notifications">
     <div class="top foodex-page-header">
         <div><h1>{{ __('notifications.title') }}</h1><p>{{ __('notifications.description') }}</p></div>
         <div class="actions">
@@ -97,4 +101,7 @@
     @endforelse
     </div>
     <div>{{ $notifications->links() }}</div>
-</div></body></html>
+</div>
+    </main>
+</div>
+</body></html>
