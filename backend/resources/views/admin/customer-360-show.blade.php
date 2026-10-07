@@ -58,6 +58,39 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <body>
 @php($ar=app()->getLocale()==='ar')
 @php($finance=$wholesale['financial'] ?? null)
+@php
+$businessLabel = static function ($value) use ($ar): string {
+    $key = strtolower(trim((string) ($value ?? '')));
+    if ($key === '') {
+        return '—';
+    }
+    $labels = [
+        'b2b' => $ar ? 'الجملة' : 'Wholesale',
+        'b2c' => $ar ? 'التجزئة' : 'Retail',
+        'active' => $ar ? 'نشط' : 'Active',
+        'inactive' => $ar ? 'غير نشط' : 'Inactive',
+        'pending' => $ar ? 'قيد الانتظار' : 'Pending',
+        'accepted' => $ar ? 'مقبول' : 'Accepted',
+        'assigned' => $ar ? 'تم التعيين' : 'Assigned',
+        'picked_up' => $ar ? 'تم الاستلام' : 'Picked up',
+        'out_for_delivery' => $ar ? 'في طريق التوصيل' : 'Out for delivery',
+        'delivered' => $ar ? 'تم التوصيل' : 'Delivered',
+        'completed' => $ar ? 'مكتمل' : 'Completed',
+        'failed' => $ar ? 'متعذر' : 'Failed',
+        'cancelled' => $ar ? 'ملغي' : 'Cancelled',
+        'paid' => $ar ? 'مدفوع' : 'Paid',
+        'issued' => $ar ? 'صادرة' : 'Issued',
+        'void' => $ar ? 'ملغاة' : 'Void',
+        'self_registration' => $ar ? 'تسجيل ذاتي' : 'Self registration',
+        'admin_created' => $ar ? 'إنشاء من الإدارة' : 'Created by administration',
+        'checkout' => $ar ? 'تسجيل أثناء الطلب' : 'Checkout registration',
+        'legacy' => $ar ? 'سجل سابق' : 'Legacy record',
+        'unknown' => $ar ? 'غير معروف' : 'Unknown',
+    ];
+
+    return $labels[$key] ?? ucwords(str_replace(['_', '-'], ' ', $key));
+};
+@endphp
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
@@ -83,10 +116,10 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-avatar" aria-hidden="true">🏪</div>
 <div class="c360-person-copy">
 <h2>{{ $customer->name }}</h2>
-<p>#{{ $customer->id }} · {{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</p>
+<p>{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</p>
 </div>
 </div>
-<span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['registration_source'] }}</span>
+<span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $businessLabel($summary['registration_source']) }}</span>
 </section>
 
 @if(session('status'))<div class="foodex-success">{{ session('status') }}</div>@endif
@@ -105,7 +138,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
 <section class="c360-panel active" id="panel-finance" role="tabpanel" aria-labelledby="tab-finance" data-c360-panel="finance">
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ $ar?'الحسابات والمالية':'Accounts & finance' }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $wholesale['status'] ?: '-' }}</span>@endif</div>
+<div class="c360-section-head"><h2>{{ $ar?'الحسابات والمالية':'Accounts & finance' }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $businessLabel($wholesale['status']) }}</span>@endif</div>
 @if($wholesale)
 <div class="c360-kpis">
 @if($finance)
@@ -130,8 +163,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <div class="c360-finance-details">
 <div><small>{{ $ar?'الشركة':'Company' }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
-<div><small>{{ $ar?'شريحة السعر':'Price tier' }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }} @if($wholesale['tier_code'])· {{ $wholesale['tier_code'] }}@endif</strong></div>
-<div><small>{{ $ar?'حالة الحساب':'Account status' }}</small><strong>{{ $wholesale['status'] ?: '-' }}</strong></div>
+<div><small>{{ $ar?'شريحة السعر':'Price tier' }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }}</strong></div>
+<div><small>{{ $ar?'حالة الحساب':'Account status' }}</small><strong>{{ $businessLabel($wholesale['status']) }}</strong></div>
 @if($finance)
 <div><small>{{ $ar?'المبلغ المفتوح':'Open amount' }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
 <div><small>{{ $ar?'المتأخر':'Overdue amount' }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
@@ -151,7 +184,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <label><small>{{ $ar?'المبلغ':'Amount' }}</small><input name="amount" type="number" min="0.001" step="0.001" required></label>
 <label><small>{{ $ar?'العملة':'Currency' }}</small><input name="currency" value="{{ $finance['currency'] }}" maxlength="3" minlength="3" required></label>
 <label><small>{{ $ar?'مرجع':'Reference' }}</small><input name="reference" maxlength="120"></label>
-<label><small>{{ $ar?'رقم الفاتورة الداخلي':'Invoice ID' }}</small><input name="invoice_id" type="number" min="1"></label>
+<label><small>{{ $ar?'الفاتورة':'Invoice' }}</small><select name="invoice_id"><option value="">—</option>@foreach($invoices as $invoice)<option value="{{ $invoice['id'] }}">{{ $invoice['number'] }}</option>@endforeach</select></label>
 <label class="wide"><small>{{ $ar?'الوصف':'Description' }}</small><input name="description" maxlength="500"></label>
 <label><small>{{ $ar?'التاريخ':'Date' }}</small><input name="occurred_at" type="datetime-local"></label>
 <div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ الحركة':'Record entry' }}</button></div>
@@ -172,8 +205,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div><small>{{ $ar?'البريد الإلكتروني':'Email' }}</small><strong>{{ $customer->email }}</strong></div>
 <div><small>{{ $ar?'الهاتف':'Phone' }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
 <div><small>{{ $ar?'تاريخ التسجيل':'Registered at' }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
-<div><small>{{ $ar?'قناة التسجيل الأصلية':'Origin channel' }}</small><strong>{{ strtoupper($customer->origin_channel ?: 'unknown') }}</strong></div>
-<div><small>{{ $ar?'مصدر التسجيل':'Registration source' }}</small><strong>{{ $customer->registration_source }}</strong></div>
+<div><small>{{ $ar?'قناة التسجيل الأصلية':'Origin channel' }}</small><strong>{{ $businessLabel($customer->origin_channel ?: 'unknown') }}</strong></div>
+<div><small>{{ $ar?'مصدر التسجيل':'Registration source' }}</small><strong>{{ $businessLabel($customer->registration_source) }}</strong></div>
 <div><small>{{ $ar?'مصدر/متجر التسجيل':'Registration origin' }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
 </div>
 </div>
@@ -251,7 +284,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-section-head"><h2>{{ $ar?'أحدث الطلبات':'Recent orders' }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
 @if(empty($orders))<div class="c360-empty">{{ $ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.' }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'التاريخ':'Date' }}</th><th></th></tr></thead><tbody>
-@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ strtoupper($order['channel']) }}</span></td><td>{{ $order['status'] }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td></tr>@endforeach
+@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $businessLabel($order['channel']) }}</span></td><td>{{ $businessLabel($order['status']) }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 </section>
@@ -261,7 +294,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-section-head"><h2>{{ $ar?'الفواتير':'Invoices' }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
 @if(empty($invoices))<div class="c360-empty">{{ $ar?'لا توجد فواتير داخل النطاق الحالي.':'No invoices in the current scope.' }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الفاتورة':'Invoice' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead><tbody>
-@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ strtoupper($invoice['channel']) }}</span></td><td>{{ $invoice['status'] }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
+@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $businessLabel($invoice['channel']) }}</span></td><td>{{ $businessLabel($invoice['status']) }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 </section>
