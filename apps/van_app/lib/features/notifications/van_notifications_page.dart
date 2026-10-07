@@ -36,7 +36,11 @@ class _VanNotificationsPageState extends State<VanNotificationsPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_load());
+      }
+    });
   }
 
   @override
