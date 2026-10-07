@@ -83,6 +83,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('value="customer"', $view);
         $this->assertStringContainsString('value="driver"', $view);
         $this->assertStringContainsString('value="van"', $view);
+        $this->assertGreaterThanOrEqual(2, substr_count($view, 'value="van"'), 'Van must be available in both runtime and push-provider administration.');
         $this->assertStringContainsString("@selected($selectedApp==='van')", $view);
     }
 
