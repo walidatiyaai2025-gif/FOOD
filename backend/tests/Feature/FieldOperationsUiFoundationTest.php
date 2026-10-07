@@ -134,6 +134,27 @@ class FieldOperationsUiFoundationTest extends TestCase
             ->assertSee($territory->code);
     }
 
+    public function test_routing_normal_flow_uses_structured_controls_and_fences_json_to_super_admin_advanced(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-routing-rules', $view);
+        $this->assertStringContainsString('name="rules[0][name]"', $view);
+        $this->assertStringContainsString('name="rules[0][condition_key]"', $view);
+        $this->assertStringContainsString('name="rules[0][action_key]"', $view);
+        $this->assertStringContainsString('data-routing-add-rule', $view);
+        $this->assertStringContainsString('data-advanced-routing-json', $view);
+        $this->assertStringContainsString('@if($isSuper)', $view);
+        $this->assertStringContainsString('name="input_keys[]"', $view);
+        $this->assertStringContainsString('name="input_values[]"', $view);
+        $this->assertStringContainsString('name="scope_keys[]"', $view);
+        $this->assertStringContainsString('name="scope_values[]"', $view);
+        $this->assertStringNotContainsString('<textarea name="input_json"', $view);
+        $this->assertStringNotContainsString('<textarea name="scope_json"', $view);
+        $this->assertStringNotContainsString('<textarea name="rules_json" rows="6" required>', $view);
+    }
+
     public function test_field_operations_business_workflows_use_lookups_and_map_edit_controls(): void
     {
         $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
