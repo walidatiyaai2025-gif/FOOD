@@ -411,24 +411,24 @@
 
         @elseif($section === 'routing')
             @if($canManageTerritories)
-            <details class="fieldops-card"><summary><strong>{{ $ar?'إنشاء سياسة توجيه':'Create routing policy' }}</strong></summary>
+            <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
-                    <div class="fieldops-form-grid"><label>Code<input name="code" required></label><label>Mode<input name="mode" value="MANUAL" required></label><label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from"></label><label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label></div>
-                    <label>Rules JSON<textarea name="rules_json" rows="6" required>[{"name":"Default","conditions":[],"actions":[],"enabled":true}]</textarea></label>
-                    <label>{{ $ar?'سبب/ملاحظة':'Reason' }}<input name="reason"></label><button class="foodex-primary">{{ $ar?'إنشاء Draft':'Create draft' }}</button>
+                    <div class="fieldops-form-grid"><label>Code<input name="code" required></label><label>{{ __('field_operations.mode') }}<input name="mode" value="MANUAL" required></label><label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from"></label><label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label></div>
+                    <label>{{ __('field_operations.rules_json') }}<textarea name="rules_json" rows="6" required>[{"name":"Default","conditions":[],"actions":[],"enabled":true}]</textarea></label>
+                    <label>{{ __('field_operations.reason') }}<input name="reason"></label><button class="foodex-primary">{{ __('field_operations.create_draft') }}</button>
                 </form>
             </details>
             @endif
-            @if(session('simulation_result'))<section class="fieldops-card"><h2>{{ $ar?'نتيجة المحاكاة':'Simulation result' }} · #{{ session('simulation_policy') }}</h2><pre style="white-space:pre-wrap">{{ json_encode(session('simulation_result'),JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></section>@endif
+            @if(session('simulation_result'))<section class="fieldops-card"><h2>{{ __('field_operations.simulation_result') }} · #{{ session('simulation_policy') }}</h2><pre style="white-space:pre-wrap">{{ json_encode(session('simulation_result'),JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></section>@endif
             @forelse($policies as $policy)
-            <article class="fieldops-card"><div class="fieldops-actions"><h3 style="margin:0">{{ $policy->code }} v{{ $policy->version }}</h3><span class="fieldops-status">{{ $policy->status }}</span><span>{{ $policy->mode }}</span><span>{{ $policy->rules->count() }} rules</span></div>
+            <article class="fieldops-card"><div class="fieldops-actions"><h3 style="margin:0">{{ $policy->code }} v{{ $policy->version }}</h3><span class="fieldops-status">{{ $policy->status }}</span><span>{{ $policy->mode }}</span><span>{{ $policy->rules->count() }} {{ __('field_operations.rules') }}</span></div>
                 @if($canManageTerritories)<div class="fieldops-grid" style="margin-top:12px">
-                    @if($policy->status==='draft')<form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'publish']) }}">@csrf<button>{{ $ar?'نشر':'Publish' }}</button></form>@endif
-                    @if(in_array($policy->status,['published','retired'],true))<form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'rollback']) }}">@csrf<input name="reason" placeholder="{{ $ar?'سبب التراجع':'Rollback reason' }}"><button>{{ $ar?'إنشاء Rollback':'Rollback' }}</button></form>@endif
-                    <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'simulate']) }}" class="fieldops-form">@csrf<label>Input JSON<textarea name="input_json" rows="3">{}</textarea></label><label>Scope JSON<textarea name="scope_json" rows="2">{}</textarea></label><button>{{ $ar?'محاكاة':'Simulate' }}</button></form>
+                    @if($policy->status==='draft')<form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'publish']) }}">@csrf<button>{{ __('field_operations.publish') }}</button></form>@endif
+                    @if(in_array($policy->status,['published','retired'],true))<form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'rollback']) }}">@csrf<input name="reason" placeholder="{{ __('field_operations.rollback_reason') }}"><button>{{ __('field_operations.rollback') }}</button></form>@endif
+                    <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'simulate']) }}" class="fieldops-form">@csrf<label>{{ __('field_operations.input_json') }}<textarea name="input_json" rows="3">{}</textarea></label><label>{{ __('field_operations.scope_json') }}<textarea name="scope_json" rows="2">{}</textarea></label><button>{{ __('field_operations.simulate') }}</button></form>
                 </div>@endif
             </article>
-            @empty<div class="foodex-ops-state">{{ $ar?'لا توجد سياسات توجيه.':'No routing policies.' }}</div>@endforelse
+            @empty<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endforelse
             {{ $policies->links() }}
 
         @elseif($section === 'finance')
@@ -511,7 +511,7 @@
         const redraw=()=>{
             draft.clearLayers();
             points.forEach((point,index)=>{
-                const marker=L.marker([point[1],point[0]],{draggable:true,title:@json($ar?'اسحب للتحريك، وانقر مرتين للحذف':'Drag to move; double-click to delete')}).addTo(draft);
+                const marker=L.marker([point[1],point[0]],{draggable:true,title:@json(__('field_operations.map_drag_delete'))}).addTo(draft);
                 marker.on('dragend',event=>{
                     const pos=event.target.getLatLng();
                     points[index]=[Number(pos.lng.toFixed(7)),Number(pos.lat.toFixed(7))];
@@ -528,19 +528,19 @@
                 L.polygon(points.map(p=>[p[1],p[0]])).addTo(draft);
                 const ring=[...points,points[0]];
                 output.value=JSON.stringify({type:'Polygon',coordinates:[ring]});
-                if(status) status.textContent=@json($ar?'المضلع صالح وجاهز للحفظ.':'Polygon is valid and ready to save.');
+                if(status) status.textContent=@json(__('field_operations.polygon_valid'));
             } else {
                 output.value='';
                 if(status) status.textContent=points.length<3
-                    ? @json($ar?'أضف ثلاث نقاط مختلفة على الأقل.':'Add at least three distinct points.')
-                    : @json($ar?'النقاط الحالية لا تكوّن مضلعًا صالحًا. حرّك أو احذف نقطة ثم أعد المحاولة.':'The current points do not form a valid polygon. Move or delete a point and try again.');
+                    ? @json(__('field_operations.polygon_need_three'))
+                    : @json(__('field_operations.polygon_invalid'));
             }
         };
         map.on('click',event=>{points.push([Number(event.latlng.lng.toFixed(7)),Number(event.latlng.lat.toFixed(7))]);redraw();});
         undo.addEventListener('click',()=>{points.pop();redraw();});
         clear.addEventListener('click',()=>{points=[];redraw();});
         select.addEventListener('change',()=>{form.action=select.value ? base+'/'+select.value+'/geometry' : '';});
-        form.addEventListener('submit',event=>{if(!select.value||!validPolygon()){event.preventDefault();alert(@json($ar?'اختر منطقة وارسم مضلعًا صالحًا من ثلاث نقاط مختلفة على الأقل.':'Select a territory and draw a valid polygon with at least three distinct points.'));}});
+        form.addEventListener('submit',event=>{if(!select.value||!validPolygon()){event.preventDefault();alert(@json(__('field_operations.polygon_submit_invalid')));}});
         redraw();
     })();
     </script>
