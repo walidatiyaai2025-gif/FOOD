@@ -19,6 +19,8 @@ import 'features/visits/http_van_visit_repository.dart';
 import 'features/visits/van_visit_contract.dart';
 import 'features/notifications/http_van_notification_repository.dart';
 import 'features/notifications/van_notification_contract.dart';
+import 'features/orders/http_van_order_repository.dart';
+import 'features/orders/van_order_contract.dart';
 
 class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
@@ -33,6 +35,7 @@ class FoodexVanApp extends StatefulWidget {
     this.commercialRepository,
     this.visitRepository,
     this.notificationRepository,
+    this.orderRepository,
     this.pushService,
   });
 
@@ -46,6 +49,7 @@ class FoodexVanApp extends StatefulWidget {
   final VanCommercialRepository? commercialRepository;
   final VanVisitRepository? visitRepository;
   final VanNotificationRepository? notificationRepository;
+  final VanOrderRepository? orderRepository;
   final VanFirebasePushService? pushService;
 
   @override
@@ -244,6 +248,8 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
                           widget.visitRepository ?? HttpVanVisitRepository(api),
                       notificationRepository: widget.notificationRepository ??
                           HttpVanNotificationRepository(api),
+                      orderRepository:
+                          widget.orderRepository ?? HttpVanOrderRepository(api),
                     );
                   },
                 ),
