@@ -30,7 +30,11 @@ class MobileArtifactTest(unittest.TestCase):
                     self.assertFalse(manifest["production_ready"])
                     self.assertEqual("ci-validation-only", manifest["purpose"])
                     self.assertEqual("https://vanfoodex.50sols.com", manifest["api_base_url"])
-                    expected_id = f"com.fiftysolution.foodex.{app}"
+                    expected_id = (
+                        "com.foodex.van"
+                        if app == "van"
+                        else f"com.fiftysolution.foodex.{app}"
+                    )
                     self.assertEqual(expected_id, manifest["native_identity"])
                     self.assertEqual("flutter-template-debug-key" if platform == "android" else "none", manifest["signing"])
                     self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), manifest["sha256"])
