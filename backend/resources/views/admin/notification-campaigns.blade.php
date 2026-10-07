@@ -12,7 +12,7 @@ html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0
 .panel,.card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm);padding:18px}.panel{margin-bottom:16px}.cards{display:grid;gap:14px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}.span2{grid-column:span 2}
 label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);margin-bottom:6px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px;background:#fff;color:inherit}textarea{min-height:96px;resize:vertical}
-.actions,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.primary,.secondary,.danger{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{background:var(--foodex-green);color:#fff}.secondary{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.danger{background:#fee2e2;color:#991b1b}
+.actions,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.primary,.secondary,.danger{border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{border:1px solid var(--foodex-green);background:var(--foodex-green);color:#fff}.secondary{border:1px solid var(--foodex-green);background:#fff;color:var(--foodex-green-dark)}.danger{border:1px solid #fecaca;background:#fff;color:#991b1b}.row-actions{position:relative;display:inline-block;margin-top:12px}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu form{margin:0 0 6px}.row-action-menu form:last-child{margin-bottom:0}.row-action-menu button{width:100%}
 .badge{display:inline-flex;padding:4px 9px;border-radius:999px;background:#eef2f7;font-size:.78rem;font-weight:700}.badge.active{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.paused{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.badge.cancelled{background:#fee2e2;color:#991b1b}
 .preview{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.preview>div{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.preview strong{display:block;margin-top:4px}
 .meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.meta div{background:#f8fafc;border-radius:10px;padding:10px}.meta small{display:block;color:var(--foodex-muted)}
@@ -162,19 +162,24 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             </details>
             @endif
 
-            <div class="actions" style="margin-top:12px">
-                @if(!in_array($campaign->status,['completed','cancelled'],true))
-                    <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
-                @endif
-                @if($campaign->status==='active')
-                    <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="paused"><button class="secondary">{{ __('notifications.pause') }}</button></form>
-                @elseif(!in_array($campaign->status,['completed','cancelled'],true))
-                    <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="active"><button class="secondary">{{ __('notifications.activate') }}</button></form>
-                @endif
-                @if($campaign->status!=='cancelled')
-                    <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="cancelled"><button class="danger">{{ __('notifications.cancel') }}</button></form>
-                @endif
-            </div>
+            @if(!in_array($campaign->status,['completed','cancelled'],true) || $campaign->status!=='cancelled')
+            <details class="row-actions" data-notification-campaign-actions>
+                <summary aria-label="{{ __('notifications.actions') }}">⋮</summary>
+                <div class="row-action-menu">
+                    @if(!in_array($campaign->status,['completed','cancelled'],true))
+                        <form method="post" action="{{ route('admin.notification-campaigns.send-now',$campaign) }}">@csrf<button class="primary">{{ __('notifications.send_now') }}</button></form>
+                    @endif
+                    @if($campaign->status==='active')
+                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="paused"><button class="secondary">{{ __('notifications.pause') }}</button></form>
+                    @elseif(!in_array($campaign->status,['completed','cancelled'],true))
+                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="active"><button class="secondary">{{ __('notifications.activate') }}</button></form>
+                    @endif
+                    @if($campaign->status!=='cancelled')
+                        <form method="post" action="{{ route('admin.notification-campaigns.state',$campaign) }}">@csrf<input type="hidden" name="state" value="cancelled"><button class="danger">{{ __('notifications.cancel') }}</button></form>
+                    @endif
+                </div>
+            </details>
+            @endif
 
             <details style="margin-top:12px">
                 <summary style="cursor:pointer;font-weight:800">{{ __('notifications.history') }}</summary>
