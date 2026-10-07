@@ -96,6 +96,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('<td>{{ $run->id }}</td>', $view);
         $this->assertStringNotContainsString("'#'.$run->notification_id", $view);
         $this->assertStringNotContainsString('{{ $run->error_code ??', $view);
+        $this->assertStringNotContainsString('<td>{{ $run->status }}</td>', $view);
+        $this->assertStringContainsString('notifications.run_status.$run->status', $view);
         $this->assertStringContainsString('{{ $loop->iteration }}', $view);
     }
 }
