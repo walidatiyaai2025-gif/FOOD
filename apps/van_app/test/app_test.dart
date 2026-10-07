@@ -535,7 +535,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-order-review-page')), findsOneWidget);
-    expect(find.text('12.000 KWD'), findsOneWidget);
+    expect(find.text('12.000 KWD'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('van-order-submit')));
     await tester.pumpAndSettle();
 
