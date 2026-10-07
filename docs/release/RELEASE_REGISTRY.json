@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.58",
+  "current_version": "1.0.62",
   "releases": [
     {
       "version": "1.0.40",
@@ -197,7 +197,7 @@
     },
     {
       "version": "1.0.58",
-      "state": "release-candidate",
+      "state": "published",
       "registration": "canonical-van-release",
       "release_notes": "docs/release/UPDATE_NOTES_1.0.58.md",
       "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
@@ -206,6 +206,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "5a0228afeb4b14ed0d2184d8e93ee4c0214e5079005c98bd5cb100d67e916517",
       "note": "Canonical FOODEX Van 1.0.58 release: complete #983/#991 commercial and Flash scope, #990 store-readiness, full Van field operations and clean-install package. Apple/Google console signing and submission remain external/manual."
+    },
+    {
+      "version": "1.0.62",
+      "state": "published",
+      "registration": "terminal-uiux-recovery",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.62.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "e654641d1bd581b7a059ffb6e101c70b35287b5adab99009972f489bec286e06",
+      "note": "Immutable terminal UIUX-V42 recovery release built from the frozen #1043 lineage, published as 1.0.62+62 with production API endpoint validation."
     }
   ]
 }
