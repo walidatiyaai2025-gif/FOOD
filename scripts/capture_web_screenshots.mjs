@@ -32,6 +32,7 @@ const b2c = [
   ['11_التقارير_والتحليلات_وإعدادات_المتجر', '/admin/b2c/reports'],
   ['14_التحكم_التجاري_للمنتجات', '/admin/b2c/commercial/sales-control'],
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
+  ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
 ];
 
@@ -457,6 +458,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'sales-control',
     '/admin/b2c/commercial/sales-control',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'flash-offers',
+    '/admin/b2c/commercial/flash-offers',
   );
   await captureResponsiveRoute(
     page,
