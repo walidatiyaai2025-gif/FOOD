@@ -5643,6 +5643,17 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         _ => ar ? 'مفتوحة' : 'Open',
       };
 
+  String _ledgerTypeLabel(String value, bool ar) =>
+      switch (value.trim().toLowerCase()) {
+        'invoice' => ar ? 'فاتورة' : 'Invoice',
+        'payment' => ar ? 'دفعة' : 'Payment',
+        'collection' => ar ? 'تحصيل' : 'Collection',
+        'credit' || 'credit_note' => ar ? 'إشعار دائن' : 'Credit note',
+        'debit' || 'debit_note' => ar ? 'إشعار مدين' : 'Debit note',
+        'adjustment' => ar ? 'تسوية' : 'Adjustment',
+        _ => ar ? 'حركة مالية' : 'Ledger entry',
+      };
+
   Future<void> _sharePdf(Map<Object?, Object?> data) async {
     if (_sharingPdf) return;
     final ar = Localizations.localeOf(context).languageCode == 'ar';
@@ -6209,7 +6220,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     : (ar ? 'دائن ' : 'Credit ') +
                         _money(creditAmount, entryCurrency);
                 return ListTile(
-                  title: Text(entry['type']?.toString() ?? '—'),
+                  title: Text(
+                    _ledgerTypeLabel(entry['type']?.toString() ?? '', ar),
+                  ),
                   subtitle: Text(
                     [
                       if ((entry['reference']?.toString() ?? '').isNotEmpty)

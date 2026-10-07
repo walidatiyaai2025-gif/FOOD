@@ -550,7 +550,7 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
                                     height: CustomerUiSpacing.xs,
                                   ),
                                   Text(
-                                    offer.type,
+                                    _offerTypeLabel(offer.type),
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -577,6 +577,24 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
           },
         ),
       );
+
+  String _offerTypeLabel(String value) {
+    final normalized = value.trim().toLowerCase();
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    if (normalized.contains('percent')) {
+      return ar ? 'خصم بالنسبة المئوية' : 'Percentage discount';
+    }
+    if (normalized.contains('fixed') || normalized.contains('amount')) {
+      return ar ? 'خصم بقيمة ثابتة' : 'Fixed discount';
+    }
+    if (normalized.contains('bundle') || normalized.contains('buy')) {
+      return ar ? 'عرض باقة' : 'Bundle offer';
+    }
+    if (normalized.contains('flash')) {
+      return ar ? 'عرض سريع' : 'Flash offer';
+    }
+    return ar ? 'عرض' : 'Offer';
+  }
 
   String _formatOfferValue(B2cOffer offer) {
     final value = offer.value;

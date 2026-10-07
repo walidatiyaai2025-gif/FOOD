@@ -1508,9 +1508,7 @@ class _PaymentSummary extends StatelessWidget {
 
     if (payment == null && receipts.isEmpty && outstanding == null) {
       return Text(
-        details.paymentMethod?.trim().isNotEmpty == true
-            ? details.paymentMethod!
-            : context.tr('customer.empty'),
+        _paymentMethodLabel(context, details.paymentMethod),
       );
     }
 
@@ -1521,8 +1519,8 @@ class _PaymentSummary extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.payments_outlined),
-            title: Text(payment.provider),
-            subtitle: Text(payment.status),
+            title: Text(_paymentProviderLabel(context, payment.provider)),
+            subtitle: Text(_paymentStatusLabel(context, payment.status)),
             trailing: Text(
               '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -1574,6 +1572,46 @@ class _PaymentSummary extends StatelessWidget {
       ],
     );
   }
+}
+
+String _paymentMethodLabel(BuildContext context, String? value) {
+  final normalized = value?.trim().toLowerCase() ?? '';
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'card' || 'credit_card' || 'debit_card' => ar ? 'بطاقة' : 'Card',
+    'knet' => 'KNET',
+    'wallet' => ar ? 'المحفظة' : 'Wallet',
+    _ => normalized.isEmpty
+        ? context.tr('customer.empty')
+        : (ar ? 'طريقة دفع' : 'Payment method'),
+  };
+}
+
+String _paymentProviderLabel(BuildContext context, String value) {
+  final normalized = value.trim().toLowerCase();
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'knet' => 'KNET',
+    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'stripe' => 'Stripe',
+    'apple_pay' => 'Apple Pay',
+    'google_pay' => 'Google Pay',
+    _ => ar ? 'مزود الدفع' : 'Payment provider',
+  };
+}
+
+String _paymentStatusLabel(BuildContext context, String value) {
+  final normalized = value.trim().toLowerCase();
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'paid' || 'captured' || 'completed' || 'succeeded' => ar ? 'مدفوع' : 'Paid',
+    'pending' || 'processing' => ar ? 'قيد المعالجة' : 'Processing',
+    'failed' => ar ? 'فشل الدفع' : 'Payment failed',
+    'refunded' => ar ? 'تم رد المبلغ' : 'Refunded',
+    'cancelled' || 'canceled' => ar ? 'ملغي' : 'Cancelled',
+    _ => ar ? 'حالة الدفع' : 'Payment status',
+  };
 }
 
 String _collectionStatusText(BuildContext context, String status) {

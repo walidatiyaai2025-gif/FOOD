@@ -186,7 +186,9 @@ class _CustomerDiagnosticsScreenState
                       child: ListTile(
                         dense: true,
                         leading: const Icon(Icons.bug_report_outlined),
-                        title: Text(event['type']?.toString() ?? 'event'),
+                        title: Text(
+                          _eventTypeLabel(event['type']),
+                        ),
                         subtitle: Text(
                           event['timestamp']?.toString() ?? '',
                           maxLines: 1,
@@ -200,6 +202,24 @@ class _CustomerDiagnosticsScreenState
         ),
       ),
     );
+  }
+
+  String _eventTypeLabel(Object? value) {
+    final type = value?.toString().trim().toLowerCase() ?? '';
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    if (type.contains('http') || type.contains('network')) {
+      return ar ? 'طلب شبكة' : 'Network request';
+    }
+    if (type.contains('auth') || type.contains('session')) {
+      return ar ? 'جلسة وتسجيل دخول' : 'Session and sign-in';
+    }
+    if (type.contains('navigation') || type.contains('route')) {
+      return ar ? 'تنقل داخل التطبيق' : 'App navigation';
+    }
+    if (type.contains('runtime') || type.contains('exception')) {
+      return ar ? 'تشغيل التطبيق' : 'App runtime';
+    }
+    return ar ? 'حدث تشخيصي' : 'Diagnostic event';
   }
 
   Widget _row(String label, String value) => Padding(

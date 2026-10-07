@@ -105,6 +105,19 @@ class _DriverWalletPageState extends State<DriverWalletPage>
     }
   }
 
+  String _transactionStatusLabel(String value) {
+    final normalized = value.trim().toLowerCase();
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return switch (normalized) {
+      'posted' || 'completed' || 'approved' => ar ? 'مكتمل' : 'Completed',
+      'pending' || 'processing' => ar ? 'قيد المعالجة' : 'Processing',
+      'rejected' => ar ? 'مرفوض' : 'Rejected',
+      'failed' => ar ? 'فشل' : 'Failed',
+      'cancelled' || 'canceled' => ar ? 'ملغي' : 'Cancelled',
+      _ => ar ? 'حالة المعاملة' : 'Transaction status',
+    };
+  }
+
   Future<void> _submitRemittance(DriverWalletAccount account) async {
     if (_submitting || account.availableToRemit <= 0) return;
     final controller = TextEditingController(
@@ -263,7 +276,9 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                             title: Text(
                                               '${row.amount.toStringAsFixed(3)} ${row.currency}',
                                             ),
-                                            subtitle: Text(row.status),
+                                            subtitle: Text(
+                                              _transactionStatusLabel(row.status),
+                                            ),
                                           ),
                                         ),
                                   ],
