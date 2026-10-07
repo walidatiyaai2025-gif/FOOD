@@ -165,4 +165,16 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.'", $view);
         $this->assertStringNotContainsString("$ar?'التفاصيل':'Details'", $view);
     }
+
+
+    public function test_customer_360_has_no_inline_bilingual_user_copy(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("__('customer_360.addresses.map_title')", $view);
+        $this->assertStringContainsString("__('customer_360.records.manage_order')", $view);
+        $this->assertStringNotContainsString("$ar?'", $view);
+        $this->assertStringNotContainsString("$ar ? '", $view);
+    }
 }
