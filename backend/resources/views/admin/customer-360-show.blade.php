@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_','-',app()->getLocale()) }}" dir="{{ app()->getLocale()==='ar'?'rtl':'ltr' }}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ $customer->name }} · {{ app()->getLocale()==='ar'?'تفاصيل العميل':'Customer details' }} · FOODEX</title>
+<title>{{ $customer->name }} · {{ __('customer_360.title') }} · FOODEX</title>
 @include('admin._brand-components')
 <link rel="stylesheet" href="{{ asset('assets/leaflet/1.9.4/leaflet.css') }}">
 <style>
@@ -59,36 +59,18 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @php($ar=app()->getLocale()==='ar')
 @php($finance=$wholesale['financial'] ?? null)
 @php
-$businessLabel = static function ($value) use ($ar): string {
+$businessLabel = static function ($value): string {
     $key = strtolower(trim((string) ($value ?? '')));
     if ($key === '') {
         return '—';
     }
-    $labels = [
-        'b2b' => $ar ? 'الجملة' : 'Wholesale',
-        'b2c' => $ar ? 'التجزئة' : 'Retail',
-        'active' => $ar ? 'نشط' : 'Active',
-        'inactive' => $ar ? 'غير نشط' : 'Inactive',
-        'pending' => $ar ? 'قيد الانتظار' : 'Pending',
-        'accepted' => $ar ? 'مقبول' : 'Accepted',
-        'assigned' => $ar ? 'تم التعيين' : 'Assigned',
-        'picked_up' => $ar ? 'تم الاستلام' : 'Picked up',
-        'out_for_delivery' => $ar ? 'في طريق التوصيل' : 'Out for delivery',
-        'delivered' => $ar ? 'تم التوصيل' : 'Delivered',
-        'completed' => $ar ? 'مكتمل' : 'Completed',
-        'failed' => $ar ? 'متعذر' : 'Failed',
-        'cancelled' => $ar ? 'ملغي' : 'Cancelled',
-        'paid' => $ar ? 'مدفوع' : 'Paid',
-        'issued' => $ar ? 'صادرة' : 'Issued',
-        'void' => $ar ? 'ملغاة' : 'Void',
-        'self_registration' => $ar ? 'تسجيل ذاتي' : 'Self registration',
-        'admin_created' => $ar ? 'إنشاء من الإدارة' : 'Created by administration',
-        'checkout' => $ar ? 'تسجيل أثناء الطلب' : 'Checkout registration',
-        'legacy' => $ar ? 'سجل سابق' : 'Legacy record',
-        'unknown' => $ar ? 'غير معروف' : 'Unknown',
-    ];
 
-    return $labels[$key] ?? ucwords(str_replace(['_', '-'], ' ', $key));
+    $translationKey = 'customer_360.business_labels.'.$key;
+    $translated = __($translationKey);
+
+    return $translated === $translationKey
+        ? ucwords(str_replace(['_', '-'], ' ', $key))
+        : $translated;
 };
 @endphp
 <div class="foodex-admin-layout">
@@ -98,15 +80,15 @@ $businessLabel = static function ($value) use ($ar): string {
 
 <div class="c360-topline">
 <div>
-<h1 style="margin:0">{{ $ar?'تفاصيل العميل':'Customer details' }}</h1>
+<h1 style="margin:0">{{ __('customer_360.title') }}</h1>
 <div class="c360-breadcrumbs">
-<a href="{{ route('admin.customer-360.index') }}">{{ $ar?'العملاء':'Customers' }}</a><span>›</span>
-<a href="{{ route('admin.customer-360.index') }}">{{ $ar?'قائمة العملاء':'Customer list' }}</a><span>›</span>
-<span>{{ $ar?'تفاصيل العميل':'Customer details' }}</span>
+<a href="{{ route('admin.customer-360.index') }}">{{ __('customer_360.customers') }}</a><span>›</span>
+<a href="{{ route('admin.customer-360.index') }}">{{ __('customer_360.customer_list') }}</a><span>›</span>
+<span>{{ __('customer_360.title') }}</span>
 </div>
 </div>
 <div class="c360-actions">
-<a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.index') }}">← {{ $ar?'عودة إلى القائمة':'Back to list' }}</a>
+<a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.index') }}">← {{ __('customer_360.back_to_list') }}</a>
 @include('admin._live-notifications',['user'=>auth()->user()])
 </div>
 </div>
@@ -116,7 +98,7 @@ $businessLabel = static function ($value) use ($ar): string {
 <div class="c360-avatar" aria-hidden="true">🏪</div>
 <div class="c360-person-copy">
 <h2>{{ $customer->name }}</h2>
-<p>{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</p>
+<p>{{ $summary['active'] ? __('customer_360.active') : __('customer_360.inactive') }}</p>
 </div>
 </div>
 <span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $businessLabel($summary['registration_source']) }}</span>
@@ -126,19 +108,19 @@ $businessLabel = static function ($value) use ($ar): string {
 @if($errors->any())<div class="foodex-error">{{ $errors->first() }}</div>@endif
 
 <div class="c360-tabs-wrap">
-<div class="c360-tabs" role="tablist" aria-label="{{ $ar?'أقسام تفاصيل العميل':'Customer detail sections' }}">
-<button class="c360-tab" type="button" role="tab" id="tab-finance" aria-controls="panel-finance" aria-selected="true" data-c360-tab="finance"><span class="c360-tab-icon">▣</span>{{ $ar?'الحسابات والمالية':'Accounts & finance' }}</button>
-<button class="c360-tab" type="button" role="tab" id="tab-identity" aria-controls="panel-identity" aria-selected="false" data-c360-tab="identity"><span class="c360-tab-icon">♙</span>{{ $ar?'هوية العميل':'Customer identity' }}</button>
-<button class="c360-tab" type="button" role="tab" id="tab-addresses" aria-controls="panel-addresses" aria-selected="false" data-c360-tab="addresses"><span class="c360-tab-icon">⌖</span>{{ $ar?'عناوين العميل':'Customer addresses' }}</button>
-<button class="c360-tab" type="button" role="tab" id="tab-stores" aria-controls="panel-stores" aria-selected="false" data-c360-tab="stores"><span class="c360-tab-icon">▦</span>{{ $ar?'متاجر التجزئة المرتبطة':'Linked retail stores' }}</button>
-<button class="c360-tab" type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" data-c360-tab="orders"><span class="c360-tab-icon">🛒</span>{{ $ar?'أحدث الطلبات':'Recent orders' }}</button>
-<button class="c360-tab" type="button" role="tab" id="tab-invoices" aria-controls="panel-invoices" aria-selected="false" data-c360-tab="invoices"><span class="c360-tab-icon">▤</span>{{ $ar?'الفواتير':'Invoices' }}</button>
+<div class="c360-tabs" role="tablist" aria-label="{{ __('customer_360.sections') }}">
+<button class="c360-tab" type="button" role="tab" id="tab-finance" aria-controls="panel-finance" aria-selected="true" data-c360-tab="finance"><span class="c360-tab-icon">▣</span>{{ __('customer_360.tabs.finance') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-identity" aria-controls="panel-identity" aria-selected="false" data-c360-tab="identity"><span class="c360-tab-icon">♙</span>{{ __('customer_360.tabs.identity') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-addresses" aria-controls="panel-addresses" aria-selected="false" data-c360-tab="addresses"><span class="c360-tab-icon">⌖</span>{{ __('customer_360.tabs.addresses') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-stores" aria-controls="panel-stores" aria-selected="false" data-c360-tab="stores"><span class="c360-tab-icon">▦</span>{{ __('customer_360.tabs.stores') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" data-c360-tab="orders"><span class="c360-tab-icon">🛒</span>{{ __('customer_360.tabs.orders') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-invoices" aria-controls="panel-invoices" aria-selected="false" data-c360-tab="invoices"><span class="c360-tab-icon">▤</span>{{ __('customer_360.tabs.invoices') }}</button>
 </div>
 </div>
 
 <section class="c360-panel active" id="panel-finance" role="tabpanel" aria-labelledby="tab-finance" data-c360-panel="finance">
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ $ar?'الحسابات والمالية':'Accounts & finance' }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $businessLabel($wholesale['status']) }}</span>@endif</div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.finance') }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $businessLabel($wholesale['status']) }}</span>@endif</div>
 @if($wholesale)
 <div class="c360-kpis">
 @if($finance)
@@ -199,7 +181,7 @@ $businessLabel = static function ($value) use ($ar): string {
 
 <section class="c360-panel" id="panel-identity" role="tabpanel" aria-labelledby="tab-identity" data-c360-panel="identity" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ $ar?'هوية العميل':'Customer identity' }}</h2><span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.identity') }}</h2><span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></div>
 <div class="c360-info">
 <div><small>{{ $ar?'الاسم':'Name' }}</small><strong>{{ $customer->name }}</strong></div>
 <div><small>{{ $ar?'البريد الإلكتروني':'Email' }}</small><strong>{{ $customer->email }}</strong></div>
@@ -214,7 +196,7 @@ $businessLabel = static function ($value) use ($ar): string {
 
 <section class="c360-panel" id="panel-addresses" role="tabpanel" aria-labelledby="tab-addresses" data-c360-panel="addresses" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><div><h2>{{ $ar?'عناوين العميل':'Customer addresses' }}</h2><p>{{ $ar?'إدارة العناوين المحفوظة للعميل.':'Manage the customer saved addresses.' }}</p></div><span class="c360-badge">{{ count($addresses) }} {{ $ar?'عنوان':'addresses' }}</span></div>
+<div class="c360-section-head"><div><h2>{{ __('customer_360.tabs.addresses') }}</h2><p>{{ $ar?'إدارة العناوين المحفوظة للعميل.':'Manage the customer saved addresses.' }}</p></div><span class="c360-badge">{{ count($addresses) }} {{ $ar?'عنوان':'addresses' }}</span></div>
 @if($canManageAddresses)
 <details class="c360-form-details" style="margin-top:0;margin-bottom:16px;border-top:0;padding-top:0">
 <summary class="foodex-action-primary" style="display:inline-flex">{{ $ar?'إضافة عنوان جديد':'Add new address' }}</summary>
@@ -270,7 +252,7 @@ $businessLabel = static function ($value) use ($ar): string {
 
 <section class="c360-panel" id="panel-stores" role="tabpanel" aria-labelledby="tab-stores" data-c360-panel="stores" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ $ar?'متاجر التجزئة المرتبطة':'Linked retail stores' }}</h2></div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.stores') }}</h2></div>
 @if($access['mode']!=='b2b')
 <div class="c360-list">@forelse($retailStores as $store)<span class="c360-store">{{ $store['name'] }} · {{ $store['code'] }}</span>@empty<div class="c360-empty" style="width:100%">{{ $ar?'لا توجد متاجر ضمن النطاق الحالي.':'No Retail stores in the current scope.' }}</div>@endforelse</div>
 @else
@@ -281,7 +263,7 @@ $businessLabel = static function ($value) use ($ar): string {
 
 <section class="c360-panel" id="panel-orders" role="tabpanel" aria-labelledby="tab-orders" data-c360-panel="orders" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ $ar?'أحدث الطلبات':'Recent orders' }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.orders') }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
 @if(empty($orders))<div class="c360-empty">{{ $ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.' }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'التاريخ':'Date' }}</th><th></th></tr></thead><tbody>
 @foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $businessLabel($order['channel']) }}</span></td><td>{{ $businessLabel($order['status']) }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td></tr>@endforeach
@@ -291,7 +273,7 @@ $businessLabel = static function ($value) use ($ar): string {
 
 <section class="c360-panel" id="panel-invoices" role="tabpanel" aria-labelledby="tab-invoices" data-c360-panel="invoices" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ $ar?'الفواتير':'Invoices' }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.invoices') }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
 @if(empty($invoices))<div class="c360-empty">{{ $ar?'لا توجد فواتير داخل النطاق الحالي.':'No invoices in the current scope.' }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الفاتورة':'Invoice' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead><tbody>
 @foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $businessLabel($invoice['channel']) }}</span></td><td>{{ $businessLabel($invoice['status']) }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
