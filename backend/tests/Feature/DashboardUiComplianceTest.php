@@ -324,5 +324,10 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="permission_declarations_json"', $view);
         $this->assertStringNotContainsString('name="privacy_checklist_json"', $view);
         $this->assertStringNotContainsString('name="manual_gaps_json"', $view);
+        $this->assertStringContainsString('$submissionMasterAssetStates = [', $view);
+        $this->assertStringContainsString('$submissionUploadAssetStates = [', $view);
+        $this->assertStringContainsString('name="asset_icon_master"><option value="">—</option>@foreach($submissionMasterAssetStates', $view);
+        $this->assertStringContainsString('name="asset_screenshots"><option value="">—</option>@foreach($submissionUploadAssetStates', $view);
+        $this->assertStringNotContainsString('$submissionAssetStates = [', $view);
     }
 }
