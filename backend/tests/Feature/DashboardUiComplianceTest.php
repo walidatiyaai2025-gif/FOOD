@@ -100,4 +100,17 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('notifications.run_status.$run->status', $view);
         $this->assertStringContainsString('{{ $loop->iteration }}', $view);
     }
+
+
+    public function test_order_operations_shell_copy_uses_locale_catalog(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("__('order_operations.title')", $view);
+        $this->assertStringContainsString("__('order_operations.filters.channel')", $view);
+        $this->assertStringContainsString("__('order_operations.columns.actions')", $view);
+        $this->assertStringNotContainsString("$isAr?'إدارة الطلبات':'Order Management'", $view);
+        $this->assertStringNotContainsString("$isAr?'إجراءات الطلب':'Order actions'", $view);
+    }
 }
