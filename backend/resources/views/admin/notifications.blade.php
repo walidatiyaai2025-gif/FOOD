@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="foodex-admin-layout">
-    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'notification_campaigns', 'user' => auth()->user()])</aside>
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'notification_campaigns', 'user' => auth()->user()]) {{-- localization-gate: allow Blade include expression --}}</aside>
     <main class="notifications-main foodex-admin-main">
 <div class="wrap foodex-admin-page" data-foodex-utility="notifications">
     <div class="top foodex-page-header">
@@ -81,7 +81,7 @@
                     <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $notification->title_en }}" required></div>
                     <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" dir="rtl" required placeholder="{{ __('notifications.body_ar_placeholder') }}">{{ $notification->body_ar }}</textarea></div>
                     <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" dir="ltr" required placeholder="{{ __('notifications.body_en_placeholder') }}">{{ $notification->body_en }}</textarea></div>
-                    <div class="full"><label>{{ __('notifications.notification_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($notification->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($notification->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif</div>
+                    <div class="full"><label>{{ __('notifications.notification_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($notification->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($notification->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif {{-- localization-gate: allow Blade image control directive --}}</div>
                     <div><label>{{ __('notifications.type') }}</label><input name="type" value="{{ $notification->type }}" required></div>
                     <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','van','user'] as $value)<option value="{{ $value }}" @selected($notification->audience===$value)>{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                     <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver','van'] as $value)<option value="{{ $value }}" @selected($notification->app===$value)>{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>
