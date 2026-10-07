@@ -7,7 +7,7 @@ Status: canonical FOODEX Van 1.0.58 release candidate with #983/#991 commercial/
 - Dashboard: `1.0.58`
 - Customer: `1.0.58+58`
 - Driver/Van: `1.0.58+58`
-- Production API: `https://vanfoodex.50sols.com`
+- Production API: `https://foodex.50sols.com`
 
 ## Commercial and Van consolidation
 
