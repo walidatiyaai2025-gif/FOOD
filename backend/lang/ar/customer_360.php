@@ -16,6 +16,15 @@ return [
         'orders' => 'أحدث الطلبات',
         'invoices' => 'الفواتير',
     ],
+    'identity' => [
+        'name' => 'الاسم',
+        'email' => 'البريد الإلكتروني',
+        'phone' => 'الهاتف',
+        'registered_at' => 'تاريخ التسجيل',
+        'origin_channel' => 'قناة التسجيل الأصلية',
+        'registration_source' => 'مصدر التسجيل',
+        'registration_origin' => 'مصدر/متجر التسجيل',
+    ],
     'finance' => [
         'current_balance' => 'الرصيد الحالي',
         'customer_owes_company' => 'مستحق على العميل',
