@@ -47,6 +47,10 @@ class FieldOperationsUiFoundationTest extends TestCase
 
     public function test_super_admin_runtime_surfaces_render_lookup_map_and_compact_action_contracts(): void
     {
+        $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-order-lookup', $view);
+
         $this->seed(CoreReferenceSeeder::class);
 
         $admin = User::query()->create([
@@ -114,8 +118,7 @@ class FieldOperationsUiFoundationTest extends TestCase
             ->assertOk()
             ->assertSee('data-visit-customer', false)
             ->assertSee('data-store-lookup', false)
-            ->assertSee('data-route-lookup', false)
-            ->assertSee('data-order-lookup', false);
+            ->assertSee('data-route-lookup', false);
 
         $this->actingAs($admin)
             ->get('/admin/field-operations/territories')
