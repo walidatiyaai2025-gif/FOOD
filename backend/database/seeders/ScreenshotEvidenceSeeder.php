@@ -48,6 +48,62 @@ class ScreenshotEvidenceSeeder extends Seeder
         ]);
         DB::table('role_user')->insert(['role_id' => $superRoleId, 'user_id' => $englishAdminId]);
 
+        DB::table('notifications')->insert([
+            'user_id' => null,
+            'created_by' => $superAdminId,
+            'channel' => 'both',
+            'type' => 'evidence',
+            'audience' => 'van',
+            'app' => 'van',
+            'target_channel' => 'all',
+            'status' => 'draft',
+            'title' => 'إشعار فان تجريبي',
+            'title_ar' => 'إشعار فان تجريبي',
+            'title_en' => 'Van evidence notification',
+            'body' => 'إشعار مخصص لإثبات واجهة الإدارة.',
+            'body_ar' => 'إشعار مخصص لإثبات واجهة الإدارة.',
+            'body_en' => 'Dashboard runtime evidence notification for Van.',
+            'data' => json_encode(['evidence' => true], JSON_THROW_ON_ERROR),
+            'published_at' => null,
+            'read_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('notification_campaigns')->insert([
+            'name' => 'Van Runtime Evidence Campaign',
+            'type' => 'promotion',
+            'title_ar' => 'حملة فان تجريبية',
+            'title_en' => 'Van runtime evidence campaign',
+            'body_ar' => 'حملة مخصصة لإثبات إجراءات السجل في لوحة الإدارة.',
+            'body_en' => 'Campaign used to prove Dashboard record actions for Van.',
+            'audience' => 'van',
+            'app' => 'van',
+            'target_channel' => 'all',
+            'delivery_channel' => 'both',
+            'popup_frequency' => 'once_per_session',
+            'popup_cta_label_ar' => 'فتح',
+            'popup_cta_label_en' => 'Open',
+            'popup_cta_target' => '/orders',
+            'user_id' => null,
+            'store_id' => null,
+            'created_by' => $superAdminId,
+            'schedule_kind' => 'once',
+            'timezone' => 'Asia/Kuwait',
+            'starts_at' => $now->addHour(),
+            'interval_value' => null,
+            'interval_unit' => null,
+            'ends_at' => null,
+            'max_runs' => 1,
+            'run_count' => 0,
+            'next_run_at' => $now->addHour(),
+            'last_run_at' => null,
+            'last_notification_id' => null,
+            'status' => 'draft',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
         $b2bType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $b2bType,
