@@ -42,6 +42,13 @@ return [
         'completed' => 'مكتملة',
         'cancelled' => 'ملغاة',
     ],
+    'run_status' => [
+        'pending' => 'قيد الانتظار',
+        'running' => 'جارٍ التنفيذ',
+        'completed' => 'مكتمل',
+        'failed' => 'متعذر',
+        'cancelled' => 'ملغي',
+    ],
     'title_ar' => 'العنوان بالعربية',
     'title_en' => 'العنوان بالإنجليزية',
     'body_ar' => 'المحتوى بالعربية',
