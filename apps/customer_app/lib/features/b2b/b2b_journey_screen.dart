@@ -255,6 +255,81 @@ class B2bJourneyScreen extends StatelessWidget {
       );
     }
 
+    if (hasRemoteState &&
+        definition.pattern == CustomerRoutePaths.b2bInvoices) {
+      return withFooter(
+        Scaffold(
+          key: const ValueKey('b2b-invoices-screen'),
+          backgroundColor: CustomerUiColors.mint,
+          appBar: AppBar(
+            key: const ValueKey('b2b-invoices-app-bar'),
+            toolbarHeight: 58,
+            elevation: 0,
+            centerTitle: false,
+            titleSpacing: 0,
+            automaticallyImplyLeading: false,
+            backgroundColor: CustomerUiColors.deepGreen,
+            foregroundColor: CustomerUiColors.white,
+            leading: IconButton(
+              key: const ValueKey('b2b-invoices-back'),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const BackButtonIcon(),
+            ),
+            title: Row(
+              key: const ValueKey('b2b-invoices-header-row'),
+              children: [
+                Text(
+                  content.$1,
+                  key: const ValueKey('b2b-invoices-header-title'),
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: CustomerUiColors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: CustomerUiColors.white,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    content.$2,
+                    key: const ValueKey('b2b-invoices-header-subtitle'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: CustomerUiColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              key: const ValueKey('b2b-invoices-scroll'),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: _InvoicesRemoteState(
+                api: api!,
+                endpoint: _endpoint()!,
+              ),
+            ),
+          ),
+        ),
+        destination,
+      );
+    }
+
     if (hasRemoteState && isProfile) {
       return withFooter(
         _B2bMorePage(
@@ -6541,32 +6616,63 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
             ),
           ),
         Card(
+          key: const ValueKey('b2b-invoices-filters'),
+          margin: EdgeInsets.zero,
+          color: CustomerUiColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: CustomerUiColors.border),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                TextField(
+            padding: const EdgeInsets.all(10),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 330;
+                final inputBorder = OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(color: CustomerUiColors.border),
+                );
+                final searchField = TextField(
                   key: const ValueKey('b2b-invoices-search'),
                   controller: _searchController,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    labelText: ar ? 'بحث برقم الفاتورة' : 'Search invoice number',
-                    prefixIcon: const Icon(Icons.search),
+                    hintText: ar ? 'بحث برقم الفاتورة' : 'Search invoice number',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 22),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 40, minHeight: 40),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    border: inputBorder,
+                    enabledBorder: inputBorder,
                   ),
                   onSubmitted: (_) => _reload(page: 1),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
+                );
+                final statusField = DropdownButtonFormField<String>(
                   key: const ValueKey('b2b-invoices-status'),
                   initialValue: _status,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: ar ? 'الحالة' : 'Status',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: inputBorder,
+                    enabledBorder: inputBorder,
                   ),
                   items: [
                     DropdownMenuItem(
                       value: '',
-                      child: Text(ar ? 'كل الحالات' : 'All statuses'),
+                      child: Text(
+                        ar ? 'كل الحالات' : 'All statuses',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     for (final value in const [
                       'open',
@@ -6578,50 +6684,134 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                     ])
                       DropdownMenuItem(
                         value: value,
-                        child: Text(_statusLabel(context, value)),
+                        child: Text(
+                          _statusLabel(context, value),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   onChanged: (value) {
                     setState(() => _status = value ?? '');
                     _reload(page: 1);
                   },
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                );
+                final outlineStyle = OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 42),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  visualDensity: VisualDensity.compact,
+                );
+                final fromButton = OutlinedButton.icon(
+                  key: const ValueKey('b2b-invoices-from'),
+                  style: outlineStyle,
+                  onPressed: () => _pickDate(from: true),
+                  icon: const Icon(Icons.date_range_outlined, size: 18),
+                  label: Text(
+                    _from == null ? (ar ? 'من' : 'From') : _date(_from!),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+                final toButton = OutlinedButton.icon(
+                  key: const ValueKey('b2b-invoices-to'),
+                  style: outlineStyle,
+                  onPressed: () => _pickDate(from: false),
+                  icon: const Icon(Icons.event_outlined, size: 18),
+                  label: Text(
+                    _to == null ? (ar ? 'إلى' : 'To') : _date(_to!),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+                final clearButton = FilledButton.icon(
+                  key: const ValueKey('b2b-invoices-clear-filters'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 42),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: CustomerUiColors.deepGreen,
+                    foregroundColor: CustomerUiColors.white,
+                  ),
+                  onPressed: _clearFilters,
+                  icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                  label: Text(
+                    ar ? 'مسح الفلتر' : 'Clear filters',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+                final refreshButton = SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: IconButton(
+                    key: const ValueKey('b2b-invoices-refresh'),
+                    tooltip: ar ? 'تحديث' : 'Refresh',
+                    style: IconButton.styleFrom(
+                      backgroundColor: CustomerUiColors.mint,
+                      foregroundColor: CustomerUiColors.deepGreen,
+                    ),
+                    onPressed: _reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                );
+
+                final primaryRow = narrow
+                    ? Column(
+                        children: [
+                          searchField,
+                          const SizedBox(height: 8),
+                          statusField,
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(flex: 5, child: searchField),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 3, child: statusField),
+                        ],
+                      );
+
+                final actionRow = narrow
+                    ? Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: fromButton),
+                              const SizedBox(width: 6),
+                              Expanded(child: toButton),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(child: clearButton),
+                              const SizedBox(width: 6),
+                              refreshButton,
+                            ],
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(flex: 3, child: fromButton),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 3, child: toButton),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 4, child: clearButton),
+                          const SizedBox(width: 6),
+                          refreshButton,
+                        ],
+                      );
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-invoices-from'),
-                      onPressed: () => _pickDate(from: true),
-                      icon: const Icon(Icons.date_range_outlined),
-                      label: Text(_from == null
-                          ? (ar ? 'من' : 'From')
-                          : _date(_from!)),
-                    ),
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-invoices-to'),
-                      onPressed: () => _pickDate(from: false),
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(
-                        _to == null ? (ar ? 'إلى' : 'To') : _date(_to!),
-                      ),
-                    ),
-                    TextButton.icon(
-                      key: const ValueKey('b2b-invoices-clear-filters'),
-                      onPressed: _clearFilters,
-                      icon: const Icon(Icons.filter_alt_off_outlined),
-                      label: Text(ar ? 'مسح الفلاتر' : 'Clear filters'),
-                    ),
-                    IconButton(
-                      key: const ValueKey('b2b-invoices-refresh'),
-                      tooltip: ar ? 'تحديث' : 'Refresh',
-                      onPressed: _reload,
-                      icon: const Icon(Icons.refresh_rounded),
-                    ),
+                    primaryRow,
+                    const SizedBox(height: 8),
+                    actionRow,
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -6648,14 +6838,48 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
           );
         }),
         if (rows.isEmpty)
-          Card(
-            key: const ValueKey('b2b-empty'),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                ar
-                    ? 'لا توجد فواتير مطابقة للفلاتر الحالية.'
-                    : 'No invoices match the current filters.',
+          Semantics(
+            container: true,
+            label: ar
+                ? 'لا توجد فواتير مطابقة للفلاتر الحالية.'
+                : 'No invoices match the current filters.',
+            child: Container(
+              key: const ValueKey('b2b-empty'),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 54,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      color: CustomerUiColors.mint,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.find_in_page_outlined,
+                      key: ValueKey('b2b-invoices-empty-icon'),
+                      size: 38,
+                      color: CustomerUiColors.deepGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    ar
+                        ? 'لا توجد فواتير مطابقة للفلاتر الحالية.'
+                        : 'No invoices match the current filters.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: CustomerUiColors.ink,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
               ),
             ),
           )
