@@ -217,4 +217,18 @@ class DashboardUiComplianceTest extends TestCase
             $this->assertStringContainsString('foodex-page-header', $view, $viewName);
         }
     }
+
+
+    public function test_notification_campaigns_use_business_user_lookup(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/notification-campaigns.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("notifications.choose_user", $view);
+        $this->assertStringContainsString("$targetUser->name", $view);
+        $this->assertStringContainsString("$targetUser->email", $view);
+        $this->assertStringNotContainsString('name="user_id" type="number"', $view);
+        $this->assertStringNotContainsString('User ID - optional', $view);
+        $this->assertStringNotContainsString('رقم المستخدم - اختياري', $view);
+    }
 }
