@@ -338,6 +338,33 @@ void main() {
     expect(find.text('Planned'), findsNothing);
   });
 
+
+  testWidgets('Van Routes renders canonical route context from visit feed',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _EmptyWalletRepository(),
+        visitRepository: _RoutesVisitRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Routes').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-routes-page')), findsOneWidget);
+    expect(find.text('ROUTE-A'), findsOneWidget);
+    expect(find.text('2 assigned visits'), findsOneWidget);
+  });
+
 }
 
 
@@ -747,5 +774,48 @@ class _VisitRepository implements VanVisitRepository {
         'customer_unavailable',
       ],
     );
+  }
+}
+
+
+class _RoutesVisitRepository implements VanVisitRepository {
+  const _RoutesVisitRepository();
+
+  @override
+  Future<List<VanVisitRecord>> visits({String? status}) async => const [
+        VanVisitRecord(
+          id: 601,
+          customerType: 'b2b',
+          customerId: 42,
+          storeId: 7,
+          routeKey: 'ROUTE-A',
+          status: 'planned',
+          plannedAt: '2026-10-07T10:00:00+03:00',
+          allowedTransitions: ['started', 'customer_unavailable'],
+        ),
+        VanVisitRecord(
+          id: 602,
+          customerType: 'b2c',
+          customerId: 43,
+          storeId: 8,
+          routeKey: 'ROUTE-A',
+          status: 'started',
+          plannedAt: '2026-10-07T11:00:00+03:00',
+          allowedTransitions: [
+            'completed_with_order',
+            'completed_no_order',
+            'customer_unavailable',
+          ],
+        ),
+      ];
+
+  @override
+  Future<VanVisitRecord> transition({
+    required int visitId,
+    required String status,
+    int? orderId,
+    int? noOrderReasonId,
+  }) {
+    throw UnimplementedError();
   }
 }
