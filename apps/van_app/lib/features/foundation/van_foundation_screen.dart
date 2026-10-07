@@ -6,6 +6,7 @@ import '../commercial/van_commercial_contract.dart';
 import '../commercial/van_offers_page.dart';
 import '../wallet/van_wallet_contract.dart';
 import '../wallet/van_wallet_page.dart';
+import 'van_customer_360_page.dart';
 import 'van_customers_page.dart';
 import 'van_screen_inventory.dart';
 
@@ -50,6 +51,11 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         );
       case VanScreenId.customers:
         return VanCustomersPage(
+          repository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.customer360:
+        return VanCustomer360Page(
           repository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
         );
