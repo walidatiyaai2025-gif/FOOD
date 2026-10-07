@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.61 - 2026-10-07
+
+- Replace the stale 1.0.60 mobile distribution with corrected Customer, Driver and Van builds targeting `https://foodex.50sols.com`.
+- Add APK-binary endpoint verification so release and CI builds fail if the approved production host is missing or `vanfoodex.50sols.com` is embedded.
+- Keep Customer/Driver production identities and configuration intact and retain Van package/Firebase identity `com.foodex.van`.
+
+
 ## 1.0.60 - 2026-10-07
 
 - Correct the UIUX-V42 Commercial / Sales Control regression discovered after the 1.0.59 fresh release: the route now uses the authoritative FOODEX premium Dashboard shell and sidebar instead of the legacy standalone commercial page.
