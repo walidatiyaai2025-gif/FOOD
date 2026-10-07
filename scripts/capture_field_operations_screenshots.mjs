@@ -159,6 +159,7 @@ async function exerciseTerritoryMapInteraction(page, locale) {
   await page.locator('#fieldops-coverage-clear').click();
 
   const mapNode = page.locator('#fieldops-coverage-map');
+  await mapNode.scrollIntoViewIfNeeded();
   const box = await mapNode.boundingBox();
   if (!box) throw new Error(`Territory map has no interactive bounds (${locale})`);
 
