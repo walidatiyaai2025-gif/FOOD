@@ -586,6 +586,10 @@ async function captureLocale(browser, locale) {
   // Re-establish the B2C actor before exercising mutation-adjacent commercial UI.
   await context.clearCookies();
   await login(page, 'b2c', locale, email);
+  const b2cContext = await page.goto(`${baseUrl}/admin/b2c/dashboard`, { waitUntil: 'networkidle' });
+  if (!b2cContext || !b2cContext.ok() || page.url().includes('/login')) {
+    throw new Error(`Unable to restore B2C runtime context before commercial evidence (${locale})`);
+  }
   await exerciseCommercialRuntimeInteractions(page, locale);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
