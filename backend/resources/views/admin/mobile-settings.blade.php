@@ -26,7 +26,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 
 <form class="runtime-picker" method="get" action="{{ route('admin.mobile-settings.index') }}">
 <div class="row">
-<div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer" @selected($selectedApp==='customer')>{{ $ar?'العميل':'Customer' }}</option><option value="driver" @selected($selectedApp==='driver')>{{ $ar?'السائق':'Driver' }}</option></select></div>
+<div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer" @selected($selectedApp==='customer')>{{ $ar?'العميل':'Customer' }}</option><option value="driver" @selected($selectedApp==='driver')>{{ $ar?'السائق':'Driver' }}</option><option value="van" @selected($selectedApp==='van')>{{ $ar?'الفان':'Van' }}</option></select></div>
 <div><label>{{ __('mobile_settings.environment') }}</label><select name="environment"><option value="development" @selected($selectedEnvironment==='development')>{{ $ar?'تطوير':'Development' }}</option><option value="staging" @selected($selectedEnvironment==='staging')>{{ $ar?'اختبار':'Staging' }}</option><option value="production" @selected($selectedEnvironment==='production')>{{ $ar?'إنتاج':'Production' }}</option></select></div>
 </div>
 <button class="button secondary" type="submit">{{ $ar?'تحميل الإعداد المحفوظ':'Load saved setting' }}</button>
