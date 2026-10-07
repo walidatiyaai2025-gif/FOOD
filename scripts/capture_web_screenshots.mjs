@@ -29,6 +29,7 @@ const b2c = [
   ['09_واجهة_المتجر_ومعاينة_المتجر', '/admin/b2c/storefront-preview'],
   ['10_المحتوى_والبانرات', '/admin/b2c/content'],
   ['11_التقارير_والتحليلات_وإعدادات_المتجر', '/admin/b2c/reports'],
+  ['14_التحكم_التجاري_للمنتجات', '/admin/b2c/commercial/sales-control'],
 ];
 
 async function ensureDir(dir) {
@@ -108,6 +109,13 @@ async function captureLocale(browser, locale) {
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'sales-control',
+    '/admin/b2c/commercial/sales-control',
+  );
 
   const customer360Response = await page.goto(
     `${baseUrl}/admin/customer-360?q=evidence.address%40foodex.test`,
