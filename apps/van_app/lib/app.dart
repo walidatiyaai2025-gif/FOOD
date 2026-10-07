@@ -15,6 +15,8 @@ import 'features/commercial/http_van_commercial_repository.dart';
 import 'features/commercial/van_commercial_contract.dart';
 import 'features/wallet/http_van_wallet_repository.dart';
 import 'features/wallet/van_wallet_contract.dart';
+import 'features/visits/http_van_visit_repository.dart';
+import 'features/visits/van_visit_contract.dart';
 
 class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
@@ -27,6 +29,7 @@ class FoodexVanApp extends StatefulWidget {
     this.initialSession,
     this.walletRepository,
     this.commercialRepository,
+    this.visitRepository,
     this.pushService,
   });
 
@@ -38,6 +41,7 @@ class FoodexVanApp extends StatefulWidget {
   final VanSession? initialSession;
   final VanWalletRepository? walletRepository;
   final VanCommercialRepository? commercialRepository;
+  final VanVisitRepository? visitRepository;
   final VanFirebasePushService? pushService;
 
   @override
@@ -232,6 +236,8 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
                       walletRepository: walletRepository,
                       commercialRepository: widget.commercialRepository ??
                           HttpVanCommercialRepository(api),
+                      visitRepository:
+                          widget.visitRepository ?? HttpVanVisitRepository(api),
                     );
                   },
                 ),
