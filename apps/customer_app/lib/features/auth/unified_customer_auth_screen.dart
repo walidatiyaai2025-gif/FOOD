@@ -1194,6 +1194,16 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
+                      context.tr('customer.app.identity'),
+                      key: const ValueKey('customer-app-identity'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: CustomerUiColors.deepGreen,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: CustomerUiSpacing.xs),
+                    Text(
                       title,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
