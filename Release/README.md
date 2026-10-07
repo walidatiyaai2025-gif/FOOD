@@ -17,7 +17,7 @@
 
 الـ APKs مبنية Release mode ومربوطة افتراضيًا على:
 
-`https://vanfoodex.50sols.com`
+`https://foodex.50sols.com`
 
 الهويات الأصلية:
 
@@ -40,7 +40,7 @@
    - Username: `solscool_vanfoodex`
    - Password: يتم إدخاله على السيرفر ولا يُحفظ في Git.
 6. اجعل `backend/storage` و`backend/bootstrap/cache` قابلين للكتابة بواسطة مستخدم PHP/Web.
-7. افتح `https://vanfoodex.50sols.com/install` وأكمل الـwizard حتى Finish.
+7. افتح `https://foodex.50sols.com/install` وأكمل الـwizard حتى Finish.
 8. بعد Finish يتم قفل `/install` تلقائيًا، وتتم الإدارة من الـDashboard.
 
 الحزمة تتضمن Composer production dependencies لتسهيل أول Setup، لكنها لا تتضمن `.env` أو كلمات مرور أو مفاتيح signing.
@@ -49,7 +49,7 @@
 
 أي تغيير سيتم نشره يجب أن يصاحبه رفع `VERSION`، مثال `1.0.0 -> 1.0.1`. عند Release intent يقوم Workflow المركزي تلقائيًا ببناء **Customer + Driver + Van** وتحديث Dashboard package. لا يعتبر الـRelease مكتملًا إذا غاب أي APK من الثلاثة أو لم يتحدث `Release/Updates`.
 
-أسماء الـAPKs القابلة للتحميل تكون Versioned دائمًا، مثال `FOODEX-Driver-1.0.59.apk`، ويظل alias مثل `FOODEX-Driver.apk` للإشارة إلى آخر نسخة متزامنة.
+أسماء الـAPKs القابلة للتحميل تكون Versioned دائمًا، مثال `FOODEX-Driver-1.0.62.apk`، ويظل alias مثل `FOODEX-Driver.apk` للإشارة إلى آخر نسخة متزامنة.
 
 المرجع الإلزامي الكامل: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
 
@@ -58,3 +58,7 @@
 ## Refresh 1.0.34
 
 تمت إعادة توليد حزمة FOODEX 1.0.34 من أحدث `main` بعد اكتمال بوابة Platform Customer Commerce E2E، لضمان تطابق APKs وLaravel Setup وBUILD_INFO مع آخر كود مدموج.
+
+## Terminal recovery release 1.0.62
+
+الإصدار النهائي لهذه المهمة هو `1.0.62+62` لتجنب إعادة استخدام `v1.0.60` أو `v1.0.61`. يجب أن تحتوي كل APK منشورة على `foodex.50sols.com` وألا تحتوي على المضيف القديم `vanfoodex.50sols.com`; يتحقق Trial Distribution من ذلك داخل الـbinary قبل النشر.
