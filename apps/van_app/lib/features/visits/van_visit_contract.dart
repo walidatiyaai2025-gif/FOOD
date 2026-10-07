@@ -36,8 +36,27 @@ class VanVisitRecord {
   final List<String> allowedTransitions;
 }
 
+class VanNoOrderReasonRecord {
+  const VanNoOrderReasonRecord({
+    required this.id,
+    required this.code,
+    required this.labelEn,
+    required this.labelAr,
+  });
+
+  final int id;
+  final String code;
+  final String labelEn;
+  final String labelAr;
+
+  String label(bool arabic) =>
+      arabic && labelAr.trim().isNotEmpty ? labelAr : labelEn;
+}
+
 abstract interface class VanVisitRepository {
   Future<List<VanVisitRecord>> visits({String? status});
+
+  Future<List<VanNoOrderReasonRecord>> noOrderReasons();
 
   Future<VanVisitRecord> transition({
     required int visitId,
