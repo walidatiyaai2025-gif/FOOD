@@ -82,4 +82,37 @@ class AdministrationHubTest extends TestCase
 
         return $user;
     }
+
+
+    public function test_sidebar_groups_follow_business_domain_order_and_keep_administration_last(): void
+    {
+        $user = $this->superAdmin();
+
+        $groups = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->pluck('key')
+            ->values();
+
+        $expectedOrder = [
+            'overview',
+            'stores',
+            'catalog',
+            'accounts',
+            'operations',
+            'field_operations',
+            'marketing',
+            'advertising',
+            'analytics',
+            'applications',
+            'administration',
+        ];
+
+        $positions = collect($expectedOrder)
+            ->filter(fn (string $key): bool => $groups->contains($key))
+            ->mapWithKeys(fn (string $key): array => [$key => $groups->search($key, true)])
+            ->values()
+            ->all();
+
+        $this->assertSame($positions, array_values($positions));
+        $this->assertSame('administration', $groups->last());
+    }
 }
