@@ -68,6 +68,23 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | G02 | Exact frozen SHA and evidence lineage recorded; child closure not used as substitute proof | #1043 | convergence report | OPEN |
 | R01 | Next real Setup/APKs/update artifacts are built/clean-installed/published from exact #1043 frozen SHA | #1021 | release manifests + hashes + clean-install proof | OPEN |
 
+## #1035 owner evidence checkpoint
+
+These rows intentionally remain `OPEN` until required runtime evidence is complete and later independent gates confirm them.
+
+| ID | Current owner evidence on canonical #1035 lane |
+|---|---|
+| D01 | `AdminNavigation` business-domain grouping + deterministic sidebar-order regression coverage on PR #1044. Runtime AR/EN still required. |
+| D02 | Shared `foodex-page-header` is present across audited owned surfaces; Customer 360 exposes translated horizontal detail tabs. Broader owned-route runtime/responsive proof still required. |
+| D03 | Order Operations preserves direct exact-order View and primary Create/New Order workflow with deterministic compliance coverage. Runtime interaction proof still required. |
+| D04 | Owned hub/order/admin actions use FOODEX branded primary/secondary action classes. Visual runtime proof still required. |
+| D05 | Order Operations row actions use one compact green ellipsis menu with regression coverage. Runtime responsive proof still required. |
+| D06 | Raw Store ID entry removed from Live Tracking; Order Operations/Notification Campaigns/Reports/Customer 360 raw identifiers and raw JSON presentation were reduced with regression coverage. Full static/runtime audit still required. |
+| D08 | Administration sidebar collapses to one entry opening the card-based Admin Hub; covered by Administration Hub tests. Runtime AR/EN still required. |
+| D09 | Admin Hub and Mobile Settings expose Customer/Driver/Van as first-class apps; direct per-app Preview/App Version/Settings actions and deterministic parity tests exist. Runtime proof still required. |
+| D10 | Notifications and other audited owned pages use the shared FOODEX admin shell; regression guard added. Full owned-route static/runtime audit still required. |
+| D11 | Live Tracking store filtering uses authorized human-readable Store lookup; Driver/Van combined identity/stale-state acceptance still requires exact runtime map proof. |
+
 ## Worker update rule
 
 When an owner believes a row is complete, the PR/Issue must record the exact source/test/runtime evidence. The row remains OPEN until the owning lane has evidence and the later independent gates confirm it.
