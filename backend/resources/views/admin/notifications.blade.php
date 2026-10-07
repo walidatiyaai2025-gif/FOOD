@@ -11,8 +11,9 @@
         .panel,.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px}.panel{margin-bottom:16px}
         .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
         input,select,textarea,button{font:inherit}input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px}
-        textarea{min-height:88px}button{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
-        .primary{background:#111827;color:#fff}.secondary{background:#eef2ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}
+        textarea{min-height:88px}button{border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+        .primary{border:1px solid var(--foodex-green);background:var(--foodex-green);color:#fff}.secondary{border:1px solid var(--foodex-green);background:#fff;color:var(--foodex-green-dark)}.danger{border:1px solid #fecaca;background:#fff;color:#991b1b}
+        .row-actions{position:relative;display:inline-block;margin-top:12px}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu form{margin:0 0 6px}.row-action-menu form:last-child{margin-bottom:0}.row-action-menu button{width:100%}
         .cards{display:grid;gap:12px}.badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#f1f5f9;font-size:.8rem}
         .preview{display:grid;grid-template-columns:1fr 1fr;gap:12px}.preview>div{padding:12px;border:1px solid #e2e8f0;border-radius:12px}
         .flash{background:#ecfdf5;border:1px solid #a7f3d0;padding:12px 16px;border-radius:12px;margin-bottom:16px}
@@ -89,12 +90,15 @@
                 <div class="actions"><button class="primary" type="submit">{{ __('notifications.save') }}</button></div>
             </form>
 
-            <div class="actions">
-                @if($notification->status !== 'published')
-                <form method="post" action="{{ route('admin.notifications.publish',$notification) }}">@csrf<button class="secondary" type="submit">{{ __('notifications.publish') }}</button></form>
-                @endif
-                <form method="post" action="{{ route('admin.notifications.destroy',$notification) }}">@csrf @method('DELETE')<button class="danger" type="submit">{{ __('notifications.delete') }}</button></form>
-            </div>
+            <details class="row-actions" data-notification-row-actions>
+                <summary aria-label="{{ __('notifications.actions') }}">⋮</summary>
+                <div class="row-action-menu">
+                    @if($notification->status !== 'published')
+                    <form method="post" action="{{ route('admin.notifications.publish',$notification) }}">@csrf<button class="secondary" type="submit">{{ __('notifications.publish') }}</button></form>
+                    @endif
+                    <form method="post" action="{{ route('admin.notifications.destroy',$notification) }}">@csrf @method('DELETE')<button class="danger" type="submit">{{ __('notifications.delete') }}</button></form>
+                </div>
+            </details>
         </article>
     @empty
         <div class="panel">{{ __('notifications.empty') }}</div>
