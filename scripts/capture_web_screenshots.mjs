@@ -423,6 +423,140 @@ async function captureMobileSettingsParityEvidence(page, locale) {
   );
 }
 
+
+async function exerciseCommercialRuntimeInteractions(page, locale) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  let response = await page.goto(`${baseUrl}/admin/b2c/commercial/sales-control`, {
+    waitUntil: 'networkidle',
+  });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Sales Control interaction evidence route failed (${locale})`);
+  }
+
+  const policyForm = page.locator('.commercial-policy-form').first();
+  if (await policyForm.count() !== 1) {
+    throw new Error(`Sales Control did not render an authoritative product policy form (${locale})`);
+  }
+
+  const unitRows = policyForm.locator('[data-selling-unit-row]');
+  const availabilityRows = policyForm.locator('[data-availability-row]');
+  const ruleRows = policyForm.locator('[data-rule-row]');
+  const unitBefore = await unitRows.count();
+  const availabilityBefore = await availabilityRows.count();
+  const ruleBefore = await ruleRows.count();
+
+  await policyForm.locator('[data-selling-unit-add]').click();
+  await policyForm.locator('[data-availability-add]').click();
+  await policyForm.locator('[data-rule-add]').click();
+
+  if (await unitRows.count() !== unitBefore + 1
+      || await availabilityRows.count() !== availabilityBefore + 1
+      || await ruleRows.count() !== ruleBefore + 1) {
+    throw new Error(`Structured Sales Control builders did not add rows (${locale})`);
+  }
+
+  const addedUnit = unitRows.last();
+  const runtimeCode = `RUNTIME-${locale.toUpperCase()}`;
+  await addedUnit.locator('[data-unit-field="code"]').fill(runtimeCode);
+  await addedUnit.locator('[data-unit-field="name"]').fill(
+    locale === 'ar' ? 'وحدة تحقق وقت التشغيل' : 'Runtime Evidence Unit',
+  );
+  await addedUnit.locator('[data-unit-field="conversion_factor"]').fill('2');
+
+  const unitPayload = JSON.parse(
+    await policyForm.locator('[data-selling-units-json]').inputValue(),
+  );
+  if (!unitPayload.some((row) => row.code === runtimeCode && Number(row.conversion_factor) === 2)) {
+    throw new Error(`Selling Unit builder did not serialize business input (${locale})`);
+  }
+
+  const breakPack = policyForm.locator('[data-break-pack-selling-unit]');
+  if (await breakPack.locator(`option[value="${runtimeCode}"]`).count() !== 1) {
+    throw new Error(`Break-pack Selling Unit lookup did not synchronize (${locale})`);
+  }
+
+  const addedWindow = availabilityRows.last();
+  await addedWindow.locator('[data-window-field="start_month"]').fill('1');
+  await addedWindow.locator('[data-window-field="start_day"]').fill('5');
+  await addedWindow.locator('[data-window-field="end_month"]').fill('1');
+  await addedWindow.locator('[data-window-field="end_day"]').fill('10');
+  const availabilityPayload = JSON.parse(
+    await policyForm.locator('[data-availability-json]').inputValue(),
+  );
+  if (!availabilityPayload.some((row) => Number(row.start_day) === 5 && Number(row.end_day) === 10)) {
+    throw new Error(`Availability builder did not serialize structured input (${locale})`);
+  }
+
+  const addedRule = ruleRows.last();
+  await addedRule.locator('[data-rule-field="channel"]').selectOption('van');
+  await addedRule.locator('[data-rule-field="is_allowed"]').selectOption('1');
+  const rulePayload = JSON.parse(await policyForm.locator('[data-rules-json]').inputValue());
+  if (!rulePayload.some((row) => row.channel === 'van' && row.is_allowed === true)) {
+    throw new Error(`Targeting rule builder did not serialize Van access rule (${locale})`);
+  }
+
+  await addedUnit.locator('[data-selling-unit-remove]').click();
+  await addedWindow.locator('[data-availability-remove]').click();
+  await addedRule.locator('[data-rule-remove]').click();
+
+  response = await page.goto(`${baseUrl}/admin/b2c/commercial/flash-offers`, {
+    waitUntil: 'networkidle',
+  });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Flash Offers interaction evidence route failed (${locale})`);
+  }
+
+  const flashForm = page.locator('[data-flash-offer-form]');
+  if (await flashForm.count() !== 1) {
+    throw new Error(`Flash Offers structured form is missing (${locale})`);
+  }
+
+  const audienceNames = [
+    'audience_customer_ids[]',
+    'audience_customer_group_ids[]',
+    'audience_regions[]',
+    'audience_routes[]',
+  ];
+  for (const name of audienceNames) {
+    if (await flashForm.locator(`select[name="${name}"]`).count() !== 1) {
+      throw new Error(`Flash audience lookup missing: ${name} (${locale})`);
+    }
+  }
+  if (await flashForm.locator('input[name="channels[]"][value="van"]').count() !== 1) {
+    throw new Error(`Structured Van channel control missing from Flash Offers (${locale})`);
+  }
+
+  const productRows = flashForm.locator('[data-flash-product-row]');
+  const productBefore = await productRows.count();
+  await flashForm.locator('[data-flash-product-add]').click();
+  if (await productRows.count() !== productBefore + 1) {
+    throw new Error(`Flash Product Builder did not add a product row (${locale})`);
+  }
+
+  const addedProduct = productRows.last();
+  const productSelect = addedProduct.locator('[data-flash-product]');
+  const productValues = await productSelect.locator('option').evaluateAll((options) =>
+    options.map((option) => option.value).filter((value) => value !== ''),
+  );
+  if (productValues.length < 1) {
+    throw new Error(`Flash Product Builder has no authoritative Product options (${locale})`);
+  }
+  await productSelect.selectOption(productValues[0]);
+
+  const unitSelect = addedProduct.locator('[data-flash-unit]');
+  const unitValues = await unitSelect.locator('option').evaluateAll((options) =>
+    options.map((option) => option.value).filter((value) => value !== ''),
+  );
+  if (unitValues.length < 1) {
+    throw new Error(`Flash Product Builder did not resolve authoritative Selling Units (${locale})`);
+  }
+  await unitSelect.selectOption(unitValues[0]);
+  await addedProduct.locator('[data-flash-product-remove]').click();
+
+  console.log(`verified Commercial structured builders/lookups interaction contract (${locale})`);
+}
+
 async function captureLocale(browser, locale) {
   const context = await browser.newContext({
     locale: locale === 'ar' ? 'ar-KW' : 'en-US',
@@ -453,6 +587,7 @@ async function captureLocale(browser, locale) {
 
   await captureAdministrationRuntimeEvidence(page, locale);
   await captureOwnedDashboardRuntimeEvidence(page, locale);
+  await exerciseCommercialRuntimeInteractions(page, locale);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
