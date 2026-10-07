@@ -254,7 +254,7 @@
                 <strong>{{ $ar?'كيف يتم الربط؟':'How the relationship is derived' }}</strong>
                 <p class="fieldops-muted">{{ $ar?'تُعرض العلاقة من الزيارة الفعلية + المشغل + إسناد الفان والمنطقة، بدون إنشاء نموذج ربط موازٍ.' : 'The relationship is derived from the canonical visit + operator + Van assignment/territory structures; no parallel customer-assignment model is introduced.' }}</p>
             </div>
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.route') }}</th><th>{{ $ar?'التحصيل':'Collection context' }}</th><th>{{ $ar?'آخر زيارة':'Latest visit' }}</th><th>{{ __('field_operations.status') }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.customer') }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.route') }}</th><th>{{ $ar?'التحصيل':'Collection context' }}</th><th>{{ $ar?'آخر زيارة':'Latest visit' }}</th><th>{{ __('field_operations.status') }}</th></tr></thead><tbody>
             @forelse($relationships as $visit)
                 @php($a = $visit->getRelation('servingAssignment'))
                 @php($collectionContext = $visit->collection_context)
@@ -271,142 +271,142 @@
                             @forelse($collectionContext['outstanding_total_by_currency'] as $currency => $amount)
                                 <div class="fieldops-muted">{{ $currency }} {{ number_format((float) $amount, 3) }}</div>
                             @empty
-                                <div class="fieldops-muted">{{ $ar?'لا يوجد رصيد مفتوح':'No open balance' }}</div>
+                                <div class="fieldops-muted">{{ __('field_operations.no_open_balance') }}</div>
                             @endforelse
                         @else
                             —
                         @endif
                     </td>
                     <td>#{{ $visit->id }} · {{ $visit->updated_at }}</td>
-                    <td>{{ $visit->status }}</td>
+                    <td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td>
                 </tr>
-            @empty<tr><td colspan="9"><div class="foodex-ops-state">{{ $ar?'لا توجد علاقات زيارة/عملاء بعد.':'No customer/visit relationships yet.' }}</div></td></tr>@endforelse
+            @empty<tr><td colspan="9"><div class="foodex-ops-state">{{ __('field_operations.no_customer_relationships') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $relationships->links() }}
-            <div class="fieldops-card"><a class="foodex-action-primary" href="{{ route('admin.field-operations.visits') }}">{{ $ar?'خطط زيارة لربط العميل بالإسناد التشغيلي':'Plan a visit to associate a customer with an operational assignment' }}</a></div>
+            <div class="fieldops-card"><a class="foodex-action-primary" href="{{ route('admin.field-operations.visits') }}">{{ __('field_operations.plan_visit_relationship') }}</a></div>
 
         @elseif($section === 'visits')
             @if($canManageVan)
             <details class="fieldops-card">
-                <summary><strong>{{ $ar?'تخطيط زيارة عميل':'Plan customer visit' }}</strong></summary>
+                <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.visits.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                     <div class="fieldops-form-grid">
-                        <label>{{ $ar?'إسناد الفان':'Van assignment' }}<select name="assignment_id" required><option value="">—</option>@foreach($assignments as $a)<option value="{{ $a->id }}">{{ $a->van?->code ?: '#'.$a->van_id }} · {{ $a->territory_key ?: '—' }} · {{ $a->representative_user_id ? 'User #'.$a->representative_user_id : 'Driver #'.$a->driver_id }}</option>@endforeach</select></label>
-                        <label>{{ $ar?'نوع العميل':'Customer type' }}<select name="customer_type" data-visit-customer-type><option value="b2b">B2B</option><option value="b2c">B2C</option></select></label>
-                        <label>{{ $ar?'العميل':'Customer' }}<select name="customer_id" data-visit-customer required><option value="">—</option>@foreach($visitCustomers as $customer)<option value="{{ $customer->id }}" data-customer-type="{{ $customer->type }}">{{ $customer->label }} · {{ strtoupper($customer->type) }}</option>@endforeach</select></label>
-                        <label>{{ $ar?'وقت الزيارة':'Planned at' }}<input type="datetime-local" name="planned_at"></label>
-                        <label>{{ $ar?'المتجر (اختياري)':'Store (optional)' }}<select name="store_id" data-store-lookup><option value="">—</option>@foreach($visitStores as $store)<option value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>@endforeach</select></label>
+                        <label>{{ __('field_operations.van_assignment') }}<select name="assignment_id" required><option value="">—</option>@foreach($assignments as $a)<option value="{{ $a->id }}">{{ $a->van?->code ?: '#'.$a->van_id }} · {{ $a->territory_key ?: '—' }} · {{ $a->representative_user_id ? 'User #'.$a->representative_user_id : 'Driver #'.$a->driver_id }}</option>@endforeach</select></label>
+                        <label>{{ __('field_operations.customer_type') }}<select name="customer_type" data-visit-customer-type><option value="b2b">B2B</option><option value="b2c">B2C</option></select></label>
+                        <label>{{ __('field_operations.customer') }}<select name="customer_id" data-visit-customer required><option value="">—</option>@foreach($visitCustomers as $customer)<option value="{{ $customer->id }}" data-customer-type="{{ $customer->type }}">{{ $customer->label }} · {{ strtoupper($customer->type) }}</option>@endforeach</select></label>
+                        <label>{{ __('field_operations.planned_at') }}<input type="datetime-local" name="planned_at"></label>
+                        <label>{{ __('field_operations.store_optional') }}<select name="store_id" data-store-lookup><option value="">—</option>@foreach($visitStores as $store)<option value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>@endforeach</select></label>
                         <label>{{ __('field_operations.route') }}<select name="route_key" data-route-lookup><option value="">—</option>@foreach($visitRoutes as $route)<option value="{{ $route }}">{{ $route }}</option>@endforeach</select></label>
                     </div>
-                    <button class="foodex-primary">{{ $ar?'إنشاء الزيارة':'Create planned visit' }}</button>
+                    <button class="foodex-primary">{{ __('field_operations.create_planned_visit') }}</button>
                 </form>
             </details>
             @endif
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ $ar?'تاريخ الإنشاء':'Created' }}</th><th>{{ $ar?'العميل':'Customer' }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ $ar?'الأوقات':'Timestamps' }}</th><th>{{ $ar?'النتيجة':'Result' }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.created') }}</th><th>{{ __('field_operations.customer') }}</th><th>{{ __('field_operations.operator') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.timestamps') }}</th><th>{{ __('field_operations.result') }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
             @forelse($visits as $visit)
                 @php($allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string)$visit->status))
                 @php($visitOrder=$visit->order_id ? $visitOrders->firstWhere('id',$visit->order_id) : null)
-                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ strtoupper($visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ $visit->status }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder?->order_number ?: ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
+                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ strtoupper($visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder?->order_number ?: ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
                     @if($canManageVan && $allowed !== [])
                     <details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                         <form method="post" action="{{ route('admin.field-operations.visits.transition',$visit) }}">@csrf
-                            <select name="status">@foreach($allowed as $target)<option value="{{ $target }}">{{ $target }}</option>@endforeach</select>
-                            <select name="no_order_reason_id"><option value="">{{ $ar?'سبب عدم الطلب':'No-order reason' }}</option>@foreach($reasons as $reason)<option value="{{ $reason->id }}">{{ $ar?$reason->label_ar:$reason->label_en }}</option>@endforeach</select>
-                            <select name="order_id" data-order-lookup><option value="">{{ $ar?'بدون طلب مرتبط':'No linked order' }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ $order->order_number ?: ($ar?'طلب':'Order') }} · {{ $order->status }}</option>@endforeach</select>
-                            <button type="submit">{{ $ar?'تنفيذ':'Apply' }}</button>
+                            <select name="status">@foreach($allowed as $target)<option value="{{ $target }}">{{ __('field_operations.visit_statuses.'.$target) }}</option>@endforeach</select>
+                            <select name="no_order_reason_id"><option value="">{{ __('field_operations.no_order_reason') }}</option>@foreach($reasons as $reason)<option value="{{ $reason->id }}">{{ $ar?$reason->label_ar:$reason->label_en }}</option>@endforeach</select>
+                            <select name="order_id" data-order-lookup><option value="">{{ __('field_operations.no_linked_order') }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ $order->order_number ?: ($ar?'طلب':'Order') }} · {{ $order->status }}</option>@endforeach</select>
+                            <button type="submit">{{ __('field_operations.apply') }}</button>
                         </form>
                     </div></details>
                     @else—@endif
                 </td></tr>
-            @empty<tr><td colspan="7"><div class="foodex-ops-state">{{ $ar?'لا توجد زيارات.':'No visits.' }}</div></td></tr>@endforelse
+            @empty<tr><td colspan="7"><div class="foodex-ops-state">{{ __('field_operations.no_visits') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $visits->links() }}
 
         @elseif($section === 'territories')
             @if($canManageTerritories)
             <section class="fieldops-grid">
-                <details class="fieldops-card"><summary><strong>{{ $ar?'إضافة عنصر جغرافي':'Add geography node' }}</strong></summary>
+                <details class="fieldops-card"><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.geography.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
-                            <label>{{ __('field_operations.type') }}<select name="type">@foreach(['country','governorate','region','city','markaz','district','area'] as $type)<option>{{ $type }}</option>@endforeach</select></label>
-                            <label>{{ $ar?'الأصل':'Parent' }}<select name="parent_id"><option value="">—</option>@foreach($nodes as $node)<option value="{{ $node->id }}">{{ $node->name_en }} · {{ $node->type }}</option>@endforeach</select></label>
+                            <label>{{ __('field_operations.type') }}<select name="type">@foreach(['country','governorate','region','city','markaz','district','area'] as $type)<option value="{{ $type }}">{{ __('field_operations.geography_types.'.$type) }}</option>@endforeach</select></label>
+                            <label>{{ __('field_operations.parent') }}<select name="parent_id"><option value="">—</option>@foreach($nodes as $node)<option value="{{ $node->id }}">{{ $node->name_en }} · {{ __('field_operations.geography_types.'.$node->type) }}</option>@endforeach</select></label>
                             <label>Code<input name="code" required></label><label>Country code<input name="country_code" value="KW" required></label>
                             <label>العربية<input name="name_ar" required></label><label>English<input name="name_en" required></label>
-                        </div><button class="foodex-primary">{{ $ar?'حفظ':'Save' }}</button>
+                        </div><button class="foodex-primary">{{ __('field_operations.save') }}</button>
                     </form>
                 </details>
-                <details class="fieldops-card"><summary><strong>{{ $ar?'إنشاء منطقة خدمة':'Create service territory' }}</strong></summary>
+                <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.territories.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
                             <label>Code<input name="code" required></label><label>العربية<input name="name_ar" required></label><label>English<input name="name_en" required></label>
-                            <label>{{ $ar?'الدولة':'Country node' }}<select name="country_node_id" required>@foreach($nodes->where('type','country') as $node)<option value="{{ $node->id }}">{{ $node->name_en }}</option>@endforeach</select></label>
+                            <label>{{ __('field_operations.country_node') }}<select name="country_node_id" required>@foreach($nodes->where('type','country') as $node)<option value="{{ $node->id }}">{{ $node->name_en }}</option>@endforeach</select></label>
                             <label>Status<select name="status"><option>draft</option><option>active</option><option>inactive</option></select></label>
                             <label>Priority<input type="number" min="0" name="priority" value="0"></label>
-                        </div><label>Notes<textarea name="notes"></textarea></label><button class="foodex-primary">{{ $ar?'حفظ المنطقة':'Save territory' }}</button>
+                        </div><label>Notes<textarea name="notes"></textarea></label><button class="foodex-primary">{{ __('field_operations.save_territory') }}</button>
                     </form>
                 </details>
             </section>
             @endif
-            <section class="fieldops-card"><h2>{{ $ar?'التسلسل الجغرافي':'Geography hierarchy' }}</h2><div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>Code</th><th>{{ $ar?'الاسم':'Name' }}</th><th>{{ $ar?'الأصل':'Parent' }}</th></tr></thead><tbody>@forelse($nodes as $node)<tr><td>{{ $node->id }}</td><td>{{ $node->type }}</td><td>{{ $node->code }}</td><td>{{ $ar?$node->name_ar:$node->name_en }}</td><td>{{ $node->parent?->name_en ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ $ar?'لا توجد بيانات جغرافية.':'No geography nodes.' }}</td></tr>@endforelse</tbody></table></div></section>
+            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>Code</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@forelse($nodes as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $ar?$node->name_ar:$node->name_en }}</td><td>{{ $node->parent?->name_en ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endforelse</tbody></table></div></section>
             <section class="fieldops-card">
-                <h2>{{ $ar?'خريطة التغطية':'Coverage map' }}</h2>
-                <p class="fieldops-muted">{{ $ar?'تظهر كل هندسات المناطق الحالية. لإضافة تغطية، اختر المنطقة ثم انقر على الخريطة لرسم حدود المضلع؛ الإحداثيات الخام متاحة فقط كخيار متقدم.' : 'All current territory geometries are shown. To add coverage, select a territory then click the map to draw the polygon; raw coordinates remain an advanced option.' }}</p>
-                <div class="fieldops-coverage-map" id="fieldops-coverage-map" aria-label="{{ $ar?'خريطة مناطق الخدمة':'Service territory coverage map' }}"></div>
+                <h2>{{ __('field_operations.coverage_map') }}</h2>
+                <p class="fieldops-muted">{{ __('field_operations.coverage_map_help') }}</p>
+                <div class="fieldops-coverage-map" id="fieldops-coverage-map" aria-label="{{ __('field_operations.coverage_map_label') }}"></div>
                 @if($canManageTerritories && $territories->isNotEmpty())
                 <form method="post" id="fieldops-coverage-form" class="fieldops-form" style="margin-top:14px">@csrf
                     <div class="fieldops-form-grid">
-                        <label>{{ $ar?'منطقة الخدمة':'Service territory' }}
+                        <label>{{ __('field_operations.service_territory') }}
                             <select id="fieldops-coverage-territory" required>
-                                <option value="">{{ $ar?'اختر المنطقة':'Select territory' }}</option>
+                                <option value="">{{ __('field_operations.select_territory') }}</option>
                                 @foreach($territories as $territory)<option value="{{ $territory->id }}">{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</option>@endforeach
                             </select>
                         </label>
-                        <label>{{ $ar?'الرسم':'Drawing' }}
+                        <label>{{ __('field_operations.drawing') }}
                             <span class="fieldops-actions">
-                                <button type="button" id="fieldops-coverage-undo">{{ $ar?'تراجع عن آخر نقطة':'Undo last point' }}</button>
-                                <button type="button" id="fieldops-coverage-clear">{{ $ar?'مسح النقاط وإعادة الرسم':'Clear points & redraw' }}</button>
+                                <button type="button" id="fieldops-coverage-undo">{{ __('field_operations.undo_last_point') }}</button>
+                                <button type="button" id="fieldops-coverage-clear">{{ __('field_operations.clear_redraw') }}</button>
                             </span>
                         </label>
                     </div>
-                    <p class="fieldops-muted" id="fieldops-coverage-status" aria-live="polite">{{ $ar?'انقر لإضافة نقاط، اسحب النقطة لتحريكها، وانقر عليها مرتين لحذفها.':'Click to add points, drag a point to move it, and double-click a point to delete it.' }}</p>
+                    <p class="fieldops-muted" id="fieldops-coverage-status" aria-live="polite">{{ __('field_operations.draw_help') }}</p>
                     @if($isSuper)
                     <details data-advanced-geojson>
-                        <summary>{{ $ar?'متقدم: GeoJSON':'Advanced: GeoJSON' }}</summary>
+                        <summary>{{ __('field_operations.advanced_geojson') }}</summary>
                         <label style="margin-top:8px">GeoJSON<textarea id="fieldops-coverage-geojson" name="geojson" rows="5" required></textarea></label>
                     </details>
                     @else
                         <input type="hidden" id="fieldops-coverage-geojson" name="geojson" required>
                     @endif
-                    <button class="foodex-primary" type="submit">{{ $ar?'حفظ هندسة التغطية':'Save coverage geometry' }}</button>
+                    <button class="foodex-primary" type="submit">{{ __('field_operations.save_coverage_geometry') }}</button>
                 </form>
                 @endif
             </section>
-            <section class="fieldops-card"><h2>{{ $ar?'مناطق الخدمة':'Service territories' }}</h2>
+            <section class="fieldops-card"><h2>{{ __('field_operations.service_territories') }}</h2>
                 @forelse($territories as $territory)
                     <article style="padding:14px 0;border-bottom:1px solid var(--foodex-border)">
-                        <div class="fieldops-actions"><strong>{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</strong><span class="fieldops-status">{{ $territory->status }}</span><span>{{ $ar?'أشكال التغطية':'Geometries' }}: {{ $territory->geometries->count() }}</span></div>
+                        <div class="fieldops-actions"><strong>{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</strong><span class="fieldops-status">{{ __('field_operations.statuses.'.$territory->status) }}</span><span>{{ __('field_operations.geometries') }}: {{ $territory->geometries->count() }}</span></div>
                     </article>
-                @empty<div class="foodex-ops-state">{{ $ar?'لا توجد مناطق خدمة.':'No service territories.' }}</div>@endforelse
+                @empty<div class="foodex-ops-state">{{ __('field_operations.no_service_territories') }}</div>@endforelse
             </section>
 
         @elseif($section === 'address-quality')
-            <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ $ar?'بحث':'Search' }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>Status<select name="status"><option value="">All</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ $st }}</option>@endforeach</select></label><button class="foodex-primary">{{ $ar?'تطبيق':'Apply' }}</button></form>
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ $ar?'الموضوع':'Subject' }}</th><th>{{ $ar?'الجودة':'Quality' }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
+            <form method="get" class="foodex-ops-toolbar fieldops-card"><label>{{ __('field_operations.search') }}<input name="q" value="{{ $filters['q'] ?? '' }}"></label><label>{{ __('field_operations.status') }}<select name="status"><option value="">{{ __('field_operations.all') }}</option>@foreach(['unmapped','confirmed','rejected'] as $st)<option value="{{ $st }}" @selected(($filters['status']??'')===$st)>{{ __('field_operations.review_statuses.'.$st) }}</option>@endforeach</select></label><button class="foodex-primary">{{ $ar?'تطبيق':'Apply' }}</button></form>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.subject') }}</th><th>{{ __('field_operations.quality') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ $ar?'الإجراء':'Action' }}</th></tr></thead><tbody>
             @forelse($reviews as $review)<tr><td>{{ $review->id }}</td><td>{{ $review->subject_type }} #{{ $review->subject_id }}
-                <details style="margin-top:6px"><summary>{{ $ar?'التفاصيل والسجل':'Details & history' }}</summary>
+                <details style="margin-top:6px"><summary>{{ __('field_operations.details_history') }}</summary>
                     <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: ($ar?'لا يوجد سبب مسجل.':'No recorded reason.') }}</div>
-                    <div>{{ $ar?'المصدر':'Source' }}: {{ $review->resolution_source ?: '—' }} · {{ $ar?'حُل بواسطة':'Resolved by' }}: {{ $review->resolved_by ? '#'.$review->resolved_by : '—' }} · {{ $review->resolved_at ?: '—' }}</div>
+                    <div>{{ __('field_operations.source') }}: {{ $review->resolution_source ?: '—' }} · {{ __('field_operations.resolved_by') }}: {{ $review->resolved_by ? '#'.$review->resolved_by : '—' }} · {{ $review->resolved_at ?: '—' }}</div>
                     @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ $event->event_type }} · {{ $event->old_status ?: '—' }} → {{ $event->new_status }} · {{ $event->reason ?: '—' }}</div>@endforeach
                 </details>
-            </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $review->territory_key ?: '—' }}</td><td>{{ $review->status }}</td><td>
+            </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $review->territory_key ?: '—' }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                     @foreach(['confirm','reject','reopen'] as $action)
                     <form method="post" action="{{ route('admin.field-operations.address-quality.action',['review'=>$review,'action'=>$action]) }}">@csrf
-                        @if($action==='confirm')<select name="territory_key" data-territory-lookup required><option value="">{{ $ar?'اختر المنطقة':'Select territory' }}</option>@foreach($territories as $territory)<option value="{{ $territory->code }}">{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</option>@endforeach</select>@endif
-                        <input name="reason" placeholder="{{ $ar?'السبب':'Reason' }}" required>
-                        <button type="submit">{{ $action }}</button>
+                        @if($action==='confirm')<select name="territory_key" data-territory-lookup required><option value="">{{ __('field_operations.select_territory') }}</option>@foreach($territories as $territory)<option value="{{ $territory->code }}">{{ $ar?$territory->name_ar:$territory->name_en }} · {{ $territory->code }}</option>@endforeach</select>@endif
+                        <input name="reason" placeholder="{{ __('field_operations.reason') }}" required>
+                        <button type="submit">{{ __('field_operations.actions.'.$action) }}</button>
                     </form>
                     @endforeach
                 </div></details>@else—@endif
-            </td></tr>@empty<tr><td colspan="6"><div class="foodex-ops-state">{{ $ar?'لا توجد مراجعات عناوين.':'No address-quality reviews.' }}</div></td></tr>@endforelse
+            </td></tr>@empty<tr><td colspan="6"><div class="foodex-ops-state">{{ __('field_operations.no_address_reviews') }}</div></td></tr>@endforelse
             </tbody></table></div>{{ $reviews->links() }}
 
         @elseif($section === 'routing')
