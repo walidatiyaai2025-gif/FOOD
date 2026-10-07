@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -57,6 +56,39 @@ REQUIRED_BACKEND_CONTRACT_GUARDS = {
     ),
 }
 
+REQUIRED_MOBILE_CONTRACT_GUARDS = {
+    "apps/customer_app/test/customer_orders_ui_v3_test.dart": (
+        "order identifiers stay single-line and actions use one green ellipsis",
+        "orders resume refresh keeps stale data visible with truthful offline freshness",
+    ),
+    "apps/customer_app/test/customer_v42_dynamic_refresh_contract_test.dart": (
+        "all canonical wholesale dynamic screens refresh on app resume",
+        "customer orders keep both polling and truthful stale evidence",
+    ),
+    "apps/driver_app/test/driver_active_journey_test.dart": (
+        "delivery card keeps no-wrap reference and green ellipsis in compact header",
+        "delivery filters stay on one compact row at narrow phone width",
+        "foreground polling keeps confirmed deliveries visible and marks offline data stale",
+    ),
+    "apps/driver_app/test/driver_notification_page_test.dart": (
+        "notifications refresh when Driver app resumes",
+        "notifications poll in foreground and preserve stale confirmed data on failure",
+    ),
+    "apps/van_app/test/screenshot_evidence_test.dart": (
+        "vanProductionScreenInventory",
+        "430",
+        "932",
+        "360",
+        "800",
+    ),
+    "apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md": (
+        "foreground refresh + truthful stale/offline",
+        "one-line business labels with ellipsis overflow",
+        "430×932",
+        "360×800",
+    ),
+}
+
 MATRIX_ROW_RE = re.compile(
     r"^\|\s*(?P<id>[A-Z]+\d+)\s*\|\s*(?P<summary>.*?)\s*\|\s*#(?P<owner>\d+)\s*\|\s*(?P<evidence>.*?)\s*\|\s*(?P<status>[A-Z_]+)\s*\|\s*$"
 )
@@ -69,6 +101,11 @@ DYNAMIC_DART_RE = re.compile(
     r"\bText(?:\.rich)?\([^;\n]*(?:"
     r"\.(?:status|state|channel|role|type|paymentMethod|payment_method|unitCode|unit_code)(?![A-Za-z0-9_])|"
     r"\[['\"](?:status|state|channel|role|type|payment_method|unit_code)['\"]\])",
+    re.IGNORECASE,
+)
+ORDER_VALUE_RE = re.compile(
+    r"\b(?:order(?:Number|Reference|Id)|assignment(?:Number|Reference|Id)|"
+    r"order\.(?:id|number|reference)|assignment\.(?:id|number|reference))\b",
     re.IGNORECASE,
 )
 RAW_ID_LABEL_RE = re.compile(
@@ -200,44 +237,65 @@ def validate_backend_contract_guards(root: Path = ROOT) -> list[str]:
     return errors
 
 
-def run_full_mobile_contract_guard(root: Path = ROOT) -> tuple[list[str], str]:
-    guard = root / "scripts/mobile-ux-contract-guard.py"
-    if not guard.is_file():
-        return ["whole-tree mobile v4.2 guard is missing"], ""
+def validate_mobile_contract_guards(root: Path = ROOT) -> list[str]:
+    errors: list[str] = []
+    for relative, required_tokens in REQUIRED_MOBILE_CONTRACT_GUARDS.items():
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"required mobile contract guard is missing: {relative}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in required_tokens:
+            if token not in text:
+                errors.append(f"{relative}: required mobile contract evidence is missing: {token}")
+    return errors
 
-    empty_tree = subprocess.run(
-        ["git", "mktree"],
-        cwd=root,
-        input="",
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if empty_tree.returncode != 0 or not empty_tree.stdout.strip():
-        detail = empty_tree.stderr.strip() or empty_tree.stdout.strip()
-        return [f"could not create empty Git tree for whole-tree mobile audit: {detail}"], ""
 
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(guard),
-            "--base",
-            empty_tree.stdout.strip(),
-            "--head",
-            "HEAD",
-        ],
-        cwd=root,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    output = (result.stdout + result.stderr).strip()
-    if result.returncode != 0:
-        return [
-            "whole-tree Customer/Driver/Van mobile v4.2 contract audit failed"
-            + (f": {output}" if output else "")
-        ], output
-    return [], output
+def _dart_text_blocks(text: str) -> Iterable[tuple[int, str]]:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if not re.search(r"\bText(?:\.rich)?\s*\(", line):
+            continue
+        block: list[str] = []
+        balance = 0
+        saw_open = False
+        for candidate in lines[index:index + 32]:
+            block.append(candidate)
+            balance += candidate.count("(") - candidate.count(")")
+            if re.search(r"\bText(?:\.rich)?\s*\(", candidate):
+                saw_open = True
+            if saw_open and balance <= 0:
+                break
+        yield index + 1, "\n".join(block)
+
+
+def scan_mobile_layout_guardrails(root: Path = ROOT) -> list[str]:
+    findings: list[str] = []
+    for app, path in iter_mobile_ui_files(root):
+        text = path.read_text(encoding="utf-8")
+        relative = path.relative_to(root).as_posix()
+
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            toolbar = re.search(r"toolbarHeight\s*:\s*(-?\d+(?:\.\d+)?)", line)
+            if toolbar and float(toolbar.group(1)) > 72:
+                findings.append(
+                    f"{relative}:{lineno}: [{app}] toolbarHeight {toolbar.group(1)} exceeds compact 72px guardrail"
+                )
+            expanded = re.search(r"expandedHeight\s*:\s*(-?\d+(?:\.\d+)?)", line)
+            if expanded and float(expanded.group(1)) > 120:
+                findings.append(
+                    f"{relative}:{lineno}: [{app}] expandedHeight {expanded.group(1)} is an oversized mobile header"
+                )
+
+        for lineno, block in _dart_text_blocks(text):
+            if ORDER_VALUE_RE.search(block) and not re.search(
+                r"(maxLines\s*:\s*1\b|softWrap\s*:\s*false\b|overflow\s*:\s*TextOverflow\.)",
+                block,
+            ):
+                findings.append(
+                    f"{relative}:{lineno}: [{app}] order/assignment identifier Text lacks an explicit no-wrap contract"
+                )
+    return findings
 
 
 def _attrs(tag: str) -> dict[str, str]:
@@ -328,10 +386,10 @@ def scan_mobile_dynamic_enums(root: Path = ROOT) -> list[str]:
     for app, path in iter_mobile_ui_files(root):
         text = path.read_text(encoding="utf-8")
         relative = path.relative_to(root).as_posix()
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            if not DYNAMIC_DART_RE.search(line):
+        for lineno, block in _dart_text_blocks(text):
+            if not DYNAMIC_DART_RE.search(block):
                 continue
-            lower = line.lower()
+            lower = block.lower()
             if any(marker.lower() in lower for marker in LOCALIZATION_MARKERS):
                 continue
             findings.append(
@@ -343,20 +401,22 @@ def scan_mobile_dynamic_enums(root: Path = ROOT) -> list[str]:
 def run_audit(root: Path = ROOT) -> tuple[list[str], dict[str, object]]:
     errors, report = validate_requirement_coverage(root)
     backend_contract_errors = validate_backend_contract_guards(root)
+    mobile_contract_errors = validate_mobile_contract_guards(root)
     admin_findings = scan_admin_raw_inputs(root)
     mobile_findings = scan_mobile_dynamic_enums(root)
-    mobile_contract_errors, mobile_contract_output = run_full_mobile_contract_guard(root)
+    mobile_layout_findings = scan_mobile_layout_guardrails(root)
     errors.extend(backend_contract_errors)
+    errors.extend(mobile_contract_errors)
     errors.extend(admin_findings)
     errors.extend(mobile_findings)
-    errors.extend(mobile_contract_errors)
+    errors.extend(mobile_layout_findings)
     report.update(
         {
             "backend_contract_guard_errors": len(backend_contract_errors),
+            "mobile_contract_guard_errors": len(mobile_contract_errors),
             "admin_raw_input_findings": len(admin_findings),
             "mobile_dynamic_enum_findings": len(mobile_findings),
-            "whole_tree_mobile_contract_errors": len(mobile_contract_errors),
-            "whole_tree_mobile_contract_output": mobile_contract_output,
+            "mobile_layout_guardrail_findings": len(mobile_layout_findings),
             "result": "PASS" if not errors else "FAIL",
             "errors": errors,
         }

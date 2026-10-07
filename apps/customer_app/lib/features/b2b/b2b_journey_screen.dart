@@ -2827,6 +2827,16 @@ class _PurchaseReportRemoteStateState
         ),
       );
 
+  String _localizedOrderStatus(BuildContext context, Object? rawStatus) {
+    final status = rawStatus?.toString().trim().toLowerCase() ?? '';
+    if (status.isEmpty) return '—';
+    final key = 'customer.order.status.$status';
+    final translated = context.tr(key);
+    return translated == key
+        ? context.tr('customer.order.status.unknown')
+        : translated;
+  }
+
   Widget _orders(
     BuildContext context,
     List<Map<Object?, Object?>> rows,
@@ -2860,12 +2870,23 @@ class _PurchaseReportRemoteStateState
                         rowCurrency.trim().isEmpty
                     ? currency
                     : rowCurrency;
+                final statusLabel = _localizedOrderStatus(
+                  context,
+                  row['status'],
+                );
                 return ListTile(
                   key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
                   leading: const Icon(Icons.receipt_long_outlined),
-                  title: Text(orderNumber),
+                  title: Text(
+                    orderNumber,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
-                    '${row['created_at'] ?? ''} · ${row['status'] ?? ''}',
+                    '${row['created_at'] ?? ''} · $statusLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   trailing: Text(
                     _reportMoney(row['grand_total'], displayCurrency),

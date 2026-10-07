@@ -76,6 +76,27 @@ class UiuxV42RecoveryAuditTest(unittest.TestCase):
             findings = module.scan_admin_raw_inputs(root)
             self.assertEqual(1, len([item for item in findings if "without localization" in item]))
 
+    def test_multiline_mobile_status_and_wrapping_are_audited(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            page = root / "apps/customer_app/lib/features/orders/page.dart"
+            page.parent.mkdir(parents=True)
+            page.write_text(
+                "final orderNumber = row['order_number'];\n"
+                "final statusLabel = row['status'];\n"
+                "Text(\n"
+                "  orderNumber,\n"
+                "),\n"
+                "Text(\n"
+                "  statusLabel,\n"
+                "),\n",
+                encoding="utf-8",
+            )
+            for app in ("driver", "van"):
+                (root / f"apps/{app}_app/lib").mkdir(parents=True)
+            layout = module.scan_mobile_layout_guardrails(root)
+            self.assertTrue(any("no-wrap" in finding for finding in layout))
+
     def test_mobile_direct_status_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

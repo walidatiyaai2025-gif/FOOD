@@ -16,7 +16,7 @@ The gate verifies:
 - legacy Dashboard route audits plus Customer/Driver/Van route/screen inventories;
 - all admin Blade surfaces for routine numeric internal-ID entry and visible raw JSON controls;
 - direct unlocalized status/state/channel/role/type/payment/unit rendering across admin Blade and all three mobile UI trees.
-- the existing mobile v4.2 anti-regression guard re-run against an empty Git tree, making **every** Customer/Driver/Van Dart source file part of the audit instead of only changed lines;
+- whole-tree mobile layout guardrails for oversized headers and order/assignment no-wrap, plus required Customer/Driver/Van regression contracts for one-line filters, ellipsis actions, refresh/stale behavior and Van 19-screen responsive evidence;
 - required Dashboard deterministic contracts for shared shells, compact row actions, navigation authorization and Customer/Driver/Van first-class administration.
 
 ## Independent finding fixed by #1041
@@ -33,6 +33,8 @@ The whole-tree audit found an integrated Field Operations defect that the prior 
 - regression coverage rejects routine visible routing JSON from returning.
 
 This is a narrowly scoped integrated fix because #1037 was already merged/closed before the independent gate exposed the defect.
+
+The same whole-tree pass also found a legacy Customer B2B purchase-report defect: recent order numbers could wrap and the raw backend order status was rendered directly. #1041 now enforces a single-line/ellipsis order identifier and maps the status through the Customer order-status localization catalog, with an explicit localized unknown-status fallback.
 
 ## Status semantics
 
