@@ -339,8 +339,8 @@
                         </label>
                     </div>
                     <div class="commercial-grid">
-                        <label>{{ __('commercial.flash.title_ar') }}<input name="title_ar" value="{{ old('title_ar', $editingOffer->title_ar ?? '') }}" required></label>
-                        <label>{{ __('commercial.flash.title_en') }}<input name="title_en" value="{{ old('title_en', $editingOffer->title_en ?? '') }}" required></label>
+                        <label>{{ __('commercial.flash.title_ar') }}<input name="title_ar" value="{{ old('title_ar', $editingOffer->title_ar ?? '') }}" required></label> {{-- localization-gate: allow explicit bilingual authoring field --}}
+                        <label>{{ __('commercial.flash.title_en') }}<input name="title_en" value="{{ old('title_en', $editingOffer->title_en ?? '') }}" required></label> {{-- localization-gate: allow explicit bilingual authoring field --}}
                     </div>
                     <div class="commercial-grid">
                         <label>{{ __('commercial.flash.body_ar') }}<textarea name="body_ar">{{ old('body_ar', $editingOffer->body_ar ?? '') }}</textarea></label>
