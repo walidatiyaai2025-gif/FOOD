@@ -140,4 +140,16 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'الرصيد الحالي':'Current balance'", $view);
         $this->assertStringNotContainsString("$ar?'تسجيل حركة مالية':'Record financial entry'", $view);
     }
+
+
+    public function test_customer_360_identity_copy_uses_locale_catalog(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("__('customer_360.identity.name')", $view);
+        $this->assertStringContainsString("__('customer_360.identity.registration_source')", $view);
+        $this->assertStringNotContainsString("$ar?'الاسم':'Name'", $view);
+        $this->assertStringNotContainsString("$ar?'مصدر التسجيل':'Registration source'", $view);
+    }
 }
