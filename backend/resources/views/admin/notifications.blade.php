@@ -73,6 +73,8 @@
                 <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $notification->title_en }}</strong><p>{{ $notification->body_en }}</p></div>
             </div>
 
+            <details class="edit-record" data-notification-edit>
+                <summary style="cursor:pointer;font-weight:800">{{ __('notifications.edit_notification') }}</summary>
             <form method="post" action="{{ route('admin.notifications.update',$notification) }}" enctype="multipart/form-data">@csrf @method('PATCH')
                 <div class="grid">
                     <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $notification->title_ar }}" required></div>
@@ -89,6 +91,7 @@
                 </div>
                 <div class="actions"><button class="primary" type="submit">{{ __('notifications.save') }}</button></div>
             </form>
+            </details>
 
             <details class="row-actions" data-notification-row-actions>
                 <summary aria-label="{{ __('notifications.actions') }}">⋮</summary>
