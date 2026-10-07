@@ -5,10 +5,14 @@ import 'package:foodex_driver_app/features/wallet/driver_wallet_page.dart';
 
 class _FakeWallet implements DriverWalletRepository {
   int walletCalls = 0;
+  bool failWallet = false;
 
   @override
   Future<List<DriverWalletAccount>> wallet() async {
     walletCalls += 1;
+    if (failWallet) {
+      throw StateError('offline');
+    }
     return const [
       DriverWalletAccount(
         id: 5,
@@ -43,6 +47,34 @@ class _FakeWallet implements DriverWalletRepository {
 }
 
 void main() {
+  testWidgets(
+      'wallet polls in foreground and preserves stale confirmed balances',
+      (tester) async {
+    final repository = _FakeWallet();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: DriverWalletPage(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.walletCalls, 1);
+    expect(find.text('10.000 KWD'), findsOneWidget);
+    expect(find.byKey(const Key('driver-wallet-stale')), findsNothing);
+
+    repository.failWallet = true;
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+
+    expect(repository.walletCalls, 2);
+    expect(find.text('10.000 KWD'), findsOneWidget);
+    expect(find.byKey(const Key('driver-wallet-stale')), findsOneWidget);
+    expect(find.textContaining('last confirmed data'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('wallet refreshes when Driver app resumes', (tester) async {
     final repository = _FakeWallet();
 

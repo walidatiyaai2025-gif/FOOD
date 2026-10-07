@@ -19,7 +19,8 @@ class DriverTranslations extends InheritedWidget {
   final Map<String, String> overrides;
 
   static const Map<String, String> _ar = {
-    'driver.app.title': 'فودكس للسائق',
+    'driver.app.title': 'تطبيق السائق',
+    'driver.brand.economical_group': 'مجموعة فودكس الاقتصادية',
     'driver.home.title': 'الرئيسية',
     'driver.home.subtitle': 'ابدأ يومك وراجع التوصيلات المسندة لك',
     'driver.home.channel': 'قناة العمل',
@@ -34,6 +35,9 @@ class DriverTranslations extends InheritedWidget {
     'driver.notifications.empty': 'لا توجد إشعارات جديدة',
     'driver.notifications.refresh': 'تحديث الإشعارات',
     'driver.notifications.open': 'عرض الطلب',
+    'driver.notifications.order_identity': 'طلب',
+    'driver.notifications.assignment_identity': 'إسناد',
+    'driver.notifications.order_unavailable': 'لم يعد هذا الطلب متاحاً لهذا السائق.',
     'driver.notifications.action_error': 'تعذر تنفيذ إجراء الإشعار. أعد المحاولة.',
     'driver.deliveries.title': 'التوصيلات',
     'driver.b2c.title': 'توصيلات التجزئة',
@@ -41,6 +45,8 @@ class DriverTranslations extends InheritedWidget {
     'driver.empty': 'لا توجد توصيلات مسندة',
     'driver.error': 'تعذر تحميل التوصيلات',
     'driver.offline': 'لا يوجد اتصال. أعد المحاولة عند عودة الشبكة.',
+    'driver.data.stale': 'تعرض الشاشة آخر بيانات مؤكدة؛ تعذر جلب تحديث جديد.',
+    'driver.data.last_confirmed_update': 'آخر تحديث مؤكد',
     'driver.retry': 'إعادة المحاولة',
     'driver.refresh': 'تحديث الطلبات',
     'driver.route.denied': 'هذا المسار غير متاح لدور السائق الحالي',
@@ -258,7 +264,8 @@ class DriverTranslations extends InheritedWidget {
   };
 
   static const Map<String, String> _en = {
-    'driver.app.title': 'FOODEX Driver',
+    'driver.app.title': 'Driver App',
+    'driver.brand.economical_group': 'FOODEX Economical Group',
     'driver.home.title': 'Driver Home',
     'driver.home.subtitle': 'Start your shift and review your assigned deliveries',
     'driver.home.channel': 'Work channel',
@@ -273,6 +280,9 @@ class DriverTranslations extends InheritedWidget {
     'driver.notifications.empty': 'No notifications yet',
     'driver.notifications.refresh': 'Refresh notifications',
     'driver.notifications.open': 'View order',
+    'driver.notifications.order_identity': 'Order',
+    'driver.notifications.assignment_identity': 'Assignment',
+    'driver.notifications.order_unavailable': 'This order is no longer available to this driver.',
     'driver.notifications.action_error': 'Unable to complete the notification action. Try again.',
     'driver.deliveries.title': 'Deliveries',
     'driver.b2c.title': 'Retail deliveries',
@@ -280,6 +290,8 @@ class DriverTranslations extends InheritedWidget {
     'driver.empty': 'No assigned deliveries',
     'driver.error': 'Unable to load deliveries',
     'driver.offline': 'No connection. Try again when the network is back.',
+    'driver.data.stale': 'Showing the last confirmed data; a newer refresh could not be loaded.',
+    'driver.data.last_confirmed_update': 'Last confirmed update',
     'driver.retry': 'Retry',
     'driver.refresh': 'Refresh orders',
     'driver.route.denied': 'This route is not available for this driver role',

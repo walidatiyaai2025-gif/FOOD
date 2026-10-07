@@ -98,7 +98,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverNotificationRepositoryFactory? notificationRepositoryFactory;
   final DriverSession? initialSession;
   final ThemeData? theme;
-  final DriverFirebasePushService? pushService;
+  final DriverPushService? pushService;
   final DriverPreviewContext? previewContext;
   final DriverPreviewBootstrap? previewBootstrap;
   final DriverLocationGateService? locationGateService;
@@ -294,11 +294,13 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     if (widget.previewContext != null) return;
     final service = widget.pushService;
     if (service == null) return;
-    _pushOpenSubscription = service.opens.listen(_openFromPush);
+    _pushOpenSubscription = service.opens.listen(
+      (open) => unawaited(_openFromPush(open)),
+    );
     _pushAlertSubscription = service.alerts.listen(_showPushAlert);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final pending = service.takePendingOpen();
-      if (pending != null) _openFromPush(pending);
+      if (pending != null) unawaited(_openFromPush(pending));
     });
     _bindPushSession();
   }
@@ -312,10 +314,49 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     }
   }
 
-  void _openFromPush(DriverPushOpen open) {
+  Future<void> _openFromPush(DriverPushOpen open) async {
     final session = _session;
-    final assignmentId = open.assignmentId;
-    if (session == null || open.accessRevoked || assignmentId == null) return;
+    if (session == null || open.accessRevoked) return;
+
+    var assignmentId = open.assignmentId;
+    if (assignmentId == null) {
+      final orderId = open.orderId;
+      final repository = _assignmentRepository(session);
+      if (orderId != null && repository != null) {
+        try {
+          final rows = await repository.list(session.channel);
+          final matches = rows
+              .where(
+                (row) =>
+                    row.channel == session.channel &&
+                    row.orderId == orderId,
+              )
+              .toList(growable: false);
+          if (matches.length == 1) {
+            assignmentId = matches.single.id;
+          }
+        } on DriverSessionExpiredException {
+          _sessionExpired();
+          return;
+        } catch (_) {
+          assignmentId = null;
+        }
+      }
+    }
+
+    if (!mounted || assignmentId == null) {
+      final context = _messengerKey.currentContext;
+      if (context != null) {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              context.tr('driver.notifications.order_unavailable'),
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     final route = session.channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
@@ -337,10 +378,21 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
       _seenPushAlerts.remove(_seenPushAlerts.first);
     }
 
-    final message = alert.body.isEmpty
+    final context = _messengerKey.currentContext;
+    final identity = context == null
+        ? null
+        : driverPushIdentityLabel(
+            alert.open,
+            orderLabel: context.tr('driver.notifications.order_identity'),
+            assignmentLabel:
+                context.tr('driver.notifications.assignment_identity'),
+          );
+    final payloadMessage = alert.body.isEmpty
         ? alert.title
         : '${alert.title}\n${alert.body}'; // localization-gate: allow — server-localized push payload.
-    final context = _messengerKey.currentContext;
+    final message = identity == null
+        ? payloadMessage
+        : '$identity\n$payloadMessage';
     final actionable =
         !alert.open.accessRevoked && alert.open.assignmentId != null;
 

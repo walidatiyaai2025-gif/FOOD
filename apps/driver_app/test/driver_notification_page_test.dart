@@ -7,12 +7,16 @@ class _FakeNotifications implements DriverNotificationRepository {
   _FakeNotifications(this.items);
 
   final List<DriverNotification> items;
+  bool failList = false;
   final List<int> marked = <int>[];
   int listCount = 0;
 
   @override
   Future<List<DriverNotification>> list({required String locale}) async {
     listCount += 1;
+    if (failList) {
+      throw const DriverNotificationException('offline');
+    }
     return items;
   }
 
@@ -53,6 +57,45 @@ void main() {
     expect(repository.listCount, 2);
   });
 
+  testWidgets(
+      'notifications poll in foreground and preserve stale confirmed data on failure',
+      (tester) async {
+    final repository = _FakeNotifications(const [
+      DriverNotification(
+        id: 71,
+        title: 'New assignment',
+        body: 'Open assignment',
+        readAt: null,
+        data: {'assignment_id': 701},
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: DriverNotificationPage(
+          repository: repository,
+          onOpenAssignment: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.listCount, 1);
+    expect(find.byKey(const Key('driver-notification-71')), findsOneWidget);
+    expect(find.byKey(const Key('driver-notifications-stale')), findsNothing);
+
+    repository.failList = true;
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCount, 2);
+    expect(find.byKey(const Key('driver-notification-71')), findsOneWidget);
+    expect(find.byKey(const Key('driver-notifications-stale')), findsOneWidget);
+    expect(find.textContaining('last confirmed data'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('active assignment notification marks read and opens assignment',
       (tester) async {
     final repository = _FakeNotifications(const [
@@ -89,6 +132,44 @@ void main() {
 
     expect(repository.marked, [7]);
     expect(opened, 42);
+  });
+
+  testWidgets('already-open assignment notification refreshes instead of reopening',
+      (tester) async {
+    final repository = _FakeNotifications(const [
+      DriverNotification(
+        id: 9,
+        title: 'Assignment updated',
+        body: 'Refresh the active assignment',
+        readAt: null,
+        data: {
+          'assignment_id': 55,
+          'order_id': 155,
+          'access_revoked': false,
+        },
+      ),
+    ]);
+    int? opened;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: DriverNotificationPage(
+          repository: repository,
+          currentAssignmentId: 55,
+          onOpenAssignment: (value) => opened = value,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.listCount, 1);
+    await tester.tap(find.byKey(const Key('driver-notification-9')));
+    await tester.pumpAndSettle();
+
+    expect(repository.marked, [9]);
+    expect(opened, isNull);
+    expect(repository.listCount, 2);
   });
 
   testWidgets('revoked assignment notification never opens order detail',

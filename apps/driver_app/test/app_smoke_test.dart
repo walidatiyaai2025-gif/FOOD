@@ -7,7 +7,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
-    expect(find.text('فودكس للسائق'), findsOneWidget);
+    expect(find.text('تطبيق السائق'), findsOneWidget);
     expect(find.byKey(const Key('driver-config-missing')), findsNothing);
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
     expect(find.byKey(const Key('driver-login-password')), findsOneWidget);

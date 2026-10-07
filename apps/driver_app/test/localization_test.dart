@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(const FoodexDriverApp(locale: Locale('en')));
     await tester.pumpAndSettle();
 
-    expect(find.text('FOODEX Driver'), findsOneWidget);
+    expect(find.text('Driver App'), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('en'));

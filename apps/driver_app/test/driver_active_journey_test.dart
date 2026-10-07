@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 import 'package:foodex_driver_app/features/delivery/active/driver_active_journey.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 
@@ -10,7 +11,7 @@ class _FakeActiveRepo
   _FakeActiveRepo(this.current, {this.offline = false});
 
   DriverAssignment current;
-  final bool offline;
+  bool offline;
   String? transitionedStatus;
   String? transitionedNote;
   int transitionCount = 0;
@@ -135,6 +136,13 @@ Widget _host(
   );
 }
 
+Future<void> _openCardActions(WidgetTester tester, int assignmentId) async {
+  await tester.tap(
+    find.byKey(Key('driver-active-actions-$assignmentId')),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('active deliveries refresh when Driver app resumes', (tester) async {
     final repo = _FakeActiveRepo(
@@ -158,6 +166,37 @@ void main() {
     expect(repo.listCount, 2);
   });
 
+  testWidgets(
+      'foreground polling keeps confirmed deliveries visible and marks offline data stale',
+      (tester) async {
+    final repo = _FakeActiveRepo(
+      const DriverAssignment(
+        id: 902,
+        channel: DriverChannel.b2c,
+        reference: 'POLL-902',
+        status: 'accepted',
+        availableStatuses: ['picked_up', 'failed'],
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+    expect(repo.listCount, 1);
+    expect(find.text('POLL-902'), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-stale')), findsNothing);
+
+    repo.offline = true;
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+
+    expect(repo.listCount, 2);
+    expect(find.text('POLL-902'), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-stale')), findsOneWidget);
+    expect(find.textContaining('last confirmed data'), findsOneWidget);
+    expect(find.textContaining('Last confirmed update'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('assigned action is exposed only when server allows accepted',
       (tester) async {
     final repo = _FakeActiveRepo(
@@ -173,8 +212,11 @@ void main() {
     await tester.pumpWidget(_host(repo));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-active-accept-1')), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-actions-1')), findsOneWidget);
     expect(find.byKey(const Key('driver-active-pickup-1')), findsNothing);
+
+    await _openCardActions(tester, 1);
+    expect(find.byKey(const Key('driver-active-accept-1')), findsOneWidget);
     expect(find.byKey(const Key('driver-active-start-1')), findsNothing);
 
     await tester.tap(find.byKey(const Key('driver-active-accept-1')));
@@ -183,6 +225,7 @@ void main() {
     expect(repo.transitionedStatus, 'accepted');
     expect(repo.transitionCount, 1);
     expect(find.byKey(const Key('driver-active-pickup-1')), findsNothing);
+    await _openCardActions(tester, 1);
     expect(
       find.byKey(const Key('driver-active-card-failed-1')),
       findsOneWidget,
@@ -213,6 +256,7 @@ void main() {
         find.byKey(Key('driver-active-pickup-$id')),
         findsNothing,
       );
+      await _openCardActions(tester, id);
       expect(
         find.byKey(Key('driver-active-card-failed-$id')),
         findsOneWidget,
@@ -221,6 +265,8 @@ void main() {
         find.byKey(Key('driver-active-start-$id')),
         findsNothing,
       );
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(Key('driver-active-assignment-$id')));
       await tester.pumpAndSettle();
@@ -234,6 +280,7 @@ void main() {
       expect(repo.transitionedStatuses, ['picked_up', 'out_for_delivery']);
       expect(repo.transitionCount, 2);
       expect(repo.current.status, 'out_for_delivery');
+      await _openCardActions(tester, id);
       expect(
         find.byKey(Key('driver-active-delivered-$id')),
         findsOneWidget,
@@ -256,6 +303,7 @@ void main() {
     await tester.pumpWidget(_host(repo));
     await tester.pumpAndSettle();
 
+    await _openCardActions(tester, 2);
     await tester.tap(find.byKey(const Key('driver-active-start-2')));
     await tester.pumpAndSettle();
 
@@ -277,6 +325,7 @@ void main() {
 
     expect(repo.transitionedStatus, 'out_for_delivery');
     expect(repo.transitionedNote, 'Leaving store now');
+    await _openCardActions(tester, 2);
     expect(
       find.byKey(const Key('driver-active-delivered-2')),
       findsOneWidget,
@@ -308,6 +357,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _openCardActions(tester, 3);
     await tester.tap(find.byKey(const Key('driver-active-start-3')));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -344,6 +394,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await _openCardActions(tester, 4);
     expect(
       find.byKey(const Key('driver-active-delivered-4')),
       findsOneWidget,
@@ -559,6 +610,84 @@ void main() {
 
     expect(find.text('B2C-18'), findsOneWidget);
     expect(find.text('B2B-19'), findsNothing);
+  });
+
+  testWidgets(
+      'delivery card keeps no-wrap reference and green ellipsis in compact header',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 919,
+        channel: DriverChannel.b2c,
+        reference: 'ORDER-REFERENCE-919-VERY-LONG-NO-WRAP-CHECK',
+        status: 'assigned',
+        availableStatuses: ['accepted'],
+      ),
+    ]);
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+
+    final referenceFinder =
+        find.byKey(const Key('driver-active-reference-919'));
+    final actionFinder =
+        find.byKey(const Key('driver-active-actions-919'));
+    final iconFinder =
+        find.byKey(const Key('driver-active-actions-icon-919'));
+
+    expect(referenceFinder, findsOneWidget);
+    expect(actionFinder, findsOneWidget);
+    expect(iconFinder, findsOneWidget);
+
+    final reference = tester.widget<Text>(referenceFinder);
+    expect(reference.maxLines, 1);
+    expect(reference.overflow, TextOverflow.ellipsis);
+
+    final icon = tester.widget<Icon>(iconFinder);
+    expect(icon.color, FoodexBrand.green);
+    expect(
+      (tester.getCenter(referenceFinder).dy -
+              tester.getCenter(actionFinder).dy)
+          .abs(),
+      lessThan(12),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('delivery filters stay on one compact row at narrow phone width',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 19,
+        channel: DriverChannel.b2c,
+        reference: 'FILTER-19',
+        status: 'assigned',
+      ),
+    ]);
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+
+    final row = find.byKey(const Key('driver-filter-single-row'));
+    expect(row, findsOneWidget);
+    expect(tester.getSize(row).height, 48);
+    expect(find.byKey(const Key('driver-delivery-date-range')), findsOneWidget);
+    expect(find.byKey(const Key('driver-filter-today')), findsOneWidget);
+    expect(find.byKey(const Key('driver-filter-all')), findsOneWidget);
   });
 
   testWidgets('exact status route filters the authoritative assignment list',

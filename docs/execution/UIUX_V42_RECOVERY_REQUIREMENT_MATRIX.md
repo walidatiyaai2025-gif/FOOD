@@ -45,14 +45,14 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | AC01 | Customer login visibly says Customer App / تطبيق العميل | #1038 | AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
 | AC02 | Customer Remember Me + biometric secure-session behavior remains valid | #1038 | tests + runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
 | IC01 | Customer real invoice visibly includes configured FOODEX/company identity/logo and authoritative invoice fields/totals | #1038 | backend/widget tests + AR/EN runtime + owner evidence: [Customer #1038 manifest](UIUX_V42_RECOVERY_1038_CUSTOMER_EVIDENCE.md) | OPEN |
-| MD01 | Driver compact/full-width data-first layout across audited screens | #1039 | route inventory + runtime | OPEN |
-| MD02 | Driver one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1039 | tests + runtime | OPEN |
-| MD03 | Driver dynamic surfaces auto-refresh + stale/offline truthfulness | #1039 | state tests + runtime | OPEN |
-| AD01 | Driver login visibly says Driver App / تطبيق السائق | #1039 | AR/EN runtime | OPEN |
-| AD02 | Driver Remember Me + biometric secure-session behavior remains valid | #1039 | tests + runtime | OPEN |
-| LD01 | Foreground new-order alert has authoritative identity and direct View/Open action | #1039 | push tests + runtime | OPEN |
-| LD02 | Notification/deep link opens exact authoritative assignment/order instead of generic list | #1039 | navigation tests + runtime | OPEN |
-| LD03 | Driver duplicate events dedupe; already-open record refreshes instead of stacking alerts | #1039 | tests + runtime | OPEN |
+| MD01 | Driver compact/full-width data-first layout across audited screens | #1039 | route inventory + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| MD02 | Driver one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| MD03 | Driver dynamic surfaces auto-refresh + stale/offline truthfulness | #1039 | state tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| AD01 | Driver login visibly says Driver App / تطبيق السائق | #1039 | AR/EN runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| AD02 | Driver Remember Me + biometric secure-session behavior remains valid | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| LD01 | Foreground new-order alert has authoritative identity and direct View/Open action | #1039 | push tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| LD02 | Notification/deep link opens exact authoritative assignment/order instead of generic list | #1039 | navigation tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
+| LD03 | Driver duplicate events dedupe; already-open record refreshes instead of stacking alerts | #1039 | tests + runtime + owner evidence: [Driver #1039 manifest](UIUX_V42_RECOVERY_1039_DRIVER_EVIDENCE.md) | OPEN |
 | MV01 | Van compact/full-width data-first layout across audited screens | #1040 | `van_screen_inventory.dart`; explicit 19-case `van_foundation_screen.dart`; `screenshot_evidence_test.dart` 430x932 + 360x800 AR/EN | OPEN |
 | MV02 | Van one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1040 | production Routes/Visits/Catalog/Orders/finance surfaces + `app_test.dart` navigation/sales/visit tests + screenshot evidence | OPEN |
 | MV03 | Van dynamic surfaces auto-refresh + stale/offline truthfulness | #1040 | lifecycle observers + stale/offline states across dashboard/routes/map/detail/customers/visits/orders/finance/notifications; `app_test.dart` | OPEN |

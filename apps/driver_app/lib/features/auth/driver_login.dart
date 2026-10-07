@@ -393,12 +393,13 @@ class _DriverBrandHeader extends StatelessWidget {
             'assets/branding/foodex-economical-group.webp',
             height: 96,
             fit: BoxFit.contain,
-            semanticLabel: 'FOODEX Economical Group',
+            semanticLabel: context.tr('driver.brand.economical_group'),
           ),
         ),
         const SizedBox(height: 12),
         Text(
           context.tr('driver.app.title'),
+          key: const Key('driver-app-identity'),
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
