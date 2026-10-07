@@ -102,6 +102,9 @@ final class StoreSubmissionController extends Controller
             'identifier_type' => ['required', 'in:email,username,phone'],
             'identifier' => ['required', 'string', 'max:255'],
             'reviewer_secret' => ['nullable', 'string', 'min:8', 'max:255'],
+            'reviewer_channel' => ['nullable', 'in:b2b,b2c'],
+            'reviewer_store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            // Legacy compatibility only; Dashboard uses structured context controls.
             'context_json' => ['nullable', 'json'],
             'reviewer_instructions' => ['nullable', 'string', 'max:10000'],
             'is_active' => ['nullable', 'boolean'],
@@ -117,10 +120,39 @@ final class StoreSubmissionController extends Controller
             ]);
         }
 
+        $context = is_array($reviewer?->context) ? $reviewer->context : [];
+        if (array_key_exists('reviewer_channel', $data) || array_key_exists('reviewer_store_id', $data)) {
+            $channel = trim((string) ($data['reviewer_channel'] ?? ''));
+            $storeId = isset($data['reviewer_store_id']) ? (int) $data['reviewer_store_id'] : 0;
+
+            if ($channel === '') {
+                unset($context['channel']);
+            } else {
+                $context['channel'] = $channel;
+            }
+
+            if ($storeId <= 0) {
+                unset($context['store_id']);
+            } else {
+                $storeChannel = strtolower((string) DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.id', $storeId)
+                    ->value('store_types.code'));
+                if ($channel !== '' && $storeChannel !== $channel) {
+                    throw ValidationException::withMessages([
+                        'reviewer_store_id' => ['The selected store does not belong to the selected business channel.'],
+                    ]);
+                }
+                $context['store_id'] = $storeId;
+            }
+        } elseif (array_key_exists('context_json', $data)) {
+            $context = $this->decode($data['context_json'] ?? null) ?? [];
+        }
+
         $values = [
             'identifier_type' => $data['identifier_type'],
             'identifier' => trim($data['identifier']),
-            'context' => $this->decode($data['context_json'] ?? null),
+            'context' => $context,
             'reviewer_instructions' => $data['reviewer_instructions'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'readiness_status' => 'BLOCKED',
