@@ -1,22 +1,25 @@
-# FOODEX 1.0.62 Release Notes
+# FOODEX 1.0.63 Release Notes
 
-Status: corrective UIUX-V42 FOODEX 1.0.62 release for #1021, restoring the accepted premium Sales Control surface while preserving Van/commercial behavior and cross-app UI/UX convergence. Repository-controlled release; Apple/Google console/signing actions remain external.
+Status: FOODEX 1.0.63 regression hotfix for #1080, restoring the approved Customer invoices redesign from #1072 that was omitted from the immutable 1.0.62 release lineage. Repository-controlled release; Apple/Google console/signing actions remain external.
 
-Release branch: `release/1021-uiux-v42-final-real-build`
+Release branch: `fix/1080-invoice-redesign-release-regression`
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.62`
-- Customer app: `1.0.62+62`
-- Driver/Van app: `1.0.62+62`
-- Customer runtime/footer identity: `1.0.62`
-- Driver runtime/footer identity: `1.0.62`
-- Driver diagnostics current identity: `1.0.62`
-- Driver diagnostics build identity: `58`
+- Dashboard / repository release: `1.0.63`
+- Customer app: `1.0.63+63`
+- Driver/Van app: `1.0.63+63`
+- Customer runtime/footer identity: `1.0.63`
+- Driver runtime/footer identity: `1.0.63`
+- Driver diagnostics current identity: `1.0.63`
+- Driver diagnostics build identity: `63`
 
 - Production API: `https://foodex.50sols.com`
 
 ## Included changes
+
+- Restore the approved Customer invoices compact layout from #1072 / PR #1075: one-line header, responsive compact filter controls, centered empty state, preserved search/status/date/refresh/clear behavior, pagination, invoice details, Arabic RTL and English localization.
+- Preserve the 1.0.62 frozen recovery functionality while correcting only this release-lineage omission and synchronized 1.0.63 release identity.
 
 - Include the canonical commercial policy engine, break-pack rules, feature flags, Flash lifecycle/audience targeting, Dashboard preview/analytics, Customer Flash checkout and Van online-only Flash/commercial enforcement from #983/#991.
 
