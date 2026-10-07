@@ -42,6 +42,13 @@ return [
         'completed' => 'Completed',
         'cancelled' => 'Cancelled',
     ],
+    'run_status' => [
+        'pending' => 'Pending',
+        'running' => 'Running',
+        'completed' => 'Completed',
+        'failed' => 'Failed',
+        'cancelled' => 'Cancelled',
+    ],
     'title_ar' => 'Arabic title',
     'title_en' => 'English title',
     'body_ar' => 'Arabic content',
