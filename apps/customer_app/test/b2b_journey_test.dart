@@ -85,6 +85,7 @@ void main() {
         'balance_direction': 'customer_owes_company',
         'credit_limit': 500,
         'available_credit_line': 490,
+        'customer_credit_balance': 35,
         'open_amount': 10,
         'overdue_amount': 2,
       },
@@ -100,6 +101,7 @@ void main() {
         'stale': false,
       },
       'currency': 'KWD',
+      'purchase_total': 640.25,
     });
 
     await tester.pumpWidget(
@@ -115,8 +117,16 @@ void main() {
     expect(api.calls, 1);
     expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('b2b-dashboard-balance-hero')),
+      find.byKey(const ValueKey('b2b-dashboard-hero')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-balance-hero')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-dashboard-refresh')),
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('b2b-dashboard-finance-grid')),
@@ -132,17 +142,29 @@ void main() {
     );
     expect(find.text('Buyer Co'), findsOneWidget);
     expect(find.text('Buyer'), findsOneWidget);
-    expect(find.text('عليك'), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const ValueKey('b2b-dashboard-balance-hero')), matching: find.text('10.000 KWD')), findsOneWidget);
+    expect(find.text('الرصيد الدائن'), findsOneWidget);
+    expect(find.text('قيمة مشترياتك'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('b2b-dashboard-credit-balance')),
+        matching: find.text('35.000 KWD'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('b2b-dashboard-purchase-value')),
+        matching: find.text('640.250 KWD'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('حد الائتمان'), findsOneWidget);
-    expect(find.text('الائتمان المتاح'), findsNWidgets(2));
+    expect(find.text('الائتمان المتاح'), findsOneWidget);
     expect(find.text('الفواتير المفتوحة'), findsOneWidget);
     expect(find.text('المبلغ المتأخر'), findsOneWidget);
     expect(find.text('مشتريات هذا الشهر'), findsOneWidget);
     expect(find.text('مدفوعات هذا الشهر'), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-dashboard-refresh')), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('b2b-dashboard-refresh')));
+    await tester.tap(find.byKey(const ValueKey('b2b-dashboard-hero')));
     await tester.pumpAndSettle();
     expect(api.calls, 2);
   });
@@ -195,6 +217,7 @@ void main() {
         'balance_direction': 'settled',
         'credit_limit': 500,
         'available_credit_line': 500,
+        'customer_credit_balance': 0,
         'open_amount': 0,
         'overdue_amount': 0,
       },
@@ -231,6 +254,7 @@ void main() {
 
     expect(storefront.selectionCalls, 1);
     expect(storefront.lastStoreId, 70);
+    expect(api.calls, 1);
   });
 
   testWidgets('B2B dashboard shows credit direction in English LTR',
@@ -244,6 +268,7 @@ void main() {
         'balance_direction': 'company_owes_customer',
         'credit_limit': 500,
         'available_credit_line': 500,
+        'customer_credit_balance': 20,
         'open_amount': 0,
         'overdue_amount': 0,
       },
@@ -258,6 +283,7 @@ void main() {
         'generated_at': DateTime.now().toUtc().toIso8601String(),
         'stale': false,
       },
+      'purchase_total': 88,
     });
 
     await tester.pumpWidget(
@@ -274,9 +300,16 @@ void main() {
       Directionality.of(tester.element(find.text('FOODEX Business'))),
       TextDirection.ltr,
     );
-    expect(find.text('Credit to you'), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const ValueKey('b2b-dashboard-balance-hero')), matching: find.text('20.000 KWD')), findsOneWidget);
-    expect(find.text('Available credit'), findsNWidgets(2));
+    expect(find.text('Credit balance'), findsOneWidget);
+    expect(find.text('Your purchase value'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('b2b-dashboard-credit-balance')),
+        matching: find.text('20.000 KWD'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Available credit'), findsOneWidget);
     expect(find.text('Active orders'), findsOneWidget);
   });
 
