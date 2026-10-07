@@ -9,7 +9,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ $section === 'sales-control' ? ($ar ? 'التحكم التجاري للمنتجات' : 'Product Sales Control') : ($ar ? 'العروض السريعة' : 'Flash Offers') }} · FOODEX</title>
+    <title>{{ $section === 'sales-control' ? __('commercial.sales.title') : __('commercial.flash.title') }} · FOODEX</title>
     @include('admin._brand-components')
     <style>
         body{margin:0;overflow-x:hidden;background:var(--foodex-background);color:var(--foodex-ink)}
@@ -66,6 +66,18 @@
         .commercial-advanced summary{cursor:pointer;padding:12px 14px;font-weight:800;color:var(--foodex-green-dark)}
         .commercial-advanced-body{padding:0 14px 14px;display:grid;gap:12px}
         .commercial-advanced textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;min-height:110px}
+        .structured-editor{display:grid;gap:10px}
+        .structured-list{display:grid;gap:10px}
+        .structured-row{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd;display:grid;gap:10px}
+        .structured-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+        .structured-grid label{display:grid;gap:6px;font-weight:700;font-size:.78rem}
+        .structured-choice{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:7px!important;min-height:42px}
+        .structured-choice input{width:16px!important;height:16px!important}
+        .structured-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+        .structured-toolbar h4{margin:0;font-size:.9rem}
+        .structured-add,.structured-remove{min-height:38px;padding:0 12px;border-radius:10px;font-weight:800;cursor:pointer}
+        .structured-add{border:1px solid var(--foodex-green);background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .structured-remove{border:1px solid #f2b8b5;background:#fff;color:#a61b1b}
         .flash-form-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
         .flash-form-section h3{margin:0;font-size:.92rem}
         .flash-multi{min-height:112px}
@@ -82,8 +94,8 @@
         .commercial-policy-form.foodex-premium-auto-form,.feature-flags-card form.foodex-premium-auto-form{display:grid!important;grid-template-columns:1fr!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;gap:12px!important}
         @media(max-width:1100px){.feature-flag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.commercial-form-grid.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:1023px){.commercial-admin-layout,.commercial-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr!important}.commercial-admin-layout>.sidebar,.commercial-admin-layout>.commercial-shell{grid-column:1!important;grid-row:auto!important}.commercial-admin-layout>.sidebar{min-height:auto}.commercial-shell{padding:14px}.commercial-product-grid{grid-template-columns:1fr}}
-        @media(max-width:820px){.flash-product-row{grid-template-columns:1fr 1fr}.flash-product-row .flash-row-remove{grid-column:1/-1}}
-        @media(max-width:680px){.feature-flag-grid,.commercial-form-grid,.commercial-form-grid.five,.commercial-toggles,.flash-product-row{grid-template-columns:1fr}.contract-banner{grid-template-columns:1fr}.commercial-card{padding:14px}.commercial-product-head{align-items:flex-start;flex-direction:column}.flash-product-row .flash-row-remove{grid-column:auto}}
+        @media(max-width:820px){.flash-product-row{grid-template-columns:1fr 1fr}.flash-product-row .flash-row-remove{grid-column:1/-1}.structured-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:680px){.feature-flag-grid,.commercial-form-grid,.commercial-form-grid.five,.commercial-toggles,.flash-product-row,.structured-grid{grid-template-columns:1fr}.contract-banner{grid-template-columns:1fr}.commercial-card{padding:14px}.commercial-product-head{align-items:flex-start;flex-direction:column}.flash-product-row .flash-row-remove{grid-column:auto}}
     </style>
 </head>
 <body>
@@ -183,7 +195,7 @@
                             'start_month'=>$w->start_month,'start_day'=>$w->start_day,'end_month'=>$w->end_month,'end_day'=>$w->end_day,'is_active'=>(bool)$w->is_active,
                         ])->values();
                         $rules = $commercialRules->get($product->id, collect())->map(fn($r)=>[
-                            'customer_id'=>$r->customer_id,'customer_group_id'=>$r->customer_group_id,'channel'=>$r->channel,'is_allowed'=>$r->is_allowed,
+                            'customer_id'=>$r->customer_id,'customer_group_id'=>$r->customer_group_id,'channel'=>$r->channel,'is_allowed'=>$r->is_allowed === null ? null : (bool)$r->is_allowed,
                             'max_per_order'=>$r->max_per_order,'max_per_day'=>$r->max_per_day,'max_per_week'=>$r->max_per_week,'max_per_month'=>$r->max_per_month,'max_lifetime'=>$r->max_lifetime,
                         ])->values();
                     @endphp
