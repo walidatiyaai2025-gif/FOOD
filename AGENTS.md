@@ -1189,37 +1189,143 @@ A worker must never report **"C13 finished"** while:
 
 ---
 
-## 25. Active FOOD Mission resolution — UI/UX v4.2
+## 25. Active FOOD Mission resolution — UI/UX v4.2 Recovery
 
-The current active mission is registered by live GitHub Issue state and, on the mission integration branch, by:
+The current active FOOD UI/UX mission is:
 
-`docs/execution/ACTIVE_FOOD_MISSION.json`
-
-For the current mission:
-
-- umbrella: **#1001**;
-- mission ID: `UIUX-V42`;
-- execution plan: `docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`;
-- integration target: `release/1.0.58-van-complete`;
-- final code convergence gate: **#1012**;
-- terminal real release gate: **#1021** on `release/1021-uiux-v42-final-real-build`;
+- umbrella: **#1034 — [MISSION][ACTIVE][UIUX-V42-RECOVERY]**;
+- mission ID: `UIUX-V42-RECOVERY`;
+- integration target: `release/1034-uiux-v42-recovery`;
+- execution plan: `docs/execution/UIUX_V42_RECOVERY_MISSION_PLAN.md`;
+- human-readable requirement matrix: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENT_MATRIX.md`;
+- machine-readable requirements: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`;
+- active registry: `docs/execution/ACTIVE_FOOD_MISSION.json`;
+- static/coverage gate: **#1041**;
+- runtime visual/interaction gate: **#1042**;
+- final recovery convergence gate: **#1043**;
+- existing terminal release gate: **#1021**;
 - maximum implementation parallelism: **6 active lanes**.
 
-When the repository owner says `حرك مشروع FOOD`, `اشتغل على مشروع FOOD`, or `FOOD MISSION`:
+The previous umbrella #1001 is historical/completed state only. It must not be selected as the active mission while #1034 is open.
 
-1. search live GitHub for the open `[MISSION][ACTIVE]` umbrella;
-2. treat the result as `FOOD #<umbrella> AUTO-HANDOFF`;
-3. reconstruct every required child from the umbrella and live GitHub state;
-4. prioritize repository-local red CI/conflicts, then merge-ready/takeover lanes, then dependency-critical ready lanes;
-5. reuse the exact canonical branch recorded in the child Issue;
-6. never create a duplicate branch or PR to recover from a failed/disconnected chat;
-7. preserve latest-head running CI and use another safe lane rather than duplicating the run;
-8. after each child completes, return to the umbrella and continue draining;
-9. stop only at COMPLETE or a genuine all-remaining-lanes HUMAN_GATE state.
+When the repository owner says `حرك مشروع FOOD`, `اشتغل على مشروع FOOD`, `FOOD MISSION`, or `FOOD AUTO-HANDOFF`:
 
-For #1001, #1012 may declare only final code convergence. Only #1021 may declare the Mission COMPLETE and close the umbrella after the real Setup/release build is clean-install-tested and published.
+1. search live GitHub for the open `[MISSION][ACTIVE]` FOOD umbrella and select #1034 while it is open;
+2. reconstruct #1035-#1043 and #1021 from live Issue/branch/PR/CI state;
+3. prioritize exact-head repository-local RED/conflicts, then merge-ready lanes, then stale/handoff-ready same-branch takeovers, then READY dependency-safe lanes;
+4. keep no more than six implementation lanes active at once;
+5. use each child Issue's exact canonical branch and PR target;
+6. never create a retry/replacement branch or duplicate PR because a worker/chat disconnected or CI failed;
+7. preserve running exact-head CI; move to another safe lane rather than duplicating the run;
+8. after each lane completes, return to #1034 and continue draining;
+9. stop only at mission COMPLETE or when every remaining lane is genuinely HUMAN-GATED.
 
-#1012 must not close #1001 until the canonical `FOODEX Van 1.0.58 Fresh Setup` workflow has built `Release/FOODEX-Laravel-Setup.zip` from the exact final integrated implementation source SHA, passed clean-install validation from the ZIP only, and published the synchronized Setup/evidence/update artifacts back to `release/1.0.58-van-complete`. `Release/BUILD_INFO.json.source_commit` and `Release/FRESH_INSTALL_EVIDENCE.json.source_commit` must equal that implementation source SHA. If Setup-delivered business code changes afterwards, the Setup is stale and the workflow must rebuild/revalidate it before Mission completion.
+The first six implementation lanes are:
 
-If the machine-readable registry ever disagrees with live Issue/branch/PR state, **live GitHub state wins**. The registry locates the mission; it is not a cached status database.
+- #1035 Dashboard/Admin Hub;
+- #1036 Commercial Sales Control + Flash Offers;
+- #1037 Field Operations lookups/map-first/action compliance;
+- #1038 Customer App full v4.2 sweep;
+- #1039 Driver App full v4.2 sweep + exact-record notifications;
+- #1040 Van App full v4.2 sweep.
 
+Then #1041 -> #1042 -> #1043 run in order. Only after #1043 PASS may #1021 build/publish the recovered release.
+
+If the registry disagrees with live GitHub Issue/branch/PR state, live GitHub state wins. The registry locates the mission; it is not a cached completion database.
+
+---
+
+## 26. False-completion prevention and requirement-evidence contract
+
+This section is mandatory for every mission/release that claims compliance with a multi-page product/UI/UX plan.
+
+### 26.1 Requirement coverage is a release invariant
+
+Before parallel implementation begins, the authoritative plan/contract must be converted into a repository-tracked requirement matrix.
+
+Every requirement row must contain:
+
+- a stable Requirement ID;
+- exact scope;
+- exactly one owning implementation/audit Issue;
+- expected source evidence;
+- expected automated/test evidence;
+- expected runtime/visual/interaction evidence when applicable;
+- locale/responsive evidence requirements when applicable;
+- current status.
+
+A requirement may not disappear merely because no child Issue was created for it. `UNOWNED` or `UNKNOWN` is a release-blocking defect.
+
+### 26.2 Closed Issue / green CI is never product proof
+
+The following are **not sufficient by themselves** to mark a user-facing requirement PASS:
+
+- Issue closed;
+- PR merged;
+- Repository Policy green;
+- Required CI green;
+- backend persistence/contract test green;
+- static/diff-based UI guard green;
+- screenshot generation job green;
+- successful package build.
+
+These signals prove only what they directly test.
+
+For a visual or interaction requirement, the required real runtime evidence must also exist and be reviewed against that Requirement ID.
+
+### 26.3 Legacy code is never grandfathered by a diff-based guard
+
+A diff/source guard may prevent new regressions, but it does not certify pre-existing screens.
+
+Final acceptance must inventory and review legacy/current routes and screens that are within the plan's scope. A worker may not say a screen is compliant merely because it was unchanged by the current PR.
+
+### 26.4 Visual/runtime evidence must use the real integrated product
+
+Evidence must come from the actual integrated route/screen/runtime and exact relevant source lineage.
+
+Mock-only widgets, screenshot-only substitute screens, backend strings, or stale artifacts from an older SHA do not satisfy runtime evidence.
+
+Where required, evidence must include:
+
+- Arabic + RTL;
+- English + LTR;
+- responsive Dashboard widths;
+- representative mobile widths/devices;
+- loaded/empty/error/stale/offline states;
+- the actual interaction under test (lookup, builder, ellipsis menu, map editing, push/deep link, biometric unlock, invoice, etc.).
+
+### 26.5 Independent final convergence
+
+The final convergence gate must independently re-read:
+
+1. the authoritative contract/plan;
+2. the requirement matrix;
+3. the integrated source;
+4. the static/test evidence;
+5. the runtime evidence manifest;
+6. exact-head CI.
+
+It must not infer completion from child Issue states.
+
+If any row is `OPEN`, `PARTIAL`, `FAIL`, `UNKNOWN`, or `UNOWNED`, convergence fails.
+
+### 26.6 Release source identity
+
+After final convergence freezes the implementation SHA:
+
+- final release artifacts must be built from exactly that source;
+- if business/application source changes after the freeze, prior artifacts/evidence are stale and the affected gates must run again;
+- Setup/APKs/update manifests/build metadata must identify the same source/version lineage;
+- release/package integrity does not replace UI/runtime acceptance, and UI/runtime acceptance does not replace release/package integrity. Both are required.
+
+### 26.7 Defect found by a late gate
+
+If coverage/runtime/final-release validation discovers a real defect:
+
+- continue/reopen the owning canonical Issue/branch when practical;
+- do not waive the defect as "known";
+- do not create duplicate retry branches;
+- reintegrate the fix;
+- rerun all dependent gates whose evidence/source lineage became stale.
+
+This policy exists specifically to prevent a mission from being declared complete while the installed product still violates its authoritative plan.
