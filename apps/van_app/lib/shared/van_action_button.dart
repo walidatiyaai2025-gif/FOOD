@@ -17,8 +17,8 @@ class VanActionButton extends StatelessWidget {
   const VanActionButton.icon({
     super.key,
     required this.onPressed,
-    required Widget this.icon,
-    required Widget this.label,
+    required this.icon,
+    required this.label,
     this.variant = VanActionVariant.primary,
     this.style,
   }) : child = null;
@@ -35,8 +35,8 @@ class VanActionButton extends StatelessWidget {
   const VanActionButton.secondaryIcon({
     super.key,
     required this.onPressed,
-    required Widget this.icon,
-    required Widget this.label,
+    required this.icon,
+    required this.label,
     this.style,
   })  : variant = VanActionVariant.secondary,
         child = null;
