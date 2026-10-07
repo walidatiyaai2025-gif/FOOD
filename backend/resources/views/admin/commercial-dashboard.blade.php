@@ -642,21 +642,13 @@
                     <thead><tr><th>{{ __('commercial.flash.promotion_name') }}</th><th>{{ __('commercial.flash.promotion_type') }}</th><th>{{ __('commercial.flash.promotion_value') }}</th><th>{{ __('commercial.flash.promotion_period') }}</th><th>{{ __('commercial.flash.status') }}</th></tr></thead>
                     <tbody>
                     @forelse($existingPromotions as $promotion)
-                        @php
-                            $promotionTypeCode = strtolower((string) $promotion->type);
-                            $promotionTypeKey = [
-                                'percentage' => 'percentage',
-                                'percent' => 'percentage',
-                                'fixed' => 'fixed',
-                                'fixed_amount' => 'fixed',
-                                'amount' => 'fixed',
-                                'bundle' => 'bundle',
-                                'buy_x_get_y' => 'bundle',
-                            ][$promotionTypeCode] ?? 'generic';
-                        @endphp
                         <tr>
                             <td>{{ $promotion->name }}</td>
-                            <td>{{ __('commercial.flash.promotion_types.'.$promotionTypeKey) }}</td>
+                            <td>{{ __('commercial.flash.promotion_types.'.(
+                                in_array(strtolower((string) $promotion->type), ['percentage','percent'], true) ? 'percentage' :
+                                (in_array(strtolower((string) $promotion->type), ['fixed','fixed_amount','amount'], true) ? 'fixed' :
+                                (in_array(strtolower((string) $promotion->type), ['bundle','buy_x_get_y'], true) ? 'bundle' : 'generic'))
+                            )) }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
                             <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>
