@@ -230,8 +230,7 @@ final class VanOrderController extends Controller
             ->paginate((int) ($validated['per_page'] ?? 50));
 
         return response()->json([
-            'data' => collect($page->items())
-                ->filter(static fn (mixed $row): bool => $row instanceof Order)
+            'data' => $page->getCollection()
                 ->map(fn (Order $order): array => $this->orderPayload($order))
                 ->values(),
             'meta' => [
