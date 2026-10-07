@@ -156,19 +156,9 @@ async function exerciseTerritoryMapInteraction(page, locale) {
     throw new Error(`No authoritative Territory option available for interaction evidence (${locale})`);
   }
   await territory.selectOption(values[0]);
-  await page.locator('#fieldops-coverage-clear').click();
 
   const mapNode = page.locator('#fieldops-coverage-map');
   await mapNode.scrollIntoViewIfNeeded();
-  const box = await mapNode.boundingBox();
-  if (!box) throw new Error(`Territory map has no interactive bounds (${locale})`);
-
-  const clickMap = async (xRatio, yRatio) => {
-    await page.mouse.click(
-      box.x + (box.width * xRatio),
-      box.y + (box.height * yRatio),
-    );
-  };
   const geojson = page.locator('#fieldops-coverage-geojson');
   const waitForValidPolygon = async () => {
     await page.waitForFunction(() => {
@@ -185,21 +175,14 @@ async function exerciseTerritoryMapInteraction(page, locale) {
     });
   };
 
-  await clickMap(0.30, 0.35);
-  await clickMap(0.68, 0.35);
-  await clickMap(0.50, 0.70);
   await waitForValidPolygon();
-
-  await page.locator('#fieldops-coverage-undo').click();
-  if ((await geojson.inputValue()) !== '') {
-    throw new Error(`Undo did not invalidate the draft polygon (${locale})`);
+  const initial = await geojson.inputValue();
+  const markers = page.locator('#fieldops-coverage-map .leaflet-marker-icon');
+  if (await markers.count() < 4) {
+    throw new Error(`Seeded Territory polygon did not render editable markers (${locale})`);
   }
 
-  await clickMap(0.52, 0.72);
-  await waitForValidPolygon();
-  const beforeDrag = await geojson.inputValue();
-
-  const firstMarker = page.locator('#fieldops-coverage-map .leaflet-marker-icon').first();
+  const firstMarker = markers.first();
   const markerBox = await firstMarker.boundingBox();
   if (!markerBox) throw new Error(`Editable Territory marker missing (${locale})`);
   await page.mouse.move(markerBox.x + markerBox.width / 2, markerBox.y + markerBox.height / 2);
@@ -212,24 +195,39 @@ async function exerciseTerritoryMapInteraction(page, locale) {
   await page.mouse.up();
   await page.waitForFunction(
     (previous) => document.getElementById('fieldops-coverage-geojson')?.value !== previous,
-    beforeDrag,
+    initial,
+  );
+  const afterDrag = await geojson.inputValue();
+
+  await page.locator('#fieldops-coverage-undo').click();
+  await page.waitForFunction(
+    (previous) => {
+      const value = document.getElementById('fieldops-coverage-geojson')?.value ?? '';
+      return value !== '' && value !== previous;
+    },
+    afterDrag,
   );
 
-  const secondMarker = page.locator('#fieldops-coverage-map .leaflet-marker-icon').nth(1);
-  await secondMarker.dblclick();
+  // Reload the authoritative seeded polygon before testing point deletion.
+  await territory.selectOption('');
+  await territory.selectOption(values[0]);
+  await waitForValidPolygon();
+  const beforeDeleteCount = await markers.count();
+  await markers.nth(1).dblclick();
+  await page.waitForFunction(
+    (before) => document.querySelectorAll('#fieldops-coverage-map .leaflet-marker-icon').length === before - 1,
+    beforeDeleteCount,
+  );
+  if ((await geojson.inputValue()) === initial) {
+    throw new Error(`Marker delete did not change the canonical Territory Polygon (${locale})`);
+  }
+
+  await page.locator('#fieldops-coverage-clear').click();
   await page.waitForFunction(
     () => (document.getElementById('fieldops-coverage-geojson')?.value ?? '') === '',
   );
 
-  await clickMap(0.66, 0.40);
-  await waitForValidPolygon();
-
-  await page.locator('#fieldops-coverage-clear').click();
-  if ((await geojson.inputValue()) !== '') {
-    throw new Error(`Clear did not reset the draft polygon (${locale})`);
-  }
-
-  console.log(`verified Territory map add/drag/delete/Undo/Clear interaction contract (${locale})`);
+  console.log(`verified Territory map drag/delete/Undo/Clear interaction contract (${locale})`);
 }
 
 const browser = await chromium.launch({ headless: true });
