@@ -122,7 +122,7 @@ class AdministrationHubTest extends TestCase
         $view = file_get_contents(resource_path('views/admin/administration-hub.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString("route('admin.mobile-settings.index', ['app'=>$app, 'environment'=>'production'])", $view);
+        $this->assertStringContainsString("route('admin.mobile-settings.index', ['app'=>\$app, 'environment'=>'production'])", $view);
         $this->assertStringContainsString("@foreach(['customer','driver','van'] as $app)", $view);
     }
 }
