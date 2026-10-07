@@ -56,15 +56,15 @@ jobs:
             backend=true
           fi
 
-          if grep -Eq '^(apps/customer_app/|packages/design_tokens/|scripts/package-mobile-artifact\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/customer-app-ci\.yml$)' changed-files.txt; then
+          if grep -Eq '^(apps/customer_app/|packages/design_tokens/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\.py$|\.github/workflows/customer-app-ci\.yml$)' changed-files.txt; then
             customer=true
           fi
 
-          if grep -Eq '^(apps/driver_app/|packages/design_tokens/|scripts/package-mobile-artifact\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/driver-app-ci\.yml$)' changed-files.txt; then
+          if grep -Eq '^(apps/driver_app/|packages/design_tokens/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\.py$|\.github/workflows/driver-app-ci\.yml$)' changed-files.txt; then
             driver=true
           fi
 
-          if grep -Eq '^(apps/van_app/|packages/design_tokens/|scripts/(configure-mobile-native|package-mobile-artifact)\.py$|scripts/tests/test_mobile_artifact\.py$|\.github/workflows/van-app-ci\.yml$)' changed-files.txt; then
+          if grep -Eq '^(apps/van_app/|packages/design_tokens/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint)\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\.py$|\.github/workflows/van-app-ci\.yml$)' changed-files.txt; then
             van=true
           fi
 
@@ -150,6 +150,9 @@ jobs:
 
       - name: Validate mobile artifact packaging
         run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_artifact.py'
+
+      - name: Validate mobile runtime endpoint binary verifier
+        run: python3 -m unittest discover -s scripts/tests -p 'test_mobile_runtime_endpoint.py'
 
       - name: Validate synchronized release artifact contract
         run: python3 -m unittest discover -s scripts/tests -p 'test_release_artifact_contract.py'
