@@ -1,0 +1,68 @@
+name: Build Driver UIUX Mockup APK
+
+on:
+  push:
+    branches:
+      - archive/uiux-approved-mockups
+    paths:
+      - "prototypes/driver_uiux_mockup/**"
+      - ".github/workflows/driver-uiux-mockup-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create isolated Android shell
+        run: |
+          rm -rf /tmp/foodex-driver-uiux
+          flutter create --platforms=android --org com.foodex.mockup --project-name foodex_driver_uiux_mockup /tmp/foodex-driver-uiux
+          cp prototypes/driver_uiux_mockup/pubspec.yaml /tmp/foodex-driver-uiux/pubspec.yaml
+          rm -rf /tmp/foodex-driver-uiux/lib
+          cp -R prototypes/driver_uiux_mockup/lib /tmp/foodex-driver-uiux/lib
+          rm -rf /tmp/foodex-driver-uiux/test
+          mkdir -p /tmp/foodex-driver-uiux/assets/branding
+          cp apps/driver_app/assets/branding/foodex-economical-group.webp /tmp/foodex-driver-uiux/assets/branding/foodex-economical-group.webp
+          sed -i 's/android:label="foodex_driver_uiux_mockup"/android:label="FOODEX Driver Mockup"/' /tmp/foodex-driver-uiux/android/app/src/main/AndroidManifest.xml
+
+      - name: Install stable mockup signing key
+        run: |
+          mkdir -p "$HOME/.android"
+          base64 -d prototypes/driver_uiux_mockup/android/driver-mockup-debug.keystore.b64 > "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+
+      - name: Analyze prototype
+        working-directory: /tmp/foodex-driver-uiux
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos
+
+      - name: Build debug APK
+        working-directory: /tmp/foodex-driver-uiux
+        run: flutter build apk --debug
+
+      - name: Stage APK
+        run: |
+          cp /tmp/foodex-driver-uiux/build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/FOODEX-Driver-UIUX-Mockup.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-Driver-UIUX-Mockup-APK
+          path: FOODEX-Driver-UIUX-Mockup.apk
+          if-no-files-found: error
+          retention-days: 30
