@@ -170,6 +170,24 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('Channels JSON');
     }
 
+    public function test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $this->flashProduct($storeId);
+
+        $this->actingAs($manager)
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('data-commercial-channel-picker', false)
+            ->assertSee('value="van" data-commercial-channel', false);
+
+        $this->actingAs($manager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('name="channels[]" value="van"', false)
+            ->assertSee('data-flash-product-builder', false);
+    }
+
     private function flashProduct(int $storeId): int
     {
         $unitId = (int) DB::table('units')->insertGetId([
