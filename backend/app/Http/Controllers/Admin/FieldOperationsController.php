@@ -380,7 +380,8 @@ final class FieldOperationsController extends Controller
         $visitRoutes = VanVisit::query()
             ->get(['metadata'])
             ->flatMap(static function (VanVisit $visit): array {
-                $metadata = is_array($visit->metadata) ? $visit->metadata : [];
+                $rawMetadata = $visit->getAttribute('metadata');
+                $metadata = is_array($rawMetadata) ? $rawMetadata : [];
 
                 return [
                     trim((string) ($metadata['route_key'] ?? '')),
