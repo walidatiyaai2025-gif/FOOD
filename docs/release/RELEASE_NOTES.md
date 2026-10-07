@@ -1,22 +1,25 @@
-# FOODEX 1.0.60 Release Notes
+# FOODEX 1.0.61 Release Notes
 
-Status: corrective UIUX-V42 FOODEX 1.0.60 release for #1021, restoring the accepted premium Sales Control surface while preserving Van/commercial behavior and cross-app UI/UX convergence. Repository-controlled release; Apple/Google console/signing actions remain external.
+Status: mobile endpoint hotfix release for #1069, replacing stale APKs and enforcing the approved production API host in the built binaries. Repository-controlled release; Apple/Google console/signing actions remain external.
 
-Release branch: `release/1021-uiux-v42-final-real-build`
+Release branch: `fix/1069-apk-endpoint-binary-gate`
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.60`
-- Customer app: `1.0.60+60`
-- Driver/Van app: `1.0.60+60`
-- Customer runtime/footer identity: `1.0.60`
-- Driver runtime/footer identity: `1.0.60`
-- Driver diagnostics current identity: `1.0.60`
-- Driver diagnostics build identity: `58`
+- Dashboard / repository release: `1.0.61`
+- Customer app: `1.0.61+60`
+- Driver/Van app: `1.0.61+60`
+- Customer runtime/footer identity: `1.0.61`
+- Driver runtime/footer identity: `1.0.61`
+- Driver diagnostics current identity: `1.0.61`
+- Driver diagnostics build identity: `61`
 
 - Production API: `https://foodex.50sols.com`
 
 ## Included changes
+
+- Rebuild Customer, Driver and Van APKs with `https://foodex.50sols.com` embedded as the production API host and reject the obsolete `vanfoodex.50sols.com` host at binary-verification time.
+- Add the same APK binary endpoint guard to Required CI, per-app Android validation and Trial Distribution before publication.
 
 - Include the canonical commercial policy engine, break-pack rules, feature flags, Flash lifecycle/audience targeting, Dashboard preview/analytics, Customer Flash checkout and Van online-only Flash/commercial enforcement from #983/#991.
 
