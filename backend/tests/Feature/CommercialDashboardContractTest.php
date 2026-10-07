@@ -383,6 +383,84 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('Audience customer IDs JSON');
     }
 
+    public function test_flash_offer_audience_includes_dashboard_created_b2b_for_authorized_admin_only(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $productId = $this->flashProduct($storeId);
+
+        $b2bUser = User::query()->create([
+            'name' => 'Dashboard Wholesale Buyer',
+            'email' => 'dashboard-wholesale-buyer@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $b2bCustomer = app(\App\Services\B2bCustomerService::class)->create([
+            'name' => 'Dashboard Wholesale Buyer',
+            'phone' => '55501067',
+            'email' => 'dashboard-wholesale-buyer@example.test',
+        ], $b2bUser);
+
+        $this->actingAs($manager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertDontSee('Dashboard Wholesale Buyer');
+
+        $superAdmin = User::query()->create([
+            'name' => 'Flash Audience Platform Admin',
+            'email' => 'flash-audience-platform-admin@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $superAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('Dashboard Wholesale Buyer');
+
+        $legacyCustomerId = (int) $b2bCustomer->legacy_customer_id;
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $storeId]), [
+                'name' => 'B2B Audience Flash',
+                'title_ar' => 'عرض لعميل الجملة',
+                'title_en' => 'Wholesale customer flash',
+                'status' => 'draft',
+                'starts_at' => now()->addMinutes(5)->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
+                'timezone' => 'Asia/Kuwait',
+                'channels' => ['van'],
+                'audience_customer_ids' => [$legacyCustomerId],
+                'allocation_mode' => 'shared',
+                'reservation_seconds' => 300,
+                'retry_count' => 0,
+                'cooldown_seconds' => 0,
+                'priority' => 0,
+                'popup_frequency' => 'once_per_session',
+                'products' => [[
+                    'product_id' => $productId,
+                    'selling_unit_code' => 'PIECE',
+                    'flash_price' => 8,
+                    'allocation_base' => 20,
+                ]],
+            ])
+            ->assertRedirect()
+            ->assertSessionDoesntHaveErrors();
+
+        $offer = DB::table('flash_offers')
+            ->where('store_id', $storeId)
+            ->where('name', 'B2B Audience Flash')
+            ->first();
+
+        $this->assertNotNull($offer);
+        $this->assertSame(
+            [$legacyCustomerId],
+            json_decode((string) $offer->audience_customer_ids, true, 512, JSON_THROW_ON_ERROR),
+        );
+    }
+
     public function test_flash_offer_rows_use_one_compact_action_menu_and_catalog_localization(): void
     {
         [$manager, $storeId] = $this->retailManager();
