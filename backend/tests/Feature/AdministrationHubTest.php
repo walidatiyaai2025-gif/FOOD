@@ -108,11 +108,13 @@ class AdministrationHubTest extends TestCase
 
         $positions = collect($expectedOrder)
             ->filter(fn (string $key): bool => $groups->contains($key))
-            ->mapWithKeys(fn (string $key): array => [$key => $groups->search($key, true)])
+            ->map(fn (string $key): int => (int) $groups->search($key, true))
             ->values()
             ->all();
+        $sortedPositions = $positions;
+        sort($sortedPositions);
 
-        $this->assertSame($positions, array_values($positions));
+        $this->assertSame($sortedPositions, $positions);
         $this->assertSame('administration', $groups->last());
     }
 }
