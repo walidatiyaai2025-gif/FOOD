@@ -181,6 +181,9 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
     }
   }
 
+  String _visitStatusLabel(VanVisitRecord visit) =>
+      _statusLabel(visit.status);
+
   String _customerLabel(VanVisitRecord visit) =>
       _customerNames['${visit.customerType}:${visit.customerId}'] ??
       _text('Assigned customer', 'عميل مسند');
@@ -289,7 +292,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                   ),
                 ),
                 const SizedBox(width: 8),
-                Chip(label: Text(_statusLabel(visit.status))),
+                Chip(label: Text(_visitStatusLabel(visit))),
               ],
             ),
             if (visit.plannedAt != null) ...[
