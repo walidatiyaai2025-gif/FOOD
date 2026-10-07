@@ -430,10 +430,78 @@ class CommercialDashboardContractTest extends TestCase
         $this->assertStringNotContainsString('{{ $promotion->is_active ? ($ar ?', $view);
     }
 
+    public function test_sales_control_rejects_targeting_customer_outside_authoritative_store_scope(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $productId = $this->flashProduct($storeId);
+
+        $this->actingAs($manager)
+            ->from(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+            ->put(route('admin.commercial.sales-control.save', [
+                'store_id' => $storeId,
+                'product' => $productId,
+            ]), [
+                'status' => 'OPEN',
+                'channels_json' => '["customer","van"]',
+                'break_pack_policy' => 'mixed',
+                'business_timezone' => 'Asia/Kuwait',
+                'week_starts_on' => 1,
+                'selling_units_json' => '[{"code":"PIECE","name":"Piece","conversion_factor":1,"is_base":true,"is_active":true}]',
+                'availability_windows_json' => '[]',
+                'rules_json' => '[{"customer_id":999999,"channel":"customer","is_allowed":true}]',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['rules_json.0.customer_id']);
+    }
+
+    public function test_flash_offer_rejects_audience_values_outside_authoritative_store_lookups(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $productId = $this->flashProduct($storeId);
+
+        $this->actingAs($manager)
+            ->from(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $storeId]), [
+                'name' => 'Invalid Audience Flash',
+                'title_ar' => 'جمهور غير صالح',
+                'title_en' => 'Invalid Audience',
+                'status' => 'draft',
+                'starts_at' => now()->addMinutes(5)->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
+                'timezone' => 'Asia/Kuwait',
+                'channels' => ['customer', 'van'],
+                'audience_customer_ids' => [999999],
+                'audience_customer_group_ids' => [999998],
+                'audience_regions' => ['OUTSIDE-REGION'],
+                'audience_routes' => ['OUTSIDE-ROUTE'],
+                'allocation_mode' => 'shared',
+                'reservation_seconds' => 300,
+                'retry_count' => 0,
+                'cooldown_seconds' => 0,
+                'priority' => 0,
+                'popup_frequency' => 'once_per_session',
+                'products' => [[
+                    'product_id' => $productId,
+                    'selling_unit_code' => 'CARTON',
+                    'flash_price' => 7,
+                    'allocation_base' => 100,
+                ]],
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors([
+                'audience_customer_ids',
+                'audience_customer_group_ids',
+                'audience_regions',
+                'audience_routes',
+            ]);
+    }
+
     public function test_final_gate_configuration_persists_break_pack_audience_and_authoritative_flags(): void
     {
         [$manager, $storeId] = $this->retailManager();
         $productId = $this->flashProduct($storeId);
+        [$audienceCustomerId, $audienceGroupId, $audienceRegion, $audienceRoute] =
+            $this->commercialAudienceFixture($storeId, $manager);
 
         $this->actingAs($manager)
             ->put(route('admin.commercial.sales-control.save', [
@@ -468,10 +536,10 @@ class CommercialDashboardContractTest extends TestCase
                 'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
                 'timezone' => 'Asia/Kuwait',
                 'channels' => ['customer', 'van'],
-                'audience_customer_ids' => [11],
-                'audience_customer_group_ids' => [22],
-                'audience_regions' => ['Hawalli'],
-                'audience_routes' => ['ROUTE-A'],
+                'audience_customer_ids' => [$audienceCustomerId],
+                'audience_customer_group_ids' => [$audienceGroupId],
+                'audience_regions' => [$audienceRegion],
+                'audience_routes' => [$audienceRoute],
                 'allocation_mode' => 'shared',
                 'reservation_seconds' => 300,
                 'retry_count' => 1,
@@ -493,10 +561,10 @@ class CommercialDashboardContractTest extends TestCase
             ->first();
 
         $this->assertNotNull($offer);
-        $this->assertSame([11], json_decode((string) $offer->audience_customer_ids, true, 512, JSON_THROW_ON_ERROR));
-        $this->assertSame([22], json_decode((string) $offer->audience_customer_group_ids, true, 512, JSON_THROW_ON_ERROR));
-        $this->assertSame(['Hawalli'], json_decode((string) $offer->audience_regions, true, 512, JSON_THROW_ON_ERROR));
-        $this->assertSame(['ROUTE-A'], json_decode((string) $offer->audience_routes, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame([$audienceCustomerId], json_decode((string) $offer->audience_customer_ids, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame([$audienceGroupId], json_decode((string) $offer->audience_customer_group_ids, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame([$audienceRegion], json_decode((string) $offer->audience_regions, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame([$audienceRoute], json_decode((string) $offer->audience_routes, true, 512, JSON_THROW_ON_ERROR));
 
         $flags = [
             'commercial_rules_enabled' => true,
@@ -523,6 +591,64 @@ class CommercialDashboardContractTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame($flags, app(CommercialFeatureFlags::class)->snapshot());
+    }
+
+    /** @return array{0:int,1:int,2:string,3:string} */
+    private function commercialAudienceFixture(int $storeId, User $manager): array
+    {
+        $customerId = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2c',
+            'name' => 'Commercial Audience Customer',
+            'phone' => '55501036',
+            'email' => 'commercial-audience@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('b2c_customers')->insert([
+            'legacy_customer_id' => $customerId,
+            'store_id' => $storeId,
+            'user_id' => null,
+            'name' => 'Commercial Audience Customer',
+            'phone' => '55501036',
+            'email' => 'commercial-audience@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $groupId = (int) DB::table('commercial_customer_groups')->insertGetId([
+            'store_id' => $storeId,
+            'name' => 'Commercial Audience Group',
+            'priority' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('addresses')->insert([
+            'customer_id' => $customerId,
+            'label' => 'Commercial Audience',
+            'line1' => 'Commercial Street',
+            'city' => 'Kuwait City',
+            'area' => 'Hawalli',
+            'country_code' => 'KW',
+            'is_default' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('van_visits')->insert([
+            'actor_user_id' => $manager->id,
+            'customer_type' => 'b2c',
+            'customer_id' => $customerId,
+            'store_id' => $storeId,
+            'status' => 'planned',
+            'metadata' => json_encode(['route_code' => 'ROUTE-A'], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [$customerId, $groupId, 'Hawalli', 'ROUTE-A'];
     }
 
     /** @return array{0:User, 1:int} */
