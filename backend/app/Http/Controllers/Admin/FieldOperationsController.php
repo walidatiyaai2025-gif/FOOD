@@ -647,6 +647,31 @@ final class FieldOperationsController extends Controller
             ->orderByDesc('created_at')
             ->paginate(25)
             ->withQueryString();
+        $reviewRows = $reviews->getCollection();
+        $resolvedByIds = $reviewRows
+            ->pluck('resolved_by')
+            ->filter()
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $reviewTerritoryCodes = $reviewRows
+            ->pluck('territory_key')
+            ->filter()
+            ->map(static fn ($code): string => (string) $code)
+            ->unique()
+            ->values()
+            ->all();
+
+        $resolverNames = User::query()
+            ->whereIn('id', $resolvedByIds)
+            ->pluck('name', 'id');
+        $territoryLabels = ServiceTerritory::query()
+            ->whereIn('code', $reviewTerritoryCodes)
+            ->get(['code', 'name_en', 'name_ar'])
+            ->mapWithKeys(fn (ServiceTerritory $territory): array => [
+                (string) $territory->code => $this->localizedText($territory->name_ar, $territory->name_en),
+            ]);
         $territories = ServiceTerritory::query()
             ->where('status', 'active')
             ->orderBy('name_en')
@@ -658,7 +683,13 @@ final class FieldOperationsController extends Controller
                 );
             });
 
-        return $this->render($request, 'address-quality', compact('reviews', 'filters', 'territories'));
+        return $this->render($request, 'address-quality', compact(
+            'reviews',
+            'filters',
+            'territories',
+            'resolverNames',
+            'territoryLabels',
+        ));
     }
 
     public function addressAction(Request $request, AddressQualityReview $review, string $action): RedirectResponse
