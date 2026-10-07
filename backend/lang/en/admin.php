@@ -27,6 +27,7 @@ return [
     ],
     'profile_surface' => [
         'global_roles' => 'Global roles',
+        'no_global_roles' => 'No global roles.',
         'store_assignments' => 'Store assignments',
     ],
     'system_inspector_surface' => [

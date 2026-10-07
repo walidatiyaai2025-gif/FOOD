@@ -27,6 +27,7 @@ return [
     ],
     'profile_surface' => [
         'global_roles' => 'الأدوار العامة',
+        'no_global_roles' => 'لا توجد أدوار عامة.',
         'store_assignments' => 'أدوار المتاجر',
     ],
     'system_inspector_surface' => [

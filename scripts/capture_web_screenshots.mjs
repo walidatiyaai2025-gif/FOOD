@@ -490,8 +490,12 @@ async function captureLocale(browser, locale) {
     { waitUntil: 'networkidle' },
   );
   if (!customer360Response || !customer360Response.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 2400);
     throw new Error(
-      `Customer 360 evidence page failed: HTTP ${customer360Response?.status() ?? 'no-response'}`,
+      `Customer 360 evidence page failed: HTTP ${customer360Response?.status() ?? 'no-response'}`
+      + (failureBody ? ` · ${failureBody}` : ''),
     );
   }
   const customer360Link = page.locator(

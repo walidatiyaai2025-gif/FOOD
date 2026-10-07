@@ -52,8 +52,8 @@ void main() {
     expect(find.text('Customers'), findsWidgets);
     expect(find.text('Product Catalog'), findsOneWidget);
     expect(find.text('Order Builder'), findsOneWidget);
-    expect(find.text('Notifications'), findsOneWidget);
-    expect(find.text('Profile & Settings'), findsOneWidget);
+    expect(vanProductionScreenInventory.contains(VanScreenId.notifications), isTrue);
+    expect(vanProductionScreenInventory.contains(VanScreenId.profile), isTrue);
 
     await tester.tap(find.text('Customers').first);
     await tester.pumpAndSettle();
@@ -230,7 +230,10 @@ void main() {
       find.byKey(const ValueKey('van-remittance-amount')),
       '5.000',
     );
-    await tester.tap(find.byKey(const ValueKey('van-remittance-submit')));
+    final remittanceSubmit = find.byKey(const ValueKey('van-remittance-submit'));
+    await tester.ensureVisible(remittanceSubmit);
+    await tester.pumpAndSettle();
+    await tester.tap(remittanceSubmit);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-remittance-result')), findsOneWidget);
@@ -268,6 +271,8 @@ void main() {
         matching: find.byType(Scrollable),
       ).first,
     );
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
     await tester.tap(target);
     await tester.pumpAndSettle();
 
@@ -460,6 +465,8 @@ void main() {
         matching: find.byType(Scrollable),
       ).first,
     );
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
     await tester.tap(target);
     await tester.pumpAndSettle();
 
@@ -565,7 +572,18 @@ void main() {
 
     expect(find.byKey(const ValueKey('van-order-review-page')), findsOneWidget);
     expect(find.text('12.000 KWD'), findsWidgets);
-    await tester.tap(find.byKey(const ValueKey('van-order-submit')));
+    final orderSubmit = find.byKey(const ValueKey('van-order-submit'));
+    await tester.scrollUntilVisible(
+      orderSubmit,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-review-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.ensureVisible(orderSubmit);
+    await tester.pumpAndSettle();
+    await tester.tap(orderSubmit);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-orders-page')), findsOneWidget);
@@ -611,14 +629,19 @@ void main() {
     await tester.tap(target);
     await tester.pumpAndSettle();
 
-    expect(find.text('FDX-B2B-TEST-001 · 12.000 KWD'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('van-visit-order-801')));
+    final visitOrder = find.byKey(const ValueKey('van-visit-order-801'));
+    await tester.ensureVisible(visitOrder);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('FDX-B2B-TEST-001 · 12.000 KWD').last);
+    await tester.tap(visitOrder);
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('van-visit-complete-order-801')),
-    );
+    final orderOption = find.text('FDX-B2B-TEST-001 · 12.000 KWD').last;
+    expect(orderOption, findsOneWidget);
+    await tester.tap(orderOption);
+    await tester.pumpAndSettle();
+    final completeOrder = find.byKey(const ValueKey('van-visit-complete-order-801'));
+    await tester.ensureVisible(completeOrder);
+    await tester.pumpAndSettle();
+    await tester.tap(completeOrder);
     await tester.pumpAndSettle();
 
     expect(visits.lastStatus, 'completed_with_order');

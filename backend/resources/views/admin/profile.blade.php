@@ -33,7 +33,7 @@ $roleLabel = static function ($role): string {
 <section class="foodex-card profile-card">
     <div class="profile-identity"><div class="profile-avatar">{{ mb_strtoupper(mb_substr($user->name,0,1)) }}</div><div><h2>{{ $user->name }}</h2><p>{{ $user->email }}</p><span class="badge active">{{ $user->is_active?($ar?'حساب نشط':'Active account'):($ar?'غير نشط':'Inactive') }}</span></div></div>
 
-    <div class="profile-section"><h3>{{ __('admin.profile_surface.global_roles') }}</h3><div class="chips">@forelse($globalRoles as $role)<span class="permission-chip">{{ $roleLabel($role) }}</span>@empty<span class="foodex-subtitle">{{ $ar?'لا توجد أدوار عامة.':'No global roles.' }}</span>@endforelse</div></div>
+    <div class="profile-section"><h3>{{ __('admin.profile_surface.global_roles') }}</h3><div class="chips">@forelse($globalRoles as $role)<span class="permission-chip">{{ $roleLabel($role) }}</span>@empty<span class="foodex-subtitle">{{ __('admin.profile_surface.no_global_roles') }}</span>@endforelse</div></div>
 
     <div class="profile-section"><h3>{{ __('admin.profile_surface.store_assignments') }}</h3>
         @forelse($storeAssignments as $assignment)
