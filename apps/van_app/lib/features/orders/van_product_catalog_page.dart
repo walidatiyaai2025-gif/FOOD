@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
 
@@ -159,7 +160,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                 'ابحث بالمنتج أو SKU أو الباركود',
               ),
               prefixIcon: const Icon(Icons.search),
-              suffixIcon: IconButton(
+              suffixIcon: VanIconAction(
                 onPressed: _loadProducts,
                 icon: const Icon(Icons.arrow_forward),
               ),
@@ -248,7 +249,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                 ),
               ),
           const SizedBox(height: 6),
-          FilledButton.icon(
+          VanActionButton.icon(
             key: const ValueKey('van-catalog-open-cart'),
             onPressed: widget.draft.lines.isEmpty ? null : widget.onOpenBuilder,
             icon: const Icon(Icons.shopping_cart_checkout),
@@ -284,7 +285,7 @@ class _State extends StatelessWidget {
             children: [
               Text(text, textAlign: TextAlign.center),
               const SizedBox(height: 10),
-              OutlinedButton(onPressed: action, child: Text(actionLabel)),
+              VanActionButton.secondary(onPressed: action, child: Text(actionLabel)),
             ],
           ),
         ),
