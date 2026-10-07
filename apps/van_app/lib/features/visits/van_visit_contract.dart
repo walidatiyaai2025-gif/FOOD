@@ -7,6 +7,9 @@ class VanVisitRecord {
     required this.allowedTransitions,
     this.storeId,
     this.routeKey,
+    this.latitude,
+    this.longitude,
+    this.address,
     this.orderId,
     this.noOrderReasonId,
     this.plannedAt,
@@ -20,6 +23,9 @@ class VanVisitRecord {
   final int customerId;
   final int? storeId;
   final String? routeKey;
+  final double? latitude;
+  final double? longitude;
+  final String? address;
   final String status;
   final int? orderId;
   final int? noOrderReasonId;
