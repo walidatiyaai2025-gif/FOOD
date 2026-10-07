@@ -53,7 +53,7 @@ jobs:
           --health-retries=12
 
     env:
-      FOODEX_API_BASE_URL: https://vanfoodex.50sols.com
+      FOODEX_API_BASE_URL: https://foodex.50sols.com
 
     steps:
       - uses: actions/checkout@v4
@@ -65,11 +65,11 @@ jobs:
         run: |
           set -euo pipefail
           test "$(tr -d '[:space:]' < VERSION)" = "1.0.58"
-          grep -Fq "defaultValue: 'https://vanfoodex.50sols.com'" apps/customer_app/lib/core/config/foodex_environment.dart
-          grep -Fq "defaultValue: 'https://vanfoodex.50sols.com'" apps/driver_app/lib/core/config/foodex_environment.dart
-          grep -Fq "defaultValue: 'https://vanfoodex.50sols.com'" apps/van_app/lib/core/config/foodex_environment.dart
-          grep -Fq "APP_URL=https://vanfoodex.50sols.com" backend/.env.production.example
-          grep -Fq '"production_base_url": "https://vanfoodex.50sols.com"' store/submission/metadata.json
+          grep -Fq "defaultValue: 'https://foodex.50sols.com'" apps/customer_app/lib/core/config/foodex_environment.dart
+          grep -Fq "defaultValue: 'https://foodex.50sols.com'" apps/driver_app/lib/core/config/foodex_environment.dart
+          grep -Fq "defaultValue: 'https://foodex.50sols.com'" apps/van_app/lib/core/config/foodex_environment.dart
+          grep -Fq "APP_URL=https://foodex.50sols.com" backend/.env.production.example
+          grep -Fq '"production_base_url": "https://foodex.50sols.com"' store/submission/metadata.json
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -150,7 +150,7 @@ jobs:
           test ! -e "$fresh/backend/.env"
 
           cp "$fresh/backend/.env.production.example" "$fresh/backend/.env"
-          sed -i             -e 's|^APP_URL=.*|APP_URL=https://vanfoodex.50sols.com|'             -e 's|^DB_HOST=.*|DB_HOST=127.0.0.1|'             -e 's|^DB_PORT=.*|DB_PORT=3306|'             -e 's|^DB_DATABASE=.*|DB_DATABASE=foodex_acceptance|'             -e 's|^DB_USERNAME=.*|DB_USERNAME=root|'             -e 's|^DB_PASSWORD=.*|DB_PASSWORD=root|'             -e 's|^CACHE_STORE=.*|CACHE_STORE=redis|'             -e 's|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|'             -e 's|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|'             "$fresh/backend/.env"
+          sed -i             -e 's|^APP_URL=.*|APP_URL=https://foodex.50sols.com|'             -e 's|^DB_HOST=.*|DB_HOST=127.0.0.1|'             -e 's|^DB_PORT=.*|DB_PORT=3306|'             -e 's|^DB_DATABASE=.*|DB_DATABASE=foodex_acceptance|'             -e 's|^DB_USERNAME=.*|DB_USERNAME=root|'             -e 's|^DB_PASSWORD=.*|DB_PASSWORD=root|'             -e 's|^CACHE_STORE=.*|CACHE_STORE=redis|'             -e 's|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=redis|'             -e 's|^REDIS_HOST=.*|REDIS_HOST=127.0.0.1|'             "$fresh/backend/.env"
 
           cat > /tmp/foodex-fresh-install.php <<'PHP'
           <?php
@@ -179,7 +179,7 @@ jobs:
               ]);
               $workflow->savePlatformInformation([
                   'name' => 'FOODEX',
-                  'url' => 'https://vanfoodex.50sols.com',
+                  'url' => 'https://foodex.50sols.com',
                   'locale' => 'ar',
               ]);
               $workflow->saveCacheQueueConfiguration([
@@ -907,7 +907,7 @@ jobs:
             "schema_version": 2,
             "version": "1.0.58",
             "source_commit": "$GITHUB_SHA",
-            "api_base_url": "https://vanfoodex.50sols.com",
+            "api_base_url": "https://foodex.50sols.com",
             "setup_zip": "FOODEX-Laravel-Setup.zip",
             "document_root": "backend/public",
             "installer_path": "/install",
@@ -1001,7 +1001,7 @@ jobs:
               'schema_version': 2,
               'version': '1.0.58',
               'source_commit': os.environ['GITHUB_SHA'],
-              'api_base_url': 'https://vanfoodex.50sols.com',
+              'api_base_url': 'https://foodex.50sols.com',
               'setup_zip_filename': 'FOODEX-Laravel-Setup.zip',
               'setup_zip_bytes': int(os.environ['SETUP_BYTES']),
               'setup_zip_sha256': os.environ['SETUP_SHA'],
@@ -1027,7 +1027,7 @@ jobs:
           package = Path('Release/FOODEX-Laravel-Setup.zip')
           assert manifest['version'] == '1.0.58'
           assert manifest['source_commit'] == __import__('os').environ['GITHUB_SHA']
-          assert manifest['api_base_url'] == 'https://vanfoodex.50sols.com'
+          assert manifest['api_base_url'] == 'https://foodex.50sols.com'
           assert manifest['setup_zip_filename'] == package.name
           assert manifest['setup_zip_bytes'] == package.stat().st_size
           assert manifest['setup_zip_sha256'] == hashlib.sha256(package.read_bytes()).hexdigest()
