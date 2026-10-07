@@ -6,6 +6,7 @@ import '../commercial/van_commercial_contract.dart';
 import '../commercial/van_offers_page.dart';
 import '../wallet/van_wallet_contract.dart';
 import '../wallet/van_wallet_page.dart';
+import 'van_customers_page.dart';
 import 'van_screen_inventory.dart';
 
 class VanFoundationScreen extends StatefulWidget {
@@ -45,6 +46,11 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
           session: widget.session,
           commercialRepository: widget.commercialRepository,
           customerRepository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.customers:
+        return VanCustomersPage(
+          repository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
         );
       case VanScreenId.wallet:
