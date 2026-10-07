@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\MobileAppSetting;
+use App\Models\MobileStoreSubmission;
 use App\Models\Role;
 use App\Models\StoreReviewerAccount;
 use App\Models\User;
@@ -257,5 +258,44 @@ class StoreSubmissionReadinessTest extends TestCase
 
         $this->assertSame('b2c', data_get($configured->context, 'channel'));
         $this->assertSame($storeId, (int) data_get($configured->context, 'store_id'));
+    }
+
+
+    public function test_store_submission_checklists_can_be_saved_without_json(): void
+    {
+        $admin = $this->admin('structured-submission-admin@example.test');
+
+        $this->actingAs($admin)->put('/admin/settings/mobile/submission', [
+            'app' => 'customer',
+            'platform' => 'android',
+            'environment' => 'production',
+            'update_policy' => 'optional',
+            'submission_status' => 'NOT_READY',
+            'asset_icon_master' => 'repository-controlled',
+            'asset_splash_master' => 'repository-controlled',
+            'asset_screenshots' => 'external-manual-final-upload',
+            'asset_promotional_assets' => 'external-manual-if-required',
+            'permission_declarations_text' => "INTERNET\nACCESS_FINE_LOCATION",
+            'privacy_checklist_text' => "account identifiers\norders and transaction records",
+            'manual_gaps_text' => "Google Play Console access\nfinal Data safety declaration",
+            'signing_readiness' => 'BLOCKED',
+            'firebase_readiness' => 'BLOCKED',
+            'apns_readiness' => 'BLOCKED',
+            'deep_link_readiness' => 'BLOCKED',
+            'production_environment_readiness' => 'BLOCKED',
+            'readiness_state' => 'BLOCKED',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $submission = MobileStoreSubmission::query()
+            ->where('app', 'customer')
+            ->where('platform', 'android')
+            ->where('environment', 'production')
+            ->firstOrFail();
+
+        $this->assertSame('repository-controlled', data_get($submission->asset_checklist, 'icon_master'));
+        $this->assertSame('external-manual-final-upload', data_get($submission->asset_checklist, 'screenshots'));
+        $this->assertSame(['INTERNET', 'ACCESS_FINE_LOCATION'], $submission->permission_declarations);
+        $this->assertSame(['account identifiers', 'orders and transaction records'], $submission->privacy_checklist);
+        $this->assertSame(['Google Play Console access', 'final Data safety declaration'], $submission->manual_gaps);
     }
 }
