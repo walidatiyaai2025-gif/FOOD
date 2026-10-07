@@ -31,6 +31,7 @@ final class AdministrationHubController extends Controller
             'canAppPreview' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('app_preview.view'),
             'canPlatformManage' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('platform.manage'),
             'canSecurity' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('security.view'),
+            'canFinanceSupport' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view'),
             'canMobileSettings' => $user->hasRole('SUPER_ADMIN')
                 || $user->hasPermission('mobile_settings.manage')
                 || $user->hasPermission('push_settings.manage')
