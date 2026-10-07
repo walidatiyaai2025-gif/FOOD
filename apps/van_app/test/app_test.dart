@@ -178,6 +178,51 @@ void main() {
     expect(find.text('5.000 KWD'), findsOneWidget);
   });
 
+
+  testWidgets('Van Remittance submits through authoritative repository contract',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _RemittanceWalletRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-remittance'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-remittance-page')), findsOneWidget);
+    expect(find.text('10.000 KWD'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('van-remittance-amount')),
+      '5.000',
+    );
+    await tester.tap(find.byKey(const ValueKey('van-remittance-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-remittance-result')), findsOneWidget);
+    expect(find.textContaining('5.000 KWD'), findsWidgets);
+  });
+
 }
 
 
@@ -407,4 +452,71 @@ class _ReceiptsWalletRepository implements VanWalletRepository {
   }) {
     throw UnimplementedError();
   }
+}
+
+
+class _RemittanceWalletRepository implements VanWalletRepository {
+  const _RemittanceWalletRepository();
+
+  @override
+  Future<List<VanWalletAccount>> wallet() async => const [
+        VanWalletAccount(
+          id: 5,
+          storeId: 7,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 10,
+          availableToRemit: 10,
+          receipts: [],
+          remittances: [],
+        ),
+      ];
+
+  @override
+  Future<List<VanCustomerScope>> customers() async => const [];
+
+  @override
+  Future<VanCollectionContext> collectionContext(
+    VanCustomerScope customer,
+  ) async =>
+      const VanCollectionContext(storeId: 7, invoices: []);
+
+  @override
+  Future<VanCollectionResult> collect({
+    required VanCustomerScope customer,
+    required int invoiceId,
+    required double amount,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<VanWalletAccount> remit({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    required String idempotencyKey,
+    String? reference,
+    String? note,
+  }) async =>
+      const VanWalletAccount(
+        id: 5,
+        storeId: 7,
+        currency: 'KWD',
+        status: 'active',
+        custodyBalance: 5,
+        availableToRemit: 5,
+        receipts: [],
+        remittances: [
+          VanRemittance(
+            id: 88,
+            amount: 5,
+            currency: 'KWD',
+            method: 'cash_deposit',
+            status: 'submitted',
+            createdAt: '2026-10-07T08:45:00+03:00',
+          ),
+        ],
+      );
 }
