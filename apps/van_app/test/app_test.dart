@@ -223,6 +223,49 @@ void main() {
     expect(find.textContaining('5.000 KWD'), findsWidgets);
   });
 
+
+  testWidgets('Van Profile renders authenticated session identity and access scope',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _EmptyWalletRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login', 'finance.view'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-profile'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-profile-page')), findsOneWidget);
+    expect(find.text('Van Operator'), findsWidgets);
+    expect(find.text('van@example.test'), findsOneWidget);
+    expect(find.text('EN'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-profile-permissions')));
+    await tester.pumpAndSettle();
+    expect(find.text('finance.view'), findsOneWidget);
+    expect(find.text('van.login'), findsOneWidget);
+  });
+
 }
 
 
