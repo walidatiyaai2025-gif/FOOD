@@ -839,12 +839,16 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
           switch (action) {
             case 'accepted':
               unawaited(_transition(assignment, 'accepted'));
+              break;
             case 'start':
               unawaited(_showStartDeliverySheet(assignment));
+              break;
             case 'delivered':
               unawaited(_completeDelivery(assignment));
+              break;
             case 'failed':
               unawaited(_requestFailure(assignment, ''));
+              break;
           }
         },
         itemBuilder: (context) => [
