@@ -44,6 +44,7 @@ class HttpVanVisitRepository implements VanVisitRepository {
       customerType: _string(data['customer_type']),
       customerId: _requiredInt(data['customer_id']),
       storeId: _int(data['store_id']),
+      routeKey: _nullableString(data['route_key']),
       status: _string(data['status']),
       orderId: _int(data['order_id']),
       noOrderReasonId: _int(data['no_order_reason_id']),
