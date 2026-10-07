@@ -310,6 +310,49 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('Audience customer IDs JSON');
     }
 
+    public function test_flash_offer_rows_use_one_compact_action_menu_and_catalog_localization(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+
+        DB::table('flash_offers')->insert([
+            'store_id' => $storeId,
+            'name' => 'Compact Actions Flash',
+            'title_ar' => 'عرض إجراءات مدمجة',
+            'title_en' => 'Compact Actions Flash',
+            'status' => 'draft',
+            'starts_at' => now()->addMinutes(5),
+            'ends_at' => now()->addHour(),
+            'timezone' => 'Asia/Kuwait',
+            'channels' => json_encode(['customer', 'van'], JSON_THROW_ON_ERROR),
+            'allocation_mode' => 'shared',
+            'reservation_seconds' => 300,
+            'retry_count' => 0,
+            'cooldown_seconds' => 0,
+            'priority' => 0,
+            'popup_frequency' => 'once_per_session',
+            'counts_toward_normal_quota' => true,
+            'stackable' => false,
+            'kill_switch' => false,
+            'created_by' => $manager->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($manager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-flash-offer-actions', false)
+            ->assertSee('aria-label="Offer actions"', false)
+            ->assertSee('Existing normal promotions')
+            ->assertDontSee('العروض العادية الحالية');
+
+        $view = file_get_contents(resource_path('views/admin/commercial-dashboard.blade.php'));
+        $this->assertStringNotContainsString("{{ $ar ? 'العروض العادية الحالية' : 'Existing normal promotions' }}", $view);
+        $this->assertStringNotContainsString("{{ $promotion->is_active ? ($ar ?", $view);
+    }
+
     public function test_final_gate_configuration_persists_break_pack_audience_and_authoritative_flags(): void
     {
         [$manager, $storeId] = $this->retailManager();
