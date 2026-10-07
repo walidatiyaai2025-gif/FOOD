@@ -580,7 +580,6 @@ final class CommercialDashboardController extends Controller
         ));
     }
 
-
     /** @return list<mixed> */
     private function optionalJsonArray(?string $json, string $field): array
     {
