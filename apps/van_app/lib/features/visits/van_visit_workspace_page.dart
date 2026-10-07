@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../orders/van_order_contract.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_visit_contract.dart';
 
@@ -12,11 +13,13 @@ class VanVisitWorkspacePage extends StatefulWidget {
     super.key,
     required this.visitRepository,
     required this.customerRepository,
+    required this.orderRepository,
     required this.onSessionExpired,
   });
 
   final VanVisitRepository visitRepository;
   final VanWalletRepository customerRepository;
+  final VanOrderRepository orderRepository;
   final Future<void> Function() onSessionExpired;
 
   @override
@@ -31,10 +34,13 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
   bool _stale = false;
   Object? _error;
   List<VanVisitRecord> _visits = const [];
+  List<VanOrderRecord> _orders = const [];
+  List<VanNoOrderReasonRecord> _reasons = const [];
   Map<String, String> _customerNames = const {};
+  final Map<int, int?> _selectedOrderByVisit = {};
+  final Map<int, int?> _selectedReasonByVisit = {};
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
-
   String _text(String en, String ar) => _arabic ? ar : en;
 
   @override
@@ -76,18 +82,23 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
       final results = await Future.wait<Object>([
         widget.visitRepository.visits(),
         widget.customerRepository.customers(),
+        widget.visitRepository.noOrderReasons(),
+        widget.orderRepository.orders(),
       ]);
       final visits = results[0] as List<VanVisitRecord>;
       final customers = results[1] as List<VanCustomerScope>;
-      final names = <String, String>{
-        for (final customer in customers)
-          '${customer.type}:${customer.id}': customer.name,
-      };
+      final reasons = results[2] as List<VanNoOrderReasonRecord>;
+      final orders = results[3] as List<VanOrderRecord>;
 
       if (!mounted) return;
       setState(() {
         _visits = visits;
-        _customerNames = names;
+        _reasons = reasons;
+        _orders = orders;
+        _customerNames = {
+          for (final customer in customers)
+            '${customer.type}:${customer.id}': customer.name,
+        };
         _loading = false;
         _refreshing = false;
         _stale = false;
@@ -108,7 +119,12 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
     }
   }
 
-  Future<void> _transition(VanVisitRecord visit, String status) async {
+  Future<void> _transition(
+    VanVisitRecord visit,
+    String status, {
+    int? orderId,
+    int? noOrderReasonId,
+  }) async {
     if (_submitting) return;
     setState(() => _submitting = true);
 
@@ -116,6 +132,8 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
       final updated = await widget.visitRepository.transition(
         visitId: visit.id,
         status: status,
+        orderId: orderId,
+        noOrderReasonId: noOrderReasonId,
       );
       if (!mounted) return;
       setState(() {
@@ -135,10 +153,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
             )
           : error is VanAccessDeniedException
               ? _text('Access denied.', 'غير مصرح بهذه العملية.')
-              : _text(
-                  'Unable to update the visit.',
-                  'تعذر تحديث الزيارة.',
-                );
+              : _text('Unable to update the visit.', 'تعذر تحديث الزيارة.');
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
@@ -166,10 +181,18 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
     }
   }
 
-  String _customerLabel(VanVisitRecord visit) {
-    return _customerNames['${visit.customerType}:${visit.customerId}'] ??
-        _text('Assigned customer', 'عميل مسند');
-  }
+  String _customerLabel(VanVisitRecord visit) =>
+      _customerNames['${visit.customerType}:${visit.customerId}'] ??
+      _text('Assigned customer', 'عميل مسند');
+
+  List<VanOrderRecord> _ordersFor(VanVisitRecord visit) => _orders
+      .where(
+        (order) =>
+            order.customerType == visit.customerType &&
+            order.customerId == visit.customerId &&
+            (visit.storeId == null || order.storeId == visit.storeId),
+      )
+      .toList(growable: false);
 
   @override
   Widget build(BuildContext context) {
@@ -227,115 +250,200 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
               onAction: _load,
             )
           else
-            for (final visit in _visits)
-              Card(
-                key: ValueKey('van-visit-${visit.id}'),
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 10),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.fact_check_outlined,
-                            color: FoodexVanTokens.green,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _customerLabel(visit),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Chip(label: Text(_statusLabel(visit.status))),
-                        ],
-                      ),
-                      if (visit.plannedAt != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _text(
-                            'Planned: ${visit.plannedAt}',
-                            'الموعد: ${visit.plannedAt}',
-                          ),
-                        ),
-                      ],
-                      if (visit.allowedTransitions.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            if (visit.allowedTransitions.contains('started'))
-                              FilledButton.icon(
-                                key: ValueKey('van-visit-start-${visit.id}'),
-                                onPressed: _submitting
-                                    ? null
-                                    : () => _transition(visit, 'started'),
-                                icon: const Icon(Icons.play_arrow),
-                                label: Text(_text('Start visit', 'بدء الزيارة')),
-                              ),
-                            if (visit.allowedTransitions
-                                .contains('customer_unavailable'))
-                              OutlinedButton.icon(
-                                key: ValueKey(
-                                  'van-visit-unavailable-${visit.id}',
-                                ),
-                                onPressed: _submitting
-                                    ? null
-                                    : () => _transition(
-                                          visit,
-                                          'customer_unavailable',
-                                        ),
-                                icon: const Icon(Icons.person_off_outlined),
-                                label: Text(
-                                  _text(
-                                    'Customer unavailable',
-                                    'العميل غير متاح',
-                                  ),
-                                ),
-                              ),
-                            if (visit.allowedTransitions.contains('closed'))
-                              FilledButton.icon(
-                                key: ValueKey('van-visit-close-${visit.id}'),
-                                onPressed: _submitting
-                                    ? null
-                                    : () => _transition(visit, 'closed'),
-                                icon: const Icon(Icons.check_circle_outline),
-                                label: Text(_text('Close visit', 'إغلاق الزيارة')),
-                              ),
-                          ],
-                        ),
-                      ],
-                      if (visit.status == 'started' &&
-                          (visit.allowedTransitions
-                                  .contains('completed_with_order') ||
-                              visit.allowedTransitions
-                                  .contains('completed_no_order'))) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          _text(
-                            'Order/no-order completion remains tied to authoritative order and reason selection; this workspace does not fabricate either.',
-                            'إكمال الزيارة بطلب أو بدون طلب مرتبط باختيار طلب أو سبب معتمد؛ هذه الشاشة لا تنشئ أيًا منهما بشكل وهمي.',
-                          ),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: FoodexVanTokens.muted,
-                              ),
-                        ),
-                      ],
-                    ],
+            for (final visit in _visits) _visitCard(visit),
+        ],
+      ),
+    );
+  }
+
+  Widget _visitCard(VanVisitRecord visit) {
+    final customerOrders = _ordersFor(visit);
+    final selectedOrder = _selectedOrderByVisit[visit.id];
+    final selectedReason = _selectedReasonByVisit[visit.id];
+
+    return Card(
+      key: ValueKey('van-visit-${visit.id}'),
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.fact_check_outlined,
+                  color: FoodexVanTokens.green,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _customerLabel(visit),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Chip(label: Text(_statusLabel(visit.status))),
+              ],
+            ),
+            if (visit.plannedAt != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _text(
+                  'Planned: ${visit.plannedAt}',
+                  'الموعد: ${visit.plannedAt}',
+                ),
               ),
-        ],
+            ],
+            if (visit.allowedTransitions.contains('started')) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                key: ValueKey('van-visit-start-${visit.id}'),
+                onPressed:
+                    _submitting ? null : () => _transition(visit, 'started'),
+                icon: const Icon(Icons.play_arrow),
+                label: Text(_text('Start visit', 'بدء الزيارة')),
+              ),
+            ],
+            if (visit.status == 'started') ...[
+              if (visit.allowedTransitions.contains('completed_with_order')) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  key: ValueKey('van-visit-order-${visit.id}'),
+                  value: selectedOrder,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: _text(
+                      'Completed order',
+                      'الطلب المكتمل',
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final order in customerOrders)
+                      DropdownMenuItem(
+                        value: order.id,
+                        child: Text(
+                          '${order.orderNumber} · '
+                          '${order.grandTotal.toStringAsFixed(3)} '
+                          '${order.currency}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: _submitting
+                      ? null
+                      : (value) =>
+                          setState(() => _selectedOrderByVisit[visit.id] = value),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  key: ValueKey('van-visit-complete-order-${visit.id}'),
+                  onPressed: _submitting || selectedOrder == null
+                      ? null
+                      : () => _transition(
+                            visit,
+                            'completed_with_order',
+                            orderId: selectedOrder,
+                          ),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: Text(
+                    _text('Complete with order', 'إكمال بطلب'),
+                  ),
+                ),
+                if (customerOrders.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      _text(
+                        'No authoritative order is available for this customer/store yet.',
+                        'لا يوجد طلب معتمد متاح لهذا العميل/المتجر بعد.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: FoodexVanTokens.muted,
+                          ),
+                    ),
+                  ),
+              ],
+              if (visit.allowedTransitions.contains('completed_no_order')) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  key: ValueKey('van-visit-reason-${visit.id}'),
+                  value: selectedReason,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: _text(
+                      'No-order reason',
+                      'سبب عدم الطلب',
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final reason in _reasons)
+                      DropdownMenuItem(
+                        value: reason.id,
+                        child: Text(
+                          reason.label(_arabic),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: _submitting
+                      ? null
+                      : (value) => setState(
+                            () => _selectedReasonByVisit[visit.id] = value,
+                          ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: ValueKey('van-visit-complete-no-order-${visit.id}'),
+                  onPressed: _submitting || selectedReason == null
+                      ? null
+                      : () => _transition(
+                            visit,
+                            'completed_no_order',
+                            noOrderReasonId: selectedReason,
+                          ),
+                  icon: const Icon(Icons.remove_shopping_cart_outlined),
+                  label: Text(
+                    _text('Complete without order', 'إكمال بدون طلب'),
+                  ),
+                ),
+              ],
+            ],
+            if (visit.allowedTransitions.contains('customer_unavailable')) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: ValueKey('van-visit-unavailable-${visit.id}'),
+                onPressed: _submitting
+                    ? null
+                    : () => _transition(visit, 'customer_unavailable'),
+                icon: const Icon(Icons.person_off_outlined),
+                label: Text(
+                  _text('Customer unavailable', 'العميل غير متاح'),
+                ),
+              ),
+            ],
+            if (visit.allowedTransitions.contains('closed')) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                key: ValueKey('van-visit-close-${visit.id}'),
+                onPressed:
+                    _submitting ? null : () => _transition(visit, 'closed'),
+                icon: const Icon(Icons.check_circle_outline),
+                label: Text(_text('Close visit', 'إغلاق الزيارة')),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -372,10 +480,7 @@ class _StateCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(body, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onAction,
-              child: Text(actionLabel),
-            ),
+            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
       ),
