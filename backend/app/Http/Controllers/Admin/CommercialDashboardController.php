@@ -255,7 +255,7 @@ final class CommercialDashboardController extends Controller
                     'bundle', 'buy_x_get_y' => 'bundle',
                     default => 'generic',
                 };
-                $promotion->type_label = __('commercial.flash.promotion_types.'.$typeKey);
+                $promotion->localized_label = __('commercial.flash.promotion_types.'.$typeKey);
 
                 return $promotion;
             });
