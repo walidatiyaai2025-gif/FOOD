@@ -34,8 +34,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Customer App'), findsOneWidget);
     expect(find.text('Customer sign in'), findsWidgets);
     expect(find.textContaining('Business customer'), findsNothing);
+    final identity = find.byKey(const ValueKey('customer-app-identity'));
+    expect(identity, findsOneWidget);
+    expect(tester.getSize(identity).height, greaterThan(0));
     expect(
       find.byKey(const ValueKey('customer-auth-remember-me')),
       findsOneWidget,
@@ -62,6 +66,28 @@ void main() {
     expect(completedToken, 'platform-token');
     expect(completedPreferences?.rememberMe, isTrue);
     expect(completedPreferences?.biometricEnabled, isFalse);
+  });
+
+  testWidgets('customer app identity is visible in Arabic RTL', (tester) async {
+    await tester.pumpWidget(
+      _testApp(
+        locale: const Locale('ar'),
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.marketplace,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (_, __) async {},
+          biometricAuthenticator:
+              const _FakeBiometric(available: false, result: false),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final identity = find.byKey(const ValueKey('customer-app-identity'));
+    expect(identity, findsOneWidget);
+    expect(find.text('تطبيق العميل'), findsOneWidget);
+    expect(tester.getSize(identity).height, greaterThan(0));
+    expect(Directionality.of(tester.element(identity)), TextDirection.rtl);
   });
 
   testWidgets('biometric unlock resumes exact pending action once',

@@ -133,7 +133,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('c13-business-login-title')), findsOneWidget);
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-auth-guest')), findsNothing);
     expect(
@@ -146,7 +147,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Business customer sign in'), findsOneWidget);
+    expect(find.text('Customer sign in'), findsWidgets);
     expect(find.byKey(const ValueKey('customer-auth-guest')), findsNothing);
   });
 
@@ -288,8 +289,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('دخول عميل الأعمال'), findsOneWidget);
-    expect(find.text('تسجيل دخول العميل'), findsNothing);
+    expect(find.text('تسجيل دخول العميل'), findsWidgets);
+    expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,

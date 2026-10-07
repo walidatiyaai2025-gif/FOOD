@@ -149,6 +149,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         tab.loading = false;
         tab.loadingMore = false;
         tab.error = null;
+        tab.lastSuccessfulAt = DateTime.now();
       });
     } catch (error) {
       if (!mounted) return;
@@ -242,6 +243,12 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     return Column(
       children: [
         _statusFilters(context, channel, tab),
+        if (tab.error != null && tab.orders.isNotEmpty)
+          _OrdersStaleBanner(
+            key: ValueKey('customer-orders-stale-$channel'),
+            errorText: _errorText(context, tab.error!),
+            lastSuccessfulAt: tab.lastSuccessfulAt,
+          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _loadChannel(channel),
@@ -537,8 +544,65 @@ class _OrdersTabState {
   bool loading = false;
   bool loadingMore = false;
   Object? error;
+  DateTime? lastSuccessfulAt;
 
   bool get hasMore => orders.length < total;
+}
+
+class _OrdersStaleBanner extends StatelessWidget {
+  const _OrdersStaleBanner({
+    required this.errorText,
+    required this.lastSuccessfulAt,
+    super.key,
+  });
+
+  final String errorText;
+  final DateTime? lastSuccessfulAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final lastSuccessfulAt = this.lastSuccessfulAt;
+    final updatedLabel = lastSuccessfulAt == null
+        ? null
+        : '${context.tr('customer.orders.last_confirmed_update')}: '
+            '${_formatClock(lastSuccessfulAt)}';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1D39A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 18,
+            color: Color(0xFF8A5A00),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              [
+                context.tr('customer.orders.stale'),
+                errorText,
+                if (updatedLabel != null) updatedLabel,
+              ].join(' · '),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6B4A00),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class CustomerOrderDetailsScreen extends StatefulWidget {
