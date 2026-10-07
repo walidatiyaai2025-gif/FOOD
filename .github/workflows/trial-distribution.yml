@@ -928,19 +928,21 @@ jobs:
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/sales-control?store_id=$STORE_ID")" = "200"
           grep -Fq 'Product Sales Control' /tmp/sales-control.html
           grep -Fq 'Break-pack policy' /tmp/sales-control.html
-          grep -Fq 'Selling units JSON' /tmp/sales-control.html
-          grep -Fq 'Availability windows JSON' /tmp/sales-control.html
-          grep -Fq 'Customer/group/channel rules JSON' /tmp/sales-control.html
-          grep -Fq 'Commercial Feature Flags' /tmp/sales-control.html
+          grep -Fq '<section class="policy-section structured-editor" data-selling-unit-editor>' /tmp/sales-control.html
+          grep -Fq '<section class="policy-section structured-editor" data-availability-editor>' /tmp/sales-control.html
+          grep -Fq '<section class="policy-section structured-editor" data-targeting-rule-editor>' /tmp/sales-control.html
+          grep -Fq '<section class="commercial-card feature-flags-card" data-commercial-feature-flags>' /tmp/sales-control.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-offers.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers?store_id=$STORE_ID")" = "200"
-          grep -Fq 'Promotions &gt; Flash Offers' /tmp/flash-offers.html
-          grep -Fq 'Audience customer IDs JSON' /tmp/flash-offers.html
+          grep -Fq 'data-commercial-page="flash-offers"' /tmp/flash-offers.html
+          grep -Fq '<select class="flash-multi" name="audience_customer_ids[]" multiple>' /tmp/flash-offers.html
+          grep -Fq '<div class="flash-product-builder" data-flash-product-builder>' /tmp/flash-offers.html
           grep -Fq 'Preview' /tmp/flash-offers.html
           grep -Fq 'Analytics' /tmp/flash-offers.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-preview.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers/$FLASH_OFFER_ID/preview?store_id=$STORE_ID")" = "200"
-          grep -Fq 'Customer Popup Preview' /tmp/flash-preview.html
+          grep -Fq 'Flash Offer Preview' /tmp/flash-preview.html
+          grep -Fq 'data-preview-surface="customer-popup"' /tmp/flash-preview.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-analytics.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers/$FLASH_OFFER_ID/analytics?store_id=$STORE_ID")" = "200"
           grep -Fq 'Flash Analytics' /tmp/flash-analytics.html
