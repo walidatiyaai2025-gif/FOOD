@@ -60,5 +60,11 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringNotContainsString('Customer ID', $view);
         $this->assertStringNotContainsString('Store ID (optional)', $view);
         $this->assertStringNotContainsString('placeholder="{{ $ar?\'كود المنطقة\':\'Territory key\' }}"', $view);
+        $this->assertStringContainsString('$resolverNames->get($review->resolved_by)', $view);
+        $this->assertStringContainsString('$territoryLabels->get($review->territory_key)', $view);
+        $this->assertStringContainsString('$review->public_id', $view);
+        $this->assertStringNotContainsString('<td>{{ $review->id }}</td>', $view);
+        $this->assertStringNotContainsString('{{ $review->subject_type }} #{{ $review->subject_id }}', $view);
+        $this->assertStringNotContainsString("{{ $review->resolved_by ? '#'.$review->resolved_by : '—' }}", $view);
     }
 }
