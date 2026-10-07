@@ -64,8 +64,8 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | Q03 | Legacy route/screen inventory is included; diff-based guards do not grandfather violations | #1041 | whole-tree route/source inventories + [#1041 audit record](UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md) | PASS |
 | V01 | Integrated Dashboard + Customer + Driver + Van real runtime evidence exists for all visual/interaction rows | #1042 | evidence manifest/screenshots | PASS |
 | V02 | Required AR/EN + RTL/LTR + responsive states have no overflow/hidden action/mixed-language failures | #1042 | reviewed runtime evidence | PASS |
-| G01 | Final integrated matrix is 100% PASS on exact recovery implementation HEAD | #1043 | independent matrix/source recheck | OPEN |
-| G02 | Exact frozen SHA and evidence lineage recorded; child closure not used as substitute proof | #1043 | convergence report | OPEN |
+| G01 | Final integrated matrix is 100% PASS on exact recovery implementation HEAD | #1043 | [#1043 convergence report](UIUX_V42_RECOVERY_1043_CONVERGENCE.md) | PASS |
+| G02 | Exact frozen SHA and evidence lineage recorded; child closure not used as substitute proof | #1043 | [#1043 convergence report](UIUX_V42_RECOVERY_1043_CONVERGENCE.md) | PASS |
 | R01 | Next real Setup/APKs/update artifacts are built/clean-installed/published from exact #1043 frozen SHA | #1021 | release manifests + hashes + clean-install proof | OPEN |
 
 ## Owner evidence checkpoints
@@ -123,4 +123,6 @@ When an owner believes a row is complete, the PR/Issue must record the exact sou
 
 ## Final gate invariant
 
-#1043 must fail if any row is not PASS. It may not convert OPEN/PARTIAL rows to PASS merely because their owner Issue is closed.
+#1043 must fail if any **pre-release recovery/convergence row** is not PASS. It may not convert OPEN/PARTIAL rows to PASS merely because their owner Issue is closed.
+
+`R01` is the one intentional downstream exception: it is owned by #1021 and cannot execute until #1043 freezes the recovered source. #1043 therefore converges **51/51 pre-release rows (100%)** and leaves only `R01` OPEN for the exact-head release/clean-install gate.
