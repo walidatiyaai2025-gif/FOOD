@@ -148,8 +148,16 @@ Future<void> _setup(WidgetTester tester, Size size) async {
 }
 
 Future<void> _openScreen(WidgetTester tester, VanScreenId screen) async {
-  final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
-  scaffold.openDrawer();
+  final scaffoldFinder = find.byType(Scaffold).last;
+  final scaffold = tester.state<ScaffoldState>(scaffoldFinder);
+  final scaffoldWidget = tester.widget<Scaffold>(scaffoldFinder);
+
+  if (scaffoldWidget.endDrawer != null) {
+    scaffold.openEndDrawer();
+  } else {
+    scaffold.openDrawer();
+  }
+
   await tester.pumpAndSettle();
   final target = find.byKey(ValueKey('van-screen-${screen.name}'));
   final menu = find.byKey(const ValueKey('van-production-screen-menu'));
