@@ -370,7 +370,7 @@ class CommercialDashboardContractTest extends TestCase
         $this->assertSame($flags, app(CommercialFeatureFlags::class)->snapshot());
     }
 
-    /** @return array{0:User,1:int} */
+    /** @return array{0:User, 1:int} */
     private function retailManager(): array
     {
         $storeId = (int) DB::table('stores')->insertGetId([
