@@ -91,7 +91,14 @@ class _VanRemittancePageState extends State<VanRemittancePage>
           break;
         }
       }
-      selected ??= accounts.where((a) => a.availableToRemit > 0).firstOrNull;
+      if (selected == null) {
+        for (final account in accounts) {
+          if (account.availableToRemit > 0) {
+            selected = account;
+            break;
+          }
+        }
+      }
       selected ??= accounts.isEmpty ? null : accounts.first;
       setState(() {
         _accounts = accounts;
