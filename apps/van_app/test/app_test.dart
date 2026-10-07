@@ -51,6 +51,10 @@ void main() {
     expect(find.text('Order Builder'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('Profile & Settings'), findsOneWidget);
+
+    await tester.tap(find.text('Customers').first);
+    await tester.pumpAndSettle();
+    expect(find.text('No assigned customers'), findsOneWidget);
   });
 }
 
