@@ -14,6 +14,8 @@ on:
       - "apps/driver_app/**"
       - "apps/van_app/**"
       - "scripts/configure-mobile-native.py"
+      - "scripts/verify-mobile-runtime-endpoint.py"
+      - "scripts/tests/test_mobile_runtime_endpoint.py"
       - "scripts/build-dashboard-update.sh"
       - "scripts/write-trial-bundle-manifest.py"
       - "scripts/validate_release_artifact_contract.py"
@@ -223,6 +225,7 @@ jobs:
           flutter build apk --release --build-name="$CURRENT_VERSION" --build-number="$MOBILE_BUILD_NUMBER" "${defines[@]}"
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-mobile-runtime-endpoint.py "$apk"
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX'" build/trial-badging.txt
@@ -250,6 +253,7 @@ jobs:
           flutter build apk --release --build-name="$CURRENT_VERSION" --build-number="$MOBILE_BUILD_NUMBER" "${defines[@]}"
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-mobile-runtime-endpoint.py "$apk"
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX Driver'" build/trial-badging.txt
@@ -273,6 +277,7 @@ jobs:
             --dart-define=FOODEX_API_BASE_URL="$FOODEX_API_BASE_URL"
           aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-mobile-runtime-endpoint.py "$apk"
           "$aapt_bin" dump permissions "$apk" | grep -Fx "uses-permission: name='android.permission.INTERNET'"
           "$aapt_bin" dump badging "$apk" > build/trial-badging.txt
           grep -Fx "application-label:'FOODEX Van'" build/trial-badging.txt
