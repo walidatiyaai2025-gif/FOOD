@@ -199,7 +199,7 @@ class _VanRouteDetailPageState extends State<VanRouteDetailPage>
           else ...[
             DropdownButtonFormField<String>(
               key: const ValueKey('van-route-detail-selector'),
-              value: _selectedRoute,
+              initialValue: _selectedRoute,
               isExpanded: true,
               decoration: InputDecoration(
                 labelText: _text('Route', 'المسار'),

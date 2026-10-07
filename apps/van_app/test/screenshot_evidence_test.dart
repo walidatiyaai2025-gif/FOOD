@@ -27,7 +27,7 @@ void main() {
   for (final locale in const [Locale('ar'), Locale('en')]) {
     final code = locale.languageCode;
 
-    testWidgets('capture Van login ' + code, (tester) async {
+    testWidgets('capture Van login $code', (tester) async {
       await _setup(tester, const Size(430, 932));
       await _capture(
         tester,
@@ -39,14 +39,14 @@ void main() {
           authPreferenceStore: const _EmptyPreferenceStore(),
           biometricAuthenticator: const _NoBiometric(),
         ),
-        '03_Van/login__' + code + '.png',
+        '03_Van/login__$code.png',
       );
     });
 
     for (final screen in vanProductionScreenInventory.where(
       (screen) => screen != VanScreenId.login,
     )) {
-      testWidgets('capture Van ' + screen.name + ' ' + code, (tester) async {
+      testWidgets('capture Van ${screen.name} $code', (tester) async {
         await _setup(tester, const Size(430, 932));
         final key = GlobalKey();
         await tester.pumpWidget(
@@ -89,7 +89,7 @@ void main() {
         await _writeBoundary(
           tester,
           key,
-          '03_Van/' + screen.name + '__' + code + '.png',
+          '03_Van/${screen.name}__$code.png',
         );
       });
     }
@@ -99,7 +99,7 @@ void main() {
       VanScreenId.routeMap,
       VanScreenId.catalog,
     ]) {
-      testWidgets('capture compact Van ' + screen.name + ' ' + code,
+      testWidgets('capture compact Van ${screen.name} $code',
           (tester) async {
         await _setup(tester, const Size(360, 800));
         final key = GlobalKey();
@@ -131,7 +131,7 @@ void main() {
         await _writeBoundary(
           tester,
           key,
-          '03_Van_Compact/' + screen.name + '__' + code + '.png',
+          '03_Van_Compact/${screen.name}__$code.png',
         );
       });
     }
@@ -151,7 +151,7 @@ Future<void> _openScreen(WidgetTester tester, VanScreenId screen) async {
   final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
   scaffold.openDrawer();
   await tester.pumpAndSettle();
-  final target = find.byKey(ValueKey('van-screen-' + screen.name));
+  final target = find.byKey(ValueKey('van-screen-${screen.name}'));
   final menu = find.byKey(const ValueKey('van-production-screen-menu'));
   final menuScrollable = find.descendant(
     of: menu,
@@ -187,7 +187,7 @@ Future<void> _writeBoundary(
         key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    final file = File('../../ScreenShots/' + relativePath);
+    final file = File('../../ScreenShots/$relativePath');
     file.parent.createSync(recursive: true);
     file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
     expect(file.lengthSync(), greaterThan(1000));
@@ -221,7 +221,7 @@ Future<void> _loadEvidenceFont() async {
   final root = Platform.environment['FLUTTER_ROOT'];
   if (root == null || root.isEmpty) throw StateError('FLUTTER_ROOT missing.');
   final iconFile =
-      File(root + '/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+      File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
   final iconLoader = FontLoader('MaterialIcons')
     ..addFont(
       Future<ByteData>.value(

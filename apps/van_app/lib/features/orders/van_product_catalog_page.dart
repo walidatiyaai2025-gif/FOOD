@@ -129,7 +129,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
         children: [
           DropdownButtonFormField<VanCustomerScope>(
-            value: widget.draft.customer,
+            initialValue: widget.draft.customer,
             isExpanded: true,
             decoration: InputDecoration(
               labelText: _text('Customer', 'العميل'),

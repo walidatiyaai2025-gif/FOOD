@@ -203,7 +203,7 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
         children: [
           DropdownButtonFormField<VanCustomerScope>(
             key: const ValueKey('van-customer-360-selector'),
-            value: selected,
+            initialValue: selected,
             isExpanded: true,
             decoration: InputDecoration(
               labelText: _text('Customer', 'العميل'),

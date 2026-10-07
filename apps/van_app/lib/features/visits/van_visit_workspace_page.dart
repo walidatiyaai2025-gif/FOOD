@@ -320,7 +320,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   key: ValueKey('van-visit-order-${visit.id}'),
-                  value: selectedOrder,
+                  initialValue: selectedOrder,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: _text(
@@ -380,7 +380,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   key: ValueKey('van-visit-reason-${visit.id}'),
-                  value: selectedReason,
+                  initialValue: selectedReason,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: _text(
