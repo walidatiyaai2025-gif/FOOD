@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.62 - 2026-10-07
+
+- Republish the terminal UIUX-V42 recovery release from the frozen #1043 lineage because the old v1.0.60 tag does not identify the generated 1.0.60 release artifacts.
+- Move the production mobile/runtime origin from the obsolete `vanfoodex.50sols.com` host to `https://foodex.50sols.com` without importing unrelated main-branch application changes.
+- Synchronize Customer, Driver and Van release identities at 1.0.62+62.
+- Add a Trial Distribution binary publication gate that requires `foodex.50sols.com` inside every APK and rejects `vanfoodex.50sols.com` before publication.
+- Preserve the recovered UI/UX implementation; this patch is limited to release identity, deployment metadata, endpoint configuration and release validation.
+
+
 ## 1.0.60 - 2026-10-07
 
 - Correct the UIUX-V42 Commercial / Sales Control regression discovered after the 1.0.59 fresh release: the route now uses the authoritative FOODEX premium Dashboard shell and sidebar instead of the legacy standalone commercial page.
