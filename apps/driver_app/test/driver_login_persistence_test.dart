@@ -63,13 +63,14 @@ Widget _host({
   required DriverSessionStore store,
   required DriverBiometricAuthenticator biometric,
   required DriverAuthenticatedCallback onAuthenticated,
+  Locale locale = const Locale('ar'),
 }) =>
     MaterialApp(
-      locale: const Locale('ar'),
+      locale: locale,
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: DriverTranslations(
-        locale: const Locale('ar'),
+        locale: locale,
         overrides: const {},
         child: DriverLoginPage(
           repository: _Auth(),
@@ -81,6 +82,28 @@ Widget _host({
     );
 
 void main() {
+  testWidgets('Driver App identity is visible in Arabic and English', (tester) async {
+    for (final entry in const <(Locale, String)>[
+      (Locale('ar'), 'تطبيق السائق'),
+      (Locale('en'), 'Driver App'),
+    ]) {
+      await tester.pumpWidget(
+        _host(
+          store: _Store(),
+          biometric: const _Biometric(),
+          locale: entry.$1,
+          onAuthenticated: (_, __, ___) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final identity = find.byKey(const Key('driver-app-identity'));
+      expect(identity, findsOneWidget);
+      expect(find.text(entry.$2), findsOneWidget);
+      expect(tester.getSize(identity).height, greaterThan(0));
+    }
+  });
+
   testWidgets('remember me and biometric flags are returned after password login',
       (tester) async {
     final store = _Store();

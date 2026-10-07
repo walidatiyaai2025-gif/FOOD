@@ -10,6 +10,27 @@
     @include('admin._brand-components')
 </head>
 <body>
+@php
+$reportLabel = static function ($value): string {
+    $key = strtolower(trim((string) ($value ?? '')));
+    if ($key === '') {
+        return '—';
+    }
+
+    $translated = __('reports.business_labels.'.$key);
+
+    return $translated !== 'reports.business_labels.'.$key
+        ? $translated
+        : ucwords(str_replace(['_', '-'], ' ', $key));
+};
+$breakdownHeader = static function (string $key): string {
+    $translated = __('reports.breakdown_headers.'.$key);
+
+    return $translated !== 'reports.breakdown_headers.'.$key
+        ? $translated
+        : ucwords(str_replace(['_', '-'], ' ', $key));
+};
+@endphp
 <div class="layout foodex-admin-layout" data-foodex-utility="reports">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'reports_center', 'user' => auth()->user()])</aside>
     <main class="main foodex-admin-main">
@@ -40,12 +61,12 @@
                     <div><label>{{ __('reports.filters.from') }}</label><input type="date" name="from" value="{{ $data['filters']['from'] }}"></div>
                     <div><label>{{ __('reports.filters.to') }}</label><input type="date" name="to" value="{{ $data['filters']['to'] }}"></div>
                     <div><label>{{ __('reports.filters.store') }}</label><select name="store_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['stores'] as $store)<option value="{{ $store->id }}" @selected((string)request('store_id') === (string)$store->id)>{{ $store->name }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.channel') }}</label><select name="channel"><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ app()->getLocale()==='ar'?'التجزئة':'Retail' }}</option><option value="b2b" @selected(request('channel')==='b2b')>B2B</option></select></div>
-                    <div><label>{{ __('reports.filters.status') }}</label><select name="status"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['statuses'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $status }}</option>@endforeach</select></div>
+                    <div><label>{{ __('reports.filters.channel') }}</label><select name="channel"><option value="">{{ __('reports.filters.all') }}</option><option value="b2c" @selected(request('channel')==='b2c')>{{ __('reports.business_labels.b2c') }}</option><option value="b2b" @selected(request('channel')==='b2b')>{{ __('reports.business_labels.b2b') }}</option></select></div>
+                    <div><label>{{ __('reports.filters.status') }}</label><select name="status"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['statuses'] as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ $reportLabel($status) }}</option>@endforeach</select></div>
                     <div><label>{{ __('reports.filters.category') }}</label><select name="category_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['categories'] as $category)<option value="{{ $category->id }}" @selected((string)request('category_id') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select></div>
                     <div><label>{{ __('reports.filters.product') }}</label><select name="product_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['products'] as $product)<option value="{{ $product->id }}" @selected((string)request('product_id') === (string)$product->id)>{{ $product->sku }} · {{ $product->name }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.customer') }}</label><select name="customer_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['customers'] as $customer)<option value="{{ $customer->id }}" @selected((string)request('customer_id') === (string)$customer->id)>{{ $customer->name }} · {{ strtoupper($customer->type) }}</option>@endforeach</select></div>
-                    <div><label>{{ __('reports.filters.payment') }}</label><select name="payment_provider"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['payment_providers'] as $provider)<option value="{{ $provider }}" @selected(request('payment_provider')===$provider)>{{ $provider }}</option>@endforeach</select></div>
+                    <div><label>{{ __('reports.filters.customer') }}</label><select name="customer_id"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['customers'] as $customer)<option value="{{ $customer->id }}" @selected((string)request('customer_id') === (string)$customer->id)>{{ $customer->name }} · {{ $reportLabel($customer->type) }}</option>@endforeach</select></div>
+                    <div><label>{{ __('reports.filters.payment') }}</label><select name="payment_provider"><option value="">{{ __('reports.filters.all') }}</option>@foreach($options['payment_providers'] as $provider)<option value="{{ $provider }}" @selected(request('payment_provider')===$provider)>{{ $reportLabel($provider) }}</option>@endforeach</select></div>
                     <div class="actions"><button class="button foodex-filter-action">{{ __('reports.apply') }}</button><a class="button secondary" href="{{ route('admin.reports.index', ['report'=>$report]) }}">{{ __('reports.reset') }}</a></div>
                 </div>
             </form>
@@ -72,10 +93,41 @@
             @endif
         </section>
 
-        <div class="breakdowns">
+        <div class="breakdowns" data-report-breakdowns>
             @foreach(['status_breakdown','payment_breakdown','category_performance','zero_sales','delivery_breakdown'] as $extra)
                 @if(!empty($data[$extra]))
-                <section class="mini"><h3>{{ __("reports.breakdowns.$extra") }}</h3><pre style="white-space:pre-wrap;margin:0">{{ json_encode($data[$extra], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) }}</pre></section>
+                @php($breakdownRows = collect($data[$extra])->filter(fn ($row) => is_array($row))->values())
+                @php($breakdownColumns = $breakdownRows->isNotEmpty() ? array_keys($breakdownRows->first()) : [])
+                <section class="mini" data-report-breakdown="{{ $extra }}">
+                    <h3>{{ __("reports.breakdowns.$extra") }}</h3>
+                    @if($breakdownRows->isEmpty())
+                        <div class="empty">{{ __('reports.empty') }}</div>
+                    @else
+                        <div class="table-wrap">
+                            <table class="foodex-table">
+                                <thead><tr>@foreach($breakdownColumns as $column)<th>{{ $breakdownHeader($column) }}</th>@endforeach</tr></thead>
+                                <tbody>
+                                @foreach($breakdownRows as $row)
+                                    <tr>
+                                    @foreach($breakdownColumns as $column)
+                                        @php($value = $row[$column] ?? null)
+                                        <td>
+                                            @if(in_array($column, ['status','provider'], true))
+                                                {{ $reportLabel($value) }}
+                                            @elseif(is_numeric($value))
+                                                {{ is_float($value) ? number_format($value, 3) : number_format((int) $value) }}
+                                            @else
+                                                {{ $value === null || $value === '' ? '—' : $value }}
+                                            @endif
+                                        </td>
+                                    @endforeach
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </section>
                 @endif
             @endforeach
         </div>

@@ -69,6 +69,7 @@ final class AppPreviewController extends Controller
             'runtimeConfig' => [
                 'customer' => $this->runtime((array) ($runtimeConfig['customer'] ?? [])),
                 'driver' => $this->runtime((array) ($runtimeConfig['driver'] ?? [])),
+                'van' => $this->runtime((array) ($runtimeConfig['van'] ?? [])),
             ],
             'deviceProfiles' => (array) config('app_preview.device_profiles', []),
             'platformVersion' => trim((string) @file_get_contents(base_path('../VERSION'))),

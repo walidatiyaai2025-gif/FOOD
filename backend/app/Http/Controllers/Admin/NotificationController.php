@@ -40,7 +40,13 @@ final class NotificationController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.notifications', compact('notifications', 'search', 'status'));
+        $userTargets = User::query()
+            ->select(['id', 'name', 'email'])
+            ->orderBy('name')
+            ->orderBy('email')
+            ->get();
+
+        return view('admin.notifications', compact('notifications', 'search', 'status', 'userTargets'));
     }
 
     public function live(Request $request): JsonResponse
@@ -313,8 +319,8 @@ final class NotificationController extends Controller
             'body_en' => ['required', 'string', 'max:5000'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:6144'],
             'type' => ['required', 'string', 'max:64'],
-            'audience' => ['required', 'in:all,customer,driver,user'],
-            'app' => ['required', 'in:all,customer,driver,dashboard'],
+            'audience' => ['required', 'in:all,customer,driver,van,user'],
+            'app' => ['required', 'in:all,customer,driver,van,dashboard'],
             'target_channel' => ['required', 'in:all,b2c,b2b'],
             'channel' => ['required', 'in:in_app,push,both'],
             'user_id' => ['nullable', 'required_if:audience,user', 'integer', 'exists:users,id'],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -7,8 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/push/firebase_push_service.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
+import 'package:foodex_driver_app/features/notifications/notification_feed.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,6 +68,11 @@ void main() {
         route: '/driver/b2b/deliveries',
         path: '01_Mobile/Driver_B2B/02_driver_deliveries__populated__$localeCode.png',
       ),
+      (
+        session: b2cSession,
+        route: '/driver/b2c/notifications',
+        path: '01_Mobile/Driver_B2C/08_driver_notifications__populated__$localeCode.png',
+      ),
     ]) {
       testWidgets('capture ${item.path}', (tester) async {
         await _setup(tester);
@@ -77,6 +85,7 @@ void main() {
             locale: locale,
             authRepository: const _EvidenceAuthRepository(),
             assignmentRepositoryFactory: (_) => const _EvidenceAssignments(),
+            notificationRepositoryFactory: (_) => const _EvidenceNotifications(),
           ),
           item.path,
         );
@@ -114,6 +123,58 @@ void main() {
         tester,
         key,
         '01_Mobile/Driver_B2C/07_driver_navigation__available__$localeCode.png',
+      );
+    });
+
+    testWidgets('capture foreground push alert $localeCode', (tester) async {
+      await _setup(tester);
+      final key = GlobalKey();
+      final push = _EvidencePushService();
+      addTearDown(push.dispose);
+
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: key,
+          child: FoodexDriverApp(
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            initialSession: b2cSession,
+            initialRoute: '/driver/b2c/home',
+            locale: locale,
+            authRepository: const _EvidenceAuthRepository(),
+            assignmentRepositoryFactory: (_) => const _EvidenceAssignments(),
+            notificationRepositoryFactory: (_) => const _EvidenceNotifications(),
+            pushService: push,
+            showPersistentFooter: false,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      push.emitAlert(
+        DriverPushAlert(
+          title: localeCode == 'ar' ? 'طلب جديد' : 'New order',
+          body: localeCode == 'ar'
+              ? 'تم إسناد الطلب إليك'
+              : 'A new order was assigned to you',
+          open: const DriverPushOpen(
+            assignmentId: 3,
+            orderId: 41,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(find.textContaining(localeCode == 'ar' ? 'طلب #41' : 'Order #41'), findsOneWidget);
+      expect(
+        find.text(localeCode == 'ar' ? 'عرض الطلب' : 'View order'),
+        findsOneWidget,
+      );
+      await _writeBoundary(
+        tester,
+        key,
+        '01_Mobile/Driver_B2C/09_driver_foreground_alert__order_41__$localeCode.png',
       );
     });
 
@@ -293,6 +354,59 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
 
   @override
   Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
+}
+
+class _EvidenceNotifications implements DriverNotificationRepository {
+  const _EvidenceNotifications();
+
+  @override
+  Future<List<DriverNotification>> list({required String locale}) async => [
+        DriverNotification(
+          id: 701,
+          title: locale == 'ar' ? 'طلب جديد #41' : 'New order #41',
+          body: locale == 'ar'
+              ? 'تم إسناد الطلب إليك'
+              : 'A new order was assigned to you',
+          readAt: null,
+          data: const {
+            'assignment_id': 3,
+            'order_id': 41,
+            'access_revoked': false,
+          },
+        ),
+      ];
+
+  @override
+  Future<void> markRead(int notificationId) async {}
+}
+
+class _EvidencePushService implements DriverPushService {
+  final StreamController<DriverPushOpen> _opens =
+      StreamController<DriverPushOpen>.broadcast();
+  final StreamController<DriverPushAlert> _alerts =
+      StreamController<DriverPushAlert>.broadcast();
+
+  @override
+  Stream<DriverPushOpen> get opens => _opens.stream;
+
+  @override
+  Stream<DriverPushAlert> get alerts => _alerts.stream;
+
+  void emitAlert(DriverPushAlert alert) => _alerts.add(alert);
+
+  @override
+  DriverPushOpen? takePendingOpen() => null;
+
+  @override
+  Future<void> bindSession(String accessToken) async {}
+
+  @override
+  Future<void> revokeSession() async {}
+
+  Future<void> dispose() async {
+    await _opens.close();
+    await _alerts.close();
+  }
 }
 
 class _EmptyAssignments implements DriverAssignmentRepository {

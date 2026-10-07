@@ -214,7 +214,7 @@ final class B2bAccountLedgerService
     {
         $paid = round((float) DB::table('payments')
             ->where('invoice_id', $invoice->getKey())
-            ->where('status', 'paid')
+            ->whereIn('status', ['paid', 'captured'])
             ->sum('amount'), 3);
 
         $ledger = DB::table('customer_account_ledger_entries')
@@ -333,7 +333,7 @@ final class B2bAccountLedgerService
         if ($invoiceIds !== []) {
             $payments = DB::table('payments')
                 ->whereIn('invoice_id', $invoiceIds)
-                ->where('status', 'paid')
+                ->whereIn('status', ['paid', 'captured'])
                 ->orderBy('created_at')
                 ->orderBy('id')
                 ->get(['id', 'invoice_id', 'order_id', 'provider', 'provider_reference', 'currency', 'amount', 'created_at']);
@@ -405,7 +405,7 @@ final class B2bAccountLedgerService
         $invoiceIds = $invoices->pluck('id')->map(fn ($id): int => (int) $id)->all();
         $paidByInvoice = DB::table('payments')
             ->whereIn('invoice_id', $invoiceIds)
-            ->where('status', 'paid')
+            ->whereIn('status', ['paid', 'captured'])
             ->groupBy('invoice_id')
             ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
             ->pluck('paid', 'invoice_id');

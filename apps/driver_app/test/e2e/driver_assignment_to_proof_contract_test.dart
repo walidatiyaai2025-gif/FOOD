@@ -74,6 +74,13 @@ Widget _host(
       ),
     );
 
+Future<void> _openCardActions(WidgetTester tester, int assignmentId) async {
+  await tester.tap(
+    find.byKey(Key('driver-active-actions-$assignmentId')),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets(
     'assignment UI follows backend actions through start delivery and proof handoff',
@@ -101,6 +108,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(
+        find.byKey(const Key('driver-active-actions-693')),
+        findsOneWidget,
+      );
+      await _openCardActions(tester, 693);
       expect(find.byKey(const Key('driver-active-accept-693')), findsOneWidget);
       expect(find.byKey(const Key('driver-active-start-693')), findsNothing);
 
@@ -109,11 +121,14 @@ void main() {
 
       expect(repository.transitions, ['accepted']);
       expect(find.byKey(const Key('driver-active-pickup-693')), findsNothing);
+      await _openCardActions(tester, 693);
       expect(
         find.byKey(const Key('driver-active-card-failed-693')),
         findsOneWidget,
       );
       expect(find.byKey(const Key('driver-active-start-693')), findsNothing);
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
 
       await tester.tap(
         find.byKey(const Key('driver-active-assignment-693')),

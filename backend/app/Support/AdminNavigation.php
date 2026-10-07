@@ -48,6 +48,9 @@ class AdminNavigation
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
                 $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),
+                isset($channels['b2c'])
+                    ? $this->routeItem($user, 'commercial_sales_control', 'admin.commercial_sales_control', 'admin.commercial.sales-control', 'catalog.view')
+                    : null,
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
@@ -71,7 +74,20 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'orders', 'admin.b2b_workspace.modules.orders', 'orders.view'),
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
+            $this->group('field_operations', 'admin.nav_groups.field_operations', '⌖', [
+                $this->routeItemAny($user, 'field_ops_overview', 'admin.field_operations.overview', 'admin.field-operations.overview', ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']),
+                $this->routeItemAny($user, 'field_ops_fleet', 'admin.field_operations.fleet', 'admin.field-operations.fleet', ['drivers.tracking.view']),
+                $this->routeItemAny($user, 'field_ops_vans', 'admin.field_operations.vans', 'admin.field-operations.vans', ['drivers.b2b.view']),
+                $this->routeItemAny($user, 'field_ops_assignments', 'admin.field_operations.assignments', 'admin.field-operations.assignments', ['drivers.b2b.view', 'field_ops.manage']),
+                $this->routeItemAll($user, 'field_ops_customers', 'admin.field_operations.customers', 'admin.field-operations.customers', ['customers.view', 'drivers.b2b.view']),
+                $this->routeItemAll($user, 'field_ops_visits', 'admin.field_operations.visits', 'admin.field-operations.visits', ['drivers.b2b.view', 'customers.view']),
+                $this->routeItemAny($user, 'field_ops_territories', 'admin.field_operations.territories', 'admin.field-operations.territories', ['territories.manage', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_address_quality', 'admin.field_operations.address_quality', 'admin.field-operations.address-quality', ['customers.view']),
+                $this->routeItemAny($user, 'field_ops_routing', 'admin.field_operations.routing', 'admin.field-operations.routing', ['territories.manage', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
+            ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
+                $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
             ]),
@@ -91,19 +107,10 @@ class AdminNavigation
                 $this->routeItemScoped($user, 'app_preview', 'admin.app_preview', 'admin.app-preview.index', 'app_preview.view'),
                 $this->routeItem($user, 'mobile_customer_download', 'admin.mobile_apps.customer_download', 'admin.mobile-apps.customer.download', 'platform.manage'),
                 $this->routeItem($user, 'mobile_driver_download', 'admin.mobile_apps.driver_download', 'admin.mobile-apps.driver.download', 'platform.manage'),
+                $this->routeItem($user, 'mobile_van_download', 'admin.mobile_apps.van_download', 'admin.mobile-apps.van.download', 'platform.manage'),
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
-                $this->routeItemOpen('profile', 'admin.profile', 'admin.profile.index'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'settings', 'admin.b2c_workspace.modules.settings', null),
-                $this->module($user, $channels, 'b2b', 'settings', 'admin.b2b_workspace.modules.settings', 'settings.view'),
-                $this->routeItem($user, 'security', 'admin.security_center', 'admin.security.index', 'security.view'),
-                $this->routeItem($user, 'demo_data', 'admin.security.demo_data.title', 'admin.security.demo-data.index', 'demo_data.manage'),
-                $this->routeItem($user, 'translations', 'admin.translation_center', 'admin.translations.index', 'translations.manage'),
-                $this->routeItemAny($user, 'assistant_settings', 'admin.assistant_settings', 'admin.assistant-settings.index', ['settings.view', 'settings.manage']),
-                $this->routeItemAny($user, 'mobile_settings', 'mobile_settings.title', 'admin.mobile-settings.index', ['mobile_settings.manage', 'push_settings.manage', 'push_settings.test']),
-                $this->routeItem($user, 'app_versions', 'admin.app_versions', 'admin.app-versions.index', 'platform.manage'),
-                $this->routeItem($user, 'system_inspector', 'admin.system_inspector', 'admin.inspector.index', 'platform.manage'),
-                $this->routeItem($user, 'system_update', 'admin.system_update', 'admin.system-update.index', 'system.update'),
+                $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index'),
             ]),
         ];
 
@@ -320,6 +327,22 @@ class AdminNavigation
         }
 
         return null;
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function routeItemAll(User $user, string $key, string $label, string $route, array $permissions): ?array
+    {
+        if (! Route::has($route)) {
+            return null;
+        }
+
+        foreach ($permissions as $permission) {
+            if (! $user->hasPermission($permission)) {
+                return null;
+            }
+        }
+
+        return ['key' => $key, 'label' => $label, 'route' => $route, 'params' => [], 'permission' => null];
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

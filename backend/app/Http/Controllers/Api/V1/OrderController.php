@@ -15,6 +15,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
+use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\CustomerOrderTimelineService;
 use App\Services\DashboardOperationalNotifier;
@@ -253,6 +254,7 @@ class OrderController extends Controller
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
+                app(CommercialPolicyService::class)->releaseOrderReservations((int) $locked->getKey());
                 if (strtolower((string) $locked->channel) === 'b2b') {
                     $this->reverseCheckoutSettlementEntries($locked, $user);
                 }
@@ -291,6 +293,11 @@ class OrderController extends Controller
                 }
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
+                DB::table('commercial_quota_reservations')
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', CommercialPolicyService::RESERVATION_RESERVED)
+                    ->pluck('reservation_token')
+                    ->each(fn (string $token) => app(CommercialPolicyService::class)->consumeReservation($token));
                 app(RetailWholesaleReplenishmentService::class)->receive($locked, $user);
             }
 
@@ -556,6 +563,11 @@ class OrderController extends Controller
                             : url('/'.ltrim($imagePath, '/')))
                         : null,
                     'quantity' => (float) $item->quantity,
+                    'selling_unit_code' => $item->selling_unit_code_snapshot,
+                    'selling_unit_name' => $item->selling_unit_name_snapshot,
+                    'selling_unit_quantity' => $item->selling_unit_quantity === null ? null : (float) $item->selling_unit_quantity,
+                    'base_quantity' => $item->base_quantity === null ? null : (float) $item->base_quantity,
+                    'conversion_factor' => $item->conversion_factor_snapshot === null ? null : (float) $item->conversion_factor_snapshot,
                     'quantity_conversion_factor' => (float) ($item->quantity_conversion_factor ?? 1),
                     'pack_size' => (float) ($item->quantity_conversion_factor ?? 1),
                     'unit_price' => (float) $item->unit_price,
@@ -590,6 +602,54 @@ class OrderController extends Controller
             ->orderByDesc('revision')
             ->orderByDesc('id')
             ->first();
+
+        $invoiceAmounts = $invoice instanceof Invoice
+            ? app(B2bAccountLedgerService::class)->invoiceAmounts($invoice)
+            : [
+                'invoice_total' => 0.0,
+                'paid_amount' => 0.0,
+                'debit_adjustments' => 0.0,
+                'credit_adjustments' => 0.0,
+                'outstanding_amount' => 0.0,
+                'credit_amount' => 0.0,
+            ];
+
+        $collectionReceipts = $invoice instanceof Invoice
+            ? DB::table('collection_allocations')
+                ->join(
+                    'collection_transactions',
+                    'collection_transactions.id',
+                    '=',
+                    'collection_allocations.collection_transaction_id',
+                )
+                ->where('collection_allocations.invoice_id', $invoice->getKey())
+                ->where('collection_transactions.type', 'collection')
+                ->where('collection_transactions.status', 'posted')
+                ->orderByDesc('collection_transactions.created_at')
+                ->orderByDesc('collection_transactions.id')
+                ->get([
+                    'collection_transactions.id',
+                    'collection_transactions.payment_id',
+                    'collection_transactions.status',
+                    'collection_transactions.source',
+                    'collection_transactions.created_at as collected_at',
+                    'collection_allocations.amount as allocated_amount',
+                    'collection_allocations.currency',
+                ])
+                ->map(static fn (object $receipt): array => [
+                    'id' => (int) $receipt->id,
+                    'payment_id' => $receipt->payment_id === null ? null : (int) $receipt->payment_id,
+                    'status' => (string) $receipt->status,
+                    'amount' => (float) $receipt->allocated_amount,
+                    'currency' => (string) $receipt->currency,
+                    'source' => (string) $receipt->source,
+                    'collected_at' => $receipt->collected_at === null
+                        ? null
+                        : CarbonImmutable::parse((string) $receipt->collected_at)->toAtomString(),
+                ])
+                ->values()
+                ->all()
+            : [];
 
         $tracking = null;
         if ($includeTimeline) {
@@ -672,10 +732,15 @@ class OrderController extends Controller
                 'id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
                 'status' => (string) $invoice->status,
+                'total' => (float) $invoiceAmounts['invoice_total'],
+                'paid_amount' => (float) $invoiceAmounts['paid_amount'],
+                'outstanding_amount' => (float) $invoiceAmounts['outstanding_amount'],
+                'credit_amount' => (float) $invoiceAmounts['credit_amount'],
                 'issued_at' => $invoice->issued_at === null
                     ? null
                     : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
             ] : null,
+            'collection_receipts' => $collectionReceipts,
             'tracking' => $tracking === null ? null : [
                 'assignment_id' => (int) $tracking->id,
                 'driver_id' => (int) $tracking->driver_id,

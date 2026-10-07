@@ -51,6 +51,7 @@ final class NotificationAudience
 
         $isCustomer = $customerChannels->isNotEmpty();
         $isDriver = $driverChannels->isNotEmpty();
+        $isVan = $user->hasPermission('van.login');
 
         if ($isCustomer) {
             $apps[] = 'customer';
@@ -58,6 +59,11 @@ final class NotificationAudience
 
         if ($isDriver) {
             $apps[] = 'driver';
+        }
+
+        if ($isVan) {
+            $apps[] = 'van';
+            $channels[] = 'b2b';
         }
 
         $dashboardRoles = array_values((array) config('admin.dashboard_roles', []));
@@ -110,7 +116,7 @@ final class NotificationAudience
             ->where('status', 'published')
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now())
-            ->where(function (Builder $audience) use ($user, $isCustomer, $isDriver): void {
+            ->where(function (Builder $audience) use ($user, $isCustomer, $isDriver, $isVan): void {
                 $audience->where('audience', 'all')
                     ->orWhere('user_id', $user->id);
 
@@ -120,6 +126,10 @@ final class NotificationAudience
 
                 if ($isDriver) {
                     $audience->orWhere('audience', 'driver');
+                }
+
+                if ($isVan) {
+                    $audience->orWhere('audience', 'van');
                 }
             })
             ->where(function (Builder $app) use ($apps): void {
@@ -141,6 +151,10 @@ final class NotificationAudience
                 if ($storeIds !== []) {
                     $scope->orWhereIn('store_id', $storeIds);
                 }
+            })
+            ->where(function (Builder $targeting) use ($user): void {
+                $targeting->whereNull('data->eligible_user_ids')
+                    ->orWhereJsonContains('data->eligible_user_ids', (int) $user->id);
             });
     }
 }

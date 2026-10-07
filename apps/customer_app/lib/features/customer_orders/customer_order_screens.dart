@@ -149,6 +149,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         tab.loading = false;
         tab.loadingMore = false;
         tab.error = null;
+        tab.lastSuccessfulAt = DateTime.now();
       });
     } catch (error) {
       if (!mounted) return;
@@ -185,7 +186,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         child: Column(
           children: [
             SizedBox(
-              height: 64,
+              height: 52,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -194,7 +195,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: const Color(0xFF111827),
                           fontWeight: FontWeight.w900,
-                          fontSize: 21,
+                          fontSize: 18,
                         ),
                   ),
                   Positioned(
@@ -209,10 +210,10 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                             ? null
                             : () => unawaited(_loadChannel(_activeChannel)),
                         child: const SizedBox.square(
-                          dimension: 44,
+                          dimension: 40,
                           child: Icon(
                             Icons.refresh_rounded,
-                            size: 24,
+                            size: 22,
                             color: Color(0xFF14221D),
                           ),
                         ),
@@ -242,6 +243,12 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     return Column(
       children: [
         _statusFilters(context, channel, tab),
+        if (tab.error != null && tab.orders.isNotEmpty)
+          _OrdersStaleBanner(
+            key: ValueKey('customer-orders-stale-$channel'),
+            errorText: _errorText(context, tab.error!),
+            lastSuccessfulAt: tab.lastSuccessfulAt,
+          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _loadChannel(channel),
@@ -484,24 +491,16 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         if (tab.error != null) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  '${context.tr('customer.orders.stale')} '
-                  '${_errorText(context, tab.error!)}',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  key: ValueKey('customer-orders-retry-$channel'),
-                  onPressed: tab.loadingMore
-                      ? null
-                      : () => unawaited(
-                            _loadChannel(channel, reset: false),
-                          ),
-                  child: Text(context.tr('customer.action.retry')),
-                ),
-              ],
+            child: Center(
+              child: OutlinedButton(
+                key: ValueKey('customer-orders-retry-$channel'),
+                onPressed: tab.loadingMore
+                    ? null
+                    : () => unawaited(
+                          _loadChannel(channel, reset: false),
+                        ),
+                child: Text(context.tr('customer.action.retry')),
+              ),
             ),
           );
         }
@@ -537,8 +536,65 @@ class _OrdersTabState {
   bool loading = false;
   bool loadingMore = false;
   Object? error;
+  DateTime? lastSuccessfulAt;
 
   bool get hasMore => orders.length < total;
+}
+
+class _OrdersStaleBanner extends StatelessWidget {
+  const _OrdersStaleBanner({
+    required this.errorText,
+    required this.lastSuccessfulAt,
+    super.key,
+  });
+
+  final String errorText;
+  final DateTime? lastSuccessfulAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final lastSuccessfulAt = this.lastSuccessfulAt;
+    final updatedLabel = lastSuccessfulAt == null
+        ? null
+        : '${context.tr('customer.orders.last_confirmed_update')}: '
+            '${_formatClock(lastSuccessfulAt)}';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1D39A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 18,
+            color: Color(0xFF8A5A00),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              [
+                context.tr('customer.orders.stale'),
+                errorText,
+                if (updatedLabel != null) updatedLabel,
+              ].join(' · '),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF6B4A00),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class CustomerOrderDetailsScreen extends StatefulWidget {
@@ -810,6 +866,13 @@ class _OrderCard extends StatelessWidget {
   final VoidCallback? onReorder;
   final bool reordering;
 
+  bool get _hasQuickActions =>
+      onTap != null ||
+      onReorder != null ||
+      order.approvalStatus != null ||
+      order.invoiceOutstandingAmount != null ||
+      order.appliedCustomerCreditAmount != null;
+
   void _showQuickActions(BuildContext context) {
     final approval = _approvalText(context, order);
     final financial = _financialText(context, order);
@@ -830,11 +893,16 @@ class _OrderCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
-                style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Text(
+                  order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -854,8 +922,20 @@ class _OrderCard extends StatelessWidget {
                   key: ValueKey('customer-order-balance-applied-${order.id}'),
                 ),
               ],
-              if (onReorder != null) ...[
+              if (onTap != null) ...[
                 const SizedBox(height: 16),
+                FilledButton.icon(
+                  key: ValueKey('customer-order-view-${order.id}'),
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    onTap?.call();
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: Text(context.tr('customer.orders.view_details')),
+                ),
+              ],
+              if (onReorder != null) ...[
+                SizedBox(height: onTap != null ? 8 : 16),
                 OutlinedButton.icon(
                   key: ValueKey('customer-order-reorder-${order.id}'),
                   onPressed: reordering
@@ -895,12 +975,6 @@ class _OrderCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onReorder == null &&
-                order.approvalStatus == null &&
-                order.invoiceOutstandingAmount == null &&
-                order.appliedCustomerCreditAmount == null
-            ? null
-            : () => _showQuickActions(context),
         child: Container(
           constraints: const BoxConstraints(minHeight: 108),
           padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 12),
@@ -949,17 +1023,20 @@ class _OrderCard extends StatelessWidget {
                     children: [
                       Directionality(
                         textDirection: TextDirection.ltr,
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF151B1A),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15.5,
-                                height: 1.12,
-                              ),
+                        child: Tooltip(
+                          message: title,
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.left,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: const Color(0xFF151B1A),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15.5,
+                                  height: 1.12,
+                                ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -982,14 +1059,17 @@ class _OrderCard extends StatelessWidget {
                         Directionality(
                           textDirection: TextDirection.ltr,
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _formatDateTime(order.createdAt!),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: const Color(0xFF69736F),
-                                      fontSize: 11.5,
-                                    ),
+                              Expanded(
+                                child: Text(
+                                  _formatDateTime(order.createdAt!),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: const Color(0xFF69736F),
+                                        fontSize: 11.5,
+                                      ),
+                                ),
                               ),
                               const SizedBox(width: 8),
                               const Icon(
@@ -1021,6 +1101,26 @@ class _OrderCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 _CompactOrderStatusChip(status: order.status),
+                if (_hasQuickActions) ...[
+                  const SizedBox(width: 8),
+                  Material(
+                    color: const Color(0xFF07885E),
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      key: ValueKey('customer-order-actions-${order.id}'),
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _showQuickActions(context),
+                      child: const SizedBox.square(
+                        dimension: 36,
+                        child: Icon(
+                          Icons.more_horiz_rounded,
+                          size: 22,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1110,6 +1210,8 @@ class _OrderHeader extends StatelessWidget {
     final channel = order.channel == 'b2b'
         ? context.tr('customer.orders.channel.wholesale')
         : context.tr('customer.orders.channel.retail');
+    final title =
+        order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -1124,11 +1226,17 @@ class _OrderHeader extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: CustomerUiColors.white,
-                        ),
+                  child: Tooltip(
+                    message: title,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: CustomerUiColors.white,
+                          ),
+                    ),
                   ),
                 ),
                 _StatusChip(status: order.status, inverted: true),
@@ -1395,25 +1503,138 @@ class _PaymentSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final payment = details.payment;
-    if (payment == null) {
-      return Text(
-        details.paymentMethod?.trim().isNotEmpty == true
-            ? details.paymentMethod!
-            : context.tr('customer.empty'),
-      );
+    final receipts = details.collectionReceipts;
+    final outstanding = details.summary.invoiceOutstandingAmount;
+    final paymentMethodLabel =
+        _paymentMethodLabel(context, details.paymentMethod);
+    final paymentProviderLabel = payment == null
+        ? null
+        : _paymentProviderLabel(context, payment.provider);
+    final paymentStatusLabel = payment == null
+        ? null
+        : _paymentStatusLabel(context, payment.status);
+
+    if (payment == null && receipts.isEmpty && outstanding == null) {
+      return Text(paymentMethodLabel);
     }
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.payments_outlined),
-      title: Text(payment.provider),
-      subtitle: Text(payment.status),
-      trailing: Text(
-        '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (payment != null)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.payments_outlined),
+            title: Text(paymentProviderLabel!),
+            subtitle: Text(paymentStatusLabel!),
+            trailing: Text(
+              '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        if (outstanding != null)
+          ListTile(
+            key: ValueKey('customer-order-outstanding-${details.summary.id}'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.account_balance_wallet_outlined),
+            title: Text(context.tr('customer.order.payment.remaining')),
+            trailing: Text(
+              '${outstanding.toStringAsFixed(3)} ${details.summary.currency}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        if (receipts.isNotEmpty) ...[
+          const SizedBox(height: CustomerUiSpacing.xs),
+          Text(
+            context.tr('customer.order.payment.collection_receipts'),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: CustomerUiSpacing.xxs),
+          for (final receipt in receipts)
+            ListTile(
+              key: ValueKey('customer-collection-receipt-${receipt.id}'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(
+                '${context.tr('customer.order.payment.collection_receipt')} '
+                '#${receipt.id}',
+              ),
+              subtitle: Text(
+                [
+                  _collectionStatusText(context, receipt.status),
+                  _collectionSourceText(context, receipt.source),
+                  if (receipt.collectedAt != null)
+                    _formatDateTime(receipt.collectedAt!),
+                ].join(' · '),
+              ),
+              trailing: Text(
+                '${receipt.amount.toStringAsFixed(3)} ${receipt.currency}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
+      ],
     );
   }
+}
+
+String _paymentMethodLabel(BuildContext context, String? value) {
+  final normalized = value?.trim().toLowerCase() ?? '';
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'card' || 'credit_card' || 'debit_card' => ar ? 'بطاقة' : 'Card',
+    'knet' => 'KNET',
+    'wallet' => ar ? 'المحفظة' : 'Wallet',
+    _ => normalized.isEmpty
+        ? context.tr('customer.empty')
+        : (ar ? 'طريقة دفع' : 'Payment method'),
+  };
+}
+
+String _paymentProviderLabel(BuildContext context, String value) {
+  final normalized = value.trim().toLowerCase();
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'knet' => 'KNET',
+    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'stripe' => 'Stripe',
+    'apple_pay' => 'Apple Pay',
+    'google_pay' => 'Google Pay',
+    _ => ar ? 'مزود الدفع' : 'Payment provider',
+  };
+}
+
+String _paymentStatusLabel(BuildContext context, String value) {
+  final normalized = value.trim().toLowerCase();
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'paid' || 'captured' || 'completed' || 'succeeded' => ar ? 'مدفوع' : 'Paid',
+    'pending' || 'processing' => ar ? 'قيد المعالجة' : 'Processing',
+    'failed' => ar ? 'فشل الدفع' : 'Payment failed',
+    'refunded' => ar ? 'تم رد المبلغ' : 'Refunded',
+    'cancelled' || 'canceled' => ar ? 'ملغي' : 'Cancelled',
+    _ => ar ? 'حالة الدفع' : 'Payment status',
+  };
+}
+
+String _collectionStatusText(BuildContext context, String status) {
+  return status.trim().toLowerCase() == 'posted'
+      ? context.tr('customer.order.payment.status.collected')
+      : status.trim().replaceAll('_', ' ');
+}
+
+String _collectionSourceText(BuildContext context, String source) {
+  final normalized = source.trim().toLowerCase();
+  if (normalized.contains('driver')) {
+    return context.tr('customer.order.payment.source.driver');
+  }
+  if (normalized.contains('van')) {
+    return context.tr('customer.order.payment.source.van');
+  }
+  return context.tr('customer.order.payment.source.field');
 }
 
 class _Section extends StatelessWidget {

@@ -1,5 +1,16 @@
 # FOODEX Design Reference Index
 
+## Mandatory implementation contract
+
+All Dashboard/Admin/business-facing UI work must follow:
+
+- [Dashboard UI/UX & Master-Data Contract](./DASHBOARD_UI_UX_CONTRACT.md)
+
+This contract is authoritative for navigation, tabs, grids, FOODEX buttons, modal workflows, direct-record actions, Master Data lookups, map-first geography, Admin Hub structure, and Customer/Driver/Van application parity.
+
+Current autonomous execution Mission for the v4.2 contract: **#1001**, with the authoritative plan at `docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md`.
+
+
 Authoritative source archive: `Foodex_Design_Reference_Laravel_Flutter (1).zip`  
 SHA-256: `bfc481ead664c3b683fb84be45fabc3108394154b9326d27ef3c58cee5171f45`
 

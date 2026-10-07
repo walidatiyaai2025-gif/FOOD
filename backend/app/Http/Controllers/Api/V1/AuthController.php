@@ -140,7 +140,7 @@ class AuthController extends Controller
         return response()->json($this->identity($user));
     }
 
-    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,store_ids:list<int>,driver_scope:?array{driver_id:int,channel:string,store_id:?int},platform_customer:bool,retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_wholesale_accounts:list<array{retail_store_id:int,b2b_customer_id:int}>} */
+    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,permissions:list<string>,store_ids:list<int>,driver_scope:?array{driver_id:int,channel:string,store_id:?int},platform_customer:bool,retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_wholesale_accounts:list<array{retail_store_id:int,b2b_customer_id:int}>} */
     private function identity(User $user): array
     {
         $roles = $user->roles()
@@ -177,6 +177,7 @@ class AuthController extends Controller
             'email' => (string) $user->email,
             'locale' => (string) $user->locale,
             'roles' => $roles,
+            'permissions' => $user->effectivePermissionCodes(),
             'store_ids' => $storeIds,
             'driver_scope' => $driverScope,
             'platform_customer' => $this->platformCustomers->isPlatformCustomer($user),

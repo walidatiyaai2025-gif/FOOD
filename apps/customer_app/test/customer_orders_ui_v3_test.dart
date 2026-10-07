@@ -82,6 +82,52 @@ void main() {
   });
 
   testWidgets(
+      'order identifiers stay single-line and actions use one green ellipsis',
+      (tester) async {
+    final api = _FakeOrdersApi(
+      responder: (channel, page) => Future.value(
+        _page(channel: channel, orderId: channel == 'b2b' ? 93 : 94),
+      ),
+    );
+    CustomerOrderSummary? opened;
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(
+          api: api,
+          onOpenOrder: (order) => opened = order,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final orderNumber = tester.widget<Text>(find.text('WH-93'));
+    expect(orderNumber.maxLines, 1);
+    expect(orderNumber.overflow, TextOverflow.ellipsis);
+    expect(
+      find.byKey(const ValueKey('customer-order-actions-93')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-actions-93')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('customer-order-view-93')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-view-93')),
+    );
+    await tester.pumpAndSettle();
+    expect(opened?.id, 93);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
       'pagination refresh and order open stay isolated by authoritative channel',
       (tester) async {
     final api = _FakeOrdersApi(
@@ -221,7 +267,9 @@ void main() {
 
     expect(api.statusCalls, contains('b2b:delivered'));
 
-    await tester.longPress(find.byKey(const ValueKey('customer-order-301')));
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-actions-301')),
+    );
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('customer-order-reorder-301')),
@@ -263,7 +311,9 @@ void main() {
     expect(find.text('Order received'), findsOneWidget);
     expect(find.textContaining('Pending customer-service approval'), findsNothing);
 
-    await tester.longPress(find.byKey(const ValueKey('customer-order-501')));
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-actions-501')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Pending customer-service approval'), findsOneWidget);
@@ -302,7 +352,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.byKey(const ValueKey('customer-order-502')));
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-actions-502')),
+    );
     await tester.pumpAndSettle();
     expect(find.textContaining('Approval: Approved'), findsOneWidget);
     expect(find.textContaining('Due on delivery 15.500 KWD'), findsOneWidget);
@@ -314,7 +366,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('customer-orders-refresh')));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.byKey(const ValueKey('customer-order-502')));
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-actions-502')),
+    );
     await tester.pumpAndSettle();
     expect(find.textContaining('Fully settled'), findsOneWidget);
     expect(find.textContaining('Due on delivery 15.500 KWD'), findsNothing);
@@ -360,6 +414,54 @@ void main() {
     );
     expect(noSettlement.invoiceOutstandingAmount, isNull);
     expect(noSettlement.fullySettled, isNull);
+  });
+
+  testWidgets(
+      'orders resume refresh keeps stale data visible with truthful offline freshness',
+      (tester) async {
+    var offline = false;
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async {
+        if (offline && channel == 'b2b') {
+          throw const CustomerOrdersException('network_unavailable');
+        }
+        return _page(
+          channel: channel,
+          orderId: channel == 'b2b' ? 701 : 702,
+        );
+      },
+    );
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('WH-701'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-orders-stale-b2b')),
+      findsNothing,
+    );
+
+    offline = true;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('WH-701'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-orders-stale-b2b')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('last confirmed orders'), findsOneWidget);
+    expect(find.textContaining('Last confirmed update'), findsOneWidget);
+    expect(
+      api.calls.where((call) => call == 'b2b:1').length,
+      greaterThanOrEqualTo(2),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',

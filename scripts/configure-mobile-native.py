@@ -28,6 +28,10 @@ IDENTITIES = {
         'bundle_id': 'com.fiftysolution.foodex.driver',
         'label': 'FOODEX Driver',
     },
+    'van': {
+        'bundle_id': 'com.foodex.van',
+        'label': 'FOODEX Van',
+    },
 }
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -58,15 +62,15 @@ def _select_brand_assets(app_name: str) -> None:
             / 'foodex-economical-group.webp'
         )
         SPLASH_IMAGE = BRAND_ROOT / 'customer_splash.png'
-    elif app_name == 'driver':
-        # Customer and Driver intentionally share the same approved FOODEx
-        # application identity artwork.
+    elif app_name in ('driver', 'van'):
+        # Driver and Van intentionally share the approved FOODEX operations
+        # identity artwork until a dedicated Van asset pack is approved.
         APP_ICON = BRAND_ROOT / 'customer_app_icon_1024.png'
         APP_ICON_FOREGROUND = APP_ICON
         ANDROID_APP_ICON = (
             REPO_ROOT
             / 'apps'
-            / 'driver_app'
+            / ('driver_app' if app_name == 'driver' else 'customer_app')
             / 'assets'
             / 'branding'
             / 'foodex-economical-group.webp'
@@ -417,7 +421,7 @@ def _configure_android_foreground_location(app: Path, *, background_delivery: bo
     manifest.write_text(text)
 
 
-def patch_android(app_dir: Path, bundle_id: str) -> None:
+def patch_android(app_dir: Path, bundle_id: str, label: str) -> None:
     app = app_dir / 'android' / 'app'
     build_files = [app / 'build.gradle.kts', app / 'build.gradle']
     for path in build_files:
@@ -471,6 +475,20 @@ def patch_android(app_dir: Path, bundle_id: str) -> None:
             )
             text = text.replace('FlutterActivity()', 'FlutterFragmentActivity()')
         path.write_text(text)
+
+    manifest = app / 'src' / 'main' / 'AndroidManifest.xml'
+    if not manifest.exists():
+        raise RuntimeError('Generated Android main manifest was not found')
+    text = manifest.read_text()
+    text, count = re.subn(
+        r'android:label="[^"]*"',
+        f'android:label="{label}"',
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError('Generated Android application label was not found')
+    manifest.write_text(text)
 
     _enable_android_core_library_desugaring(app)
     _configure_android_firebase(app_dir, bundle_id)
@@ -708,7 +726,7 @@ def main() -> None:
     _require_brand_assets()
     identity = IDENTITIES[args.app]
     if args.platform in ('all', 'android'):
-        patch_android(args.app_dir, identity['bundle_id'])
+        patch_android(args.app_dir, identity['bundle_id'], identity['label'])
     if args.platform in ('all', 'ios'):
         patch_ios(args.app_dir, identity['bundle_id'], identity['label'])
     print(f"{args.app}: {identity['bundle_id']} + FOODEX native branding")

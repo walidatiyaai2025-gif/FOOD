@@ -1,0 +1,118 @@
+name: FOODEX Store Submission Readiness
+
+on:
+  pull_request:
+    paths:
+      - "apps/customer_app/**"
+      - "apps/driver_app/**"
+      - "apps/van_app/**"
+      - "backend/**"
+      - "scripts/configure-mobile-native.py"
+      - "scripts/configure-android-store-signing.py"
+      - "scripts/store-readiness-audit.py"
+      - "store/submission/**"
+      - ".github/workflows/store-submission-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Store readiness deterministic audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit repository-controlled readiness
+        run: python3 scripts/store-readiness-audit.py
+      - name: Upload readiness evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-store-readiness
+          path: artifacts/store-readiness/
+          if-no-files-found: error
+          retention-days: 30
+
+  android-aab-validation:
+    name: ${{ matrix.label }} release AAB validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: customer
+            project: foodex_customer_app
+            label: Customer Android
+          - app: driver
+            project: foodex_driver_app
+            label: Driver Android
+          - app: van
+            project: foodex_van_app
+            label: Van Android
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Prepare Android production identity
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name "${{ matrix.project }}" .
+          python3 ../../scripts/configure-mobile-native.py --app "${{ matrix.app }}" --app-dir . --platform android
+          flutter pub get
+
+      - name: Create ephemeral release-validation key
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/foodex-validation-release.jks" \
+            -storetype JKS \
+            -storepass "validation-release-pass" \
+            -keypass "validation-release-pass" \
+            -alias "foodex-validation-release" \
+            -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=FOODEX CI Release Validation,O=FOODEX,C=KW"
+          echo "FOODEX_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/foodex-validation-release.jks" >> "$GITHUB_ENV"
+          echo "FOODEX_ANDROID_KEYSTORE_PASSWORD=validation-release-pass" >> "$GITHUB_ENV"
+          echo "FOODEX_ANDROID_KEY_ALIAS=foodex-validation-release" >> "$GITHUB_ENV"
+          echo "FOODEX_ANDROID_KEY_PASSWORD=validation-release-pass" >> "$GITHUB_ENV"
+
+      - name: Enforce explicit non-debug release signing
+        run: python3 ../../scripts/configure-android-store-signing.py --app-dir .
+
+      - name: Build validation AAB
+        run: |
+          set -euo pipefail
+          flutter build appbundle --release \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
+          aab=build/app/outputs/bundle/release/app-release.aab
+          test -s "$aab"
+          jarsigner -verify -verbose -certs "$aab" > build/store-aab-signature.txt
+          if grep -Fqi "Android Debug" build/store-aab-signature.txt; then
+            echo "Store validation AAB unexpectedly used Android debug signing." >&2
+            exit 1
+          fi
+          sha256sum "$aab" > build/store-aab.sha256
+          printf '%s\n' "VALIDATION ONLY — ephemeral release key; NOT FOR STORE SUBMISSION" > build/store-aab-NOT-FOR-STORE.txt
+
+      - name: Upload validation evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-${{ matrix.app }}-store-aab-validation-evidence
+          path: |
+            apps/${{ matrix.app }}_app/build/store-aab-signature.txt
+            apps/${{ matrix.app }}_app/build/store-aab.sha256
+            apps/${{ matrix.app }}_app/build/store-aab-NOT-FOR-STORE.txt
+          if-no-files-found: error
+          retention-days: 30

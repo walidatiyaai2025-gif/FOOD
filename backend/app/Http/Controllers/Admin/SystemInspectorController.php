@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Store;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
 use App\Services\SystemInspectorRecorder;
@@ -62,11 +63,12 @@ final class SystemInspectorController extends Controller
             'appBuild' => $appBuild,
             'channel' => $channel,
             'storeId' => $storeId,
+            'stores' => Store::query()->select(['id', 'name', 'code'])->orderBy('name')->orderBy('id')->get(),
             'stats' => [
                 'total' => SystemInspectorEvent::query()->count(),
                 'errors_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('severity', 'error')->count(),
                 'javascript_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->whereIn('source', ['javascript', 'fetch'])->count(),
-                'mobile_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->whereIn('source', ['customer_app', 'driver_app'])->count(),
+                'mobile_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->whereIn('source', ['customer_app', 'driver_app', 'van_app'])->count(),
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),

@@ -36,13 +36,14 @@ def main() -> None:
     parser.add_argument("--api-base-url", required=True)
     parser.add_argument("--customer", type=Path, required=True)
     parser.add_argument("--driver", type=Path, required=True)
+    parser.add_argument("--van", type=Path, required=True)
     parser.add_argument("--setup", type=Path, required=True)
     parser.add_argument("--customer-firebase", default="false")
     parser.add_argument("--driver-firebase", default="false")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    for path in (args.customer, args.driver, args.setup):
+    for path in (args.customer, args.driver, args.van, args.setup):
         if not path.is_file() or path.stat().st_size < 1:
             raise SystemExit(f"Required distribution file is missing or empty: {path}")
 
@@ -67,6 +68,13 @@ def main() -> None:
             "build_number": args.mobile_build_number,
             "application_id": "com.fiftysolution.foodex.driver",
             "firebase_configured": parse_bool(args.driver_firebase),
+        },
+        "van": {
+            **file_entry(args.van),
+            "version": args.version,
+            "build_number": args.mobile_build_number,
+            "application_id": "com.foodex.van",
+            "firebase_configured": True,
         },
         "laravel_setup": {
             **file_entry(args.setup),

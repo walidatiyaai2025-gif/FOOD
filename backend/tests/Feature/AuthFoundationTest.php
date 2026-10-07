@@ -32,6 +32,7 @@ class AuthFoundationTest extends TestCase
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.email', $user->email)
             ->assertJsonPath('user.roles', [])
+            ->assertJsonPath('user.permissions', [])
             ->assertJsonPath('user.store_ids', [])
             ->assertJsonPath('user.driver_scope', null);
 
@@ -86,6 +87,27 @@ class AuthFoundationTest extends TestCase
             ->assertJsonPath('user.driver_scope.driver_id', $driver->id)
             ->assertJsonPath('user.driver_scope.channel', 'b2c')
             ->assertJsonPath('user.driver_scope.store_id', $storeId);
+    }
+
+    public function test_login_exposes_effective_permissions_for_van_authorization(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $user = User::query()->create([
+            'name' => 'Van Operator',
+            'email' => 'van-operator@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $this->assertContains('van.login', $login->json('user.permissions'));
     }
 
     public function test_invalid_or_inactive_credentials_are_rejected(): void

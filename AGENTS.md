@@ -10,6 +10,36 @@ The objective is simple:
 
 GitHub is the source of truth. Chat history is not.
 
+## Mandatory Dashboard UI/UX and Master-Data contract
+
+Before implementing or modifying any Dashboard page, Admin navigation, business-facing form, or application-management feature, every worker **MUST** read and follow:
+
+- `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
+
+This is a repository-level Definition-of-Done contract, not optional visual guidance.
+
+Core invariants include:
+
+- Sidebar navigation is organized by business domain; do not hide unrelated features inside one project/epic menu.
+- Related page functions use horizontal page-level tabs where appropriate.
+- Add/Create actions use clear FOODEX primary buttons and Modal/Drawer/Wizard workflows.
+- Manage/Edit/View actions open the exact record directly rather than redirecting to a generic list.
+- Dashboard action buttons use FOODEX green with white text; default Bootstrap-looking action buttons are not acceptable.
+- Data grids follow the Orders-grid interaction model with useful row data; row actions use one compact FOODEX-green three-dots (ellipsis) menu containing the available actions.
+- Business users must never be asked to type internal database IDs, keys, technical codes, or raw JSON when a Lookup, Enum, or Builder is appropriate.
+- Every Lookup must read from its authoritative Master Data source/page; do not hard-code managed Master Data into dropdowns.
+- Geography/Territories are map-first for business users; raw GeoJSON/keys remain advanced/internal.
+- Administration opens as an icon/card Admin Hub rather than a long nested link list.
+- Customer, Driver and Van are three first-class FOODEX applications; app-level capabilities require parity evaluation across all three.
+- Arabic/English, responsive behavior and shared FOODEX components are acceptance requirements.
+- Every page/feature/function must comply with `docs/quality/LOCALIZATION_CONTRACT.md`: selected Arabic must not surface untranslated English system wording/data labels, and selected English must not surface untranslated Arabic system wording/data labels. New translation keys require AR/EN parity; raw status/state/channel/role/type values must be localized before display.
+- Customer / Driver / Van mobile layouts are data-first and compact: title + subtitle must consume only a minimal footprint (target ~1% of usable page area), Start/End filters + action stay on one line, order numbers never wrap, screens use the available viewport, and list/grid rows remain compact.
+- Customer / Driver / Van must evaluate and implement Remember Me + biometric unlock consistently; never persist plaintext passwords for biometric login.
+- The main Dashboard map is unified Live Tracking for both Drivers and Vans, with person markers for Drivers and vehicle markers for Vans.
+- Every FOODEX version promotion must follow `docs/release/RELEASE_ARTIFACT_CONTRACT.md`: `Release/Updates` is refreshed and synchronized versioned APKs for Customer + Driver + Van plus `LATEST_RELEASE.json` are generated automatically. A release is incomplete if any one of the three APKs is missing.
+
+A worker must classify every business-facing field before implementation as Lookup, Enum, Builder, legitimate free input, or advanced technical input. Raw IDs/keys/JSON are never the default UI simply because the backend accepts them.
+
 ---
 
 ## 1. Mandatory rule: One Task = One Owner = One Branch = One PR
@@ -491,7 +521,9 @@ Therefore:
 - do not rely on private chat context for critical next steps;
 - commit coherent progress before long waits when safe;
 - record blockers/next actions in GitHub;
-- a new worker should be able to resume without asking the user to reconstruct history.
+- a new worker should be able to resume without asking the user to reconstruct history;
+- after any connection interruption or uncertain GitHub mutation result, re-fetch the live Issue/branch/PR/head before retrying the mutation;
+- branch creation, PR creation, workflow rerun and completion mutations must be idempotent: discover/reuse existing state before creating or rerunning anything.
 
 If a worker/session hangs, another worker should take over the same task using the same branch/PR.
 
@@ -716,6 +748,14 @@ That command means:
 - stop only at a genuine external/human gate or when no safe actionable managed work remains.
 
 The user may still provide `HANDOFF #<issue>` when they want to force a specific task, but the longer AUTO-HANDOFF prompt is no longer required.
+
+The owner may also use the bare active-project commands:
+
+- `حرك مشروع FOOD`
+- `اشتغل على مشروع FOOD`
+- `FOOD MISSION`
+
+These commands must resolve the current open `[MISSION][ACTIVE]` FOOD umbrella from live GitHub state and execute it using Section 20. The user does not need to know or repeat the umbrella number.
 
 
 ---
@@ -1144,3 +1184,148 @@ A worker must never report **"C13 finished"** while:
 - any Customer financial screen disagrees with the authoritative ledger;
 - any required screen still presents mock/stale data as live;
 - any required AR/EN, RTL/LTR, authorization, isolation or integrated E2E gate is red.
+
+- **Multiline PHP method signatures:** do not infer brace/operator style from older files. The current CI-resolved Pint contract is authoritative: for multiline methods/functions with a declared return type, Pint places the opening `{` on the same line as `): ReturnType {`; for negated `isset` guards, preserve Pint's exact spacing (`! isset(...)`). If dependency drift changes formatter output again, run Pint on the affected file and promote the generated diff here before repeated pushes.
+
+---
+
+## 25. Active FOOD Mission resolution — UI/UX v4.2 Recovery
+
+The current active FOOD UI/UX mission is:
+
+- umbrella: **#1034 — [MISSION][ACTIVE][UIUX-V42-RECOVERY]**;
+- mission ID: `UIUX-V42-RECOVERY`;
+- integration target: `release/1034-uiux-v42-recovery`;
+- execution plan: `docs/execution/UIUX_V42_RECOVERY_MISSION_PLAN.md`;
+- human-readable requirement matrix: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENT_MATRIX.md`;
+- machine-readable requirements: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`;
+- active registry: `docs/execution/ACTIVE_FOOD_MISSION.json`;
+- static/coverage gate: **#1041**;
+- runtime visual/interaction gate: **#1042**;
+- final recovery convergence gate: **#1043**;
+- existing terminal release gate: **#1021**;
+- maximum implementation parallelism: **6 active lanes**.
+
+The previous umbrella #1001 is historical/completed state only. It must not be selected as the active mission while #1034 is open.
+
+When the repository owner says `حرك مشروع FOOD`, `اشتغل على مشروع FOOD`, `FOOD MISSION`, or `FOOD AUTO-HANDOFF`:
+
+1. search live GitHub for the open `[MISSION][ACTIVE]` FOOD umbrella and select #1034 while it is open;
+2. reconstruct #1035-#1043 and #1021 from live Issue/branch/PR/CI state;
+3. prioritize exact-head repository-local RED/conflicts, then merge-ready lanes, then stale/handoff-ready same-branch takeovers, then READY dependency-safe lanes;
+4. keep no more than six implementation lanes active at once;
+5. use each child Issue's exact canonical branch and PR target;
+6. never create a retry/replacement branch or duplicate PR because a worker/chat disconnected or CI failed;
+7. preserve running exact-head CI; move to another safe lane rather than duplicating the run;
+8. after each lane completes, return to #1034 and continue draining;
+9. stop only at mission COMPLETE or when every remaining lane is genuinely HUMAN-GATED.
+
+The first six implementation lanes are:
+
+- #1035 Dashboard/Admin Hub;
+- #1036 Commercial Sales Control + Flash Offers;
+- #1037 Field Operations lookups/map-first/action compliance;
+- #1038 Customer App full v4.2 sweep;
+- #1039 Driver App full v4.2 sweep + exact-record notifications;
+- #1040 Van App full v4.2 sweep.
+
+Then #1041 -> #1042 -> #1043 run in order. Only after #1043 PASS may #1021 build/publish the recovered release.
+
+If the registry disagrees with live GitHub Issue/branch/PR state, live GitHub state wins. The registry locates the mission; it is not a cached completion database.
+
+---
+
+## 26. False-completion prevention and requirement-evidence contract
+
+This section is mandatory for every mission/release that claims compliance with a multi-page product/UI/UX plan.
+
+### 26.1 Requirement coverage is a release invariant
+
+Before parallel implementation begins, the authoritative plan/contract must be converted into a repository-tracked requirement matrix.
+
+Every requirement row must contain:
+
+- a stable Requirement ID;
+- exact scope;
+- exactly one owning implementation/audit Issue;
+- expected source evidence;
+- expected automated/test evidence;
+- expected runtime/visual/interaction evidence when applicable;
+- locale/responsive evidence requirements when applicable;
+- current status.
+
+A requirement may not disappear merely because no child Issue was created for it. `UNOWNED` or `UNKNOWN` is a release-blocking defect.
+
+### 26.2 Closed Issue / green CI is never product proof
+
+The following are **not sufficient by themselves** to mark a user-facing requirement PASS:
+
+- Issue closed;
+- PR merged;
+- Repository Policy green;
+- Required CI green;
+- backend persistence/contract test green;
+- static/diff-based UI guard green;
+- screenshot generation job green;
+- successful package build.
+
+These signals prove only what they directly test.
+
+For a visual or interaction requirement, the required real runtime evidence must also exist and be reviewed against that Requirement ID.
+
+### 26.3 Legacy code is never grandfathered by a diff-based guard
+
+A diff/source guard may prevent new regressions, but it does not certify pre-existing screens.
+
+Final acceptance must inventory and review legacy/current routes and screens that are within the plan's scope. A worker may not say a screen is compliant merely because it was unchanged by the current PR.
+
+### 26.4 Visual/runtime evidence must use the real integrated product
+
+Evidence must come from the actual integrated route/screen/runtime and exact relevant source lineage.
+
+Mock-only widgets, screenshot-only substitute screens, backend strings, or stale artifacts from an older SHA do not satisfy runtime evidence.
+
+Where required, evidence must include:
+
+- Arabic + RTL;
+- English + LTR;
+- responsive Dashboard widths;
+- representative mobile widths/devices;
+- loaded/empty/error/stale/offline states;
+- the actual interaction under test (lookup, builder, ellipsis menu, map editing, push/deep link, biometric unlock, invoice, etc.).
+
+### 26.5 Independent final convergence
+
+The final convergence gate must independently re-read:
+
+1. the authoritative contract/plan;
+2. the requirement matrix;
+3. the integrated source;
+4. the static/test evidence;
+5. the runtime evidence manifest;
+6. exact-head CI.
+
+It must not infer completion from child Issue states.
+
+If any row is `OPEN`, `PARTIAL`, `FAIL`, `UNKNOWN`, or `UNOWNED`, convergence fails.
+
+### 26.6 Release source identity
+
+After final convergence freezes the implementation SHA:
+
+- final release artifacts must be built from exactly that source;
+- if business/application source changes after the freeze, prior artifacts/evidence are stale and the affected gates must run again;
+- Setup/APKs/update manifests/build metadata must identify the same source/version lineage;
+- release/package integrity does not replace UI/runtime acceptance, and UI/runtime acceptance does not replace release/package integrity. Both are required.
+
+### 26.7 Defect found by a late gate
+
+If coverage/runtime/final-release validation discovers a real defect:
+
+- continue/reopen the owning canonical Issue/branch when practical;
+- do not waive the defect as "known";
+- do not create duplicate retry branches;
+- reintegrate the fix;
+- rerun all dependent gates whose evidence/source lineage became stale.
+
+This policy exists specifically to prevent a mission from being declared complete while the installed product still violates its authoritative plan.

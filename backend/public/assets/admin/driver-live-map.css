@@ -48,3 +48,12 @@
     .driver-live-map-shell .driver-live-map-canvas{height:480px}
     .driver-live-map-shell[data-mode="compact"] .driver-live-map-canvas{height:250px}
 }
+
+.tracking-entity-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px;color:var(--foodex-muted);font-size:.78rem}
+.tracking-entity-legend>span{display:inline-flex;align-items:center;gap:5px}
+.tracking-entity-symbol{font-size:1.05rem;line-height:1}
+.foodex-tracking-entity-marker{background:transparent;border:0}
+.foodex-tracking-entity-marker span{display:flex;width:30px;height:30px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.28);font-size:18px;line-height:1}
+.foodex-tracking-entity-marker-online span{outline:3px solid #16a34a}
+.foodex-tracking-entity-marker-stale span{outline:3px solid #f59e0b}
+.foodex-tracking-entity-marker-offline span{outline:3px solid #64748b}

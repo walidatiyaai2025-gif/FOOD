@@ -49,13 +49,26 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleHomeDesignScreenState
-    extends State<WholesaleHomeDesignScreen> {
+    extends State<WholesaleHomeDesignScreen> with WidgetsBindingObserver {
   final search = TextEditingController();
   final campaignPopups = CustomerNotificationCampaignPopupService();
   final liveAds = CustomerLiveAdService();
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<Map<String, dynamic>> future = _load();
   bool _liveAdScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() => future = _load(search.text));
+    }
+  }
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
     if (storeId <= 0) {
@@ -101,6 +114,7 @@ class _WholesaleHomeDesignScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     search.dispose();
     super.dispose();
   }
@@ -1420,7 +1434,7 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleCatalogDesignScreenState
-    extends State<WholesaleCatalogDesignScreen> {
+    extends State<WholesaleCatalogDesignScreen> with WidgetsBindingObserver {
   final search = TextEditingController();
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<Map<String, dynamic>> future = _load();
@@ -1430,6 +1444,19 @@ class _WholesaleCatalogDesignScreenState
   int visibleLimit = 24;
   bool stale = false;
   Map<String, dynamic>? _lastPayload;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reload(resetLimit: false);
+    }
+  }
 
   Future<Map<String, dynamic>> _load([String query = '']) async {
     try {
@@ -1499,6 +1526,7 @@ class _WholesaleCatalogDesignScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     search.dispose();
     super.dispose();
   }
@@ -2045,7 +2073,8 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleProductDetailsDesignScreenState
-    extends State<WholesaleProductDetailsDesignScreen> {
+    extends State<WholesaleProductDetailsDesignScreen>
+    with WidgetsBindingObserver {
   late final int storeId = wholesaleStoreId(widget.location);
   late final int productId = productIdFromLocation(widget.location);
   late Future<Object?> future = _loadProduct();
@@ -2054,6 +2083,19 @@ class _WholesaleProductDetailsDesignScreenState
   Timer? _stockRefreshTimer;
   bool stale = false;
   bool revalidating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _retry();
+    }
+  }
 
   String get endpoint =>
       '/api/v1/b2b/products/' +
@@ -2310,6 +2352,7 @@ class _WholesaleProductDetailsDesignScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stockRefreshTimer?.cancel();
     super.dispose();
   }
@@ -3052,10 +3095,29 @@ class WholesaleCartDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleCartDesignScreenState
-    extends State<WholesaleCartDesignScreen> {
+    extends State<WholesaleCartDesignScreen> with WidgetsBindingObserver {
   late int storeId = wholesaleStoreId(widget.location);
   late Future<Object?> future = _load();
   final Set<int> _removedItemIds = <int>{};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() => future = _load());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   Future<Object?> _load() {
     if (widget.commerceApi != null && storeId > 0) {
@@ -3612,7 +3674,7 @@ class WholesaleCheckoutDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleCheckoutDesignScreenState
-    extends State<WholesaleCheckoutDesignScreen> {
+    extends State<WholesaleCheckoutDesignScreen> with WidgetsBindingObserver {
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<_CheckoutPayload> future = _load();
   late final String idempotencyKey;
@@ -3626,6 +3688,7 @@ class _WholesaleCheckoutDesignScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     idempotencyKey = 'fdx-b2b-' +
         DateTime.now().microsecondsSinceEpoch.toString() +
         '-' +
@@ -3633,7 +3696,15 @@ class _WholesaleCheckoutDesignScreenState
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted && !submitting) {
+      setState(() => future = _load());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     note.dispose();
     coupon.dispose();
     super.dispose();
@@ -4491,9 +4562,28 @@ class WholesaleOrdersDesignScreen extends StatefulWidget {
 }
 
 class _WholesaleOrdersDesignScreenState
-    extends State<WholesaleOrdersDesignScreen> {
+    extends State<WholesaleOrdersDesignScreen> with WidgetsBindingObserver {
   String status = 'all';
   late Future<Object?> future = _load();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   Future<Object?> _load() {
     var endpoint = '/api/v1/b2b/orders';

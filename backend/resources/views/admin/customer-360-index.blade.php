@@ -114,7 +114,7 @@
                                     <div class="c360-person"><strong>{{ $row['name'] }}</strong><small>{{ $row['email'] }}</small><small>{{ $row['phone'] ?: '-' }}</small></div>
                                 </td>
                                 <td data-label="{{ $ar?'مصدر التسجيل':'Registration origin' }}">
-                                    <span class="c360-badge {{ $row['origin']['channel'] }}">{{ strtoupper($row['origin']['channel']) }}</span>
+                                    <span class="c360-badge {{ $row['origin']['channel'] }}">{{ __('customer_360.business_labels.'.strtolower((string)($row['origin']['channel'] ?? 'unknown'))) }}</span>
                                     <div style="margin-top:5px;font-weight:700">{{ $row['origin']['label'] }}</div>
                                     <small>{{ $row['registration_source'] }}</small>
                                 </td>

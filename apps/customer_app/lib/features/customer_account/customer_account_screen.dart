@@ -32,7 +32,8 @@ class CustomerAccountScreen extends StatefulWidget {
   State<CustomerAccountScreen> createState() => _CustomerAccountScreenState();
 }
 
-class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
+class _CustomerAccountScreenState extends State<CustomerAccountScreen>
+    with WidgetsBindingObserver {
   late Future<Object?> _profile;
   late Future<Object?> _addresses;
   late Future<Object?> _favorites;
@@ -42,6 +43,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _profile = widget.api.profile();
     _addresses = widget.api.addresses();
     _favorites = widget.favoritesApi.favoritesForStore(widget.retailStoreId);
@@ -54,6 +56,20 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
     if (_notifications == null || locale != _locale) {
       _locale = locale;
       _notifications = widget.api.notifications(locale: locale);
+    }
+  }
+
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _reloadAll();
     }
   }
 
@@ -74,6 +90,85 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
       _favorites = widget.favoritesApi.favoritesForStore(widget.retailStoreId);
       _notifications = widget.api.notifications(locale: _locale);
     });
+  }
+
+  Future<void> _requestAccountDeletion() async {
+    final api = widget.api;
+    if (api is! HttpB2cAccountApi) return;
+
+    final password = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          _locale == 'ar' ? 'طلب حذف الحساب' : 'Request account deletion',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _locale == 'ar'
+                  ? 'سيتم التحقق من هويتك. الطلبات النشطة أو الالتزامات المالية قد تؤخر إخفاء بيانات الحساب، مع الاحتفاظ بسجلات الطلبات والفواتير المطلوبة.'
+                  : 'Your identity will be verified. Active orders or financial obligations can delay anonymization, while required order and invoice records are retained.',
+            ),
+            const SizedBox(height: CustomerUiSpacing.sm),
+            TextField(
+              key: const ValueKey('customer-account-deletion-password'),
+              controller: password,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: _locale == 'ar' ? 'كلمة المرور' : 'Password',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.tr('customer.action.cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('customer-account-deletion-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_locale == 'ar' ? 'تأكيد الطلب' : 'Confirm request'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || password.text.isEmpty) {
+      password.dispose();
+      return;
+    }
+
+    try {
+      final response = await api.requestAccountDeletion(password.text);
+      if (!mounted) return;
+      final data = response is Map && response['data'] is Map
+          ? Map<String, dynamic>.from(response['data'] as Map)
+          : const <String, dynamic>{};
+      final status = data['status']?.toString() ?? 'REQUESTED';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('customer-account-deletion-status'),
+          content: Text(
+            _locale == 'ar'
+                ? 'حالة طلب حذف الحساب: $status'
+                : 'Account deletion request status: $status',
+          ),
+        ),
+      );
+    } on B2cAccountException catch (error) {
+      if (!mounted) return;
+      final message = error.fieldErrors['password']?.first ??
+          error.serverMessage ??
+          error.code;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      password.dispose();
+    }
   }
 
   Future<void> _editProfile(Map<String, dynamic> profile) async {
@@ -213,6 +308,19 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen> {
                   title: context.tr('customer.profile.orders'),
                   icon: Icons.receipt_long_outlined,
                   onTap: widget.onOpenOrders,
+                ),
+              ],
+              if (widget.api is HttpB2cAccountApi) ...[
+                const SizedBox(height: CustomerUiSpacing.lg),
+                OutlinedButton.icon(
+                  key: const ValueKey('customer-account-delete-account'),
+                  onPressed: _requestAccountDeletion,
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: Text(
+                    _locale == 'ar'
+                        ? 'طلب حذف الحساب'
+                        : 'Request account deletion',
+                  ),
                 ),
               ],
             ],

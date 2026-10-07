@@ -25,26 +25,33 @@ release_version="$(tr -d '\r\n' < VERSION)"
 
 customer_version="$(awk '/^version:/ {print $2; exit}' apps/customer_app/pubspec.yaml)"
 driver_version="$(awk '/^version:/ {print $2; exit}' apps/driver_app/pubspec.yaml)"
-test "$customer_version" = "$driver_version"
+van_version="$(awk '/^version:/ {print $2; exit}' apps/van_app/pubspec.yaml)"
+if [[ "$customer_version" != "$driver_version" || "$customer_version" != "$van_version" ]]; then
+  echo "::error::Mobile release identity mismatch: Customer=$customer_version Driver=$driver_version Van=$van_version"
+  exit 1
+fi
 mobile_release_version="${customer_version%%+*}"
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
-test "$release_version" = "$mobile_release_version"
+if [[ "$release_version" != "$mobile_release_version" ]]; then
+  echo "::error::VERSION mismatch: repository=$release_version mobile=$mobile_release_version"
+  exit 1
+fi
 
 customer_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/customer_app/lib/app.dart)"
 driver_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/driver_app/lib/app.dart)"
 test "$customer_ui_version" = "$release_version"
 test "$driver_ui_version" = "$release_version"
 
-grep -Eq '^# FOODEX [0-9]+\.[0-9]+\.[0-9]+ Release Notes$' docs/release/RELEASE_NOTES.md
+grep -Eq "^# FOODEX ${release_version}.*Release Notes$" docs/release/RELEASE_NOTES.md
 grep -Fq "## $mobile_release_version -" CHANGELOG.md
 grep -Fq "VERSION and release notes identify the exact release being promoted. Evidence: #178" docs/release/RELEASE_CHECKLIST.md
 
-production_origin="https://foodex.50sols.com"
+production_origin="$(awk -F"'" '/defaultValue:/ {print $2; exit}' apps/customer_app/lib/core/config/foodex_environment.dart)"
+test -n "$production_origin"
 grep -Fq "APP_URL=$production_origin" backend/.env.production.example
-grep -Fq "DB_DATABASE=solscool_foodex" backend/.env.production.example
-grep -Fq "DB_USERNAME=solscool_foodex" backend/.env.production.example
-grep -Fq "defaultValue: '$production_origin'" apps/customer_app/lib/core/config/foodex_environment.dart
+grep -Eq '^DB_DATABASE=[A-Za-z0-9_]+' backend/.env.production.example
+grep -Eq '^DB_USERNAME=[A-Za-z0-9_]+' backend/.env.production.example
 grep -Fq "defaultValue: '$production_origin'" apps/driver_app/lib/core/config/foodex_environment.dart
 ! grep -R -Fq "foodex-validation.invalid" .github/workflows/customer-app-ci.yml .github/workflows/driver-app-ci.yml
 

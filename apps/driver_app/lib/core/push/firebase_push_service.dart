@@ -97,9 +97,37 @@ Future<void> showDriverLocalNotification(RemoteMessage message) async {
 }
 
 class DriverPushAlert {
-  const DriverPushAlert({required this.title, required this.body});
+  const DriverPushAlert({
+    required this.title,
+    required this.body,
+    required this.open,
+  });
+
   final String title;
   final String body;
+  final DriverPushOpen open;
+
+  String get eventKey {
+    final assignmentId = open.assignmentId;
+    if (assignmentId != null) return 'assignment:$assignmentId';
+    final orderId = open.orderId;
+    if (orderId != null) return 'order:$orderId';
+    return 'message:$title|$body';
+  }
+}
+
+String? driverPushIdentityLabel(
+  DriverPushOpen open, {
+  required String orderLabel,
+  required String assignmentLabel,
+}) {
+  final orderId = open.orderId;
+  if (orderId != null) return '$orderLabel #$orderId';
+
+  final assignmentId = open.assignmentId;
+  if (assignmentId != null) return '$assignmentLabel #$assignmentId';
+
+  return null;
 }
 
 class DriverPushOpen {
@@ -175,7 +203,15 @@ class DriverPushDeviceRegistry {
   }
 }
 
-class DriverFirebasePushService {
+abstract interface class DriverPushService {
+  Stream<DriverPushOpen> get opens;
+  Stream<DriverPushAlert> get alerts;
+  DriverPushOpen? takePendingOpen();
+  Future<void> bindSession(String accessToken);
+  Future<void> revokeSession();
+}
+
+class DriverFirebasePushService implements DriverPushService {
   DriverFirebasePushService._({required this.registry, required FirebaseMessaging? messaging}) : _messaging = messaging;
   final DriverPushDeviceRegistry registry;
   final FirebaseMessaging? _messaging;
@@ -190,7 +226,9 @@ class DriverFirebasePushService {
   Future<String>? _installIdFuture;
   DriverPushOpen? _pendingOpen;
 
+  @override
   Stream<DriverPushOpen> get opens => _opens.stream;
+  @override
   Stream<DriverPushAlert> get alerts => _alerts.stream;
   bool get enabled => _messaging != null;
 
@@ -236,7 +274,13 @@ class DriverFirebasePushService {
         final body = message.notification?.body ??
             message.data['body']?.toString() ??
             '';
-        service._alerts.add(DriverPushAlert(title: title, body: body));
+        service._alerts.add(
+          DriverPushAlert(
+            title: title,
+            body: body,
+            open: DriverFirebasePushService.openForData(message.data),
+          ),
+        );
       });
       return service;
     } catch (_) {
@@ -273,6 +317,7 @@ class DriverFirebasePushService {
     );
   }
 
+  @override
   DriverPushOpen? takePendingOpen() {
     final value = _pendingOpen;
     _pendingOpen = null;
@@ -282,6 +327,7 @@ class DriverFirebasePushService {
   Future<String> _installId() =>
       _installIdFuture ??= _loadOrCreateDriverInstallId();
 
+  @override
   Future<void> bindSession(String accessToken) async {
     _accessToken = accessToken;
     final messaging = _messaging;
@@ -309,6 +355,7 @@ class DriverFirebasePushService {
     });
   }
 
+  @override
   Future<void> revokeSession() async {
     final accessToken = _accessToken; final deviceId = _deviceId;
     _accessToken = null; _deviceId = null;

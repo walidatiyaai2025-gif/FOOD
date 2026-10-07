@@ -11,6 +11,7 @@ const {
   assertAppendOnly,
   compareVersions,
   validateRegistry,
+  validationVersionForCandidate,
 } = require('./release-registry.js');
 
 function fixture(version = '1.0.40') {
@@ -90,4 +91,75 @@ test('published entries are immutable and a release appends exactly one higher v
   const mutated = JSON.parse(JSON.stringify(head));
   mutated.releases[0].note = 'rewritten history';
   assert.throws(() => assertAppendOnly(base, mutated), /immutable/);
+});
+
+
+
+test('release branch validation may accept only its current final release-candidate entry', () => {
+  const { root, registry } = fixture('1.0.58');
+  registry.releases[0].state = 'release-candidate';
+
+  assert.throws(
+    () => validateRegistry(root, registry),
+    /must be registered as published/,
+  );
+  assert.doesNotThrow(() => validateRegistry(
+    root,
+    registry,
+    null,
+    { allowReleaseCandidate: true },
+  ));
+});
+
+test('release-candidate exception never permits historical candidate entries', () => {
+  const { root, registry } = fixture('1.0.57');
+  const first = registry.releases[0];
+  first.state = 'release-candidate';
+
+  fs.writeFileSync(path.join(root, 'docs/release/UPDATE_NOTES_1.0.58.md'), '# notes\n');
+  const packagePath = path.join(root, 'Release/Updates/FOODEX-Update.zip');
+  const digest = crypto.createHash('sha256').update(fs.readFileSync(packagePath)).digest('hex');
+  registry.current_version = '1.0.58';
+  registry.releases.push({
+    ...first,
+    version: '1.0.58',
+    state: 'published',
+    release_notes: 'docs/release/UPDATE_NOTES_1.0.58.md',
+    dashboard_update_sha256: digest,
+  });
+  fs.writeFileSync(path.join(root, 'VERSION'), '1.0.58\n');
+  fs.writeFileSync(
+    path.join(root, 'Release/Updates/FOODEX-Update.json'),
+    JSON.stringify({ package: 'FOODEX-Update.zip', target_version: '1.0.58', sha256: digest }),
+  );
+
+  assert.throws(
+    () => validateRegistry(root, registry, null, { allowReleaseCandidate: true }),
+    /Release 1.0.57 must be registered as published/,
+  );
+});
+
+test('unpublished PR candidate may advance VERSION while published registry stays immutable', () => {
+  const { root, registry } = fixture('1.0.57');
+  fs.writeFileSync(path.join(root, 'VERSION'), '1.0.58\n');
+
+  const validationVersion = validationVersionForCandidate(
+    '1.0.58',
+    registry,
+    JSON.parse(JSON.stringify(registry)),
+  );
+
+  assert.equal(validationVersion, '1.0.57');
+  assert.doesNotThrow(() => validateRegistry(root, registry, validationVersion));
+});
+
+test('unpublished PR candidate cannot rewrite published registry history', () => {
+  const { registry: base } = fixture('1.0.57');
+  const mutated = JSON.parse(JSON.stringify(base));
+  mutated.releases[0].note = 'rewritten';
+
+  assert.throws(
+    () => validationVersionForCandidate('1.0.58', mutated, base),
+    /may not mutate the published release registry/,
+  );
 });

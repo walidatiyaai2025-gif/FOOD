@@ -63,6 +63,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.marketplaceClient,
     this.marketplaceBarcodeScanner,
     this.notificationCampaignPopupService,
+    this.showPersistentFooter = true,
   });
 
   factory FoodexCustomerApp.preview({
@@ -147,6 +148,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final CustomerNotificationCampaignPopupService? notificationCampaignPopupService;
+  final bool showPersistentFooter;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
@@ -175,7 +177,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-  static const _appVersion = '1.0.57';
+  static const _appVersion = '1.0.60';
 
   @override
   void initState() {
@@ -773,7 +775,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
             fit: StackFit.expand,
             children: [
               child ?? const SizedBox.shrink(),
-              if (_showVersionFooter) ...[
+              if (_showVersionFooter && widget.showPersistentFooter) ...[
                 PositionedDirectional(
                   start: 0,
                   end: 0,

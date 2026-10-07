@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "mission_id": "UIUX-V42-RECOVERY",
+  "active": true,
+  "umbrella_issue": 1034,
+  "umbrella_title": "[MISSION][ACTIVE][UIUX-V42-RECOVERY] FOODEX v4.2 requirement-complete recovery",
+  "integration_target": "release/1034-uiux-v42-recovery",
+  "base_source_branch": "release/1021-uiux-v42-final-real-build",
+  "base_source_sha": "1b14242dfce2623c2fa4bbe77c83c72458e9f9a2",
+  "max_active_lanes": 6,
+  "status_source": "live GitHub Issues/PRs/branches/CI; never this file",
+  "owner_commands": [
+    "حرك مشروع FOOD",
+    "اشتغل على مشروع FOOD",
+    "FOOD MISSION",
+    "FOOD AUTO-HANDOFF"
+  ],
+  "proof_rule": "Closed Issues and green CI are not sufficient. Requirement matrix + real runtime evidence + independent convergence are mandatory.",
+  "authoritative_plan": "docs/execution/UIUX_V42_RECOVERY_MISSION_PLAN.md",
+  "requirement_matrix": "docs/execution/UIUX_V42_RECOVERY_REQUIREMENT_MATRIX.md",
+  "machine_requirements": "docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json",
+  "children": [
+    {
+      "issue": 1035,
+      "branch": "feat/1035-dashboard-admin-hub-compliance",
+      "depends_on": [],
+      "lane": "dashboard_admin"
+    },
+    {
+      "issue": 1036,
+      "branch": "feat/1036-commercial-business-ux-completion",
+      "depends_on": [],
+      "lane": "commercial"
+    },
+    {
+      "issue": 1037,
+      "branch": "feat/1037-fieldops-map-lookup-compliance",
+      "depends_on": [],
+      "lane": "field_operations"
+    },
+    {
+      "issue": 1038,
+      "branch": "feat/1038-customer-v42-full-sweep",
+      "depends_on": [],
+      "lane": "customer"
+    },
+    {
+      "issue": 1039,
+      "branch": "feat/1039-driver-v42-full-sweep",
+      "depends_on": [],
+      "lane": "driver"
+    },
+    {
+      "issue": 1040,
+      "branch": "feat/1040-van-v42-full-sweep",
+      "depends_on": [],
+      "lane": "van"
+    },
+    {
+      "issue": 1041,
+      "branch": "test/1041-uiux-requirement-coverage-audit",
+      "depends_on": [
+        1035,
+        1036,
+        1037,
+        1038,
+        1039,
+        1040
+      ],
+      "lane": "coverage_gate"
+    },
+    {
+      "issue": 1042,
+      "branch": "test/1042-uiux-runtime-visual-evidence",
+      "depends_on": [
+        1041
+      ],
+      "lane": "runtime_visual_gate"
+    },
+    {
+      "issue": 1043,
+      "branch": "test/1043-uiux-recovery-final-convergence",
+      "depends_on": [
+        1042
+      ],
+      "lane": "convergence_gate"
+    },
+    {
+      "issue": 1021,
+      "branch": "release/1021-uiux-v42-final-real-build",
+      "depends_on": [
+        1043
+      ],
+      "lane": "final_release_existing"
+    }
+  ],
+  "connection_loss_rule": "Re-read live GitHub before retrying any uncertain mutation; resume same Issue/branch/PR.",
+  "main_merge_allowed": false,
+  "final_gate_issue": 1021,
+  "false_completion_prevention": {
+    "every_requirement_must_have_owner": true,
+    "runtime_evidence_required_for_visual_interaction": true,
+    "ar_en_evidence_required_for_user_facing": true,
+    "responsive_evidence_required_where_applicable": true,
+    "legacy_screens_in_scope": true,
+    "child_issue_closure_is_not_proof": true,
+    "final_convergence_rechecks_matrix_source_runtime": true
+  }
+}

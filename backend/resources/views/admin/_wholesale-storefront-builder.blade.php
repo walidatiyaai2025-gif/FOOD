@@ -11,6 +11,7 @@
     $sfCanPublish = $sfStoreId > 0 && ($user->hasPermission('app_preview.publish', $sfStoreId) || $user->hasPermission('app_preview.publish'));
     $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2b','store_id'=>$sfStoreId,'persona'=>'guest','mode'=>'draft']);
     $canManageStorefront = $user->hasPermission('settings.manage');
+    $isSuper = $user->hasRole('SUPER_ADMIN');
     $primary = $sfSettings['primary_color'] ?? '#5D2A91';
     $primaryDark = $sfSettings['primary_dark_color'] ?? '#35195E';
     $accent = $sfSettings['accent_color'] ?? '#B983F0';
@@ -53,7 +54,7 @@
         <h3>{{ app()->getLocale()==='ar'?'المسودة والمعاينة الحقيقية':'Draft & real app preview' }}</h3>
         <p class="wsf-muted">{{ app()->getLocale()==='ar'?'المعاينة المعتمدة تفتح نفس Customer Flutter runtime المستخدم للتطبيق.':'The authoritative preview opens the same Customer Flutter runtime used by the app.' }}</p>
         <div class="wsf-item">
-            <div class="wsf-item-head"><strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong><span class="wsf-code">{{ strtoupper((string)($sfRevision['status'] ?? 'published')) }}</span></div>
+            <div class="wsf-item-head"><strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong><span class="wsf-code">{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة':'Draft') : (app()->getLocale()==='ar'?'منشور':'Published') }}</span></div>
             <div class="wsf-code" style="margin-top:8px">rev {{ $sfRevision['revision_id'] ?? '—' }}</div>
             <div class="wsf-code">{{ substr((string)($sfRevision['checksum'] ?? ''),0,16) }}</div>
         </div>
@@ -81,7 +82,12 @@
                 <label>{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" maxlength="255"></label>
                 <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="50" min="0" max="9999" required></label>
                 <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
-                <label class="wide">Config JSON<textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
+                @if($isSuper)
+                <details class="wide" data-advanced>
+                    <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
+                    <label>{{ app()->getLocale()==='ar'?'إعدادات JSON':'Config JSON' }}<textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label> {{-- localization-gate: allow — technical JSON example, not user-facing prose. --}}
+                </details>
+                @endif
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة للقسم في المسودة':'Add section to Draft' }}</button></div>
         </form>
@@ -101,7 +107,12 @@
                         <label>{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" value="{{ $section['title_en'] }}"></label>
                         <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="{{ $section['sort_order'] }}" min="0" max="9999" required></label>
                         <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
-                        <label class="wide">Config JSON<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
+                        @if($isSuper)
+                        <details class="wide" data-advanced>
+                            <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
+                            <label>{{ app()->getLocale()==='ar'?'إعدادات JSON':'Config JSON' }}<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
+                        </details>
+                        @endif
                     </div>
                     <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}</button></div>
                 </form>

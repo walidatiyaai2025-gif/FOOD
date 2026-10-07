@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/location/customer_location_service.dart';
+import 'package:foodex_customer_app/core/location/customer_map_pin_selector.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_data.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_screen.dart';
@@ -12,6 +13,25 @@ import 'package:foodex_customer_app/features/customer_account/customer_notificat
 import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 
 void main() {
+  test('customer map defaults to Egypt and preserves saved coordinates', () {
+    final fallback = customerMapInitialViewport();
+    expect(fallback.center.latitude, customerMapDefaultLatitude);
+    expect(fallback.center.longitude, customerMapDefaultLongitude);
+    expect(fallback.zoom, customerMapDefaultZoom);
+
+    final saved = customerMapInitialViewport(
+      initialLatitude: 30.0444,
+      initialLongitude: 31.2357,
+    );
+    expect(saved.center.latitude, 30.0444);
+    expect(saved.center.longitude, 31.2357);
+    expect(saved.zoom, customerMapSavedPointZoom);
+
+    expect(customerDefaultAddressCity, 'Cairo');
+    expect(customerDefaultAddressCountry, 'Egypt');
+    expect(customerDefaultAddressCountryCode, 'EG');
+  });
+
   testWidgets(
     'account overview isolates section failure and scopes favorites to store',
     (tester) async {
@@ -224,7 +244,7 @@ void main() {
 
       expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
       expect(find.byType(CustomerAccountAvatar), findsOneWidget);
-      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(3));
+      // Compact v4.2 density keeps all four account shortcuts visible on a 360px viewport.\n      expect(find.byType(CustomerAccountShortcutCard), findsNWidgets(4));
 
       await tester.drag(
         find.byType(ListView),
@@ -236,6 +256,57 @@ void main() {
         find.byKey(const ValueKey('customer-account-orders-section')),
         findsOneWidget,
       );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'account surfaces compact headers and refresh automatically on resume',
+    (tester) async {
+      final api = _AccountFakeApi(
+        addressesValue: const {'data': []},
+        favoritesValue: const {'data': []},
+        notificationsValue: const {'data': []},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: FoodexTheme.light(),
+          home: CustomerAccountScreen(
+            api: api,
+            favoritesApi: api,
+            retailStoreId: 19,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final surface = tester.widget<CustomerCurvedHeaderSurface>(
+        find.byType(CustomerCurvedHeaderSurface),
+      );
+      expect(
+        surface.headerPadding,
+        const EdgeInsetsDirectional.fromSTEB(12, 6, 12, 8),
+      );
+      expect(
+        tester.getSize(find.byType(CustomerAccountHeader)).height,
+        lessThan(72),
+      );
+
+      final profileBefore = api.profileLoads;
+      final addressesBefore = api.addressLoads;
+      final favoritesBefore = api.favoriteLoads.length;
+      final notificationsBefore = api.notificationLoads;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(api.profileLoads, profileBefore + 1);
+      expect(api.addressLoads, addressesBefore + 1);
+      expect(api.favoriteLoads.length, favoritesBefore + 1);
+      expect(api.notificationLoads, notificationsBefore + 1);
       expect(tester.takeException(), isNull);
     },
   );
@@ -302,6 +373,9 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   final Object? favoritesValue;
   final Object? notificationsValue;
 
+  int profileLoads = 0;
+  int addressLoads = 0;
+  int notificationLoads = 0;
   final List<int?> favoriteLoads = <int?>[];
   final List<(int, int?)> removedFavorites = <(int, int?)>[];
   final List<int> readNotifications = <int>[];
@@ -310,12 +384,16 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
 
   @override
   Future<Object?> profile() async {
+    profileLoads += 1;
     if (profileError != null) throw profileError!;
     return profileValue;
   }
 
   @override
-  Future<Object?> addresses() async => addressesValue;
+  Future<Object?> addresses() async {
+    addressLoads += 1;
+    return addressesValue;
+  }
 
   @override
   Future<Object?> favorites() async => favoritesValue;
@@ -340,8 +418,10 @@ class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi {
   }
 
   @override
-  Future<Object?> notifications({String locale = 'ar'}) async =>
-      notificationsValue;
+  Future<Object?> notifications({String locale = 'ar'}) async {
+    notificationLoads += 1;
+    return notificationsValue;
+  }
 
   @override
   Future<void> markNotificationRead(int notificationId) async {
