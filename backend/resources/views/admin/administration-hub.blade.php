@@ -74,6 +74,9 @@ html[dir=ltr] .main{grid-column:2}
 @if($canMobileSettings)
 <a class="action secondary" href="{{ route('admin.mobile-settings.index', ['app'=>$app, 'environment'=>'production']) }}">{{ __('admin.mobile_settings') }}</a>
 @endif
+@if($app==='van' && $canFinanceSupport)
+<a class="action secondary" href="{{ route('admin.van-finance-support.index') }}">{{ __('admin.administration_hub.van_finance_support') }}</a>
+@endif
 </div>
 </article>
 @endforeach
@@ -87,6 +90,7 @@ html[dir=ltr] .main{grid-column:2}
 <article class="card utility-card" data-admin-card="notifications"><div><h3>{{ __('admin.administration_hub.notifications') }}</h3><p class="muted">{{ __('admin.administration_hub.notifications_description') }}</p></div>@if($canMobileSettings)<a class="action" href="{{ route('admin.mobile-settings.index') }}#push">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif</article>
 <article class="card utility-card" data-admin-card="publishing"><div><h3>{{ __('admin.administration_hub.publishing') }}</h3><p class="muted">{{ __('admin.administration_hub.publishing_description') }}</p></div>@if($canPlatformManage)<a class="action" href="{{ route('admin.app-versions.index') }}">{{ __('admin.administration_hub.open') }}</a>@elseif($canMobileSettings)<a class="action" href="{{ route('admin.mobile-settings.index') }}#publishing">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif</article>
 <article class="card utility-card" data-admin-card="integrations"><div><h3>{{ __('admin.administration_hub.integrations') }}</h3><p class="muted">{{ __('admin.administration_hub.integrations_description') }}</p></div>@if($canPlatformManage)<a class="action" href="{{ route('admin.inspector.index') }}">{{ __('admin.administration_hub.open') }}</a>@elseif($canAssistantSettings)<a class="action" href="{{ route('admin.assistant-settings.index') }}">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif</article>
+<article class="card utility-card" data-admin-card="van-finance-support"><div><h3>{{ __('admin.administration_hub.van_finance_support') }}</h3><p class="muted">{{ __('admin.administration_hub.van_finance_support_description') }}</p></div>@if($canFinanceSupport)<a class="action" href="{{ route('admin.van-finance-support.index') }}">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif</article>
 <article class="card utility-card" data-admin-card="profile"><div><h3>{{ __('admin.administration_hub.profile') }}</h3><p class="muted">{{ $user->name }} · {{ $user->email }}</p></div><a class="action" href="{{ route('admin.profile.index') }}">{{ __('admin.administration_hub.open') }}</a></article>
 </div>
 </section>
