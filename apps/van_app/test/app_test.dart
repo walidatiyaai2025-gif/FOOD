@@ -266,6 +266,31 @@ void main() {
     expect(find.text('van.login'), findsOneWidget);
   });
 
+
+  testWidgets('Van Dashboard renders authoritative operational totals',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _DashboardWalletRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-dashboard-page')), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('15.000 KWD'), findsOneWidget);
+    expect(find.text('9.000 KWD'), findsOneWidget);
+    expect(find.text('1'), findsWidgets);
+  });
+
 }
 
 
@@ -562,4 +587,74 @@ class _RemittanceWalletRepository implements VanWalletRepository {
           ),
         ],
       );
+}
+
+
+class _DashboardWalletRepository implements VanWalletRepository {
+  const _DashboardWalletRepository();
+
+  @override
+  Future<List<VanWalletAccount>> wallet() async => const [
+        VanWalletAccount(
+          id: 5,
+          storeId: 7,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 15,
+          availableToRemit: 9,
+          receipts: [
+            VanReceipt(
+              id: 77,
+              amount: 6,
+              currency: 'KWD',
+              status: 'posted',
+              createdAt: '2026-10-07T08:30:00+03:00',
+            ),
+          ],
+          remittances: [
+            VanRemittance(
+              id: 88,
+              amount: 6,
+              currency: 'KWD',
+              method: 'cash_deposit',
+              status: 'submitted',
+              createdAt: '2026-10-07T08:45:00+03:00',
+            ),
+          ],
+        ),
+      ];
+
+  @override
+  Future<List<VanCustomerScope>> customers() async => const [
+        VanCustomerScope(type: 'b2b', id: 42, name: 'Acme Grocery', storeId: 7),
+        VanCustomerScope(type: 'b2c', id: 43, name: 'City Market', storeId: 8),
+      ];
+
+  @override
+  Future<VanCollectionContext> collectionContext(
+    VanCustomerScope customer,
+  ) async =>
+      const VanCollectionContext(storeId: 7, invoices: []);
+
+  @override
+  Future<VanCollectionResult> collect({
+    required VanCustomerScope customer,
+    required int invoiceId,
+    required double amount,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<VanWalletAccount> remit({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    required String idempotencyKey,
+    String? reference,
+    String? note,
+  }) {
+    throw UnimplementedError();
+  }
 }
