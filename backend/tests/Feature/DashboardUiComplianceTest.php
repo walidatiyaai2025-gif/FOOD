@@ -231,4 +231,19 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('User ID - optional', $view);
         $this->assertStringNotContainsString('رقم المستخدم - اختياري', $view);
     }
+
+    public function test_store_submission_and_reviewer_admin_treat_van_as_first_class_app(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/StoreSubmissionController.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($controller);
+        $this->assertStringContainsString("@foreach(['customer','driver','van'] as $submissionApp)", $view);
+        $this->assertStringContainsString('<option value="van">{{ __(\'mobile_settings.apps.van\') }}</option>', $view);
+        $this->assertStringContainsString("'van'=>'com.foodex.van'", $view);
+        $this->assertSame(2, substr_count($controller, "'app' => ['required', 'in:customer,driver,van']"));
+        $this->assertStringContainsString("if ($reviewer->app === 'van')", $controller);
+        $this->assertStringContainsString("hasPermission('van.login')", $controller);
+    }
 }
