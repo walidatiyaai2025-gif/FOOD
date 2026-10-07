@@ -288,21 +288,21 @@ $businessLabel = static function ($value): string {
 <div class="c360-map-modal" data-address-map-modal data-open="0" aria-hidden="true">
 <section class="c360-map-dialog" role="dialog" aria-modal="true" aria-labelledby="c360-map-title">
 <div class="c360-map-head">
-<div><h3 id="c360-map-title">{{ __('customer_360.map.title') }}</h3><p>{{ __('customer_360.map.description') }}</p></div>
-<button type="button" class="c360-map-close" data-address-map-close aria-label="{{ __('customer_360.map.close') }}">×</button>
+<div><h3 id="c360-map-title">{{ __('customer_360.addresses.map_title') }}</h3><p>{{ __('customer_360.addresses.map_help') }}</p></div>
+<button type="button" class="c360-map-close" data-address-map-close aria-label="{{ __('customer_360.addresses.map_close') }}">×</button>
 </div>
 <div class="c360-map-body">
 <div class="c360-map-search">
-<input type="search" data-address-map-search placeholder="{{ __('customer_360.map.search_placeholder') }}">
-<button type="button" class="foodex-action-secondary button secondary" data-address-map-search-button>{{ __('customer_360.map.search') }}</button>
+<input type="search" data-address-map-search placeholder="{{ __('customer_360.addresses.map_search_placeholder') }}">
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-search-button>{{ __('customer_360.addresses.map_search') }}</button>
 </div>
 <div class="c360-map-results" data-address-map-results></div>
-<div id="c360-address-map" aria-label="{{ __('customer_360.map.aria_label') }}"></div>
+<div id="c360-address-map" aria-label="{{ __('customer_360.addresses.map_aria') }}"></div>
 <div class="c360-map-footer">
-<span class="c360-map-coords" data-address-map-coords>{{ __('customer_360.map.choose_point') }}</span>
+<span class="c360-map-coords" data-address-map-coords>{{ __('customer_360.addresses.map_choose_point') }}</span>
 <div class="c360-actions">
-<button type="button" class="foodex-action-secondary button secondary" data-address-map-close>{{ __('customer_360.map.cancel') }}</button>
-<button type="button" class="foodex-action-primary" data-address-map-apply disabled>{{ __('customer_360.map.use_location') }}</button>
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-close>{{ __('customer_360.addresses.map_cancel') }}</button>
+<button type="button" class="foodex-action-primary" data-address-map-apply disabled>{{ __('customer_360.addresses.map_apply') }}</button>
 </div>
 </div>
 </div>
@@ -373,7 +373,7 @@ $businessLabel = static function ($value): string {
             } else {
                 selected = null;
                 if (marker) { marker.remove(); marker = null; }
-                coordsBox.textContent = @json(__('customer_360.map.choose_point'));
+                coordsBox.textContent = @json(__('customer_360.addresses.map_choose_point'));
                 applyButton.disabled = true;
             }
             searchInput?.focus();
@@ -426,7 +426,7 @@ $businessLabel = static function ($value): string {
         if (lngInput) lngInput.value = selected.lng.toFixed(7);
         if (sourceInput) sourceInput.value = 'map_pin';
         const summary = activeForm.querySelector('[data-address-map-summary]');
-        if (summary) summary.textContent = @json(__('customer_360.map.selected_editable'));
+        if (summary) summary.textContent = @json(__('customer_360.addresses.map_selected_editable'));
         closeMap();
     });
 
