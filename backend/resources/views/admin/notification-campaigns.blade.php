@@ -187,7 +187,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $run->scheduled_for?->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') }}</td>
                             <td>{{ $run->completed_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') ?? '—' }}</td>
-                            <td>{{ $run->status }}</td>
+                            <td>{{ __("notifications.run_status.$run->status") }}</td>
                             <td>{{ $run->notification_id ? (app()->getLocale()==='ar'?'تم الإنشاء':'Generated') : '—' }}</td>
                             <td>{{ $run->error_code ? (app()->getLocale()==='ar'?'راجع حالة التشغيل':'Review run status') : (app()->getLocale()==='ar'?'ناجح':'Successful') }}</td>
                         </tr>
