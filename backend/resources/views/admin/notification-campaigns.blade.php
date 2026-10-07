@@ -121,7 +121,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
 
             @if(!in_array($campaign->status,['completed','cancelled'],true))
             <details>
-                <summary style="cursor:pointer;font-weight:800">{{ __('notifications.save') }}</summary>
+                <summary style="cursor:pointer;font-weight:800">{{ __('notifications.edit_campaign') }}</summary>
                 <form method="post" action="{{ route('admin.notification-campaigns.update',$campaign) }}" class="js-campaign-form" enctype="multipart/form-data" style="margin-top:12px">
                     @csrf @method('PATCH')
                     <div class="grid">
