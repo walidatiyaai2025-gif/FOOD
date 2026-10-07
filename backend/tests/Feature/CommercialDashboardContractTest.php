@@ -312,7 +312,7 @@ class CommercialDashboardContractTest extends TestCase
                 'starts_at' => now()->addMinutes(5)->format('Y-m-d H:i:s'),
                 'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
                 'timezone' => 'Asia/Kuwait',
-                'channels' => ['customer','van'],
+                'channels' => ['customer', 'van'],
                 'audience_customer_ids' => [11],
                 'audience_customer_group_ids' => [22],
                 'audience_regions' => ['Hawalli'],
