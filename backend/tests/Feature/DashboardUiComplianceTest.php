@@ -39,7 +39,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('channel={{ $detail[\'channel\'] }}', $view);
         $this->assertStringContainsString('$businessLabel', $view);
         $this->assertStringContainsString('<select name="driver_id">', $view);
-        $this->assertStringContainsString("$driver->name ?: __('order_operations.filters.unnamed_driver')", $view);
+        $this->assertStringContainsString('$driver->name ?: __(\'order_operations.filters.unnamed_driver\')', $view);
         $this->assertStringNotContainsString('#{{ $assignment[\'id\'] }}', $view);
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
