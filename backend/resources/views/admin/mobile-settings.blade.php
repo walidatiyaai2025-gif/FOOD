@@ -154,13 +154,13 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <section class="card">
 <h2>{{ __('mobile_settings.test_title') }}</h2>
 <form method="post" action="{{ route('admin.mobile-settings.test') }}">@csrf
-<label>{{ __('mobile_settings.device') }}</label><select name="device_id">@foreach($devices as $d)<option value="{{ $d->id }}">#{{ $d->id }} · {{ $d->app }} · {{ $d->platform }} · {{ $d->environment }}</option>@endforeach</select>
+<label>{{ __('mobile_settings.device') }}</label><select name="device_id">@foreach($devices as $d)<option value="{{ $d->id }}">{{ $d->user?->name ?: ($d->user?->email ?: __('mobile_settings.unknown_user')) }} · {{ __('mobile_settings.apps.'.$d->app) }} · {{ strtoupper($d->platform) }} · {{ __('mobile_settings.environments.'.$d->environment) }}</option>@endforeach</select>
 <div class="row"><div><label>{{ __('mobile_settings.title_ar') }}</label><input name="title_ar" placeholder="عنوان الإشعار بالعربية" required></div><div><label>{{ __('mobile_settings.title_en') }}</label><input name="title_en" placeholder="Notification title in English" required></div></div>
 <div class="row"><div><label>{{ __('mobile_settings.body_ar') }}</label><textarea name="body_ar" placeholder="نص الإشعار بالعربية" required></textarea></div><div><label>{{ __('mobile_settings.body_en') }}</label><textarea name="body_en" placeholder="Notification body in English" required></textarea></div></div>
 <button class="button">{{ __('mobile_settings.send_test') }}</button>
 </form>
 <h3>{{ __('mobile_settings.delivery_log') }}</h3>
-@forelse($logs as $log)<div class="log">#{{ $log->id }} · {{ $log->app }}/{{ $log->platform }}/{{ $log->environment }} · <strong>{{ $log->status }}</strong>@if($log->response_code) · HTTP {{ $log->response_code }}@endif @if($log->error_code)<br><strong>{{ $ar?'السبب':'Reason' }}:</strong> {{ $log->error_code }}@if($log->error_message) — {{ $log->error_message }}@endif @endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
+@forelse($logs as $log)<div class="log">{{ __('mobile_settings.apps.'.$log->app) }} · {{ strtoupper($log->platform) }} · {{ __('mobile_settings.environments.'.$log->environment) }} · <strong>{{ __('mobile_settings.delivery_status.'.$log->status) }}</strong>@if($log->error_code)<br><strong>{{ __('mobile_settings.delivery_issue') }}:</strong> {{ $log->error_message ?: __('mobile_settings.test_failed') }}@endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
 </section>
 <section class="card" style="grid-column:1/-1" data-store-submission-center>
 <h2>{{ $ar?'النشر / تجهيز الرفع للمتاجر':'Publishing / Store Submission' }}</h2>
