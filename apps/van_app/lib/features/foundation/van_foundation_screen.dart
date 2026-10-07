@@ -9,6 +9,8 @@ import '../wallet/van_receipts_page.dart';
 import '../wallet/van_remittance_page.dart';
 import '../wallet/van_wallet_contract.dart';
 import '../wallet/van_wallet_page.dart';
+import '../visits/van_visit_contract.dart';
+import '../visits/van_visit_workspace_page.dart';
 import 'van_customer_360_page.dart';
 import 'van_dashboard_page.dart';
 import 'van_profile_page.dart';
@@ -22,12 +24,14 @@ class VanFoundationScreen extends StatefulWidget {
     required this.onLogout,
     required this.walletRepository,
     required this.commercialRepository,
+    required this.visitRepository,
   });
 
   final VanSession session;
   final Future<void> Function() onLogout;
   final VanWalletRepository walletRepository;
   final VanCommercialRepository commercialRepository;
+  final VanVisitRepository visitRepository;
 
   @override
   State<VanFoundationScreen> createState() => _VanFoundationScreenState();
@@ -62,6 +66,12 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
       case VanScreenId.customers:
         return VanCustomersPage(
           repository: widget.walletRepository,
+          onSessionExpired: widget.onLogout,
+        );
+      case VanScreenId.visit:
+        return VanVisitWorkspacePage(
+          visitRepository: widget.visitRepository,
+          customerRepository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
         );
       case VanScreenId.customer360:
