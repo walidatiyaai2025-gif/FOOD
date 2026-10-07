@@ -43,6 +43,8 @@ return [
         'publishing_description' => 'Review app versions, store submission metadata and release readiness.',
         'integrations' => 'Integrations',
         'integrations_description' => 'Inspect runtime integration health and system diagnostics.',
+        'van_finance_support' => 'Van Finance Support',
+        'van_finance_support_description' => 'Inspect Van wallets, collections, receipts and remittances from the authoritative custody ledger without duplicating operational finance mutations.',
         'profile' => 'My Profile',
         'open' => 'Open',
         'restricted' => 'Restricted',
