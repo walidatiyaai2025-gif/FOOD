@@ -34,7 +34,7 @@ html[dir=ltr] .main{grid-column:2}
 </head>
 <body>
 <div class="foodex-admin-layout" data-van-finance-support>
-<aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
+<aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="main foodex-admin-main foodex-admin-page">
 <header class="header foodex-page-header">
 <div><span class="foodex-subtitle">FOODEX · {{ __('admin.administration_hub.van') }}</span><h1>{{ __('van_finance_support.title') }}</h1><p class="muted">{{ __('van_finance_support.description') }}</p></div>
