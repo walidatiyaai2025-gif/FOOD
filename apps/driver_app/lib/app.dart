@@ -344,8 +344,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
       }
     }
 
-    if (!mounted || assignmentId == null) {
-      final context = _messengerKey.currentContext;
+    if (!mounted) return;
+    if (assignmentId == null) {
+      final context = _messengerKey.currentState?.context;
       if (context != null) {
         _messengerKey.currentState?.showSnackBar(
           SnackBar(

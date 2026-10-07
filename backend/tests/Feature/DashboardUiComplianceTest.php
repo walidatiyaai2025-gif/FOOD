@@ -60,9 +60,9 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("رقم الفاتورة الداخلي", $view);
         $this->assertStringNotContainsString("Invoice ID", $view);
         $this->assertStringContainsString('<select name="invoice_id">', $view);
-        $this->assertStringContainsString("{{ $invoice['number'] }}", $view);
-        $this->assertStringNotContainsString("{{ strtoupper($order['channel']) }}", $view);
-        $this->assertStringNotContainsString("<td>{{ $order['status'] }}</td>", $view);
+        $this->assertStringContainsString('{{ $invoice[\'number\'] }}', $view);
+        $this->assertStringNotContainsString('{{ strtoupper($order[\'channel\']) }}', $view);
+        $this->assertStringNotContainsString('<td>{{ $order[\'status\'] }}</td>', $view);
     }
 
     public function test_notifications_use_shared_foodex_admin_shell(): void
