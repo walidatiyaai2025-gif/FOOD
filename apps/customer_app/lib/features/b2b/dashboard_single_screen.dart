@@ -5,8 +5,7 @@ import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 /// Presentation only: callers supply the existing dashboard read model/actions.
 class DashboardSingleScreen extends StatelessWidget {
   const DashboardSingleScreen({
-    required this.identity,
-    required this.balance,
+    required this.hero,
     required this.finance,
     required this.monthly,
     required this.activity,
@@ -14,8 +13,7 @@ class DashboardSingleScreen extends StatelessWidget {
     super.key,
   });
 
-  final Widget identity;
-  final Widget balance;
+  final Widget hero;
   final Widget finance;
   final Widget monthly;
   final Widget activity;
@@ -45,14 +43,7 @@ class DashboardSingleScreen extends StatelessWidget {
           children: [
             Expanded(
               flex: 29,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(flex: 43, child: balance),
-                  SizedBox(width: gap),
-                  Expanded(flex: 57, child: identity),
-                ],
-              ),
+              child: hero,
             ),
             SizedBox(height: gap),
             Expanded(flex: 28, child: finance),
