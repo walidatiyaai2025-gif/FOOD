@@ -947,50 +947,53 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       child: SizedBox(
         key: const Key('driver-filter-single-row'),
         height: 48,
-        child: ListView(
+        child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          children: [
-            OutlinedButton.icon(
-              key: const Key('driver-delivery-date-range'),
-              onPressed: _pickDateRange,
-              icon: const Icon(Icons.date_range_rounded),
-              label: Text(
-                rangeLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                key: const Key('driver-delivery-date-range'),
+                onPressed: _pickDateRange,
+                icon: const Icon(Icons.date_range_rounded),
+                label: Text(
+                  rangeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              key: const Key('driver-filter-today'),
-              label: Text(context.tr('driver.filter.today')),
-              selected: _period == _DriverDeliveryPeriod.today,
-              onSelected: (_) => setState(() {
-                _period = _DriverDeliveryPeriod.today;
-              }),
-            ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              key: const Key('driver-filter-all'),
-              label: Text(context.tr('driver.filter.all')),
-              selected: _period == _DriverDeliveryPeriod.all,
-              onSelected: (_) => setState(() {
-                _period = _DriverDeliveryPeriod.all;
-              }),
-            ),
-            if (_period == _DriverDeliveryPeriod.custom) ...[
-              const SizedBox(width: 4),
-              IconButton(
-                key: const Key('driver-filter-clear-date'),
-                tooltip: context.tr('driver.filter.clear_date'),
-                onPressed: () => setState(() {
-                  _dateRange = null;
+              const SizedBox(width: 8),
+              ChoiceChip(
+                key: const Key('driver-filter-today'),
+                label: Text(context.tr('driver.filter.today')),
+                selected: _period == _DriverDeliveryPeriod.today,
+                onSelected: (_) => setState(() {
                   _period = _DriverDeliveryPeriod.today;
                 }),
-                icon: const Icon(Icons.close_rounded),
               ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                key: const Key('driver-filter-all'),
+                label: Text(context.tr('driver.filter.all')),
+                selected: _period == _DriverDeliveryPeriod.all,
+                onSelected: (_) => setState(() {
+                  _period = _DriverDeliveryPeriod.all;
+                }),
+              ),
+              if (_period == _DriverDeliveryPeriod.custom) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  key: const Key('driver-filter-clear-date'),
+                  tooltip: context.tr('driver.filter.clear_date'),
+                  onPressed: () => setState(() {
+                    _dateRange = null;
+                    _period = _DriverDeliveryPeriod.today;
+                  }),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
