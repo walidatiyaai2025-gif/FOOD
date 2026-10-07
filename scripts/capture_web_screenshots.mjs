@@ -16,6 +16,7 @@ const b2b = [
   ['08_التسعير_والموافقات', '/admin/b2b/pricing-approvals'],
   ['09_التقارير_والتحليلات', '/admin/b2b/reports'],
   ['10_إعدادات_المنصة_والصلاحيات', '/admin/b2b/settings-permissions'],
+  ['11_التتبع_الحي_للسائقين_والفانات', '/admin/driver-live-tracking'],
 ];
 
 const b2c = [
@@ -30,6 +31,7 @@ const b2c = [
   ['10_المحتوى_والبانرات', '/admin/b2c/content'],
   ['11_التقارير_والتحليلات_وإعدادات_المتجر', '/admin/b2c/reports'],
   ['14_التحكم_التجاري_للمنتجات', '/admin/b2c/commercial/sales-control'],
+  ['15_مركز_الإدارة', '/admin/administration'],
 ];
 
 async function ensureDir(dir) {
@@ -116,6 +118,13 @@ async function captureLocale(browser, locale) {
     'sales-control',
     '/admin/b2c/commercial/sales-control',
   );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'administration-hub',
+    '/admin/administration',
+  );
 
   const customer360Response = await page.goto(
     `${baseUrl}/admin/customer-360?q=evidence.address%40foodex.test`,
@@ -189,6 +198,13 @@ async function captureLocale(browser, locale) {
 
   await captureResponsiveRoute(page, locale, 'B2B_SuperAdmin', 'dashboard', '/admin/b2b/dashboard');
   await captureResponsiveRoute(page, locale, 'B2B_SuperAdmin', 'orders', '/admin/b2b/orders');
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2B_SuperAdmin',
+    'live-tracking',
+    '/admin/driver-live-tracking',
+  );
 
   await context.close();
 }
