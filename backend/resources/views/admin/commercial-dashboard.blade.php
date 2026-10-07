@@ -10,30 +10,81 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $section === 'sales-control' ? ($ar ? 'التحكم التجاري للمنتجات' : 'Product Sales Control') : ($ar ? 'العروض السريعة' : 'Flash Offers') }} · FOODEX</title>
-    @include('admin._brand')
+    @include('admin._brand-components')
     <style>
-        .commercial-shell{max-width:1280px;margin:0 auto;padding:22px;display:grid;gap:16px}
-        .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap}
-        .commercial-tabs a{padding:10px 14px;border:1px solid var(--foodex-border);border-radius:12px;text-decoration:none;font-weight:700;background:#fff}
-        .commercial-tabs a.active{box-shadow:0 0 0 2px var(--foodex-primary) inset}
-        .contract-banner{padding:14px 16px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}
-        .contract-banner strong{display:block;margin-bottom:5px}
-        .contract-banner.pending{border-style:dashed}
-        .commercial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
-        .commercial-card{padding:16px;border:1px solid var(--foodex-border);border-radius:14px;background:#fff}
-        .commercial-card h3{margin:0 0 8px}
-        .muted{opacity:.72}
-        .control-list{display:grid;gap:9px;margin-top:12px}
-        .control-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--foodex-border)}
-        .disabled-action{opacity:.55;cursor:not-allowed}
-        .commercial-table{width:100%;border-collapse:collapse}
-        .commercial-table th,.commercial-table td{padding:11px;border-bottom:1px solid var(--foodex-border);text-align:start}
-        @media(max-width:720px){.commercial-shell{padding:12px}.commercial-table{display:block;overflow:auto}}
+        body{margin:0;overflow-x:hidden;background:var(--foodex-background);color:var(--foodex-ink)}
+        a{color:inherit}
+        .commercial-admin-layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}
+        .commercial-admin-layout>.sidebar{grid-column:2;grid-row:1;direction:rtl;background:var(--foodex-surface);border-inline-start:1px solid var(--foodex-border);min-height:100vh;position:relative;z-index:12}
+        .commercial-admin-layout>.commercial-shell{grid-column:1;grid-row:1;direction:rtl;min-width:0}
+        html[dir=ltr] .commercial-admin-layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}
+        html[dir=ltr] .commercial-admin-layout>.sidebar{grid-column:1;direction:ltr;border-inline-start:0;border-inline-end:1px solid var(--foodex-border)}
+        html[dir=ltr] .commercial-admin-layout>.commercial-shell{grid-column:2;direction:ltr}
+        .commercial-shell{width:100%;max-width:none!important;margin:0;padding:var(--foodex-space-6) clamp(var(--foodex-space-4),2vw,var(--foodex-space-8)) var(--foodex-space-8);display:grid;gap:var(--foodex-space-4)}
+        .commercial-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--foodex-space-4);flex-wrap:wrap}
+        .commercial-page-header h1{margin:3px 0 6px;font-size:clamp(1.55rem,2.2vw,2rem);font-weight:800;line-height:1.2}
+        .commercial-page-header p{margin:0;color:var(--foodex-muted);max-width:760px}
+        .commercial-eyebrow{font-size:.76rem;font-weight:800;color:var(--foodex-green-dark);letter-spacing:.02em}
+        .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
+        .commercial-tabs a{min-height:40px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
+        .commercial-tabs a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .commercial-tabs a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 18px rgba(21,138,58,.14)}
+        .contract-banner{padding:14px 16px;border:1px solid #cfe5d6;border-radius:var(--foodex-radius-card);background:linear-gradient(135deg,var(--foodex-green-soft),#fff);box-shadow:var(--foodex-shadow-sm);display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center}
+        .contract-banner strong{margin:0;color:var(--foodex-green-dark)}
+        .contract-banner.pending{border-style:dashed;background:#fffaf1}
+        .muted{color:var(--foodex-muted)}
+        .commercial-card{padding:var(--foodex-space-5);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);background:var(--foodex-surface);box-shadow:var(--foodex-shadow-sm)}
+        .commercial-card h2,.commercial-card h3{margin-top:0}
+        .feature-flags-card{display:grid;gap:14px}
+        .feature-flags-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+        .feature-flags-head h2{margin:0;font-size:1.05rem}
+        .feature-flag-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+        .feature-flag{display:flex;align-items:center;gap:9px;min-height:54px;padding:10px 12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd;font-weight:700}
+        .feature-flag input{width:18px;height:18px;accent-color:var(--foodex-green)}
+        .feature-flag .flag-copy{display:grid;gap:2px}.feature-flag small{color:var(--foodex-muted);font-weight:500}
+        .feature-save{display:flex;justify-content:flex-end;margin-top:10px}
+        .commercial-product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:14px}
+        .commercial-product{padding:0;overflow:hidden}
+        .commercial-product-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 18px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(145deg,#fff,#fbfcfd)}
+        .commercial-product-head h3{margin:0 0 4px;font-size:1rem}.commercial-product-body{padding:18px;display:grid;gap:16px}
+        .commercial-status{display:inline-flex;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:.72rem;font-weight:800}
+        .policy-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
+        .policy-section-title{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:800;font-size:.88rem}
+        .commercial-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .commercial-form-grid.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+        .commercial-form-grid label,.policy-section>label{display:grid;gap:6px;font-weight:700;font-size:.8rem}
+        .commercial-form-grid input,.commercial-form-grid select,.policy-section input,.policy-section select,.policy-section textarea{width:100%}
+        .commercial-choice-grid{display:flex;gap:8px;flex-wrap:wrap}
+        .commercial-choice{display:inline-flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:7px!important;padding:8px 10px;border:1px solid var(--foodex-border);border-radius:10px;background:#fbfcfd;font-size:.78rem!important}
+        .commercial-choice input{width:16px!important;height:16px!important;accent-color:var(--foodex-green)}
+        .commercial-toggles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+        .commercial-advanced{border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
+        .commercial-advanced summary{cursor:pointer;padding:12px 14px;font-weight:800;color:var(--foodex-green-dark)}
+        .commercial-advanced-body{padding:0 14px 14px;display:grid;gap:12px}
+        .commercial-advanced textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;min-height:110px}
+        .commercial-empty{min-height:220px;display:grid;place-items:center;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-card);background:linear-gradient(145deg,#fff,#fbfcfd);padding:var(--foodex-space-6)}
+        .commercial-empty strong{display:block;font-size:1.05rem;margin-bottom:6px}.commercial-empty p{margin:0;color:var(--foodex-muted)}
+        .commercial-table{width:100%;border-collapse:collapse}.commercial-table th,.commercial-table td{padding:11px;border-bottom:1px solid var(--foodex-border);text-align:start}
+        .commercial-policy-form.foodex-premium-auto-form,.feature-flags-card form.foodex-premium-auto-form{display:grid!important;grid-template-columns:1fr!important;background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;gap:12px!important}
+        @media(max-width:1100px){.feature-flag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.commercial-form-grid.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:1023px){.commercial-admin-layout,.commercial-admin-layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr!important}.commercial-admin-layout>.sidebar,.commercial-admin-layout>.commercial-shell{grid-column:1!important;grid-row:auto!important}.commercial-admin-layout>.sidebar{min-height:auto}.commercial-shell{padding:14px}.commercial-product-grid{grid-template-columns:1fr}}
+        @media(max-width:680px){.feature-flag-grid,.commercial-form-grid,.commercial-form-grid.five,.commercial-toggles{grid-template-columns:1fr}.contract-banner{grid-template-columns:1fr}.commercial-card{padding:14px}.commercial-product-head{align-items:flex-start;flex-direction:column}}
     </style>
 </head>
 <body>
-@include('admin._account-menu', ['user' => $user, 'navGroups' => $navGroups, 'navContext' => $navContext])
-<main class="commercial-shell">
+<div class="foodex-admin-layout commercial-admin-layout" data-commercial-page="{{ $section }}">
+    <aside class="sidebar">@include('admin._sidebar', ['user' => $user, 'navGroups' => $navGroups, 'navContext' => $navContext])</aside>
+    <main class="foodex-admin-main foodex-admin-page commercial-shell">
+        <header class="commercial-page-header">
+            <div>
+                <span class="commercial-eyebrow">FOODEX · {{ $ar ? 'التجارة والمبيعات' : 'Commercial & Sales' }}</span>
+                <h1>{{ $section === 'sales-control' ? ($ar ? 'التحكم التجاري للمنتجات' : 'Product Sales Control') : ($ar ? 'العروض السريعة' : 'Flash Offers') }}</h1>
+                <p>{{ $section === 'sales-control'
+                    ? ($ar ? 'إدارة إتاحة المنتجات ووحدات البيع والحصص والقنوات وسياسة فك العبوة من واجهة تشغيل موحدة.' : 'Manage product availability, selling units, quotas, channels and break-pack policy from one operational workspace.')
+                    : ($ar ? 'إدارة دورة حياة العروض السريعة والجمهور والتخصيص والحجز والتحليلات.' : 'Manage flash-offer lifecycle, audience, allocation, reservations and analytics.') }}</p>
+            </div>
+            @include('admin._live-notifications', ['user' => $user])
+        </header>
     <div class="commercial-tabs" aria-label="{{ $ar ? 'إدارة السياسات التجارية' : 'Commercial policy administration' }}">
         <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ $ar ? 'التحكم في المبيعات' : 'Sales Control' }}</a>
         <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ $ar ? 'العروض السريعة' : 'Flash Offers' }}</a>
@@ -49,25 +100,32 @@
         </span>
     </section>
 
-    <section class="commercial-card" data-commercial-feature-flags>
-        <h2>{{ $ar ? 'مفاتيح التفعيل التجارية' : 'Commercial Feature Flags' }}</h2>
-        <p class="muted">{{ $ar ? 'المفاتيح تُقرأ وتُفرض من الخادم. الإعداد الافتراضي الآمن عند غيابها هو OFF.' : 'Flags are read and enforced server-side. The backward-compatible safe default when absent is OFF.' }}</p>
+    <section class="commercial-card feature-flags-card" data-commercial-feature-flags>
+        <div class="feature-flags-head">
+            <div>
+                <h2>{{ $ar ? 'حالة الوظائف التجارية' : 'Commercial capabilities' }}</h2>
+                <p class="muted">{{ $ar ? 'مفاتيح مركزية يفرضها الخادم على كل القنوات.' : 'Server-authoritative switches enforced consistently across channels.' }}</p>
+            </div>
+            <span class="commercial-status">{{ $ar ? 'إعداد مركزي' : 'Central policy' }}</span>
+        </div>
         @if($canManageFeatureFlags)
             <form method="post" action="{{ route('admin.commercial.feature-flags.save', $scope) }}" class="control-list">
                 @csrf @method('put')
+                <div class="feature-flag-grid">
                 @foreach([
-                    'commercial_rules_enabled' => 'Commercial rules',
-                    'flash_offers_enabled' => 'Flash offers',
-                    'customer_flash_popup_enabled' => 'Customer Flash popup',
-                    'van_offers_enabled' => 'Van offers',
-                ] as $flagKey => $flagLabel)
-                    <label>
+                    'commercial_rules_enabled' => [$ar ? 'قواعد البيع' : 'Commercial rules', $ar ? 'الأهلية والحصص' : 'Eligibility & quotas'],
+                    'flash_offers_enabled' => [$ar ? 'العروض السريعة' : 'Flash offers', $ar ? 'عروض محدودة' : 'Limited offers'],
+                    'customer_flash_popup_enabled' => [$ar ? 'نافذة عروض العميل' : 'Customer Flash popup', $ar ? 'ظهور داخل تطبيق العميل' : 'Customer app popup'],
+                    'van_offers_enabled' => [$ar ? 'عروض الفان' : 'Van offers', $ar ? 'العروض داخل تطبيق الفان' : 'Van app offers'],
+                ] as $flagKey => $flagMeta)
+                    <label class="feature-flag">
                         <input type="hidden" name="{{ $flagKey }}" value="0">
                         <input type="checkbox" name="{{ $flagKey }}" value="1" @checked((bool)($featureFlags[$flagKey] ?? false))>
-                        {{ $flagLabel }}
+                        <span class="flag-copy"><span>{{ $flagMeta[0] }}</span><small>{{ $flagMeta[1] }}</small></span>
                     </label>
                 @endforeach
-                <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ مفاتيح التفعيل' : 'Save Feature Flags' }}</button>
+                </div>
+                <div class="feature-save"><button type="submit" class="foodex-primary">{{ $ar ? 'حفظ حالة الوظائف' : 'Save capability state' }}</button></div>
             </form>
         @else
             <div class="commercial-grid">
@@ -84,15 +142,23 @@
     </section>
 
     @if($section === 'sales-control')
-        <header>
-            <h1>{{ $ar ? 'Product Sales Control' : 'Product Sales Control' }}</h1>
-            <p class="muted">{{ $ar ? 'التوفر، وحدات البيع، الحصص، القنوات، الاستهداف وصلاحيات التجاوز ستُدار من العقد المركزي.' : 'Availability, selling units, quotas, channels, targeting and override permissions are owned by the canonical backend contract.' }}</p>
-        </header>
-        <div class="commercial-grid">
+        <section class="commercial-card">
+            <div class="feature-flags-head">
+                <div>
+                    <h2>{{ $ar ? 'سياسات المنتجات' : 'Product policies' }}</h2>
+                    <p class="muted">{{ $ar ? 'اضبط الإتاحة والقنوات ووحدة البيع والحصص لكل منتج بدون تغيير منطق الخادم.' : 'Configure availability, channels, selling units and quotas per product without changing backend authority.' }}</p>
+                </div>
+                <span class="commercial-status">{{ $products->count() }} {{ $ar ? 'منتج' : 'products' }}</span>
+            </div>
+        </section>
+        <div class="commercial-product-grid">
             @foreach($products as $product)
-                <article class="commercial-card" data-product-id="{{ $product->id }}">
-                    <h3>{{ $product->name }}</h3>
-                    <div class="muted">{{ $product->sku ?: '—' }} · {{ $product->is_active ? ($ar ? 'نشط' : 'Active') : ($ar ? 'غير نشط' : 'Inactive') }}</div>
+                <article class="commercial-card commercial-product" data-product-id="{{ $product->id }}">
+                    <div class="commercial-product-head">
+                        <div><h3>{{ $product->name }}</h3><div class="muted">{{ $product->sku ?: '—' }}</div></div>
+                        <span class="commercial-status">{{ $product->is_active ? ($ar ? 'نشط' : 'Active') : ($ar ? 'غير نشط' : 'Inactive') }}</span>
+                    </div>
+                    <div class="commercial-product-body">
                     @php
                         $policy = $policies->get($product->id);
                         $units = $sellingUnits->get($product->id, collect())->map(fn($u)=>[
@@ -108,40 +174,85 @@
                             'max_per_order'=>$r->max_per_order,'max_per_day'=>$r->max_per_day,'max_per_week'=>$r->max_per_week,'max_per_month'=>$r->max_per_month,'max_lifetime'=>$r->max_lifetime,
                         ])->values();
                     @endphp
-                    <form method="post" action="{{ route('admin.commercial.sales-control.save', ['product'=>$product->id] + $scope) }}" class="control-list">
+                    <form method="post" action="{{ route('admin.commercial.sales-control.save', ['product'=>$product->id] + $scope) }}" class="commercial-policy-form">
                         @csrf @method('put')
-                        <div class="control-row"><label>Status</label><select name="status">@foreach(['OPEN','RESTRICTED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($policy->status ?? 'OPEN')===$status)>{{ $status }}</option>@endforeach</select></div>
-                        <div class="control-row"><label>Channels JSON</label><input name="channels_json" value="{{ $policy->channels ?? '[&quot;customer&quot;,&quot;van&quot;,&quot;admin&quot;,&quot;api&quot;]' }}"></div>
-                        <div class="commercial-grid">
-                            <label>Break-pack policy
-                                <select name="break_pack_policy">
-                                    @foreach(['mixed','full-pack-only','loose-only','one-unit-type'] as $mode)
-                                        <option value="{{ $mode }}" @selected(($policy->break_pack_policy ?? 'mixed') === $mode)>{{ $mode }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-                            <label>One-unit-type code
-                                <input name="break_pack_unit_code" value="{{ $policy->break_pack_unit_code ?? '' }}" placeholder="e.g. CARTON">
-                            </label>
-                        </div>
-                        <div class="control-row"><label>Timezone</label><input name="business_timezone" value="{{ $policy->business_timezone ?? 'Asia/Kuwait' }}"><label>Week starts</label><input type="number" min="0" max="6" name="week_starts_on" value="{{ $policy->week_starts_on ?? 1 }}"></div>
-                        <div class="commercial-grid">
-                            @foreach(['default_max_per_order'=>'Per order','default_max_per_day'=>'Day','default_max_per_week'=>'Week','default_max_per_month'=>'Month','default_max_lifetime'=>'Lifetime'] as $field=>$label)
-                                <label>{{ $label }}<input type="number" step="0.001" min="0" name="{{ $field }}" value="{{ $policy?->{$field} }}"></label>
-                            @endforeach
-                        </div>
-                        <label><input type="checkbox" name="hide_when_closed" value="1" @checked((bool)($policy->hide_when_closed ?? false))> Hide when closed</label>
-                        <label><input type="checkbox" name="override_allowed" value="1" @checked((bool)($policy->override_allowed ?? false))> Override allowed (permission + audited reason required at order flow)</label>
-                        <label>Selling units JSON<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                        <label>Availability windows JSON<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                        <label>Customer/group/channel rules JSON<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                        <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ التحكم التجاري' : 'Save Sales Control' }}</button>
+                        @php($selectedChannels = collect(json_decode((string)($policy->channels ?? '["customer","van","admin","api"]'), true) ?: []))
+                        <section class="policy-section">
+                            <div class="policy-section-title"><span>{{ $ar ? 'الإتاحة والقنوات' : 'Availability & channels' }}</span></div>
+                            <div class="commercial-form-grid">
+                                <label>{{ $ar ? 'حالة البيع' : 'Sales status' }}<select name="status">@foreach(['OPEN','RESTRICTED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($policy->status ?? 'OPEN')===$status)>{{ $status }}</option>@endforeach</select></label>
+                                <label>{{ $ar ? 'المنطقة الزمنية' : 'Business timezone' }}<input name="business_timezone" value="{{ $policy->business_timezone ?? 'Asia/Kuwait' }}"></label>
+                            </div>
+                            <div class="commercial-choice-grid" data-commercial-channel-picker>
+                                @foreach(['customer'=>($ar?'العميل':'Customer'),'van'=>($ar?'الفان':'Van'),'admin'=>($ar?'لوحة الإدارة':'Admin'),'api'=>'API'] as $channel=>$channelLabel)
+                                    <label class="commercial-choice"><input type="checkbox" value="{{ $channel }}" data-commercial-channel @checked($selectedChannels->contains($channel))><span>{{ $channelLabel }}</span></label>
+                                @endforeach
+                                <input type="hidden" name="channels_json" data-commercial-channels-json value="{{ $policy->channels ?? '[&quot;customer&quot;,&quot;van&quot;,&quot;admin&quot;,&quot;api&quot;]' }}">
+                            </div>
+                        </section>
+
+                        <section class="policy-section">
+                            <div class="policy-section-title"><span>{{ $ar ? 'وحدة البيع وفك العبوة' : 'Selling unit & break-pack' }}</span></div>
+                            <div class="commercial-form-grid">
+                                <label>{{ $ar ? 'سياسة فك العبوة' : 'Break-pack policy' }}
+                                    <select name="break_pack_policy">
+                                        @foreach(['mixed','full-pack-only','loose-only','one-unit-type'] as $mode)
+                                            <option value="{{ $mode }}" @selected(($policy->break_pack_policy ?? 'mixed') === $mode)>{{ $mode }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label>{{ $ar ? 'كود الوحدة الإلزامية' : 'One-unit-type code' }}<input name="break_pack_unit_code" value="{{ $policy->break_pack_unit_code ?? '' }}" placeholder="{{ $ar ? 'مثال: CARTON' : 'e.g. CARTON' }}"></label>
+                            </div>
+                        </section>
+
+                        <section class="policy-section">
+                            <div class="policy-section-title"><span>{{ $ar ? 'الحصص الافتراضية' : 'Default quotas' }}</span><span class="muted">{{ $ar ? 'اترك الحقل فارغًا لعدم وضع حد' : 'Leave blank for no limit' }}</span></div>
+                            <div class="commercial-form-grid five">
+                                @foreach([
+                                    'default_max_per_order'=>($ar?'لكل طلب':'Per order'),
+                                    'default_max_per_day'=>($ar?'يومي':'Per day'),
+                                    'default_max_per_week'=>($ar?'أسبوعي':'Per week'),
+                                    'default_max_per_month'=>($ar?'شهري':'Per month'),
+                                    'default_max_lifetime'=>($ar?'إجمالي':'Lifetime'),
+                                ] as $field=>$label)
+                                    <label>{{ $label }}<input type="number" step="0.001" min="0" name="{{ $field }}" value="{{ $policy?->{$field} }}"></label>
+                                @endforeach
+                            </div>
+                            <div class="commercial-form-grid">
+                                <label>{{ $ar ? 'بداية الأسبوع (0-6)' : 'Week starts on (0-6)' }}<input type="number" min="0" max="6" name="week_starts_on" value="{{ $policy->week_starts_on ?? 1 }}"></label>
+                            </div>
+                        </section>
+
+                        <section class="policy-section">
+                            <div class="policy-section-title"><span>{{ $ar ? 'سلوك الإغلاق والتجاوز' : 'Close & override behavior' }}</span></div>
+                            <div class="commercial-toggles">
+                                <label class="commercial-choice"><input type="checkbox" name="hide_when_closed" value="1" @checked((bool)($policy->hide_when_closed ?? false))><span>{{ $ar ? 'إخفاء المنتج عند الإغلاق' : 'Hide product when closed' }}</span></label>
+                                <label class="commercial-choice"><input type="checkbox" name="override_allowed" value="1" @checked((bool)($policy->override_allowed ?? false))><span>{{ $ar ? 'السماح بالتجاوز بصلاحية وسبب مدقق' : 'Allow permissioned, audited override' }}</span></label>
+                            </div>
+                        </section>
+
+                        <details class="commercial-advanced">
+                            <summary>{{ $ar ? 'إعدادات متقدمة: وحدات البيع ونوافذ الإتاحة وقواعد الاستهداف' : 'Advanced: selling units, availability windows & targeting rules' }}</summary>
+                            <div class="commercial-advanced-body">
+                                <label>{{ $ar ? 'وحدات البيع (JSON)' : 'Selling units (JSON)' }}<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                <label>{{ $ar ? 'نوافذ الإتاحة (JSON)' : 'Availability windows (JSON)' }}<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                <label>{{ $ar ? 'قواعد العميل/المجموعة/القناة (JSON)' : 'Customer/group/channel rules (JSON)' }}<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                            </div>
+                        </details>
+                        <button type="submit" class="foodex-primary">{{ $ar ? 'حفظ سياسة المنتج' : 'Save product policy' }}</button>
                     </form>
+                    </div>
                 </article>
             @endforeach
         </div>
         @if($products->isEmpty())
-            <div class="commercial-card">{{ $ar ? 'لا توجد منتجات في هذا المتجر.' : 'No products exist in this store.' }}</div>
+            <div class="commercial-empty">
+                <div>
+                    <strong>{{ $ar ? 'لا توجد منتجات قابلة للإدارة بعد' : 'No products are available for sales control yet' }}</strong>
+                    <p>{{ $ar ? 'أضف منتجات إلى كتالوج المتجر أولاً، ثم ارجع لضبط الإتاحة والحصص والقنوات.' : 'Add products to the store catalog first, then return here to configure availability, quotas and channels.' }}</p>
+                    <div style="margin-top:14px"><a class="foodex-primary" href="{{ route('admin.b2c.module', ['module'=>'products'] + $scope) }}">{{ $ar ? 'فتح المنتجات' : 'Open products' }}</a></div>
+                </div>
+            </div>
         @endif
     @else
         <header>
@@ -221,6 +332,20 @@
             </div>
         </section>
     @endif
-</main>
+    </main>
+</div>
+<script>
+(() => {
+    document.querySelectorAll('[data-commercial-channel-picker]').forEach((picker) => {
+        const output = picker.querySelector('[data-commercial-channels-json]');
+        const boxes = [...picker.querySelectorAll('[data-commercial-channel]')];
+        const sync = () => {
+            if (output) output.value = JSON.stringify(boxes.filter((box) => box.checked).map((box) => box.value));
+        };
+        boxes.forEach((box) => box.addEventListener('change', sync));
+        sync();
+    });
+})();
+</script>
 </body>
 </html>
