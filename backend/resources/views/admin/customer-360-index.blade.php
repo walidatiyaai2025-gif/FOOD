@@ -113,8 +113,16 @@
                                 <td data-label="{{ $ar?'العميل':'Customer' }}">
                                     <div class="c360-person"><strong>{{ $row['name'] }}</strong><small>{{ $row['email'] }}</small><small>{{ $row['phone'] ?: '-' }}</small></div>
                                 </td>
+                                @php
+                                    $originChannel = strtolower((string)($row['origin']['channel'] ?? ''));
+                                    $originChannelLabel = match($originChannel) {
+                                        'b2b', 'wholesale' => $ar ? 'جملة' : 'Wholesale',
+                                        'b2c', 'retail' => $ar ? 'تجزئة' : 'Retail',
+                                        default => $ar ? 'عميل' : 'Customer',
+                                    };
+                                @endphp
                                 <td data-label="{{ $ar?'مصدر التسجيل':'Registration origin' }}">
-                                    <span class="c360-badge {{ $row['origin']['channel'] }}">{{ strtoupper($row['origin']['channel']) }}</span>
+                                    <span class="c360-badge">{{ $originChannelLabel }}</span>
                                     <div style="margin-top:5px;font-weight:700">{{ $row['origin']['label'] }}</div>
                                     <small>{{ $row['registration_source'] }}</small>
                                 </td>

@@ -68,7 +68,7 @@
             <div class="sf-item" style="margin-top:12px">
                 <div class="sf-item-head">
                     <strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong>
-                    <span class="sf-tab">{{ strtoupper((string)($sfRevision['status'] ?? 'published')) }}</span>
+                    <span class="sf-tab">{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة':'Draft') : (app()->getLocale()==='ar'?'منشور':'Published') }}</span>
                 </div>
                 <div class="sf-code" style="margin-top:8px">rev {{ $sfRevision['revision_id'] ?? '—' }}</div>
                 <div class="sf-code">{{ substr((string)($sfRevision['checksum'] ?? ''),0,16) }}</div>

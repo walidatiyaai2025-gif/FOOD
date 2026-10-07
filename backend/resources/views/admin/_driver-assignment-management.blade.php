@@ -36,10 +36,22 @@
             </thead>
             <tbody>
                 @foreach($moduleData['assignments_list'] as $assignment)
+                @php
+                    $assignmentStatusCode = strtolower((string)($assignment['status'] ?? ''));
+                    $assignmentStatusLabel = match($assignmentStatusCode) {
+                        'assigned', 'pending' => app()->getLocale()==='ar' ? 'مُعيّن' : 'Assigned',
+                        'accepted' => app()->getLocale()==='ar' ? 'مقبول' : 'Accepted',
+                        'picked_up', 'in_transit', 'out_for_delivery' => app()->getLocale()==='ar' ? 'قيد التوصيل' : 'In delivery',
+                        'delivered', 'completed' => app()->getLocale()==='ar' ? 'مكتمل' : 'Completed',
+                        'cancelled', 'canceled' => app()->getLocale()==='ar' ? 'ملغي' : 'Cancelled',
+                        default => app()->getLocale()==='ar' ? 'حالة التعيين' : 'Assignment status',
+                    };
+                    $assignmentStatusClass = in_array($assignmentStatusCode, ['delivered','completed'], true) ? 'active' : '';
+                @endphp
                 <tr>
                     <td><strong>{{ $assignment['order'] }}</strong></td>
                     <td>{{ $assignment['driver'] }}</td>
-                    <td><span class="badge {{ $assignment['status'] }}">{{ $assignment['status'] }}</span></td>
+                    <td><span class="badge {{ $assignmentStatusClass }}">{{ $assignmentStatusLabel }}</span></td>
                     <td>{{ $assignment['assigned_at'] }}</td>
                     <td style="min-width:210px">
                         @if(!empty($assignment['proof']))

@@ -642,9 +642,18 @@
                     <thead><tr><th>{{ __('commercial.flash.promotion_name') }}</th><th>{{ __('commercial.flash.promotion_type') }}</th><th>{{ __('commercial.flash.promotion_value') }}</th><th>{{ __('commercial.flash.promotion_period') }}</th><th>{{ __('commercial.flash.status') }}</th></tr></thead>
                     <tbody>
                     @forelse($existingPromotions as $promotion)
+                        @php
+                            $promotionTypeCode = strtolower((string)$promotion->type);
+                            $promotionTypeLabel = match($promotionTypeCode) {
+                                'percentage', 'percent' => app()->getLocale()==='ar' ? 'خصم بالنسبة المئوية' : 'Percentage discount',
+                                'fixed', 'fixed_amount', 'amount' => app()->getLocale()==='ar' ? 'خصم بقيمة ثابتة' : 'Fixed discount',
+                                'bundle', 'buy_x_get_y' => app()->getLocale()==='ar' ? 'عرض باقة' : 'Bundle offer',
+                                default => app()->getLocale()==='ar' ? 'عرض ترويجي' : 'Promotion',
+                            };
+                        @endphp
                         <tr>
                             <td>{{ $promotion->name }}</td>
-                            <td>{{ $promotion->type }}</td>
+                            <td>{{ $promotionTypeLabel }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
                             <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>

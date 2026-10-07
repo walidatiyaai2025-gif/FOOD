@@ -54,7 +54,7 @@
         <h3>{{ app()->getLocale()==='ar'?'المسودة والمعاينة الحقيقية':'Draft & real app preview' }}</h3>
         <p class="wsf-muted">{{ app()->getLocale()==='ar'?'المعاينة المعتمدة تفتح نفس Customer Flutter runtime المستخدم للتطبيق.':'The authoritative preview opens the same Customer Flutter runtime used by the app.' }}</p>
         <div class="wsf-item">
-            <div class="wsf-item-head"><strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong><span class="wsf-code">{{ strtoupper((string)($sfRevision['status'] ?? 'published')) }}</span></div>
+            <div class="wsf-item-head"><strong>{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة نشطة':'Active Draft') : (app()->getLocale()==='ar'?'النسخة المنشورة':'Published') }}</strong><span class="wsf-code">{{ $sfHasDraft ? (app()->getLocale()==='ar'?'مسودة':'Draft') : (app()->getLocale()==='ar'?'منشور':'Published') }}</span></div>
             <div class="wsf-code" style="margin-top:8px">rev {{ $sfRevision['revision_id'] ?? '—' }}</div>
             <div class="wsf-code">{{ substr((string)($sfRevision['checksum'] ?? ''),0,16) }}</div>
         </div>
