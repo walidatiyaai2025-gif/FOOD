@@ -164,8 +164,8 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 </section>
 <section class="card" style="grid-column:1/-1" data-store-submission-center>
 <h2>{{ $ar?'النشر / تجهيز الرفع للمتاجر':'Publishing / Store Submission' }}</h2>
-<p class="muted">{{ $ar?'أربع مسارات مستقلة: العميل أندرويد، العميل iOS، السائق/الفان أندرويد، السائق/الفان iOS. حالة الجاهزية هنا لا تتجاوز نتائج التدقيق الآلي أو المتطلبات الخارجية.':'Four independent lanes: Customer Android, Customer iOS, Driver/Van Android, Driver/Van iOS. Readiness does not override automated audit evidence or external console/signing requirements.' }}</p>
-@foreach(['customer','driver'] as $submissionApp)
+<p class="muted">{{ $ar?'ستة مسارات مستقلة: العميل والسائق والفان على أندرويد وiOS. حالة الجاهزية هنا لا تتجاوز نتائج التدقيق الآلي أو المتطلبات الخارجية.':'Six independent lanes: Customer, Driver and Van across Android and iOS. Readiness does not override automated audit evidence or external console/signing requirements.' }}</p>
+@foreach(['customer','driver','van'] as $submissionApp)
 @foreach(['android','ios'] as $submissionPlatform)
 @php($submission = $storeSubmissions->first(fn($item)=>$item->app===$submissionApp && $item->platform===$submissionPlatform && $item->environment===$selectedEnvironment))
 <form method="post" action="{{ route('admin.mobile-settings.submission') }}" class="policy" style="margin:12px 0">
@@ -173,9 +173,10 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <input type="hidden" name="app" value="{{ $submissionApp }}">
 <input type="hidden" name="platform" value="{{ $submissionPlatform }}">
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
-<h3>{{ ucfirst($submissionApp) }} · {{ strtoupper($submissionPlatform) }} · {{ $selectedEnvironment }} — <span class="{{ ($submission?->readiness_state)==='PASS'?'status-ready':'status-blocked' }}">{{ $submission?->readiness_state ?? 'BLOCKED' }}</span></h3>
+<h3>{{ __('mobile_settings.apps.'.$submissionApp) }} · {{ strtoupper($submissionPlatform) }} · {{ __('mobile_settings.environments.'.$selectedEnvironment) }} — <span class="{{ ($submission?->readiness_state)==='PASS'?'status-ready':'status-blocked' }}">{{ $submission?->readiness_state ?? 'BLOCKED' }}</span></h3>
 <div class="row">
-<div><label>Package / Bundle ID</label><input name="package_identifier" value="{{ $submission?->package_identifier }}" placeholder="{{ $submissionApp==='customer'?'com.fiftysolution.foodex.customer':'com.fiftysolution.foodex.driver' }}"></div>
+@php($submissionPackage = ['customer'=>'com.fiftysolution.foodex.customer','driver'=>'com.fiftysolution.foodex.driver','van'=>'com.foodex.van'][$submissionApp])
+<div><label>Package / Bundle ID</label><input name="package_identifier" value="{{ $submission?->package_identifier }}" placeholder="{{ $submissionPackage }}"></div>
 <div><label>{{ $ar?'الحالة في المتجر':'Submission status' }}</label><select name="submission_status">@foreach(['NOT_READY','READY','SUBMITTED','IN_REVIEW','APPROVED','REJECTED','PUBLISHED'] as $status)<option value="{{ $status }}" @selected(($submission?->submission_status ?? 'NOT_READY')===$status)>{{ $status }}</option>@endforeach</select></div>
 </div>
 <div class="row"><div><label>Current version</label><input name="current_version" value="{{ $submission?->current_version }}"></div><div><label>Current build</label><input name="current_build" value="{{ $submission?->current_build }}"></div></div>
@@ -208,12 +209,12 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <p class="warning">{{ $ar?'كلمة المرور لا تُعرض أبداً بعد الحفظ، ولا تُعاد في API أو السجلات أو الـAudit. الاختبار يتم على الخادم فقط.':'Reviewer passwords are write-only: never returned in API, Dashboard, logs, or audit. Readiness testing occurs server-side.' }}</p>
 <form method="post" action="{{ route('admin.mobile-settings.reviewer') }}">
 @csrf @method('put')
-<div class="row"><div><label>App</label><select name="app"><option value="customer">Customer</option><option value="driver">Driver/Van</option></select></div><div><label>Platform</label><select name="platform"><option value="android">Android</option><option value="ios">iOS</option></select></div></div>
+<div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">Android</option><option value="ios">iOS</option></select></div></div>
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
 <div class="row"><div><label>Persona</label><input name="persona" placeholder="customer_reviewer" required></div><div><label>Identifier type</label><select name="identifier_type"><option value="email">email</option><option value="username">username</option><option value="phone">phone</option></select></div></div>
 <label>Identifier</label><input name="identifier" required>
 <label>{{ $ar?'كلمة مرور/سر المراجع (كتابة فقط)':'Reviewer secret (write-only)' }}</label><input type="password" name="reviewer_secret" autocomplete="new-password">
-<label>Store / tenant / customer / driver context JSON</label><textarea name="context_json" placeholder='{"store_id":1,"channel":"b2c"}'></textarea>
+<label>Store / tenant / customer / driver / van context JSON</label><textarea name="context_json" placeholder='{"store_id":1,"channel":"b2c"}'></textarea>
 <label>Deterministic reviewer instructions</label><textarea name="reviewer_instructions"></textarea>
 <input type="hidden" name="is_active" value="0"><label class="check"><input type="checkbox" name="is_active" value="1" checked>Active</label>
 <button class="button">Save reviewer persona</button>
@@ -221,7 +222,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <h3>Configured personas</h3>
 @forelse($reviewerAccounts as $reviewer)
 <div class="policy">
-<strong>{{ $reviewer->app }} · {{ $reviewer->platform }} · {{ $reviewer->environment }} · {{ $reviewer->persona }}</strong>
+<strong>{{ __('mobile_settings.apps.'.$reviewer->app) }} · {{ strtoupper($reviewer->platform) }} · {{ __('mobile_settings.environments.'.$reviewer->environment) }} · {{ $reviewer->persona }}</strong>
 <p>{{ $reviewer->identifier_type }}: <code>{{ $reviewer->identifier }}</code> · secret: <strong>{{ $reviewer->maskedSecret() }}</strong> · readiness: <strong>{{ $reviewer->readiness_status }}</strong></p>
 @if($reviewer->reviewer_instructions)<p class="muted">{{ $reviewer->reviewer_instructions }}</p>@endif
 <div style="display:flex;gap:8px;flex-wrap:wrap">
