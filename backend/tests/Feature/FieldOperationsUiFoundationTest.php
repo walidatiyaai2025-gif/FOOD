@@ -50,6 +50,10 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('{draggable:true', $view);
         $this->assertStringContainsString("marker.on('dblclick'", $view);
         $this->assertStringContainsString('validPolygon', $view);
+        $this->assertStringContainsString('const loadSelectedGeometry=()=>', $view);
+        $this->assertStringContainsString('feature.properties?.territory_id', $view);
+        $this->assertStringContainsString('properties?.version', $view);
+        $this->assertStringContainsString("select.addEventListener('change',loadSelectedGeometry)", $view);
 
         $this->assertStringNotContainsString('Transfer Van ID if loaded', $view);
         $this->assertStringNotContainsString('Representative user ID', $view);
