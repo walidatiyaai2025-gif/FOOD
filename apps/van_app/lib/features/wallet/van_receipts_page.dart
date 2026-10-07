@@ -32,6 +32,14 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
 
   String _text(String en, String ar) => _arabic ? ar : en;
 
+  String _receiptStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+        'posted' || 'completed' => _text('Completed', 'مكتمل'),
+        'pending' || 'processing' => _text('Processing', 'قيد المعالجة'),
+        'reversed' || 'voided' => _text('Reversed', 'معكوس'),
+        'failed' => _text('Failed', 'فشل'),
+        _ => _text('Receipt status', 'حالة الإيصال'),
+      };
+
   @override
   void initState() {
     super.initState();
@@ -201,7 +209,7 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text(
-                    '${row.receipt.createdAt} · ${row.receipt.status}',
+                    '${row.receipt.createdAt} · ${_receiptStatusLabel(row.receipt.status)}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

@@ -43,6 +43,34 @@ class _VanOffersPageState extends State<VanOffersPage>
   String _text(String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
 
+  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+        'b2b' || 'wholesale' => _text('Wholesale', 'جملة'),
+        'b2c' || 'retail' => _text('Retail', 'تجزئة'),
+        _ => _text('Customer', 'عميل'),
+      };
+
+  String _offerTypeLabel(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.contains('percent')) {
+      return _text('Percentage discount', 'خصم بالنسبة المئوية');
+    }
+    if (normalized.contains('fixed') || normalized.contains('amount')) {
+      return _text('Fixed discount', 'خصم بقيمة ثابتة');
+    }
+    if (normalized.contains('bundle') || normalized.contains('buy')) {
+      return _text('Bundle offer', 'عرض باقة');
+    }
+    return _text('Offer', 'عرض');
+  }
+
+  String _offerStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+        'active' => _text('Active', 'نشط'),
+        'scheduled' || 'upcoming' => _text('Scheduled', 'مجدول'),
+        'expired' || 'ended' => _text('Ended', 'منتهي'),
+        'paused' || 'inactive' => _text('Paused', 'متوقف'),
+        _ => _text('Offer status', 'حالة العرض'),
+      };
+
   @override
   void initState() {
     super.initState();
@@ -307,7 +335,7 @@ class _VanOffersPageState extends State<VanOffersPage>
                     (customer) => DropdownMenuItem(
                       value: customer,
                       child: Text(
-                        '${customer.name} · ${customer.type.toUpperCase()}',
+                        '${customer.name} · ${_customerTypeLabel(customer.type)}',
                       ),
                     ),
                   )
@@ -377,7 +405,7 @@ class _VanOffersPageState extends State<VanOffersPage>
       child: ListTile(
         leading: const Icon(Icons.local_offer_outlined),
         title: Text(offer.name),
-        subtitle: Text('${offer.type}$value'),
+        subtitle: Text('${_offerTypeLabel(offer.type)}$value'),
       ),
     );
   }
@@ -402,7 +430,7 @@ class _VanOffersPageState extends State<VanOffersPage>
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Text(offer.status.toUpperCase()),
+                Text(_offerStatusLabel(offer.status)),
               ],
             ),
             if (body != null) ...[

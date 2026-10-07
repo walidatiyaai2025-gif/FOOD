@@ -100,7 +100,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
     }
   }
 
-  String _status(String value) {
+  String _statusLabel(String value) {
     switch (value) {
       case 'pending':
         return _text('Pending', 'قيد المراجعة');
@@ -113,7 +113,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
       case 'cancelled':
         return _text('Cancelled', 'ملغي');
       default:
-        return value.replaceAll('_', ' ');
+        return _text('Order status', 'حالة الطلب');
     }
   }
 
@@ -194,7 +194,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                               const TextStyle(fontWeight: FontWeight.w900),
                         ),
                         Text(
-                          _status(order.status),
+                          _statusLabel(order.status),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)

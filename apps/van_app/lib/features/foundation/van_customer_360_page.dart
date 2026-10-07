@@ -36,6 +36,12 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
 
   String _text(String en, String ar) => _arabic ? ar : en;
 
+  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+        'b2b' || 'wholesale' => _text('Wholesale', 'جملة'),
+        'b2c' || 'retail' => _text('Retail', 'تجزئة'),
+        _ => _text('Customer', 'عميل'),
+      };
+
   @override
   void initState() {
     super.initState();
@@ -256,7 +262,7 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    selected.type.toUpperCase(),
+                    _customerTypeLabel(selected.type),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: FoodexVanTokens.muted,
                         ),
