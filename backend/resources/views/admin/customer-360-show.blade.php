@@ -124,57 +124,57 @@ $businessLabel = static function ($value): string {
 @if($wholesale)
 <div class="c360-kpis">
 @if($finance)
-<article class="c360-kpi primary"><small>{{ $ar?'الرصيد الحالي':'Current balance' }}</small><strong>{{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}</strong><span class="muted">@if($finance['balance_direction']==='customer_owes_company'){{ $ar?'مستحق على العميل':'Customer owes company' }}@elseif($finance['balance_direction']==='company_owes_customer'){{ $ar?'رصيد لصالح العميل':'Company owes customer' }}@else{{ $ar?'الحساب مسدد':'Settled' }}@endif</span></article>
+<article class="c360-kpi primary"><small>{{ __('customer_360.finance.current_balance') }}</small><strong>{{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}</strong><span class="muted">@if($finance['balance_direction']==='customer_owes_company'){{ __('customer_360.finance.customer_owes_company') }}@elseif($finance['balance_direction']==='company_owes_customer'){{ __('customer_360.finance.company_owes_customer') }}@else{{ __('customer_360.finance.settled') }}@endif</span></article>
 <article class="c360-kpi">
-<small>{{ $ar?'الحد الائتماني':'Credit limit' }}</small>
+<small>{{ __('customer_360.finance.credit_limit') }}</small>
 <strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong>
 @if($canManageFinance)
 <form method="post" action="{{ route('admin.customer-360.credit-limit.update',['platformCustomer'=>$customer->id]) }}" class="c360-credit-editor">
 @csrf @method('PATCH')
 <label>
-<span class="sr-only">{{ $ar?'تعديل الحد الائتماني':'Edit credit limit' }}</span>
-<input name="credit_limit" type="number" min="0" max="99999999999.999" step="0.001" value="{{ number_format((float)$finance['credit_limit'],3,'.','') }}" required inputmode="decimal" aria-label="{{ $ar?'الحد الائتماني':'Credit limit' }}">
+<span class="sr-only">{{ __('customer_360.finance.edit_credit_limit') }}</span>
+<input name="credit_limit" type="number" min="0" max="99999999999.999" step="0.001" value="{{ number_format((float)$finance['credit_limit'],3,'.','') }}" required inputmode="decimal" aria-label="{{ __('customer_360.finance.credit_limit') }}">
 </label>
-<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'حفظ':'Save' }}</button>
+<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.finance.save') }}</button>
 </form>
 @endif
 </article>
-<article class="c360-kpi"><small>{{ $ar?'الرصيد المتاح':'Available credit' }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
-<article class="c360-kpi"><small>{{ $ar?'القوة الشرائية':'Purchasing power' }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.finance.available_credit') }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.finance.purchasing_power') }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
 @endif
 </div>
 <div class="c360-finance-details">
-<div><small>{{ $ar?'الشركة':'Company' }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
-<div><small>{{ $ar?'شريحة السعر':'Price tier' }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }}</strong></div>
-<div><small>{{ $ar?'حالة الحساب':'Account status' }}</small><strong>{{ $businessLabel($wholesale['status']) }}</strong></div>
+<div><small>{{ __('customer_360.finance.company') }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
+<div><small>{{ __('customer_360.finance.price_tier') }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }}</strong></div>
+<div><small>{{ __('customer_360.finance.account_status') }}</small><strong>{{ $businessLabel($wholesale['status']) }}</strong></div>
 @if($finance)
-<div><small>{{ $ar?'المبلغ المفتوح':'Open amount' }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-<div><small>{{ $ar?'المتأخر':'Overdue amount' }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-<div><small>{{ $ar?'آخر دفعة':'Last payment' }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
-<div><small>{{ $ar?'آخر حركة':'Last transaction' }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
+<div><small>{{ __('customer_360.finance.open_amount') }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+<div><small>{{ __('customer_360.finance.overdue_amount') }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+<div><small>{{ __('customer_360.finance.last_payment') }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
+<div><small>{{ __('customer_360.finance.last_transaction') }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
 @else
-<div><small>{{ $ar?'حد الائتمان':'Credit limit' }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3) }}</strong></div>
+<div><small>{{ __('customer_360.finance.credit_limit') }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3) }}</strong></div>
 @endif
 </div>
 @if($canManageFinance && $finance)
 <details class="c360-form-details">
-<summary>{{ $ar?'تسجيل حركة مالية':'Record financial entry' }}</summary>
+<summary>{{ __('customer_360.finance.record_entry') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.finance-entries.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">
 @csrf
-<label><small>{{ $ar?'نوع الحركة':'Entry type' }}</small><select name="entry_type" required><option value="customer_credit">{{ $ar?'إضافة رصيد للعميل':'Add customer credit' }}</option><option value="payment">{{ $ar?'دفعة':'Record Payment' }}</option><option value="credit_note">{{ $ar?'إشعار دائن':'Credit Note' }}</option><option value="debit_note">{{ $ar?'إشعار مدين':'Debit Note' }}</option><option value="opening_balance">{{ $ar?'رصيد افتتاحي':'Opening Balance' }}</option><option value="adjustment_positive">{{ $ar?'تسوية موجبة':'Positive Adjustment' }}</option><option value="adjustment_negative">{{ $ar?'تسوية سالبة':'Negative Adjustment' }}</option><option value="return">{{ $ar?'مرتجع':'Return' }}</option><option value="refund">{{ $ar?'رد مبلغ':'Refund' }}</option></select></label>
-<label><small>{{ $ar?'الاتجاه':'Direction' }}</small><select name="direction" required><option value="credit">{{ $ar?'دائن':'Credit' }}</option><option value="debit">{{ $ar?'مدين':'Debit' }}</option></select></label>
-<label><small>{{ $ar?'المبلغ':'Amount' }}</small><input name="amount" type="number" min="0.001" step="0.001" required></label>
-<label><small>{{ $ar?'العملة':'Currency' }}</small><input name="currency" value="{{ $finance['currency'] }}" maxlength="3" minlength="3" required></label>
-<label><small>{{ $ar?'مرجع':'Reference' }}</small><input name="reference" maxlength="120"></label>
-<label><small>{{ $ar?'الفاتورة':'Invoice' }}</small><select name="invoice_id"><option value="">—</option>@foreach($invoices as $invoice)<option value="{{ $invoice['id'] }}">{{ $invoice['number'] }}</option>@endforeach</select></label>
-<label class="wide"><small>{{ $ar?'الوصف':'Description' }}</small><input name="description" maxlength="500"></label>
-<label><small>{{ $ar?'التاريخ':'Date' }}</small><input name="occurred_at" type="datetime-local"></label>
-<div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ الحركة':'Record entry' }}</button></div>
+<label><small>{{ __('customer_360.finance.entry_type') }}</small><select name="entry_type" required><option value="customer_credit">{{ __('customer_360.finance.entry_types.customer_credit') }}</option><option value="payment">{{ __('customer_360.finance.entry_types.payment') }}</option><option value="credit_note">{{ __('customer_360.finance.entry_types.credit_note') }}</option><option value="debit_note">{{ __('customer_360.finance.entry_types.debit_note') }}</option><option value="opening_balance">{{ __('customer_360.finance.entry_types.opening_balance') }}</option><option value="adjustment_positive">{{ __('customer_360.finance.entry_types.adjustment_positive') }}</option><option value="adjustment_negative">{{ __('customer_360.finance.entry_types.adjustment_negative') }}</option><option value="return">{{ __('customer_360.finance.entry_types.return') }}</option><option value="refund">{{ __('customer_360.finance.entry_types.refund') }}</option></select></label>
+<label><small>{{ __('customer_360.finance.direction') }}</small><select name="direction" required><option value="credit">{{ __('customer_360.finance.directions.credit') }}</option><option value="debit">{{ __('customer_360.finance.directions.debit') }}</option></select></label>
+<label><small>{{ __('customer_360.finance.amount') }}</small><input name="amount" type="number" min="0.001" step="0.001" required></label>
+<label><small>{{ __('customer_360.finance.currency') }}</small><input name="currency" value="{{ $finance['currency'] }}" maxlength="3" minlength="3" required></label>
+<label><small>{{ __('customer_360.finance.reference') }}</small><input name="reference" maxlength="120"></label>
+<label><small>{{ __('customer_360.finance.invoice') }}</small><select name="invoice_id"><option value="">—</option>@foreach($invoices as $invoice)<option value="{{ $invoice['id'] }}">{{ $invoice['number'] }}</option>@endforeach</select></label>
+<label class="wide"><small>{{ __('customer_360.finance.description') }}</small><input name="description" maxlength="500"></label>
+<label><small>{{ __('customer_360.finance.date') }}</small><input name="occurred_at" type="datetime-local"></label>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.finance.record') }}</button></div>
 </form>
 </details>
 @endif
 @else
-<div class="c360-empty">{{ $ar?'لا يوجد حساب جملة/مالي مرتبط بهذا العميل ضمن النطاق الحالي.':'No wholesale/financial account is linked to this customer in the current scope.' }}</div>
+<div class="c360-empty">{{ __('customer_360.finance.no_account') }}</div>
 @endif
 </div>
 </section>
@@ -265,7 +265,7 @@ $businessLabel = static function ($value): string {
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.orders') }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
 @if(empty($orders))<div class="c360-empty">{{ $ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.' }}</div>@else
-<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'التاريخ':'Date' }}</th><th></th></tr></thead><tbody>
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الطلب':'Order' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ __('customer_360.finance.date') }}</th><th></th></tr></thead><tbody>
 @foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $businessLabel($order['channel']) }}</span></td><td>{{ $businessLabel($order['status']) }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ $ar?'إدارة الطلب':'Manage order' }}</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
@@ -275,7 +275,7 @@ $businessLabel = static function ($value): string {
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.invoices') }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
 @if(empty($invoices))<div class="c360-empty">{{ $ar?'لا توجد فواتير داخل النطاق الحالي.':'No invoices in the current scope.' }}</div>@else
-<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ $ar?'الفاتورة':'Invoice' }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead><tbody>
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ $ar?'المتجر':'Store' }}</th><th>{{ $ar?'القناة':'Channel' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'الإجمالي':'Total' }}</th><th>{{ $ar?'الإصدار':'Issued' }}</th><th></th></tr></thead><tbody>
 @foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $businessLabel($invoice['channel']) }}</span></td><td>{{ $businessLabel($invoice['status']) }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ $ar?'التفاصيل':'Details' }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
