@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminShellController;
+use App\Http\Controllers\Admin\AdministrationHubController;
 use App\Http\Controllers\Admin\AppPreviewConfigurationController;
 use App\Http\Controllers\Admin\AppPreviewController;
 use App\Http\Controllers\Admin\AppPreviewInvalidationController;
@@ -103,6 +104,7 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/administration', AdministrationHubController::class)->name('administration.index');
         Route::prefix('assistant')
             ->name('assistant.')
             ->middleware('throttle:assistant')
