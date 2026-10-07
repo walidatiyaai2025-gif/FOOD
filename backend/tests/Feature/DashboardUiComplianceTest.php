@@ -1,0 +1,19 @@
+<?php
+
+namespace Tests\Feature;
+
+use Tests\TestCase;
+
+class DashboardUiComplianceTest extends TestCase
+{
+    public function test_order_management_uses_compact_ellipsis_row_actions(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-order-row-actions', $view);
+        $this->assertStringContainsString('>⋮</summary>', $view);
+        $this->assertStringContainsString("{{ $isAr?'عرض الطلب':'View order' }}", $view);
+        $this->assertStringNotContainsString('<td><div class="actions">', $view);
+    }
+}
