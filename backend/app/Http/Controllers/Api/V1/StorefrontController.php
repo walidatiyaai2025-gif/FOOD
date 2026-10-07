@@ -9,6 +9,7 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\RetailMerchantIdentityService;
+use App\Services\WholesalePrincipal;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,16 +20,21 @@ use Illuminate\Validation\ValidationException;
 
 final class StorefrontController extends Controller
 {
-    public function __construct(private readonly RetailMerchantIdentityService $retailMerchants) {}
+    public function __construct(
+        private readonly RetailMerchantIdentityService $retailMerchants,
+        private readonly WholesalePrincipal $wholesalePrincipal,
+    ) {}
 
     public function marketplace(Request $request): JsonResponse
     {
+        $principalStoreId = $this->wholesalePrincipal->storeId();
+
         $wholesale = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
+            ->where('stores.id', $principalStoreId)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
-            ->orderBy('stores.id')
             ->first([
                 'stores.id',
                 'stores.code',
@@ -221,21 +227,7 @@ final class StorefrontController extends Controller
                 ->where('stores.is_active', true)
                 ->where('store_types.code', 'B2B');
 
-            $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
-            $principalWholesaleStoreId = $configuredCode !== ''
-                ? (clone $wholesaleQuery)
-                    ->where('stores.code', $configuredCode)
-                    ->value('stores.id')
-                : (clone $wholesaleQuery)
-                    ->orderBy('stores.id')
-                    ->value('stores.id');
-
-            abort_if(
-                $principalWholesaleStoreId === null,
-                503,
-                'Principal Wholesale store is not available.',
-            );
-            $principalWholesaleStoreId = (int) $principalWholesaleStoreId;
+            $principalWholesaleStoreId = $this->wholesalePrincipal->storeId();
 
             $wholesaleStores = $wholesaleQuery
                 ->where('stores.id', $principalWholesaleStoreId)
