@@ -166,7 +166,7 @@
         @endif
     </section>
 
-    <?php if ($section === 'sales-control') { ?>
+    @if($section === 'sales-control')
         <section class="commercial-card">
             <div class="feature-flags-head">
                 <div>
@@ -201,7 +201,9 @@
                     @endphp
                     <form method="post" action="{{ route('admin.commercial.sales-control.save', ['product'=>$product->id] + $scope) }}" class="commercial-policy-form">
                         @csrf @method('put')
-                        @php($selectedChannels = collect(json_decode((string)($policy->channels ?? '["customer","van","admin","api"]'), true) ?: []))
+                        @php
+                            $selectedChannels = collect(json_decode((string)($policy->channels ?? '["customer","van","admin","api"]'), true) ?: []);
+                        @endphp
                         <section class="policy-section">
                             <div class="policy-section-title"><span>{{ __('commercial.sales.availability_channels') }}</span></div>
                             <div class="commercial-form-grid">
@@ -343,8 +345,12 @@
                             </div>
                             <div class="structured-list" data-rule-rows>
                                 @foreach($rules as $rule)
-                                    @php($customerId=(int)($rule['customer_id'] ?? 0))
-                                    @php($groupId=(int)($rule['customer_group_id'] ?? 0))
+                                    @php
+                            $customerId = (int) ($rule['customer_id'] ?? 0);
+                        @endphp
+                                    @php
+                            $groupId = (int) ($rule['customer_group_id'] ?? 0);
+                        @endphp
                                     <div class="structured-row" data-rule-row>
                                         <div class="structured-grid">
                                             <label>{{ __('commercial.sales.rule_customer') }}<select data-rule-field="customer_id"><option value="">{{ __('commercial.sales.any_customer') }}</option>@if($customerId>0 && !$ruleCustomers->contains('id',$customerId))<option value="{{ $customerId }}" selected>{{ __('commercial.sales.reference_unavailable') }}</option>@endif @foreach($ruleCustomers as $customer)<option value="{{ $customer->id }}" @selected($customerId===(int)$customer->id)>{{ $customer->name }}{{ $customer->email ? ' · '.$customer->email : '' }}</option>@endforeach</select></label>
@@ -428,8 +434,7 @@
                 </div>
             </div>
         @endif
-    <?php } ?>
-    <?php if ($section !== 'sales-control') { ?>
+    @else
         @php
             $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ['customer','van']));
             $selectedCustomerIds = collect(old('audience_customer_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
@@ -657,7 +662,7 @@
                 </table>
             </div>
         </section>
-    <?php } ?>
+    @endif
     </main>
 </div>
 <script>
