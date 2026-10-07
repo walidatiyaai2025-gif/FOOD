@@ -100,6 +100,38 @@ Owner implementation evidence is recorded here before child closure. Per the mis
   - Source: `data-flash-product-builder`, authoritative per-product Selling Unit catalog/validation, Customer/Van channel checkboxes, Van parity regression.
   - Tests: `test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids`, `test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring`, final persistence test.
 
+## Owner evidence checkpoints
+
+### #1036 — Commercial Sales Control + Flash Offers
+
+Owner implementation evidence is recorded here before child closure. Per the mission invariant, **C01–C06 remain OPEN** until the later independent #1041/#1042 gates confirm source coverage and real runtime evidence on the integrated recovery head.
+
+- **C01 — Sales Control authoritative Dashboard shell**
+  - Source: `backend/resources/views/admin/commercial-dashboard.blade.php`; `backend/resources/views/admin/flash-offer-preview.blade.php`; `backend/resources/views/admin/flash-offer-analytics.blade.php`.
+  - Tests: `CommercialDashboardContractTest::test_sales_control_uses_premium_dashboard_shell_instead_of_legacy_standalone_surface`; `::test_flash_offers_share_the_authoritative_foodex_admin_shell`; `::test_flash_preview_and_analytics_are_executable_against_canonical_flash_tables`.
+  - Runtime boundary: exact-head FOODEX UI Visual QA / Web runtime evidence for PR #1047 in EN/LTR and AR/RTL, including responsive shell behavior.
+
+- **C02 — Sales Control structured business controls**
+  - Source: structured Selling Unit, Availability Window, Targeting/Quota Rule, channel, quota and close/override controls in `commercial-dashboard.blade.php`; server validation in `CommercialDashboardController::validateStructuredSalesConfiguration`.
+  - Tests: Sales Control shell/structured-controls test plus `test_platform_admin_keeps_advanced_json_behind_privileged_section` and `test_sales_control_rejects_targeting_customer_outside_authoritative_store_scope`.
+  - Raw JSON is transport-only for the normal store workflow; manually editable JSON is fenced behind the privileged Platform Admin Advanced section.
+
+- **C03 — Break-pack authoritative Selling Unit lookup**
+  - Source: `data-break-pack-selling-unit` selector is populated from product Selling Units and live-synchronized from the structured Selling Unit editor; controller revalidates the selected active unit.
+  - Tests: `test_final_gate_configuration_persists_break_pack_audience_and_authoritative_flags` plus Sales Control structured-control coverage.
+
+- **C04 — Flash Offers Marketing/Promotions structured Create/Edit**
+  - Source: `data-flash-offer-form`, exact-offer edit loading, compact ellipsis lifecycle actions, full FOODEX Preview/Analytics shell.
+  - Tests: `test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids`, `test_flash_offer_rows_use_one_compact_action_menu_and_catalog_localization`, Preview/Analytics executable contract test.
+
+- **C05 — Flash Audience authoritative lookups**
+  - Source: Customer / Customer Group / Region / Route multi-selects from `CommercialDashboardController::flashOfferLookups`; server scope enforcement in `validateFlashAudience`.
+  - Tests: valid lookup persistence in `test_final_gate_configuration_persists_break_pack_audience_and_authoritative_flags`; negative scope coverage in `test_flash_offer_rejects_audience_values_outside_authoritative_store_lookups`.
+
+- **C06 — Flash Product Builder + Selling Unit + structured Channels**
+  - Source: `data-flash-product-builder`, authoritative per-product Selling Unit catalog/validation, Customer/Van channel checkboxes, Van parity regression.
+  - Tests: `test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids`, `test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring`, final persistence test.
+
 ## #1035 owner evidence checkpoint
 
 These rows intentionally remain `OPEN` until required runtime evidence is complete and later independent gates confirm them.
