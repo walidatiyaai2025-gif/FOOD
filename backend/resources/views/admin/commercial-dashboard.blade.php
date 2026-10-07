@@ -242,6 +242,140 @@
                             </div>
                         </section>
 
+                        <section class="policy-section structured-editor" data-selling-unit-editor>
+                            <div class="structured-toolbar">
+                                <div><h4>{{ __('commercial.sales.selling_units_editor') }}</h4><div class="muted">{{ __('commercial.sales.selling_units_hint') }}</div></div>
+                                <button type="button" class="structured-add" data-selling-unit-add>{{ __('commercial.sales.add_selling_unit') }}</button>
+                            </div>
+                            <div class="structured-list" data-selling-unit-rows>
+                                @forelse($units as $unit)
+                                    <div class="structured-row" data-selling-unit-row data-unit-id="{{ $unit['unit_id'] ?? '' }}">
+                                        <div class="structured-grid">
+                                            <label>{{ __('commercial.sales.unit_code') }}<input data-unit-field="code" value="{{ $unit['code'] ?? '' }}" required></label>
+                                            <label>{{ __('commercial.sales.unit_name') }}<input data-unit-field="name" value="{{ $unit['name'] ?? '' }}" required></label>
+                                            <label>{{ __('commercial.sales.conversion_factor') }}<input type="number" min="0.001" step="0.001" data-unit-field="conversion_factor" value="{{ $unit['conversion_factor'] ?? 1 }}" required></label>
+                                            <label>{{ __('commercial.sales.unit_price') }}<input type="number" min="0" step="0.001" data-unit-field="price" value="{{ $unit['price'] ?? '' }}"></label>
+                                            <label>{{ __('commercial.sales.unit_sku') }}<input data-unit-field="sku" value="{{ $unit['sku'] ?? '' }}"></label>
+                                            <label>{{ __('commercial.sales.unit_barcode') }}<input data-unit-field="barcode" value="{{ $unit['barcode'] ?? '' }}"></label>
+                                            <label class="structured-choice"><input type="checkbox" data-unit-field="is_base" @checked((bool)($unit['is_base'] ?? false))><span>{{ __('commercial.sales.base_unit') }}</span></label>
+                                            <label class="structured-choice"><input type="checkbox" data-unit-field="is_active" @checked((bool)($unit['is_active'] ?? true))><span>{{ __('commercial.sales.active_unit') }}</span></label>
+                                        </div>
+                                        <div><button type="button" class="structured-remove" data-selling-unit-remove>{{ __('commercial.sales.remove_selling_unit') }}</button></div>
+                                    </div>
+                                @empty
+                                    <div class="structured-row" data-selling-unit-row>
+                                        <div class="structured-grid">
+                                            <label>{{ __('commercial.sales.unit_code') }}<input data-unit-field="code" required></label>
+                                            <label>{{ __('commercial.sales.unit_name') }}<input data-unit-field="name" required></label>
+                                            <label>{{ __('commercial.sales.conversion_factor') }}<input type="number" min="0.001" step="0.001" data-unit-field="conversion_factor" value="1" required></label>
+                                            <label>{{ __('commercial.sales.unit_price') }}<input type="number" min="0" step="0.001" data-unit-field="price"></label>
+                                            <label>{{ __('commercial.sales.unit_sku') }}<input data-unit-field="sku"></label>
+                                            <label>{{ __('commercial.sales.unit_barcode') }}<input data-unit-field="barcode"></label>
+                                            <label class="structured-choice"><input type="checkbox" data-unit-field="is_base" checked><span>{{ __('commercial.sales.base_unit') }}</span></label>
+                                            <label class="structured-choice"><input type="checkbox" data-unit-field="is_active" checked><span>{{ __('commercial.sales.active_unit') }}</span></label>
+                                        </div>
+                                        <div><button type="button" class="structured-remove" data-selling-unit-remove>{{ __('commercial.sales.remove_selling_unit') }}</button></div>
+                                    </div>
+                                @endforelse
+                            </div>
+                            <input type="hidden" name="selling_units_json" data-selling-units-json value="{{ e($units->toJson(JSON_UNESCAPED_SLASHES)) }}">
+                            <template data-selling-unit-template>
+                                <div class="structured-row" data-selling-unit-row>
+                                    <div class="structured-grid">
+                                        <label>{{ __('commercial.sales.unit_code') }}<input data-unit-field="code" required></label>
+                                        <label>{{ __('commercial.sales.unit_name') }}<input data-unit-field="name" required></label>
+                                        <label>{{ __('commercial.sales.conversion_factor') }}<input type="number" min="0.001" step="0.001" data-unit-field="conversion_factor" value="1" required></label>
+                                        <label>{{ __('commercial.sales.unit_price') }}<input type="number" min="0" step="0.001" data-unit-field="price"></label>
+                                        <label>{{ __('commercial.sales.unit_sku') }}<input data-unit-field="sku"></label>
+                                        <label>{{ __('commercial.sales.unit_barcode') }}<input data-unit-field="barcode"></label>
+                                        <label class="structured-choice"><input type="checkbox" data-unit-field="is_base"><span>{{ __('commercial.sales.base_unit') }}</span></label>
+                                        <label class="structured-choice"><input type="checkbox" data-unit-field="is_active" checked><span>{{ __('commercial.sales.active_unit') }}</span></label>
+                                    </div>
+                                    <div><button type="button" class="structured-remove" data-selling-unit-remove>{{ __('commercial.sales.remove_selling_unit') }}</button></div>
+                                </div>
+                            </template>
+                        </section>
+
+                        <section class="policy-section structured-editor" data-availability-editor>
+                            <div class="structured-toolbar">
+                                <div><h4>{{ __('commercial.sales.availability_windows_editor') }}</h4><div class="muted">{{ __('commercial.sales.availability_windows_hint') }}</div></div>
+                                <button type="button" class="structured-add" data-availability-add>{{ __('commercial.sales.add_availability_window') }}</button>
+                            </div>
+                            <div class="structured-list" data-availability-rows>
+                                @foreach($windows as $window)
+                                    <div class="structured-row" data-availability-row>
+                                        <div class="structured-grid">
+                                            <label>{{ __('commercial.sales.recurrence') }}<select data-window-field="recurrence"><option value="fixed" @selected(($window['recurrence'] ?? 'fixed') === 'fixed')>{{ __('commercial.sales.recurrence_fixed') }}</option><option value="yearly" @selected(($window['recurrence'] ?? '') === 'yearly')>{{ __('commercial.sales.recurrence_yearly') }}</option></select></label>
+                                            <label>{{ __('commercial.sales.starts_at') }}<input type="datetime-local" data-window-field="starts_at" value="{{ !empty($window['starts_at']) ? IlluminateSupportCarbon::parse($window['starts_at'])->format('Y-m-d\TH:i') : '' }}"></label>
+                                            <label>{{ __('commercial.sales.ends_at') }}<input type="datetime-local" data-window-field="ends_at" value="{{ !empty($window['ends_at']) ? IlluminateSupportCarbon::parse($window['ends_at'])->format('Y-m-d\TH:i') : '' }}"></label>
+                                            <label class="structured-choice"><input type="checkbox" data-window-field="is_active" @checked((bool)($window['is_active'] ?? true))><span>{{ __('commercial.sales.active_window') }}</span></label>
+                                            <label>{{ __('commercial.sales.start_month') }}<input type="number" min="1" max="12" data-window-field="start_month" value="{{ $window['start_month'] ?? '' }}"></label>
+                                            <label>{{ __('commercial.sales.start_day') }}<input type="number" min="1" max="31" data-window-field="start_day" value="{{ $window['start_day'] ?? '' }}"></label>
+                                            <label>{{ __('commercial.sales.end_month') }}<input type="number" min="1" max="12" data-window-field="end_month" value="{{ $window['end_month'] ?? '' }}"></label>
+                                            <label>{{ __('commercial.sales.end_day') }}<input type="number" min="1" max="31" data-window-field="end_day" value="{{ $window['end_day'] ?? '' }}"></label>
+                                        </div>
+                                        <div><button type="button" class="structured-remove" data-availability-remove>{{ __('commercial.sales.remove_availability_window') }}</button></div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <input type="hidden" name="availability_windows_json" data-availability-json value="{{ e($windows->toJson(JSON_UNESCAPED_SLASHES)) }}">
+                            <template data-availability-template>
+                                <div class="structured-row" data-availability-row>
+                                    <div class="structured-grid">
+                                        <label>{{ __('commercial.sales.recurrence') }}<select data-window-field="recurrence"><option value="fixed">{{ __('commercial.sales.recurrence_fixed') }}</option><option value="yearly">{{ __('commercial.sales.recurrence_yearly') }}</option></select></label>
+                                        <label>{{ __('commercial.sales.starts_at') }}<input type="datetime-local" data-window-field="starts_at"></label>
+                                        <label>{{ __('commercial.sales.ends_at') }}<input type="datetime-local" data-window-field="ends_at"></label>
+                                        <label class="structured-choice"><input type="checkbox" data-window-field="is_active" checked><span>{{ __('commercial.sales.active_window') }}</span></label>
+                                        <label>{{ __('commercial.sales.start_month') }}<input type="number" min="1" max="12" data-window-field="start_month"></label>
+                                        <label>{{ __('commercial.sales.start_day') }}<input type="number" min="1" max="31" data-window-field="start_day"></label>
+                                        <label>{{ __('commercial.sales.end_month') }}<input type="number" min="1" max="12" data-window-field="end_month"></label>
+                                        <label>{{ __('commercial.sales.end_day') }}<input type="number" min="1" max="31" data-window-field="end_day"></label>
+                                    </div>
+                                    <div><button type="button" class="structured-remove" data-availability-remove>{{ __('commercial.sales.remove_availability_window') }}</button></div>
+                                </div>
+                            </template>
+                        </section>
+
+                        <section class="policy-section structured-editor" data-targeting-rule-editor>
+                            <div class="structured-toolbar">
+                                <div><h4>{{ __('commercial.sales.targeting_rules_editor') }}</h4><div class="muted">{{ __('commercial.sales.targeting_rules_hint') }}</div></div>
+                                <button type="button" class="structured-add" data-rule-add>{{ __('commercial.sales.add_targeting_rule') }}</button>
+                            </div>
+                            <div class="structured-list" data-rule-rows>
+                                @foreach($rules as $rule)
+                                    @php($customerId=(int)($rule['customer_id'] ?? 0))
+                                    @php($groupId=(int)($rule['customer_group_id'] ?? 0))
+                                    <div class="structured-row" data-rule-row>
+                                        <div class="structured-grid">
+                                            <label>{{ __('commercial.sales.rule_customer') }}<select data-rule-field="customer_id"><option value="">{{ __('commercial.sales.any_customer') }}</option>@if($customerId>0 && !$ruleCustomers->contains('id',$customerId))<option value="{{ $customerId }}" selected>{{ __('commercial.sales.reference_unavailable') }}</option>@endif @foreach($ruleCustomers as $customer)<option value="{{ $customer->id }}" @selected($customerId===(int)$customer->id)>{{ $customer->name }}{{ $customer->email ? ' · '.$customer->email : '' }}</option>@endforeach</select></label>
+                                            <label>{{ __('commercial.sales.rule_group') }}<select data-rule-field="customer_group_id"><option value="">{{ __('commercial.sales.any_group') }}</option>@if($groupId>0 && !$ruleGroups->contains('id',$groupId))<option value="{{ $groupId }}" selected>{{ __('commercial.sales.reference_unavailable') }}</option>@endif @foreach($ruleGroups as $group)<option value="{{ $group->id }}" @selected($groupId===(int)$group->id)>{{ $group->name }}</option>@endforeach</select></label>
+                                            <label>{{ __('commercial.sales.rule_channel') }}<select data-rule-field="channel"><option value="">{{ __('commercial.sales.any_channel') }}</option>@foreach(['customer','van','admin','api'] as $channel)<option value="{{ $channel }}" @selected(($rule['channel'] ?? '')===$channel)>{{ __('commercial.channels.'.$channel) }}</option>@endforeach</select></label>
+                                            <label>{{ __('commercial.sales.rule_access') }}<select data-rule-field="is_allowed"><option value="" @selected(($rule['is_allowed'] ?? null)===null)>{{ __('commercial.sales.inherit_access') }}</option><option value="1" @selected(($rule['is_allowed'] ?? null)===true)>{{ __('commercial.sales.allow_access') }}</option><option value="0" @selected(($rule['is_allowed'] ?? null)===false)>{{ __('commercial.sales.block_access') }}</option></select></label>
+                                            @foreach(['max_per_order','max_per_day','max_per_week','max_per_month','max_lifetime'] as $limit)
+                                                <label>{{ __('commercial.sales.rule_'.$limit) }}<input type="number" min="0" step="0.001" data-rule-field="{{ $limit }}" value="{{ $rule[$limit] ?? '' }}"></label>
+                                            @endforeach
+                                        </div>
+                                        <div><button type="button" class="structured-remove" data-rule-remove>{{ __('commercial.sales.remove_targeting_rule') }}</button></div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <input type="hidden" name="rules_json" data-rules-json value="{{ e($rules->toJson(JSON_UNESCAPED_SLASHES)) }}">
+                            <template data-rule-template>
+                                <div class="structured-row" data-rule-row>
+                                    <div class="structured-grid">
+                                        <label>{{ __('commercial.sales.rule_customer') }}<select data-rule-field="customer_id"><option value="">{{ __('commercial.sales.any_customer') }}</option>@foreach($ruleCustomers as $customer)<option value="{{ $customer->id }}">{{ $customer->name }}{{ $customer->email ? ' · '.$customer->email : '' }}</option>@endforeach</select></label>
+                                        <label>{{ __('commercial.sales.rule_group') }}<select data-rule-field="customer_group_id"><option value="">{{ __('commercial.sales.any_group') }}</option>@foreach($ruleGroups as $group)<option value="{{ $group->id }}">{{ $group->name }}</option>@endforeach</select></label>
+                                        <label>{{ __('commercial.sales.rule_channel') }}<select data-rule-field="channel"><option value="">{{ __('commercial.sales.any_channel') }}</option>@foreach(['customer','van','admin','api'] as $channel)<option value="{{ $channel }}">{{ __('commercial.channels.'.$channel) }}</option>@endforeach</select></label>
+                                        <label>{{ __('commercial.sales.rule_access') }}<select data-rule-field="is_allowed"><option value="">{{ __('commercial.sales.inherit_access') }}</option><option value="1">{{ __('commercial.sales.allow_access') }}</option><option value="0">{{ __('commercial.sales.block_access') }}</option></select></label>
+                                        @foreach(['max_per_order','max_per_day','max_per_week','max_per_month','max_lifetime'] as $limit)
+                                            <label>{{ __('commercial.sales.rule_'.$limit) }}<input type="number" min="0" step="0.001" data-rule-field="{{ $limit }}"></label>
+                                        @endforeach
+                                    </div>
+                                    <div><button type="button" class="structured-remove" data-rule-remove>{{ __('commercial.sales.remove_targeting_rule') }}</button></div>
+                                </div>
+                            </template>
+                        </section>
+
                         <section class="policy-section">
                             <div class="policy-section-title"><span>{{ __('commercial.sales.default_quotas') }}</span><span class="muted">{{ __('commercial.sales.no_limit_hint') }}</span></div>
                             <div class="commercial-form-grid five">
@@ -273,15 +407,11 @@
                                 <summary>{{ __('commercial.sales.advanced_privileged_title') }}</summary>
                                 <div class="commercial-advanced-body">
                                     <p class="muted">{{ __('commercial.sales.advanced_privileged_hint') }}</p>
-                                    <label>{{ __('commercial.sales.selling_units_json') }}<textarea name="selling_units_json" rows="5">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                                    <label>{{ __('commercial.sales.availability_windows_json') }}<textarea name="availability_windows_json" rows="5">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
-                                    <label>{{ __('commercial.sales.targeting_rules_json') }}<textarea name="rules_json" rows="5">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                    <label>{{ __('commercial.sales.selling_units_json') }}<textarea rows="5" data-commercial-advanced-json="selling_units_json">{{ $units->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                    <label>{{ __('commercial.sales.availability_windows_json') }}<textarea rows="5" data-commercial-advanced-json="availability_windows_json">{{ $windows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
+                                    <label>{{ __('commercial.sales.targeting_rules_json') }}<textarea rows="5" data-commercial-advanced-json="rules_json">{{ $rules->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) }}</textarea></label>
                                 </div>
                             </details>
-                        @else
-                            <input type="hidden" name="selling_units_json" value="{{ e($units->toJson(JSON_UNESCAPED_SLASHES)) }}">
-                            <input type="hidden" name="availability_windows_json" value="{{ e($windows->toJson(JSON_UNESCAPED_SLASHES)) }}">
-                            <input type="hidden" name="rules_json" value="{{ e($rules->toJson(JSON_UNESCAPED_SLASHES)) }}">
                         @endif
                         <button type="submit" class="foodex-primary">{{ __('commercial.sales.save_policy') }}</button>
                     </form>
