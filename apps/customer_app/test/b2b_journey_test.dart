@@ -147,6 +147,41 @@ void main() {
     expect(api.calls, 2);
   });
 
+  testWidgets('B2B orders refresh automatically when app resumes',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'data': [
+        {
+          'id': 77,
+          'order_number': 'B2B-77',
+          'status': 'processing',
+          'grand_total': 48.0,
+          'currency': 'KWD',
+        },
+      ],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 1);
+    expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(api.calls, 2);
+    expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'B2B dashboard Store icon resolves principal Wholesale and opens canonical home',
       (tester) async {
