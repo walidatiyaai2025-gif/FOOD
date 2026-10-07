@@ -57,5 +57,4 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringNotContainsString('Store ID (optional)', $view);
         $this->assertStringNotContainsString('placeholder="{{ $ar?\'كود المنطقة\':\'Territory key\' }}"', $view);
     }
-
 }
