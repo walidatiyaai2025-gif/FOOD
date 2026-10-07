@@ -2,6 +2,8 @@
     $ar = app()->getLocale() === 'ar';
     $scope = ['store_id' => $storeId] + ($supportAccess ? ['support_access' => 1] : []);
     $customerEnabled = in_array('customer', $channels, true);
+    $localizedTitle = $ar ? (string) $offer->title_ar : (string) $offer->title_en;
+    $localizedBody = $ar ? (string) ($offer->body_ar ?: '—') : (string) ($offer->body_en ?: '—');
     $localizedChannels = collect($channels)->map(
         fn (string $channel): string => __('commercial.channels.'.$channel)
     );
@@ -66,23 +68,23 @@
         <div class="preview-grid">
             <section class="preview-card" data-preview-surface="customer-popup">
                 <h2>{{ __('commercial.preview.customer_popup') }}</h2>
-                <strong>{{ $ar ? $offer->title_ar : $offer->title_en }}</strong>
-                <p>{{ $ar ? ($offer->body_ar ?: '—') : ($offer->body_en ?: '—') }}</p>
+                <strong>{{ $localizedTitle }}</strong>
+                <p>{{ $localizedBody }}</p>
                 <div class="preview-cta">{{ __('commercial.preview.buy_now') }}</div>
                 <p class="muted">{{ __('commercial.preview.priority') }} {{ $offer->priority }} · {{ __('commercial.flash.'.$offer->popup_frequency) }}</p>
             </section>
 
             <section class="preview-card" data-preview-surface="product-card">
                 <h2>{{ __('commercial.preview.product_card') }}</h2>
-                <strong>{{ $ar ? $offer->title_ar : $offer->title_en }}</strong>
+                <strong>{{ $localizedTitle }}</strong>
                 <p class="muted">{{ $offer->starts_at }} → {{ $offer->ends_at }}</p>
                 <span>{{ __('commercial.flash.statuses.'.$offer->status) }}</span>
             </section>
 
             <section class="preview-card" data-preview-surface="notification">
                 <h2>{{ __('commercial.preview.notification') }}</h2>
-                <strong>{{ $ar ? $offer->title_ar : $offer->title_en }}</strong>
-                <p>{{ $ar ? ($offer->body_ar ?: '—') : ($offer->body_en ?: '—') }}</p>
+                <strong>{{ $localizedTitle }}</strong>
+                <p>{{ $localizedBody }}</p>
                 <p class="muted">{{ $localizedChannels->implode(' · ') }}</p>
             </section>
         </div>
