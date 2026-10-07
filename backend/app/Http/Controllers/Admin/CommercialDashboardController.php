@@ -87,7 +87,7 @@ final class CommercialDashboardController extends Controller
 
             if (! $validSellingUnit) {
                 throw ValidationException::withMessages([
-                    'break_pack_unit_code' => ['Select an active selling unit for the product.'],
+                    'break_pack_unit_code' => [__('commercial.validation.active_selling_unit')],
                 ]);
             }
 
@@ -122,7 +122,7 @@ final class CommercialDashboardController extends Controller
             DB::table('product_selling_units')->where('product_id', $product)->delete();
             foreach ($sellingUnits as $unit) {
                 if (! is_array($unit) || empty($unit['code']) || empty($unit['name'])) {
-                    throw ValidationException::withMessages(['selling_units_json' => ['Every selling unit needs code and name.']]);
+                    throw ValidationException::withMessages(['selling_units_json' => [__('commercial.validation.selling_unit_code_name')]]);
                 }
                 DB::table('product_selling_units')->insert([
                     'product_id' => $product,
@@ -185,7 +185,7 @@ final class CommercialDashboardController extends Controller
             $this->audit->record('commercial.product_policy.updated', $user, null, $before, [...$after, 'store_id' => $storeId], $request);
         });
 
-        return back()->with('status', 'Commercial sales control saved.');
+        return back()->with('status', __('commercial.status.sales_control_saved'));
     }
 
     public function flashOffers(Request $request): View
@@ -368,7 +368,7 @@ final class CommercialDashboardController extends Controller
             $productId = (int) $product['product_id'];
             if (! $allowedProducts->has($productId)) {
                 throw ValidationException::withMessages([
-                    "products.$index.product_id" => ['Select a product assigned to this store.'],
+                    "products.$index.product_id" => [__('commercial.validation.store_product')],
                 ]);
             }
 
@@ -377,7 +377,7 @@ final class CommercialDashboardController extends Controller
                 ->first(fn (object $candidate): bool => (string) $candidate->code === $unitCode);
             if ($unit === null) {
                 throw ValidationException::withMessages([
-                    "products.$index.selling_unit_code" => ['Select an active selling unit for this product.'],
+                    "products.$index.selling_unit_code" => [__('commercial.validation.flash_active_selling_unit')],
                 ]);
             }
 
@@ -462,7 +462,7 @@ final class CommercialDashboardController extends Controller
 
         return redirect()
             ->route('admin.commercial.flash-offers', ['store_id' => $storeId] + ($request->boolean('support_access') ? ['support_access' => 1] : []))
-            ->with('status', 'Flash Offer saved.');
+            ->with('status', __('commercial.status.flash_offer_saved'));
     }
 
     public function saveFeatureFlags(Request $request): RedirectResponse
@@ -488,7 +488,7 @@ final class CommercialDashboardController extends Controller
 
         $this->audit->record('commercial.feature_flags.updated', $user, null, $before, $after, $request);
 
-        return back()->with('status', 'Commercial feature flags saved.');
+        return back()->with('status', __('commercial.status.feature_flags_saved'));
     }
 
     public function flashAction(Request $request, int $offer): RedirectResponse
@@ -515,7 +515,7 @@ final class CommercialDashboardController extends Controller
         DB::table('flash_offers')->where('id', $offer)->update($changes);
         $this->audit->record('commercial.flash_offer.action', $user, null, (array) $row, [...(array) $row, ...$changes, 'store_id' => $storeId], $request);
 
-        return back()->with('status', 'Flash Offer action applied.');
+        return back()->with('status', __('commercial.status.flash_action_applied'));
     }
 
     /** @return array{0: User, 1: int} */
@@ -548,7 +548,7 @@ final class CommercialDashboardController extends Controller
     {
         $decoded = json_decode($json, true);
         if (! is_array($decoded) || ! array_is_list($decoded)) {
-            throw ValidationException::withMessages([$field => ['A JSON array is required.']]);
+            throw ValidationException::withMessages([$field => [__('commercial.validation.json_array_required')]]);
         }
 
         return $decoded;
