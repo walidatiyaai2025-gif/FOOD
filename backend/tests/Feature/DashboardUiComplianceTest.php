@@ -278,4 +278,19 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("'deep_link_scheme' => ['sometimes', 'nullable', 'string', 'max:64']", $controller);
         $this->assertStringContainsString("\$readiness['android'] = \$request->boolean('readiness_android');", $controller);
     }
+
+
+    public function test_mobile_settings_runtime_readiness_is_structured(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('name="deep_link_scheme"', $view);
+        $this->assertStringContainsString('name="deep_link_host"', $view);
+        $this->assertStringContainsString('name="readiness_android"', $view);
+        $this->assertStringContainsString('name="readiness_ios"', $view);
+        $this->assertStringContainsString('name="readiness_privacy"', $view);
+        $this->assertStringNotContainsString('name="deep_link_json"', $view);
+        $this->assertStringNotContainsString('name="store_readiness_json"', $view);
+    }
 }
