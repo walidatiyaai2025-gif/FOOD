@@ -304,6 +304,9 @@ return [
         'flash_active_selling_unit' => 'اختر وحدة بيع نشطة لهذا المنتج.',
         'json_array_required' => 'يلزم إدخال مصفوفة JSON.',
         'selling_unit_factor' => 'يجب أن يكون معامل تحويل وحدة البيع أكبر من صفر.',
+        'sales_channel' => 'اختر قناة بيع مدعومة.',
+        'selling_unit_reference' => 'مرجع الوحدة المحدد غير متاح.',
+
         'duplicate_selling_unit_code' => 'يجب ألا يتكرر كود وحدة البيع لنفس المنتج.',
         'availability_recurrence' => 'يجب أن يكون تكرار الإتاحة بتواريخ ثابتة أو سنويًا.',
         'availability_yearly_fields' => 'تتطلب الإتاحة السنوية قيم شهر ويوم صحيحة للبداية والنهاية.',
@@ -312,6 +315,8 @@ return [
         'sales_rule_group_scope' => 'اختر مجموعة عملاء نشطة ومتاحة لهذا المتجر.',
         'sales_rule_subject_exclusive' => 'اختر عميلًا أو مجموعة عملاء للقاعدة الواحدة، وليس الاثنين معًا.',
         'sales_rule_channel' => 'اختر قناة بيع مدعومة.',
+        'sales_rule_access' => 'يجب أن تكون صلاحية القاعدة سماحًا أو حظرًا أو وراثة.',
+
         'sales_rule_limit' => 'يجب أن تكون حدود الحصص صفرًا أو أكبر.',
         'audience_customer_scope' => 'عميل واحد أو أكثر من المحددين غير متاح في هذا المتجر.',
         'audience_group_scope' => 'مجموعة عملاء واحدة أو أكثر غير متاحة لهذا المتجر.',
