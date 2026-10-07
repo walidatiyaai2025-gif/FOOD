@@ -242,11 +242,21 @@ final class VanVisitController extends Controller
     /** @return array<string, mixed> */
     private function visitPayload(VanVisit $visit): array
     {
+        $rawMetadata = $visit->getAttribute('metadata');
+        $metadata = is_array($rawMetadata) ? $rawMetadata : [];
+        $routeKey = collect([
+            $metadata['route_key'] ?? null,
+            $metadata['route_code'] ?? null,
+            $metadata['route'] ?? null,
+        ])->map(static fn (mixed $value): string => trim((string) $value))
+            ->first(static fn (string $value): bool => $value !== '');
+
         return [
             'id' => (int) $visit->getKey(),
             'customer_type' => (string) $visit->customer_type,
             'customer_id' => (int) $visit->customer_id,
             'store_id' => $visit->store_id === null ? null : (int) $visit->store_id,
+            'route_key' => $routeKey === null || $routeKey === '' ? null : $routeKey,
             'status' => (string) $visit->status,
             'order_id' => $visit->order_id === null ? null : (int) $visit->order_id,
             'no_order_reason_id' => $visit->no_order_reason_id === null ? null : (int) $visit->no_order_reason_id,
