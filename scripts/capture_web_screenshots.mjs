@@ -293,7 +293,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
   for (const app of proof.apps) {
     const requiredFragments = [
       `/admin/app-preview?application=${app.app}`,
-      `/admin/app-versions?app=${app.app}`,
+      `/admin/settings/app-versions?app=${app.app}`,
       `/admin/settings/mobile?app=${app.app}&environment=production`,
     ];
     for (const fragment of requiredFragments) {

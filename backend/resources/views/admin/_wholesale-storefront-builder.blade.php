@@ -85,7 +85,7 @@
                 @if($isSuper)
                 <details class="wide" data-advanced>
                     <summary>{{ app()->getLocale()==='ar'?'إعدادات تقنية متقدمة':'Advanced technical settings' }}</summary>
-                    <label>{{ app()->getLocale()==='ar'?'إعدادات JSON':'Config JSON' }}<textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label>
+                    <label>{{ app()->getLocale()==='ar'?'إعدادات JSON':'Config JSON' }}<textarea name="config_json" rows="2" placeholder='{"limit":12}'></textarea></label> {{-- localization-gate: allow — technical JSON example, not user-facing prose. --}}
                 </details>
                 @endif
             </div>
