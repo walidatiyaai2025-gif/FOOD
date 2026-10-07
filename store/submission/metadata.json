@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "production_base_url": "https://vanfoodex.50sols.com",
+  "production_base_url": "https://foodex.50sols.com",
   "release": {
-    "version": "1.0.60",
-    "build": "60"
+    "version": "1.0.62",
+    "build": "62"
   },
   "public_urls": {
-    "privacy": "https://vanfoodex.50sols.com/privacy",
-    "terms": "https://vanfoodex.50sols.com/terms",
-    "support": "https://vanfoodex.50sols.com/support",
-    "delete_account": "https://vanfoodex.50sols.com/account-deletion"
+    "privacy": "https://foodex.50sols.com/privacy",
+    "terms": "https://foodex.50sols.com/terms",
+    "support": "https://foodex.50sols.com/support",
+    "delete_account": "https://foodex.50sols.com/account-deletion"
   },
   "lanes": [
     {
@@ -69,12 +69,12 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.60",
-      "build": "60",
-      "support_url": "https://vanfoodex.50sols.com/support",
-      "privacy_url": "https://vanfoodex.50sols.com/privacy",
-      "terms_url": "https://vanfoodex.50sols.com/terms",
-      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "version": "1.0.62",
+      "build": "62",
+      "support_url": "https://foodex.50sols.com/support",
+      "privacy_url": "https://foodex.50sols.com/privacy",
+      "terms_url": "https://foodex.50sols.com/terms",
+      "delete_account_url": "https://foodex.50sols.com/account-deletion",
       "asset_readiness": {
         "icon_master": "repository-controlled",
         "splash_master": "repository-controlled",
@@ -132,12 +132,12 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.60",
-      "build": "60",
-      "support_url": "https://vanfoodex.50sols.com/support",
-      "privacy_url": "https://vanfoodex.50sols.com/privacy",
-      "terms_url": "https://vanfoodex.50sols.com/terms",
-      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "version": "1.0.62",
+      "build": "62",
+      "support_url": "https://foodex.50sols.com/support",
+      "privacy_url": "https://foodex.50sols.com/privacy",
+      "terms_url": "https://foodex.50sols.com/terms",
+      "delete_account_url": "https://foodex.50sols.com/account-deletion",
       "asset_readiness": {
         "icon_master": "repository-controlled",
         "splash_master": "repository-controlled",
@@ -215,12 +215,12 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.60",
-      "build": "60",
-      "support_url": "https://vanfoodex.50sols.com/support",
-      "privacy_url": "https://vanfoodex.50sols.com/privacy",
-      "terms_url": "https://vanfoodex.50sols.com/terms",
-      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "version": "1.0.62",
+      "build": "62",
+      "support_url": "https://foodex.50sols.com/support",
+      "privacy_url": "https://foodex.50sols.com/privacy",
+      "terms_url": "https://foodex.50sols.com/terms",
+      "delete_account_url": "https://foodex.50sols.com/account-deletion",
       "asset_readiness": {
         "icon_master": "repository-controlled",
         "splash_master": "repository-controlled",
@@ -279,12 +279,12 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.60",
-      "build": "60",
-      "support_url": "https://vanfoodex.50sols.com/support",
-      "privacy_url": "https://vanfoodex.50sols.com/privacy",
-      "terms_url": "https://vanfoodex.50sols.com/terms",
-      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "version": "1.0.62",
+      "build": "62",
+      "support_url": "https://foodex.50sols.com/support",
+      "privacy_url": "https://foodex.50sols.com/privacy",
+      "terms_url": "https://foodex.50sols.com/terms",
+      "delete_account_url": "https://foodex.50sols.com/account-deletion",
       "asset_readiness": {
         "icon_master": "repository-controlled",
         "splash_master": "repository-controlled",
@@ -363,12 +363,12 @@
         "operational location where enabled",
         "diagnostics/support data"
       ],
-      "version": "1.0.60",
-      "build": "60",
-      "support_url": "https://vanfoodex.50sols.com/support",
-      "privacy_url": "https://vanfoodex.50sols.com/privacy",
-      "terms_url": "https://vanfoodex.50sols.com/terms",
-      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "version": "1.0.62",
+      "build": "62",
+      "support_url": "https://foodex.50sols.com/support",
+      "privacy_url": "https://foodex.50sols.com/privacy",
+      "terms_url": "https://foodex.50sols.com/terms",
+      "delete_account_url": "https://foodex.50sols.com/account-deletion",
       "asset_readiness": {
         "icon_master": "repository-controlled",
         "splash_master": "repository-controlled",
@@ -428,12 +428,12 @@
         "operational location where enabled",
         "diagnostics/support data"
       ],
-      "version": "1.0.60",
-      "build": "60",
-      "support_url": "https://vanfoodex.50sols.com/support",
-      "privacy_url": "https://vanfoodex.50sols.com/privacy",
-      "terms_url": "https://vanfoodex.50sols.com/terms",
-      "delete_account_url": "https://vanfoodex.50sols.com/account-deletion",
+      "version": "1.0.62",
+      "build": "62",
+      "support_url": "https://foodex.50sols.com/support",
+      "privacy_url": "https://foodex.50sols.com/privacy",
+      "terms_url": "https://foodex.50sols.com/terms",
+      "delete_account_url": "https://foodex.50sols.com/account-deletion",
       "asset_readiness": {
         "icon_master": "repository-controlled",
         "splash_master": "repository-controlled",
