@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.61",
-  "minimum_current_version": "1.0.57",
-  "sha256": "c13b2a04030303c5963c2ccfa97741661c9f38fcdf19da5401c6cdd0161bc01d",
-  "contains_migrations": true,
+  "target_version": "1.0.62",
+  "minimum_current_version": "1.0.60",
+  "sha256": "e654641d1bd581b7a059ffb6e101c70b35287b5adab99009972f489bec286e06",
+  "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#1062): rebuild 1.0.61 mobile artifacts for foodex.50sols.com",
+  "release_notes": "release(#1021): promote recovered terminal release 1.0.62",
   "dashboard_fields": {
-    "target_version": "1.0.61",
-    "minimum_current_version": "1.0.57",
-    "sha256": "c13b2a04030303c5963c2ccfa97741661c9f38fcdf19da5401c6cdd0161bc01d",
-    "contains_migrations": true,
-    "release_notes": "release(#1062): rebuild 1.0.61 mobile artifacts for foodex.50sols.com"
+    "target_version": "1.0.62",
+    "minimum_current_version": "1.0.60",
+    "sha256": "e654641d1bd581b7a059ffb6e101c70b35287b5adab99009972f489bec286e06",
+    "contains_migrations": false,
+    "release_notes": "release(#1021): promote recovered terminal release 1.0.62"
   }
 }
