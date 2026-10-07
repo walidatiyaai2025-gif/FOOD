@@ -116,6 +116,20 @@ class DriverPushAlert {
   }
 }
 
+String? driverPushIdentityLabel(
+  DriverPushOpen open, {
+  required String orderLabel,
+  required String assignmentLabel,
+}) {
+  final orderId = open.orderId;
+  if (orderId != null) return '$orderLabel #$orderId';
+
+  final assignmentId = open.assignmentId;
+  if (assignmentId != null) return '$assignmentLabel #$assignmentId';
+
+  return null;
+}
+
 class DriverPushOpen {
   const DriverPushOpen({
     this.assignmentId,
