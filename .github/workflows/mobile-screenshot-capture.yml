@@ -14,6 +14,8 @@ on:
       - "apps/driver_app/lib/app.dart"
       - "apps/driver_app/lib/core/theme/foodex_theme.dart"
       - "apps/driver_app/test/screenshot_evidence_test.dart"
+      - "apps/van_app/lib/**"
+      - "apps/van_app/test/screenshot_evidence_test.dart"
       - ".github/workflows/mobile-screenshot-capture.yml"
 
 permissions:
@@ -56,6 +58,12 @@ jobs:
           flutter pub get
           flutter test test/screenshot_evidence_test.dart
 
+      - name: Capture Van evidence
+        working-directory: apps/van_app
+        run: |
+          flutter pub get
+          flutter test test/screenshot_evidence_test.dart
+
       - name: Verify portrait geometry
         run: |
           python -m pip install --disable-pip-version-check pillow
@@ -65,13 +73,21 @@ jobs:
 
           paths = sorted(Path("ScreenShots/01_Mobile").rglob("*.png"))
           paths += sorted(Path("ScreenShots/02_MultiStore").rglob("*.png"))
+          paths += sorted(Path("ScreenShots/03_Van").rglob("*.png"))
+          compact = sorted(Path("ScreenShots/03_Van_Compact").rglob("*.png"))
           assert paths, "No mobile screenshots generated"
           for path in paths:
               with Image.open(path) as image:
                   width, height = image.size
               assert (width, height) == (430, 932), f"{path}: {width}x{height}"
               assert height / width >= 1.6, f"{path}: invalid portrait ratio"
-          print(f"Validated {len(paths)} mobile screenshots at 430x932")
+          for path in compact:
+              with Image.open(path) as image:
+                  width, height = image.size
+              assert (width, height) == (360, 800), f"{path}: {width}x{height}"
+              assert height / width >= 1.6, f"{path}: invalid compact portrait ratio"
+          assert compact, "No compact Van screenshots generated"
+          print(f"Validated {len(paths)} standard and {len(compact)} compact mobile screenshots")
           PY
 
       - name: Upload regenerated mobile evidence
@@ -81,5 +97,7 @@ jobs:
           path: |
             ScreenShots/01_Mobile/
             ScreenShots/02_MultiStore/
+            ScreenShots/03_Van/
+            ScreenShots/03_Van_Compact/
           if-no-files-found: error
           retention-days: 14

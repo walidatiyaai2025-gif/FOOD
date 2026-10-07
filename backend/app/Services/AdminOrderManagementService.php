@@ -89,13 +89,63 @@ final class AdminOrderManagementService
         ];
     }
 
-    public function create(Request $request, User $actor, string $channel, int $storeId): Order
-    {
+    public function create(
+        Request $request,
+        User $actor,
+        string $channel,
+        int $storeId,
+        string $source = 'dashboard',
+        string $policyChannel = 'admin',
+        ?string $idempotencyKey = null,
+    ): Order {
         $channel = strtolower($channel);
+        $source = strtolower(trim($source));
+        $policyChannel = strtolower(trim($policyChannel));
+        abort_unless(in_array($source, ['dashboard', 'van'], true), 500, 'Unsupported order source.');
+        abort_if($policyChannel === '', 500, 'Commercial policy channel is required.');
+
         $data = $this->validated($request, $channel);
         $warehouseId = $this->warehouseId($channel, $storeId, $data['warehouse_id'] ?? null);
         [$customer, $legacyCustomerId] = $this->customer($channel, $storeId, (int) $data['customer_id']);
         $customerId = (int) $customer->getKey();
+
+        $resolvedIdempotencyKey = trim((string) $idempotencyKey);
+        if ($resolvedIdempotencyKey !== '' && (strlen($resolvedIdempotencyKey) < 16 || strlen($resolvedIdempotencyKey) > 100)) {
+            throw ValidationException::withMessages([
+                'Idempotency-Key' => ['A valid Idempotency-Key between 16 and 100 characters is required.'],
+            ]);
+        }
+        $requestHash = $resolvedIdempotencyKey === ''
+            ? null
+            : hash('sha256', json_encode([
+                'source' => $source,
+                'channel' => $channel,
+                'store_id' => $storeId,
+                'customer_id' => $customerId,
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+                'address_id' => $data['address_id'] ?? null,
+                'payment_method' => $data['payment_method'] ?? null,
+                'coupon_code' => $data['coupon_code'] ?? null,
+                'customer_note' => $data['customer_note'] ?? null,
+                'items' => $data['items'],
+            ], JSON_THROW_ON_ERROR));
+
+        if ($resolvedIdempotencyKey !== '') {
+            $existing = Order::query()
+                ->where('customer_id', $legacyCustomerId)
+                ->where('checkout_idempotency_key', $resolvedIdempotencyKey)
+                ->first();
+            if ($existing instanceof Order) {
+                abort_if(
+                    ! hash_equals((string) $existing->checkout_request_hash, (string) $requestHash),
+                    409,
+                    'Idempotency key was already used for a different order request.',
+                );
+
+                return $existing;
+            }
+        }
+
         $addressId = $this->addressId($channel, $customerId, $data['address_id'] ?? null);
         $address = $addressId === null ? null : Address::query()->findOrFail($addressId);
         $paymentMethod = $this->paymentMethod(
@@ -123,6 +173,10 @@ final class AdminOrderManagementService
             $customerUser,
             $couponCode,
             $request,
+            $source,
+            $policyChannel,
+            $resolvedIdempotencyKey,
+            $requestHash,
         ): Order {
             // Dashboard-submitted prices/discount/delivery values are never authoritative.
             $quote = $this->quotes->quote(
@@ -168,6 +222,8 @@ final class AdminOrderManagementService
                 'pricing_snapshot' => $header['pricing_snapshot'],
                 'payment_method' => $paymentMethod,
                 'customer_note' => $data['customer_note'] ?? null,
+                'checkout_idempotency_key' => $resolvedIdempotencyKey === '' ? null : $resolvedIdempotencyKey,
+                'checkout_request_hash' => $requestHash,
             ]);
 
             foreach ($lines as $line) {
@@ -185,7 +241,7 @@ final class AdminOrderManagementService
                         $legacyCustomerId,
                         (int) $line['product_id'],
                         (float) $line['quantity'],
-                        'admin',
+                        $policyChannel,
                     );
                 } catch (\DomainException $exception) {
                     throw ValidationException::withMessages([
@@ -203,7 +259,7 @@ final class AdminOrderManagementService
                     'product_id' => $line['product_id'],
                     'quantity' => $line['quantity'],
                 ])->all(),
-                'dashboard_order_created',
+                $source.'_order_created',
             );
 
             Payment::query()->create([
@@ -216,7 +272,7 @@ final class AdminOrderManagementService
                 'currency' => $currency,
                 'metadata' => [
                     'method' => $paymentMethod,
-                    'source' => 'dashboard',
+                    'source' => $source,
                     'quote_id' => $header['quote_id'],
                 ],
             ]);
@@ -241,11 +297,11 @@ final class AdminOrderManagementService
                 'user_id' => $actor->getKey(),
                 'from_status' => null,
                 'to_status' => 'pending',
-                'note' => 'dashboard_order_created',
+                'note' => $source.'_order_created',
             ]);
 
             $this->audit->record(
-                'dashboard.order_created',
+                $source.'.order_created',
                 $actor,
                 $order,
                 null,

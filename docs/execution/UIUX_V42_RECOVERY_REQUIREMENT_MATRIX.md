@@ -53,12 +53,12 @@ Machine-readable companion: `docs/execution/UIUX_V42_RECOVERY_REQUIREMENTS.json`
 | LD01 | Foreground new-order alert has authoritative identity and direct View/Open action | #1039 | push tests + runtime | OPEN |
 | LD02 | Notification/deep link opens exact authoritative assignment/order instead of generic list | #1039 | navigation tests + runtime | OPEN |
 | LD03 | Driver duplicate events dedupe; already-open record refreshes instead of stacking alerts | #1039 | tests + runtime | OPEN |
-| MV01 | Van compact/full-width data-first layout across audited screens | #1040 | route inventory + runtime | OPEN |
-| MV02 | Van one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1040 | tests + runtime | OPEN |
-| MV03 | Van dynamic surfaces auto-refresh + stale/offline truthfulness | #1040 | state tests + runtime | OPEN |
-| AV01 | Van login visibly says Van App / تطبيق الفان | #1040 | AR/EN runtime | OPEN |
-| AV02 | Van Remember Me + biometric secure-session behavior remains valid | #1040 | tests + runtime | OPEN |
-| AV03 | Van application-level capability exceptions are explicitly evaluated/documented | #1040 | parity checklist + tests | OPEN |
+| MV01 | Van compact/full-width data-first layout across audited screens | #1040 | `van_screen_inventory.dart`; explicit 19-case `van_foundation_screen.dart`; `screenshot_evidence_test.dart` 430x932 + 360x800 AR/EN | OPEN |
+| MV02 | Van one-line filters/no-wrap identifiers/compact rows/ellipsis actions | #1040 | production Routes/Visits/Catalog/Orders/finance surfaces + `app_test.dart` navigation/sales/visit tests + screenshot evidence | OPEN |
+| MV03 | Van dynamic surfaces auto-refresh + stale/offline truthfulness | #1040 | lifecycle observers + stale/offline states across dashboard/routes/map/detail/customers/visits/orders/finance/notifications; `app_test.dart` | OPEN |
+| AV01 | Van login visibly says Van App / تطبيق الفان | #1040 | `van_login_screen.dart` + AR/EN `screenshot_evidence_test.dart` login capture | OPEN |
+| AV02 | Van Remember Me + biometric secure-session behavior remains valid | #1040 | `app.dart`, `van_auth_persistence.dart`, `van_session_store.dart`, auth widget tests + AR/EN evidence | OPEN |
+| AV03 | Van application-level capability exceptions are explicitly evaluated/documented | #1040 | `apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md` + contract/widget/backend tests | OPEN |
 | Q01 | Project-wide AR/EN localization; no raw state/channel/role/type/payment/unit text where localized UI is required | #1041 | independent static/runtime audit | OPEN |
 | Q02 | Every requirement has exactly one owner and source/test evidence; no UNKNOWN/UNOWNED row | #1041 | generated coverage report | OPEN |
 | Q03 | Legacy route/screen inventory is included; diff-based guards do not grandfather violations | #1041 | route/source inventory | OPEN |
