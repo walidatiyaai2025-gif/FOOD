@@ -304,42 +304,42 @@
       "id": "MV01",
       "summary": "Van compact/full viewport",
       "owner_issue": 1040,
-      "evidence": "runtime",
+      "evidence": "apps/van_app/lib/features/foundation/van_screen_inventory.dart + van_foundation_screen.dart + apps/van_app/test/screenshot_evidence_test.dart (430x932/360x800 AR+EN)",
       "status": "OPEN"
     },
     {
       "id": "MV02",
       "summary": "Van filters/no-wrap/rows/ellipsis",
       "owner_issue": 1040,
-      "evidence": "tests+runtime",
+      "evidence": "apps/van_app production routes/visits/catalog/orders/finance screens + apps/van_app/test/app_test.dart + screenshot evidence",
       "status": "OPEN"
     },
     {
       "id": "MV03",
       "summary": "Van live refresh and stale/offline truthfulness",
       "owner_issue": 1040,
-      "evidence": "tests+runtime",
+      "evidence": "Van lifecycle resume refresh/stale-offline implementations across dynamic surfaces + apps/van_app/test/app_test.dart",
       "status": "OPEN"
     },
     {
       "id": "AV01",
       "summary": "Van visible app identity",
       "owner_issue": 1040,
-      "evidence": "runtime",
+      "evidence": "apps/van_app/lib/features/auth/van_login_screen.dart + AR/EN login screenshot evidence",
       "status": "OPEN"
     },
     {
       "id": "AV02",
       "summary": "Van secure Remember Me/biometric",
       "owner_issue": 1040,
-      "evidence": "tests+runtime",
+      "evidence": "apps/van_app/lib/app.dart + core/auth/van_auth_persistence.dart + van_session_store.dart + auth tests",
       "status": "OPEN"
     },
     {
       "id": "AV03",
       "summary": "Van capability parity exceptions explicit",
       "owner_issue": 1040,
-      "evidence": "parity+tests",
+      "evidence": "apps/van_app/docs/UIUX_V42_COMPLIANCE_EVIDENCE.md + widget/backend parity tests",
       "status": "OPEN"
     },
     {
