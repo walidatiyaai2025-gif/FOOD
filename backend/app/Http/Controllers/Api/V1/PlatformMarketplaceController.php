@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ProductAvailabilityService;
 use App\Services\RetailMerchantIdentityService;
+use App\Services\WholesalePrincipal;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ final class PlatformMarketplaceController extends Controller
     public function __construct(
         private readonly RetailMerchantIdentityService $retailMerchants,
         private readonly ProductAvailabilityService $availability,
+        private readonly WholesalePrincipal $wholesalePrincipal,
     ) {}
 
     public function home(Request $request): JsonResponse
@@ -75,27 +77,16 @@ final class PlatformMarketplaceController extends Controller
 
     private function principalStore(): object
     {
-        $query = DB::table('stores')
+        $storeId = $this->wholesalePrincipal->storeId();
+
+        $store = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
             ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2B');
-
-        $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
-        if ($configuredCode !== '') {
-            $configured = (clone $query)
-                ->where('stores.code', $configuredCode)
-                ->first(['stores.id', 'stores.code', 'stores.name', 'stores.logo_path']);
-
-            abort_if($configured === null, 503, 'Configured platform Wholesale store is not available.');
-
-            return $configured;
-        }
-
-        $store = $query
-            ->orderBy('stores.id')
+            ->where('store_types.code', 'B2B')
             ->first(['stores.id', 'stores.code', 'stores.name', 'stores.logo_path']);
 
-        abort_if($store === null, 503, 'Platform Wholesale store is not configured.');
+        abort_if($store === null, 503, 'Platform Wholesale store is not available.');
 
         return $store;
     }
