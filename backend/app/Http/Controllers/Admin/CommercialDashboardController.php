@@ -12,6 +12,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route as IlluminateRoute;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -34,12 +35,37 @@ final class CommercialDashboardController extends Controller
             ->limit(200)
             ->get(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
 
+        $legacyCustomerIds = DB::table('b2c_customers')
+            ->where('store_id', $storeId)
+            ->whereNotNull('legacy_customer_id')
+            ->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $ruleCustomers = DB::table('customers')
+            ->whereIn('id', $legacyCustomerIds)
+            ->orderBy('name')
+            ->limit(300)
+            ->get(['id', 'name', 'email']);
+
+        $ruleGroups = DB::table('commercial_customer_groups')
+            ->where('is_active', true)
+            ->where(function ($query) use ($storeId): void {
+                $query->whereNull('store_id')->orWhere('store_id', $storeId);
+            })
+            ->orderByDesc('priority')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return $this->render($request, $user, $storeId, 'sales-control', [
             'products' => $products,
             'policies' => DB::table('product_commercial_policies')->whereIn('product_id', $products->pluck('id'))->get()->keyBy('product_id'),
             'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
             'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
             'commercialRules' => DB::table('product_commercial_rules')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
+            'ruleCustomers' => $ruleCustomers,
+            'ruleGroups' => $ruleGroups,
             'featureFlags' => $this->flags->snapshot(),
             'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('commercial'),
@@ -74,6 +100,27 @@ final class CommercialDashboardController extends Controller
         $sellingUnits = $this->jsonArray($data['selling_units_json'], 'selling_units_json');
         $windows = $this->jsonArray($data['availability_windows_json'], 'availability_windows_json');
         $rules = $this->jsonArray($data['rules_json'], 'rules_json');
+        $this->validateStructuredSalesConfiguration($storeId, $channels, $sellingUnits, $windows, $rules);
+
+        if ($data['break_pack_policy'] === 'one-unit-type') {
+            $breakPackCode = trim((string) ($data['break_pack_unit_code'] ?? ''));
+            $validSellingUnit = $breakPackCode !== ''
+                && collect($sellingUnits)->contains(static function (mixed $unit) use ($breakPackCode): bool {
+                    return is_array($unit)
+                        && strcasecmp(trim((string) ($unit['code'] ?? '')), $breakPackCode) === 0
+                        && (bool) ($unit['is_active'] ?? true);
+                });
+
+            if (! $validSellingUnit) {
+                throw ValidationException::withMessages([
+                    'break_pack_unit_code' => [__('commercial.validation.active_selling_unit')],
+                ]);
+            }
+
+            $data['break_pack_unit_code'] = $breakPackCode;
+        } else {
+            $data['break_pack_unit_code'] = null;
+        }
 
         DB::transaction(function () use ($product, $data, $channels, $sellingUnits, $windows, $rules, $user, $storeId, $request): void {
             $before = (array) (DB::table('product_commercial_policies')->where('product_id', $product)->first() ?? []);
@@ -101,7 +148,7 @@ final class CommercialDashboardController extends Controller
             DB::table('product_selling_units')->where('product_id', $product)->delete();
             foreach ($sellingUnits as $unit) {
                 if (! is_array($unit) || empty($unit['code']) || empty($unit['name'])) {
-                    throw ValidationException::withMessages(['selling_units_json' => ['Every selling unit needs code and name.']]);
+                    throw ValidationException::withMessages(['selling_units_json' => [__('commercial.validation.selling_unit_code_name')]]);
                 }
                 DB::table('product_selling_units')->insert([
                     'product_id' => $product,
@@ -149,7 +196,9 @@ final class CommercialDashboardController extends Controller
                     'customer_id' => $rule['customer_id'] ?? null,
                     'customer_group_id' => $rule['customer_group_id'] ?? null,
                     'channel' => $rule['channel'] ?? null,
-                    'is_allowed' => array_key_exists('is_allowed', $rule) ? (bool) $rule['is_allowed'] : null,
+                    'is_allowed' => array_key_exists('is_allowed', $rule) && $rule['is_allowed'] !== null
+                        ? (bool) $rule['is_allowed']
+                        : null,
                     'max_per_order' => $rule['max_per_order'] ?? null,
                     'max_per_day' => $rule['max_per_day'] ?? null,
                     'max_per_week' => $rule['max_per_week'] ?? null,
@@ -164,16 +213,41 @@ final class CommercialDashboardController extends Controller
             $this->audit->record('commercial.product_policy.updated', $user, null, $before, [...$after, 'store_id' => $storeId], $request);
         });
 
-        return back()->with('status', 'Commercial sales control saved.');
+        return back()->with('status', __('commercial.status.sales_control_saved'));
     }
 
     public function flashOffers(Request $request): View
     {
         [$user, $storeId] = $this->authorizedStore($request, 'promotions.view', true);
+        $lookups = $this->flashOfferLookups($storeId);
+
+        $editingOffer = null;
+        $editingProducts = collect();
+        $editId = max(0, (int) $request->query('edit', 0));
+        if ($editId > 0) {
+            $editingOffer = DB::table('flash_offers')
+                ->where('store_id', $storeId)
+                ->where('id', $editId)
+                ->first();
+            abort_if($editingOffer === null, 404);
+
+            $editingProducts = DB::table('flash_offer_products')
+                ->where('flash_offer_id', $editId)
+                ->orderBy('id')
+                ->get([
+                    'product_id',
+                    'selling_unit_code',
+                    'flash_price',
+                    'allocation_base',
+                ]);
+        }
 
         return $this->render($request, $user, $storeId, 'flash-offers', [
             'existingPromotions' => DB::table('promotions')->where('store_id', $storeId)->orderByDesc('created_at')->limit(100)->get(),
             'flashOffers' => DB::table('flash_offers')->where('store_id', $storeId)->orderByDesc('id')->limit(100)->get(),
+            ...$lookups,
+            'editingOffer' => $editingOffer,
+            'editingProducts' => $editingProducts,
             'featureFlags' => $this->flags->snapshot(),
             'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('flash'),
@@ -186,6 +260,10 @@ final class CommercialDashboardController extends Controller
         $row = $this->flashOfferRow($storeId, $offer);
         $products = DB::table('flash_offer_products')
             ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
+            ->leftJoin('product_selling_units as preview_units', function ($join): void {
+                $join->on('preview_units.product_id', '=', 'flash_offer_products.product_id')
+                    ->on('preview_units.code', '=', 'flash_offer_products.selling_unit_code');
+            })
             ->where('flash_offer_products.flash_offer_id', $offer)
             ->orderBy('flash_offer_products.id')
             ->get([
@@ -194,6 +272,7 @@ final class CommercialDashboardController extends Controller
                 'products.name as product_name',
                 'products.sku as product_sku',
                 'flash_offer_products.selling_unit_code',
+                'preview_units.name as selling_unit_name',
                 'flash_offer_products.conversion_factor',
                 'flash_offer_products.flash_price',
                 'flash_offer_products.allocation_base',
@@ -279,11 +358,16 @@ final class CommercialDashboardController extends Controller
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after:starts_at'],
             'timezone' => ['required', 'timezone'],
-            'channels_json' => ['required', 'json'],
-            'audience_customer_ids_json' => ['nullable', 'json'],
-            'audience_customer_group_ids_json' => ['nullable', 'json'],
-            'audience_regions_json' => ['nullable', 'json'],
-            'audience_routes_json' => ['nullable', 'json'],
+            'channels' => ['required', 'array', 'min:1'],
+            'channels.*' => ['required', 'string', 'in:customer,van'],
+            'audience_customer_ids' => ['nullable', 'array'],
+            'audience_customer_ids.*' => ['integer', 'min:1'],
+            'audience_customer_group_ids' => ['nullable', 'array'],
+            'audience_customer_group_ids.*' => ['integer', 'min:1'],
+            'audience_regions' => ['nullable', 'array'],
+            'audience_regions.*' => ['string', 'max:255'],
+            'audience_routes' => ['nullable', 'array'],
+            'audience_routes.*' => ['string', 'max:255'],
             'allocation_mode' => ['required', 'in:shared,reserved'],
             'total_allocation_base' => ['nullable', 'numeric', 'min:0'],
             'per_customer_limit_base' => ['nullable', 'numeric', 'min:0'],
@@ -291,18 +375,63 @@ final class CommercialDashboardController extends Controller
             'retry_count' => ['required', 'integer', 'min:0'],
             'cooldown_seconds' => ['required', 'integer', 'min:0'],
             'priority' => ['required', 'integer'],
-            'popup_frequency' => ['required', 'string', 'max:32'],
+            'popup_frequency' => ['required', 'in:once_per_session,once_per_day,always'],
             'counts_toward_normal_quota' => ['sometimes', 'boolean'],
             'stackable' => ['sometimes', 'boolean'],
             'kill_switch' => ['sometimes', 'boolean'],
-            'products_json' => ['required', 'json'],
+            'products' => ['required', 'array', 'min:1'],
+            'products.*.product_id' => ['required', 'integer', 'min:1'],
+            'products.*.selling_unit_code' => ['required', 'string', 'max:80'],
+            'products.*.flash_price' => ['required', 'numeric', 'min:0'],
+            'products.*.allocation_base' => ['nullable', 'numeric', 'min:0'],
         ]);
-        $channels = $this->jsonArray($data['channels_json'], 'channels_json');
-        $products = $this->jsonArray($data['products_json'], 'products_json');
-        $audienceCustomerIds = $this->integerJsonList($data['audience_customer_ids_json'] ?? null, 'audience_customer_ids_json');
-        $audienceCustomerGroupIds = $this->integerJsonList($data['audience_customer_group_ids_json'] ?? null, 'audience_customer_group_ids_json');
-        $audienceRegions = $this->stringJsonList($data['audience_regions_json'] ?? null, 'audience_regions_json');
-        $audienceRoutes = $this->stringJsonList($data['audience_routes_json'] ?? null, 'audience_routes_json');
+
+        $channels = collect($data['channels'])->map(static fn ($item): string => (string) $item)->unique()->values()->all();
+        $audienceCustomerIds = collect($data['audience_customer_ids'] ?? [])->map(static fn ($id): int => (int) $id)->filter()->unique()->values()->all();
+        $audienceCustomerGroupIds = collect($data['audience_customer_group_ids'] ?? [])->map(static fn ($id): int => (int) $id)->filter()->unique()->values()->all();
+        $audienceRegions = collect($data['audience_regions'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
+        $audienceRoutes = collect($data['audience_routes'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
+
+        $lookups = $this->flashOfferLookups($storeId);
+        $this->validateFlashAudience(
+            $audienceCustomerIds,
+            $audienceCustomerGroupIds,
+            $audienceRegions,
+            $audienceRoutes,
+            $lookups,
+        );
+        $allowedProducts = $lookups['flashProducts']->keyBy('id');
+        $unitsByProduct = $lookups['flashSellingUnits'];
+        $products = [];
+
+        foreach ($data['products'] as $index => $product) {
+            $productId = (int) $product['product_id'];
+            if (! $allowedProducts->has($productId)) {
+                throw ValidationException::withMessages([
+                    "products.$index.product_id" => [__('commercial.validation.store_product')],
+                ]);
+            }
+
+            $unitCode = trim((string) $product['selling_unit_code']);
+            $unit = $unitsByProduct->get($productId, collect())
+                ->first(fn (object $candidate): bool => (string) $candidate->code === $unitCode);
+            if ($unit === null) {
+                throw ValidationException::withMessages([
+                    "products.$index.selling_unit_code" => [__('commercial.validation.flash_active_selling_unit')],
+                ]);
+            }
+
+            $products[] = [
+                'product_id' => $productId,
+                'selling_unit_id' => $unit->id,
+                'selling_unit_code' => (string) $unit->code,
+                'conversion_factor' => (float) $unit->conversion_factor,
+                'flash_price' => (float) $product['flash_price'],
+                'allocation_base' => isset($product['allocation_base']) && $product['allocation_base'] !== ''
+                    ? (float) $product['allocation_base']
+                    : null,
+            ];
+        }
 
         DB::transaction(function () use (
             $data,
@@ -359,17 +488,9 @@ final class CommercialDashboardController extends Controller
 
             DB::table('flash_offer_products')->where('flash_offer_id', $offerId)->delete();
             foreach ($products as $product) {
-                if (! is_array($product) || empty($product['product_id']) || ! isset($product['flash_price'])) {
-                    throw ValidationException::withMessages(['products_json' => ['Every Flash product needs product_id and flash_price.']]);
-                }
                 DB::table('flash_offer_products')->insert([
                     'flash_offer_id' => $offerId,
-                    'product_id' => (int) $product['product_id'],
-                    'selling_unit_id' => $product['selling_unit_id'] ?? null,
-                    'selling_unit_code' => $product['selling_unit_code'] ?? null,
-                    'conversion_factor' => (float) ($product['conversion_factor'] ?? 1),
-                    'flash_price' => (float) $product['flash_price'],
-                    'allocation_base' => $product['allocation_base'] ?? null,
+                    ...$product,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -379,7 +500,9 @@ final class CommercialDashboardController extends Controller
             $this->audit->record('commercial.flash_offer.saved', $user, null, $before, [...$after, 'store_id' => $storeId], $request);
         });
 
-        return back()->with('status', 'Flash Offer saved.');
+        return redirect()
+            ->route('admin.commercial.flash-offers', ['store_id' => $storeId] + ($request->boolean('support_access') ? ['support_access' => 1] : []))
+            ->with('status', __('commercial.status.flash_offer_saved'));
     }
 
     public function saveFeatureFlags(Request $request): RedirectResponse
@@ -405,7 +528,7 @@ final class CommercialDashboardController extends Controller
 
         $this->audit->record('commercial.feature_flags.updated', $user, null, $before, $after, $request);
 
-        return back()->with('status', 'Commercial feature flags saved.');
+        return back()->with('status', __('commercial.status.feature_flags_saved'));
     }
 
     public function flashAction(Request $request, int $offer): RedirectResponse
@@ -432,7 +555,7 @@ final class CommercialDashboardController extends Controller
         DB::table('flash_offers')->where('id', $offer)->update($changes);
         $this->audit->record('commercial.flash_offer.action', $user, null, (array) $row, [...(array) $row, ...$changes, 'store_id' => $storeId], $request);
 
-        return back()->with('status', 'Flash Offer action applied.');
+        return back()->with('status', __('commercial.status.flash_action_applied'));
     }
 
     /** @return array{0: User, 1: int} */
@@ -465,10 +588,201 @@ final class CommercialDashboardController extends Controller
     {
         $decoded = json_decode($json, true);
         if (! is_array($decoded) || ! array_is_list($decoded)) {
-            throw ValidationException::withMessages([$field => ['A JSON array is required.']]);
+            throw ValidationException::withMessages([$field => [__('commercial.validation.json_array_required')]]);
         }
 
         return $decoded;
+    }
+
+    /**
+     * @param  list<mixed>  $channels
+     * @param  list<mixed>  $sellingUnits
+     * @param  list<mixed>  $windows
+     * @param  list<mixed>  $rules
+     */
+    private function validateStructuredSalesConfiguration(
+        int $storeId,
+        array $channels,
+        array $sellingUnits,
+        array $windows,
+        array $rules,
+    ): void {
+        $errors = [];
+        $seenCodes = [];
+
+        foreach ($channels as $index => $channel) {
+            if (! is_string($channel) || ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {
+                $errors["channels_json.$index"] = [__('commercial.validation.sales_channel')];
+            }
+        }
+
+        foreach ($sellingUnits as $index => $unit) {
+            if (! is_array($unit)) {
+                $errors["selling_units_json.$index"] = [__('commercial.validation.selling_unit_code_name')];
+
+                continue;
+            }
+
+            $code = strtoupper(trim((string) ($unit['code'] ?? '')));
+            $name = trim((string) ($unit['name'] ?? ''));
+            $factor = $unit['conversion_factor'] ?? 1;
+
+            if ($code === '' || $name === '') {
+                $errors["selling_units_json.$index"] = [__('commercial.validation.selling_unit_code_name')];
+            }
+            if (! is_numeric($factor) || (float) $factor <= 0) {
+                $errors["selling_units_json.$index.conversion_factor"] = [__('commercial.validation.selling_unit_factor')];
+            }
+
+            $unitId = $unit['unit_id'] ?? null;
+            if ($unitId !== null && $unitId !== '' && (
+                ! is_numeric($unitId)
+                || ! DB::table('units')->where('id', (int) $unitId)->exists()
+            )) {
+                $errors["selling_units_json.$index.unit_id"] = [__('commercial.validation.selling_unit_reference')];
+            }
+            if ($code !== '' && isset($seenCodes[$code])) {
+                $errors["selling_units_json.$index.code"] = [__('commercial.validation.duplicate_selling_unit_code')];
+            }
+            if ($code !== '') {
+                $seenCodes[$code] = true;
+            }
+        }
+
+        foreach ($windows as $index => $window) {
+            if (! is_array($window)) {
+                $errors["availability_windows_json.$index"] = [__('commercial.validation.availability_recurrence')];
+
+                continue;
+            }
+
+            $recurrence = strtolower(trim((string) ($window['recurrence'] ?? 'fixed')));
+            if (! in_array($recurrence, ['fixed', 'yearly'], true)) {
+                $errors["availability_windows_json.$index.recurrence"] = [__('commercial.validation.availability_recurrence')];
+
+                continue;
+            }
+
+            if ($recurrence === 'yearly') {
+                foreach (['start_month', 'start_day', 'end_month', 'end_day'] as $field) {
+                    $value = $window[$field] ?? null;
+                    $max = str_contains($field, 'month') ? 12 : 31;
+                    if (! is_numeric($value) || (int) $value < 1 || (int) $value > $max) {
+                        $errors["availability_windows_json.$index.$field"] = [__('commercial.validation.availability_yearly_fields')];
+                    }
+                }
+            }
+        }
+
+        $legacyCustomerIds = DB::table('b2c_customers')
+            ->where('store_id', $storeId)
+            ->whereNotNull('legacy_customer_id')
+            ->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $allowedCustomerIds = array_fill_keys($legacyCustomerIds, true);
+
+        $allowedGroupIds = DB::table('commercial_customer_groups')
+            ->where('is_active', true)
+            ->where(function ($query) use ($storeId): void {
+                $query->whereNull('store_id')->orWhere('store_id', $storeId);
+            })
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $allowedGroupIds = array_fill_keys($allowedGroupIds, true);
+
+        foreach ($rules as $index => $rule) {
+            if (! is_array($rule)) {
+                $errors["rules_json.$index"] = [__('commercial.validation.sales_rule_invalid')];
+
+                continue;
+            }
+
+            $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== null && $rule['customer_id'] !== ''
+                ? (int) $rule['customer_id']
+                : null;
+            $groupId = isset($rule['customer_group_id']) && $rule['customer_group_id'] !== null && $rule['customer_group_id'] !== ''
+                ? (int) $rule['customer_group_id']
+                : null;
+
+            if ($customerId !== null && ! isset($allowedCustomerIds[$customerId])) {
+                $errors["rules_json.$index.customer_id"] = [__('commercial.validation.sales_rule_customer_scope')];
+            }
+            if ($groupId !== null && ! isset($allowedGroupIds[$groupId])) {
+                $errors["rules_json.$index.customer_group_id"] = [__('commercial.validation.sales_rule_group_scope')];
+            }
+            if ($customerId !== null && $groupId !== null) {
+                $errors["rules_json.$index.customer_group_id"] = [__('commercial.validation.sales_rule_subject_exclusive')];
+            }
+
+            $channel = isset($rule['channel']) && $rule['channel'] !== null
+                ? trim((string) $rule['channel'])
+                : '';
+            if ($channel !== '' && ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {
+                $errors["rules_json.$index.channel"] = [__('commercial.validation.sales_rule_channel')];
+            }
+
+            if (array_key_exists('is_allowed', $rule)
+                && $rule['is_allowed'] !== null
+                && ! is_bool($rule['is_allowed'])) {
+                $errors["rules_json.$index.is_allowed"] = [__('commercial.validation.sales_rule_access')];
+            }
+
+            foreach (['max_per_order', 'max_per_day', 'max_per_week', 'max_per_month', 'max_lifetime'] as $field) {
+                $value = $rule[$field] ?? null;
+                if ($value !== null && $value !== '' && (! is_numeric($value) || (float) $value < 0)) {
+                    $errors["rules_json.$index.$field"] = [__('commercial.validation.sales_rule_limit')];
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * @param  list<int>  $customerIds
+     * @param  list<int>  $groupIds
+     * @param  list<string>  $regions
+     * @param  list<string>  $routes
+     * @param  array{
+     *   flashProducts:Collection,
+     *   flashSellingUnits:Collection,
+     *   audienceCustomers:Collection,
+     *   audienceGroups:Collection,
+     *   audienceRegions:Collection,
+     *   audienceRoutes:Collection
+     * }  $lookups
+     */
+    private function validateFlashAudience(
+        array $customerIds,
+        array $groupIds,
+        array $regions,
+        array $routes,
+        array $lookups,
+    ): void {
+        $errors = [];
+        $allowedCustomerIds = $lookups['audienceCustomers']->pluck('id')->map(static fn ($id): int => (int) $id);
+        $allowedGroupIds = $lookups['audienceGroups']->pluck('id')->map(static fn ($id): int => (int) $id);
+
+        if (collect($customerIds)->diff($allowedCustomerIds)->isNotEmpty()) {
+            $errors['audience_customer_ids'] = [__('commercial.validation.audience_customer_scope')];
+        }
+        if (collect($groupIds)->diff($allowedGroupIds)->isNotEmpty()) {
+            $errors['audience_customer_group_ids'] = [__('commercial.validation.audience_group_scope')];
+        }
+        if (collect($regions)->diff($lookups['audienceRegions'])->isNotEmpty()) {
+            $errors['audience_regions'] = [__('commercial.validation.audience_region_scope')];
+        }
+        if (collect($routes)->diff($lookups['audienceRoutes'])->isNotEmpty()) {
+            $errors['audience_routes'] = [__('commercial.validation.audience_route_scope')];
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     private function flashOfferRow(int $storeId, int $offer): object
@@ -497,40 +811,108 @@ final class CommercialDashboardController extends Controller
         ));
     }
 
-    /** @return list<int> */
-    private function integerJsonList(?string $json, string $field): array
+    /**
+     * @return array{
+     *   flashProducts:Collection,
+     *   flashSellingUnits:Collection,
+     *   audienceCustomers:Collection,
+     *   audienceGroups:Collection,
+     *   audienceRegions:Collection,
+     *   audienceRoutes:Collection
+     * }
+     */
+    private function flashOfferLookups(int $storeId): array
     {
-        $items = $this->optionalJsonArray($json, $field);
+        $flashProducts = DB::table('store_products')
+            ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->where('store_products.store_id', $storeId)
+            ->where('store_products.is_active', true)
+            ->where('products.is_active', true)
+            ->orderBy('products.name')
+            ->get([
+                'products.id',
+                'products.name',
+                'products.sku',
+            ]);
 
-        return collect($items)
-            ->map(static fn (mixed $item): int => (int) $item)
-            ->filter(static fn (int $item): bool => $item > 0)
+        $flashSellingUnits = DB::table('product_selling_units')
+            ->whereIn('product_id', $flashProducts->pluck('id'))
+            ->where('is_active', true)
+            ->orderByDesc('is_base')
+            ->orderBy('name')
+            ->get([
+                'id',
+                'product_id',
+                'code',
+                'name',
+                'conversion_factor',
+                'price',
+            ])
+            ->groupBy('product_id');
+
+        $legacyCustomerIds = DB::table('b2c_customers')
+            ->where('store_id', $storeId)
+            ->whereNotNull('legacy_customer_id')
+            ->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)
             ->unique()
-            ->values()
-            ->all();
-    }
+            ->values();
 
-    /** @return list<string> */
-    private function stringJsonList(?string $json, string $field): array
-    {
-        $items = $this->optionalJsonArray($json, $field);
+        $audienceCustomers = DB::table('customers')
+            ->whereIn('id', $legacyCustomerIds)
+            ->orderBy('name')
+            ->limit(300)
+            ->get(['id', 'name', 'email', 'phone']);
 
-        return collect($items)
-            ->map(static fn (mixed $item): string => trim((string) $item))
-            ->filter(static fn (string $item): bool => $item !== '')
+        $audienceGroups = DB::table('commercial_customer_groups')
+            ->where('is_active', true)
+            ->where(function ($query) use ($storeId): void {
+                $query->whereNull('store_id')->orWhere('store_id', $storeId);
+            })
+            ->orderByDesc('priority')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $audienceRegions = DB::table('addresses')
+            ->whereIn('customer_id', $legacyCustomerIds)
+            ->get(['area', 'governorate'])
+            ->flatMap(static fn (object $address): array => [
+                trim((string) ($address->area ?? '')),
+                trim((string) ($address->governorate ?? '')),
+            ])
+            ->filter()
             ->unique()
-            ->values()
-            ->all();
-    }
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
 
-    /** @return list<mixed> */
-    private function optionalJsonArray(?string $json, string $field): array
-    {
-        if ($json === null || trim($json) === '') {
-            return [];
-        }
+        $audienceRoutes = DB::table('van_visits')
+            ->where('store_id', $storeId)
+            ->pluck('metadata')
+            ->flatMap(static function ($metadata): array {
+                $decoded = is_string($metadata) ? json_decode($metadata, true) : (is_array($metadata) ? $metadata : []);
+                if (! is_array($decoded)) {
+                    return [];
+                }
 
-        return $this->jsonArray($json, $field);
+                return [
+                    trim((string) ($decoded['route_id'] ?? '')),
+                    trim((string) ($decoded['route_code'] ?? '')),
+                    trim((string) ($decoded['route'] ?? '')),
+                ];
+            })
+            ->filter()
+            ->unique()
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        return compact(
+            'flashProducts',
+            'flashSellingUnits',
+            'audienceCustomers',
+            'audienceGroups',
+            'audienceRegions',
+            'audienceRoutes',
+        );
     }
 
     private function canManageFeatureFlags(User $user): bool

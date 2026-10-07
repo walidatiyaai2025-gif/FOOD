@@ -24,6 +24,7 @@
             'feedUrl' => $feedUrl,
             'secondaryFeedUrl' => $vanFeedUrl,
             'trackingActor' => 'mixed',
+            'trackingStores' => $trackingStores,
             'trackingI18n' => $trackingI18n,
             'liveMapMode' => 'full',
             'showFilters' => true,

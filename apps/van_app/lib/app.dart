@@ -15,11 +15,18 @@ import 'features/commercial/http_van_commercial_repository.dart';
 import 'features/commercial/van_commercial_contract.dart';
 import 'features/wallet/http_van_wallet_repository.dart';
 import 'features/wallet/van_wallet_contract.dart';
+import 'features/visits/http_van_visit_repository.dart';
+import 'features/visits/van_visit_contract.dart';
+import 'features/notifications/http_van_notification_repository.dart';
+import 'features/notifications/van_notification_contract.dart';
+import 'features/orders/http_van_order_repository.dart';
+import 'features/orders/van_order_contract.dart';
 
 class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
     super.key,
     this.locale = const Locale('ar'),
+    this.theme,
     this.authRepository,
     this.sessionStore,
     this.authPreferenceStore,
@@ -27,10 +34,14 @@ class FoodexVanApp extends StatefulWidget {
     this.initialSession,
     this.walletRepository,
     this.commercialRepository,
+    this.visitRepository,
+    this.notificationRepository,
+    this.orderRepository,
     this.pushService,
   });
 
   final Locale locale;
+  final ThemeData? theme;
   final VanAuthRepository? authRepository;
   final VanSessionStore? sessionStore;
   final VanAuthPreferenceStore? authPreferenceStore;
@@ -38,6 +49,9 @@ class FoodexVanApp extends StatefulWidget {
   final VanSession? initialSession;
   final VanWalletRepository? walletRepository;
   final VanCommercialRepository? commercialRepository;
+  final VanVisitRepository? visitRepository;
+  final VanNotificationRepository? notificationRepository;
+  final VanOrderRepository? orderRepository;
   final VanFirebasePushService? pushService;
 
   @override
@@ -198,7 +212,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: widget.locale.languageCode == 'ar' ? 'فودكس للفان' : 'FOODEX Van',
-      theme: FoodexVanTheme.light(),
+      theme: widget.theme ?? FoodexVanTheme.light(),
       locale: widget.locale,
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
@@ -232,6 +246,12 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
                       walletRepository: walletRepository,
                       commercialRepository: widget.commercialRepository ??
                           HttpVanCommercialRepository(api),
+                      visitRepository:
+                          widget.visitRepository ?? HttpVanVisitRepository(api),
+                      notificationRepository: widget.notificationRepository ??
+                          HttpVanNotificationRepository(api),
+                      orderRepository:
+                          widget.orderRepository ?? HttpVanOrderRepository(api),
                     );
                   },
                 ),
