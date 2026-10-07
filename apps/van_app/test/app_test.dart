@@ -34,7 +34,6 @@ void main() {
       ),
     );
 
-    expect(find.text('FOODEX Van'), findsOneWidget);
     expect(find.text('Van Operator'), findsOneWidget);
     expect(find.text('Home Dashboard'), findsWidgets);
     expect(find.byType(NavigationBar), findsOneWidget);
@@ -44,6 +43,7 @@ void main() {
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
+    expect(find.text('FOODEX Van'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('van-production-screen-menu')),
       findsOneWidget,
@@ -86,8 +86,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable:
-          find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -124,7 +126,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -170,7 +175,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -207,7 +215,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -252,7 +263,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -322,7 +336,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -395,7 +412,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -435,7 +455,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -475,7 +498,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -515,7 +541,10 @@ void main() {
     await tester.scrollUntilVisible(
       catalogTarget,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(catalogTarget);
     await tester.pumpAndSettle();
@@ -574,7 +603,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();

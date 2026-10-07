@@ -140,7 +140,7 @@ Future<void> _openCardActions(WidgetTester tester, int assignmentId) async {
   final actions = find.byKey(Key('driver-active-actions-$assignmentId'));
   await tester.ensureVisible(actions);
   await tester.pumpAndSettle();
-  await tester.tap(actions);
+  tester.state<PopupMenuButtonState<String>>(actions).showButtonMenu();
   await tester.pumpAndSettle();
 }
 
