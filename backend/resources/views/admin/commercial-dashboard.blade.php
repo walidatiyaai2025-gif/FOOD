@@ -548,7 +548,7 @@
                                                     ? trim((string)($customer->retail_store_name ?: $customer->name)).' · '.trim((string)($customer->owner_name ?: $customer->name)).(($customer->owner_email ?: $customer->email) ? ' · '.($customer->owner_email ?: $customer->email) : '').' · '.__('commercial.flash.retail_store_owner')
                                                     : $customer->name.($customer->email ? ' · '.$customer->email : '');
                                             @endphp
-                                            <label class="flash-lookup-option" data-flash-lookup-option @if($isRetailOwner) data-flash-retail-owner @endif>
+                                            <label class="flash-lookup-option" data-flash-lookup-option data-flash-retail-owner="{{ $isRetailOwner ? '1' : '0' }}">
                                                 <input type="checkbox" name="audience_customer_ids[]" value="{{ $customer->id }}" @checked($selectedCustomerIds->contains((int)$customer->id))>
                                                 <span>{{ $customerLabel }}</span>
                                             </label>
