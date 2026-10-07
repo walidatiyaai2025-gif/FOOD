@@ -185,6 +185,19 @@ return [
         'admin' => 'لوحة الإدارة',
         'api' => 'API',
     ],
+    'status' => [
+        'sales_control_saved' => 'تم حفظ إعدادات التحكم في المبيعات.',
+        'flash_offer_saved' => 'تم حفظ العرض السريع.',
+        'feature_flags_saved' => 'تم حفظ حالة الوظائف التجارية.',
+        'flash_action_applied' => 'تم تنفيذ إجراء العرض السريع.',
+    ],
+    'validation' => [
+        'active_selling_unit' => 'اختر وحدة بيع نشطة للمنتج.',
+        'selling_unit_code_name' => 'يجب أن تحتوي كل وحدة بيع على كود واسم.',
+        'store_product' => 'اختر منتجًا مضافًا إلى هذا المتجر.',
+        'flash_active_selling_unit' => 'اختر وحدة بيع نشطة لهذا المنتج.',
+        'json_array_required' => 'يلزم إدخال مصفوفة JSON.',
+    ],
     'common' => [
         'active' => 'نشط',
         'inactive' => 'غير نشط',
