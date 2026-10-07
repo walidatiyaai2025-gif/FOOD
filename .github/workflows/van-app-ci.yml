@@ -72,6 +72,10 @@ jobs:
       - name: Build Android release validation APK
         run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
 
+      - name: Verify embedded production API endpoint
+        working-directory: .
+        run: python3 scripts/verify-mobile-runtime-endpoint.py apps/van_app/build/app/outputs/flutter-apk/app-release.apk
+
       - name: Verify Van package, Firebase config and notification permission
         shell: bash
         run: |
