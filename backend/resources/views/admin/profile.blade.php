@@ -17,7 +17,14 @@
 </style>
 </head>
 <body>
-@php($ar=app()->getLocale()==='ar')
+@php
+$ar=app()->getLocale()==='ar';
+$roleLabel = static function ($role): string {
+    if (!$role) return '—';
+    $key = 'admin.role_names.'.$role->code;
+    return \Illuminate\Support\Facades\Lang::has($key) ? __($key) : $role->name;
+};
+@endphp
 <div class="foodex-admin-layout">
 <aside class="sidebar collapsed">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
@@ -26,11 +33,11 @@
 <section class="foodex-card profile-card">
     <div class="profile-identity"><div class="profile-avatar">{{ mb_strtoupper(mb_substr($user->name,0,1)) }}</div><div><h2>{{ $user->name }}</h2><p>{{ $user->email }}</p><span class="badge active">{{ $user->is_active?($ar?'حساب نشط':'Active account'):($ar?'غير نشط':'Inactive') }}</span></div></div>
 
-    <div class="profile-section"><h3>{{ $ar?'الأدوار العامة':'Global roles' }}</h3><div class="chips">@forelse($globalRoles as $role)<span class="permission-chip">{{ $role->name }}</span>@empty<span class="foodex-subtitle">{{ $ar?'لا توجد أدوار عامة.':'No global roles.' }}</span>@endforelse</div></div>
+    <div class="profile-section"><h3>{{ __('admin.profile_surface.global_roles') }}</h3><div class="chips">@forelse($globalRoles as $role)<span class="permission-chip">{{ $roleLabel($role) }}</span>@empty<span class="foodex-subtitle">{{ $ar?'لا توجد أدوار عامة.':'No global roles.' }}</span>@endforelse</div></div>
 
-    <div class="profile-section"><h3>{{ $ar?'أدوار المتاجر':'Store assignments' }}</h3>
+    <div class="profile-section"><h3>{{ __('admin.profile_surface.store_assignments') }}</h3>
         @forelse($storeAssignments as $assignment)
-            <div class="assignment"><strong>{{ $assignment->store?->name ?? '—' }} · {{ $assignment->role?->name ?? '—' }}</strong><small>{{ $assignment->store?->code }}</small>
+            <div class="assignment"><strong>{{ $assignment->store?->name ?? '—' }} · {{ $roleLabel($assignment->role) }}</strong><small>{{ $assignment->store?->code }}</small>
             @if($assignment->store)<div class="chips" style="margin-top:9px">@foreach($storePermissions[(int)$assignment->store->id] ?? [] as $permission)<span class="permission-chip">{{ $permission }}</span>@endforeach</div>@endif</div>
         @empty<div class="foodex-empty-state">{{ $ar?'لا توجد أدوار مرتبطة بمتاجر.':'No store-scoped role assignments.' }}</div>@endforelse
     </div>

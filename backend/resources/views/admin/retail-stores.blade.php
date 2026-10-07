@@ -45,7 +45,14 @@ body.foodex-modal-open{overflow:hidden}
 </style>
 </head>
 <body>
-@php($ar=app()->getLocale()==='ar')
+@php
+$ar=app()->getLocale()==='ar';
+$roleLabel = static function ($role): string {
+    if (!$role) return '—';
+    $key = 'admin.role_names.'.$role->code;
+    return \Illuminate\Support\Facades\Lang::has($key) ? __($key) : $role->name;
+};
+@endphp
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
@@ -313,7 +320,7 @@ body.foodex-modal-open{overflow:hidden}
                                 @forelse($store->storeRoleAssignments as $assignment)
                                     <div class="store-assignment">
                                         <span>
-                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $assignment->role?->name ?? '—' }}</strong>
+                                            {{ $assignment->user?->name }} · {{ $assignment->user?->email }} · <strong>{{ $roleLabel($assignment->role) }}</strong>
                                             @if((int)$store->primary_owner_user_id===(int)$assignment->user_id && $assignment->role?->code==='B2C_STORE_ADMIN')
                                                 <span class="badge active">{{ $ar?'المالك الأساسي':'Primary Owner' }}</span>
                                             @endif
