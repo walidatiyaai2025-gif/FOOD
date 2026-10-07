@@ -172,6 +172,9 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('{draggable:true', $view);
         $this->assertStringContainsString("marker.on('dblclick'", $view);
         $this->assertStringContainsString('validPolygon', $view);
+        $this->assertStringContainsString('setView([26.8206,30.8025],6)', $view);
+        $this->assertStringNotContainsString('setView([29.3759,47.9774]', $view);
+        $this->assertStringContainsString('map.fitBounds(existingLayer.getBounds()', $view);
         $this->assertStringContainsString('const loadSelectedGeometry=()=>', $view);
         $this->assertStringContainsString('feature.properties?.territory_id', $view);
         $this->assertStringContainsString('properties?.version', $view);

@@ -319,6 +319,8 @@ $businessLabel = static function ($value): string {
     const resultsBox = mapModal?.querySelector('[data-address-map-results]');
     const coordsBox = mapModal?.querySelector('[data-address-map-coords]');
     const applyButton = mapModal?.querySelector('[data-address-map-apply]');
+    const defaultMapCenter = [26.8206,30.8025];
+    const defaultMapZoom = 6;
     let activeForm = null;
     let map = null;
     let marker = null;
@@ -340,7 +342,7 @@ $businessLabel = static function ($value): string {
 
     const ensureMap = () => {
         if (map || !mapContainer || typeof L === 'undefined') return;
-        map = L.map(mapContainer).setView([29.3759,47.9774], 11);
+        map = L.map(mapContainer).setView(defaultMapCenter, defaultMapZoom);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom:19,
             attribution:'&copy; OpenStreetMap contributors',
@@ -373,6 +375,7 @@ $businessLabel = static function ($value): string {
             } else {
                 selected = null;
                 if (marker) { marker.remove(); marker = null; }
+                map?.setView(defaultMapCenter, defaultMapZoom);
                 coordsBox.textContent = @json(__('customer_360.addresses.map_choose_point'));
                 applyButton.disabled = true;
             }

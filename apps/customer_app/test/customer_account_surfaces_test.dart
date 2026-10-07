@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/location/customer_location_service.dart';
+import 'package:foodex_customer_app/core/location/customer_map_pin_selector.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_data.dart';
 import 'package:foodex_customer_app/features/customer_account/customer_account_screen.dart';
@@ -12,6 +13,25 @@ import 'package:foodex_customer_app/features/customer_account/customer_notificat
 import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 
 void main() {
+  test('customer map defaults to Egypt and preserves saved coordinates', () {
+    final fallback = customerMapInitialViewport();
+    expect(fallback.center.latitude, customerMapDefaultLatitude);
+    expect(fallback.center.longitude, customerMapDefaultLongitude);
+    expect(fallback.zoom, customerMapDefaultZoom);
+
+    final saved = customerMapInitialViewport(
+      initialLatitude: 30.0444,
+      initialLongitude: 31.2357,
+    );
+    expect(saved.center.latitude, 30.0444);
+    expect(saved.center.longitude, 31.2357);
+    expect(saved.zoom, customerMapSavedPointZoom);
+
+    expect(customerDefaultAddressCity, 'Cairo');
+    expect(customerDefaultAddressCountry, 'Egypt');
+    expect(customerDefaultAddressCountryCode, 'EG');
+  });
+
   testWidgets(
     'account overview isolates section failure and scopes favorites to store',
     (tester) async {
