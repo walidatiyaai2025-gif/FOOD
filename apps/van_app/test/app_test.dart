@@ -440,9 +440,11 @@ void main() {
     final notifications = _NotificationRepository();
     await tester.pumpWidget(
       MaterialApp(
-        home: VanNotificationsPage(
-          repository: notifications,
-          onSessionExpired: () async {},
+        home: Scaffold(
+          body: VanNotificationsPage(
+            repository: notifications,
+            onSessionExpired: () async {},
+          ),
         ),
       ),
     );
