@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = ROOT / "docs/execution/ACTIVE_FOOD_MISSION.json"
+SUPPORTED_SCHEMA_VERSIONS = {1, 2}
 BRANCH_RE = re.compile(
     r"^(?P<prefix>feat|fix|chore|docs|refactor|test|ci|release)/(?P<issue>[0-9]+)-[a-z0-9-]+$"
 )
@@ -18,8 +19,10 @@ BRANCH_RE = re.compile(
 def validate_registry(data: dict) -> list[str]:
     errors: list[str] = []
 
-    if data.get("schema_version") != 1:
-        errors.append("schema_version must be 1")
+    schema_version = data.get("schema_version")
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+        supported = ", ".join(str(version) for version in sorted(SUPPORTED_SCHEMA_VERSIONS))
+        errors.append(f"schema_version must be one of: {supported}")
     if data.get("active") is not True:
         errors.append("active mission registry must set active=true")
 
@@ -91,7 +94,6 @@ def validate_registry(data: dict) -> list[str]:
             if dep not in seen_issues:
                 errors.append(f"child #{issue} depends on unknown mission child #{dep}")
 
-    # Detect dependency cycles.
     visiting: set[int] = set()
     visited: set[int] = set()
 
