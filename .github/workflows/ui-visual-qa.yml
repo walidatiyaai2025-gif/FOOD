@@ -42,6 +42,16 @@ jobs:
         working-directory: backend
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
       - name: Prepare deterministic visual-QA database
         working-directory: backend
         env:
@@ -77,16 +87,6 @@ jobs:
           cat /tmp/foodex-ui-qa-server.log
           exit 1
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-
-      - name: Install Playwright Chromium
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-
       - name: Capture Arabic and English Admin runtime screenshots
         working-directory: backend
         env:
@@ -118,6 +118,8 @@ jobs:
           test -s "ScreenShots/02_Web/B2C_Admin/15_مركز_الإدارة__populated__en.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_التتبع_الحي_للسائقين_والفانات__populated__ar.png"
           test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_التتبع_الحي_للسائقين_والفانات__populated__en.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__ar.png"
+          test -s "ScreenShots/02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/orders__tablet-768__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2B_SuperAdmin/orders__mobile-390__en.png"
           test -s "ScreenShots/02_Web/B2C_Admin/02_لوحة_التحكم_الرئيسية_B2C__populated__ar.png"
