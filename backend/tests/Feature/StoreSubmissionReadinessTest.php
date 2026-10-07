@@ -218,4 +218,39 @@ class StoreSubmissionReadinessTest extends TestCase
 
         return $admin;
     }
+
+
+    public function test_reviewer_business_context_can_be_saved_without_json(): void
+    {
+        $admin = $this->admin('structured-reviewer-admin@example.test');
+        $reviewer = $this->customer('structured-reviewer@example.test', 'reviewer-pass-123');
+
+        $storeId = (int) DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'b2c')
+            ->value('stores.id');
+
+        $this->assertGreaterThan(0, $storeId);
+
+        $this->actingAs($admin)->put('/admin/settings/mobile/reviewer', [
+            'app' => 'customer',
+            'platform' => 'android',
+            'environment' => 'production',
+            'persona' => 'structured_customer_reviewer',
+            'identifier_type' => 'email',
+            'identifier' => $reviewer->email,
+            'reviewer_secret' => 'reviewer-pass-123',
+            'reviewer_channel' => 'b2c',
+            'reviewer_store_id' => $storeId,
+            'reviewer_instructions' => 'Sign in and verify the retail account.',
+            'is_active' => '1',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $configured = StoreReviewerAccount::query()
+            ->where('persona', 'structured_customer_reviewer')
+            ->firstOrFail();
+
+        $this->assertSame('b2c', data_get($configured->context, 'channel'));
+        $this->assertSame($storeId, (int) data_get($configured->context, 'store_id'));
+    }
 }
