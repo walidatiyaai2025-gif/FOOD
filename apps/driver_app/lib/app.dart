@@ -98,7 +98,7 @@ class FoodexDriverApp extends StatefulWidget {
   final DriverNotificationRepositoryFactory? notificationRepositoryFactory;
   final DriverSession? initialSession;
   final ThemeData? theme;
-  final DriverFirebasePushService? pushService;
+  final DriverPushService? pushService;
   final DriverPreviewContext? previewContext;
   final DriverPreviewBootstrap? previewBootstrap;
   final DriverLocationGateService? locationGateService;
