@@ -381,15 +381,15 @@
       "id": "G01",
       "summary": "100% matrix PASS exact integrated head",
       "owner_issue": 1043,
-      "evidence": "convergence-report",
-      "status": "OPEN"
+      "evidence": "docs/execution/UIUX_V42_RECOVERY_1043_CONVERGENCE.md",
+      "status": "PASS"
     },
     {
       "id": "G02",
       "summary": "Frozen SHA/evidence lineage independent of child closure",
       "owner_issue": 1043,
-      "evidence": "convergence-report",
-      "status": "OPEN"
+      "evidence": "docs/execution/UIUX_V42_RECOVERY_1043_CONVERGENCE.md",
+      "status": "PASS"
     },
     {
       "id": "R01",
@@ -406,5 +406,19 @@
     "machine_evidence": "docs/execution/UIUX_V42_RECOVERY_1042_RUNTIME_EVIDENCE.json",
     "integrated_head": "1049663772d3106b6ce57c13470730a72241db0d",
     "runtime_source_head": "28000baf73ecfb29a83ccecb49746b2040a651cc"
+  },
+  "convergence_gate": {
+    "issue": 1043,
+    "status": "PASS",
+    "frozen_recovery_implementation_sha": "4c0af747939f735334164d43a4e729ac8074b1a4",
+    "report": "docs/execution/UIUX_V42_RECOVERY_1043_CONVERGENCE.md",
+    "machine_report": "docs/execution/UIUX_V42_RECOVERY_1043_CONVERGENCE.json",
+    "total_rows": 52,
+    "pre_release_rows": 51,
+    "pre_release_pass": 51,
+    "downstream_release_rows": [
+      "R01"
+    ],
+    "downstream_release_issue": 1021
   }
 }
