@@ -491,7 +491,7 @@
     (() => {
         const node = document.getElementById('fieldops-coverage-map');
         if (!node || !window.L) return;
-        const map = L.map(node,{doubleClickZoom:false}).setView([29.3759,47.9774],10);
+        const map = L.map(node,{doubleClickZoom:false}).setView([26.8206,30.8025],6);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
         const existing = [];
         @foreach($territories as $territory)

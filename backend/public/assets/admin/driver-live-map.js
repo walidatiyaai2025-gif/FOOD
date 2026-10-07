@@ -56,7 +56,7 @@
         let map;
         let layer;
         try {
-            map = L.map(mapNode,{zoomControl:true}).setView([29.3759,47.9774],11);
+            map = L.map(mapNode,{zoomControl:true}).setView([26.8206,30.8025],6);
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
                 maxZoom:19,
                 attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

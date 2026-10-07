@@ -10,6 +10,10 @@ import '../../core/location/customer_map_pin_selector.dart';
 import 'customer_account_data.dart';
 import 'customer_account_v3_widgets.dart';
 
+const String customerDefaultAddressCity = 'Cairo';
+const String customerDefaultAddressCountry = 'Egypt';
+const String customerDefaultAddressCountryCode = 'EG';
+
 class CustomerAddressBookScreen extends StatefulWidget {
   const CustomerAddressBookScreen({
     required this.api,
@@ -155,13 +159,13 @@ class _CustomerAddressBookScreenState
         text: existing?['apartment']?.toString() ?? '',
       ),
       'city': TextEditingController(
-        text: existing?['city']?.toString() ?? 'Kuwait City',
+        text: existing?['city']?.toString() ?? customerDefaultAddressCity,
       ),
       'country': TextEditingController(
-        text: existing?['country']?.toString() ?? 'Kuwait',
+        text: existing?['country']?.toString() ?? customerDefaultAddressCountry,
       ),
       'country_code': TextEditingController(
-        text: existing?['country_code']?.toString() ?? 'KW',
+        text: existing?['country_code']?.toString() ?? customerDefaultAddressCountryCode,
       ),
       'landmark': TextEditingController(
         text: existing?['landmark']?.toString() ?? '',

@@ -6,6 +6,26 @@ use Tests\TestCase;
 
 class DashboardUiComplianceTest extends TestCase
 {
+    public function test_map_surfaces_default_to_egypt_without_overriding_authoritative_points(): void
+    {
+        $tracking = file_get_contents(public_path('assets/admin/driver-live-map.js'));
+        $customer360 = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+
+        $this->assertIsString($tracking);
+        $this->assertIsString($customer360);
+
+        $this->assertStringContainsString('setView([26.8206,30.8025],6)', $tracking);
+        $this->assertStringNotContainsString('setView([29.3759,47.9774]', $tracking);
+        $this->assertStringContainsString('map.fitBounds(bounds', $tracking);
+
+        $this->assertStringContainsString('const defaultMapCenter = [26.8206,30.8025];', $customer360);
+        $this->assertStringContainsString('const defaultMapZoom = 6;', $customer360);
+        $this->assertStringContainsString('map = L.map(mapContainer).setView(defaultMapCenter, defaultMapZoom);', $customer360);
+        $this->assertStringContainsString('map?.setView(defaultMapCenter, defaultMapZoom);', $customer360);
+        $this->assertStringContainsString('map.setView([selected.lat, selected.lng]', $customer360);
+        $this->assertStringNotContainsString('setView([29.3759,47.9774]', $customer360);
+    }
+
     public function test_order_management_uses_compact_ellipsis_row_actions(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
