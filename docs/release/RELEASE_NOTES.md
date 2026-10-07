@@ -1,22 +1,25 @@
-# FOODEX 1.0.60 Release Notes
+# FOODEX 1.0.61 Release Notes
 
-Status: corrective UIUX-V42 FOODEX 1.0.60 release for #1021, restoring the accepted premium Sales Control surface while preserving Van/commercial behavior and cross-app UI/UX convergence. Repository-controlled release; Apple/Google console/signing actions remain external.
+Status: production-domain mobile hotfix release for #1062. Rebuild Customer, Driver and Van from the final main integration so the actual APK binaries target `https://foodex.50sols.com` and reject the obsolete `vanfoodex.50sols.com` endpoint.
 
-Release branch: `release/1021-uiux-v42-final-real-build`
+Release branch: `release/1062-mobile-domain-hotfix`
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.60`
-- Customer app: `1.0.60+60`
-- Driver/Van app: `1.0.60+60`
-- Customer runtime/footer identity: `1.0.60`
-- Driver runtime/footer identity: `1.0.60`
-- Driver diagnostics current identity: `1.0.60`
+- Dashboard / repository release: `1.0.61`
+- Customer app: `1.0.61+61`
+- Driver/Van app: `1.0.61+61`
+- Customer runtime/footer identity: `1.0.61`
+- Driver runtime/footer identity: `1.0.61`
+- Driver diagnostics current identity: `1.0.61`
 - Driver diagnostics build identity: `58`
 
 - Production API: `https://foodex.50sols.com`
 
 ## Included changes
+
+- Rebuild all three Android APKs from the final `main` implementation with `FOODEX_API_BASE_URL=https://foodex.50sols.com` and add binary-level release validation that fails if `vanfoodex.50sols.com` is embedded.
+- Fix Van Arabic mobile navigation so the hamburger and overlay drawer are on the physical left; selecting a menu item closes the drawer before showing the selected screen, eliminating nested dashboard navigation.
 
 - Include the canonical commercial policy engine, break-pack rules, feature flags, Flash lifecycle/audience targeting, Dashboard preview/analytics, Customer Flash checkout and Van online-only Flash/commercial enforcement from #983/#991.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.61 - 2026-10-07
+
+- Rebuild Customer, Driver and Van Android artifacts from the final main integration so their embedded production API endpoint is `https://foodex.50sols.com`.
+- Reject release APKs at binary level if `https://foodex.50sols.com` is absent or the obsolete `https://vanfoodex.50sols.com` endpoint is present.
+- Fix the Van Arabic mobile navigation shell: keep the hamburger on the physical left, open the sidebar as an overlay over the current dashboard, close it after menu selection, and prevent nested dashboard navigation.
+- Preserve the remaining 1.0.60 application behavior and production configuration while correcting release provenance, endpoint embedding and synchronized mobile identity to 1.0.61+61.
+
 ## 1.0.60 - 2026-10-07
 
 - Correct the UIUX-V42 Commercial / Sales Control regression discovered after the 1.0.59 fresh release: the route now uses the authoritative FOODEX premium Dashboard shell and sidebar instead of the legacy standalone commercial page.
