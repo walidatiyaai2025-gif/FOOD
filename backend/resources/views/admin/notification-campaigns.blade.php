@@ -99,7 +99,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
     @forelse($campaigns as $campaign)
         <article class="card">
             <div class="row">
-                <strong>#{{ $campaign->id }} · {{ $campaign->name }}</strong>
+                <strong>{{ $campaign->name }}</strong>
                 <span class="badge {{ $campaign->status }}">{{ __('notifications.campaign_status.'.$campaign->status) }}</span>
                 <span class="badge">{{ __('notifications.channel_options.'.$campaign->target_channel) }}</span>
                 <span class="badge">{{ __('notifications.audience_options.'.$campaign->audience) }}</span>
@@ -180,16 +180,16 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <summary style="cursor:pointer;font-weight:800">{{ __('notifications.history') }}</summary>
                 <div style="overflow:auto">
                 <table class="history">
-                    <thead><tr><th>#</th><th>{{ __('notifications.scheduled_for') }}</th><th>{{ __('notifications.executed_at') }}</th><th>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}</th><th>{{ __('notifications.generated_notification') }}</th><th>{{ app()->getLocale()==='ar'?'الخطأ':'Error' }}</th></tr></thead>
+                    <thead><tr><th>{{ app()->getLocale()==='ar'?'التشغيل':'Run' }}</th><th>{{ __('notifications.scheduled_for') }}</th><th>{{ __('notifications.executed_at') }}</th><th>{{ app()->getLocale()==='ar'?'الحالة':'Status' }}</th><th>{{ __('notifications.generated_notification') }}</th><th>{{ app()->getLocale()==='ar'?'النتيجة':'Result' }}</th></tr></thead>
                     <tbody>
                     @forelse($campaign->runs as $run)
                         <tr>
-                            <td>{{ $run->id }}</td>
+                            <td>{{ $loop->iteration }}</td>
                             <td>{{ $run->scheduled_for?->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') }}</td>
                             <td>{{ $run->completed_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') ?? '—' }}</td>
                             <td>{{ $run->status }}</td>
-                            <td>{{ $run->notification_id ? '#'.$run->notification_id : '—' }}</td>
-                            <td>{{ $run->error_code ?? '—' }}</td>
+                            <td>{{ $run->notification_id ? (app()->getLocale()==='ar'?'تم الإنشاء':'Generated') : '—' }}</td>
+                            <td>{{ $run->error_code ? (app()->getLocale()==='ar'?'راجع حالة التشغيل':'Review run status') : (app()->getLocale()==='ar'?'ناجح':'Successful') }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="6">—</td></tr>
