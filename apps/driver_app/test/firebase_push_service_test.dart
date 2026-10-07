@@ -64,6 +64,33 @@ void main() {
     expect(orderOnly.eventKey, 'order:99');
   });
 
+  test('foreground push identity prefers authoritative order id and falls back to assignment id', () {
+    expect(
+      driverPushIdentityLabel(
+        const DriverPushOpen(assignmentId: 42, orderId: 99),
+        orderLabel: 'Order',
+        assignmentLabel: 'Assignment',
+      ),
+      'Order #99',
+    );
+    expect(
+      driverPushIdentityLabel(
+        const DriverPushOpen(assignmentId: 42),
+        orderLabel: 'Order',
+        assignmentLabel: 'Assignment',
+      ),
+      'Assignment #42',
+    );
+    expect(
+      driverPushIdentityLabel(
+        const DriverPushOpen(),
+        orderLabel: 'Order',
+        assignmentLabel: 'Assignment',
+      ),
+      isNull,
+    );
+  });
+
   test('device registry revokes authenticated driver push device', () async {
     late http.Request captured;
     final client = MockClient((request) async {
