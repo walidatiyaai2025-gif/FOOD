@@ -4,6 +4,25 @@ import 'package:latlong2/latlong.dart';
 
 import '../localization/app_translations.dart';
 
+const double customerMapDefaultLatitude = 26.8206;
+const double customerMapDefaultLongitude = 30.8025;
+const double customerMapDefaultZoom = 6;
+const double customerMapSavedPointZoom = 14;
+
+({LatLng center, double zoom}) customerMapInitialViewport({
+  double? initialLatitude,
+  double? initialLongitude,
+}) {
+  final hasSavedPoint = initialLatitude != null && initialLongitude != null;
+  return (
+    center: LatLng(
+      hasSavedPoint ? initialLatitude : customerMapDefaultLatitude,
+      hasSavedPoint ? initialLongitude : customerMapDefaultLongitude,
+    ),
+    zoom: hasSavedPoint ? customerMapSavedPointZoom : customerMapDefaultZoom,
+  );
+}
+
 class CustomerMapPinSelection {
   const CustomerMapPinSelection({
     required this.latitude,
@@ -25,23 +44,30 @@ Future<CustomerMapPinSelection?> showCustomerMapPinSelector(
   double? initialLatitude,
   double? initialLongitude,
 }) {
-  final initial = LatLng(
-    initialLatitude ?? 29.375859,
-    initialLongitude ?? 47.977405,
+  final viewport = customerMapInitialViewport(
+    initialLatitude: initialLatitude,
+    initialLongitude: initialLongitude,
   );
 
   return showModalBottomSheet<CustomerMapPinSelection>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => _CustomerMapPinSelector(initial: initial),
+    builder: (_) => _CustomerMapPinSelector(
+      initial: viewport.center,
+      initialZoom: viewport.zoom,
+    ),
   );
 }
 
 class _CustomerMapPinSelector extends StatefulWidget {
-  const _CustomerMapPinSelector({required this.initial});
+  const _CustomerMapPinSelector({
+    required this.initial,
+    required this.initialZoom,
+  });
 
   final LatLng initial;
+  final double initialZoom;
 
   @override
   State<_CustomerMapPinSelector> createState() =>
@@ -90,7 +116,7 @@ class _CustomerMapPinSelectorState extends State<_CustomerMapPinSelector> {
                   FlutterMap(
                     options: MapOptions(
                       initialCenter: widget.initial,
-                      initialZoom: 14,
+                      initialZoom: widget.initialZoom,
                       minZoom: 3,
                       maxZoom: 19,
                       onTap: (_, point) {
