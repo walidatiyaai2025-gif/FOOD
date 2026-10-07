@@ -65,7 +65,7 @@ $businessLabel = static function ($value): string {
 @forelse($rows as $row)
 <tr>
 <td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
-<td>{{ $row['store'] }}</td><td>{{ $businessLabel($row['channel']) }}</td><td>{{ $businessLabel($row['source']) }}</td><td>{{ $row['customer'] }}</td>
+<td>{{ $row['store'] }}</td><td>{{ $businessLabel($row['channel']) }}</td><td>{{ $businessLabel($row['source']) }}</td><td>{{ $row['customer'] }}</td> {{-- localization-gate: allow channel/source resolved through localized businessLabel --}}
 <td><span class="badge {{ $row['status'] }}" data-status-code="{{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
 <td>{{ $row['driver'] ?? __('order_operations.unassigned') }} @if($row['assignment_status'])<small>· {{ $businessLabel($row['assignment_status']) }}</small>@endif</td>
 <td>{{ $businessLabel($row['payment_status']) }} @if($row['payment_provider'])<small>· {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}</small>@endif</td>
@@ -98,7 +98,7 @@ $businessLabel = static function ($value): string {
 <div class="foodex-card panel">
 <h2>{{ __('order_operations.detail.context') }} · {{ $detail['number'] }}</h2>
 <div class="timeline-item" data-order-authoritative-context>
-<strong>{{ $businessLabel($detail['channel']) }} · {{ $detail['store'] }}</strong>
+<strong>{{ $businessLabel($detail['channel']) }} · {{ $detail['store'] }}</strong> {{-- localization-gate: allow channel resolved through localized businessLabel --}}
 <div>{{ __('order_operations.detail.source') }}: {{ $businessLabel($detail['source']) }}</div>
 <small>{{ __('order_operations.detail.authorized_channel') }}: {{ $businessLabel($detail['channel']) }}</small>
 </div>
