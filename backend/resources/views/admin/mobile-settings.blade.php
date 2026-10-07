@@ -223,7 +223,10 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <div class="row"><div><label>Persona</label><input name="persona" placeholder="customer_reviewer" required></div><div><label>Identifier type</label><select name="identifier_type"><option value="email">email</option><option value="username">username</option><option value="phone">phone</option></select></div></div>
 <label>Identifier</label><input name="identifier" required>
 <label>{{ $ar?'كلمة مرور/سر المراجع (كتابة فقط)':'Reviewer secret (write-only)' }}</label><input type="password" name="reviewer_secret" autocomplete="new-password">
-<label>Store / tenant / customer / driver / van context JSON</label><textarea name="context_json" placeholder='{"store_id":1,"channel":"b2c"}'></textarea>
+<div class="row">
+<div><label>{{ __('mobile_settings.reviewer_channel') }}</label><select name="reviewer_channel"><option value="">—</option><option value="b2b">{{ __('mobile_settings.channels.b2b') }}</option><option value="b2c">{{ __('mobile_settings.channels.b2c') }}</option></select></div>
+<div><label>{{ __('mobile_settings.reviewer_store') }}</label><select name="reviewer_store_id"><option value="">{{ __('mobile_settings.reviewer_no_store') }}</option>@foreach($reviewerStores as $reviewerStore)<option value="{{ $reviewerStore->id }}" data-channel="{{ strtolower((string)$reviewerStore->channel) }}">{{ $reviewerStore->name }} · {{ __('mobile_settings.channels.'.strtolower((string)$reviewerStore->channel)) }}</option>@endforeach</select></div>
+</div>
 <label>Deterministic reviewer instructions</label><textarea name="reviewer_instructions"></textarea>
 <input type="hidden" name="is_active" value="0"><label class="check"><input type="checkbox" name="is_active" value="1" checked>Active</label>
 <button class="button">Save reviewer persona</button>
