@@ -161,6 +161,7 @@ return [
         'description' => 'اعرض السائقين والفانات المصرح لك بهم في خريطة تشغيل حية موحدة عبر OpenStreetMap.',
         'channel' => 'القناة',
         'all_channels' => 'كل القنوات',
+        'all_stores' => 'كل المتاجر',
         'store_id' => 'رقم المتجر',
         'status' => 'الحالة',
         'all_statuses' => 'كل الحالات',
