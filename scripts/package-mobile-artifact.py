@@ -47,7 +47,7 @@ def package(root, app, platform, source, output, commit, build_number):
         "build_mode": "release",
         "purpose": "ci-validation-only",
         "production_ready": False,
-        "api_base_url": "https://vanfoodex.50sols.com",
+        "api_base_url": "https://foodex.50sols.com",
         "native_identity": {
             "android": {
                 "customer": "com.fiftysolution.foodex.customer",
