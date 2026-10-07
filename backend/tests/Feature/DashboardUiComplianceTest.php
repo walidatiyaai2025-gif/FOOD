@@ -191,4 +191,29 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('<strong>#{{ $notification->id }}</strong>', $view);
         $this->assertStringContainsString("select(['id', 'name', 'email'])", $controller);
     }
+
+
+    public function test_owned_dashboard_views_use_shared_foodex_shell_contract(): void
+    {
+        $views = [
+            'administration-hub.blade.php',
+            'customer-360-show.blade.php',
+            'driver-live-tracking.blade.php',
+            'mobile-settings.blade.php',
+            'notification-campaigns.blade.php',
+            'notifications.blade.php',
+            'order-operations.blade.php',
+            'reports.blade.php',
+        ];
+
+        foreach ($views as $viewName) {
+            $view = file_get_contents(resource_path('views/admin/'.$viewName));
+
+            $this->assertIsString($view, $viewName);
+            $this->assertStringContainsString('foodex-admin-layout', $view, $viewName);
+            $this->assertStringContainsString('foodex-admin-main', $view, $viewName);
+            $this->assertStringContainsString("admin._sidebar", $view, $viewName);
+            $this->assertStringContainsString('foodex-page-header', $view, $viewName);
+        }
+    }
 }
