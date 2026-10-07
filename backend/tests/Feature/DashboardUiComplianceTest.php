@@ -306,4 +306,23 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="context_json"', $view);
         $this->assertStringNotContainsString('Store / tenant / customer / driver / van context JSON', $view);
     }
+
+
+    public function test_mobile_store_submission_uses_structured_checklists(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('name="asset_icon_master"', $view);
+        $this->assertStringContainsString('name="asset_splash_master"', $view);
+        $this->assertStringContainsString('name="asset_screenshots"', $view);
+        $this->assertStringContainsString('name="asset_promotional_assets"', $view);
+        $this->assertStringContainsString('name="permission_declarations_text"', $view);
+        $this->assertStringContainsString('name="privacy_checklist_text"', $view);
+        $this->assertStringContainsString('name="manual_gaps_text"', $view);
+        $this->assertStringNotContainsString('name="asset_checklist_json"', $view);
+        $this->assertStringNotContainsString('name="permission_declarations_json"', $view);
+        $this->assertStringNotContainsString('name="privacy_checklist_json"', $view);
+        $this->assertStringNotContainsString('name="manual_gaps_json"', $view);
+    }
 }
