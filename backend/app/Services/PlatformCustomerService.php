@@ -389,28 +389,9 @@ final class PlatformCustomerService
         return $customer->refresh();
     }
 
-    private function mainWholesaleStoreId(): ?int
+    private function mainWholesaleStoreId(): int
     {
-        $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
-
-        $query = DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2B');
-
-        if ($configuredCode !== '') {
-            $configuredId = (clone $query)
-                ->where('stores.code', $configuredCode)
-                ->value('stores.id');
-
-            if ($configuredId !== null) {
-                return (int) $configuredId;
-            }
-        }
-
-        $id = $query->orderBy('stores.id')->value('stores.id');
-
-        return $id === null ? null : (int) $id;
+        return app(WholesalePrincipal::class)->storeId();
     }
 
     private function normalizeRegistrationSource(string $source): string
