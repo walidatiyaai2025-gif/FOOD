@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.60",
-  "minimum_current_version": "1.0.59",
-  "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
-  "contains_migrations": false,
+  "target_version": "1.0.57",
+  "minimum_current_version": "1.0.6",
+  "sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "ci(release): align clean-install assertions with frozen commercial UI",
+  "release_notes": "FOODEX 1.0.57: Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior. Keep Arabic RTL and English LTR first-class, move remaining More/Profile labels into the existing localization resources, and render Dashboard timestamps through Flutter localization rather than raw ISO-derived text. Preserve store/backend-driven currency and all authoritative order, invoice, finance, pricing, permissions and API contracts while reducing overflow risk through controlled max-lines, ellipsis and compact responsive sizing. Make the Dashboard Driver map refresh silently after its initial load: keep the mounted map and last successful markers visible, suppress duplicate refreshes, preserve successful content on background failure, reserve status space to prevent layout shift, and dispose polling/network work when leaving the page. Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57 and publish through the existing cumulative Dashboard update mechanism.",
   "dashboard_fields": {
-    "target_version": "1.0.60",
-    "minimum_current_version": "1.0.59",
-    "sha256": "637f45105110e7295e74dd1ccbe7e2de0c2f76da9e7beec9135246b5f90d87d3",
-    "contains_migrations": false,
-    "release_notes": "ci(release): align clean-install assertions with frozen commercial UI"
+    "target_version": "1.0.57",
+    "minimum_current_version": "1.0.6",
+    "sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
+    "contains_migrations": true,
+    "release_notes": "FOODEX 1.0.57: Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior. Keep Arabic RTL and English LTR first-class, move remaining More/Profile labels into the existing localization resources, and render Dashboard timestamps through Flutter localization rather than raw ISO-derived text. Preserve store/backend-driven currency and all authoritative order, invoice, finance, pricing, permissions and API contracts while reducing overflow risk through controlled max-lines, ellipsis and compact responsive sizing. Make the Dashboard Driver map refresh silently after its initial load: keep the mounted map and last successful markers visible, suppress duplicate refreshes, preserve successful content on background failure, reserve status space to prevent layout shift, and dispose polling/network work when leaving the page. Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57 and publish through the existing cumulative Dashboard update mechanism."
   }
 }

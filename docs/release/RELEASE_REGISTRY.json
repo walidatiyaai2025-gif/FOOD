@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.58",
+  "current_version": "1.0.57",
   "releases": [
     {
       "version": "1.0.40",
@@ -194,18 +194,6 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
       "note": "FOODEX 1.0.57 production release for Issue #943 / PR #946: in-place Customer client UI/UX normalization, localized display cleanup, and Dashboard Driver map silent-refresh stabilization with last-success preservation, duplicate-refresh suppression, cleanup, and synchronized Customer/Driver release identity 1.0.57+57."
-    },
-    {
-      "version": "1.0.58",
-      "state": "release-candidate",
-      "registration": "canonical-van-release",
-      "release_notes": "docs/release/UPDATE_NOTES_1.0.58.md",
-      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
-      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
-      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
-      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "5a0228afeb4b14ed0d2184d8e93ee4c0214e5079005c98bd5cb100d67e916517",
-      "note": "Canonical FOODEX Van 1.0.58 release: complete #983/#991 commercial and Flash scope, #990 store-readiness, full Van field operations and clean-install package. Apple/Google console signing and submission remain external/manual."
     }
   ]
 }
