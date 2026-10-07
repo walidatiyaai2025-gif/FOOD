@@ -35,12 +35,37 @@ final class CommercialDashboardController extends Controller
             ->limit(200)
             ->get(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
 
+        $legacyCustomerIds = DB::table('b2c_customers')
+            ->where('store_id', $storeId)
+            ->whereNotNull('legacy_customer_id')
+            ->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $ruleCustomers = DB::table('customers')
+            ->whereIn('id', $legacyCustomerIds)
+            ->orderBy('name')
+            ->limit(300)
+            ->get(['id', 'name', 'email']);
+
+        $ruleGroups = DB::table('commercial_customer_groups')
+            ->where('is_active', true)
+            ->where(function ($query) use ($storeId): void {
+                $query->whereNull('store_id')->orWhere('store_id', $storeId);
+            })
+            ->orderByDesc('priority')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return $this->render($request, $user, $storeId, 'sales-control', [
             'products' => $products,
             'policies' => DB::table('product_commercial_policies')->whereIn('product_id', $products->pluck('id'))->get()->keyBy('product_id'),
             'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
             'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
             'commercialRules' => DB::table('product_commercial_rules')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
+            'ruleCustomers' => $ruleCustomers,
+            'ruleGroups' => $ruleGroups,
             'featureFlags' => $this->flags->snapshot(),
             'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('commercial'),
