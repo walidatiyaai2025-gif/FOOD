@@ -38,6 +38,18 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("i18n.store+' '+(row.store_id", $script);
     }
 
+    public function test_reports_render_business_breakdowns_instead_of_raw_json(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/reports.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-report-breakdowns', $view);
+        $this->assertStringContainsString('data-report-breakdown="{{ $extra }}"', $view);
+        $this->assertStringContainsString('$reportLabel', $view);
+        $this->assertStringNotContainsString('json_encode($data[$extra]', $view);
+        $this->assertStringNotContainsString('<pre style="white-space:pre-wrap;margin:0">', $view);
+    }
+
     public function test_notifications_use_shared_foodex_admin_shell(): void
     {
         $view = file_get_contents(resource_path('views/admin/notifications.blade.php'));
