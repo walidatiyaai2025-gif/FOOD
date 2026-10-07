@@ -37,4 +37,14 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('storeLabel(row)', $script);
         $this->assertStringNotContainsString("i18n.store+' '+(row.store_id", $script);
     }
+
+    public function test_notifications_use_shared_foodex_admin_shell(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/notifications.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('foodex-admin-layout', $view);
+        $this->assertStringContainsString("@include('admin._sidebar'", $view);
+        $this->assertStringContainsString('foodex-admin-main', $view);
+    }
 }
