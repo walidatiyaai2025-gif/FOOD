@@ -83,7 +83,6 @@ class AdministrationHubTest extends TestCase
         return $user;
     }
 
-
     public function test_sidebar_groups_follow_business_domain_order_and_keep_administration_last(): void
     {
         $user = $this->superAdmin();

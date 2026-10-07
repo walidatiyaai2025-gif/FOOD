@@ -16,6 +16,7 @@ use Tests\TestCase;
 class FieldOperationsUiFoundationTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_field_operations_primitives_extend_the_canonical_brand_component_layer(): void
     {
         $brand = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));

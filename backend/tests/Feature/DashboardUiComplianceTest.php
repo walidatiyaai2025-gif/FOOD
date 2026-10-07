@@ -23,7 +23,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
 
-
     public function test_live_tracking_uses_authorized_store_lookup_instead_of_raw_store_id(): void
     {
         $view = file_get_contents(resource_path('views/admin/_driver-live-map.blade.php'));
@@ -87,7 +86,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("@selected($selectedApp==='van')", $view);
     }
 
-
     public function test_notification_campaigns_hide_internal_identifiers_from_business_users(): void
     {
         $view = file_get_contents(resource_path('views/admin/notification-campaigns.blade.php'));
@@ -102,7 +100,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('{{ $loop->iteration }}', $view);
     }
 
-
     public function test_order_operations_shell_copy_uses_locale_catalog(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
@@ -114,7 +111,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$isAr?'إدارة الطلبات':'Order Management'", $view);
         $this->assertStringNotContainsString("$isAr?'إجراءات الطلب':'Order actions'", $view);
     }
-
 
     public function test_customer_360_shell_copy_uses_locale_catalog(): void
     {
@@ -129,7 +125,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar ? 'الجملة' : 'Wholesale'", $view);
     }
 
-
     public function test_customer_360_finance_copy_uses_locale_catalog(): void
     {
         $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
@@ -142,7 +137,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'تسجيل حركة مالية':'Record financial entry'", $view);
     }
 
-
     public function test_customer_360_identity_copy_uses_locale_catalog(): void
     {
         $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
@@ -153,7 +147,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'الاسم':'Name'", $view);
         $this->assertStringNotContainsString("$ar?'مصدر التسجيل':'Registration source'", $view);
     }
-
 
     public function test_customer_360_related_records_use_locale_catalog(): void
     {
@@ -166,7 +159,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString("$ar?'لا توجد طلبات داخل النطاق الحالي.':'No orders in the current scope.'", $view);
         $this->assertStringNotContainsString("$ar?'التفاصيل':'Details'", $view);
     }
-
 
     public function test_customer_360_has_no_inline_bilingual_user_copy(): void
     {
@@ -193,7 +185,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("select(['id', 'name', 'email'])", $controller);
     }
 
-
     public function test_owned_dashboard_views_use_shared_foodex_shell_contract(): void
     {
         $views = [
@@ -218,7 +209,6 @@ class DashboardUiComplianceTest extends TestCase
             $this->assertStringContainsString('foodex-page-header', $view, $viewName);
         }
     }
-
 
     public function test_notification_campaigns_use_business_user_lookup(): void
     {
@@ -247,7 +237,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("if (\$reviewer->app === 'van')", $controller);
         $this->assertStringContainsString("hasPermission('van.login')", $controller);
     }
-
 
     public function test_mobile_settings_hide_raw_push_identifiers(): void
     {
@@ -280,7 +269,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("\$readiness['android'] = \$request->boolean('readiness_android');", $controller);
     }
 
-
     public function test_mobile_settings_runtime_readiness_is_structured(): void
     {
         $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
@@ -295,7 +283,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="store_readiness_json"', $view);
     }
 
-
     public function test_mobile_settings_reviewer_context_uses_business_controls(): void
     {
         $view = file_get_contents(resource_path('views/admin/mobile-settings.blade.php'));
@@ -307,7 +294,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('name="context_json"', $view);
         $this->assertStringNotContainsString('Store / tenant / customer / driver / van context JSON', $view);
     }
-
 
     public function test_mobile_store_submission_uses_structured_checklists(): void
     {
@@ -331,7 +317,6 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('name="asset_screenshots"><option value="">—</option>@foreach($submissionUploadAssetStates', $view);
         $this->assertStringNotContainsString('$submissionAssetStates = [', $view);
     }
-
 
     public function test_owned_dashboard_views_do_not_expose_routine_raw_identifiers_or_json(): void
     {
@@ -385,7 +370,6 @@ class DashboardUiComplianceTest extends TestCase
         }
     }
 
-
     public function test_notification_surfaces_follow_record_action_contract(): void
     {
         $campaigns = file_get_contents(resource_path('views/admin/notification-campaigns.blade.php'));
@@ -412,7 +396,6 @@ class DashboardUiComplianceTest extends TestCase
             $campaigns,
         );
     }
-
 
     public function test_van_dashboard_parity_contract_covers_1035_owned_domains(): void
     {
