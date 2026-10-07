@@ -58,21 +58,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <body>
 @php($ar=app()->getLocale()==='ar')
 @php($finance=$wholesale['financial'] ?? null)
-@php
-$businessLabel = static function ($value): string {
-    $key = strtolower(trim((string) ($value ?? '')));
-    if ($key === '') {
-        return '—';
-    }
 
-    $translationKey = 'customer_360.business_labels.'.$key;
-    $translated = __($translationKey);
-
-    return $translated === $translationKey
-        ? ucwords(str_replace(['_', '-'], ' ', $key))
-        : $translated;
-};
-@endphp
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="foodex-admin-main foodex-admin-page">
@@ -101,7 +87,7 @@ $businessLabel = static function ($value): string {
 <p>{{ $summary['active'] ? __('customer_360.active') : __('customer_360.inactive') }}</p>
 </div>
 </div>
-<span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $businessLabel($summary['registration_source']) }}</span>
+<span class="c360-badge {{ $summary['active']?'active':'' }}">{{ $summary['registration_source_label'] }}</span>
 </section>
 
 @if(session('status'))<div class="foodex-success">{{ session('status') }}</div>@endif
@@ -120,7 +106,7 @@ $businessLabel = static function ($value): string {
 
 <section class="c360-panel active" id="panel-finance" role="tabpanel" aria-labelledby="tab-finance" data-c360-panel="finance">
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><h2>{{ __('customer_360.tabs.finance') }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $businessLabel($wholesale['status']) }}</span>@endif</div>
+<div class="c360-section-head"><h2>{{ __('customer_360.tabs.finance') }}</h2>@if($wholesale)<span class="c360-badge {{ strtolower((string)($wholesale['status'] ?? ''))==='active'?'active':'' }}">{{ $wholesale['status_label'] }}</span>@endif</div>
 @if($wholesale)
 <div class="c360-kpis">
 @if($finance)
@@ -146,7 +132,7 @@ $businessLabel = static function ($value): string {
 <div class="c360-finance-details">
 <div><small>{{ __('customer_360.finance.company') }}</small><strong>{{ $wholesale['company_name'] ?: $customer->name }}</strong></div>
 <div><small>{{ __('customer_360.finance.price_tier') }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }}</strong></div>
-<div><small>{{ __('customer_360.finance.account_status') }}</small><strong>{{ $businessLabel($wholesale['status']) }}</strong></div>
+<div><small>{{ __('customer_360.finance.account_status') }}</small><strong>{{ $wholesale['status_label'] }}</strong></div>
 @if($finance)
 <div><small>{{ __('customer_360.finance.open_amount') }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
 <div><small>{{ __('customer_360.finance.overdue_amount') }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
@@ -187,8 +173,8 @@ $businessLabel = static function ($value): string {
 <div><small>{{ __('customer_360.identity.email') }}</small><strong>{{ $customer->email }}</strong></div>
 <div><small>{{ __('customer_360.identity.phone') }}</small><strong>{{ $customer->phone ?: '-' }}</strong></div>
 <div><small>{{ __('customer_360.identity.registered_at') }}</small><strong>{{ optional($customer->registered_at)->format('Y-m-d H:i') ?: '-' }}</strong></div>
-<div><small>{{ __('customer_360.identity.origin_channel') }}</small><strong>{{ $businessLabel($customer->origin_channel ?: 'unknown') }}</strong></div>
-<div><small>{{ __('customer_360.identity.registration_source') }}</small><strong>{{ $businessLabel($customer->registration_source) }}</strong></div>
+<div><small>{{ __('customer_360.identity.origin_channel') }}</small><strong>{{ $summary['origin_channel_label'] }}</strong></div>
+<div><small>{{ __('customer_360.identity.registration_source') }}</small><strong>{{ $summary['registration_source_label'] }}</strong></div>
 <div><small>{{ __('customer_360.identity.registration_origin') }}</small><strong>{{ $summary['origin']['label'] }}</strong></div>
 </div>
 </div>
@@ -266,7 +252,7 @@ $businessLabel = static function ($value): string {
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.orders') }}</h2><span class="c360-badge">{{ count($orders) }}</span></div>
 @if(empty($orders))<div class="c360-empty">{{ __('customer_360.records.no_orders') }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.records.order') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.finance.date') }}</th><th></th></tr></thead><tbody>
-@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $businessLabel($order['channel']) }}</span></td><td>{{ $businessLabel($order['status']) }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ __('customer_360.records.manage_order') }}</a></td></tr>@endforeach
+@foreach($orders as $order)<tr id="order-{{ $order['id'] }}"><td><strong>{{ $order['number'] }}</strong></td><td>{{ $order['store'] }}</td><td><span class="c360-badge {{ $order['channel'] }}">{{ $order['channel_label'] }}</span></td><td>{{ $order['status_label'] }}</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ __('customer_360.records.manage_order') }}</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 </section>
@@ -276,7 +262,7 @@ $businessLabel = static function ($value): string {
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.invoices') }}</h2><span class="c360-badge">{{ count($invoices) }}</span></div>
 @if(empty($invoices))<div class="c360-empty">{{ __('customer_360.records.no_invoices') }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.records.issued') }}</th><th></th></tr></thead><tbody>
-@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $businessLabel($invoice['channel']) }}</span></td><td>{{ $businessLabel($invoice['status']) }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
+@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $invoice['channel_label'] }}</span></td><td>{{ $invoice['status_label'] }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 </section>

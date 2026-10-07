@@ -201,7 +201,9 @@
                     @endphp
                     <form method="post" action="{{ route('admin.commercial.sales-control.save', ['product'=>$product->id] + $scope) }}" class="commercial-policy-form">
                         @csrf @method('put')
-                        @php($selectedChannels = collect(json_decode((string)($policy->channels ?? '["customer","van","admin","api"]'), true) ?: []))
+                        @php
+                            $selectedChannels = collect(json_decode((string)($policy->channels ?? '["customer","van","admin","api"]'), true) ?: []);
+                        @endphp
                         <section class="policy-section">
                             <div class="policy-section-title"><span>{{ __('commercial.sales.availability_channels') }}</span></div>
                             <div class="commercial-form-grid">
@@ -235,7 +237,7 @@
                                     <select name="break_pack_unit_code" data-break-pack-selling-unit>
                                         <option value="">{{ __('commercial.sales.select_selling_unit') }}</option>
                                         @foreach($units->where('is_active', true) as $unit)
-                                            <option value="{{ $unit->code }}" @selected(($policy->break_pack_unit_code ?? '') === $unit->code)>{{ $unit->name }} · {{ $unit->code }} · ×{{ rtrim(rtrim(number_format((float)$unit->conversion_factor, 3, '.', ''), '0'), '.') }}</option>
+                                            <option value="{{ $unit['code'] ?? '' }}" @selected(($policy->break_pack_unit_code ?? '') === ($unit['code'] ?? ''))>{{ $unit['name'] ?? '' }} · {{ $unit['code'] ?? '' }} · ×{{ rtrim(rtrim(number_format((float)($unit['conversion_factor'] ?? 1), 3, '.', ''), '0'), '.') }}</option>
                                         @endforeach
                                     </select>
                                 </label>
@@ -343,8 +345,12 @@
                             </div>
                             <div class="structured-list" data-rule-rows>
                                 @foreach($rules as $rule)
-                                    @php($customerId=(int)($rule['customer_id'] ?? 0))
-                                    @php($groupId=(int)($rule['customer_group_id'] ?? 0))
+                                    @php
+                            $customerId = (int) ($rule['customer_id'] ?? 0);
+                        @endphp
+                                    @php
+                            $groupId = (int) ($rule['customer_group_id'] ?? 0);
+                        @endphp
                                     <div class="structured-row" data-rule-row>
                                         <div class="structured-grid">
                                             <label>{{ __('commercial.sales.rule_customer') }}<select data-rule-field="customer_id"><option value="">{{ __('commercial.sales.any_customer') }}</option>@if($customerId>0 && !$ruleCustomers->contains('id',$customerId))<option value="{{ $customerId }}" selected>{{ __('commercial.sales.reference_unavailable') }}</option>@endif @foreach($ruleCustomers as $customer)<option value="{{ $customer->id }}" @selected($customerId===(int)$customer->id)>{{ $customer->name }}{{ $customer->email ? ' · '.$customer->email : '' }}</option>@endforeach</select></label>
@@ -644,7 +650,7 @@
                     @forelse($existingPromotions as $promotion)
                         <tr>
                             <td>{{ $promotion->name }}</td>
-                            <td>{{ $promotion->type }}</td>
+                            <td>{{ $promotion->localized_label }}</td>
                             <td>{{ $promotion->value ?? '—' }}</td>
                             <td>{{ $promotion->starts_at ?: '—' }} → {{ $promotion->ends_at ?: '—' }}</td>
                             <td>{{ $promotion->is_active ? __('commercial.flash.promotion_active') : __('commercial.flash.promotion_inactive') }}</td>

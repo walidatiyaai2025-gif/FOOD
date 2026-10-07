@@ -167,6 +167,12 @@ return [
         'promotion_period' => 'الفترة',
         'promotion_active' => 'نشط',
         'promotion_inactive' => 'غير نشط',
+        'promotion_types' => [
+            'percentage' => 'خصم بالنسبة المئوية',
+            'fixed' => 'خصم بقيمة ثابتة',
+            'bundle' => 'عرض باقة',
+            'generic' => 'عرض ترويجي',
+        ],
         'no_existing_promotions' => 'لا توجد عروض عادية حالياً.',
         'statuses' => [
             'draft' => 'مسودة',

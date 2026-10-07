@@ -344,10 +344,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
       }
     }
 
-    if (!mounted || assignmentId == null) {
-      final context = _messengerKey.currentContext;
-      if (context != null) {
-        _messengerKey.currentState?.showSnackBar(
+    if (!mounted) return;
+    if (assignmentId == null) {
+      final messenger = _messengerKey.currentState;
+      if (messenger != null) {
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               context.tr('driver.notifications.order_unavailable'),
@@ -394,7 +395,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
         ? payloadMessage
         : '$identity\n$payloadMessage';
     final actionable =
-        !alert.open.accessRevoked && alert.open.assignmentId != null;
+        !alert.open.accessRevoked &&
+        (alert.open.assignmentId != null || alert.open.orderId != null);
 
     _messengerKey.currentState?.showSnackBar(
       SnackBar(

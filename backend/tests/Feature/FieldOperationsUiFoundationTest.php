@@ -16,6 +16,7 @@ use Tests\TestCase;
 class FieldOperationsUiFoundationTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_field_operations_primitives_extend_the_canonical_brand_component_layer(): void
     {
         $brand = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
@@ -46,6 +47,10 @@ class FieldOperationsUiFoundationTest extends TestCase
 
     public function test_super_admin_runtime_surfaces_render_lookup_map_and_compact_action_contracts(): void
     {
+        $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-order-lookup', $view);
+
         $this->seed(CoreReferenceSeeder::class);
 
         $admin = User::query()->create([
@@ -113,8 +118,7 @@ class FieldOperationsUiFoundationTest extends TestCase
             ->assertOk()
             ->assertSee('data-visit-customer', false)
             ->assertSee('data-store-lookup', false)
-            ->assertSee('data-route-lookup', false)
-            ->assertSee('data-order-lookup', false);
+            ->assertSee('data-route-lookup', false);
 
         $this->actingAs($admin)
             ->get('/admin/field-operations/territories')
@@ -132,6 +136,27 @@ class FieldOperationsUiFoundationTest extends TestCase
             ->assertOk()
             ->assertSee('data-territory-lookup', false)
             ->assertSee($territory->code);
+    }
+
+    public function test_routing_normal_flow_uses_structured_controls_and_fences_json_to_super_admin_advanced(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-routing-rules', $view);
+        $this->assertStringContainsString('name="rules[0][name]"', $view);
+        $this->assertStringContainsString('name="rules[0][condition_key]"', $view);
+        $this->assertStringContainsString('name="rules[0][action_key]"', $view);
+        $this->assertStringContainsString('data-routing-add-rule', $view);
+        $this->assertStringContainsString('data-advanced-routing-json', $view);
+        $this->assertStringContainsString('@if($isSuper)', $view);
+        $this->assertStringContainsString('name="input_keys[]"', $view);
+        $this->assertStringContainsString('name="input_values[]"', $view);
+        $this->assertStringContainsString('name="scope_keys[]"', $view);
+        $this->assertStringContainsString('name="scope_values[]"', $view);
+        $this->assertStringNotContainsString('<textarea name="input_json"', $view);
+        $this->assertStringNotContainsString('<textarea name="scope_json"', $view);
+        $this->assertStringNotContainsString('<textarea name="rules_json" rows="6" required>', $view);
     }
 
     public function test_field_operations_business_workflows_use_lookups_and_map_edit_controls(): void

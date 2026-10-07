@@ -729,16 +729,21 @@ final class FieldOperationsController extends Controller
 
         $data = $request->validate([
             'code' => ['required', 'string', 'max:100'],
-            'mode' => ['required', 'string', 'max:64'],
-            'rules_json' => ['required', 'json'],
+            'mode' => ['required', Rule::in(['MANUAL', 'AUTOMATIC', 'HYBRID'])],
+            'rules' => ['required_without:rules_json', 'array', 'min:1'],
+            'rules.*.name' => ['required', 'string', 'max:160'],
+            'rules.*.condition_key' => ['nullable', 'string', 'max:160'],
+            'rules.*.condition_value' => ['nullable', 'string', 'max:1000'],
+            'rules.*.action_key' => ['nullable', 'string', 'max:160'],
+            'rules.*.action_value' => ['nullable', 'string', 'max:1000'],
+            'rules.*.enabled' => ['nullable', Rule::in(['0', '1'])],
+            'rules_json' => [Rule::prohibitedIf(! $user->hasRole('SUPER_ADMIN')), 'nullable', 'json'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'effective_from' => ['nullable', 'date'],
             'effective_until' => ['nullable', 'date'],
         ]);
-        $rules = json_decode((string) $data['rules_json'], true, 512, JSON_THROW_ON_ERROR);
-        if (is_array($rules) === false) {
-            throw ValidationException::withMessages(['rules_json' => ['Rules JSON must be an array.']]);
-        }
+
+        $rules = $this->structuredRoutingRules($user, $data);
 
         $this->routing->createDraft($user, (string) $data['code'], (string) $data['mode'], $rules, $data['reason'] ?? null, $data['effective_from'] ?? null, $data['effective_until'] ?? null);
 
@@ -765,15 +770,24 @@ final class FieldOperationsController extends Controller
 
         if ($action === 'simulate') {
             $data = $request->validate([
-                'input_json' => ['required', 'json'],
-                'scope_json' => ['nullable', 'json'],
+                'input_keys' => ['required', 'array', 'min:1'],
+                'input_keys.*' => ['nullable', 'string', 'max:160'],
+                'input_values' => ['nullable', 'array'],
+                'input_values.*' => ['nullable', 'string', 'max:1000'],
+                'scope_keys' => ['nullable', 'array'],
+                'scope_keys.*' => ['nullable', 'string', 'max:160'],
+                'scope_values' => ['nullable', 'array'],
+                'scope_values.*' => ['nullable', 'string', 'max:1000'],
                 'at' => ['nullable', 'date'],
             ]);
-            $input = json_decode((string) $data['input_json'], true, 512, JSON_THROW_ON_ERROR);
-            $scope = isset($data['scope_json']) && trim((string) $data['scope_json']) !== ''
-                ? json_decode((string) $data['scope_json'], true, 512, JSON_THROW_ON_ERROR)
-                : [];
-            $result = $this->routing->simulate($routingPolicy, is_array($input) ? $input : [], is_array($scope) ? $scope : [], $data['at'] ?? null);
+            $input = $this->routingPairs($data['input_keys'] ?? [], $data['input_values'] ?? []);
+            if ($input === []) {
+                throw ValidationException::withMessages([
+                    'input_keys' => [__('field_operations.simulation_input_required')],
+                ]);
+            }
+            $scope = $this->routingPairs($data['scope_keys'] ?? [], $data['scope_values'] ?? []);
+            $result = $this->routing->simulate($routingPolicy, $input, $scope, $data['at'] ?? null);
 
             return back()->with('simulation_result', $result)->with('simulation_policy', $routingPolicy->id);
         }
@@ -835,6 +849,90 @@ final class FieldOperationsController extends Controller
             },
             'featureFlags' => $this->featureFlags->snapshot(),
         ]);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function structuredRoutingRules(User $user, array $data): array
+    {
+        $advanced = $user->hasRole('SUPER_ADMIN') ? trim((string) ($data['rules_json'] ?? '')) : '';
+        if ($advanced !== '') {
+            $decoded = json_decode($advanced, true, 512, JSON_THROW_ON_ERROR);
+            if (! is_array($decoded) || ! array_is_list($decoded)) {
+                throw ValidationException::withMessages([
+                    'rules_json' => [__('field_operations.structured_rule_required')],
+                ]);
+            }
+
+            return array_map(function (mixed $rule): array {
+                if (! is_array($rule) || trim((string) ($rule['name'] ?? '')) === '') {
+                    throw ValidationException::withMessages([
+                        'rules_json' => [__('field_operations.structured_rule_required')],
+                    ]);
+                }
+
+                return [
+                    'name' => trim((string) $rule['name']),
+                    'conditions' => is_array($rule['conditions'] ?? null) ? $rule['conditions'] : [],
+                    'actions' => is_array($rule['actions'] ?? null) ? $rule['actions'] : [],
+                    'enabled' => (bool) ($rule['enabled'] ?? true),
+                ];
+            }, $decoded);
+        }
+
+        return array_map(function (array $rule): array {
+            $conditionKey = trim((string) ($rule['condition_key'] ?? ''));
+            $actionKey = trim((string) ($rule['action_key'] ?? ''));
+
+            return [
+                'name' => trim((string) $rule['name']),
+                'conditions' => $conditionKey === '' ? [] : [
+                    $conditionKey => $this->routingScalar($rule['condition_value'] ?? null),
+                ],
+                'actions' => $actionKey === '' ? [] : [
+                    $actionKey => $this->routingScalar($rule['action_value'] ?? null),
+                ],
+                'enabled' => (string) ($rule['enabled'] ?? '1') !== '0',
+            ];
+        }, array_values($data['rules'] ?? []));
+    }
+
+    /** @param array<int, mixed> $keys @param array<int, mixed> $values */
+    private function routingPairs(array $keys, array $values): array
+    {
+        $pairs = [];
+        foreach (array_values($keys) as $index => $rawKey) {
+            $key = trim((string) $rawKey);
+            if ($key === '') {
+                continue;
+            }
+            $pairs[$key] = $this->routingScalar($values[$index] ?? null);
+        }
+
+        return $pairs;
+    }
+
+    private function routingScalar(mixed $raw): mixed
+    {
+        $value = trim((string) ($raw ?? ''));
+        $lower = strtolower($value);
+
+        if ($lower === 'true') {
+            return true;
+        }
+        if ($lower === 'false') {
+            return false;
+        }
+        if ($lower === 'null') {
+            return null;
+        }
+        if (preg_match('/^-?\\d+$/', $value) === 1) {
+            return (int) $value;
+        }
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return $value;
     }
 
     private function localizedText(?string $arabic, ?string $english): string

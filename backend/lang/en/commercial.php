@@ -167,6 +167,12 @@ return [
         'promotion_period' => 'Period',
         'promotion_active' => 'Active',
         'promotion_inactive' => 'Inactive',
+        'promotion_types' => [
+            'percentage' => 'Percentage discount',
+            'fixed' => 'Fixed discount',
+            'bundle' => 'Bundle offer',
+            'generic' => 'Promotion',
+        ],
         'no_existing_promotions' => 'No normal promotions currently exist.',
         'statuses' => [
             'draft' => 'Draft',

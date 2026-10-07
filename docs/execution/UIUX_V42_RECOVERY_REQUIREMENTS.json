@@ -346,21 +346,21 @@
       "id": "Q01",
       "summary": "Project-wide localization/raw-status audit",
       "owner_issue": 1041,
-      "evidence": "independent-audit",
+      "evidence": "scripts/uiux-v42-recovery-audit.py whole-tree static audit + docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md; runtime localization independently reviewed by #1042",
       "status": "OPEN"
     },
     {
       "id": "Q02",
       "summary": "100% requirement ownership/source-test evidence",
       "owner_issue": 1041,
-      "evidence": "coverage-report",
+      "evidence": "generated artifacts/uiux-v42-recovery-static-audit.json + docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md",
       "status": "OPEN"
     },
     {
       "id": "Q03",
       "summary": "Legacy route/screen inventory included",
       "owner_issue": 1041,
-      "evidence": "inventory",
+      "evidence": "whole-tree legacy route/screen inventory verification in scripts/uiux-v42-recovery-audit.py + docs/execution/UIUX_V42_RECOVERY_1041_STATIC_AUDIT.md",
       "status": "OPEN"
     },
     {

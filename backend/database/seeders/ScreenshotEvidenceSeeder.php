@@ -175,6 +175,22 @@ class ScreenshotEvidenceSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
+        DB::table('address_quality_reviews')->insert([
+            'public_id' => (string) Str::uuid(),
+            'subject_type' => 'platform_customer_address',
+            'subject_id' => $addressId,
+            'status' => 'unmapped',
+            'quality_class' => 'review_required',
+            'confidence' => 0.7200,
+            'territory_key' => null,
+            'resolution_source' => null,
+            'reason' => 'Deterministic Field Operations address-quality evidence.',
+            'resolved_by' => null,
+            'resolved_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
         $b2cCustomerId = DB::table('b2c_customers')
             ->where('user_id', $platformUser->id)
             ->where('store_id', $retailStoreId)

@@ -21,14 +21,48 @@
     </style>
 </head>
 <body>
-@php($isAr = app()->getLocale() === 'ar')
+@php
+    $isAr = app()->getLocale() === 'ar';
+    $channelCode = strtolower((string)($invoice['channel'] ?? ''));
+    $channelLabel = match($channelCode) {
+        'b2b', 'wholesale' => $isAr ? 'جملة' : 'Wholesale',
+        'b2c', 'retail' => $isAr ? 'تجزئة' : 'Retail',
+        default => $isAr ? 'قناة العميل' : 'Customer channel',
+    };
+    $paymentMethodCode = strtolower((string)($invoice['payment_method'] ?? ''));
+    $paymentMethodLabel = match($paymentMethodCode) {
+        'cash', 'cod', 'cash_on_delivery' => $isAr ? 'الدفع عند الاستلام' : 'Cash on delivery',
+        'card', 'credit_card', 'debit_card' => $isAr ? 'بطاقة' : 'Card',
+        'knet' => 'KNET',
+        'bank_transfer' => $isAr ? 'تحويل بنكي' : 'Bank transfer',
+        'account_credit', 'credit' => $isAr ? 'رصيد الحساب' : 'Account credit',
+        default => $paymentMethodCode === '' ? '—' : ($isAr ? 'طريقة دفع' : 'Payment method'),
+    };
+    $paymentStatusCode = strtolower((string)($invoice['payment_status'] ?? ''));
+    $paymentStatusLabel = match($paymentStatusCode) {
+        'paid', 'captured', 'completed' => $isAr ? 'مدفوع' : 'Paid',
+        'pending', 'processing' => $isAr ? 'قيد المعالجة' : 'Processing',
+        'unpaid', 'due' => $isAr ? 'مستحق' : 'Due',
+        'failed' => $isAr ? 'فشل الدفع' : 'Payment failed',
+        'refunded' => $isAr ? 'تم رد المبلغ' : 'Refunded',
+        default => $paymentStatusCode === '' ? '—' : ($isAr ? 'حالة الدفع' : 'Payment status'),
+    };
+    $invoiceStatusCode = strtolower((string)($invoice['status'] ?? ''));
+    $invoiceStatusLabel = match($invoiceStatusCode) {
+        'draft' => $isAr ? 'مسودة' : 'Draft',
+        'issued', 'open' => $isAr ? 'صادرة' : 'Issued',
+        'paid' => $isAr ? 'مدفوعة' : 'Paid',
+        'void', 'voided', 'cancelled', 'canceled' => $isAr ? 'ملغاة' : 'Cancelled',
+        default => $isAr ? 'حالة الفاتورة' : 'Invoice status',
+    };
+@endphp
 <div class="wrap">
     <div style="margin-bottom:12px"><a href="javascript:history.back()">← {{ $isAr?'رجوع':'Back' }}</a></div>
     <section class="invoice-card foodex-card">
         <div class="head">
             <div>
                 <h1 style="margin:0 0 8px">{{ $isAr ? 'فاتورة' : 'Invoice' }} {{ $invoice['invoice_number'] }}</h1>
-                <div class="muted">{{ $isAr ? 'طلب' : 'Order' }}: {{ $invoice['order_number'] }} · {{ $invoice['store_name'] }} · {{ strtoupper((string)$invoice['channel']) }}</div>
+                <div class="muted">{{ $isAr ? 'طلب' : 'Order' }}: {{ $invoice['order_number'] }} · {{ $invoice['store_name'] }} · {{ $channelLabel }}</div>
             </div>
             <div class="actions">
                 <button class="foodex-primary" type="button" onclick="window.print()">{{ $isAr?'طباعة':'Print' }}</button>
@@ -40,10 +74,10 @@
         <div class="grid">
             <div><strong>{{ $isAr ? 'العميل' : 'Customer' }}</strong><br>{{ $invoice['customer']['name'] ?: '—' }}</div>
             <div><strong>{{ $isAr ? 'تاريخ الإصدار' : 'Issued' }}</strong><br>{{ $invoice['issued_at'] }}</div>
-            <div><strong>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</strong><br>{{ $invoice['payment_method'] ?: '—' }}</div>
-            <div><strong>{{ $isAr ? 'حالة الدفع' : 'Payment status' }}</strong><br>{{ $invoice['payment_status'] ?: '—' }}</div>
+            <div><strong>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</strong><br>{{ $paymentMethodLabel }}</div>
+            <div><strong>{{ $isAr ? 'حالة الدفع' : 'Payment status' }}</strong><br>{{ $paymentStatusLabel }}</div>
             @if($invoice['price_tier_code'])<div><strong>{{ $isAr?'شريحة سعر الجملة':'Wholesale price tier' }}</strong><br>{{ $invoice['price_tier_code'] }}</div>@endif
-            <div><strong>{{ $isAr?'المراجعة':'Revision' }}</strong><br>{{ $invoice['revision'] }} · {{ $invoice['status'] }}</div>
+            <div><strong>{{ $isAr?'المراجعة':'Revision' }}</strong><br>{{ $invoice['revision'] }} · {{ $invoiceStatusLabel }}</div>
         </div>
 
         <div style="overflow:auto">

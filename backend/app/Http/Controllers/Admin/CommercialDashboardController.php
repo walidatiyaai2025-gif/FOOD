@@ -242,8 +242,26 @@ final class CommercialDashboardController extends Controller
                 ]);
         }
 
+        $existingPromotions = DB::table('promotions')
+            ->where('store_id', $storeId)
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(function (object $promotion): object {
+                $type = strtolower(trim((string) $promotion->type));
+                $typeKey = match ($type) {
+                    'percentage', 'percent' => 'percentage',
+                    'fixed', 'fixed_amount', 'amount' => 'fixed',
+                    'bundle', 'buy_x_get_y' => 'bundle',
+                    default => 'generic',
+                };
+                $promotion->localized_label = __('commercial.flash.promotion_types.'.$typeKey);
+
+                return $promotion;
+            });
+
         return $this->render($request, $user, $storeId, 'flash-offers', [
-            'existingPromotions' => DB::table('promotions')->where('store_id', $storeId)->orderByDesc('created_at')->limit(100)->get(),
+            'existingPromotions' => $existingPromotions,
             'flashOffers' => DB::table('flash_offers')->where('store_id', $storeId)->orderByDesc('id')->limit(100)->get(),
             ...$lookups,
             'editingOffer' => $editingOffer,
@@ -699,10 +717,10 @@ final class CommercialDashboardController extends Controller
                 continue;
             }
 
-            $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== null && $rule['customer_id'] !== ''
+            $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== ''
                 ? (int) $rule['customer_id']
                 : null;
-            $groupId = isset($rule['customer_group_id']) && $rule['customer_group_id'] !== null && $rule['customer_group_id'] !== ''
+            $groupId = isset($rule['customer_group_id']) && $rule['customer_group_id'] !== ''
                 ? (int) $rule['customer_group_id']
                 : null;
 
@@ -716,7 +734,7 @@ final class CommercialDashboardController extends Controller
                 $errors["rules_json.$index.customer_group_id"] = [__('commercial.validation.sales_rule_subject_exclusive')];
             }
 
-            $channel = isset($rule['channel']) && $rule['channel'] !== null
+            $channel = isset($rule['channel'])
                 ? trim((string) $rule['channel'])
                 : '';
             if ($channel !== '' && ! in_array($channel, ['customer', 'van', 'admin', 'api'], true)) {

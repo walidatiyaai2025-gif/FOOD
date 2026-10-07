@@ -4,6 +4,7 @@ abstract final class FoodexVanTokens {
   static const green = Color(0xFF158A3A);
   static const greenDark = Color(0xFF165D2D);
   static const greenSoft = Color(0xFFEAF7EF);
+  static const mint = greenSoft;
   static const surface = Color(0xFFFFFFFF);
   static const background = Color(0xFFF6F8F6);
   static const ink = Color(0xFF172033);

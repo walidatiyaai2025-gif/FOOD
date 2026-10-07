@@ -183,8 +183,7 @@ final class VanOrderController extends Controller
         $scopes = VanVisit::query()
             ->where('actor_user_id', $actor->getKey())
             ->get(['customer_type', 'customer_id'])
-            ->map(static fn (VanVisit $visit): string =>
-                $visit->customer_type.':'.$visit->customer_id)
+            ->map(static fn (VanVisit $visit): string => $visit->customer_type.':'.$visit->customer_id)
             ->unique()
             ->values();
 

@@ -32,6 +32,12 @@ class _VanCustomersPageState extends State<VanCustomersPage>
 
   String _text(String en, String ar) => _arabic ? ar : en;
 
+  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+        'b2b' || 'wholesale' => _text('Wholesale', 'جملة'),
+        'b2c' || 'retail' => _text('Retail', 'تجزئة'),
+        _ => _text('Customer', 'عميل'),
+      };
+
   @override
   void initState() {
     super.initState();
@@ -181,7 +187,7 @@ class _VanCustomersPageState extends State<VanCustomersPage>
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 subtitle: Text(
-                  customer.type.toUpperCase(),
+                  _customerTypeLabel(customer.type),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

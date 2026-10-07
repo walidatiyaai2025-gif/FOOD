@@ -127,8 +127,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
       stored = null;
     }
 
-    final resolvedPreferences =
-        preferences ?? const VanAuthPreferences();
+    final resolvedPreferences = preferences;
     final restoredSession =
         resolvedPreferences.biometricEnabled ? null : stored;
 

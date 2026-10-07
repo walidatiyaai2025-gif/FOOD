@@ -32,7 +32,8 @@ class SystemUpdateAuthorizationTest extends TestCase
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee('href="'.route('admin.system-update.index').'"', false);
+            ->assertSee('href="'.route('admin.administration.index').'"', false)
+            ->assertDontSee('href="'.route('admin.system-update.index').'"', false);
     }
 
     public function test_non_update_admin_cannot_open_system_update_center(): void

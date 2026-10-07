@@ -10,7 +10,35 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 @include('admin._brand-components')
 </head>
 <body>
-@php($ar = app()->getLocale()==='ar')
+@php
+$ar = app()->getLocale()==='ar';
+$submissionListText = static function ($value): string {
+    if (! is_array($value)) {
+        return '';
+    }
+
+    return collect($value)->map(static function ($item, $key): string {
+        if (is_string($item) || is_numeric($item)) {
+            return trim((string) $item);
+        }
+
+        if (is_array($item)) {
+            $name = trim((string) ($item['name'] ?? ''));
+            $reason = trim((string) ($item['reason'] ?? ''));
+            if ($name !== '' || $reason !== '') {
+                return trim($name.($reason !== '' ? ' — '.$reason : ''));
+            }
+
+            return collect($item)
+                ->filter(static fn ($value): bool => is_scalar($value))
+                ->map(static fn ($value, $itemKey): string => $itemKey.': '.$value)
+                ->implode(' · ');
+        }
+
+        return '';
+    })->filter()->implode("\n");
+};
+@endphp
 <div class="layout foodex-admin-layout" data-foodex-utility="mobile-settings">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),'navContext'=>'mobile_settings','user'=>auth()->user()])</aside>
 <main class="main foodex-admin-main">
@@ -171,45 +199,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <h3>{{ __('mobile_settings.delivery_log') }}</h3>
 @forelse($logs as $log)<div class="log">{{ __('mobile_settings.apps.'.$log->app) }} · {{ __('mobile_settings.ui.platforms.'.$log->platform) }} · {{ __('mobile_settings.environments.'.$log->environment) }} · <strong>{{ __('mobile_settings.delivery_status.'.$log->status) }}</strong>@if($log->error_code)<br><strong>{{ __('mobile_settings.delivery_issue') }}:</strong> {{ $log->error_message ?: __('mobile_settings.test_failed') }}@endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse {{-- localization-gate: allow Blade control directive around localized delivery issue --}}
 </section>
-@php
-$submissionListText = static function ($value): string {
-    if (! is_array($value)) {
-        return '';
-    }
 
-    return collect($value)->map(static function ($item, $key): string {
-        if (is_string($item) || is_numeric($item)) {
-            return trim((string) $item);
-        }
-
-        if (is_array($item)) {
-            $name = trim((string) ($item['name'] ?? ''));
-            $reason = trim((string) ($item['reason'] ?? ''));
-            if ($name !== '' || $reason !== '') {
-                return trim($name.($reason !== '' ? ' — '.$reason : ''));
-            }
-
-            return collect($item)
-                ->filter(static fn ($value): bool => is_scalar($value))
-                ->map(static fn ($value, $itemKey): string => $itemKey.': '.$value)
-                ->implode(' · ');
-        }
-
-        return '';
-    })->filter()->implode("\n");
-};
-$submissionMasterAssetStates = [
-    'repository-controlled',
-    'external-manual',
-    'blocked',
-];
-$submissionUploadAssetStates = [
-    'repository-controlled',
-    'external-manual-final-upload',
-    'external-manual-if-required',
-    'blocked',
-];
-@endphp
 <section class="card" style="grid-column:1/-1" data-store-submission-center>
 <h2>{{ __('mobile_settings.ui.publishing_title') }}</h2>
 <p class="muted">{{ __('mobile_settings.ui.publishing_info') }}</p>

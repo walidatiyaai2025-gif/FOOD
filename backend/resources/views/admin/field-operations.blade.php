@@ -408,8 +408,8 @@
             @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
                 <details style="margin-top:6px"><summary>{{ __('field_operations.details_history') }}</summary>
                     <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: __('field_operations.no_recorded_reason') }}</div>
-                    <div>{{ __('field_operations.source') }}: {{ IlluminateSupportStr::headline((string)($review->resolution_source ?: '—')) }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
-                    @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ IlluminateSupportStr::headline((string)$event->event_type) }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>@endforeach
+                    <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Str::headline((string)($review->resolution_source ?: '—')) }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
+                    @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ \Illuminate\Support\Str::headline((string)$event->event_type) }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>@endforeach {{-- localization-gate: allow — Blade iteration directive; rendered values are localized/technical. --}}
                 </details>
             </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $territoryLabels->get($review->territory_key) ?: __('field_operations.unknown_territory') }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
@@ -428,15 +428,40 @@
             @if($canManageTerritories)
             <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
-                    <div class="fieldops-form-grid"><label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.mode') }}<input name="mode" value="MANUAL" required></label><label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from"></label><label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label></div>
-                    <label>{{ __('field_operations.rules_json') }}<textarea name="rules_json" rows="6" required>[{"name":"Default","conditions":[],"actions":[],"enabled":true}]</textarea></label>
+                    <div class="fieldops-form-grid">
+                        <label>{{ __('field_operations.code') }}<input name="code" required></label>
+                        <label>{{ __('field_operations.mode') }}<select name="mode" required>@foreach(['MANUAL','AUTOMATIC','HYBRID'] as $mode)<option value="{{ $mode }}">{{ __('field_operations.routing_modes.'.strtolower($mode)) }}</option>@endforeach</select></label>
+                        <label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from"></label>
+                        <label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label>
+                    </div>
+                    <div data-routing-rules>
+                        <div class="fieldops-card" data-routing-rule style="margin-top:10px">
+                            <div class="fieldops-form-grid">
+                                <label>{{ __('field_operations.rule_name') }}<input name="rules[0][name]" value="{{ __('field_operations.default_rule') }}" required></label>
+                                <label>{{ __('field_operations.condition_key') }}<input name="rules[0][condition_key]"></label>
+                                <label>{{ __('field_operations.condition_value') }}<input name="rules[0][condition_value]"></label>
+                                <label>{{ __('field_operations.action_key') }}<input name="rules[0][action_key]"></label>
+                                <label>{{ __('field_operations.action_value') }}<input name="rules[0][action_value]"></label>
+                                <label>{{ __('field_operations.rule_enabled') }}<select name="rules[0][enabled]"><option value="1">{{ __('field_operations.enabled') }}</option><option value="0">{{ __('field_operations.disabled') }}</option></select></label>
+                            </div>
+                            <button type="button" data-routing-remove-rule>{{ __('field_operations.remove_rule') }}</button>
+                        </div>
+                    </div>
+                    <button type="button" data-routing-add-rule>{{ __('field_operations.add_rule') }}</button>
+                    @if($isSuper)
+                    <details data-advanced-routing-json style="margin-top:10px">
+                        <summary>{{ __('field_operations.advanced_routing_json') }}</summary>
+                        <p class="fieldops-muted">{{ __('field_operations.advanced_routing_json_help') }}</p>
+                        <label>{{ __('field_operations.rules_json') }}<textarea name="rules_json" rows="6"></textarea></label>
+                    </details>
+                    @endif
                     <label>{{ __('field_operations.reason') }}<input name="reason"></label><button class="foodex-primary">{{ __('field_operations.create_draft') }}</button>
                 </form>
             </details>
             @endif
             @if(session('simulation_result'))<section class="fieldops-card"><h2>{{ __('field_operations.simulation_result') }} · #{{ session('simulation_policy') }}</h2><pre style="white-space:pre-wrap">{{ json_encode(session('simulation_result'),JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></section>@endif
             @forelse($policies as $policy)
-            <article class="fieldops-card"><div class="fieldops-actions"><h3 style="margin:0">{{ $policy->code }} v{{ $policy->version }}</h3><span class="fieldops-status">{{ __('field_operations.statuses.'.$policy->status) }}</span><span>{{ $policy->mode }}</span><span>{{ $policy->rules->count() }} {{ __('field_operations.rules') }}</span></div>
+            <article class="fieldops-card"><div class="fieldops-actions"><h3 style="margin:0">{{ $policy->code }} v{{ $policy->version }}</h3><span class="fieldops-status">{{ __('field_operations.statuses.'.$policy->status) }}</span><span>{{ __('field_operations.routing_modes.'.strtolower((string)$policy->mode)) }}</span><span>{{ $policy->rules->count() }} {{ __('field_operations.rules') }}</span></div>
                 @if($canManageTerritories)<div class="fieldops-grid" style="margin-top:12px">
                     @if($policy->status === 'draft')
                         <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'publish']) }}">@csrf<button>{{ __('field_operations.publish') }}</button></form>
@@ -444,7 +469,16 @@
                     @if(in_array($policy->status, ['published', 'retired'], true))
                         <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'rollback']) }}">@csrf<input name="reason" placeholder="{{ __('field_operations.rollback_reason') }}"><button>{{ __('field_operations.rollback') }}</button></form>
                     @endif
-                    <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'simulate']) }}" class="fieldops-form">@csrf<label>{{ __('field_operations.input_json') }}<textarea name="input_json" rows="3">{}</textarea></label><label>{{ __('field_operations.scope_json') }}<textarea name="scope_json" rows="2">{}</textarea></label><button>{{ __('field_operations.simulate') }}</button></form>
+                    <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'simulate']) }}" class="fieldops-form">@csrf
+                        <strong>{{ __('field_operations.simulation_input') }}</strong>
+                        <div data-routing-pair-group="input"><div class="fieldops-form-grid" data-routing-pair><label>{{ __('field_operations.key') }}<input name="input_keys[]" required></label><label>{{ __('field_operations.value') }}<input name="input_values[]"></label><button type="button" data-routing-remove-pair>{{ __('field_operations.remove_pair') }}</button></div></div>
+                        <button type="button" data-routing-add-pair="input">{{ __('field_operations.add_input') }}</button>
+                        <strong>{{ __('field_operations.simulation_scope') }}</strong>
+                        <div data-routing-pair-group="scope"><div class="fieldops-form-grid" data-routing-pair><label>{{ __('field_operations.key') }}<input name="scope_keys[]"></label><label>{{ __('field_operations.value') }}<input name="scope_values[]"></label><button type="button" data-routing-remove-pair>{{ __('field_operations.remove_pair') }}</button></div></div>
+                        <button type="button" data-routing-add-pair="scope">{{ __('field_operations.add_scope') }}</button>
+                        <label>{{ __('field_operations.simulation_at') }}<input type="datetime-local" name="at"></label>
+                        <button>{{ __('field_operations.simulate') }}</button>
+                    </form>
                 </div>@endif
             </article>
             @empty<div class="foodex-ops-state">{{ __('field_operations.no_routing_policies') }}</div>@endforelse
@@ -480,6 +514,59 @@
     };
     type.addEventListener('change', sync);
     sync();
+})();
+</script>
+@endif
+@if($section === 'routing')
+<script>
+(() => {
+    const rules = document.querySelector('[data-routing-rules]');
+    const addRule = document.querySelector('[data-routing-add-rule]');
+    if (rules && addRule) {
+        let ruleIndex = rules.querySelectorAll('[data-routing-rule]').length;
+        addRule.addEventListener('click', () => {
+            const template = rules.querySelector('[data-routing-rule]');
+            if (!template) return;
+            const clone = template.cloneNode(true);
+            clone.querySelectorAll('[name]').forEach(control => {
+                control.name = control.name.replace(/rules\[\d+\]/, 'rules[' + ruleIndex + ']');
+                if (control.tagName === 'SELECT') control.value = '1';
+                else control.value = '';
+            });
+            rules.appendChild(clone);
+            ruleIndex++;
+        });
+        rules.addEventListener('click', event => {
+            const button = event.target.closest('[data-routing-remove-rule]');
+            if (!button) return;
+            const rows = rules.querySelectorAll('[data-routing-rule]');
+            if (rows.length === 1) return;
+            button.closest('[data-routing-rule]')?.remove();
+        });
+    }
+
+    document.querySelectorAll('[data-routing-add-pair]').forEach(button => {
+        button.addEventListener('click', () => {
+            const kind = button.dataset.routingAddPair;
+            const group = document.querySelector('[data-routing-pair-group="' + kind + '"]');
+            const template = group?.querySelector('[data-routing-pair]');
+            if (!group || !template) return;
+            const clone = template.cloneNode(true);
+            clone.querySelectorAll('input').forEach(input => { input.value = ''; input.required = false; });
+            group.appendChild(clone);
+        });
+    });
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-routing-remove-pair]');
+        if (!button) return;
+        const group = button.closest('[data-routing-pair-group]');
+        const rows = group?.querySelectorAll('[data-routing-pair]');
+        if (!group || !rows || rows.length === 1) {
+            button.closest('[data-routing-pair]')?.querySelectorAll('input').forEach(input => { input.value = ''; });
+            return;
+        }
+        button.closest('[data-routing-pair]')?.remove();
+    });
 })();
 </script>
 @endif

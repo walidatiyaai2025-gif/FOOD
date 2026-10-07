@@ -491,24 +491,16 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
         if (tab.error != null) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  '${context.tr('customer.orders.stale')} '
-                  '${_errorText(context, tab.error!)}',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  key: ValueKey('customer-orders-retry-$channel'),
-                  onPressed: tab.loadingMore
-                      ? null
-                      : () => unawaited(
-                            _loadChannel(channel, reset: false),
-                          ),
-                  child: Text(context.tr('customer.action.retry')),
-                ),
-              ],
+            child: Center(
+              child: OutlinedButton(
+                key: ValueKey('customer-orders-retry-$channel'),
+                onPressed: tab.loadingMore
+                    ? null
+                    : () => unawaited(
+                          _loadChannel(channel, reset: false),
+                        ),
+                child: Text(context.tr('customer.action.retry')),
+              ),
             ),
           );
         }
@@ -1513,13 +1505,17 @@ class _PaymentSummary extends StatelessWidget {
     final payment = details.payment;
     final receipts = details.collectionReceipts;
     final outstanding = details.summary.invoiceOutstandingAmount;
+    final paymentMethodLabel =
+        _paymentMethodLabel(context, details.paymentMethod);
+    final paymentProviderLabel = payment == null
+        ? null
+        : _paymentProviderLabel(context, payment.provider);
+    final paymentStatusLabel = payment == null
+        ? null
+        : _paymentStatusLabel(context, payment.status);
 
     if (payment == null && receipts.isEmpty && outstanding == null) {
-      return Text(
-        details.paymentMethod?.trim().isNotEmpty == true
-            ? details.paymentMethod!
-            : context.tr('customer.empty'),
-      );
+      return Text(paymentMethodLabel);
     }
 
     return Column(
@@ -1529,8 +1525,8 @@ class _PaymentSummary extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.payments_outlined),
-            title: Text(payment.provider),
-            subtitle: Text(payment.status),
+            title: Text(paymentProviderLabel!),
+            subtitle: Text(paymentStatusLabel!),
             trailing: Text(
               '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -1582,6 +1578,46 @@ class _PaymentSummary extends StatelessWidget {
       ],
     );
   }
+}
+
+String _paymentMethodLabel(BuildContext context, String? value) {
+  final normalized = value?.trim().toLowerCase() ?? '';
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'card' || 'credit_card' || 'debit_card' => ar ? 'بطاقة' : 'Card',
+    'knet' => 'KNET',
+    'wallet' => ar ? 'المحفظة' : 'Wallet',
+    _ => normalized.isEmpty
+        ? context.tr('customer.empty')
+        : (ar ? 'طريقة دفع' : 'Payment method'),
+  };
+}
+
+String _paymentProviderLabel(BuildContext context, String value) {
+  final normalized = value.trim().toLowerCase();
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'knet' => 'KNET',
+    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'stripe' => 'Stripe',
+    'apple_pay' => 'Apple Pay',
+    'google_pay' => 'Google Pay',
+    _ => ar ? 'مزود الدفع' : 'Payment provider',
+  };
+}
+
+String _paymentStatusLabel(BuildContext context, String value) {
+  final normalized = value.trim().toLowerCase();
+  final ar = Localizations.localeOf(context).languageCode == 'ar';
+  return switch (normalized) {
+    'paid' || 'captured' || 'completed' || 'succeeded' => ar ? 'مدفوع' : 'Paid',
+    'pending' || 'processing' => ar ? 'قيد المعالجة' : 'Processing',
+    'failed' => ar ? 'فشل الدفع' : 'Payment failed',
+    'refunded' => ar ? 'تم رد المبلغ' : 'Refunded',
+    'cancelled' || 'canceled' => ar ? 'ملغي' : 'Cancelled',
+    _ => ar ? 'حالة الدفع' : 'Payment status',
+  };
 }
 
 String _collectionStatusText(BuildContext context, String status) {

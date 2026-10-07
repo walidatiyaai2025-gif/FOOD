@@ -264,7 +264,7 @@ class _VanRemittancePageState extends State<VanRemittancePage>
             ),
           DropdownButtonFormField<VanWalletAccount>(
             key: const ValueKey('van-remittance-account'),
-            value: account,
+            initialValue: account,
             isExpanded: true,
             decoration: InputDecoration(
               labelText: _text('Custody account', 'محفظة العهدة'),
@@ -324,7 +324,7 @@ class _VanRemittancePageState extends State<VanRemittancePage>
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             key: const ValueKey('van-remittance-method'),
-            value: _method,
+            initialValue: _method,
             decoration: InputDecoration(
               labelText: _text('Method', 'طريقة التوريد'),
               border: const OutlineInputBorder(),

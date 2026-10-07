@@ -220,7 +220,6 @@ class StoreSubmissionReadinessTest extends TestCase
         return $admin;
     }
 
-
     public function test_reviewer_business_context_can_be_saved_without_json(): void
     {
         $admin = $this->admin('structured-reviewer-admin@example.test');
@@ -259,7 +258,6 @@ class StoreSubmissionReadinessTest extends TestCase
         $this->assertSame('b2c', data_get($configured->context, 'channel'));
         $this->assertSame($storeId, (int) data_get($configured->context, 'store_id'));
     }
-
 
     public function test_store_submission_checklists_can_be_saved_without_json(): void
     {

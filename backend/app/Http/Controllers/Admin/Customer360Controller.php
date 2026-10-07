@@ -149,7 +149,9 @@ final class Customer360Controller extends Controller
                     'number' => (string) $row->order_number,
                     'store' => (string) ($row->store_name ?? '-'),
                     'channel' => $channel,
+                    'channel_label' => $this->businessLabel($channel),
                     'status' => (string) $row->status,
+                    'status_label' => $this->businessLabel((string) $row->status),
                     'currency' => (string) $row->currency,
                     'total' => (float) $row->grand_total,
                     'created_at' => $row->created_at,
@@ -179,7 +181,9 @@ final class Customer360Controller extends Controller
                 'number' => (string) $row->invoice_number,
                 'store' => (string) ($row->store_name ?? '-'),
                 'channel' => strtolower((string) $row->channel),
+                'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),
                 'status' => (string) $row->status,
+                'status_label' => $this->businessLabel((string) $row->status),
                 'currency' => (string) $row->currency,
                 'total' => (float) $row->total,
                 'issued_at' => $row->issued_at,
@@ -742,6 +746,8 @@ final class Customer360Controller extends Controller
             'active' => (bool) $customer->is_active && $userIsActive,
             'origin' => $origin,
             'registration_source' => (string) $customer->registration_source,
+            'registration_source_label' => $this->businessLabel((string) $customer->registration_source),
+            'origin_channel_label' => $this->businessLabel((string) ($customer->origin_channel ?: 'unknown')),
             'registered_at' => $customer->registered_at,
             'orders_count' => (clone $orders)->count(),
             'orders_total' => (float) (clone $orders)->sum('orders.grand_total'),
@@ -882,12 +888,28 @@ final class Customer360Controller extends Controller
             'account_id' => $row->account_id === null ? null : (int) $row->account_id,
             'company_name' => $row->company_name,
             'status' => $row->status,
+            'status_label' => $this->businessLabel((string) $row->status),
             'credit_limit' => $row->credit_limit === null ? null : (float) $row->credit_limit,
             'tier_id' => $row->tier_id === null ? null : (int) $row->tier_id,
             'tier_code' => $row->tier_code,
             'tier_name' => $row->tier_name,
             'financial' => $financial,
         ];
+    }
+
+    private function businessLabel(string $value): string
+    {
+        $key = strtolower(trim($value));
+        if ($key === '') {
+            return '—';
+        }
+
+        $translationKey = 'customer_360.business_labels.'.$key;
+        $translated = __($translationKey);
+
+        return $translated === $translationKey
+            ? Str::headline($key)
+            : $translated;
     }
 
     /** @return list<array{id:int,name:string,code:string}> */

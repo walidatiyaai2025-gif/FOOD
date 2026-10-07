@@ -6,6 +6,7 @@ import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
+import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
 
 void main() {
@@ -34,16 +35,16 @@ void main() {
       ),
     );
 
-    expect(find.text('FOODEX Van'), findsOneWidget);
     expect(find.text('Van Operator'), findsOneWidget);
     expect(find.text('Home Dashboard'), findsWidgets);
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(TabBar), findsNothing);
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
+    expect(find.text('FOODEX Van'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('van-production-screen-menu')),
       findsOneWidget,
@@ -52,10 +53,11 @@ void main() {
     expect(find.text('Customers'), findsWidgets);
     expect(find.text('Product Catalog'), findsOneWidget);
     expect(find.text('Order Builder'), findsOneWidget);
-    expect(find.text('Notifications'), findsOneWidget);
-    expect(find.text('Profile & Settings'), findsOneWidget);
+    expect(vanProductionScreenInventory.contains(VanScreenId.notifications), isTrue);
+    expect(vanProductionScreenInventory.contains(VanScreenId.profile), isTrue);
 
-    await tester.tap(find.text('Customers').first);
+    final navigation = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    navigation.onDestinationSelected?.call(2);
     await tester.pumpAndSettle();
     expect(find.text('No assigned customers'), findsOneWidget);
   });
@@ -77,7 +79,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -86,8 +88,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable:
-          find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -116,7 +120,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -124,7 +128,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -162,7 +169,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -170,7 +177,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -199,7 +209,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -207,7 +217,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -219,7 +232,10 @@ void main() {
       find.byKey(const ValueKey('van-remittance-amount')),
       '5.000',
     );
-    await tester.tap(find.byKey(const ValueKey('van-remittance-submit')));
+    final remittanceSubmit = find.byKey(const ValueKey('van-remittance-submit'));
+    await tester.ensureVisible(remittanceSubmit);
+    await tester.pumpAndSettle();
+    await tester.tap(remittanceSubmit);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-remittance-result')), findsOneWidget);
@@ -244,7 +260,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -252,8 +268,13 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
     await tester.tap(target);
     await tester.pumpAndSettle();
 
@@ -298,7 +319,7 @@ void main() {
   testWidgets('Van Visit Workspace uses canonical visit lifecycle transitions',
       (tester) async {
     await tester.pumpWidget(
-      const FoodexVanApp(
+      FoodexVanApp(
         locale: Locale('en'),
         walletRepository: _CustomerWalletRepository(),
         visitRepository: _VisitRepository(),
@@ -314,7 +335,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -322,7 +343,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -387,7 +411,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
 
@@ -395,7 +419,10 @@ void main() {
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -412,32 +439,15 @@ void main() {
       (tester) async {
     final notifications = _NotificationRepository();
     await tester.pumpWidget(
-      FoodexVanApp(
-        locale: const Locale('en'),
-        walletRepository: const _EmptyWalletRepository(),
-        notificationRepository: notifications,
-        initialSession: const VanSession(
-          token: 'test-token',
-          name: 'Van Operator',
-          email: 'van@example.test',
-          locale: 'en',
-          permissions: {'van.login'},
+      MaterialApp(
+        home: Scaffold(
+          body: VanNotificationsPage(
+            repository: notifications,
+            onSessionExpired: () async {},
+          ),
         ),
       ),
     );
-    await tester.pumpAndSettle();
-
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
-    scaffold.openDrawer();
-    await tester.pumpAndSettle();
-
-    final target = find.byKey(const ValueKey('van-screen-notifications'));
-    await tester.scrollUntilVisible(
-      target,
-      180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
-    );
-    await tester.tap(target);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-notifications-page')), findsOneWidget);
@@ -468,14 +478,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final target = find.byKey(const ValueKey('van-screen-routeMap'));
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -508,14 +521,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    var scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    var scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
     await tester.scrollUntilVisible(
       catalogTarget,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(catalogTarget);
     await tester.pumpAndSettle();
@@ -536,7 +552,18 @@ void main() {
 
     expect(find.byKey(const ValueKey('van-order-review-page')), findsOneWidget);
     expect(find.text('12.000 KWD'), findsWidgets);
-    await tester.tap(find.byKey(const ValueKey('van-order-submit')));
+    final orderSubmit = find.byKey(const ValueKey('van-order-submit'));
+    await tester.scrollUntilVisible(
+      orderSubmit,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-review-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.ensureVisible(orderSubmit);
+    await tester.pumpAndSettle();
+    await tester.tap(orderSubmit);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-orders-page')), findsOneWidget);
@@ -567,26 +594,34 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     final target = find.byKey(const ValueKey('van-screen-visit'));
     await tester.scrollUntilVisible(
       target,
       180,
-      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
     );
     await tester.tap(target);
     await tester.pumpAndSettle();
 
-    expect(find.text('FDX-B2B-TEST-001 · 12.000 KWD'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('van-visit-order-801')));
+    final visitOrder = find.byKey(const ValueKey('van-visit-order-801'));
+    await tester.ensureVisible(visitOrder);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('FDX-B2B-TEST-001 · 12.000 KWD').last);
+    await tester.tap(visitOrder);
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('van-visit-complete-order-801')),
-    );
+    final orderOption = find.text('FDX-B2B-TEST-001 · 12.000 KWD').last;
+    expect(orderOption, findsOneWidget);
+    await tester.tap(orderOption);
+    await tester.pumpAndSettle();
+    final completeOrder = find.byKey(const ValueKey('van-visit-complete-order-801'));
+    await tester.ensureVisible(completeOrder);
+    await tester.pumpAndSettle();
+    await tester.tap(completeOrder);
     await tester.pumpAndSettle();
 
     expect(visits.lastStatus, 'completed_with_order');

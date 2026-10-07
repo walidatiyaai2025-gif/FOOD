@@ -110,7 +110,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Authorized Van'), findsOneWidget);
-    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Home Dashboard'), findsWidgets);
     expect(store.value?.token, 'token');
     expect(preferences.value?.rememberMe, isTrue);
     expect(preferences.value?.biometricEnabled, isTrue);
@@ -143,7 +143,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Remembered Van'), findsOneWidget);
-    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Home Dashboard'), findsWidgets);
   });
 
   testWidgets('failed biometric keeps password login available', (tester) async {

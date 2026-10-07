@@ -226,7 +226,9 @@ class DriverFirebasePushService implements DriverPushService {
   Future<String>? _installIdFuture;
   DriverPushOpen? _pendingOpen;
 
+  @override
   Stream<DriverPushOpen> get opens => _opens.stream;
+  @override
   Stream<DriverPushAlert> get alerts => _alerts.stream;
   bool get enabled => _messaging != null;
 
@@ -315,6 +317,7 @@ class DriverFirebasePushService implements DriverPushService {
     );
   }
 
+  @override
   DriverPushOpen? takePendingOpen() {
     final value = _pendingOpen;
     _pendingOpen = null;
@@ -324,6 +327,7 @@ class DriverFirebasePushService implements DriverPushService {
   Future<String> _installId() =>
       _installIdFuture ??= _loadOrCreateDriverInstallId();
 
+  @override
   Future<void> bindSession(String accessToken) async {
     _accessToken = accessToken;
     final messaging = _messaging;
@@ -351,6 +355,7 @@ class DriverFirebasePushService implements DriverPushService {
     });
   }
 
+  @override
   Future<void> revokeSession() async {
     final accessToken = _accessToken; final deviceId = _deviceId;
     _accessToken = null; _deviceId = null;

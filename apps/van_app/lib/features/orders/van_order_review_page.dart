@@ -171,7 +171,7 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
               const SizedBox(height: 10),
               if (options.warehouses.isNotEmpty)
                 DropdownButtonFormField<int>(
-                  value: widget.draft.warehouseId,
+                  initialValue: widget.draft.warehouseId,
                   decoration: InputDecoration(
                     labelText: _text('Warehouse', 'المخزن'),
                     border: const OutlineInputBorder(),
@@ -195,7 +195,7 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
               if (options.warehouses.isNotEmpty) const SizedBox(height: 10),
               if (options.addresses.isNotEmpty)
                 DropdownButtonFormField<int>(
-                  value: widget.draft.addressId,
+                  initialValue: widget.draft.addressId,
                   decoration: InputDecoration(
                     labelText: _text('Delivery address', 'عنوان التسليم'),
                     border: const OutlineInputBorder(),
@@ -221,7 +221,7 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
               if (options.addresses.isNotEmpty) const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('van-order-payment-method'),
-                value: widget.draft.paymentMethod,
+                initialValue: widget.draft.paymentMethod,
                 decoration: InputDecoration(
                   labelText: _text('Payment method', 'طريقة الدفع'),
                   border: const OutlineInputBorder(),

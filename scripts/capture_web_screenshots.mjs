@@ -293,7 +293,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
   for (const app of proof.apps) {
     const requiredFragments = [
       `/admin/app-preview?application=${app.app}`,
-      `/admin/app-versions?app=${app.app}`,
+      `/admin/settings/app-versions?app=${app.app}`,
       `/admin/settings/mobile?app=${app.app}&environment=production`,
     ];
     for (const fragment of requiredFragments) {
@@ -358,8 +358,12 @@ async function captureMobileSettingsParityEvidence(page, locale) {
     { waitUntil: 'networkidle' },
   );
   if (!response || !response.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 2400);
     throw new Error(
-      `Mobile Settings evidence page failed: HTTP ${response?.status() ?? 'no-response'}`,
+      `Mobile Settings evidence page failed: HTTP ${response?.status() ?? 'no-response'}`
+      + (failureBody ? ` · ${failureBody}` : ''),
     );
   }
 
@@ -486,8 +490,12 @@ async function captureLocale(browser, locale) {
     { waitUntil: 'networkidle' },
   );
   if (!customer360Response || !customer360Response.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 2400);
     throw new Error(
-      `Customer 360 evidence page failed: HTTP ${customer360Response?.status() ?? 'no-response'}`,
+      `Customer 360 evidence page failed: HTTP ${customer360Response?.status() ?? 'no-response'}`
+      + (failureBody ? ` · ${failureBody}` : ''),
     );
   }
   const customer360Link = page.locator(
@@ -508,8 +516,12 @@ async function captureLocale(browser, locale) {
     { waitUntil: 'networkidle' },
   );
   if (!customer360DetailResponse || !customer360DetailResponse.ok()) {
+    const failureBody = (await page.locator('body').innerText().catch(() => ''))
+      .replace(/\s+/g, ' ')
+      .slice(0, 2400);
     throw new Error(
-      `Customer 360 detail evidence page failed: HTTP ${customer360DetailResponse?.status() ?? 'no-response'}`,
+      `Customer 360 detail evidence page failed: HTTP ${customer360DetailResponse?.status() ?? 'no-response'}`
+      + (failureBody ? ` · ${failureBody}` : ''),
     );
   }
   await assertSharedAdminRuntimeShell(page, `customer-360/detail/${locale}`);

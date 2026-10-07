@@ -2827,6 +2827,16 @@ class _PurchaseReportRemoteStateState
         ),
       );
 
+  String _localizedOrderStatus(BuildContext context, Object? rawStatus) {
+    final status = rawStatus?.toString().trim().toLowerCase() ?? '';
+    if (status.isEmpty) return '—';
+    final key = 'customer.order.status.$status';
+    final translated = context.tr(key);
+    return translated == key
+        ? context.tr('customer.order.status.unknown')
+        : translated;
+  }
+
   Widget _orders(
     BuildContext context,
     List<Map<Object?, Object?>> rows,
@@ -2860,12 +2870,23 @@ class _PurchaseReportRemoteStateState
                         rowCurrency.trim().isEmpty
                     ? currency
                     : rowCurrency;
+                final statusLabel = _localizedOrderStatus(
+                  context,
+                  row['status'],
+                );
                 return ListTile(
                   key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
                   leading: const Icon(Icons.receipt_long_outlined),
-                  title: Text(orderNumber),
+                  title: Text(
+                    orderNumber,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
-                    '${row['created_at'] ?? ''} · ${row['status'] ?? ''}',
+                    '${row['created_at'] ?? ''} · $statusLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   trailing: Text(
                     _reportMoney(row['grand_total'], displayCurrency),
@@ -2887,14 +2908,18 @@ class _PurchaseReportRemoteStateState
                         },
                 );
               }),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   Text(
                     '${context.tr('b2b.purchase_reports.page')} $currentPage',
                   ),
                   Wrap(
                     spacing: 6,
+                    runSpacing: 6,
                     children: [
                       TextButton.icon(
                         key: const ValueKey('b2b-purchases-previous-page'),
@@ -5618,6 +5643,17 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         _ => ar ? 'مفتوحة' : 'Open',
       };
 
+  String _ledgerTypeLabel(String value, bool ar) =>
+      switch (value.trim().toLowerCase()) {
+        'invoice' => ar ? 'فاتورة' : 'Invoice',
+        'payment' => ar ? 'دفعة' : 'Payment',
+        'collection' => ar ? 'تحصيل' : 'Collection',
+        'credit' || 'credit_note' => ar ? 'إشعار دائن' : 'Credit note',
+        'debit' || 'debit_note' => ar ? 'إشعار مدين' : 'Debit note',
+        'adjustment' => ar ? 'تسوية' : 'Adjustment',
+        _ => ar ? 'حركة مالية' : 'Ledger entry',
+      };
+
   Future<void> _sharePdf(Map<Object?, Object?> data) async {
     if (_sharingPdf) return;
     final ar = Localizations.localeOf(context).languageCode == 'ar';
@@ -6184,7 +6220,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     : (ar ? 'دائن ' : 'Credit ') +
                         _money(creditAmount, entryCurrency);
                 return ListTile(
-                  title: Text(entry['type']?.toString() ?? '—'),
+                  title: Text(
+                    _ledgerTypeLabel(entry['type']?.toString() ?? '', ar),
+                  ),
                   subtitle: Text(
                     [
                       if ((entry['reference']?.toString() ?? '').isNotEmpty)
