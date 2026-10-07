@@ -455,7 +455,7 @@ void main() {
       find.byKey(const ValueKey('customer-orders-stale-b2b')),
       findsOneWidget,
     );
-    expect(find.textContaining('last confirmed data'), findsOneWidget);
+    expect(find.textContaining('last confirmed orders'), findsOneWidget);
     expect(find.textContaining('Last confirmed update'), findsOneWidget);
     expect(
       api.calls.where((call) => call == 'b2b:1').length,
