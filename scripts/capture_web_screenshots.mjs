@@ -86,6 +86,43 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
   }
 }
 
+async function captureMixedTrackingEvidence(page, locale) {
+  const response = await page.goto(`${baseUrl}/admin/driver-live-tracking`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok()) {
+    throw new Error(`Live Tracking evidence page failed: HTTP ${response?.status() ?? 'no-response'}`);
+  }
+
+  await page.waitForFunction(() => {
+    const root = document.querySelector('[data-driver-live-map]');
+    const rows = root?.foodexDriverLiveMap?.rows?.() ?? [];
+    const kinds = new Set(rows.map((row) => row.actor_type || (row.actor_id != null ? 'van' : 'driver')));
+    const statuses = new Set(rows.map((row) => row.status));
+    return kinds.has('driver') && kinds.has('van') && statuses.has('stale') && statuses.has('online');
+  }, null, { timeout: 15000 });
+
+  const proof = await page.evaluate(() => {
+    const root = document.querySelector('[data-driver-live-map]');
+    const rows = root?.foodexDriverLiveMap?.rows?.() ?? [];
+    return rows.map((row) => ({
+      kind: row.actor_type || (row.actor_id != null ? 'van' : 'driver'),
+      status: row.status,
+      name: row.entity_name || row.driver_name || '',
+    }));
+  });
+
+  const kinds = new Set(proof.map((row) => row.kind));
+  const statuses = new Set(proof.map((row) => row.status));
+  if (!kinds.has('driver') || !kinds.has('van') || !statuses.has('stale') || !statuses.has('online')) {
+    throw new Error(`Mixed Live Tracking runtime evidence incomplete: ${JSON.stringify(proof)}`);
+  }
+
+  await assertNoPageOverflow(page, `live-tracking/runtime/${locale}`);
+  await snap(
+    page,
+    `02_Web/B2B_SuperAdmin/11_live_tracking_mixed_runtime__populated__${locale}.png`,
+  );
+}
+
 async function captureLocale(browser, locale) {
   const context = await browser.newContext({
     locale: locale === 'ar' ? 'ar-KW' : 'en-US',
@@ -100,6 +137,10 @@ async function captureLocale(browser, locale) {
 
   await page.goto(`${baseUrl}/admin/b2c/login?locale=${locale}`, { waitUntil: 'networkidle' });
   await snap(page, `02_Web/B2C_Admin/01_تسجيل_الدخول_B2C__default__${locale}.png`);
+
+  await login(page, 'b2b', locale, email);
+  await captureMixedTrackingEvidence(page, locale);
+  await context.clearCookies();
 
   await login(page, 'b2c', locale, email);
 
