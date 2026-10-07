@@ -76,8 +76,16 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <div><label>{{ __('mobile_settings.release_ar') }}</label><textarea name="release_notes_ar" placeholder="ملاحظات الإصدار بالعربية">{{ old('release_notes_ar', $selectedSetting?->release_notes_ar) }}</textarea></div>
 <div><label>{{ __('mobile_settings.release_en') }}</label><textarea name="release_notes_en" placeholder="Release notes in English">{{ old('release_notes_en', $selectedSetting?->release_notes_en) }}</textarea></div>
 </div>
-<label>{{ __('mobile_settings.deep_links') }}</label><textarea name="deep_link_json" placeholder="{&quot;scheme&quot;:&quot;foodex&quot;,&quot;host&quot;:&quot;app&quot;}">{{ old('deep_link_json', $selectedSetting?->deep_link_config ? json_encode($selectedSetting->deep_link_config, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : '') }}</textarea>
-<label>{{ __('mobile_settings.readiness') }}</label><textarea name="store_readiness_json" placeholder="{&quot;android&quot;:true,&quot;ios&quot;:true}">{{ old('store_readiness_json', $selectedSetting?->store_readiness ? json_encode($selectedSetting->store_readiness, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : '') }}</textarea>
+<label>{{ __('mobile_settings.deep_links') }}</label>
+<div class="row">
+<div><label>{{ __('mobile_settings.deep_link_scheme') }}</label><input name="deep_link_scheme" value="{{ old('deep_link_scheme', data_get($selectedSetting?->deep_link_config, 'scheme')) }}" placeholder="foodex"></div>
+<div><label>{{ __('mobile_settings.deep_link_host') }}</label><input name="deep_link_host" value="{{ old('deep_link_host', data_get($selectedSetting?->deep_link_config, 'host')) }}" placeholder="app"></div>
+</div>
+<label>{{ __('mobile_settings.readiness') }}</label>
+<div class="row">
+<div><input type="hidden" name="readiness_android" value="0"><label class="check"><input type="checkbox" name="readiness_android" value="1" @checked((bool) old('readiness_android', data_get($selectedSetting?->store_readiness, 'android', false)))>{{ __('mobile_settings.readiness_android') }}</label></div>
+<div><input type="hidden" name="readiness_ios" value="0"><label class="check"><input type="checkbox" name="readiness_ios" value="1" @checked((bool) old('readiness_ios', data_get($selectedSetting?->store_readiness, 'ios', false)))>{{ __('mobile_settings.readiness_ios') }}</label></div>
+</div>
 <button class="button">{{ __('mobile_settings.save') }}</button>
 </form>
 </section>
