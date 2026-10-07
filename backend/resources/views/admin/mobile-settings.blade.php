@@ -85,6 +85,7 @@ body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-templat
 <div class="row">
 <div><input type="hidden" name="readiness_android" value="0"><label class="check"><input type="checkbox" name="readiness_android" value="1" @checked((bool) old('readiness_android', data_get($selectedSetting?->store_readiness, 'android', false)))>{{ __('mobile_settings.readiness_android') }}</label></div>
 <div><input type="hidden" name="readiness_ios" value="0"><label class="check"><input type="checkbox" name="readiness_ios" value="1" @checked((bool) old('readiness_ios', data_get($selectedSetting?->store_readiness, 'ios', false)))>{{ __('mobile_settings.readiness_ios') }}</label></div>
+<div><input type="hidden" name="readiness_privacy" value="0"><label class="check"><input type="checkbox" name="readiness_privacy" value="1" @checked((bool) old('readiness_privacy', data_get($selectedSetting?->store_readiness, 'privacy', false)))>{{ __('mobile_settings.readiness_privacy') }}</label></div>
 </div>
 <button class="button">{{ __('mobile_settings.save') }}</button>
 </form>
