@@ -86,6 +86,83 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
   }
 }
 
+
+
+async function captureAdministrationRuntimeEvidence(page, locale) {
+  const response = await page.goto(`${baseUrl}/admin/administration`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok()) {
+    throw new Error(`Administration runtime evidence page failed: HTTP ${response?.status() ?? 'no-response'}`);
+  }
+
+  const proof = await page.evaluate(() => {
+    const groups = [...document.querySelectorAll('[data-foodex-nav] [data-nav-group]')]
+      .map((group) => group.getAttribute('data-nav-group'))
+      .filter(Boolean);
+    const administration = document.querySelector('[data-nav-group="administration"]');
+    const adminLinks = administration
+      ? [...administration.querySelectorAll('.foodex-nav-link')].map((link) => ({
+          href: link.getAttribute('href') || '',
+          label: (link.textContent || '').replace(/\s+/g, ' ').trim(),
+        }))
+      : [];
+    const apps = [...document.querySelectorAll('[data-admin-app]')]
+      .map((card) => ({
+        app: card.getAttribute('data-admin-app'),
+        actions: [...card.querySelectorAll('a.action')].map((action) => action.getAttribute('href') || ''),
+      }));
+
+    return { groups, adminLinks, apps, dir: document.documentElement.dir };
+  });
+
+  const expectedGroups = [
+    'overview',
+    'stores',
+    'catalog',
+    'accounts',
+    'operations',
+    'field_operations',
+    'marketing',
+    'advertising',
+    'analytics',
+    'applications',
+    'administration',
+  ];
+  if (JSON.stringify(proof.groups) !== JSON.stringify(expectedGroups)) {
+    throw new Error(`Sidebar business-group order mismatch: ${JSON.stringify(proof.groups)}`);
+  }
+  if (proof.adminLinks.length !== 1 || !proof.adminLinks[0].href.endsWith('/admin/administration')) {
+    throw new Error(`Administration must expose one Admin Hub entry: ${JSON.stringify(proof.adminLinks)}`);
+  }
+
+  const appNames = proof.apps.map((item) => item.app);
+  if (JSON.stringify(appNames) !== JSON.stringify(['customer', 'driver', 'van'])) {
+    throw new Error(`Admin Hub app parity mismatch: ${JSON.stringify(appNames)}`);
+  }
+  for (const app of proof.apps) {
+    const requiredFragments = [
+      `/admin/app-preview?application=${app.app}`,
+      `/admin/app-versions?app=${app.app}`,
+      `/admin/settings/mobile?app=${app.app}&environment=production`,
+    ];
+    for (const fragment of requiredFragments) {
+      if (!app.actions.some((href) => href.includes(fragment))) {
+        throw new Error(`Missing ${app.app} Admin Hub action ${fragment}: ${JSON.stringify(app.actions)}`);
+      }
+    }
+  }
+
+  const expectedDir = locale === 'ar' ? 'rtl' : 'ltr';
+  if (proof.dir !== expectedDir) {
+    throw new Error(`Administration locale direction mismatch for ${locale}: ${proof.dir}`);
+  }
+
+  await assertNoPageOverflow(page, `administration/runtime/${locale}`);
+  await snap(
+    page,
+    `02_Web/B2C_Admin/16_administration_runtime_contract__populated__${locale}.png`,
+  );
+}
+
 async function captureMixedTrackingEvidence(page, locale) {
   const response = await page.goto(`${baseUrl}/admin/driver-live-tracking`, { waitUntil: 'networkidle' });
   if (!response || !response.ok()) {
@@ -149,6 +226,8 @@ async function captureLocale(browser, locale) {
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for ${route}`);
     await snap(page, `02_Web/B2C_Admin/${name}__populated__${locale}.png`);
   }
+
+  await captureAdministrationRuntimeEvidence(page, locale);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
