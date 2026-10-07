@@ -8,7 +8,7 @@ Status: terminal UIUX-V42 real release for Issue #1021. This release is built fr
 - Customer: `1.0.59+59`
 - Driver: `1.0.59+59`
 - Van: `1.0.59+59`
-- Production API: `https://vanfoodex.50sols.com`
+- Production API: `https://foodex.50sols.com`
 
 ## UIUX-V42 convergence
 
