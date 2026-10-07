@@ -10,7 +10,7 @@ class _FakeActiveRepo
   _FakeActiveRepo(this.current, {this.offline = false});
 
   DriverAssignment current;
-  final bool offline;
+  bool offline;
   String? transitionedStatus;
   String? transitionedNote;
   int transitionCount = 0;
@@ -163,6 +163,37 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.listCount, 2);
+  });
+
+  testWidgets(
+      'foreground polling keeps confirmed deliveries visible and marks offline data stale',
+      (tester) async {
+    final repo = _FakeActiveRepo(
+      const DriverAssignment(
+        id: 902,
+        channel: DriverChannel.b2c,
+        reference: 'POLL-902',
+        status: 'accepted',
+        availableStatuses: ['picked_up', 'failed'],
+      ),
+    );
+
+    await tester.pumpWidget(_host(repo));
+    await tester.pumpAndSettle();
+    expect(repo.listCount, 1);
+    expect(find.text('POLL-902'), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-stale')), findsNothing);
+
+    repo.offline = true;
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pumpAndSettle();
+
+    expect(repo.listCount, 2);
+    expect(find.text('POLL-902'), findsOneWidget);
+    expect(find.byKey(const Key('driver-active-stale')), findsOneWidget);
+    expect(find.textContaining('last confirmed data'), findsOneWidget);
+    expect(find.textContaining('Last confirmed update'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('assigned action is exposed only when server allows accepted',
