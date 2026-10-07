@@ -416,6 +416,54 @@ void main() {
     expect(noSettlement.fullySettled, isNull);
   });
 
+  testWidgets(
+      'orders resume refresh keeps stale data visible with truthful offline freshness',
+      (tester) async {
+    var offline = false;
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async {
+        if (offline && channel == 'b2b') {
+          throw const CustomerOrdersException('network_unavailable');
+        }
+        return _page(
+          channel: channel,
+          orderId: channel == 'b2b' ? 701 : 702,
+        );
+      },
+    );
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('WH-701'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-orders-stale-b2b')),
+      findsNothing,
+    );
+
+    offline = true;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('WH-701'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-orders-stale-b2b')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('last confirmed data'), findsOneWidget);
+    expect(find.textContaining('Last confirmed update'), findsOneWidget);
+    expect(
+      api.calls.where((call) => call == 'b2b:1').length,
+      greaterThanOrEqualTo(2),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',
       (tester) async {
     final api = _FakeOrdersApi(
