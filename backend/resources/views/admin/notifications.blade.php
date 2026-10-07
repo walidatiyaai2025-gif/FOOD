@@ -41,17 +41,17 @@
         <h2>{{ __('notifications.create') }}</h2>
         <form method="post" action="{{ route('admin.notifications.store') }}" enctype="multipart/form-data">@csrf
             <div class="grid">
-                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" placeholder="عنوان الإشعار بالعربية" required></div>
-                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" placeholder="Notification title in English" required></div>
-                <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="نص الإشعار بالعربية"></textarea></div>
-                <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="Notification body in English"></textarea></div>
-                <div class="full"><label>{{ app()->getLocale()==='ar'?'صورة الإشعار':'Notification image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"><small>{{ app()->getLocale()==='ar'?'اختياري — PNG/JPG/WebP حتى 6MB.':'Optional — PNG/JPG/WebP up to 6MB.' }}</small></div>
-                <div><label>{{ __('notifications.type') }}</label><input name="type" value="general" placeholder="{{ app()->getLocale()==='ar'?'مثال: عام':'e.g. general' }}" required></div>
+                <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" placeholder="{{ __('notifications.title_ar_placeholder') }}" required></div>
+                <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" placeholder="{{ __('notifications.title_en_placeholder') }}" required></div>
+                <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" required dir="rtl" placeholder="{{ __('notifications.body_ar_placeholder') }}"></textarea></div>
+                <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" required dir="ltr" placeholder="{{ __('notifications.body_en_placeholder') }}"></textarea></div>
+                <div class="full"><label>{{ __('notifications.notification_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp"><small>{{ __('notifications.notification_image_hint') }}</small></div>
+                <div><label>{{ __('notifications.type') }}</label><input name="type" value="general" placeholder="{{ __('notifications.type_placeholder') }}" required></div>
                 <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','van','user'] as $value)<option value="{{ $value }}">{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver','van'] as $value)<option value="{{ $value }}">{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.business_channel') }}</label><select name="target_channel">@foreach(['all','b2c','b2b'] as $value)<option value="{{ $value }}">{{ __('notifications.channel_options.'.$value) }}</option>@endforeach</select></div>
                 <div><label>{{ __('notifications.delivery_channel') }}</label><select name="channel">@foreach(['in_app','push','both'] as $value)<option value="{{ $value }}">{{ __('notifications.delivery_options.'.$value) }}</option>@endforeach</select></div>
-                <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" placeholder="{{ app()->getLocale()==='ar'?'رقم المستخدم - اختياري':'User ID - optional' }}"></div>
+                <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)old('user_id')===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
                 <div class="full"><button class="primary" type="submit">{{ __('notifications.save_draft') }}</button></div>
             </div>
         </form>
@@ -66,7 +66,7 @@
     <div class="cards">
     @forelse($notifications as $notification)
         <article class="card">
-            <div class="row"><strong>#{{ $notification->id }}</strong><span class="badge">{{ __('notifications.status_options.'.$notification->status) }}</span><span class="badge">{{ __('notifications.audience_options.'.$notification->audience) }}</span><span class="badge">{{ __('notifications.app_options.'.$notification->app) }} / {{ __('notifications.channel_options.'.$notification->target_channel) }}</span><span class="badge">{{ __('notifications.delivery_options.'.$notification->channel) }}</span></div>
+            <div class="row"><strong>{{ __('notifications.notification_reference', ['number' => $notifications->firstItem() + $loop->index]) }}</strong><span class="badge">{{ __('notifications.status_options.'.$notification->status) }}</span><span class="badge">{{ __('notifications.audience_options.'.$notification->audience) }}</span><span class="badge">{{ __('notifications.app_options.'.$notification->app) }} / {{ __('notifications.channel_options.'.$notification->target_channel) }}</span><span class="badge">{{ __('notifications.delivery_options.'.$notification->channel) }}</span></div>
             <div class="preview">
                 <div dir="rtl"><small>{{ __('notifications.preview_ar') }}</small><strong>{{ $notification->title_ar }}</strong><p>{{ $notification->body_ar }}</p></div>
                 <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $notification->title_en }}</strong><p>{{ $notification->body_en }}</p></div>
@@ -76,15 +76,15 @@
                 <div class="grid">
                     <div><label>{{ __('notifications.title_ar') }}</label><input name="title_ar" value="{{ $notification->title_ar }}" required></div>
                     <div><label>{{ __('notifications.title_en') }}</label><input name="title_en" value="{{ $notification->title_en }}" required></div>
-                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" dir="rtl" required placeholder="نص الإشعار بالعربية">{{ $notification->body_ar }}</textarea></div>
-                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" dir="ltr" required placeholder="Notification body in English">{{ $notification->body_en }}</textarea></div>
-                    <div class="full"><label>{{ app()->getLocale()==='ar'?'صورة الإشعار':'Notification image' }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($notification->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($notification->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif</div>
+                    <div><label>{{ __('notifications.body_ar') }}</label><textarea name="body_ar" dir="rtl" required placeholder="{{ __('notifications.body_ar_placeholder') }}">{{ $notification->body_ar }}</textarea></div>
+                    <div><label>{{ __('notifications.body_en') }}</label><textarea name="body_en" dir="ltr" required placeholder="{{ __('notifications.body_en_placeholder') }}">{{ $notification->body_en }}</textarea></div>
+                    <div class="full"><label>{{ __('notifications.notification_image') }}</label><input type="file" name="image" accept="image/png,image/jpeg,image/webp">@if($notification->image_path)<div style="margin-top:8px"><img src="{{ url('/'.ltrim($notification->image_path,'/')) }}" alt="" style="max-height:120px;border-radius:12px"></div>@endif</div>
                     <div><label>{{ __('notifications.type') }}</label><input name="type" value="{{ $notification->type }}" required></div>
                     <div><label>{{ __('notifications.audience') }}</label><select name="audience">@foreach(['all','customer','driver','van','user'] as $value)<option value="{{ $value }}" @selected($notification->audience===$value)>{{ __('notifications.audience_options.'.$value) }}</option>@endforeach</select></div>
                     <div><label>{{ __('notifications.app') }}</label><select name="app">@foreach(['all','customer','driver','van'] as $value)<option value="{{ $value }}" @selected($notification->app===$value)>{{ __('notifications.app_options.'.$value) }}</option>@endforeach</select></div>
                     <div><label>{{ __('notifications.business_channel') }}</label><select name="target_channel">@foreach(['all','b2c','b2b'] as $value)<option value="{{ $value }}" @selected($notification->target_channel===$value)>{{ __('notifications.channel_options.'.$value) }}</option>@endforeach</select></div>
                     <div><label>{{ __('notifications.delivery_channel') }}</label><select name="channel">@foreach(['in_app','push','both'] as $value)<option value="{{ $value }}" @selected($notification->channel===$value)>{{ __('notifications.delivery_options.'.$value) }}</option>@endforeach</select></div>
-                    <div><label>{{ __('notifications.user_id') }}</label><input name="user_id" type="number" min="1" value="{{ $notification->user_id }}"></div>
+                    <div><label>{{ __('notifications.user_id') }}</label><select name="user_id"><option value="">{{ __('notifications.choose_user') }}</option>@foreach($userTargets as $targetUser)<option value="{{ $targetUser->id }}" @selected((string)$notification->user_id===(string)$targetUser->id)>{{ $targetUser->name }} · {{ $targetUser->email }}</option>@endforeach</select></div>
                 </div>
                 <div class="actions"><button class="primary" type="submit">{{ __('notifications.save') }}</button></div>
             </form>
