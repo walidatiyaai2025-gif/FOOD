@@ -188,6 +188,12 @@ final class FieldOperationsController extends Controller
         $territoryNames = ServiceTerritory::query()
             ->whereIn('code', $van->assignments->pluck('territory_key')->filter())
             ->get(['code', 'name_en', 'name_ar'])
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            })
             ->keyBy('code');
 
         return $this->render($request, 'van-detail', compact(
@@ -248,7 +254,16 @@ final class FieldOperationsController extends Controller
         $drivers = DB::table('drivers')->leftJoin('users', 'users.id', '=', 'drivers.user_id')
             ->where('drivers.is_active', true)->orderBy('users.name')
             ->get(['drivers.id', 'drivers.user_id', 'users.name']);
-        $territories = ServiceTerritory::query()->where('status', 'active')->orderBy('name_en')->get(['id', 'code', 'name_en', 'name_ar']);
+        $territories = ServiceTerritory::query()
+            ->where('status', 'active')
+            ->orderBy('name_en')
+            ->get(['id', 'code', 'name_en', 'name_ar'])
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            });
         $representatives = DB::table('users')
             ->where('is_active', true)
             ->orderBy('name')
@@ -342,11 +357,27 @@ final class FieldOperationsController extends Controller
         $visits = VanVisit::query()->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
+            $reason = $visit->noOrderReason;
+            if ($reason !== null) {
+                $reason->setAttribute(
+                    'localized_label',
+                    $this->localizedText($reason->label_ar, $reason->label_en),
+                );
+            }
 
             return $visit;
         }));
         $assignments = $this->registry->effectiveAssignments();
-        $reasons = VanNoOrderReason::query()->where('is_active', true)->orderBy('sort_order')->get();
+        $reasons = VanNoOrderReason::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->each(function (VanNoOrderReason $reason): void {
+                $reason->setAttribute(
+                    'localized_label',
+                    $this->localizedText($reason->label_ar, $reason->label_en),
+                );
+            });
 
         $visitCustomers = DB::table('b2b_customers')
             ->orderBy('name')
@@ -499,8 +530,35 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['territories.manage', 'field_ops.manage']);
 
-        $nodes = GeographyNode::query()->with('parent')->orderBy('country_code')->orderBy('type')->orderBy('name_en')->get();
-        $territories = ServiceTerritory::query()->with(['country', 'geometries'])->orderByDesc('priority')->orderBy('name_en')->get();
+        $nodes = GeographyNode::query()
+            ->with('parent')
+            ->orderBy('country_code')
+            ->orderBy('type')
+            ->orderBy('name_en')
+            ->get()
+            ->each(function (GeographyNode $node): void {
+                $node->setAttribute(
+                    'localized_name',
+                    $this->localizedText($node->name_ar, $node->name_en),
+                );
+                if ($node->parent !== null) {
+                    $node->parent->setAttribute(
+                        'localized_name',
+                        $this->localizedText($node->parent->name_ar, $node->parent->name_en),
+                    );
+                }
+            });
+        $territories = ServiceTerritory::query()
+            ->with(['country', 'geometries'])
+            ->orderByDesc('priority')
+            ->orderBy('name_en')
+            ->get()
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            });
 
         return $this->render($request, 'territories', compact('nodes', 'territories'));
     }
@@ -586,7 +644,13 @@ final class FieldOperationsController extends Controller
         $territories = ServiceTerritory::query()
             ->where('status', 'active')
             ->orderBy('name_en')
-            ->get(['code', 'name_en', 'name_ar']);
+            ->get(['code', 'name_en', 'name_ar'])
+            ->each(function (ServiceTerritory $territory): void {
+                $territory->setAttribute(
+                    'localized_name',
+                    $this->localizedText($territory->name_ar, $territory->name_en),
+                );
+            });
 
         return $this->render($request, 'address-quality', compact('reviews', 'filters', 'territories'));
     }
@@ -734,6 +798,14 @@ final class FieldOperationsController extends Controller
             },
             'featureFlags' => $this->featureFlags->snapshot(),
         ]);
+    }
+
+    private function localizedText(?string $arabic, ?string $english): string
+    {
+        $primary = app()->getLocale() === 'ar' ? $arabic : $english;
+        $fallback = app()->getLocale() === 'ar' ? $english : $arabic;
+
+        return trim((string) ($primary ?: $fallback ?: ''));
     }
 
     private function actor(Request $request): User
