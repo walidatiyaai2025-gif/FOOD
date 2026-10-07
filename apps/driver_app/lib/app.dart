@@ -294,11 +294,13 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     if (widget.previewContext != null) return;
     final service = widget.pushService;
     if (service == null) return;
-    _pushOpenSubscription = service.opens.listen(_openFromPush);
+    _pushOpenSubscription = service.opens.listen(
+      (open) => unawaited(_openFromPush(open)),
+    );
     _pushAlertSubscription = service.alerts.listen(_showPushAlert);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final pending = service.takePendingOpen();
-      if (pending != null) _openFromPush(pending);
+      if (pending != null) unawaited(_openFromPush(pending));
     });
     _bindPushSession();
   }
@@ -312,10 +314,48 @@ class _FoodexDriverAppState extends State<FoodexDriverApp> with WidgetsBindingOb
     }
   }
 
-  void _openFromPush(DriverPushOpen open) {
+  Future<void> _openFromPush(DriverPushOpen open) async {
     final session = _session;
-    final assignmentId = open.assignmentId;
-    if (session == null || open.accessRevoked || assignmentId == null) return;
+    if (session == null || open.accessRevoked) return;
+
+    var assignmentId = open.assignmentId;
+    if (assignmentId == null) {
+      final orderId = open.orderId;
+      final repository = _assignmentRepository(session);
+      if (orderId != null && repository != null) {
+        try {
+          final rows = await repository.list(session.channel);
+          final matches = rows
+              .where(
+                (row) =>
+                    row.channel == session.channel &&
+                    row.orderId == orderId,
+              )
+              .toList(growable: false);
+          if (matches.length == 1) {
+            assignmentId = matches.single.id;
+          }
+        } on DriverSessionExpiredException {
+          _sessionExpired();
+          return;
+        } catch (_) {
+          assignmentId = null;
+        }
+      }
+    }
+
+    if (!mounted || assignmentId == null) {
+      final context = _messengerKey.currentContext;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            context?.tr('driver.notifications.order_unavailable') ??
+                'This order is no longer available to this driver.',
+          ),
+        ),
+      );
+      return;
+    }
 
     final route = session.channel == DriverChannel.b2c
         ? DriverRoutes.b2cDeliveries
