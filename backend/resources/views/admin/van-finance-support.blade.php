@@ -9,7 +9,7 @@
         : \Illuminate\Support\Str::headline($value);
 @endphp
 <!doctype html>
-<html lang="{{ app()->getLocale() }}" dir="{{ $ar ? 'rtl' : 'ltr' }}">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('van_finance_support.title') }} · FOODEX</title>
