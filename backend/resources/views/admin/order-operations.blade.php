@@ -8,7 +8,7 @@
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
 .filters{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:10px;padding:16px;margin-bottom:16px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
 .status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
-.table-wrap{overflow:auto}.ops-table{min-width:1200px}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions form{margin:0}.actions select{min-width:120px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}
+.table-wrap{overflow:auto}.ops-table{min-width:1200px}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:6px 0 0}.row-action-menu select{min-width:0;width:100%}.row-action-menu button{width:100%}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}
 @media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.detail-grid{grid-template-columns:1fr}}@media(max-width:600px){.filters{grid-template-columns:1fr}}
 </style>
 </head>
@@ -57,15 +57,22 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 <td>{{ $row['payment_status'] ?? '-' }} @if($row['payment_provider'])<small>· {{ $row['payment_provider'] }}</small>@endif</td>
 <td>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</td>
 <td>{{ optional($row['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</td>
-<td><div class="actions">
+<td>
+<details class="row-actions" data-order-row-actions>
+<summary aria-label="{{ $isAr?'إجراءات الطلب':'Order actions' }}">⋮</summary>
+<div class="row-action-menu">
+<a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}">{{ $isAr?'عرض الطلب':'View order' }}</a>
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required><option value="">{{ $isAr?'اختر الحالة التالية':'Choose next status' }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
-<button class="btn secondary">{{ $isAr?'تحديث':'Update' }}</button></form>
+<select name="status" required aria-label="{{ $isAr?'الحالة التالية':'Next status' }}"><option value="">{{ $isAr?'اختر الحالة التالية':'Choose next status' }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
+<button class="foodex-primary">{{ $isAr?'تحديث الحالة':'Update status' }}</button>
+</form>
 @else
 <span class="badge {{ $row['status'] }}">{{ $isAr?'حالة نهائية':'Terminal' }}</span>
 @endif
-</div></td>
+</div>
+</details>
+</td>
 </tr>
 @empty<tr><td colspan="11"><div class="foodex-empty-state">{{ $isAr?'لا توجد طلبات مطابقة.':'No matching orders.' }}</div></td></tr>@endforelse
 </tbody></table>
