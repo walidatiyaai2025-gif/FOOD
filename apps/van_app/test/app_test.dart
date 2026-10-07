@@ -5,6 +5,7 @@ import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
+import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 
 void main() {
   test('approved Van production inventory stays locked to 19 surfaces', () {
@@ -402,6 +403,48 @@ void main() {
     expect(find.text('Visits · 2'), findsOneWidget);
     expect(find.text('Planned · 1'), findsOneWidget);
     expect(find.text('Started · 1'), findsOneWidget);
+  });
+
+
+  testWidgets('Van Notifications renders canonical feed and marks read',
+      (tester) async {
+    final notifications = _NotificationRepository();
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        notificationRepository: notifications,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-notifications'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-notifications-page')), findsOneWidget);
+    expect(find.text('Route updated'), findsOneWidget);
+    expect(find.text('Stop sequence changed.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-notification-91')));
+    await tester.pumpAndSettle();
+    expect(notifications.markedRead, 91);
   });
 
 }
@@ -856,5 +899,30 @@ class _RoutesVisitRepository implements VanVisitRepository {
     int? noOrderReasonId,
   }) {
     throw UnimplementedError();
+  }
+}
+
+
+class _NotificationRepository implements VanNotificationRepository {
+  int? markedRead;
+
+  @override
+  Future<List<VanNotificationRecord>> notifications({
+    required String locale,
+  }) async =>
+      const [
+        VanNotificationRecord(
+          id: 91,
+          type: 'route_updated',
+          title: 'Route updated',
+          body: 'Stop sequence changed.',
+          publishedAt: '2026-10-07T09:00:00+03:00',
+          read: false,
+        ),
+      ];
+
+  @override
+  Future<void> markRead(int notificationId) async {
+    markedRead = notificationId;
   }
 }
