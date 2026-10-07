@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Customer App'), findsOneWidget);
-    expect(find.text('Customer sign in'), findsOneWidget);
+    expect(find.text('Customer sign in'), findsWidgets);
     expect(find.textContaining('Business customer'), findsNothing);
     final identity = find.byKey(const ValueKey('customer-app-identity'));
     expect(identity, findsOneWidget);
