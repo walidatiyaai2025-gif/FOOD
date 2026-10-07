@@ -81,7 +81,7 @@ These rows intentionally remain `OPEN` until required runtime evidence is comple
 | D05 | Order Operations row actions use one compact green ellipsis menu with regression coverage. Runtime responsive proof still required. |
 | D06 | Raw Store ID entry removed from Live Tracking; Order Operations/Reports/Customer 360 identifier exposure reduced; Notifications and Notification Campaigns now use business-facing user lookups instead of typed raw user IDs, with regression coverage. Full static/runtime audit still required. |
 | D08 | Administration sidebar collapses to one entry opening the card-based Admin Hub; covered by Administration Hub tests. Runtime AR/EN still required. |
-| D09 | Admin Hub and Mobile Settings expose Customer/Driver/Van as first-class apps; direct per-app Preview/App Version/Settings actions and deterministic parity tests exist. Runtime proof still required. |
+| D09 | Admin Hub and Mobile Settings expose Customer/Driver/Van as first-class apps; direct per-app Preview/App Version/Settings actions exist; Push Provider, Store Submission, and Reviewer/Test Account administration now separate Van from Driver with deterministic parity coverage. Runtime proof still required. |
 | D10 | Shared `foodex-admin-layout` / `foodex-admin-main` / Sidebar / page-header contract is statically enforced across eight audited owned Dashboard views. Runtime shell audit still required. |
 | D11 | Live Tracking store filtering uses authorized human-readable Store lookup; Driver/Van combined identity/stale-state acceptance still requires exact runtime map proof. |
 
