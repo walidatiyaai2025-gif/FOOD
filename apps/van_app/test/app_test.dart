@@ -365,6 +365,45 @@ void main() {
     expect(find.text('2 assigned visits'), findsOneWidget);
   });
 
+
+  testWidgets('Van Route Detail renders route visit KPIs from visit repository',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('en'),
+        walletRepository: _EmptyWalletRepository(),
+        visitRepository: _RoutesVisitRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-routeDetail'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.byKey(const ValueKey('van-production-screen-menu')),
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-route-detail-page')), findsOneWidget);
+    expect(find.text('ROUTE-A'), findsWidgets);
+    expect(find.text('Visits · 2'), findsOneWidget);
+    expect(find.text('Planned · 1'), findsOneWidget);
+    expect(find.text('Started · 1'), findsOneWidget);
+  });
+
 }
 
 
