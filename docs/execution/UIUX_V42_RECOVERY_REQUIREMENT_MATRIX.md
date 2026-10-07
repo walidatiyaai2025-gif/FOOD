@@ -75,14 +75,14 @@ These rows intentionally remain `OPEN` until required runtime evidence is comple
 | ID | Current owner evidence on canonical #1035 lane |
 |---|---|
 | D01 | `AdminNavigation` business-domain grouping + deterministic sidebar-order regression coverage on PR #1044. Runtime AR/EN still required. |
-| D02 | Shared `foodex-page-header` is present across audited owned surfaces; Customer 360 exposes translated horizontal detail tabs. Broader owned-route runtime/responsive proof still required. |
+| D02 | Shared `foodex-page-header` is now statically enforced across the eight audited owned Dashboard views; Customer 360 exposes translated horizontal detail tabs. Runtime/responsive proof still required. |
 | D03 | Order Operations preserves direct exact-order View and primary Create/New Order workflow with deterministic compliance coverage. Runtime interaction proof still required. |
 | D04 | Owned hub/order/admin actions use FOODEX branded primary/secondary action classes. Visual runtime proof still required. |
 | D05 | Order Operations row actions use one compact green ellipsis menu with regression coverage. Runtime responsive proof still required. |
 | D06 | Raw Store ID entry removed from Live Tracking; Order Operations/Notification Campaigns/Reports/Customer 360 raw identifiers and raw JSON presentation were reduced with regression coverage. Full static/runtime audit still required. |
 | D08 | Administration sidebar collapses to one entry opening the card-based Admin Hub; covered by Administration Hub tests. Runtime AR/EN still required. |
 | D09 | Admin Hub and Mobile Settings expose Customer/Driver/Van as first-class apps; direct per-app Preview/App Version/Settings actions and deterministic parity tests exist. Runtime proof still required. |
-| D10 | Notifications and other audited owned pages use the shared FOODEX admin shell; regression guard added. Full owned-route static/runtime audit still required. |
+| D10 | Shared `foodex-admin-layout` / `foodex-admin-main` / Sidebar / page-header contract is statically enforced across eight audited owned Dashboard views. Runtime shell audit still required. |
 | D11 | Live Tracking store filtering uses authorized human-readable Store lookup; Driver/Van combined identity/stale-state acceptance still requires exact runtime map proof. |
 
 ## Worker update rule
