@@ -15,5 +15,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('>⋮</summary>', $view);
         $this->assertStringContainsString('View order', $view);
         $this->assertStringNotContainsString('<td><div class="actions">', $view);
+        $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
+        $this->assertStringNotContainsString('channel={{ $detail[\'channel\'] }}', $view);
     }
 }
