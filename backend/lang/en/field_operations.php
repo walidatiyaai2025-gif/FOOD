@@ -52,6 +52,7 @@ return [
     ],
     'statuses' => [
         'active' => 'Active',
+        'inactive' => 'Inactive',
         'suspended' => 'Suspended',
         'draft' => 'Draft',
         'published' => 'Published',
