@@ -977,7 +977,9 @@ jobs:
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-offers.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers?store_id=$STORE_ID")" = "200"
           grep -Fq 'data-commercial-page="flash-offers"' /tmp/flash-offers.html
-          grep -Fq '<select class="flash-multi" name="audience_customer_ids[]" multiple>' /tmp/flash-offers.html
+          grep -Fq 'data-flash-lookup-kind="customers"' /tmp/flash-offers.html
+          grep -Fq 'data-flash-lookup-kind="customer-groups"' /tmp/flash-offers.html
+          grep -Fq 'data-flash-lookup-search' /tmp/flash-offers.html
           grep -Fq '<div class="flash-product-builder" data-flash-product-builder>' /tmp/flash-offers.html
           grep -Fq 'Preview' /tmp/flash-offers.html
           grep -Fq 'Analytics' /tmp/flash-offers.html
