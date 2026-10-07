@@ -196,56 +196,56 @@ $businessLabel = static function ($value): string {
 
 <section class="c360-panel" id="panel-addresses" role="tabpanel" aria-labelledby="tab-addresses" data-c360-panel="addresses" hidden>
 <div class="foodex-card c360-card">
-<div class="c360-section-head"><div><h2>{{ __('customer_360.tabs.addresses') }}</h2><p>{{ $ar?'إدارة العناوين المحفوظة للعميل.':'Manage the customer saved addresses.' }}</p></div><span class="c360-badge">{{ count($addresses) }} {{ $ar?'عنوان':'addresses' }}</span></div>
+<div class="c360-section-head"><div><h2>{{ __('customer_360.tabs.addresses') }}</h2><p>{{ __('customer_360.addresses.description') }}</p></div><span class="c360-badge">{{ count($addresses) }} {{ __('customer_360.addresses.count_suffix') }}</span></div>
 @if($canManageAddresses)
 <details class="c360-form-details" style="margin-top:0;margin-bottom:16px;border-top:0;padding-top:0">
-<summary class="foodex-action-primary" style="display:inline-flex">{{ $ar?'إضافة عنوان جديد':'Add new address' }}</summary>
+<summary class="foodex-action-primary" style="display:inline-flex">{{ __('customer_360.addresses.add_new') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.addresses.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">@csrf
-<label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" maxlength="100" placeholder="{{ $ar?'المنزل / العمل':'Home / Work' }}"></label>
-<label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" maxlength="255"></label>
-<label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" maxlength="50"></label>
-<label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" maxlength="120" required></label>
-<label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" maxlength="255" required></label>
-<label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" maxlength="120"></label>
-<label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" maxlength="120"></label>
-<label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" maxlength="120"></label>
-<label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" maxlength="120"></label>
-<label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" maxlength="120"></label>
-<label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" maxlength="120"></label>
-<label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" maxlength="2" required></label>
+<label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" maxlength="100" placeholder="{{ __('customer_360.addresses.label_placeholder') }}"></label>
+<label><small>{{ __('customer_360.addresses.recipient') }}</small><input name="recipient_name" maxlength="255"></label>
+<label><small>{{ __('customer_360.addresses.delivery_phone') }}</small><input name="delivery_phone" maxlength="50"></label>
+<label><small>{{ __('customer_360.addresses.city') }}</small><input name="city" maxlength="120" required></label>
+<label class="wide"><small>{{ __('customer_360.addresses.address') }}</small><input name="line1" maxlength="255" required></label>
+<label><small>{{ __('customer_360.addresses.area') }}</small><input name="area" maxlength="120"></label>
+<label><small>{{ __('customer_360.addresses.governorate') }}</small><input name="governorate" maxlength="120"></label>
+<label><small>{{ __('customer_360.addresses.block') }}</small><input name="block" maxlength="120"></label>
+<label><small>{{ __('customer_360.addresses.building') }}</small><input name="building" maxlength="120"></label>
+<label><small>{{ __('customer_360.addresses.floor') }}</small><input name="floor" maxlength="120"></label>
+<label><small>{{ __('customer_360.addresses.apartment') }}</small><input name="apartment" maxlength="120"></label>
+<label><small>{{ __('customer_360.addresses.country_code') }}</small><input name="country_code" maxlength="2" required></label>
 <input name="latitude" type="hidden">
 <input name="longitude" type="hidden">
 <input type="hidden" name="location_source" value="manual">
 <div class="wide c360-map-picker-row">
-<button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $ar?'تحديد الموقع على الخريطة':'Choose location on map' }}</button>
-<span class="c360-map-picked" data-address-map-summary>{{ $ar?'لم يتم تحديد موقع بعد':'No location selected yet' }}</span>
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ __('customer_360.addresses.choose_map') }}</button>
+<span class="c360-map-picked" data-address-map-summary>{{ __('customer_360.addresses.no_location') }}</span>
 </div>
-<label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" maxlength="255"></label>
-<label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2"></textarea></label>
-<label class="wide"><input type="checkbox" name="is_default" value="1"> {{ $ar?'تعيين كعنوان افتراضي':'Set as default' }}</label>
-<div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ العنوان':'Save address' }}</button></div>
+<label class="wide"><small>{{ __('customer_360.addresses.landmark') }}</small><input name="landmark" maxlength="255"></label>
+<label class="wide"><small>{{ __('customer_360.addresses.delivery_notes') }}</small><textarea name="delivery_notes" maxlength="1000" rows="2"></textarea></label>
+<label class="wide"><input type="checkbox" name="is_default" value="1"> {{ __('customer_360.addresses.set_as_default') }}</label>
+<div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.addresses.save_address') }}</button></div>
 </form>
 </details>
 @endif
 <div class="c360-address-grid">
 @forelse($addresses as $address)
 <article class="c360-address-card">
-<div class="c360-actions" style="justify-content:space-between"><strong>{{ $address->label ?: ($ar?'عنوان التوصيل':'Delivery address') }}</strong>@if($address->is_default)<span class="c360-badge active">{{ $ar?'افتراضي':'Default' }}</span>@endif</div>
+<div class="c360-actions" style="justify-content:space-between"><strong>{{ $address->label ?: __('customer_360.addresses.delivery_address') }}</strong>@if($address->is_default)<span class="c360-badge active">{{ __('customer_360.addresses.default') }}</span>@endif</div>
 <p style="margin:8px 0">{{ collect([$address->building,$address->street ?: $address->line1,$address->block,$address->area,$address->city,$address->governorate])->filter()->join(' · ') }}</p>
-@if($address->landmark)<small>{{ $ar?'علامة مميزة':'Landmark' }}: {{ $address->landmark }}</small>@endif
-@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><span class="c360-badge active">{{ $ar?'تم تحديد الموقع على الخريطة':'Map location selected' }}</span></div>@endif
+@if($address->landmark)<small>{{ __('customer_360.addresses.landmark') }}: {{ $address->landmark }}</small>@endif
+@if($address->latitude!==null && $address->longitude!==null)<div style="margin-top:8px"><span class="c360-badge active">{{ __('customer_360.addresses.map_location_selected') }}</span></div>@endif
 @if($canManageAddresses)
 <div class="c360-address-actions" style="margin-top:12px">
-@if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'تعيين افتراضي':'Set default' }}</button></form>@endif
-<form method="post" action="{{ route('admin.customer-360.addresses.destroy',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" onsubmit="return confirm('{{ $ar?'حذف هذا العنوان؟':'Delete this address?' }}')">@csrf @method('DELETE')<button class="foodex-action-secondary button secondary" type="submit">{{ $ar?'حذف':'Delete' }}</button></form>
+@if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.set_default') }}</button></form>@endif
+<form method="post" action="{{ route('admin.customer-360.addresses.destroy',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" onsubmit="return confirm('{{ __('customer_360.addresses.delete_confirm') }}')">@csrf @method('DELETE')<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.delete') }}</button></form>
 </div>
-<details class="c360-form-details"><summary>{{ $ar?'تعديل العنوان':'Edit address' }}</summary>
+<details class="c360-form-details"><summary>{{ __('customer_360.addresses.edit_address') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.addresses.update',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" class="c360-address-form" style="margin-top:12px">@csrf @method('PATCH')
-<label><small>{{ $ar?'اسم العنوان':'Label' }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ $ar?'اسم المستلم':'Recipient' }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ $ar?'هاتف التوصيل':'Delivery phone' }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ $ar?'المدينة':'City' }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ $ar?'العنوان':'Address' }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ $ar?'المنطقة':'Area' }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ $ar?'المحافظة':'Governorate' }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ $ar?'البلوك':'Block' }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ $ar?'المبنى':'Building' }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ $ar?'الدور':'Floor' }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ $ar?'الشقة':'Apartment' }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ $ar?'رمز الدولة':'Country code' }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><input name="latitude" type="hidden" value="{{ $address->latitude }}"><input name="longitude" type="hidden" value="{{ $address->longitude }}"><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><div class="wide c360-map-picker-row"><button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $address->latitude!==null && $address->longitude!==null ? ($ar?'تعديل الموقع على الخريطة':'Edit map location') : ($ar?'تحديد الموقع على الخريطة':'Choose location on map') }}</button><span class="c360-map-picked" data-address-map-summary>@if($address->latitude!==null && $address->longitude!==null){{ $ar?'تم تحديد الموقع':'Location selected' }}@else{{ $ar?'لم يتم تحديد موقع بعد':'No location selected yet' }}@endif</span></div><label class="wide"><small>{{ $ar?'علامة مميزة':'Landmark' }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ $ar?'ملاحظات التوصيل':'Delivery notes' }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ $ar?'حفظ التعديل':'Save changes' }}</button></div>
+<label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ __('customer_360.addresses.recipient') }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.delivery_phone') }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ __('customer_360.addresses.city') }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ __('customer_360.addresses.address') }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.area') }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.governorate') }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.block') }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.building') }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.floor') }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.apartment') }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.country_code') }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><input name="latitude" type="hidden" value="{{ $address->latitude }}"><input name="longitude" type="hidden" value="{{ $address->longitude }}"><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><div class="wide c360-map-picker-row"><button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $address->latitude!==null && $address->longitude!==null ? __('customer_360.addresses.edit_map') : __('customer_360.addresses.choose_map') }}</button><span class="c360-map-picked" data-address-map-summary>@if($address->latitude!==null && $address->longitude!==null){{ __('customer_360.addresses.location_selected') }}@else{{ __('customer_360.addresses.no_location') }}@endif</span></div><label class="wide"><small>{{ __('customer_360.addresses.landmark') }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ __('customer_360.addresses.delivery_notes') }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.addresses.save_changes') }}</button></div>
 </form></details>
 @endif
 </article>
-@empty<div class="c360-empty">{{ $ar?'لا توجد عناوين محفوظة لهذا العميل.':'No saved addresses for this customer.' }}</div>@endforelse
+@empty<div class="c360-empty">{{ __('customer_360.addresses.empty') }}</div>@endforelse
 </div>
 </div>
 </section>
