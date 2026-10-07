@@ -193,15 +193,6 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
             'تتم المصادقة عبر شاشة دخول الفان الآمنة قبل فتح هذه الواجهة.',
           ),
         );
-      default:
-        return _OperationalState(
-          screen: _screen,
-          arabic: _arabic,
-          message: _text(
-            'This production surface is available in the Van navigation. It shows no sample records; operational data remains backend-authoritative.',
-            'هذه الشاشة متاحة ضمن تنقل تطبيق الفان. لا تعرض بيانات تجريبية؛ وتظل البيانات التشغيلية معتمدة من الخادم.',
-          ),
-        );
     }
   }
 
