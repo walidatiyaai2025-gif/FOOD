@@ -122,7 +122,7 @@ $businessLabel = static function ($value) use ($isAr): string {
 <h2>{{ $isAr?'سياق الطلب':'Order context' }} · {{ $detail['number'] }}</h2>
 <div class="timeline-item" data-order-authoritative-context>
 <strong>{{ $businessLabel($detail['channel']) }} · {{ $detail['store'] }}</strong>
-<div>{{ $isAr?'المصدر':'Source' }}: {{ $detail['source'] }}</div>
+<div>{{ $isAr?'المصدر':'Source' }}: {{ $businessLabel($detail['source']) }}</div>
 <small>{{ $isAr?'القناة المعتمدة':'Authorized channel' }}: {{ $businessLabel($detail['channel']) }}</small>
 </div>
 <h2 style="margin-top:16px">{{ $isAr?'عنوان التوصيل':'Delivery address' }}</h2>
