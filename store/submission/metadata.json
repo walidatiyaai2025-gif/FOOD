@@ -2,8 +2,8 @@
   "schema_version": 1,
   "production_base_url": "https://foodex.50sols.com",
   "release": {
-    "version": "1.0.62",
-    "build": "62"
+    "version": "1.0.63",
+    "build": "63"
   },
   "public_urls": {
     "privacy": "https://foodex.50sols.com/privacy",
@@ -52,8 +52,8 @@
         "orders"
       ],
       "reviewer_notes": "Use the Dashboard-managed Customer reviewer persona. Sign in, confirm the expected customer/store context, browse catalog, review account/settings and exercise the deletion-request entry without using production personal credentials.",
-      "release_notes_en": "Store-submission readiness, legal/support surfaces, secure reviewer configuration, account deletion workflow and configurable version-footer visibility.",
-      "release_notes_ar": "جاهزية الرفع للمتاجر وصفحات الدعم والسياسات وحساب المراجع الآمن وطلب حذف الحساب والتحكم في ظهور شريط الإصدار.",
+      "release_notes_en": "Restores the compact Customer invoices layout omitted from 1.0.62 while preserving store readiness, legal/support surfaces and account workflows.",
+      "release_notes_ar": "استعادة التصميم المضغوط لصفحة فواتير العميل الذي لم يدخل في 1.0.62 مع الحفاظ على جاهزية المتاجر وصفحات الدعم والسياسات.",
       "screenshots": [
         "login",
         "home/catalog",
@@ -69,8 +69,8 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.62",
-      "build": "62",
+      "version": "1.0.63",
+      "build": "63",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -132,8 +132,8 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.62",
-      "build": "62",
+      "version": "1.0.63",
+      "build": "63",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -215,8 +215,8 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.62",
-      "build": "62",
+      "version": "1.0.63",
+      "build": "63",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -279,8 +279,8 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.62",
-      "build": "62",
+      "version": "1.0.63",
+      "build": "63",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -363,8 +363,8 @@
         "operational location where enabled",
         "diagnostics/support data"
       ],
-      "version": "1.0.62",
-      "build": "62",
+      "version": "1.0.63",
+      "build": "63",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -428,8 +428,8 @@
         "operational location where enabled",
         "diagnostics/support data"
       ],
-      "version": "1.0.62",
-      "build": "62",
+      "version": "1.0.63",
+      "build": "63",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
