@@ -43,26 +43,9 @@ void main() {
       );
     });
 
-    for (final screen in const [
-      VanScreenId.dashboard,
-      VanScreenId.routes,
-      VanScreenId.routeMap,
-      VanScreenId.routeDetail,
-      VanScreenId.customers,
-      VanScreenId.visit,
-      VanScreenId.customer360,
-      VanScreenId.catalog,
-      VanScreenId.orderBuilder,
-      VanScreenId.orderReview,
-      VanScreenId.orders,
-      VanScreenId.offers,
-      VanScreenId.wallet,
-      VanScreenId.collection,
-      VanScreenId.receipt,
-      VanScreenId.remittance,
-      VanScreenId.notifications,
-      VanScreenId.profile,
-    ]) {
+    for (final screen in vanProductionScreenInventory.where(
+      (screen) => screen != VanScreenId.login,
+    )) {
       testWidgets('capture Van ' + screen.name + ' ' + code, (tester) async {
         await _setup(tester, const Size(430, 932));
         final key = GlobalKey();
