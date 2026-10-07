@@ -12,6 +12,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route as IlluminateRoute;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -617,12 +618,12 @@ final class CommercialDashboardController extends Controller
 
     /**
      * @return array{
-     *   flashProducts:\Illuminate\Support\Collection,
-     *   flashSellingUnits:\Illuminate\Support\Collection,
-     *   audienceCustomers:\Illuminate\Support\Collection,
-     *   audienceGroups:\Illuminate\Support\Collection,
-     *   audienceRegions:\Illuminate\Support\Collection,
-     *   audienceRoutes:\Illuminate\Support\Collection
+     *   flashProducts:Collection,
+     *   flashSellingUnits:Collection,
+     *   audienceCustomers:Collection,
+     *   audienceGroups:Collection,
+     *   audienceRegions:Collection,
+     *   audienceRoutes:Collection
      * }
      */
     private function flashOfferLookups(int $storeId): array
