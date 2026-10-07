@@ -254,6 +254,23 @@ class CommercialDashboardContractTest extends TestCase
         return $productId;
     }
 
+    public function test_flash_offers_share_the_authoritative_foodex_admin_shell(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $this->flashProduct($storeId);
+
+        $response = $this->actingAs($manager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]));
+
+        $response
+            ->assertOk()
+            ->assertSee('commercial-admin-layout', false)
+            ->assertSee('data-foodex-sidebar-toggle', false)
+            ->assertSee('Commercial & Sales')
+            ->assertSee('Flash Offers')
+            ->assertDontSee('<html class="legacy-commercial-shell"', false);
+    }
+
     public function test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids(): void
     {
         [$manager, $storeId] = $this->retailManager();
