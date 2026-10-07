@@ -161,6 +161,7 @@ return [
         'description' => 'See authorized Drivers and Vans on one live OpenStreetMap operations view.',
         'channel' => 'Channel',
         'all_channels' => 'All channels',
+        'all_stores' => 'All stores',
         'store_id' => 'Store ID',
         'status' => 'Status',
         'all_statuses' => 'All statuses',
