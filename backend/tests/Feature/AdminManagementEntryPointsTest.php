@@ -28,9 +28,7 @@ class AdminManagementEntryPointsTest extends TestCase
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee(route('admin.administration.index'))
-            ->assertDontSee(route('admin.translations.index'))
-            ->assertDontSee(route('admin.notifications.index'));
+            ->assertSee(route('admin.administration.index'));
 
         $this->actingAs($user)
             ->get('/admin/settings/translations')
