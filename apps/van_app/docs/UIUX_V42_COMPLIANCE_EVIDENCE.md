@@ -35,7 +35,7 @@ Frozen visual baseline: `prototype/van-uiux-mockup@59335d21879736d075404c8cb1483
 ### MV01 — compact title/header + full-width data-first
 - Shared FOODEX Van shell uses the approved FOODEX green identity and compact app bar.
 - Operational screens use full-width lists/cards with the current business state first.
-- Representative visual capture is generated at 430×932 and compact 360×800.
+- Full AR/RTL + EN/LTR visual capture is generated for all 19 production surfaces at 430×932; compact 360×800 evidence remains for representative high-density screens.
 
 ### MV02 — compact rows / business labels / no raw-ID entry
 - Catalog, orders, routes, visits, finance and notifications use one-line business labels with ellipsis overflow.
@@ -84,8 +84,8 @@ Explicit boundary: no local/offline business decision is fabricated. Route Map p
 
 ### Visual / responsive
 - `apps/van_app/test/screenshot_evidence_test.dart`
-- Standard AR/RTL + EN/LTR evidence: `ScreenShots/03_Van/` at 430×932.
-- Compact representative AR/RTL + EN/LTR evidence: `ScreenShots/03_Van_Compact/` at 360×800.
+- Standard AR/RTL + EN/LTR evidence: `ScreenShots/03_Van/` at 430×932, locked directly to `vanProductionScreenInventory` so every one of the 19 production surfaces is captured in both locales.
+- Compact representative AR/RTL + EN/LTR evidence: `ScreenShots/03_Van_Compact/` at 360×800 for dashboard, route map and catalog density.
 - `.github/workflows/mobile-screenshot-capture.yml` executes and uploads these files as CI artifacts.
 
 ## Closure boundary
