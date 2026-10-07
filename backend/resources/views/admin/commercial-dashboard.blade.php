@@ -428,7 +428,8 @@
                 </div>
             </div>
         @endif
-    @else
+    @endif
+    @if($section !== 'sales-control')
         @php
             $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ['customer','van']));
             $selectedCustomerIds = collect(old('audience_customer_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
