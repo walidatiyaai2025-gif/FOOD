@@ -142,4 +142,23 @@ return [
         'area' => 'منطقة فرعية',
     ],
 
+    'map_drag_delete' => 'اسحب للتحريك، وانقر مرتين للحذف',
+    'polygon_valid' => 'المضلع صالح وجاهز للحفظ.',
+    'polygon_need_three' => 'أضف ثلاث نقاط مختلفة على الأقل.',
+    'polygon_invalid' => 'النقاط الحالية لا تكوّن مضلعًا صالحًا. حرّك أو احذف نقطة ثم أعد المحاولة.',
+    'polygon_submit_invalid' => 'اختر منطقة وارسم مضلعًا صالحًا من ثلاث نقاط مختلفة على الأقل.',
+    'create_routing_policy' => 'إنشاء سياسة توجيه',
+    'mode' => 'الوضع',
+    'rules_json' => 'قواعد JSON',
+    'create_draft' => 'إنشاء مسودة',
+    'simulation_result' => 'نتيجة المحاكاة',
+    'rules' => 'قواعد',
+    'publish' => 'نشر',
+    'rollback_reason' => 'سبب التراجع',
+    'rollback' => 'تراجع',
+    'input_json' => 'مدخلات JSON',
+    'scope_json' => 'نطاق JSON',
+    'simulate' => 'محاكاة',
+    'no_routing_policies' => 'لا توجد سياسات توجيه.',
+
 ];
