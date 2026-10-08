@@ -12,7 +12,7 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 
 <section class="card"><h2>{{ __('sms.settings') }}</h2><form method="post" action="{{ route('admin.sms-settings.update') }}">@csrf @method('PUT')
 <div class="grid">
-<div class="field"><label>{{ __('sms.provider') }}</label><select name="provider"><option value="advansys_bulk_sms">Advansys Bulk SMS</option></select></div>
+<div class="field"><label>{{ __('sms.provider_label') }}</label><select name="provider"><option value="advansys_bulk_sms">{{ __('sms.providers.advansys_bulk_sms') }}</option></select></div>
 <div class="field"><label>{{ __('sms.token') }}</label><input type="password" name="api_token" autocomplete="new-password" placeholder="{{ $maskedToken }}"><small class="muted">{{ __('sms.token_hint') }}</small></div>
 <div class="field"><label>{{ __('sms.base_url') }}</label><input name="api_base_url" value="{{ old('api_base_url',$setting?->api_base_url ?? 'https://hub.advansystelecom.com') }}" required></div>
 <div class="field"><label>{{ __('sms.endpoint') }}</label><input name="endpoint_path" value="{{ old('endpoint_path',$setting?->endpoint_path ?? '/generalapiv12/api/bulkSMS/ForwardSMS') }}" required></div>
@@ -47,12 +47,12 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 </div>
 @endif<div class="grid">
 <div class="field"><label>{{ __('sms.phone') }}</label><input name="phone" required placeholder="01012345678"></div>
-<div class="field"><label>{{ __('sms.operator') }}</label><select name="operator_id"><option value="">{{ __('sms.operator_auto') }}</option><option value="1">Vodafone</option><option value="2">Orange</option><option value="3">Etisalat</option><option value="7">WE</option></select></div>
+<div class="field"><label>{{ __('sms.operator') }}</label><select name="operator_id"><option value="">{{ __('sms.operator_auto') }}</option><option value="1">{{ __('sms.operators.vodafone') }}</option><option value="2">{{ __('sms.operators.orange') }}</option><option value="3">{{ __('sms.operators.etisalat') }}</option><option value="7">{{ __('sms.operators.we') }}</option></select></div>
 <div class="field full"><label>{{ __('sms.message') }}</label><textarea name="message" rows="4" required></textarea></div>
 <div class="field full"><label>{{ __('sms.sender_override') }}</label><input name="sender"></div>
 </div><div class="actions"><button class="btn" type="submit">{{ __('sms.send') }}</button><button class="btn secondary" type="button" onclick="document.getElementById('testSmsDialog').close()">{{ __('sms.cancel') }}</button></div>
 </form></dialog>
 @if(session('sms_test_result'))
-<script>document.getElementById('testSmsDialog').showModal();</script>
+<script>document.getElementById('testSmsDialog').showModal();</script> {{-- localization-gate: allow — technical dialog control, no user-facing prose. --}}
 @endif
 </body></html>
