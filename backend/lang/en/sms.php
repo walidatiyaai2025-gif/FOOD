@@ -1,0 +1,32 @@
+<?php
+return [
+'title'=>'SMS Gateway','eyebrow'=>'System communications',
+'description'=>'Central provider settings for OTP, authentication, order, dispatch and future SMS delivery.',
+'back'=>'Back to Administration','settings'=>'Provider settings','enabled'=>'SMS enabled','provider_label'=>'Provider',
+'base_url'=>'API base URL','endpoint'=>'Endpoint path','token'=>'API token','token_hint'=>'Leave blank to keep the currently encrypted token.',
+'sender'=>'Default sender name','country_code'=>'Default country code','operator_mode'=>'Operator resolution',
+'automatic'=>'Automatic','manual'=>'Manual fallback','timeout'=>'Request timeout (seconds)','retry_count'=>'Retry count',
+'retry_backoff'=>'Retry backoff (seconds)','delivery_logging'=>'Delivery logging','otp_enabled'=>'OTP sender enabled',
+'notifications_enabled'=>'Notification sender enabled','save'=>'Save SMS settings','saved'=>'SMS settings saved.',
+'test'=>'Send Test SMS','test_title'=>'Send Test SMS','phone'=>'Phone number','message'=>'Message','operator'=>'Operator',
+'operator_auto'=>'Auto detect','sender_override'=>'Sender override (optional)','send'=>'Send test','cancel'=>'Cancel',
+'providers'=>['advansys_bulk_sms'=>'Advansys Bulk SMS'],
+'operators'=>['vodafone'=>'Vodafone','orange'=>'Orange','etisalat'=>'Etisalat','we'=>'WE'],
+'recent'=>'Recent SMS delivery logs','request_id'=>'Request ID','recipient'=>'Recipient','purpose'=>'Purpose','status'=>'Status',
+'attempts'=>'Attempts','latency'=>'Latency','provider_code'=>'Provider result','timestamp'=>'Timestamp','not_configured'=>'Not configured',
+'no_logs'=>'No SMS delivery attempts yet.','test_sent'=>'Test SMS sent. Request :request · :latency ms.',
+'test_failed'=>'Test SMS failed: :reason (request :request).',
+'provider'=>[
+'sent'=>'Sent successfully','invalid_authorization'=>'Invalid provider authorization token','empty_mobile'=>'Mobile number is empty',
+'empty_message'=>'Message is empty','invalid_sender'=>'Sender name is invalid','no_credit'=>'Provider account has no available credit',
+'unknown_response'=>'Unknown provider response'],
+'errors'=>[
+'disabled'=>'SMS delivery is disabled.','not_configured'=>'SMS provider is not configured.',
+'token_required'=>'An API token is required before enabling SMS.','invalid_provider_url'=>'The Advansys provider URL must use the approved HTTPS host.',
+'invalid_endpoint'=>'The Advansys endpoint path is not approved.','unsupported_provider'=>'The configured SMS provider is not supported.',
+'invalid_phone'=>'Enter a valid international or local mobile number.','operator_required'=>'The operator could not be detected. Select it manually.',
+'invalid_request_id'=>'The SMS request ID must be a UUID.','invalid_message'=>'The SMS message is empty or too long.',
+'sender_required'=>'A sender name is required.','invalid_purpose'=>'The SMS purpose is not supported.','otp_disabled'=>'OTP SMS delivery is disabled.',
+'notifications_disabled'=>'Notification SMS delivery is disabled.','rate_limited'=>'SMS rate limit exceeded. Try again later.',
+'provider_unavailable'=>'The SMS provider is temporarily unavailable.','provider_http'=>'The SMS provider returned an HTTP error.'],
+];
