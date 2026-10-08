@@ -58,8 +58,10 @@ class AuthController extends Controller
             abort_unless($context['selected'] !== null, 403, 'No effective Van assignment is available for this account.');
         }
 
+        $tokenAbilities = $app === null ? ['*'] : ['app:'.$app];
+
         return response()->json([
-            'token' => $user->createToken('foodex-client')->plainTextToken,
+            'token' => $user->createToken('foodex-'.($app ?? 'client'), $tokenAbilities)->plainTextToken,
             'token_type' => 'Bearer',
             'user' => $this->identity($user, isset($credentials['van_id']) ? (int) $credentials['van_id'] : null),
         ]);
