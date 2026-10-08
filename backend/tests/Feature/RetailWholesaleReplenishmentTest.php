@@ -9,10 +9,13 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\RetailWholesaleAccountService;
+use App\Services\RetailWholesaleLineageService;
+use App\Services\RetailWholesaleReplenishmentService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class RetailWholesaleReplenishmentTest extends TestCase
@@ -250,8 +253,57 @@ class RetailWholesaleReplenishmentTest extends TestCase
             'source_product_id' => $sourceProduct,
             'retail_product_id' => $retailProduct->id,
             'quantity' => 5,
+            'quantity_conversion_factor' => 1,
             'unit_cost' => 7.250,
             'line_total' => 36.250,
+        ]);
+
+        $lineage = app(RetailWholesaleLineageService::class);
+        $mappings = $lineage->mappingsForStore($retailStore);
+        $this->assertCount(1, $mappings);
+        $this->assertSame($sourceProduct, $mappings[0]['source_wholesale_product_id']);
+        $this->assertSame('JUICE-CASE-12', $mappings[0]['source_sku']);
+        $this->assertSame((int) $retailProduct->id, $mappings[0]['retail_product_id']);
+        $this->assertSame(1.0, $mappings[0]['quantity_conversion_factor']);
+        $this->assertSame(7.25, $mappings[0]['current_unit_cost']);
+        $this->assertSame(5.0, $mappings[0]['received_quantity_total']);
+        $this->assertSame('valid', $mappings[0]['status']);
+        $this->assertSame([], $mappings[0]['issues']);
+        $this->assertNotNull($mappings[0]['last_received_at']);
+
+        $received = $lineage->receivedItemsForStore(
+            $retailStore,
+            (int) $retailProduct->id,
+        );
+        $this->assertCount(1, $received);
+        $this->assertSame($order->id, $received[0]['source_order_id']);
+        $this->assertSame('WHOLESALE-REPL-ORDER-1', $received[0]['source_order_number']);
+        $this->assertSame($sourceProduct, $received[0]['source_product_id']);
+        $this->assertSame((int) $retailProduct->id, $received[0]['retail_product_id']);
+        $this->assertSame(5.0, $received[0]['source_quantity']);
+        $this->assertSame(5.0, $received[0]['received_quantity']);
+        $this->assertSame(1.0, $received[0]['quantity_conversion_factor']);
+        $this->assertSame(7.25, $received[0]['source_unit_price']);
+        $this->assertSame(7.25, $received[0]['retail_unit_cost']);
+        $this->assertSame(36.25, $received[0]['line_total']);
+
+        DB::table('retail_wholesale_product_mappings')
+            ->where('retail_store_id', $retailStore)
+            ->where('source_wholesale_product_id', $sourceProduct)
+            ->update([
+                'quantity_conversion_factor' => 2,
+                'updated_at' => now(),
+            ]);
+
+        $historicalReceipt = $lineage->receivedItemsForStore(
+            $retailStore,
+            (int) $retailProduct->id,
+        );
+        $this->assertSame(1.0, $historicalReceipt[0]['quantity_conversion_factor']);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'retail.wholesale_order_received',
+            'auditable_id' => $retailStore,
         ]);
         $this->assertDatabaseHas('stock_movements', [
             'inventory_id' => $retailInventory->id,
@@ -271,6 +323,180 @@ class RetailWholesaleReplenishmentTest extends TestCase
 
         $this->assertSame(1, DB::table('retail_replenishments')->where('source_order_id', $order->id)->count());
         $this->assertSame(5.0, (float) DB::table('inventories')->where('id', $retailInventory->id)->value('quantity'));
+    }
+
+    public function test_corrupt_or_cross_tenant_mapping_is_rejected_without_partial_receipt(): void
+    {
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
+        $retailStore = $this->store('B2C', 'RETAIL-LINEAGE-A');
+        $foreignRetailStore = $this->store('B2C', 'RETAIL-LINEAGE-B');
+        $retailCustomer = app(RetailWholesaleAccountService::class)
+            ->ensureForStore(Store::query()->findOrFail($retailStore));
+        $admin = $this->globalAdmin('B2B_ADMIN', 'lineage-guard@example.test');
+
+        $unitId = (int) DB::table('units')->insertGetId([
+            'store_id' => null,
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'code' => 'LINEAGE-EACH',
+            'name' => 'Lineage Each',
+            'name_ar' => 'وحدة تتبع',
+            'name_en' => 'Lineage Each',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $sourceCatalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $wholesaleStore,
+            'channel' => 'b2b',
+            'code' => 'lineage-guard-source',
+            'name' => 'Lineage Guard Source',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $sourceProduct = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $sourceCatalog,
+            'category_id' => null,
+            'brand_id' => null,
+            'unit_id' => $unitId,
+            'sku' => 'LINEAGE-SOURCE',
+            'name' => 'Lineage Source',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $retailCatalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $retailStore,
+            'channel' => 'b2c',
+            'code' => 'lineage-guard-retail',
+            'name' => 'Lineage Guard Retail',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $retailProduct = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $retailCatalog,
+            'category_id' => null,
+            'brand_id' => null,
+            'unit_id' => $unitId,
+            'sku' => 'LINEAGE-RETAIL',
+            'name' => 'Lineage Retail',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $foreignCatalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $foreignRetailStore,
+            'channel' => 'b2c',
+            'code' => 'lineage-guard-foreign',
+            'name' => 'Lineage Guard Foreign',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignRetailProduct = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $foreignCatalog,
+            'category_id' => null,
+            'brand_id' => null,
+            'unit_id' => $unitId,
+            'sku' => 'LINEAGE-FOREIGN',
+            'name' => 'Lineage Foreign',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('retail_wholesale_product_mappings')->insert([
+            'retail_store_id' => $retailStore,
+            'source_wholesale_product_id' => $sourceProduct,
+            'retail_product_id' => $retailProduct,
+            'quantity_conversion_factor' => 0,
+            'mapped_by_user_id' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $makeOrder = function (string $number) use (
+            $wholesaleStore,
+            $retailCustomer,
+            $sourceProduct,
+        ): Order {
+            $order = Order::query()->create([
+                'store_id' => $wholesaleStore,
+                'customer_id' => $retailCustomer->legacy_customer_id,
+                'b2b_customer_id' => $retailCustomer->id,
+                'order_number' => $number,
+                'channel' => 'b2b',
+                'status' => 'delivered',
+                'currency' => 'KWD',
+                'subtotal' => 4,
+                'discount_total' => 0,
+                'delivery_total' => 0,
+                'grand_total' => 4,
+            ]);
+
+            DB::table('order_items')->insert([
+                'order_id' => $order->id,
+                'product_id' => $sourceProduct,
+                'sku_snapshot' => 'LINEAGE-SOURCE',
+                'name_snapshot' => 'Lineage Source',
+                'quantity' => 2,
+                'quantity_conversion_factor' => 1,
+                'unit_price' => 2,
+                'line_total' => 4,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $order;
+        };
+
+        $service = app(RetailWholesaleReplenishmentService::class);
+        $invalidFactorOrder = $makeOrder('LINEAGE-INVALID-FACTOR');
+
+        try {
+            $service->receive($invalidFactorOrder, $admin);
+            $this->fail('Invalid mapping conversion factor must reject receipt.');
+        } catch (HttpException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseMissing('retail_replenishments', [
+            'source_order_id' => $invalidFactorOrder->id,
+        ]);
+
+        DB::table('retail_wholesale_product_mappings')
+            ->where('retail_store_id', $retailStore)
+            ->where('source_wholesale_product_id', $sourceProduct)
+            ->update([
+                'retail_product_id' => $foreignRetailProduct,
+                'quantity_conversion_factor' => 1,
+                'updated_at' => now(),
+            ]);
+
+        $foreignTargetOrder = $makeOrder('LINEAGE-FOREIGN-TARGET');
+
+        try {
+            $service->receive($foreignTargetOrder, $admin);
+            $this->fail('Cross-tenant retail mapping must reject receipt.');
+        } catch (HttpException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseMissing('retail_replenishments', [
+            'source_order_id' => $foreignTargetOrder->id,
+        ]);
+        $this->assertDatabaseMissing('stock_movements', [
+            'store_id' => $retailStore,
+            'reference_type' => 'retail_replenishment',
+        ]);
     }
 
     public function test_normal_wholesale_customer_delivery_does_not_create_retail_replenishment(): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\RetailWholesaleLineageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,8 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 final class RetailWholesaleProductMappingController extends Controller
 {
-    public function index(Request $request): JsonResponse
-    {
+    public function index(
+        Request $request,
+        RetailWholesaleLineageService $lineage,
+    ): JsonResponse {
         $data = $request->validate([
             'retail_store_id' => ['required', 'integer', 'min:1'],
         ]);
@@ -20,37 +23,7 @@ final class RetailWholesaleProductMappingController extends Controller
         $storeId = (int) $data['retail_store_id'];
         $this->authorizeRetailMapping($request, $storeId);
 
-        $rows = DB::table('retail_wholesale_product_mappings as mappings')
-            ->join('products as source_products', 'source_products.id', '=', 'mappings.source_wholesale_product_id')
-            ->join('products as retail_products', 'retail_products.id', '=', 'mappings.retail_product_id')
-            ->where('mappings.retail_store_id', $storeId)
-            ->orderBy('source_products.name')
-            ->get([
-                'mappings.id',
-                'mappings.retail_store_id',
-                'mappings.source_wholesale_product_id',
-                'source_products.sku as source_sku',
-                'source_products.name as source_name',
-                'mappings.retail_product_id',
-                'retail_products.sku as retail_sku',
-                'retail_products.name as retail_name',
-                'mappings.quantity_conversion_factor',
-                'mappings.updated_at',
-            ])
-            ->map(static fn (object $row): array => [
-                'id' => (int) $row->id,
-                'retail_store_id' => (int) $row->retail_store_id,
-                'source_wholesale_product_id' => (int) $row->source_wholesale_product_id,
-                'source_sku' => (string) $row->source_sku,
-                'source_name' => (string) $row->source_name,
-                'retail_product_id' => (int) $row->retail_product_id,
-                'retail_sku' => (string) $row->retail_sku,
-                'retail_name' => (string) $row->retail_name,
-                'quantity_conversion_factor' => (float) $row->quantity_conversion_factor,
-                'updated_at' => $row->updated_at,
-            ])
-            ->values()
-            ->all();
+        $rows = $lineage->mappingsForStore($storeId);
 
         return response()->json(['data' => $rows]);
     }
