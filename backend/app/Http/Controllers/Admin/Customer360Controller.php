@@ -122,8 +122,7 @@ final class Customer360Controller extends Controller
             ->leftJoin('stores', 'stores.id', '=', 'orders.store_id')
             ->orderByDesc('orders.created_at')
             ->orderByDesc('orders.id')
-            ->limit(30)
-            ->get([
+            ->paginate(25, [
                 'orders.id',
                 'orders.order_number',
                 'orders.store_id',
@@ -133,39 +132,38 @@ final class Customer360Controller extends Controller
                 'orders.grand_total',
                 'orders.created_at',
                 'stores.name as store_name',
-            ])
-            ->map(function (object $row) use ($actor): array {
-                $channel = strtolower((string) $row->channel);
-                $params = ['module' => 'orders', 'q' => $row->order_number];
-                if ($channel === 'b2c') {
-                    $params['store_id'] = (int) $row->store_id;
-                    if ($actor->hasRole('SUPER_ADMIN')) {
-                        $params['support_access'] = 1;
-                    }
+            ], 'orders_page')
+            ->withQueryString();
+        $orders->setCollection($orders->getCollection()->map(function (object $row) use ($actor): array {
+            $channel = strtolower((string) $row->channel);
+            $params = ['module' => 'orders', 'q' => $row->order_number];
+            if ($channel === 'b2c') {
+                $params['store_id'] = (int) $row->store_id;
+                if ($actor->hasRole('SUPER_ADMIN')) {
+                    $params['support_access'] = 1;
                 }
+            }
 
-                return [
-                    'id' => (int) $row->id,
-                    'number' => (string) $row->order_number,
-                    'store' => (string) ($row->store_name ?? '-'),
-                    'channel' => $channel,
-                    'channel_label' => $this->businessLabel($channel),
-                    'status' => (string) $row->status,
-                    'status_label' => $this->businessLabel((string) $row->status),
-                    'currency' => (string) $row->currency,
-                    'total' => (float) $row->grand_total,
-                    'created_at' => $row->created_at,
-                    'url' => route("admin.{$channel}.module", $params),
-                ];
-            })
-            ->all();
+            return [
+                'id' => (int) $row->id,
+                'number' => (string) $row->order_number,
+                'store' => (string) ($row->store_name ?? '-'),
+                'channel' => $channel,
+                'channel_label' => $this->businessLabel($channel),
+                'status' => (string) $row->status,
+                'status_label' => $this->businessLabel((string) $row->status),
+                'currency' => (string) $row->currency,
+                'total' => (float) $row->grand_total,
+                'created_at' => $row->created_at,
+                'url' => route("admin.{$channel}.module", $params),
+            ];
+        }));
 
         $invoices = $this->invoicesQuery($customer, $domains, $access)
             ->leftJoin('stores', 'stores.id', '=', 'invoices.store_id')
             ->orderByDesc('invoices.issued_at')
             ->orderByDesc('invoices.id')
-            ->limit(30)
-            ->get([
+            ->paginate(25, [
                 'invoices.id',
                 'invoices.invoice_number',
                 'invoices.store_id',
@@ -175,22 +173,22 @@ final class Customer360Controller extends Controller
                 'invoices.total',
                 'invoices.issued_at',
                 'stores.name as store_name',
-            ])
-            ->map(fn (object $row): array => [
-                'id' => (int) $row->id,
-                'number' => (string) $row->invoice_number,
-                'store' => (string) ($row->store_name ?? '-'),
-                'channel' => strtolower((string) $row->channel),
-                'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),
-                'status' => (string) $row->status,
-                'status_label' => $this->businessLabel((string) $row->status),
-                'currency' => (string) $row->currency,
-                'total' => (float) $row->total,
-                'issued_at' => $row->issued_at,
-                'url' => route('admin.invoices.show', ['invoice' => $row->id]),
-                'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
-            ])
-            ->all();
+            ], 'invoices_page')
+            ->withQueryString();
+        $invoices->setCollection($invoices->getCollection()->map(fn (object $row): array => [
+            'id' => (int) $row->id,
+            'number' => (string) $row->invoice_number,
+            'store' => (string) ($row->store_name ?? '-'),
+            'channel' => strtolower((string) $row->channel),
+            'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),
+            'status' => (string) $row->status,
+            'status_label' => $this->businessLabel((string) $row->status),
+            'currency' => (string) $row->currency,
+            'total' => (float) $row->total,
+            'issued_at' => $row->issued_at,
+            'url' => route('admin.invoices.show', ['invoice' => $row->id]),
+            'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
+        ]));
 
         $addresses = $this->addressQuery($customer)
             ->orderByDesc('is_default')
