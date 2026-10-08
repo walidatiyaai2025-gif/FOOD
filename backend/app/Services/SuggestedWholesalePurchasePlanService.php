@@ -26,6 +26,7 @@ final class SuggestedWholesalePurchasePlanService
         array $recommendations,
         float $purchasingPower,
         ?float $requestedBudget = null,
+        string $currency = 'KWD',
     ): array {
         $creditLimit = max(0.0, $purchasingPower);
         $budget = $requestedBudget === null
@@ -100,7 +101,7 @@ final class SuggestedWholesalePurchasePlanService
         }
 
         return [
-            'currency' => 'KWD',
+            'currency' => strtoupper($currency),
             'purchasing_power' => round($creditLimit, 3),
             'requested_budget' => $requestedBudget === null ? null : round(max(0.0, $requestedBudget), 3),
             'effective_budget' => round($budget, 3),
