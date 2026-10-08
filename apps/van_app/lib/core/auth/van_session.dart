@@ -5,9 +5,9 @@ class VanSession {
     required this.email,
     required this.locale,
     required this.permissions,
-    required this.vanId,
-    required this.vanCode,
-    required this.assignmentId,
+    this.vanId = 0,
+    this.vanCode = '',
+    this.assignmentId = 0,
   });
 
   final String token;
