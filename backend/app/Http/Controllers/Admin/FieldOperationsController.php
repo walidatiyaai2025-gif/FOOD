@@ -9,6 +9,7 @@ use App\Models\FleetCurrentLocation;
 use App\Models\GeographyNode;
 use App\Models\Remittance;
 use App\Models\RoutingPolicy;
+use App\Models\Role;
 use App\Models\ServiceTerritory;
 use App\Models\User;
 use App\Models\Van;
@@ -299,9 +300,34 @@ final class FieldOperationsController extends Controller
             'effective_from' => ['required', 'date'],
             'effective_until' => ['nullable', 'date', 'after:effective_from'],
             'loaded_work_count' => ['nullable', 'integer', 'min:0'],
+            'allow_van_app' => ['nullable', 'boolean'],
         ]);
 
-        $this->registry->assign($user, $van, $data);
+        $assignment = $this->registry->assign($user, $van, $data);
+
+        if (array_key_exists('allow_van_app', $data)) {
+            $operatorUserId = null;
+            if ($assignment->driver_id !== null) {
+                $operatorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
+            }
+            $operatorUserId ??= $assignment->representative_user_id;
+
+            if ((bool) $data['allow_van_app'] && $operatorUserId === null) {
+                throw ValidationException::withMessages([
+                    'allow_van_app' => [__('field_operations.van_app_operator_required')],
+                ]);
+            }
+
+            if ($operatorUserId !== null) {
+                $operator = User::query()->findOrFail((int) $operatorUserId);
+                $vanRole = Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail();
+                if ((bool) $data['allow_van_app']) {
+                    $operator->roles()->syncWithoutDetaching([$vanRole->id]);
+                } else {
+                    $operator->roles()->detach($vanRole->id);
+                }
+            }
+        }
 
         return back()->with('status', __('admin.field_operations.saved'));
     }
