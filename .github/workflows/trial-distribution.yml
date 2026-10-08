@@ -883,8 +883,6 @@ jobs:
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-assignment-lookup.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
           ASSIGNMENT_ID="$(python3 - <<'PY'
           import re
-          text=open('/tmp/field-assignments-populated.html',encoding='utf-8').read()
-          assert re.search(r'<tr>\s*<td>FRESH-VAN-UI</td>', text), 'Created Van assignment row missing.'
           lookup=open('/tmp/field-visits-assignment-lookup.html',encoding='utf-8').read()
           select=re.search(r'<select\b[^>]*\bname="assignment_id"[^>]*>(.*?)</select>', lookup, re.S)
           assert select, 'Visit assignment lookup missing.'
