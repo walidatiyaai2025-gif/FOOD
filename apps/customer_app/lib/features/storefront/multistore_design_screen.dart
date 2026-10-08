@@ -14,7 +14,6 @@ import '../../core/routing/customer_route_authority.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
-import 'retail_multistore_screens.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'platform_marketplace_screen.dart';
 import 'wholesale_multistore_screens.dart';
@@ -100,30 +99,6 @@ class MultiStoreDesignScreen extends StatelessWidget {
           client: marketplaceClient,
           barcodeScanner:
               marketplaceBarcodeScanner ?? showMarketplaceBarcodeScanner,
-        );
-      case CustomerRoutePaths.home:
-      case CustomerRoutePaths.retailHome:
-        return withFooter(
-          RetailStorefrontDesignScreen(
-            location: location,
-            session: session,
-            catalogApi: catalogApi,
-            storefrontApi: storefrontApi,
-            actionApi: actionApi,
-          ),
-          CustomerFooterDestination.home,
-        );
-      case CustomerRoutePaths.productDetails:
-      case CustomerRoutePaths.retailProductDetails:
-        return withFooter(
-          RetailProductDetailsDesignScreen(
-            location: location,
-            session: session,
-            catalogApi: catalogApi,
-            actionApi: actionApi,
-            favoritesApi: favoritesApi,
-          ),
-          CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bHome:
         return withFooter(
