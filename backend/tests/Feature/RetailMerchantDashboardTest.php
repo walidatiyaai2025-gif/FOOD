@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\RetailMerchantDashboardService;
@@ -37,6 +38,7 @@ class RetailMerchantDashboardTest extends TestCase
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
         $owner = $this->user('merchant-dashboard-owner@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
+        $this->assignManager($owner, $fixture['retail_store']);
 
         $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDay(), 'RECENT');
         $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDays(10), 'MIDDLE');
@@ -67,6 +69,14 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertArrayHasKey('reorder_now', $result['visualizations']['reorder_spend']);
         $this->assertArrayHasKey('days_61_plus', $result['visualizations']['inventory_aging']);
         $this->assertNotEmpty($result['visualizations']['margin_velocity']);
+        $this->assertArrayHasKey($fixture['retail_product'], $result['visualizations']['sales_sparklines']);
+
+        $this->actingAs($owner)
+            ->get('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->assertOk()
+            ->assertSee('data-merchant-intelligence', false)
+            ->assertSee('data-owner-wholesale-account', false)
+            ->assertSee('SMART-RETAIL-SKU');
     }
 
     public function test_retail_manager_gets_store_intelligence_without_owner_personal_wholesale_finance(): void
@@ -75,6 +85,7 @@ class RetailMerchantDashboardTest extends TestCase
         $owner = $this->user('merchant-finance-owner@example.test');
         $manager = $this->user('merchant-dashboard-manager@example.test');
         $fixture = $this->merchantFixture($owner, $asOf);
+        $this->assignManager($manager, $fixture['retail_store']);
 
         $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDay(), 'RECENT');
         $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDays(10), 'MIDDLE');
@@ -92,6 +103,13 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertNull($result['wholesale_account']);
         $this->assertSame(1, $result['summary']['reorder_now']);
         $this->assertSame($fixture['retail_product'], $result['recommendations'][0]['retail_product_id']);
+
+        $this->actingAs($manager)
+            ->get('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->assertOk()
+            ->assertSee('data-merchant-intelligence', false)
+            ->assertDontSee('data-owner-wholesale-account', false)
+            ->assertSee('SMART-RETAIL-SKU');
     }
 
     public function test_canonical_dashboard_and_inventory_drill_down_are_wired_in_place(): void
@@ -184,6 +202,26 @@ class RetailMerchantDashboardTest extends TestCase
             'retail_product' => $retailProduct,
             'wholesale_product' => $wholesaleProduct,
         ];
+    }
+
+    private function assignManager(User $user, int $storeId): void
+    {
+        $roleId = (int) Role::query()
+            ->where('code', 'B2C_STORE_ADMIN')
+            ->where('is_active', true)
+            ->value('id');
+
+        DB::table('user_store_roles')->updateOrInsert(
+            [
+                'user_id' => $user->getKey(),
+                'store_id' => $storeId,
+                'role_id' => $roleId,
+            ],
+            [
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
     }
 
     private function store(string $type, string $code): int
