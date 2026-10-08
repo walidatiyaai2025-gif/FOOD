@@ -6,20 +6,20 @@ void main() {
   CustomerRouteDefinition definition(String pattern) =>
       customerRouteDefinitions.firstWhere((item) => item.pattern == pattern);
 
-  test('explicit retail store routes use the multi-store production authority', () {
+  test('explicit retail store routes use the shared retail production authority', () {
     expect(
       customerRouteAuthorityFor(
         definition(CustomerRoutePaths.retailHome),
         '/retail/7/home',
       ),
-      CustomerRouteAuthority.multiStore,
+      CustomerRouteAuthority.retailJourney,
     );
     expect(
       customerRouteAuthorityFor(
         definition(CustomerRoutePaths.retailProductDetails),
         '/retail/7/products/42',
       ),
-      CustomerRouteAuthority.multiStore,
+      CustomerRouteAuthority.retailJourney,
     );
   });
 
