@@ -170,6 +170,68 @@ class AuthFoundationTest extends TestCase
             ->assertJsonPath('user.van_context_selection_reason', 'deterministic_primary');
     }
 
+    public function test_driver_and_van_tokens_cannot_cross_app_runtime_boundaries(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'AUTH-TOKEN-ISO',
+            'name' => 'Token Isolation Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Dual App Operator',
+            'email' => 'dual-app-operator@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach([
+            Role::query()->where('code', 'B2C_DRIVER')->firstOrFail()->id,
+            Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail()->id,
+        ]);
+        $driver = Driver::query()->create([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'AUTH-TOKEN-VAN']);
+        $registry->assign($user, $van, [
+            'driver_id' => $driver->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        $driverToken = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'app' => 'driver',
+        ])->assertOk()->json('token');
+
+        $vanToken = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'app' => 'van',
+        ])->assertOk()->json('token');
+
+        $this->withToken($vanToken)
+            ->getJson('/api/v1/driver/wallet')
+            ->assertForbidden();
+
+        $this->withToken($driverToken)
+            ->getJson('/api/v1/van/no-order-reasons')
+            ->assertForbidden();
+    }
+
     public function test_van_login_requires_permission_and_effective_assignment(): void
     {
         $this->seed(CoreReferenceSeeder::class);
