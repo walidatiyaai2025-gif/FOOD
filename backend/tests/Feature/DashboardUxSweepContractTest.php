@@ -27,6 +27,8 @@ class DashboardUxSweepContractTest extends TestCase
             'field-operations.blade.php',
             'b2b-workspace.blade.php',
             'b2c-workspace.blade.php',
+            'live-ads.blade.php',
+            'coupons.blade.php',
         ];
 
         foreach ($surfaces as $surface) {
@@ -50,6 +52,16 @@ class DashboardUxSweepContractTest extends TestCase
         $this->assertStringContainsString('data-flash-product-context', $view);
         $this->assertStringContainsString('data-product-context=', $view);
         $this->assertStringContainsString("'catalogs.channel as catalog_channel'", $controller);
+    }
+
+    public function test_dashboard_review_metadata_does_not_render_raw_internal_enums(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
+
+        $this->assertStringContainsString("field_operations.resolution_sources.", $view);
+        $this->assertStringContainsString("field_operations.quality_classes.", $view);
+        $this->assertStringNotContainsString("Str::headline((string)$event->event_type", $view);
+        $this->assertStringNotContainsString('{{ $review->quality_class }}', $view);
     }
 
     public function test_flash_wizard_translation_keys_have_ar_en_parity(): void
