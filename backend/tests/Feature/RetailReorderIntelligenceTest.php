@@ -319,16 +319,22 @@ class RetailReorderIntelligenceTest extends TestCase
         float $quantity,
         CarbonImmutable $listedAt,
     ): int {
-        $catalogId = (int) DB::table('catalogs')->insertGetId([
-            'store_id' => $storeId,
-            'channel' => $channel,
-            'code' => 'default',
-            'name' => $sku.' Catalog',
-            'is_active' => true,
-            'is_migration_quarantine' => false,
-            'created_at' => $listedAt->utc()->toDateTimeString(),
-            'updated_at' => $listedAt->utc()->toDateTimeString(),
-        ]);
+        $catalogId = (int) (DB::table('catalogs')
+            ->where('store_id', $storeId)
+            ->where('code', 'default')
+            ->value('id') ?? 0);
+        if ($catalogId <= 0) {
+            $catalogId = (int) DB::table('catalogs')->insertGetId([
+                'store_id' => $storeId,
+                'channel' => $channel,
+                'code' => 'default',
+                'name' => $sku.' Catalog',
+                'is_active' => true,
+                'is_migration_quarantine' => false,
+                'created_at' => $listedAt->utc()->toDateTimeString(),
+                'updated_at' => $listedAt->utc()->toDateTimeString(),
+            ]);
+        }
         $unitId = (int) DB::table('units')->orderBy('id')->value('id');
         $productId = (int) DB::table('products')->insertGetId([
             'catalog_id' => $catalogId,
