@@ -30,7 +30,7 @@ final class ManagementReportService
     }
 
     /** @param array<string, mixed> $filters */
-    public function run(User $user, string $report, array $filters, int $limit = self::UI_LIMIT): array
+    public function run(User $user, string $report, array $filters, int $limit = self::UI_LIMIT, int $offset = 0): array
     {
         if (! array_key_exists($report, $this->catalog())) {
             throw ValidationException::withMessages([
@@ -43,10 +43,10 @@ final class ManagementReportService
         $filters = $this->enforceChannelScope($user, $filters);
 
         return match ($report) {
-            'orders' => $this->ordersReport($filters, $limit),
-            'products' => $this->productsReport($filters, $limit),
-            'customers' => $this->customersReport($filters, $limit),
-            'operations' => $this->operationsReport($filters, $limit),
+            'orders' => $this->ordersReport($filters, $limit, $offset),
+            'products' => $this->productsReport($filters, $limit, $offset),
+            'customers' => $this->customersReport($filters, $limit, $offset),
+            'operations' => $this->operationsReport($filters, $limit, $offset),
             default => throw ValidationException::withMessages([
                 'report' => __('reports.invalid_report'),
             ]),
@@ -90,7 +90,7 @@ final class ManagementReportService
     }
 
     /** @param array<string, mixed> $filters */
-    private function ordersReport(array $filters, int $limit): array
+    private function ordersReport(array $filters, int $limit, int $offset): array
     {
         $query = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
@@ -160,6 +160,7 @@ final class ManagementReportService
                 'payment_provider',
             )
             ->latest('orders.created_at')
+            ->offset(max(0, $offset))
             ->limit($limit)
             ->get()
             ->map(fn (object $row): array => [
@@ -195,7 +196,7 @@ final class ManagementReportService
     }
 
     /** @param array<string, mixed> $filters */
-    private function productsReport(array $filters, int $limit): array
+    private function productsReport(array $filters, int $limit, int $offset): array
     {
         $sales = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
@@ -298,7 +299,7 @@ final class ManagementReportService
             ->all();
 
         $rows = $byQuantity
-            ->take($limit)
+            ->slice(max(0, $offset), $limit)
             ->map(fn (object $row): array => [
                 'sku' => (string) $row->sku,
                 'name' => (string) $row->name,
@@ -336,7 +337,7 @@ final class ManagementReportService
     }
 
     /** @param array<string, mixed> $filters */
-    private function customersReport(array $filters, int $limit): array
+    private function customersReport(array $filters, int $limit, int $offset): array
     {
         $query = DB::table('orders')
             ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
@@ -400,7 +401,7 @@ final class ManagementReportService
         )->count();
 
         $formatted = $rows
-            ->take($limit)
+            ->slice(max(0, $offset), $limit)
             ->map(function (object $row) use ($fromUtc): array {
                 $isNew = $row->first_order_at !== null
                     && CarbonImmutable::parse((string) $row->first_order_at, 'UTC')
@@ -434,7 +435,7 @@ final class ManagementReportService
     }
 
     /** @param array<string, mixed> $filters */
-    private function operationsReport(array $filters, int $limit): array
+    private function operationsReport(array $filters, int $limit, int $offset): array
     {
         $orders = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id');
@@ -490,7 +491,7 @@ final class ManagementReportService
             );
 
         $formattedRows = $rows
-            ->take($limit)
+            ->slice(max(0, $offset), $limit)
             ->map(fn (object $row): array => [
                 'store' => (string) $row->store,
                 'channel' => $this->channelLabel((string) $row->channel),
