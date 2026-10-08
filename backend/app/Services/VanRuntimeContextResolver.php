@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\VanAssignment;
 use Illuminate\Support\Facades\DB;
 
 final class VanRuntimeContextResolver
@@ -22,7 +21,7 @@ final class VanRuntimeContextResolver
             ->where('is_active', true)
             ->pluck('id');
 
-        $assignments = VanAssignment::query()
+        $assignments = DB::table('van_assignments')
             ->join('vans', 'vans.id', '=', 'van_assignments.van_id')
             ->where('van_assignments.status', 'active')
             ->where('vans.status', 'active')
