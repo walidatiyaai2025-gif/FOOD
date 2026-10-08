@@ -100,7 +100,7 @@ class DriverAssignmentController extends Controller
         $channel = strtolower((string) $order->channel);
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 409, 'Unsupported order channel.');
 
-        $ability = "drivers.{$channel}.manage";
+        $ability = 'orders.dispatch';
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         app(OperationalTenantScope::class)->assertStore(
@@ -211,7 +211,7 @@ class DriverAssignmentController extends Controller
         app(OperationalTenantScope::class)->assertStore(
             $user,
             (int) $orderModel->store_id,
-            "drivers.{$channel}.manage",
+            'orders.dispatch',
             $channel,
         );
 
