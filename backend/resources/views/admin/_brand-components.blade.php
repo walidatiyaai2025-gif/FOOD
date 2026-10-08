@@ -59,6 +59,7 @@
     .foodex-tabs a.active,.foodex-tab.active{border-color:var(--foodex-green);color:var(--foodex-green-dark)}
     .foodex-modal-backdrop{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:var(--foodex-space-4);background:rgba(23,32,51,.42)}
     .foodex-modal{width:min(100%,620px);max-height:min(88vh,760px);overflow:auto;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-lg);box-shadow:var(--foodex-shadow-raised);padding:var(--foodex-space-6)}
+    .foodex-operational-dialog-host .foodex-modal{width:min(100%,920px)}
     .foodex-modal-backdrop[hidden]{display:none!important}
     .foodex-modal-header{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);margin-bottom:var(--foodex-space-4)}
     .foodex-modal-header h2,.foodex-modal-header h3{margin:0}
@@ -158,7 +159,7 @@
         details.dataset.foodexModalReady = '1';
         const title = summary.textContent.trim();
         const host = document.createElement('div');
-        host.className = 'foodex-operational-dialog-host';
+        host.className = ['foodex-operational-dialog-host', ...details.classList].join(' ');
         host.style.cssText = details.style.cssText;
 
         const trigger = document.createElement('button');
