@@ -16,11 +16,9 @@ import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
-import '../customer_orders/customer_order_screens.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
 import 'dashboard_single_screen.dart';
-import '../customer_orders/customer_orders_api.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
@@ -32,7 +30,6 @@ class B2bJourneyScreen extends StatelessWidget {
     required this.actionApi,
     this.api,
     this.accountApi,
-    this.ordersApi,
     this.storefrontApi,
     this.onLocaleChanged,
     this.onLogout,
@@ -43,7 +40,6 @@ class B2bJourneyScreen extends StatelessWidget {
   final String location;
   final B2bApi? api;
   final B2cAccountApi? accountApi;
-  final CustomerOrdersApi? ordersApi;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final ValueChanged<Locale>? onLocaleChanged;
@@ -84,47 +80,6 @@ class B2bJourneyScreen extends StatelessWidget {
           onOpenOrder: (target) => _openNotificationOrder(context, target),
         ),
         CustomerFooterDestination.account,
-      );
-    }
-
-    if (definition.pattern == CustomerRoutePaths.b2bOrders &&
-        ordersApi != null) {
-      return withFooter(
-        CustomerOrdersScreen(
-          api: ordersApi!,
-          actionApi: actionApi,
-          onOpenCart: (order) {
-            final orderContext = CustomerCommerceContext(
-              channel: CustomerCommerceChannel.wholesale,
-              storeId: order.storeId,
-            );
-            Navigator.of(context).pushNamed(
-              Uri(
-                path: CustomerRoutePaths.b2bCart,
-                queryParameters: orderContext.toQueryParameters(),
-              ).toString(),
-            );
-          },
-          onOpenOrder: (order) {
-            final orderContext = CustomerCommerceContext(
-              channel: order.channel == 'b2b'
-                  ? CustomerCommerceChannel.wholesale
-                  : CustomerCommerceChannel.retail,
-              storeId: order.storeId,
-            );
-            final target = order.channel == 'b2b'
-                ? Uri(
-                    path: '/b2b/orders/${order.id}',
-                    queryParameters: orderContext.toQueryParameters(),
-                  ).toString()
-                : Uri(
-                    path: '/orders/${order.id}/track',
-                    queryParameters: orderContext.toQueryParameters(),
-                  ).toString();
-            Navigator.of(context).pushNamed(target);
-          },
-        ),
-        CustomerFooterDestination.orders,
       );
     }
 
