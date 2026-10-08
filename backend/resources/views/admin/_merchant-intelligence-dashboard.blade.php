@@ -113,6 +113,7 @@
                             return $x.','.round($y,1);
                         })->implode(' ');
                         $stockoutAt = data_get($row,'inventory.estimated_stockout_at');
+                        $stockoutLabel = $stockoutAt ? date('d/m', strtotime((string) $stockoutAt)) : '—';
                         $caseEquivalent = data_get($row,'commercial.recommended_case_equivalent');
                     @endphp
                     <div class="merchant-rec">
@@ -121,7 +122,7 @@
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.available') }}</span><b>{{ number_format((float)data_get($row,'inventory.available',0),2) }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.units_per_day') }}</span><b>{{ number_format((float)data_get($row,'inventory.velocity_units_per_day',0),2) }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.days_cover') }}</span><b>{{ data_get($row,'inventory.days_of_cover')===null ? '—' : number_format((float)data_get($row,'inventory.days_of_cover'),1) }}</b></div>
-                            <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_stockout') }}</span><b>{{ $stockoutAt ? CarbonCarbon::parse($stockoutAt)->format('d/m') : '—' }}</b></div>
+                            <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_stockout') }}</span><b>{{ $stockoutLabel }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.qty_cases') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }} / {{ $caseEquivalent===null ? '—' : number_format((float)$caseEquivalent,2) }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
                         </div>
