@@ -485,6 +485,8 @@ backend/database/seeders/FieldOperationsScreenshotEvidenceSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
 backend/database/seeders/RefreshTimeSensitiveVisualEvidenceSeeder.php
 backend/database/seeders/ScreenshotEvidenceSeeder.php
+backend/database/sql/
+backend/database/sql/egypt_food_van_geography_full.sql
 backend/lang/
 backend/lang/ar/
 backend/lang/ar/admin.php

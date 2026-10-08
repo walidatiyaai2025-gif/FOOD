@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.63",
-  "minimum_current_version": "1.0.62",
-  "sha256": "e84a1132f1f15a1c50b553c899761082b4daefbc3edd614eb9c2bfd24984e8f3",
+  "target_version": "1.0.64",
+  "minimum_current_version": "1.0.61",
+  "sha256": "92246a478a22f78557c02f83dbeb768b2dd280ae249aa4c28227d40cd20813c8",
   "contains_migrations": false,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Merge pull request #1082 from walidatiyaai2025-gif/fix/1080-invoice-redesign-release-regression",
+  "release_notes": "release(#1093): FOODEX 1.0.64 from clean main (#1094)",
   "dashboard_fields": {
-    "target_version": "1.0.63",
-    "minimum_current_version": "1.0.62",
-    "sha256": "e84a1132f1f15a1c50b553c899761082b4daefbc3edd614eb9c2bfd24984e8f3",
+    "target_version": "1.0.64",
+    "minimum_current_version": "1.0.61",
+    "sha256": "92246a478a22f78557c02f83dbeb768b2dd280ae249aa4c28227d40cd20813c8",
     "contains_migrations": false,
-    "release_notes": "Merge pull request #1082 from walidatiyaai2025-gif/fix/1080-invoice-redesign-release-regression"
+    "release_notes": "release(#1093): FOODEX 1.0.64 from clean main (#1094)"
   }
 }
