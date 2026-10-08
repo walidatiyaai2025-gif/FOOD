@@ -150,7 +150,34 @@ class B2bWorkspaceController extends Controller
             : null;
         $moduleData = $module === 'dashboard' ? null : $this->moduleData($module, $storeIds, $user, $request);
         if (is_array($moduleData)) {
-            $moduleData = $this->paginateModuleCollections($request, $moduleData);
+            foreach ([
+                ['key' => 'rows', 'page' => 'rows_page', 'paginator' => 'rows_paginator'],
+                ['key' => 'assignments_list', 'page' => 'assignments_page', 'paginator' => 'assignments_paginator'],
+            ] as $paginationContract) {
+                $key = $paginationContract['key'];
+                if (! isset($moduleData[$key]) || ! is_array($moduleData[$key])) {
+                    continue;
+                }
+
+                $items = collect($moduleData[$key])->values();
+                $perPage = 25;
+                $pageName = $paginationContract['page'];
+                $currentPage = max(1, (int) $request->query($pageName, 1));
+                $pageItems = $items->forPage($currentPage, $perPage)->values();
+
+                $moduleData[$key] = $pageItems->all();
+                $moduleData[$paginationContract['paginator']] = new LengthAwarePaginator(
+                    $pageItems,
+                    $items->count(),
+                    $perPage,
+                    $currentPage,
+                    [
+                        'path' => $request->url(),
+                        'pageName' => $pageName,
+                        'query' => $request->except($pageName),
+                    ],
+                );
+            }
         }
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
@@ -1791,45 +1818,5 @@ class B2bWorkspaceController extends Controller
         return app()->getLocale() === 'ar' ? $ar : $en;
     }
 
-    /**
-     * Server-side pagination contract for Dashboard workspace record grids.
-     *
-     * @param array<string,mixed> $moduleData
-     * @return array<string,mixed>
-     */
-    private function paginateModuleCollections(Request $request, array $moduleData): array
-    {
-        foreach ([
-            ['key' => 'rows', 'page' => 'rows_page', 'paginator' => 'rows_paginator'],
-            ['key' => 'assignments_list', 'page' => 'assignments_page', 'paginator' => 'assignments_paginator'],
-        ] as $contract) {
-            $key = $contract['key'];
-            if (isset($moduleData[$key]) === false || is_array($moduleData[$key]) === false) {
-                continue;
-            }
 
-            $items = collect($moduleData[$key])->values();
-            $perPage = 25;
-            $pageName = $contract['page'];
-            $currentPage = max(1, (int) $request->query($pageName, 1));
-            $pageItems = $items->forPage($currentPage, $perPage)->values();
-
-            $paginator = new LengthAwarePaginator(
-                $pageItems,
-                $items->count(),
-                $perPage,
-                $currentPage,
-                [
-                    'path' => $request->url(),
-                    'pageName' => $pageName,
-                    'query' => $request->except($pageName),
-                ],
-            );
-
-            $moduleData[$key] = $pageItems->all();
-            $moduleData[$contract['paginator']] = $paginator;
-        }
-
-        return $moduleData;
-    }
 }
