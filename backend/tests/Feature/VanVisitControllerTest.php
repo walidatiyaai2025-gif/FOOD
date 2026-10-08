@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Models\VanVisit;
+use App\Services\VanRegistryService;
+use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -14,8 +17,7 @@ class VanVisitControllerTest extends TestCase
 
     public function test_actor_visit_feed_exposes_canonical_route_context_from_metadata(): void
     {
-        $actor = User::factory()->create(['is_active' => true]);
-        Sanctum::actingAs($actor);
+        $actor = $this->vanActor();
 
         VanVisit::query()->create([
             'actor_user_id' => $actor->id,
@@ -36,8 +38,7 @@ class VanVisitControllerTest extends TestCase
 
     public function test_actor_visit_feed_falls_back_to_legacy_route_metadata_keys(): void
     {
-        $actor = User::factory()->create(['is_active' => true]);
-        Sanctum::actingAs($actor);
+        $actor = $this->vanActor();
 
         VanVisit::query()->create([
             'actor_user_id' => $actor->id,
@@ -51,5 +52,24 @@ class VanVisitControllerTest extends TestCase
         $this->getJson('/api/v1/van/visits')
             ->assertOk()
             ->assertJsonPath('data.0.route_key', 'ROUTE-LEGACY');
+    }
+
+    private function vanActor(): User
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        $actor = User::factory()->create(['is_active' => true]);
+        $actor->roles()->attach(Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail());
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'VISIT-VAN-'.$actor->id]);
+        $registry->assign($actor, $van, [
+            'representative_user_id' => $actor->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        Sanctum::actingAs($actor, ['app:van']);
+
+        return $actor;
     }
 }

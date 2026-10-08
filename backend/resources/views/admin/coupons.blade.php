@@ -67,7 +67,7 @@
 <form method="post" action="{{ route('admin.coupons.toggle',$coupon) }}">@csrf @method('patch')<button class="foodex-action-secondary" type="submit">{{ $coupon->is_active?__('coupons.deactivate'):__('coupons.activate') }}</button></form>
 @if((int)$coupon->used_count===0)<form method="post" action="{{ route('admin.coupons.destroy',$coupon) }}" onsubmit="return confirm('{{ $ar?'حذف الكوبون؟':'Delete coupon?' }}')">@csrf @method('delete')<button class="danger btn" type="submit">{{ __('coupons.delete') }}</button></form>@endif
 </div></div>
-<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:800">{{ __('coupons.update') }}</summary>
+<details data-foodex-operational-modal style="margin-top:14px"><summary style="cursor:pointer;font-weight:800">{{ __('coupons.update') }}</summary>
 <form method="post" action="{{ route('admin.coupons.update',$coupon) }}" class="coupon-grid" style="margin-top:14px">@csrf @method('patch')
 <label>{{ __('coupons.channel') }}<select name="channel"><option value="b2b" @selected($coupon->channel==='b2b')>{{ __('coupons.b2b') }}</option>@if($retailStores!==[])<option value="b2c" @selected($coupon->channel==='b2c')>{{ __('coupons.b2c') }}</option>@endif</select></label>
 <label>{{ __('coupons.store') }}<select name="store_id"><option value="">—</option>@foreach($retailStores as $store)<option value="{{ $store['id'] }}" @selected((int)$coupon->store_id===(int)$store['id'])>{{ $store['name'] }}</option>@endforeach</select></label>

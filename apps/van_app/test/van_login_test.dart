@@ -17,6 +17,9 @@ class _Auth implements VanAuthRepository {
       email: email,
       locale: 'en',
       permissions: const {'van.login'},
+      vanId: 12,
+      vanCode: 'VAN-12',
+      assignmentId: 34,
     );
   }
 
@@ -74,6 +77,9 @@ VanSession _savedSession() => const VanSession(
       email: 'remembered@example.test',
       locale: 'en',
       permissions: {'van.login'},
+      vanId: 21,
+      vanCode: 'VAN-21',
+      assignmentId: 43,
     );
 
 void main() {

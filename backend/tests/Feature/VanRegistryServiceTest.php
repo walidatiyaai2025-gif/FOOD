@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\GeographyNode;
 use App\Models\ServiceTerritory;
 use App\Models\User;
+use App\Models\VanAssignment;
 use App\Services\VanRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -35,6 +36,12 @@ class VanRegistryServiceTest extends TestCase
 
         $this->assertSame('north', $past->fresh()->territory_key);
         $this->assertSame('south', $current->fresh()->territory_key);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'van.assignment.created',
+            'user_id' => $actor->id,
+            'auditable_type' => VanAssignment::class,
+            'auditable_id' => $current->id,
+        ]);
         $this->assertCount(1, $service->effectiveAssignments('2026-01-15T00:00:00Z'));
         $this->assertSame('north', $service->effectiveAssignments('2026-01-15T00:00:00Z')->first()->territory_key);
         $this->assertSame('south', $service->effectiveAssignments('2026-03-01T00:00:00Z')->first()->territory_key);

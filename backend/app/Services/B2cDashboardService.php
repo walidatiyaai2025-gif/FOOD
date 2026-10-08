@@ -11,6 +11,10 @@ final class B2cDashboardService
 {
     private const TIMEZONE = 'Asia/Kuwait';
 
+    public function __construct(
+        private readonly RetailMerchantDashboardService $merchantIntelligence,
+    ) {}
+
     /** @param list<int> $storeIds */
     public function build(
         User $user,
@@ -102,6 +106,14 @@ final class B2cDashboardService
             'mobile_apps' => $this->mobileApps(),
             'notifications_unread' => $this->unreadNotifications($user, $storeIds),
             'search' => $this->search($storeIds, trim((string) $search)),
+            'merchant_intelligence' => count($storeIds) === 1
+                ? $this->merchantIntelligence->forUserStore(
+                    $user,
+                    (int) $storeIds[0],
+                    $rangeFrom,
+                    $rangeTo,
+                )
+                : null,
         ];
     }
 

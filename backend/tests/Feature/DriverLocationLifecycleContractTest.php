@@ -21,7 +21,7 @@ class DriverLocationLifecycleContractTest extends TestCase
     public function test_heartbeat_marks_only_execution_statuses_as_active_tracking(): void
     {
         [$driverUser, $driver, $assignmentId] = $this->assignment('assigned');
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
 
         $statuses = [
             'assigned' => false,
@@ -81,7 +81,7 @@ class DriverLocationLifecycleContractTest extends TestCase
     {
         [$driverUser, $driver, $assignmentId, $order, $storeId] =
             $this->assignment('out_for_delivery');
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
 
         $this->postJson('/api/v1/driver/location/heartbeat', [
             'latitude' => 29.3759,
@@ -126,7 +126,7 @@ class DriverLocationLifecycleContractTest extends TestCase
         $order->forceFill(['status' => 'out_for_delivery'])->save();
 
         app(DriverLocationEnforcementPolicy::class)->persist(true, 90);
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
 
         $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
             'status' => 'delivered',

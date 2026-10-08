@@ -378,6 +378,10 @@ class CommercialDashboardContractTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('data-flash-offer-form', false)
+            ->assertSee('data-flash-wizard-progress', false)
+            ->assertSee('data-flash-wizard-step="0"', false)
+            ->assertSee('data-flash-product-context', false)
+            ->assertSee('data-product-context="retail"', false)
             ->assertSee('data-flash-product-builder', false)
             ->assertSee('name="channels[]"', false)
             ->assertSee('data-flash-lookup-kind="customers"', false)
