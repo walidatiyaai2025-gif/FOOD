@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ServiceTerritory;
 use App\Models\User;
 use App\Models\Van;
 use App\Models\VanAssignment;
@@ -51,7 +52,23 @@ final class VanRegistryService
             ]);
         }
 
-        return DB::transaction(function () use ($actor, $van, $attributes, $from, $until, $type): VanAssignment {
+        $territoryKey = isset($attributes['territory_key']) ? trim((string) $attributes['territory_key']) : null;
+        if ($territoryKey !== null && $territoryKey !== '') {
+            $territoryExists = ServiceTerritory::query()
+                ->where('code', $territoryKey)
+                ->where('status', 'active')
+                ->where(fn ($query) => $query->whereNull('effective_from')->orWhere('effective_from', '<=', $from))
+                ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
+                ->exists();
+
+            if ($territoryExists === false) {
+                throw ValidationException::withMessages([
+                    'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
+                ]);
+            }
+        }
+
+        return DB::transaction(function () use ($actor, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
             if ($type === 'primary') {
                 $overlap = VanAssignment::query()
                     ->where('van_id', $van->id)
@@ -75,6 +92,30 @@ final class VanRegistryService
                         'assignment' => ['Van already has an overlapping active primary assignment.'],
                     ]);
                 }
+
+                if ($territoryKey !== null && $territoryKey !== '') {
+                    $territoryOverlap = VanAssignment::query()
+                        ->where('territory_key', $territoryKey)
+                        ->where('assignment_type', 'primary')
+                        ->where('status', 'active')
+                        ->where('van_id', '!=', $van->id)
+                        ->where(function ($query) use ($until): void {
+                            if ($until === null) {
+                                $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
+                            } else {
+                                $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
+                            }
+                        })
+                        ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($territoryOverlap) {
+                        throw ValidationException::withMessages([
+                            'territory_key' => ['Territory already has an overlapping active primary Van assignment.'],
+                        ]);
+                    }
+                }
             }
 
             $assignment = VanAssignment::query()->create([
@@ -83,7 +124,7 @@ final class VanRegistryService
                 'driver_id' => $attributes['driver_id'] ?? null,
                 'representative_user_id' => $attributes['representative_user_id'] ?? null,
                 'warehouse_id' => $attributes['warehouse_id'] ?? $van->home_warehouse_id,
-                'territory_key' => $attributes['territory_key'] ?? null,
+                'territory_key' => $territoryKey ?: null,
                 'van_pool_key' => $attributes['van_pool_key'] ?? null,
                 'assignment_type' => $type,
                 'status' => 'active',
