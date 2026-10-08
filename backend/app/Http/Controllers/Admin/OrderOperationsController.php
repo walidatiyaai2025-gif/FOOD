@@ -875,6 +875,7 @@ final class OrderOperationsController extends Controller
         $dispatch = OrderDispatchState::query()
             ->where('order_id', $order->getKey())
             ->first();
+        /** @var OrderDispatchState|null $dispatch */
         $dispatchAssignee = null;
         if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'driver') {
             $dispatchDriver = DB::table('drivers')
