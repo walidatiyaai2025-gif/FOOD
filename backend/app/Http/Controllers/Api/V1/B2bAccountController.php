@@ -39,11 +39,8 @@ class B2bAccountController extends Controller
         ]);
     }
 
-    public function store(
-        Request $request,
-        B2bCustomerService $customers,
-        PlatformCustomerService $platformCustomers,
-    ): JsonResponse {
+    public function store(Request $request, B2bCustomerService $customers): JsonResponse
+    {
         Gate::authorize('b2b.accounts.manage');
 
         $data = $request->validate([
@@ -55,7 +52,7 @@ class B2bAccountController extends Controller
             'tax_number' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $account = DB::transaction(function () use ($data, $customers, $platformCustomers): B2bAccount {
+        $account = DB::transaction(function () use ($data, $customers): B2bAccount {
             $user = User::query()->create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -69,7 +66,7 @@ class B2bAccountController extends Controller
                 'email' => $data['email'],
             ], $user);
 
-            $platformCustomers->reconcileWholesaleCustomerIdentity(
+            app(PlatformCustomerService::class)->reconcileWholesaleCustomerIdentity(
                 $user,
                 $customer,
                 'dashboard',
