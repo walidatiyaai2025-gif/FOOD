@@ -98,7 +98,7 @@ return [
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.delete', 'catalog.manage',
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
-            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'customers.manage',
             'promotions.view', 'promotions.manage', 'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage', 'assistant.use',
@@ -109,7 +109,7 @@ return [
         ],
         // Global operational roles are wholesale-only. Retail counterparts are store-only.
         'OPERATIONS' => [
-            'stores.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'stores.view', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'assistant.use',
             'drivers.tracking.view', 'drivers.b2b.view', 'drivers.b2b.manage', 'reports.view',
         ],
@@ -124,7 +124,7 @@ return [
             'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
         ],
         'RETAIL_OPERATIONS' => [
-            'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'drivers.tracking.view', 'drivers.b2c.view', 'drivers.b2c.manage', 'reports.view',
         ],
         'RETAIL_INVENTORY' => [
@@ -134,7 +134,7 @@ return [
         ],
         'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
-            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
+            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],
         'B2C_DRIVER' => ['deliveries.b2c.execute'],
