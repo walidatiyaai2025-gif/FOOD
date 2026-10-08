@@ -1518,6 +1518,4 @@ class B2cWorkspaceController extends Controller
     {
         return app()->getLocale() === 'ar' ? $ar : $en;
     }
-
-
 }
