@@ -92,7 +92,7 @@ return [
         'reverse' => 'عكس القيد',
         'reversal_reason' => 'سبب العكس',
         'cancel' => 'إلغاء',
-        'xlsx' => 'XLSX',
+        'xlsx' => 'XLSX', // localization-gate: allow — XLSX is a technical export format acronym.
     ],
     'addresses' => [
         'description' => 'إدارة العناوين المحفوظة للعميل.',
