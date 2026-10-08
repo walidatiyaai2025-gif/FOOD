@@ -161,6 +161,7 @@
         const host = document.createElement('div');
         host.className = ['foodex-operational-dialog-host', ...details.classList].join(' ');
         host.style.cssText = details.style.cssText;
+        Object.entries(details.dataset).forEach(([key, value]) => { host.dataset[key] = value; });
 
         const trigger = document.createElement('button');
         trigger.type = 'button';
