@@ -176,20 +176,24 @@ final class Customer360Controller extends Controller
                 'stores.name as store_name',
             ], 'invoices_page')
             ->withQueryString();
-        $invoices->setCollection($invoices->getCollection()->map(fn (mixed $row): array => (static function (object $row): array { return [
-            'id' => (int) $row->id,
-            'number' => (string) $row->invoice_number,
-            'store' => (string) ($row->store_name ?? '-'),
-            'channel' => strtolower((string) $row->channel),
-            'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),
-            'status' => (string) $row->status,
-            'status_label' => $this->businessLabel((string) $row->status),
-            'currency' => (string) $row->currency,
-            'total' => (float) $row->total,
-            'issued_at' => $row->issued_at,
-            'url' => route('admin.invoices.show', ['invoice' => $row->id]),
-            'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
-        ]; })((object) $row)));
+        $invoices->setCollection($invoices->getCollection()->map(function (mixed $row): array {
+            $row = (object) $row;
+
+            return [
+                'id' => (int) $row->id,
+                'number' => (string) $row->invoice_number,
+                'store' => (string) ($row->store_name ?? '-'),
+                'channel' => strtolower((string) $row->channel),
+                'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),
+                'status' => (string) $row->status,
+                'status_label' => $this->businessLabel((string) $row->status),
+                'currency' => (string) $row->currency,
+                'total' => (float) $row->total,
+                'issued_at' => $row->issued_at,
+                'url' => route('admin.invoices.show', ['invoice' => $row->id]),
+                'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
+            ];
+        }));
 
         $addresses = $this->addressQuery($customer)
             ->orderByDesc('is_default')
