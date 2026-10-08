@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\OrderOperationsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
+use App\Http\Controllers\Admin\SmsSettingsController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
 use App\Http\Controllers\Admin\StoreSubmissionController;
 use App\Http\Controllers\Admin\SystemInspectorController;
@@ -177,6 +178,9 @@ Route::prefix('admin')
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::post('/customer-360/{platformCustomer}/finance-entries', [Customer360Controller::class, 'storeFinanceEntry'])->whereNumber('platformCustomer')->name('customer-360.finance-entries.store');
+        Route::post('/customer-360/{platformCustomer}/invoices/{invoice}/settle', [Customer360Controller::class, 'settleInvoice'])->whereNumber('platformCustomer')->whereNumber('invoice')->name('customer-360.invoices.settle');
+        Route::post('/customer-360/{platformCustomer}/finance-entries/{ledgerEntry}/reverse', [Customer360Controller::class, 'reverseFinanceEntry'])->whereNumber('platformCustomer')->whereNumber('ledgerEntry')->name('customer-360.finance-entries.reverse');
+        Route::get('/customer-360/{platformCustomer}/statement/export', [Customer360Controller::class, 'statementExport'])->whereNumber('platformCustomer')->name('customer-360.statement.export');
         Route::patch('/customer-360/{platformCustomer}/credit-limit', [Customer360Controller::class, 'updateCreditLimit'])->whereNumber('platformCustomer')->name('customer-360.credit-limit.update');
         Route::get('/customer-360/{invalidCustomerReference}', [Customer360Controller::class, 'invalidReference'])
             ->where('invalidCustomerReference', '[^0-9]+')
@@ -187,6 +191,7 @@ Route::prefix('admin')
         Route::delete('/customer-360/{platformCustomer}/addresses/{address}', [Customer360Controller::class, 'destroyAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.destroy');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
         Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->whereNumber('invoice')->name('invoices.download');
+        Route::post('/invoices/{invoice}/settle', [InvoiceController::class, 'settle'])->whereNumber('invoice')->name('invoices.settle');
         Route::post('/invoices/{invoice}/void-reissue', [InvoiceController::class, 'reissue'])->whereNumber('invoice')->name('invoices.reissue');
         Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
         Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
@@ -316,6 +321,8 @@ Route::prefix('admin')
         Route::post('/operations/orders', [OrderOperationsController::class, 'storeNewOrder'])->name('operations.orders.store');
         Route::post('/operations/orders/{order}/remind-driver', [OrderOperationsController::class, 'remindDriver'])->whereNumber('order')->name('operations.orders.remind');
         Route::post('/operations/orders/{order}/status', [OrderOperationsController::class, 'transition'])->whereNumber('order')->name('operations.orders.transition');
+        Route::patch('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'dispatch'])->whereNumber('order')->name('operations.orders.dispatch');
+        Route::delete('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'clearDispatch'])->whereNumber('order')->name('operations.orders.dispatch.clear');
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');
         Route::delete('/operations/orders/{order}/driver', [OrderOperationsController::class, 'unassign'])->whereNumber('order')->name('operations.orders.unassign');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -341,6 +348,9 @@ Route::prefix('admin')
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
+        Route::get('/settings/sms', [SmsSettingsController::class, 'index'])->name('sms-settings.index');
+        Route::put('/settings/sms', [SmsSettingsController::class, 'update'])->name('sms-settings.update');
+        Route::post('/settings/sms/test', [SmsSettingsController::class, 'test'])->middleware('throttle:10,1')->name('sms-settings.test');
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
         Route::put('/settings/mobile/app', [MobileSettingsController::class, 'updateApp'])->name('mobile-settings.app');
         Route::put('/settings/mobile/driver-location-policy', [MobileSettingsController::class, 'updateDriverLocationPolicy'])->name('mobile-settings.driver-location-policy');
