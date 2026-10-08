@@ -305,6 +305,8 @@
                 @endforeach
             </section>
 
+            @include('admin._merchant-intelligence-dashboard')
+
             <section class="middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
                 <article class="panel" data-dashboard-primary-card="sales">
                     <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.orders_revenue') }}</h2>@if(app()->getLocale()==='en')<small lang="en">Orders & Revenue</small>@endif</div><div class="legend"><span><i class="dot" style="background:var(--foodex-orange)"></i>{{ __('admin.b2c_dashboard.orders') }}</span><span><i class="dot" style="background:var(--foodex-green)"></i>{{ __('admin.b2c_dashboard.revenue') }}</span></div></div>
@@ -476,6 +478,13 @@
                 ];
         @endphp
         <section class="module-panel foodex-card">
+            @if($module==='inventory' && !empty($moduleData['focus_product_id']))
+                @php $focusedInventoryName = data_get($moduleData,'rows.0.name'); @endphp
+                <div class="flash ok" data-focused-recommendation-product role="status" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+                    <span><strong>{{ app()->getLocale()==='ar' ? 'منتج التوصية المحدد' : 'Focused recommendation product' }}</strong>@if($focusedInventoryName) · {{ $focusedInventoryName }}@endif</span>
+                    <a class="foodex-action-secondary" href="{{ route('admin.b2c.module',array_merge(['module'=>'inventory','store_id'=>$storeId],$supportAccess?['support_access'=>1]:[])) }}">{{ app()->getLocale()==='ar' ? 'عرض كل المخزون' : 'Show all inventory' }}</a>
+                </div>
+            @endif
             <div class="module-toolbar">
                 <div>
                     <strong>{{ __('admin.b2c_workspace.authoritative') }}</strong>
