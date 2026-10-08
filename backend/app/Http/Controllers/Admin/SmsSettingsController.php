@@ -38,7 +38,7 @@ final class SmsSettingsController extends Controller
         $data=$request->validate([
             'enabled'=>['nullable','boolean'],
             'provider'=>['required','in:advansys_bulk_sms'],
-            'api_base_url'=>['required','url:https','max:255'],
+            'api_base_url'=>['required','url','max:255'],
             'endpoint_path'=>['required','string','max:255'],
             'api_token'=>['nullable','string','max:4096'],
             'default_sender_name'=>['required','string','max:64'],
