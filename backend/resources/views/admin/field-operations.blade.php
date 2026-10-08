@@ -334,7 +334,7 @@
         @elseif($section === 'territories')
             @if($canManageTerritories)
             <section class="fieldops-grid">
-                <details class="fieldops-card"><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
+                <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.geography.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
                             <label>{{ __('field_operations.type') }}<select name="type">@foreach(['country','governorate','region','city','markaz','district','area'] as $type)<option value="{{ $type }}">{{ __('field_operations.geography_types.'.$type) }}</option>@endforeach</select></label>
@@ -344,7 +344,7 @@
                         </div><button class="foodex-primary">{{ __('field_operations.save') }}</button>
                     </form>
                 </details>
-                <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
+                <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.territories.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
                             <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label> {{-- localization-gate: allow — name_ar/name_en are backend field keys; visible labels are localized --}}
@@ -427,7 +427,7 @@
 
         @elseif($section === 'routing')
             @if($canManageTerritories)
-            <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
+            <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                     <div class="fieldops-form-grid">
                         <label>{{ __('field_operations.code') }}<input name="code" required></label>
