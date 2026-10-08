@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
@@ -112,6 +113,73 @@ class _VanRoutesPageState extends State<VanRoutesPage>
     return Map<String, List<VanVisitRecord>>.fromEntries(entries);
   }
 
+  int get _plannedCount =>
+      _visits.where((visit) => visit.status == 'planned').length;
+
+  int get _activeCount =>
+      _visits.where((visit) => visit.status == 'started').length;
+
+  int get _completedCount => _visits
+      .where(
+        (visit) => {
+          'completed_with_order',
+          'completed_no_order',
+          'customer_unavailable',
+          'closed',
+        }.contains(visit.status),
+      )
+      .length;
+
+  Widget _routeAnalytics(BuildContext context) => Card(
+        key: const ValueKey('van-routes-analytics'),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _text('Route productivity', 'إنتاجية المسارات'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _text(
+                  'How much of the assigned visit workload is complete?',
+                  'ما نسبة الزيارات المسندة التي تم إنجازها؟',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              FoodexDonutChart(
+                key: const ValueKey('van-routes-status-chart'),
+                values: [
+                  _plannedCount.toDouble(),
+                  _activeCount.toDouble(),
+                  _completedCount.toDouble(),
+                ],
+                semanticLabel: _text(
+                  'Planned, active and completed visit distribution',
+                  'توزيع الزيارات المخططة والنشطة والمكتملة',
+                ),
+                size: 134,
+                strokeWidth: 18,
+              ),
+              const SizedBox(height: 10),
+              FoodexChartLegend(
+                labels: [
+                  _text('Planned', 'مخطط'),
+                  _text('Active', 'نشط'),
+                  _text('Completed', 'مكتمل'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
   String _statusLabel(String status) {
     switch (status) {
       case 'planned':
@@ -198,6 +266,8 @@ class _VanRoutesPageState extends State<VanRoutesPage>
                     fontWeight: FontWeight.w900,
                   ),
             ),
+            const SizedBox(height: 10),
+            _routeAnalytics(context),
             const SizedBox(height: 10),
             for (final entry in routes.entries)
               Card(

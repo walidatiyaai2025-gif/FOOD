@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/api/b2b_api.dart';
@@ -3244,65 +3245,55 @@ class _PurchaseTrendBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxValue = rows.fold<double>(
-      0,
-      (current, row) =>
-          math.max(current, _reportDouble(row['purchase_total'])),
-    );
+    final groups = rows
+        .map((row) => <double>[_reportDouble(row['purchase_total'])])
+        .toList(growable: false);
 
-    return SizedBox(
-      height: 190,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: rows.map((row) {
-            final value = _reportDouble(row['purchase_total']);
-            final ratio = maxValue <= 0 ? 0.0 : value / maxValue;
-            final period = row['period']?.toString() ?? '';
-            return SizedBox(
-              width: 54,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    _reportCompactNumber(value),
-                    style: Theme.of(context).textTheme.labelSmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 105,
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Tooltip(
-                        message: _reportMoney(value, currency),
-                        child: Container(
-                          key: ValueKey('b2b-purchases-bar-$period'),
-                          width: 22,
-                          height: math.max(8.0, 96 * ratio),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _shortReportPeriod(period),
-                    style: Theme.of(context).textTheme.labelSmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FoodexBarChart(
+          key: const ValueKey('b2b-purchases-trend-chart'),
+          groups: groups,
+          semanticLabel: context.tr('b2b.purchase_reports.trend'),
+          height: 150,
+          gap: 10,
         ),
-      ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: rows.map((row) {
+              final value = _reportDouble(row['purchase_total']);
+              final period = row['period']?.toString() ?? '';
+              return SizedBox(
+                key: ValueKey('b2b-purchases-bar-$period'),
+                width: 72,
+                child: Tooltip(
+                  message: _reportMoney(value, currency),
+                  child: Column(
+                    children: [
+                      Text(
+                        _reportCompactNumber(value),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _shortReportPeriod(period),
+                        style: Theme.of(context).textTheme.labelSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -3318,36 +3309,29 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = <Color>[
-      Theme.of(context).colorScheme.primary,
-      Theme.of(context).colorScheme.secondary,
-      Theme.of(context).colorScheme.tertiary,
-      Theme.of(context).colorScheme.error,
-      Theme.of(context).colorScheme.primaryContainer,
-      Theme.of(context).colorScheme.secondaryContainer,
-    ];
     final values = rows
         .map((row) => _reportDouble(row['purchase_total']))
+        .toList(growable: false);
+    final labels = rows
+        .map((row) => row['category_name']?.toString() ?? '—')
         .toList(growable: false);
 
     return Column(
       children: [
-        SizedBox(
+        FoodexDonutChart(
           key: const ValueKey('b2b-purchases-category-donut'),
-          width: 138,
-          height: 138,
-          child: CustomPaint(
-            painter: _PurchaseCategoryDonutPainter(
-              values: values,
-              colors: colors,
-              trackColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
+          values: values,
+          semanticLabel: context.tr('b2b.purchase_reports.categories'),
+          size: 138,
+          strokeWidth: 18,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
+        FoodexChartLegend(labels: labels),
+        const SizedBox(height: 8),
         ...rows.asMap().entries.map((entry) {
           final row = entry.value;
-          final color = colors[entry.key % colors.length];
+          final color = FoodexChartPalette
+              .series[entry.key % FoodexChartPalette.series.length];
           final percentage = _reportDouble(row['percentage']);
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
@@ -3382,54 +3366,6 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
       ],
     );
   }
-}
-
-class _PurchaseCategoryDonutPainter extends CustomPainter {
-  const _PurchaseCategoryDonutPainter({
-    required this.values,
-    required this.colors,
-    required this.trackColor,
-  });
-
-  final List<double> values;
-  final List<Color> colors;
-  final Color trackColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = math.min(size.width, size.height) / 2 - 12;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    final total = values.fold<double>(0, (sum, value) => sum + value);
-
-    final track = Paint()
-      ..color = trackColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 18;
-    canvas.drawCircle(center, radius, track);
-
-    if (total <= 0) return;
-
-    var start = -math.pi / 2;
-    for (var index = 0; index < values.length; index++) {
-      final value = values[index];
-      if (value <= 0) continue;
-      final sweep = (value / total) * math.pi * 2;
-      final paint = Paint()
-        ..color = colors[index % colors.length]
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 18
-        ..strokeCap = StrokeCap.butt;
-      canvas.drawArc(rect, start, sweep, false, paint);
-      start += sweep;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PurchaseCategoryDonutPainter oldDelegate) =>
-      oldDelegate.values != values ||
-      oldDelegate.colors != colors ||
-      oldDelegate.trackColor != trackColor;
 }
 
 Map<Object?, Object?> _reportMap(Object? value) =>

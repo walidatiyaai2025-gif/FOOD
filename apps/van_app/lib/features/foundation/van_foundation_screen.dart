@@ -142,6 +142,10 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         return VanDashboardPage(
           repository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
+          onOpenCustomers: () => _open(VanScreenId.customers),
+          onOpenWallet: () => _open(VanScreenId.wallet),
+          onOpenReceipts: () => _open(VanScreenId.receipt),
+          onOpenRemittance: () => _open(VanScreenId.remittance),
         );
       case VanScreenId.routes:
         return VanRoutesPage(
