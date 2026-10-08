@@ -124,6 +124,32 @@ final class CustomerDomainResolver
         return B2bCustomer::query()->findOrFail((int) $customerId);
     }
 
+    public function b2bAccountFromRequest(User $user, Request $request): B2bCustomer
+    {
+        $retailStoreId = $this->requestedRetailStoreId($request);
+        if ($retailStoreId === null) {
+            return $this->b2b($user);
+        }
+
+        $this->assertStoreChannel($retailStoreId, 'B2C');
+        $supportAccess = $user->hasRole('SUPER_ADMIN')
+            && filter_var($request->header('X-FOODEX-Support-Access'), FILTER_VALIDATE_BOOL);
+
+        if (! $supportAccess) {
+            abort_unless(
+                in_array(
+                    $retailStoreId,
+                    app(RetailMerchantIdentityService::class)->ownedRetailStoreIds($user),
+                    true,
+                ),
+                403,
+                'Wholesale account and finance access is available only to the linked Retail store owner.',
+            );
+        }
+
+        return $this->b2bFromRequest($user, $request);
+    }
+
     /** @return list<int> */
     public function entitledRetailStoreIds(User $user): array
     {
