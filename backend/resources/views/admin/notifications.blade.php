@@ -73,7 +73,7 @@
                 <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $notification->title_en }}</strong><p>{{ $notification->body_en }}</p></div>
             </div>
 
-            <details class="edit-record" data-notification-edit>
+            <details class="edit-record" data-notification-edit data-foodex-operational-modal>
                 <summary style="cursor:pointer;font-weight:800">{{ __('notifications.edit_notification') }}</summary>
             <form method="post" action="{{ route('admin.notifications.update',$notification) }}" enctype="multipart/form-data">@csrf @method('PATCH')
                 <div class="grid">

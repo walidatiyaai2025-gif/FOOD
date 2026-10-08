@@ -8,6 +8,7 @@ use App\Models\B2bCustomer;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bCustomerService;
+use App\Services\PlatformCustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,12 @@ class B2bAccountController extends Controller
                 'phone' => $data['phone'] ?? null,
                 'email' => $data['email'],
             ], $user);
+
+            app(PlatformCustomerService::class)->reconcileWholesaleCustomerIdentity(
+                $user,
+                $customer,
+                'dashboard',
+            );
 
             return B2bAccount::query()->create([
                 'customer_id' => $customer->legacy_customer_id,

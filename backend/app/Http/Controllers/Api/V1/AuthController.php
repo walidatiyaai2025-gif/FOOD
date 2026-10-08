@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\CredentialAuthenticator;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailMerchantIdentityService;
+use App\Services\VanRuntimeContextResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ class AuthController extends Controller
         private readonly CredentialAuthenticator $credentials,
         private readonly PlatformCustomerService $platformCustomers,
         private readonly RetailMerchantIdentityService $retailMerchants,
+        private readonly VanRuntimeContextResolver $vanContexts,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -28,6 +30,8 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'app' => ['nullable', 'string', 'in:customer,driver,van'],
+            'van_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
@@ -38,10 +42,28 @@ class AuthController extends Controller
             ]);
         }
 
+        $app = $credentials['app'] ?? null;
+        if ($app === 'driver') {
+            $driverExists = DB::table('drivers')
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
+            $driverRole = $user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER');
+            abort_unless($driverExists && $driverRole, 403, 'This account is not authorized for the Driver app.');
+        }
+
+        if ($app === 'van') {
+            abort_unless($user->hasPermission('van.login'), 403, 'This account is not authorized for the Van app.');
+            $context = $this->vanContexts->resolve($user, isset($credentials['van_id']) ? (int) $credentials['van_id'] : null);
+            abort_unless($context['selected'] !== null, 403, 'No effective Van assignment is available for this account.');
+        }
+
+        $tokenAbilities = $app === null ? ['*'] : ['app:'.$app];
+
         return response()->json([
-            'token' => $user->createToken('foodex-client')->plainTextToken,
+            'token' => $user->createToken('foodex-'.($app ?? 'client'), $tokenAbilities)->plainTextToken,
             'token_type' => 'Bearer',
-            'user' => $this->identity($user),
+            'user' => $this->identity($user, isset($credentials['van_id']) ? (int) $credentials['van_id'] : null),
         ]);
     }
 
@@ -140,8 +162,8 @@ class AuthController extends Controller
         return response()->json($this->identity($user));
     }
 
-    /** @return array{id:int,name:string,username:?string,email:string,locale:string,roles:list<string>,permissions:list<string>,store_ids:list<int>,driver_scope:?array{driver_id:int,channel:string,store_id:?int},platform_customer:bool,retail_merchant:bool,b2b_customer_ids:list<int>,owned_retail_store_ids:list<int>,managed_retail_store_ids:list<int>,retail_store_ids:list<int>,retail_wholesale_accounts:list<array{retail_store_id:int,b2b_customer_id:int}>} */
-    private function identity(User $user): array
+    /** @return array<string,mixed> */
+    private function identity(User $user, ?int $preferredVanId = null): array
     {
         $roles = $user->roles()
             ->orderBy('roles.code')
@@ -170,6 +192,10 @@ class AuthController extends Controller
             'store_id' => $driver->store_id === null ? null : (int) $driver->store_id,
         ] : null;
 
+        $vanScope = $user->hasPermission('van.login')
+            ? $this->vanContexts->resolve($user, $preferredVanId)
+            : ['selected' => null, 'available' => [], 'selection_reason' => 'van_login_not_granted'];
+
         return [
             'id' => (int) $user->getKey(),
             'name' => (string) $user->name,
@@ -180,6 +206,9 @@ class AuthController extends Controller
             'permissions' => $user->effectivePermissionCodes(),
             'store_ids' => $storeIds,
             'driver_scope' => $driverScope,
+            'van_scope' => $vanScope['selected'],
+            'van_contexts' => $vanScope['available'],
+            'van_context_selection_reason' => $vanScope['selection_reason'],
             'platform_customer' => $this->platformCustomers->isPlatformCustomer($user),
             ...$this->retailMerchants->identityPayload($user),
         ];

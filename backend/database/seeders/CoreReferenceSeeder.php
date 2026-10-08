@@ -28,6 +28,7 @@ class CoreReferenceSeeder extends Seeder
         ['code' => 'RETAIL_CUSTOMER_SUPPORT', 'name' => 'Retail Customer Support', 'scope' => 'store'],
         ['code' => 'B2C_DRIVER', 'name' => 'Retail Driver', 'scope' => 'global'],
         ['code' => 'B2B_DRIVER', 'name' => 'B2B Driver', 'scope' => 'global'],
+        ['code' => 'VAN_OPERATOR', 'name' => 'Van App Operator', 'scope' => 'global'],
     ];
 
     public function run(): void

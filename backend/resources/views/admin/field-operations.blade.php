@@ -246,6 +246,7 @@
                         <label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from" required></label>
                         <label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label>
                         <label>{{ __('field_operations.loaded_work') }}<input type="number" min="0" name="loaded_work_count" value="0"></label>
+                        <label><span>{{ __('field_operations.allow_van_app') }}</span><input type="hidden" name="allow_van_app" value="0"><input type="checkbox" name="allow_van_app" value="1"> <small class="fieldops-muted">{{ __('field_operations.allow_van_app_help') }}</small></label>
                     </div>
                     <button class="foodex-primary" type="submit">{{ __('field_operations.save_assignment') }}</button>
                 </form>
@@ -334,7 +335,7 @@
         @elseif($section === 'territories')
             @if($canManageTerritories)
             <section class="fieldops-grid">
-                <details class="fieldops-card"><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
+                <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.add_geography_node') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.geography.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
                             <label>{{ __('field_operations.type') }}<select name="type">@foreach(['country','governorate','region','city','markaz','district','area'] as $type)<option value="{{ $type }}">{{ __('field_operations.geography_types.'.$type) }}</option>@endforeach</select></label>
@@ -344,7 +345,7 @@
                         </div><button class="foodex-primary">{{ __('field_operations.save') }}</button>
                     </form>
                 </details>
-                <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
+                <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_service_territory') }}</strong></summary>
                     <form method="post" action="{{ route('admin.field-operations.territories.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                         <div class="fieldops-form-grid">
                             <label>{{ __('field_operations.code') }}<input name="code" required></label><label>{{ __('field_operations.arabic') }}<input name="name_ar" required></label><label>{{ __('field_operations.english') }}<input name="name_en" required></label> {{-- localization-gate: allow — name_ar/name_en are backend field keys; visible labels are localized --}}
@@ -409,10 +410,12 @@
             @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
                 <details style="margin-top:6px"><summary>{{ __('field_operations.details_history') }}</summary>
                     <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: __('field_operations.no_recorded_reason') }}</div>
-                    <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Str::headline((string)($review->resolution_source ?: '—')) }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
-                    @foreach($review->events as $event)<div class="fieldops-code">{{ $event->created_at }} · {{ \Illuminate\Support\Str::headline((string)$event->event_type) }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>@endforeach {{-- localization-gate: allow — Blade iteration directive; rendered values are localized/technical. --}}
+                    <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Facades\Lang::has('field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown')) ? __('field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown')) : __('field_operations.resolution_sources.unknown') }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
+                    @foreach($review->events as $event)
+                        <div class="fieldops-code">{{ $event->created_at }} · {{ \Illuminate\Support\Facades\Lang::has('field_operations.review_statuses.'.$event->event_type) ? __('field_operations.review_statuses.'.$event->event_type) : __('field_operations.review_statuses.unmapped') }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>
+                    @endforeach
                 </details>
-            </td><td>{{ $review->quality_class }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $territoryLabels->get($review->territory_key) ?: __('field_operations.unknown_territory') }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
+            </td><td>{{ \Illuminate\Support\Facades\Lang::has('field_operations.quality_classes.'.($review->quality_class ?: 'unknown')) ? __('field_operations.quality_classes.'.($review->quality_class ?: 'unknown')) : __('field_operations.quality_classes.unknown') }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $territoryLabels->get($review->territory_key) ?: __('field_operations.unknown_territory') }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                     @foreach(['confirm','reject','reopen'] as $action)
                     <form method="post" action="{{ route('admin.field-operations.address-quality.action',['review'=>$review,'action'=>$action]) }}">@csrf
@@ -427,7 +430,7 @@
 
         @elseif($section === 'routing')
             @if($canManageTerritories)
-            <details class="fieldops-card"><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
+            <details class="fieldops-card" data-foodex-operational-modal><summary><strong>{{ __('field_operations.create_routing_policy') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                     <div class="fieldops-form-grid">
                         <label>{{ __('field_operations.code') }}<input name="code" required></label>

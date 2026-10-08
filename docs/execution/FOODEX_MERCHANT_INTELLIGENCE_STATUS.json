@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "mission": "FOODEX Merchant Intelligence + Platform Analytics",
+  "umbrella_issue": 1112,
+  "plan_issue": 1113,
+  "trigger_phrase": "حرك فوودكس",
+  "status_source": "live_github",
+  "stored_status_is_authoritative": false,
+  "plan_path": "docs/execution/FOODEX_MERCHANT_INTELLIGENCE_EXECUTION_PLAN.md",
+  "baseline_main_sha_at_publication": "a8f224bd4f1c2bae4d37355cba8bb337b0b70e77",
+  "coordination": {
+    "one_task_one_owner_one_branch_one_pr": true,
+    "lease_policy_source": "AGENTS.md",
+    "uiux_contract": "docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md",
+    "customer_uiux_contract": "docs/design-reference/CUSTOMER_UIUX_APPROVED_TARGET.md",
+    "route_authority": "docs/execution/UI_ROUTE_AUTHORITY.json",
+    "release_requires_explicit_owner_request": true
+  },
+  "lanes": [
+    {"id":"W0","issue":1113,"name":"Mission control publication","depends_on":[]},
+    {"id":"W1","issue":1114,"name":"Canonical merchant identity and authorization","depends_on":["W0"]},
+    {"id":"W2","issue":1115,"name":"Retail-Wholesale mapping and replenishment lineage","depends_on":["W0","W1"]},
+    {"id":"W3","issue":1116,"name":"Inventory intelligence engine","depends_on":["W2"]},
+    {"id":"W4","issue":1117,"name":"Lead-time and reorder engine","depends_on":["W2","W3"]},
+    {"id":"W5","issue":1118,"name":"Visualization design system","depends_on":["W0"]},
+    {"id":"W6","issue":1119,"name":"Merchant Smart Dashboard","depends_on":["W1","W3","W4","W5"]},
+    {"id":"W7","issue":1120,"name":"Suggested Wholesale cart and credit-aware plan","depends_on":["W1","W4"]},
+    {"id":"W8","issue":1121,"name":"Platform-wide analytics rollout","depends_on":["W5"]},
+    {"id":"W9","issue":1122,"name":"Integrated runnable product gate","depends_on":["W1","W2","W3","W4","W5","W6","W7","W8"]}
+  ],
+  "selection_priority": [
+    "mission_ci_red",
+    "mission_pr_green_merge_ready",
+    "W1",
+    "W2",
+    "W3_or_W5_when_disjoint",
+    "W4",
+    "W6",
+    "W7",
+    "W8",
+    "W9"
+  ],
+  "lane_complete_state": "VERIFIED_ON_MAIN",
+  "integrated_runnable_gates": [
+    "G0_repository_convergence",
+    "G1_identity_authorization",
+    "G2_data_lineage",
+    "G3_calculation_correctness",
+    "G4_financial_commercial_correctness",
+    "G5_end_to_end_merchant_journey",
+    "G6_dashboard_uiux",
+    "G7_visualization_quality",
+    "G8_cross_app_analytics",
+    "G9_freshness_failure_behavior",
+    "G10_performance",
+    "G11_ci_runtime_evidence",
+    "G12_clean_environment_runnable_readiness"
+  ],
+  "done_condition": {
+    "all_W1_to_W8_verified_on_main": true,
+    "W9_passed": true,
+    "all_G0_to_G12_pass": true,
+    "open_mission_prs": 0,
+    "unresolved_valid_mission_work_outside_main": 0,
+    "final_main_sha_recorded": true
+  },
+  "release_boundary": {
+    "integrated_runnable_does_not_publish_release": true,
+    "version_bump_requires_explicit_release_intent": true
+  }
+}

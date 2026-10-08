@@ -20,6 +20,11 @@ void main() {
               'email': 'van@example.test',
               'locale': 'en',
               'permissions': ['van.login', 'van.support.view'],
+              'van_scope': {
+                'van_id': 12,
+                'van_code': 'VAN-12',
+                'assignment_id': 34,
+              },
             },
           }),
           200,

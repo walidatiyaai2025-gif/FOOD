@@ -101,6 +101,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <button class="c360-tab" type="button" role="tab" id="tab-stores" aria-controls="panel-stores" aria-selected="false" data-c360-tab="stores"><span class="c360-tab-icon">▦</span>{{ __('customer_360.tabs.stores') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" data-c360-tab="orders"><span class="c360-tab-icon">🛒</span>{{ __('customer_360.tabs.orders') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-invoices" aria-controls="panel-invoices" aria-selected="false" data-c360-tab="invoices"><span class="c360-tab-icon">▤</span>{{ __('customer_360.tabs.invoices') }}</button>
+<button class="c360-tab" type="button" role="tab" id="tab-statement" aria-controls="panel-statement" aria-selected="false" data-c360-tab="statement"><span class="c360-tab-icon">≣</span>{{ __('customer_360.tabs.statement') }}</button>
 </div>
 </div>
 
@@ -143,7 +144,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 </div>
 @if($canManageFinance && $finance)
-<details class="c360-form-details">
+<details class="c360-form-details" data-foodex-operational-modal>
 <summary>{{ __('customer_360.finance.record_entry') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.finance-entries.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">
 @csrf
@@ -184,7 +185,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><div><h2>{{ __('customer_360.tabs.addresses') }}</h2><p>{{ __('customer_360.addresses.description') }}</p></div><span class="c360-badge">{{ count($addresses) }} {{ __('customer_360.addresses.count_suffix') }}</span></div>
 @if($canManageAddresses)
-<details class="c360-form-details" style="margin-top:0;margin-bottom:16px;border-top:0;padding-top:0">
+<details class="c360-form-details" data-foodex-operational-modal style="margin-top:0;margin-bottom:16px;border-top:0;padding-top:0">
 <summary class="foodex-action-primary" style="display:inline-flex">{{ __('customer_360.addresses.add_new') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.addresses.store',['platformCustomer'=>$customer->id]) }}" class="c360-address-form" style="margin-top:14px">@csrf
 <label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" maxlength="100" placeholder="{{ __('customer_360.addresses.label_placeholder') }}"></label>
@@ -225,7 +226,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @if(!$address->is_default)<form method="post" action="{{ route('admin.customer-360.addresses.default',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}">@csrf<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.set_default') }}</button></form>@endif {{-- localization-gate: allow Blade control directive --}}
 <form method="post" action="{{ route('admin.customer-360.addresses.destroy',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" onsubmit="return confirm('{{ __('customer_360.addresses.delete_confirm') }}')">@csrf @method('DELETE')<button class="foodex-action-secondary button secondary" type="submit">{{ __('customer_360.addresses.delete') }}</button></form>
 </div>
-<details class="c360-form-details"><summary>{{ __('customer_360.addresses.edit_address') }}</summary>
+<details class="c360-form-details" data-foodex-operational-modal><summary>{{ __('customer_360.addresses.edit_address') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.addresses.update',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" class="c360-address-form" style="margin-top:12px">@csrf @method('PATCH')
 <label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ __('customer_360.addresses.recipient') }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.delivery_phone') }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ __('customer_360.addresses.city') }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ __('customer_360.addresses.address') }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.area') }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.governorate') }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.block') }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.building') }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.floor') }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.apartment') }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.country_code') }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><input name="latitude" type="hidden" value="{{ $address->latitude }}"><input name="longitude" type="hidden" value="{{ $address->longitude }}"><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><div class="wide c360-map-picker-row"><button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $address->latitude!==null && $address->longitude!==null ? __('customer_360.addresses.edit_map') : __('customer_360.addresses.choose_map') }}</button><span class="c360-map-picked" data-address-map-summary>@if($address->latitude!==null && $address->longitude!==null){{ __('customer_360.addresses.location_selected') }}@else{{ __('customer_360.addresses.no_location') }}@endif</span></div><label class="wide"><small>{{ __('customer_360.addresses.landmark') }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ __('customer_360.addresses.delivery_notes') }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.addresses.save_changes') }}</button></div>
 </form></details>
@@ -261,15 +262,56 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-card c360-card">
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.invoices') }}</h2><span class="c360-badge">{{ $invoices->total() }}</span></div>
 @if($invoices->isEmpty())<div class="c360-empty">{{ __('customer_360.records.no_invoices') }}</div>@else
-<div class="c360-table-wrap"><table class="c360-table" data-pagination-required><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.records.issued') }}</th><th></th></tr></thead><tbody>
-@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $invoice['channel_label'] }}</span></td><td>{{ $invoice['status_label'] }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-primary" href="{{ $invoice['pdf_url'] }}">PDF</a></td></tr>@endforeach
+<div class="c360-table-wrap"><table class="c360-table" data-pagination-required><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.finance.paid') }}</th><th>{{ __('customer_360.finance.outstanding') }}</th><th>{{ __('customer_360.records.issued') }}</th><th></th></tr></thead><tbody>
+@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $invoice['channel_label'] }}</span></td><td>{{ $invoice['status_label'] }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ number_format($invoice['paid_amount'],3) }} {{ $invoice['currency'] }}</td><td>{{ number_format($invoice['outstanding_amount'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-secondary button secondary" href="{{ $invoice['pdf_url'] }}">PDF</a>@if($canManageFinance && $invoice['channel']==='b2b' && $invoice['outstanding_amount']>0.0005)<button type="button" class="foodex-action-primary" data-settlement-open data-invoice-id="{{ $invoice['id'] }}" data-invoice-number="{{ $invoice['number'] }}" data-outstanding="{{ number_format($invoice['outstanding_amount'],3,'.','') }}" data-currency="{{ $invoice['currency'] }}">{{ __('customer_360.finance.settle') }}</button>@endif</td></tr>@endforeach
 </tbody></table></div>{{ $invoices->links() }}@endif
+</div>
+</section>
+
+<section class="c360-panel" id="panel-statement" role="tabpanel" aria-labelledby="tab-statement" data-c360-panel="statement" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><div><h2>{{ __('customer_360.tabs.statement') }}</h2><p>{{ __('customer_360.statement.description') }}</p></div></div>
+@if($statement)
+<form method="get" action="{{ route('admin.customer-360.show',['platformCustomer'=>$customer->id]) }}#statement" class="c360-address-form" style="margin-bottom:16px">
+<label><small>{{ __('customer_360.statement.from') }}</small><input type="date" name="statement_from" value="{{ $statementFilters['statement_from'] ?? '' }}"></label>
+<label><small>{{ __('customer_360.statement.to') }}</small><input type="date" name="statement_to" value="{{ $statementFilters['statement_to'] ?? '' }}"></label>
+<div class="wide c360-actions"><button class="foodex-action-primary" type="submit">{{ __('customer_360.statement.apply') }}</button><a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.statement.export',['platformCustomer'=>$customer->id,'from'=>$statementFilters['statement_from'] ?? null,'to'=>$statementFilters['statement_to'] ?? null,'format'=>'pdf','locale'=>app()->getLocale()]) }}">PDF</a><a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.statement.export',['platformCustomer'=>$customer->id,'from'=>$statementFilters['statement_from'] ?? null,'to'=>$statementFilters['statement_to'] ?? null,'format'=>'xlsx','locale'=>app()->getLocale()]) }}">{{ __('customer_360.statement.xlsx') }}</a></div>
+</form>
+<div class="c360-kpis">
+<article class="c360-kpi"><small>{{ __('customer_360.statement.opening') }}</small><strong>{{ number_format((float)$statement['opening_balance'],3) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.statement.debits') }}</small><strong>{{ number_format((float)$statement['period_debits'],3) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.statement.credits') }}</small><strong>{{ number_format((float)$statement['period_credits'],3) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi primary"><small>{{ __('customer_360.statement.closing') }}</small><strong>{{ number_format((float)$statement['closing_balance'],3) }} {{ $statement['currency'] }}</strong></article>
+</div>
+@if(empty($statement['transactions']))<div class="c360-empty">{{ __('customer_360.statement.empty') }}</div>@else
+<div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.finance.date') }}</th><th>{{ __('customer_360.statement.type') }}</th><th>{{ __('customer_360.finance.reference') }}</th><th>{{ __('customer_360.finance.description') }}</th><th>{{ __('customer_360.statement.debit') }}</th><th>{{ __('customer_360.statement.credit') }}</th><th>{{ __('customer_360.statement.running') }}</th><th></th></tr></thead><tbody>
+@foreach($statement['transactions'] as $row)
+<tr><td>{{ $row['occurred_at'] }}</td><td>{{ $row['type'] }}</td><td>{{ $row['reference'] ?: '-' }}</td><td>{{ $row['description'] ?: '-' }}</td><td>{{ number_format((float)$row['debit'],3) }}</td><td>{{ number_format((float)$row['credit'],3) }}</td><td>{{ number_format((float)$row['running_balance'],3) }} {{ $row['currency'] }}</td><td>@if($canManageFinance && str_starts_with((string)$row['id'],'ledger:') && ($row['source'] ?? '')!=='ledger_reversal')<form method="post" action="{{ route('admin.customer-360.finance-entries.reverse',['platformCustomer'=>$customer->id,'ledgerEntry'=>(int)str_replace('ledger:','',$row['id'])]) }}" class="c360-actions">@csrf<input name="reason" required maxlength="500" placeholder="{{ __('customer_360.statement.reversal_reason') }}"><button type="submit" class="foodex-action-secondary button secondary">{{ __('customer_360.statement.reverse') }}</button></form>@endif</td></tr>
+@endforeach
+</tbody></table></div>
+@endif
+@else
+<div class="c360-empty">{{ __('customer_360.finance.no_account') }}</div>
+@endif
 </div>
 </section>
 
 </div>
 </main>
 </div>
+
+<dialog id="c360-settlement-dialog" class="c360-settlement-dialog">
+<form method="post" data-settlement-form>
+@csrf
+<h3>{{ __('customer_360.finance.settle_invoice') }}</h3>
+<p><strong data-settlement-invoice></strong></p>
+<p>{{ __('customer_360.finance.outstanding') }}: <strong data-settlement-outstanding></strong></p>
+<label><small>{{ __('customer_360.finance.amount') }}</small><input name="amount" type="number" min="0.001" step="0.001" required data-settlement-amount></label>
+<label><small>{{ __('customer_360.finance.reference') }}</small><input name="reference" maxlength="120"></label>
+<label><small>{{ __('customer_360.finance.description') }}</small><input name="description" maxlength="500"></label>
+<div class="c360-actions"><button type="button" class="foodex-action-secondary button secondary" data-settlement-close>{{ __('customer_360.statement.cancel') }}</button><button type="submit" class="foodex-action-primary">{{ __('customer_360.finance.record_payment') }}</button></div>
+</form>
+</dialog>
 
 <div class="c360-map-modal" data-address-map-modal data-open="0" aria-hidden="true">
 <section class="c360-map-dialog" role="dialog" aria-modal="true" aria-labelledby="c360-map-title">
@@ -298,6 +340,23 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
 <script>
 (() => {
+    const settlementDialog = document.getElementById('c360-settlement-dialog');
+    document.querySelectorAll('[data-settlement-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (!settlementDialog) return;
+            const form = settlementDialog.querySelector('[data-settlement-form]');
+            const invoiceId = button.dataset.invoiceId;
+            form.action = @json(route('admin.customer-360.show',['platformCustomer'=>$customer->id])) + '/invoices/' + invoiceId + '/settle';
+            settlementDialog.querySelector('[data-settlement-invoice]').textContent = button.dataset.invoiceNumber || '';
+            settlementDialog.querySelector('[data-settlement-outstanding]').textContent = (button.dataset.outstanding || '') + ' ' + (button.dataset.currency || '');
+            const amount = settlementDialog.querySelector('[data-settlement-amount]');
+            amount.value = button.dataset.outstanding || '';
+            amount.max = button.dataset.outstanding || '';
+            settlementDialog.showModal();
+        });
+    });
+    settlementDialog?.querySelector('[data-settlement-close]')?.addEventListener('click', () => settlementDialog.close());
+
     const mapModal = document.querySelector('[data-address-map-modal]');
     const mapContainer = document.getElementById('c360-address-map');
     const searchInput = mapModal?.querySelector('[data-address-map-search]');

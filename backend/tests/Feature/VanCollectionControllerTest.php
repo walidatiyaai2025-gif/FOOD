@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Models\B2bAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\VanVisit;
 use App\Services\CustomerDomainResolver;
+use App\Services\VanRegistryService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,6 +26,7 @@ class VanCollectionControllerTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
 
         $actor = User::factory()->create(['is_active' => true]);
+        $this->authorizeVan($actor);
         $customerUser = User::factory()->create([
             'name' => 'Van Customer',
             'email' => 'van-finance-customer@example.test',
@@ -77,7 +80,7 @@ class VanCollectionControllerTest extends TestCase
             'updated_at' => now()->subHour(),
         ]);
 
-        Sanctum::actingAs($actor);
+        Sanctum::actingAs($actor, ['app:van']);
 
         $this->getJson(
             "/api/v1/van/customers/b2b/{$customer->getKey()}/collection-context?store_id={$storeId}",
@@ -156,7 +159,8 @@ class VanCollectionControllerTest extends TestCase
         $this->assertDatabaseCount('custody_ledger_entries', 1);
 
         $otherActor = User::factory()->create(['is_active' => true]);
-        Sanctum::actingAs($otherActor);
+        $this->authorizeVan($otherActor);
+        Sanctum::actingAs($otherActor, ['app:van']);
 
         $this->getJson(
             "/api/v1/van/customers/b2b/{$customer->getKey()}/collection-context?store_id={$storeId}",
@@ -173,5 +177,18 @@ class VanCollectionControllerTest extends TestCase
                 'method' => 'bank_deposit',
             ])
             ->assertNotFound();
+    }
+
+    private function authorizeVan(User $actor): void
+    {
+        $actor->roles()->attach(Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail());
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'COLLECT-VAN-'.$actor->id]);
+        $registry->assign($actor, $van, [
+            'representative_user_id' => $actor->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
     }
 }

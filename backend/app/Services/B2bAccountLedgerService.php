@@ -209,6 +209,124 @@ final class B2bAccountLedgerService
         ]);
     }
 
+    /** @return array{ledger_entry_id:int,outstanding_before:float,outstanding_after:float,amount:float} */
+    public function settleInvoice(
+        B2bCustomer $customer,
+        Invoice $invoice,
+        float $amount,
+        string $currency,
+        User $actor,
+        ?string $reference = null,
+        ?string $description = null,
+    ): array {
+        $amount = round($amount, 3);
+        if ($amount <= 0) {
+            throw ValidationException::withMessages(['amount' => ['Settlement amount must be greater than zero.']]);
+        }
+
+        return DB::transaction(function () use ($customer, $invoice, $amount, $currency, $actor, $reference, $description): array {
+            $locked = Invoice::query()->lockForUpdate()->findOrFail($invoice->getKey());
+            abort_unless((int) $locked->b2b_customer_id === (int) $customer->getKey(), 404);
+            abort_if(in_array(strtolower((string) $locked->status), ['cancelled', 'canceled', 'void', 'voided'], true), 409, 'Cancelled or void invoices cannot be settled.');
+
+            $amounts = $this->invoiceAmounts($locked);
+            $outstanding = round((float) $amounts['outstanding_amount'], 3);
+            if ($outstanding <= 0.0005) {
+                throw ValidationException::withMessages(['amount' => ['Invoice is already fully settled.']]);
+            }
+            if ($amount - $outstanding > 0.0005) {
+                throw ValidationException::withMessages(['amount' => ['Settlement amount cannot exceed the invoice outstanding amount.']]);
+            }
+
+            $entryId = $this->appendManual($customer, [
+                'entry_type' => 'payment',
+                'debit' => 0,
+                'credit' => $amount,
+                'currency' => strtoupper($currency),
+                'reference' => $reference ?: ('SETTLE-'.$locked->invoice_number.'-'.now()->format('YmdHis')),
+                'description' => $description ?: 'Invoice settlement',
+                'invoice_id' => (int) $locked->getKey(),
+                'order_id' => $locked->order_id === null ? null : (int) $locked->order_id,
+                'store_id' => $locked->store_id === null ? null : (int) $locked->store_id,
+                'occurred_at' => now(),
+                'source' => 'dashboard_invoice_settlement',
+                'metadata' => [
+                    'invoice_number' => (string) $locked->invoice_number,
+                    'outstanding_before' => $outstanding,
+                ],
+            ], $actor);
+
+            $after = $this->invoiceAmounts($locked);
+
+            return [
+                'ledger_entry_id' => $entryId,
+                'outstanding_before' => $outstanding,
+                'outstanding_after' => round((float) $after['outstanding_amount'], 3),
+                'amount' => $amount,
+            ];
+        }, 3);
+    }
+
+    /** @return array{ledger_entry_id:int,reversal_of:int} */
+    public function reverseManualEntry(
+        B2bCustomer $customer,
+        int $ledgerEntryId,
+        User $actor,
+        string $reason,
+    ): array {
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw ValidationException::withMessages(['reason' => ['A reversal reason is required.']]);
+        }
+
+        return DB::transaction(function () use ($customer, $ledgerEntryId, $actor, $reason): array {
+            $entry = DB::table('customer_account_ledger_entries')
+                ->where('id', $ledgerEntryId)
+                ->where('b2b_customer_id', $customer->getKey())
+                ->lockForUpdate()
+                ->first();
+            abort_unless($entry !== null, 404);
+
+            $reversalReference = 'REVERSAL-'.$ledgerEntryId;
+            $existing = DB::table('customer_account_ledger_entries')
+                ->where('b2b_customer_id', $customer->getKey())
+                ->where('source', 'ledger_reversal')
+                ->where('reference', $reversalReference)
+                ->first();
+            if ($existing !== null) {
+                return ['ledger_entry_id' => (int) $existing->id, 'reversal_of' => $ledgerEntryId];
+            }
+
+            $debit = round((float) $entry->credit, 3);
+            $credit = round((float) $entry->debit, 3);
+            abort_if(($debit > 0) === ($credit > 0), 409, 'Ledger entry cannot be reversed safely.');
+
+            $newId = (int) DB::table('customer_account_ledger_entries')->insertGetId([
+                'b2b_customer_id' => (int) $customer->getKey(),
+                'store_id' => $entry->store_id,
+                'invoice_id' => $entry->invoice_id,
+                'order_id' => $entry->order_id,
+                'entry_type' => $debit > 0 ? 'refund' : 'adjustment_negative',
+                'reference' => $reversalReference,
+                'description' => 'Reversal: '.$reason,
+                'debit' => $debit,
+                'credit' => $credit,
+                'currency' => (string) $entry->currency,
+                'actor_user_id' => (int) $actor->getKey(),
+                'source' => 'ledger_reversal',
+                'metadata' => json_encode([
+                    'reversal_of' => $ledgerEntryId,
+                    'original_type' => (string) $entry->entry_type,
+                    'reason' => $reason,
+                ], JSON_THROW_ON_ERROR),
+                'occurred_at' => now(),
+                'created_at' => now(),
+            ]);
+
+            return ['ledger_entry_id' => $newId, 'reversal_of' => $ledgerEntryId];
+        }, 3);
+    }
+
     /** @return array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} */
     public function invoiceAmounts(Invoice $invoice): array
     {

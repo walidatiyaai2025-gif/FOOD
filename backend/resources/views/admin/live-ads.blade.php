@@ -65,7 +65,7 @@
                 <div>@if($ad->image_path)<img src="{{ url('/'.ltrim($ad->image_path,'/')) }}" alt="">@else<div class="foodex-empty-state" style="min-height:110px">FOODEX</div>@endif</div>
                 <div><strong>#{{ $ad->id }} · {{ $ad->name }}</strong><p>{{ app()->getLocale()==='ar'?$ad->title_ar:$ad->title_en }}</p><small>{{ $adChannelLabel }} @if($ad->store) · {{ $ad->store->name }} @endif · {{ $ad->frequency }} · {{ $ad->starts_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') }} → {{ $ad->ends_at?->timezone('Asia/Kuwait')->format('Y-m-d H:i') ?? '∞' }}</small></div>
             </div>
-            <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:800">{{ __('live_ads.update') }}</summary>
+            <details data-foodex-operational-modal style="margin-top:12px"><summary style="cursor:pointer;font-weight:800">{{ __('live_ads.update') }}</summary>
                 <form method="post" action="{{ route('admin.live-ads.update',$ad) }}" enctype="multipart/form-data" class="grid foodex-premium-auto-form" style="margin-top:12px">@csrf @method('PATCH')
                     <label>{{ __('live_ads.name') }}<input name="name" value="{{ $ad->name }}" required></label>
                     <label>{{ __('live_ads.channel') }}<select name="channel" class="js-live-channel">@if($canB2b)<option value="b2b" @selected($ad->channel==='b2b')>{{ __('live_ads.all_wholesale') }}</option>@endif<option value="b2c" @selected($ad->channel==='b2c')>{{ __('live_ads.retail') }}</option></select></label>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
+use App\Models\Invoice;
 use App\Models\PlatformCustomer;
 use App\Models\Store;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\OperationalTenantScope;
+use App\Services\ReportExportService;
 use App\Services\RetailMerchantIdentityService;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -20,12 +22,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use stdClass;
 
 final class Customer360Controller extends Controller
@@ -110,7 +114,7 @@ final class Customer360Controller extends Controller
         return redirect()->route('admin.customer-360.index');
     }
 
-    public function show(Request $request, int $platformCustomer): View
+    public function show(Request $request, int $platformCustomer, B2bAccountLedgerService $ledger): View
     {
         $actor = $this->actor($request);
         $access = $this->access($actor);
@@ -176,8 +180,9 @@ final class Customer360Controller extends Controller
                 'stores.name as store_name',
             ], 'invoices_page')
             ->withQueryString();
-        $invoices->setCollection($invoices->getCollection()->map(function (mixed $row): array {
+        $invoices->setCollection($invoices->getCollection()->map(function (mixed $row) use ($ledger): array {
             $row = (object) $row;
+            $amounts = $ledger->invoiceAmounts(Invoice::query()->findOrFail((int) $row->id));
 
             return [
                 'id' => (int) $row->id,
@@ -189,6 +194,8 @@ final class Customer360Controller extends Controller
                 'status_label' => $this->businessLabel((string) $row->status),
                 'currency' => (string) $row->currency,
                 'total' => (float) $row->total,
+                'paid_amount' => (float) $amounts['paid_amount'],
+                'outstanding_amount' => (float) $amounts['outstanding_amount'],
                 'issued_at' => $row->issued_at,
                 'url' => route('admin.invoices.show', ['invoice' => $row->id]),
                 'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
@@ -200,6 +207,19 @@ final class Customer360Controller extends Controller
             ->orderBy('id')
             ->get();
         $wholesale = $this->wholesaleInfo($customer, $access);
+        $statementFilters = $request->validate([
+            'statement_from' => ['nullable', 'date'],
+            'statement_to' => ['nullable', 'date', 'after_or_equal:statement_from'],
+        ]);
+        $statement = null;
+        $domain = $this->wholesaleDomain($customer, $access);
+        if ($domain instanceof B2bCustomer && $wholesale !== null) {
+            $statement = $ledger->statement(
+                $domain,
+                $statementFilters['statement_from'] ?? null,
+                $statementFilters['statement_to'] ?? null,
+            );
+        }
 
         return view('admin.customer-360-show', [
             'user' => $actor,
@@ -212,6 +232,8 @@ final class Customer360Controller extends Controller
             'invoices' => $invoices,
             'retailStores' => $this->retailDomains($customer, $access),
             'wholesale' => $wholesale,
+            'statement' => $statement,
+            'statementFilters' => $statementFilters,
             'canManageFinance' => $wholesale !== null && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage')),
             'addresses' => $addresses,
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
@@ -327,6 +349,142 @@ final class Customer360Controller extends Controller
         return redirect()
             ->route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()])
             ->with('status', $this->msg('تم تسجيل الحركة المالية.', 'Financial entry recorded.'));
+    }
+
+    public function settleInvoice(
+        Request $request,
+        int $platformCustomer,
+        int $invoice,
+        B2bAccountLedgerService $ledger,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage'), 403);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+
+        $model = Invoice::query()
+            ->whereKey($invoice)
+            ->where('b2b_customer_id', $domain->getKey())
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'reference' => ['nullable', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $result = $ledger->settleInvoice(
+            $domain,
+            $model,
+            (float) $validated['amount'],
+            (string) $model->currency,
+            $actor,
+            $validated['reference'] ?? null,
+            $validated['description'] ?? null,
+        );
+
+        $audit->record('customer360.invoice_settled', $actor, $model, null, $result, $request);
+
+        return redirect()
+            ->to(route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()]).'#invoices')
+            ->with('status', $this->msg('تم تسجيل تسوية الفاتورة.', 'Invoice settlement recorded.'));
+    }
+
+    public function reverseFinanceEntry(
+        Request $request,
+        int $platformCustomer,
+        int $ledgerEntry,
+        B2bAccountLedgerService $ledger,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage'), 403);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+        $validated = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+
+        $result = $ledger->reverseManualEntry($domain, $ledgerEntry, $actor, (string) $validated['reason']);
+        $audit->record('customer360.finance_entry_reversed', $actor, $customer, null, $result, $request);
+
+        return redirect()
+            ->to(route('admin.customer-360.show', ['platformCustomer' => $customer->getKey()]).'#statement')
+            ->with('status', $this->msg('تم تسجيل قيد عكسي للحركة.', 'Reversal entry recorded.'));
+    }
+
+    public function statementExport(
+        Request $request,
+        int $platformCustomer,
+        B2bAccountLedgerService $ledger,
+        ReportExportService $exports,
+        AuditLogger $audit,
+    ): Response {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        abort_if($access['mode'] === 'b2c', 403);
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'format' => ['nullable', Rule::in(['pdf', 'xlsx'])],
+            'locale' => ['nullable', Rule::in(['ar', 'en'])],
+        ]);
+        $statement = $ledger->statement($domain, $filters['from'] ?? null, $filters['to'] ?? null);
+        $currency = (string) ($statement['currency'] ?? '');
+        $report = [
+            'report' => 'account_statement',
+            'generated_at' => now()->toIso8601String(),
+            'filters' => ['from' => $filters['from'] ?? '', 'to' => $filters['to'] ?? ''],
+            'columns' => ['date', 'type', 'reference', 'description', 'debit', 'credit', 'running_balance', 'currency'],
+            'rows' => collect($statement['transactions'])->map(static fn (array $row): array => [
+                'date' => (string) ($row['occurred_at'] ?? ''),
+                'type' => (string) ($row['type'] ?? ''),
+                'reference' => (string) ($row['reference'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+                'debit' => (float) ($row['debit'] ?? 0),
+                'credit' => (float) ($row['credit'] ?? 0),
+                'running_balance' => (float) ($row['running_balance'] ?? 0),
+                'currency' => (string) ($row['currency'] ?? $currency),
+            ])->all(),
+            'kpis' => [
+                'opening_balance' => ((float) $statement['opening_balance']).' '.$currency,
+                'period_debits' => ((float) $statement['period_debits']).' '.$currency,
+                'period_credits' => ((float) $statement['period_credits']).' '.$currency,
+                'closing_balance' => ((float) $statement['closing_balance']).' '.$currency,
+            ],
+        ];
+
+        $format = (string) ($filters['format'] ?? 'pdf');
+        $locale = (string) ($filters['locale'] ?? $actor->locale ?? app()->getLocale());
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+        try {
+            $export = $exports->build($report, $format, $locale);
+        } catch (RuntimeException) {
+            abort(503, 'Document export is temporarily unavailable.');
+        }
+
+        $audit->record('customer360.statement_exported', $actor, $customer, null, [
+            'format' => $format,
+            'from' => $filters['from'] ?? null,
+            'to' => $filters['to'] ?? null,
+        ], $request);
+
+        return response($export['content'], 200, [
+            'Content-Type' => $export['mime'],
+            'Content-Disposition' => 'attachment; filename="'.$exports->filename($report, $export['extension']).'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function storeAddress(

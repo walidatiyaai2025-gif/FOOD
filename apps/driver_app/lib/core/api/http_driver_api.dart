@@ -38,7 +38,7 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'email': email, 'password': password, 'app': 'driver'}),
       );
     } on SocketException {
       throw const DriverOfflineException();

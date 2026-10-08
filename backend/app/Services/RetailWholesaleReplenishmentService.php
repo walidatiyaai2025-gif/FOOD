@@ -90,7 +90,14 @@ final class RetailWholesaleReplenishmentService
                     throw new HttpException(409, 'Wholesale order contains a product outside its source catalog.');
                 }
 
-                $conversionFactor = max(0.001, (float) ($item->quantity_conversion_factor ?? 1));
+                $conversionFactor = (float) ($item->quantity_conversion_factor ?? 1);
+                if ($conversionFactor <= 0) {
+                    throw new HttpException(
+                        409,
+                        'Wholesale order item has an invalid quantity conversion factor.',
+                    );
+                }
+
                 $mapping = DB::table('retail_wholesale_product_mappings')
                     ->where('retail_store_id', $retailStoreId)
                     ->where('source_wholesale_product_id', $source->id)
@@ -98,7 +105,14 @@ final class RetailWholesaleReplenishmentService
 
                 if ($mapping !== null) {
                     $retailProductId = (int) $mapping->retail_product_id;
-                    $conversionFactor = max(0.001, (float) $mapping->quantity_conversion_factor);
+                    $conversionFactor = (float) $mapping->quantity_conversion_factor;
+                    if ($conversionFactor <= 0) {
+                        throw new HttpException(
+                            409,
+                            'Wholesale product mapping has an invalid quantity conversion factor.',
+                        );
+                    }
+
                     $mappedTargetExists = DB::table('products')
                         ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
                         ->where('products.id', $retailProductId)
@@ -185,6 +199,7 @@ final class RetailWholesaleReplenishmentService
                     'source_product_id' => (int) $source->id,
                     'retail_product_id' => $retailProductId,
                     'quantity' => $quantity,
+                    'quantity_conversion_factor' => round($conversionFactor, 3),
                     'unit_cost' => $retailUnitCost,
                     'line_total' => round((float) $item->line_total, 3),
                     'created_at' => now(),

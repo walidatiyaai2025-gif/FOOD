@@ -8,6 +8,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  foodex_visualization:
+    path: ../../packages/foodex_visualization
   flutter_localizations:
     sdk: flutter
   http: ^1.2.2

@@ -1,0 +1,43 @@
+:root{
+  --foodex-viz-primary:var(--foodex-green,#158A3A);
+  --foodex-viz-primary-dark:var(--foodex-green-dark,#165D2D);
+  --foodex-viz-primary-soft:var(--foodex-green-soft,#EAF7EF);
+  --foodex-viz-info:var(--foodex-blue,#4B8CF5);
+  --foodex-viz-warning:var(--foodex-orange,#EE731C);
+  --foodex-viz-danger:var(--foodex-red,#EF5350);
+  --foodex-viz-muted:var(--foodex-muted,#667085);
+  --foodex-viz-border:var(--foodex-border,#E6EAF0);
+  --foodex-viz-surface:var(--foodex-surface,#FFFFFF);
+  --foodex-viz-grid:rgba(102,112,133,.16);
+}
+.foodex-viz-card{min-width:0;background:var(--foodex-viz-surface);border:1px solid var(--foodex-viz-border);border-radius:var(--foodex-radius-card,16px);padding:var(--foodex-space-4,16px);box-shadow:var(--foodex-shadow-sm,0 4px 14px rgba(16,24,40,.04))}
+.foodex-viz-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.foodex-viz-title{margin:0;color:var(--foodex-ink,#172033);font-size:var(--foodex-text-md,1rem);font-weight:700}
+.foodex-viz-subtitle{margin:2px 0 0;color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem)}
+.foodex-viz-canvas{position:relative;min-height:160px;width:100%;overflow:hidden}
+.foodex-viz-canvas>svg,.foodex-viz-canvas>canvas{display:block;width:100%;height:auto;max-width:100%}
+.foodex-viz-gridline{stroke:var(--foodex-viz-grid);stroke-width:1}
+.foodex-viz-line{fill:none;stroke:var(--foodex-viz-primary);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.foodex-viz-area{fill:color-mix(in srgb,var(--foodex-viz-primary) 12%,transparent)}
+.foodex-viz-bars{display:flex;align-items:flex-end;gap:8px;min-height:160px}
+.foodex-viz-bar{flex:1;min-width:6px;border-radius:5px 5px 2px 2px;background:var(--foodex-viz-primary)}
+.foodex-viz-bar[data-series="2"]{background:var(--foodex-viz-info)}
+.foodex-viz-bar[data-series="3"]{background:var(--foodex-viz-warning)}
+.foodex-viz-bar[data-series="4"]{background:var(--foodex-viz-danger)}
+.foodex-viz-donut{--foodex-viz-donut-size:148px;inline-size:var(--foodex-viz-donut-size);block-size:var(--foodex-viz-donut-size);border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--foodex-viz-primary) 0 var(--foodex-viz-p1,40%),var(--foodex-viz-info) var(--foodex-viz-p1,40%) var(--foodex-viz-p2,70%),var(--foodex-viz-warning) var(--foodex-viz-p2,70%) var(--foodex-viz-p3,88%),var(--foodex-viz-border) var(--foodex-viz-p3,88%) 100%)}
+.foodex-viz-donut::after{content:"";inline-size:64%;block-size:64%;border-radius:50%;background:var(--foodex-viz-surface)}
+.foodex-viz-sparkline{min-height:42px}
+.foodex-viz-progress{position:relative;height:12px;border-radius:999px;background:var(--foodex-viz-primary-soft);overflow:visible}
+.foodex-viz-progress>span{display:block;height:100%;max-width:100%;border-radius:inherit;background:var(--foodex-viz-primary)}
+.foodex-viz-threshold{position:absolute;inset-block:-3px;width:2px;background:var(--foodex-viz-warning)}
+.foodex-viz-threshold.is-critical{background:var(--foodex-viz-danger)}
+.foodex-viz-heatmap{display:grid;grid-template-columns:repeat(var(--foodex-viz-cols,7),minmax(20px,1fr));gap:4px}
+.foodex-viz-heatmap>span{aspect-ratio:1;border:1px solid var(--foodex-viz-border);border-radius:6px;background:color-mix(in srgb,var(--foodex-viz-primary) calc(var(--foodex-viz-level,1)*12%),var(--foodex-viz-primary-soft))}
+.foodex-viz-legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:10px;color:var(--foodex-viz-muted);font-size:var(--foodex-text-xs,.75rem)}
+.foodex-viz-legend-item{display:inline-flex;align-items:center;gap:6px}
+.foodex-viz-swatch{inline-size:10px;block-size:10px;border-radius:3px;background:var(--foodex-viz-primary)}
+.foodex-viz-empty{min-height:140px;display:grid;place-items:center;text-align:center;color:var(--foodex-viz-muted);border:1px dashed var(--foodex-viz-border);border-radius:12px}
+[dir="rtl"] .foodex-viz-bars{direction:rtl}
+[dir="rtl"] .foodex-viz-header,[dir="rtl"] .foodex-viz-legend{direction:rtl}
+@media(max-width:767px){.foodex-viz-card{padding:12px}.foodex-viz-canvas,.foodex-viz-bars{min-height:132px}.foodex-viz-donut{--foodex-viz-donut-size:124px}}
+@media(prefers-reduced-motion:reduce){.foodex-viz-card *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

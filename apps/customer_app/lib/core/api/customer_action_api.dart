@@ -127,6 +127,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
       body: jsonEncode({
         'email': email.trim().toLowerCase(),
         'password': password,
+        'app': 'customer',
       }),
     );
     final body = _decode(response);

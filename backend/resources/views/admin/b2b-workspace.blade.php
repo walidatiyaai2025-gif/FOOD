@@ -353,6 +353,11 @@
         'refunded'=>app()->getLocale()==='ar'?'مسترد':'Refunded',
         'unassigned'=>app()->getLocale()==='ar'?'غير معين':'Unassigned',
       ];
+      $workspaceStatusLabels=$orderStateLabels+[
+        'active'=>__('admin.b2b_workspace.account_statuses.active'),
+        'suspended'=>__('admin.b2b_workspace.account_statuses.suspended'),
+        'denied'=>__('admin.b2b_workspace.account_statuses.denied'),
+      ];
     @endphp
     @if(session('status'))<div class="panel" style="border-color:#b7dfc4;background:var(--foodex-green-soft);color:var(--foodex-green-dark)">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="panel" style="border-color:#ffd0a6;background:var(--foodex-orange-soft)"><strong>{{ app()->getLocale()==='ar'?'تعذر تنفيذ العملية':'Action could not be completed' }}</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -502,8 +507,8 @@
         <p class="muted">{{ app()->getLocale()==='ar'?'اختر السائق وحدد كلمة مرور جديدة. سيتم إلغاء جلسات السائق الحالية فوراً.':'Choose a driver and set a new password. Existing driver sessions will be revoked immediately.' }}</p>
         <div style="display:grid;gap:8px">
           @foreach($moduleData['drivers'] as $driver)
-          <details style="border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px;background:#fbfcfd">
-            <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ app()->getLocale()==='ar'?'اسم المستخدم':'Username' }}: {{ $driver['username'] ?? '—' }} · {{ $driver['email'] }}</summary>
+          <details data-foodex-operational-modal style="border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px;background:#fbfcfd">
+                        <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ app()->getLocale()==='ar'?'اسم المستخدم':'Username' }}: {{ $driver['username'] ?? '—' }} · {{ $driver['email'] }}</summary>
             <form method="post" action="{{ route('admin.b2b.drivers.password',['driver'=>$driver['id']]) }}" class="links workspace-inline-form" style="margin-top:10px">
               @csrf @method('patch')
               <input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور الجديدة':'New password' }}">
@@ -553,7 +558,7 @@
       <div class="table-wrap"><table class="data foodex-table" data-pagination-required><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
-        @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $orderStateLabels[$row[$column]] ?? $row[$column] }}</span>
+        @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $workspaceStatusLabels[$row[$column]] ?? __('admin.b2b_workspace.unknown_status') }}</span>
         @elseif($column==='assignment_status'){{ $orderStateLabels[$row[$column]] ?? $row[$column] }}
         @elseif($column==='actions' && in_array($module,['reports','finance'],true) && is_array($row['actions'] ?? null))
           <div class="links">@foreach($row['actions'] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
@@ -567,12 +572,12 @@
           @else
             <form method="post" action="{{ route('admin.b2b.clients.status',['account'=>$row['_id']]) }}" class="links">
               @csrf @method('patch')
-              <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ $state }}</option>@endforeach</select>
+              <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ __('admin.b2b_workspace.account_statuses.'.$state) }}</option>@endforeach</select>
               <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
             </form>
           @endif
         @elseif($column==='actions' && $module==='products' && $user->hasPermission('catalog.edit'))
-          <details><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
+          <details data-foodex-operational-modal><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
           <form method="post" action="{{ route('admin.b2b.products.update',['product'=>$row['_id']]) }}" class="links workspace-inline-form">
             @csrf @method('patch')
             <input name="sku" value="{{ $row['sku'] }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required maxlength="120">
