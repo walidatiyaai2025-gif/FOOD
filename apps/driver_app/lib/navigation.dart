@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 
 import 'core/auth/driver_session.dart';
 import 'core/diagnostics/driver_runtime_inspector.dart';
@@ -210,6 +211,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
 
   bool _loading = true;
   bool _loadFailed = false;
+  bool _showingStaleData = false;
   bool _refreshInFlight = false;
   bool _refreshPending = false;
   int _lifecycleEpoch = 0;
@@ -297,15 +299,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
             .toList(growable: false);
         _loading = false;
         _loadFailed = false;
+        _showingStaleData = false;
       });
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
     } catch (_) {
-      if (mounted && (showLoading || _assignments.isEmpty)) {
-        setState(() {
-          _loading = false;
-          _loadFailed = true;
-        });
+      if (mounted) {
+        if (showLoading || _assignments.isEmpty) {
+          setState(() {
+            _loading = false;
+            _loadFailed = true;
+            _showingStaleData = false;
+          });
+        } else {
+          setState(() => _showingStaleData = true);
+        }
       }
     } finally {
       _refreshInFlight = false;
@@ -552,6 +560,19 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     ),
               ),
               const SizedBox(height: 10),
+              _DriverWorkloadChart(
+                loading: _loading && _assignments.isEmpty,
+                failed: _loadFailed,
+                stale: _showingStaleData,
+                statuses: [
+                  for (final status in _statuses)
+                    _DriverWorkloadSlice(
+                      label: context.tr('driver.status.${status.$1}'),
+                      value: _count(status.$1),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
               if (_loadFailed)
                 Card(
                   child: ListTile(
@@ -585,6 +606,156 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DriverWorkloadSlice {
+  const _DriverWorkloadSlice({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final int value;
+}
+
+class _DriverWorkloadChart extends StatelessWidget {
+  const _DriverWorkloadChart({
+    required this.loading,
+    required this.failed,
+    required this.stale,
+    required this.statuses,
+  });
+
+  final bool loading;
+  final bool failed;
+  final bool stale;
+  final List<_DriverWorkloadSlice> statuses;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = statuses.fold<int>(0, (sum, item) => sum + item.value);
+    final labels = [
+      for (final item in statuses) '${item.label} · ${item.value}',
+    ];
+    final semanticBreakdown = labels.join(', ');
+    final semanticLabel = semanticBreakdown.isEmpty
+        ? context.tr('driver.home.analytics.semantic')
+        : '${context.tr('driver.home.analytics.semantic')}: $semanticBreakdown';
+
+    Widget body;
+    if (loading) {
+      body = Row(
+        children: [
+          const SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.2),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(context.tr('driver.home.analytics.loading'))),
+        ],
+      );
+    } else if (failed) {
+      body = Text(context.tr('driver.home.analytics.error'));
+    } else if (total == 0) {
+      body = Text(context.tr('driver.home.analytics.empty'));
+    } else {
+      final chart = FoodexDonutChart(
+        values: [for (final item in statuses) item.value.toDouble()],
+        semanticLabel: semanticLabel,
+        size: 132,
+        strokeWidth: 19,
+      );
+      final legend = FoodexChartLegend(labels: labels);
+
+      body = LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 430) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(alignment: Alignment.center, child: chart),
+                const SizedBox(height: 14),
+                legend,
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              chart,
+              const SizedBox(width: 18),
+              Expanded(child: legend),
+            ],
+          );
+        },
+      );
+    }
+
+    return Card(
+      key: const Key('driver-home-workload-chart'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.donut_large_rounded,
+                  size: 20,
+                  color: FoodexChartPalette.primaryDark,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    context.tr('driver.home.analytics.title'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              context.tr('driver.home.analytics.summary'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: FoodexBrand.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            if (stale) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 17,
+                    color: FoodexChartPalette.warning,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      context.tr('driver.home.analytics.stale'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: FoodexChartPalette.warning,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 14),
+            body,
+          ],
         ),
       ),
     );
