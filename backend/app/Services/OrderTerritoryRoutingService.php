@@ -185,8 +185,7 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
-    ): OrderDispatchState
-    {
+    ): OrderDispatchState {
         if ($order->delivery_latitude === null || $order->delivery_longitude === null) {
             return $this->persistPending($order, null, null, null, 'auto_territory_fallback', 'missing_delivery_coordinates', $resolution, $actor, $moment);
         }
@@ -288,8 +287,7 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
-    ): OrderDispatchState
-    {
+    ): OrderDispatchState {
         $decisionKey = hash('sha256', implode('|', [
             $order->id,
             $territory?->id ?? 'none',
@@ -345,8 +343,7 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
-    ): OrderDispatchState
-    {
+    ): OrderDispatchState {
         $decisionKey = hash('sha256', implode('|', [
             $order->id,
             $territory->id,
