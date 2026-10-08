@@ -988,14 +988,21 @@
     };
 
     builder?.querySelectorAll('[data-flash-product-row]').forEach(setupProductRow);
-    addButton?.addEventListener('click', () => {
-        if (!builder || !template) return;
+    const addProductRow = () => {
+        if (!builder || !template) return false;
         const wrapper = document.createElement('div');
         wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextProductIndex++));
         const row = wrapper.firstElementChild;
-        if (!row) return;
+        if (!row) return false;
         builder.appendChild(row);
         setupProductRow(row);
+        return true;
+    };
+    document.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target.closest('[data-flash-product-add]') : null;
+        if (!target) return;
+        event.preventDefault();
+        addProductRow();
     });
 
     try {
