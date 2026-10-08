@@ -2,7 +2,7 @@
 return [
 'title'=>'SMS Gateway','eyebrow'=>'System communications',
 'description'=>'Central provider settings for OTP, authentication, order, dispatch and future SMS delivery.',
-'back'=>'Back to Administration','settings'=>'Provider settings','enabled'=>'SMS enabled','provider'=>'Provider',
+'back'=>'Back to Administration','settings'=>'Provider settings','enabled'=>'SMS enabled','provider_label'=>'Provider',
 'base_url'=>'API base URL','endpoint'=>'Endpoint path','token'=>'API token','token_hint'=>'Leave blank to keep the currently encrypted token.',
 'sender'=>'Default sender name','country_code'=>'Default country code','operator_mode'=>'Operator resolution',
 'automatic'=>'Automatic','manual'=>'Manual fallback','timeout'=>'Request timeout (seconds)','retry_count'=>'Retry count',
@@ -10,6 +10,8 @@ return [
 'notifications_enabled'=>'Notification sender enabled','save'=>'Save SMS settings','saved'=>'SMS settings saved.',
 'test'=>'Send Test SMS','test_title'=>'Send Test SMS','phone'=>'Phone number','message'=>'Message','operator'=>'Operator',
 'operator_auto'=>'Auto detect','sender_override'=>'Sender override (optional)','send'=>'Send test','cancel'=>'Cancel',
+'providers'=>['advansys_bulk_sms'=>'Advansys Bulk SMS'],
+'operators'=>['vodafone'=>'Vodafone','orange'=>'Orange','etisalat'=>'Etisalat','we'=>'WE'],
 'recent'=>'Recent SMS delivery logs','request_id'=>'Request ID','recipient'=>'Recipient','purpose'=>'Purpose','status'=>'Status',
 'attempts'=>'Attempts','latency'=>'Latency','provider_code'=>'Provider result','timestamp'=>'Timestamp','not_configured'=>'Not configured',
 'no_logs'=>'No SMS delivery attempts yet.','test_sent'=>'Test SMS sent. Request :request · :latency ms.',
