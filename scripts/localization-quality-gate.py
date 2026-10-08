@@ -127,6 +127,20 @@ def blade_line_is_inside_nonvisible_block(path: str, lineno: int) -> bool:
     return False
 
 
+def looks_like_blade_source_fragment(value: str) -> bool:
+    """Reject Blade/PHP control-flow fragments accidentally captured as HTML text."""
+    candidate = value.strip()
+    if not candidate:
+        return True
+    if "$" in candidate or "->" in candidate or "::" in candidate:
+        return True
+    if re.search(r"\b[A-Za-z][A-Za-z0-9]*\(\)\)+$", candidate):
+        return True
+    if re.search(r"\b[A-Za-z][A-Za-z0-9_]*_[A-Za-z0-9_]*\)+$", candidate):
+        return True
+    return False
+
+
 def extract_dart_map(text: str, name: str) -> tuple[set[str], tuple[int, int]]:
     marker = re.search(
         rf"static\s+const\s+Map<String,\s*String>\s+{re.escape(name)}\s*=\s*\{{",
@@ -364,7 +378,12 @@ def scan_added_lines(
 
             for text_match in re.finditer(r">\s*(?P<text>[^<>{}@]+?)\s*<", line):
                 value = text_match.group("text").strip()
-                if value and (LATIN_RE.search(value) or ARABIC_RE.search(value)) and not looks_like_technical_literal(value):
+                if (
+                    value
+                    and (LATIN_RE.search(value) or ARABIC_RE.search(value))
+                    and not looks_like_technical_literal(value)
+                    and not looks_like_blade_source_fragment(value)
+                ):
                     errors.append(
                         f"{path}:{lineno}: raw user-facing Blade text {value!r}; use __()"
                     )
