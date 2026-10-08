@@ -558,7 +558,7 @@
       <div class="table-wrap"><table class="data foodex-table" data-pagination-required><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
-        @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $workspaceStatusLabels[$row[$column]] ?? __('admin.b2b_workspace.account_statuses.pending') }}</span>
+        @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $workspaceStatusLabels[$row[$column]] ?? __('admin.b2b_workspace.unknown_status') }}</span>
         @elseif($column==='assignment_status'){{ $orderStateLabels[$row[$column]] ?? $row[$column] }}
         @elseif($column==='actions' && in_array($module,['reports','finance'],true) && is_array($row['actions'] ?? null))
           <div class="links">@foreach($row['actions'] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
