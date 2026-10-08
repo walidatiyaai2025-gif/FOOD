@@ -34,7 +34,7 @@ class HttpVanAuthRepository implements VanAuthRepository {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'email': email, 'password': password, 'app': 'van'}),
       );
     } on SocketException {
       throw const VanOfflineException();
@@ -62,12 +62,21 @@ class HttpVanAuthRepository implements VanAuthRepository {
         .where((value) => value.isNotEmpty)
         .toSet();
 
+    final scopeRaw = user['van_scope'];
+    if (scopeRaw is! Map) {
+      throw const VanAccessDeniedException();
+    }
+    final scope = Map<String, dynamic>.from(scopeRaw);
+
     final session = VanSession(
       token: decoded['token'] as String,
       name: (user['name'] ?? '').toString(),
       email: (user['email'] ?? email).toString(),
       locale: (user['locale'] ?? 'ar').toString(),
       permissions: permissions,
+      vanId: (scope['van_id'] as num?)?.toInt() ?? 0,
+      vanCode: (scope['van_code'] ?? '').toString(),
+      assignmentId: (scope['assignment_id'] as num?)?.toInt() ?? 0,
     );
 
     if (!session.canUseVan) {

@@ -8,6 +8,7 @@ use App\Models\AddressQualityReview;
 use App\Models\FleetCurrentLocation;
 use App\Models\GeographyNode;
 use App\Models\Remittance;
+use App\Models\Role;
 use App\Models\RoutingPolicy;
 use App\Models\ServiceTerritory;
 use App\Models\User;
@@ -16,6 +17,7 @@ use App\Models\VanAssignment;
 use App\Models\VanNoOrderReason;
 use App\Models\VanVisit;
 use App\Services\AddressQualityService;
+use App\Services\AuditLogger;
 use App\Services\CollectionCustodyService;
 use App\Services\CommercialFeatureFlags;
 use App\Services\FieldOperationsFinanceService;
@@ -48,6 +50,7 @@ final class FieldOperationsController extends Controller
         private readonly VanCustomerCollectionContextService $customerCollectionContext,
         private readonly TerritoryService $territoryService,
         private readonly AddressQualityService $addressQuality,
+        private readonly AuditLogger $audit,
         private readonly RoutingPolicyService $routing,
         private readonly CollectionCustodyService $custody,
     ) {
@@ -299,9 +302,46 @@ final class FieldOperationsController extends Controller
             'effective_from' => ['required', 'date'],
             'effective_until' => ['nullable', 'date', 'after:effective_from'],
             'loaded_work_count' => ['nullable', 'integer', 'min:0'],
+            'allow_van_app' => ['nullable', 'boolean'],
         ]);
 
-        $this->registry->assign($user, $van, $data);
+        $assignment = $this->registry->assign($user, $van, $data);
+
+        if (array_key_exists('allow_van_app', $data)) {
+            $operatorUserId = null;
+            if ($assignment->driver_id !== null) {
+                $operatorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
+            }
+            $operatorUserId ??= $assignment->representative_user_id;
+
+            if ((bool) $data['allow_van_app'] && $operatorUserId === null) {
+                throw ValidationException::withMessages([
+                    'allow_van_app' => [__('field_operations.van_app_operator_required')],
+                ]);
+            }
+
+            if ($operatorUserId !== null) {
+                $operator = User::query()->findOrFail((int) $operatorUserId);
+                $vanRole = Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail();
+                $beforeAccess = $operator->hasPermission('van.login');
+                if ((bool) $data['allow_van_app']) {
+                    $operator->roles()->syncWithoutDetaching([$vanRole->id]);
+                } else {
+                    $operator->roles()->detach($vanRole->id);
+                }
+                $operator->unsetRelation('roles');
+                $afterAccess = $operator->hasPermission('van.login');
+                $this->audit->record('van.runtime_access.updated', $user, $operator, [
+                    'van_login' => $beforeAccess,
+                    'van_id' => (int) $van->id,
+                    'assignment_id' => (int) $assignment->id,
+                ], [
+                    'van_login' => $afterAccess,
+                    'van_id' => (int) $van->id,
+                    'assignment_id' => (int) $assignment->id,
+                ]);
+            }
+        }
 
         return back()->with('status', __('admin.field_operations.saved'));
     }

@@ -177,7 +177,7 @@ class TenantOperationalIsolationTest extends TestCase
             'order_id' => $orderB->id,
         ])->assertNotFound();
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
             ->assertOk()
             ->assertJsonCount(1, 'data')

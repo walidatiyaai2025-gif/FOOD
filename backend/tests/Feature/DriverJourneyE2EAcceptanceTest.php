@@ -51,7 +51,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         $this->assertNotification($customerUser->id, 'customer', 'delivery.assigned');
         $this->assertNotification($admin->id, 'dashboard', 'delivery.assigned');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson("/api/v1/driver/assignments/{$assignmentId}")
             ->assertOk()
             ->assertJsonPath('data.id', $assignmentId)
@@ -222,7 +222,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
                 ->assertJsonPath('data.assignment_type', $case['channel'])
                 ->json('data.id');
 
-            Sanctum::actingAs($driverUser);
+            Sanctum::actingAs($driverUser, ['app:driver']);
             $this->transition(
                 $assignmentId,
                 'accepted',
@@ -287,13 +287,13 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             true,
         );
 
-        Sanctum::actingAs($oldUser);
+        Sanctum::actingAs($oldUser, ['app:driver']);
         $this->getJson("/api/v1/driver/assignments/{$oldAssignmentId}")->assertNotFound();
         $this->postJson("/api/v1/driver/assignments/{$oldAssignmentId}/status", [
             'status' => 'accepted',
         ])->assertNotFound();
 
-        Sanctum::actingAs($newUser);
+        Sanctum::actingAs($newUser, ['app:driver']);
         $this->transition($newAssignmentId, 'accepted', 'reassign-accept-1')->assertOk();
         $this->postJson(
             "/api/v1/driver/assignments/{$newAssignmentId}/status",
@@ -331,7 +331,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             ->assertJsonPath('data.assignment_type', 'b2b')
             ->json('data.id');
 
-        Sanctum::actingAs($b2bDriverUser);
+        Sanctum::actingAs($b2bDriverUser, ['app:driver']);
         $this->transition($b2bAssignmentId, 'accepted', 'b2b-accept-1')
             ->assertJsonPath('data.status', 'accepted');
         $this->transition($b2bAssignmentId, 'picked_up', 'b2b-pickup-1')

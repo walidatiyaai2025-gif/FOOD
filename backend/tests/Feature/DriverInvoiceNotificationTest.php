@@ -138,7 +138,7 @@ class DriverInvoiceNotificationTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments/'.$assignmentId)
             ->assertOk()
             ->assertJsonPath('data.order.invoice.number', 'INV-DRV-1')
@@ -190,7 +190,7 @@ class DriverInvoiceNotificationTest extends TestCase
         ])->assertConflict()
             ->assertSeeText('Required collection must be completed before delivery can be finalized.');
 
-        Sanctum::actingAs($otherDriverUser);
+        Sanctum::actingAs($otherDriverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments/'.$assignmentId)->assertNotFound();
         $this->get('/api/v1/driver/assignments/'.$assignmentId.'/invoice/download?locale=en')
             ->assertNotFound();
@@ -202,11 +202,11 @@ class DriverInvoiceNotificationTest extends TestCase
             'replace_existing' => true,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->get('/api/v1/driver/assignments/'.$assignmentId.'/invoice/download?locale=en')
             ->assertNotFound();
 
-        Sanctum::actingAs($otherDriverUser);
+        Sanctum::actingAs($otherDriverUser, ['app:driver']);
         $this->get('/api/v1/driver/assignments/'.$replacementAssignmentId.'/invoice/download?locale=en')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
@@ -285,7 +285,7 @@ class DriverInvoiceNotificationTest extends TestCase
                 'assigned_at' => now(),
             ]);
 
-            Sanctum::actingAs($driverUser);
+            Sanctum::actingAs($driverUser, ['app:driver']);
             $this->getJson('/api/v1/driver/assignments/'.$assignment->id)
                 ->assertOk()
                 ->assertJsonPath('data.order.settlement.order_total', 100)

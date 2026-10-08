@@ -139,5 +139,6 @@ return [
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],
         'B2C_DRIVER' => ['deliveries.b2c.execute'],
+        'VAN_OPERATOR' => ['van.login'],
     ],
 ];

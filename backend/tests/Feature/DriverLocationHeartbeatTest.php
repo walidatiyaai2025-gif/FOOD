@@ -36,7 +36,7 @@ class DriverLocationHeartbeatTest extends TestCase
             'is_active' => true,
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, ['app:driver']);
 
         $payload = [
             'latitude' => 29.3759,
@@ -90,7 +90,7 @@ class DriverLocationHeartbeatTest extends TestCase
             'is_active' => true,
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, ['app:driver']);
 
         $newerCapturedAt = now()->subSecond();
         $olderCapturedAt = $newerCapturedAt->copy()->subMinute();
@@ -146,7 +146,7 @@ class DriverLocationHeartbeatTest extends TestCase
             'is_active' => true,
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, ['app:driver']);
 
         $this->postJson('/api/v1/driver/location/heartbeat', [
             'latitude' => 29.3759,
@@ -176,7 +176,7 @@ class DriverLocationHeartbeatTest extends TestCase
             'is_active' => true,
         ]);
 
-        Sanctum::actingAs($user);
+        Sanctum::actingAs($user, ['app:driver']);
 
         $this->postJson('/api/v1/driver/location/heartbeat', [
             'latitude' => 91,

@@ -251,7 +251,7 @@ class NotificationAudienceIsolationTest extends TestCase
         $this->assertSame($newAssignment->id, (int) ($revoked->data['assignment_id'] ?? 0));
         $this->assertStringContainsString('/driver/b2c/deliveries?', (string) ($revoked->data['deep_link'] ?? ''));
 
-        Sanctum::actingAs(User::query()->findOrFail($oldDriver->user_id));
+        Sanctum::actingAs(User::query()->findOrFail($oldDriver->user_id), ['app:driver']);
         $this->getJson('/api/v1/notifications')
             ->assertOk()
             ->assertJsonPath('data.0.data.access_revoked', true);
