@@ -47,6 +47,34 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('{{ $event[\'reason_code\'] }}', $view);
     }
 
+    public function test_order_management_exposes_canonical_pending_dispatch_workflow(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/Admin/OrderOperationsController.php'));
+        $routes = file_get_contents(base_path('routes/web.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($controller);
+        $this->assertIsString($routes);
+
+        $this->assertStringContainsString('name="dispatch_status"', $view);
+        $this->assertStringContainsString('data-order-dispatch-status', $view);
+        $this->assertStringContainsString('data-order-dispatch-driver', $view);
+        $this->assertStringContainsString('data-order-dispatch-van', $view);
+        $this->assertStringContainsString('data-order-dispatch-clear', $view);
+        $this->assertStringContainsString('data-order-dispatch-detail', $view);
+        $this->assertStringContainsString("__('order_operations.dispatch.warning')", $view);
+        $this->assertStringNotContainsString('name="assignee_id" type="number"', $view);
+
+        $this->assertStringContainsString('OrderDispatchState::query()', $controller);
+        $this->assertStringContainsString('OrderVanAssignment::query()', $controller);
+        $this->assertStringContainsString('OrderManualDispatchService $dispatch', $controller);
+        $this->assertStringContainsString("'customer_service_override' => true", $controller);
+
+        $this->assertStringContainsString("name('operations.orders.dispatch')", $routes);
+        $this->assertStringContainsString("name('operations.orders.dispatch.clear')", $routes);
+    }
+
     public function test_live_tracking_uses_authorized_store_lookup_instead_of_raw_store_id(): void
     {
         $view = file_get_contents(resource_path('views/admin/_driver-live-map.blade.php'));
