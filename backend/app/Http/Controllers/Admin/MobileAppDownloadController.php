@@ -101,6 +101,10 @@ final class MobileAppDownloadController extends Controller
                 abort(502, 'FOODEX APK artifact is unavailable.');
             }
 
+            if (filesize($temporaryPath) === 0 && $artifactResponse->body() !== '') {
+                file_put_contents($temporaryPath, $artifactResponse->body());
+            }
+
             $actualSha256 = hash_file('sha256', $temporaryPath);
             if (! is_string($actualSha256) || ! hash_equals($entry['sha256'], $actualSha256)) {
                 @unlink($temporaryPath);
