@@ -415,7 +415,9 @@
                     @endphp
                     <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Facades\Lang::has($sourceKey) ? __($sourceKey) : __('field_operations.resolution_sources.unknown') }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
                     @foreach($review->events as $event)
-                        @php($eventKey = 'field_operations.review_statuses.'.$event->event_type)
+                        @php
+                            $eventKey = 'field_operations.review_statuses.'.$event->event_type;
+                        @endphp
                         <div class="fieldops-code">{{ $event->created_at }} · {{ \Illuminate\Support\Facades\Lang::has($eventKey) ? __($eventKey) : __('field_operations.review_statuses.unmapped') }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>
                     @endforeach
                 </details>
