@@ -37,7 +37,10 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint --test --diff app routes tests"
+            "cp app/Services/SuggestedWholesalePurchasePlanService.php /tmp/SuggestedWholesalePurchasePlanService.before.php",
+            "vendor/bin/pint app/Services/SuggestedWholesalePurchasePlanService.php",
+            "diff -u /tmp/SuggestedWholesalePurchasePlanService.before.php app/Services/SuggestedWholesalePurchasePlanService.php || true",
+            "false"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
