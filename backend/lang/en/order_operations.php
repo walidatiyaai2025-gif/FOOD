@@ -71,6 +71,15 @@ return [
         'routing_reason' => 'Routing reason',
         'territory' => 'Service territory',
         'uncovered' => 'Uncovered or unresolved delivery area',
+        'audit_title' => 'Dispatch audit history',
+        'audit_empty' => 'No dispatch audit events are recorded.',
+        'system_actor' => 'System',
+        'audit_events' => [
+            'order_dispatch_assigned' => 'Automatic dispatch assigned',
+            'order_dispatch_awaiting' => 'Moved to pending dispatch',
+            'order_dispatch_manual_assigned' => 'Customer Service assignment',
+            'order_dispatch_manual_cleared' => 'Customer Service returned order to pending dispatch',
+        ],
     ],
     'detail' => [
         'context' => 'Order context',
