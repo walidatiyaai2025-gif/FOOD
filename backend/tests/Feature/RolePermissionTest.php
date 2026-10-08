@@ -55,6 +55,25 @@ class RolePermissionTest extends TestCase
         $this->assertFalse(Gate::forUser($b2cAdmin)->allows('b2b.pricing.manage', [$storeId]));
     }
 
+    public function test_customer_support_can_dispatch_without_driver_registry_management(): void
+    {
+        $b2bSupport = $this->userWithGlobalRole('CUSTOMER_SUPPORT');
+
+        $this->assertTrue(Gate::forUser($b2bSupport)->allows('orders.dispatch'));
+        $this->assertFalse(Gate::forUser($b2bSupport)->allows('drivers.b2b.manage'));
+
+        $storeId = $this->createB2cStore();
+        $retailSupport = User::query()->create([
+            'name' => 'Retail Support',
+            'email' => 'retail-support@example.test',
+            'password' => 'password',
+        ]);
+        $this->assignStoreRole($retailSupport, $storeId, 'RETAIL_CUSTOMER_SUPPORT');
+
+        $this->assertTrue(Gate::forUser($retailSupport)->allows('orders.dispatch', [$storeId]));
+        $this->assertFalse(Gate::forUser($retailSupport)->allows('drivers.b2c.manage', [$storeId]));
+    }
+
     public function test_b2b_and_b2c_driver_execution_permissions_remain_separate(): void
     {
         $b2bDriver = $this->userWithGlobalRole('B2B_DRIVER');
