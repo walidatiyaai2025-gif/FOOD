@@ -22,14 +22,6 @@ final class CustomerDomainResolver
     {
         $direct = $this->b2b->forUser($user);
         if ($direct instanceof B2bCustomer) {
-            if ($direct->legacy_customer_id !== null) {
-                app(PlatformCustomerService::class)->reconcileWholesaleCustomerIdentity(
-                    $user,
-                    $direct,
-                    'migration',
-                );
-            }
-
             return $direct;
         }
 
@@ -97,11 +89,6 @@ final class CustomerDomainResolver
                 );
 
                 $this->reconcileLegacyB2bReferences($legacy->getKey(), $customer->getKey());
-                app(PlatformCustomerService::class)->reconcileWholesaleCustomerIdentity(
-                    $user,
-                    $customer,
-                    'migration',
-                );
             }
         }
 
