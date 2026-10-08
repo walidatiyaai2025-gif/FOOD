@@ -525,6 +525,16 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
     throw new Error(`Structured Van channel control missing from Flash Offers (${locale})`);
   }
 
+  const productsWizardButton = flashForm.locator('[data-flash-wizard-go="3"]');
+  if (await productsWizardButton.count() !== 1) {
+    throw new Error(`Flash Offers Products wizard step is missing (${locale})`);
+  }
+  await productsWizardButton.click();
+  const productsWizardStep = flashForm.locator('[data-flash-wizard-step="3"]');
+  if (await productsWizardStep.count() !== 1 || await productsWizardStep.getAttribute('hidden') !== null) {
+    throw new Error(`Flash Offers Products wizard step did not become active (${locale})`);
+  }
+
   const productRows = flashForm.locator('[data-flash-product-row]');
   const productBefore = await productRows.count();
   await flashForm.locator('[data-flash-product-add]').click();
