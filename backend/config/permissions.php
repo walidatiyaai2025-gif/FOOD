@@ -44,6 +44,7 @@ return [
         'orders.edit' => 'Edit order details where business rules allow',
         'orders.approve' => 'Approve controlled order transitions',
         'orders.manage' => 'Manage orders',
+        'orders.dispatch' => 'Assign, reassign and unassign order execution to authorized Drivers or Vans',
         'customers.view' => 'View customer records',
         'customers.create' => 'Create customer records where permitted',
         'customers.edit' => 'Edit customer records',
@@ -84,7 +85,7 @@ return [
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage', 'inventory.replenishment_mapping.manage',
-            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
+            'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'finance.view', 'finance.manage', 'reports.view', 'reports.export',
             'settings.view', 'settings.manage', 'assistant.use',
             'app_preview.view', 'app_preview.impersonate_customer', 'app_preview.impersonate_driver', 'app_preview.publish',
@@ -120,7 +121,7 @@ return [
         'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
             'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
-            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage',
+            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
         ],
         'RETAIL_OPERATIONS' => [
             'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage',
