@@ -51,6 +51,9 @@ class SecureVanSessionStore implements VanSessionStore {
         email: (payload['email'] ?? '').toString(),
         locale: (payload['locale'] ?? 'ar').toString(),
         permissions: permissions,
+        vanId: (payload['van_id'] as num?)?.toInt() ?? 0,
+        vanCode: (payload['van_code'] ?? '').toString(),
+        assignmentId: (payload['assignment_id'] as num?)?.toInt() ?? 0,
       );
     } on FormatException {
       await clear();
@@ -77,6 +80,9 @@ class SecureVanSessionStore implements VanSessionStore {
         'email': session.email,
         'locale': session.locale,
         'permissions': session.permissions.toList()..sort(),
+        'van_id': session.vanId,
+        'van_code': session.vanCode,
+        'assignment_id': session.assignmentId,
       }),
     );
   }
