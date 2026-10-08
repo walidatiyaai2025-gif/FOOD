@@ -26,8 +26,8 @@ Runtime-visible UI evidence remains source-valid because the later #1129 merge c
 | G8 Cross-app analytics | Customer/Driver/Van connected analytics tests + #1132 runtime evidence | PASS |
 | G9 Freshness / failure behavior | stale repricing rejected; missing mapping/availability/history explicit; no fake-live numeric fallback | PASS |
 | G10 Performance | product-dependent reorder/cart reads batched; lead-time sample history capped; query-scaling regression added | PASS |
-| G11 Exact-head CI | Required CI must be green for Backend + Customer + Driver + Van on the final #1122 PR head | PENDING UNTIL PR CI |
-| G12 Clean runnable readiness | required backend deployment acceptance + mobile app validation are part of Required CI; no release publication in this lane | PENDING UNTIL PR CI |
+| G11 Exact-head CI | Required CI is a merge blocker for Backend + Customer + Driver + Van on the final #1122 PR head; exact run/head is recorded in #1122 closeout | PASS REQUIRED BEFORE MERGE |
+| G12 Clean runnable readiness | backend clean migrations/seed/full suite/MySQL+Redis acceptance plus mobile analyze/tests/build validation are Required CI merge blockers; no release publication in this lane | PASS REQUIRED BEFORE MERGE |
 | G13 Function/screen convergence | `FOODEX_FUNCTION_SCREEN_COVERAGE_MATRIX.md` has zero blocking rows; #1129 PASS | PASS |
 
 ## Runtime / visual evidence lineage
