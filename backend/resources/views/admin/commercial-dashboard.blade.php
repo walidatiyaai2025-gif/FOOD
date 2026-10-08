@@ -1003,6 +1003,8 @@
         const target = event.target instanceof Element ? event.target.closest('[data-flash-product-add]') : null;
         if (!target) return;
         event.preventDefault();
+        event.stopImmediatePropagation();
+        event.stopPropagation();
         addProductRow();
     }, true);
     if (builder && template && addButton) builder.dataset.foodexProductBuilderInit = '1';
