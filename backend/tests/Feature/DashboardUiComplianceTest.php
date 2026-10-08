@@ -34,6 +34,9 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-row-actions', $view);
         $this->assertStringContainsString('>⋮</summary>', $view);
         $this->assertStringContainsString("__('order_operations.view_order')", $view);
+        $this->assertStringContainsString('<dialog class="order-detail-drawer" open', $view);
+        $this->assertStringContainsString('order-detail-drawer-shell', $view);
+        $this->assertStringNotContainsString('<section class="detail-grid" style="margin-top:18px">', $view);
         $this->assertStringNotContainsString('<td><div class="actions">', $view);
         $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
         $this->assertStringNotContainsString('channel={{ $detail[\'channel\'] }}', $view);
