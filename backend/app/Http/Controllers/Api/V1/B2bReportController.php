@@ -553,7 +553,7 @@ class B2bReportController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        $customer = app(CustomerDomainResolver::class)->b2bFromRequest($user, $request);
+        $customer = app(CustomerDomainResolver::class)->b2bAccountFromRequest($user, $request);
         abort_unless(
             B2bAccount::query()
                 ->where('b2b_customer_id', $customer->getKey())
