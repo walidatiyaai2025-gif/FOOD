@@ -529,13 +529,27 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
   const productBefore = await productRows.count();
   await flashForm.locator('[data-flash-product-add]').click();
   if (await productRows.count() !== productBefore + 1) {
-    const initState = await page.evaluate(() => ({
-      script: document.documentElement.dataset.foodexCommercialScriptInit || '0',
-      builder: document.querySelector('[data-flash-product-builder]')?.dataset.foodexProductBuilderInit || '0',
-      addFn: typeof window.foodexFlashAddProductRow,
-      buttonCount: document.querySelectorAll('[data-flash-product-add]').length,
-      templateCount: document.querySelectorAll('[data-flash-product-template]').length,
-    }));
+    const initState = await page.evaluate(() => {
+      const template = document.querySelector('[data-flash-product-template]');
+      const builder = document.querySelector('[data-flash-product-builder]');
+      const before = builder?.querySelectorAll('[data-flash-product-row]').length ?? -1;
+      const directResult = typeof window.foodexFlashAddProductRow === 'function'
+        ? window.foodexFlashAddProductRow()
+        : 'missing';
+      const after = builder?.querySelectorAll('[data-flash-product-row]').length ?? -1;
+      return {
+        script: document.documentElement.dataset.foodexCommercialScriptInit || '0',
+        builder: builder?.dataset.foodexProductBuilderInit || '0',
+        addFn: typeof window.foodexFlashAddProductRow,
+        buttonCount: document.querySelectorAll('[data-flash-product-add]').length,
+        templateCount: document.querySelectorAll('[data-flash-product-template]').length,
+        templateHtmlLength: template?.innerHTML?.length ?? -1,
+        templateContentChildren: template instanceof HTMLTemplateElement ? template.content.children.length : -1,
+        directResult,
+        beforeDirect: before,
+        afterDirect: after,
+      };
+    });
     throw new Error(`Flash Product Builder did not add a product row (${locale}); init=${JSON.stringify(initState)}; page errors: ${pageErrors.join(' | ') || 'none'}`);
   }
 
