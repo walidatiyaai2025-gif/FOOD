@@ -23,6 +23,8 @@ return [
         'app_preview.publish' => 'Publish and roll back scoped Customer App storefront revisions',
         'push_settings.manage' => 'Manage push notification provider settings',
         'push_settings.test' => 'Send controlled push notification tests',
+        'sms_settings.manage' => 'Manage central SMS provider settings',
+        'sms_settings.test' => 'Send controlled SMS gateway tests',
         'stores.view' => 'View stores and channel configuration',
         'stores.manage' => 'Manage stores and channel configuration',
         'b2b.accounts.view' => 'View B2B customer accounts',
