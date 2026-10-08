@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MobileAppDownloadTest extends TestCase
@@ -39,7 +40,7 @@ class MobileAppDownloadTest extends TestCase
         );
     }
 
-    public function test_customer_and_driver_apk_redirects_use_installed_dashboard_version(): void
+    public function test_dashboard_apk_links_redirect_to_foodex_domain_latest_routes(): void
     {
         $admin = $this->superAdmin();
 
@@ -51,11 +52,83 @@ class MobileAppDownloadTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('admin.mobile-apps.customer.download'))
-            ->assertRedirect('https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer.apk');
+            ->assertRedirect(route('public.mobile-apps.latest', ['app' => 'customer']));
 
         $this->actingAs($admin)
             ->get(route('admin.mobile-apps.driver.download'))
-            ->assertRedirect('https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Driver.apk');
+            ->assertRedirect(route('public.mobile-apps.latest', ['app' => 'driver']));
+    }
+
+
+    public function test_public_versioned_customer_apk_is_served_as_verified_attachment_from_foodex_route(): void
+    {
+        $payload = 'verified-apk-bytes';
+        $sha256 = hash('sha256', $payload);
+
+        Http::fake([
+            'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/LATEST_RELEASE.json' => Http::response([
+                'version' => '9.8.7',
+                'customer' => [
+                    'file' => 'FOODEX-Customer-9.8.7.apk',
+                    'bytes' => strlen($payload),
+                    'sha256' => $sha256,
+                ],
+            ]),
+            'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk' => Http::response($payload),
+        ]);
+
+        $this->get('/downloads/apps/customer/9.8.7.apk')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.android.package-archive')
+            ->assertHeader('x-foodex-release-version', '9.8.7')
+            ->assertHeader('x-foodex-artifact-sha256', $sha256)
+            ->assertDownload('FOODEX-Customer-9.8.7.apk');
+    }
+
+    public function test_public_latest_customer_apk_uses_installed_release_version(): void
+    {
+        SystemVersion::query()->create([
+            'version' => '9.8.7',
+            'installed_at' => now(),
+            'package_hash' => str_repeat('a', 64),
+        ]);
+
+        $payload = 'latest-apk';
+        $sha256 = hash('sha256', $payload);
+
+        Http::fake([
+            'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/LATEST_RELEASE.json' => Http::response([
+                'version' => '9.8.7',
+                'customer' => [
+                    'file' => 'FOODEX-Customer-9.8.7.apk',
+                    'bytes' => strlen($payload),
+                    'sha256' => $sha256,
+                ],
+            ]),
+            'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk' => Http::response($payload),
+        ]);
+
+        $this->get('/downloads/apps/customer/latest.apk')
+            ->assertOk()
+            ->assertDownload('FOODEX-Customer-9.8.7.apk');
+    }
+
+    public function test_download_rejects_release_bytes_that_do_not_match_manifest_checksum(): void
+    {
+        Http::fake([
+            'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/LATEST_RELEASE.json' => Http::response([
+                'version' => '9.8.7',
+                'customer' => [
+                    'file' => 'FOODEX-Customer-9.8.7.apk',
+                    'bytes' => 3,
+                    'sha256' => str_repeat('a', 64),
+                ],
+            ]),
+            'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk' => Http::response('bad'),
+        ]);
+
+        $this->get('/downloads/apps/customer/9.8.7.apk')
+            ->assertStatus(502);
     }
 
     private function superAdmin(): User
