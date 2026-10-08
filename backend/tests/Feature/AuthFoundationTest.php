@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Driver;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\VanRegistryService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -108,6 +109,85 @@ class AuthFoundationTest extends TestCase
         ])->assertOk();
 
         $this->assertContains('van.login', $login->json('user.permissions'));
+    }
+
+    public function test_same_driver_account_can_login_to_driver_and_van_with_effective_assignment(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'AUTH-UNIFIED-B2C',
+            'name' => 'Unified Driver Van Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Unified Operator',
+            'email' => 'unified-operator@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach([
+            Role::query()->where('code', 'B2C_DRIVER')->firstOrFail()->id,
+            Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail()->id,
+        ]);
+
+        $driver = Driver::query()->create([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'AUTH-VAN-01']);
+        $assignment = $registry->assign($user, $van, [
+            'driver_id' => $driver->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'app' => 'driver',
+        ])->assertOk()
+            ->assertJsonPath('user.driver_scope.driver_id', $driver->id);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'app' => 'van',
+        ])->assertOk()
+            ->assertJsonPath('user.van_scope.van_id', $van->id)
+            ->assertJsonPath('user.van_scope.assignment_id', $assignment->id)
+            ->assertJsonPath('user.van_context_selection_reason', 'deterministic_primary');
+    }
+
+    public function test_van_login_requires_permission_and_effective_assignment(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $user = User::query()->create([
+            'name' => 'Driver Only',
+            'email' => 'driver-only@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'app' => 'van',
+        ])->assertForbidden();
     }
 
     public function test_invalid_or_inactive_credentials_are_rejected(): void
