@@ -166,7 +166,9 @@ final class SmsGateway
             'failed_at' => $result['status'] === 'failed' ? now() : null,
         ])->save();
 
-        return $log->fresh();
+        $log->refresh();
+
+        return $log;
     }
 
     public function queue(SmsMessage $message): void
