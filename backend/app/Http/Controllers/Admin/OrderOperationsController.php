@@ -171,9 +171,16 @@ final class OrderOperationsController extends Controller
             ]);
 
         $vans = DB::table('vans')
-            ->where('status', 'active')
-            ->orderBy('code')
-            ->get(['id', 'code', 'plate_number']);
+            ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
+            ->where('vans.status', 'active')
+            ->where('van_assignments.status', 'active')
+            ->where('van_assignments.effective_from', '<=', now())
+            ->where(fn ($query) => $query
+                ->whereNull('van_assignments.effective_until')
+                ->orWhere('van_assignments.effective_until', '>', now()))
+            ->orderBy('vans.code')
+            ->distinct()
+            ->get(['vans.id', 'vans.code', 'vans.plate_number']);
 
         $detail = null;
         if (isset($data['order'])) {
@@ -630,6 +637,19 @@ final class OrderOperationsController extends Controller
             ));
         }
 
+        $vanId = (int) $data['assignee_id'];
+        $vanAssignable = DB::table('vans')
+            ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
+            ->where('vans.id', $vanId)
+            ->where('vans.status', 'active')
+            ->where('van_assignments.status', 'active')
+            ->where('van_assignments.effective_from', '<=', now())
+            ->where(fn ($query) => $query
+                ->whereNull('van_assignments.effective_until')
+                ->orWhere('van_assignments.effective_until', '>', now()))
+            ->exists();
+        abort_unless($vanAssignable, 422, 'Selected Van has no effective active assignment.');
+
         $activeDriver = DriverAssignment::query()
             ->where('order_id', $model->getKey())
             ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
@@ -644,7 +664,7 @@ final class OrderOperationsController extends Controller
             $deliveries->unassign($request, $order, $audit, $notifier);
         }
 
-        $dispatch->assignVan($model, $actor, (int) $data['assignee_id'], $reason);
+        $dispatch->assignVan($model, $actor, $vanId, $reason);
 
         return back()->with('status', $this->msg(
             'تم توجيه الطلب إلى الفان.',
