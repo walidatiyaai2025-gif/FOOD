@@ -97,7 +97,22 @@
             <div>{{ $isAr?'التوصيل':'Delivery' }}: {{ number_format($invoice['delivery_total'],3) }} {{ $invoice['currency'] }}</div>
             <div>{{ $isAr?'الضريبة':'Tax' }}: {{ number_format($invoice['tax_total'],3) }} {{ $invoice['currency'] }}</div>
             <div class="grand">{{ $isAr?'الإجمالي':'Grand total' }}: {{ number_format($invoice['grand_total'],3) }} {{ $invoice['currency'] }}</div>
+            @if($amounts)<div>{{ $isAr?'المدفوع':'Paid' }}: {{ number_format($amounts['paid_amount'],3) }} {{ $invoice['currency'] }}</div><div><strong>{{ $isAr?'المتبقي':'Outstanding' }}: {{ number_format($amounts['outstanding_amount'],3) }} {{ $invoice['currency'] }}</strong></div>@endif
         </div>
+
+        @if($canManage && $amounts && $amounts['outstanding_amount'] > 0.0005 && strtolower((string)$invoice['channel'])==='b2b')
+        <button class="foodex-primary" type="button" onclick="document.getElementById('invoice-settlement-dialog').showModal()">{{ $isAr?'تسجيل دفعة / تسوية':'Record payment / Settle' }}</button>
+        <dialog id="invoice-settlement-dialog">
+            <form method="post" action="{{ route('admin.invoices.settle',['invoice'=>$model->id]) }}" class="correction">
+                @csrf
+                <input name="amount" type="number" min="0.001" max="{{ number_format($amounts['outstanding_amount'],3,'.','') }}" step="0.001" value="{{ number_format($amounts['outstanding_amount'],3,'.','') }}" required>
+                <input name="reference" maxlength="120" placeholder="{{ $isAr?'مرجع الدفعة':'Payment reference' }}">
+                <input name="description" maxlength="500" placeholder="{{ $isAr?'ملاحظات':'Notes' }}">
+                <button type="button" onclick="document.getElementById('invoice-settlement-dialog').close()">{{ $isAr?'إلغاء':'Cancel' }}</button>
+                <button class="foodex-primary" type="submit">{{ $isAr?'تسجيل الدفعة':'Record payment' }}</button>
+            </form>
+        </dialog>
+        @endif
 
         @if($canManage && in_array($invoice['status'],['issued','reissued'],true))
         <form method="post" action="{{ route('admin.invoices.reissue',['invoice'=>$model->id]) }}" class="correction">
