@@ -76,6 +76,7 @@ final class AdvansysBulkSmsProvider implements SmsProviderInterface
         if (! is_array($parts)
             || strtolower((string) ($parts['scheme'] ?? ''))!=='https'
             || strtolower((string) ($parts['host'] ?? ''))!=='hub.advansystelecom.com'
+            || ! in_array((string) ($parts['path'] ?? ''), ['', '/'], true)
             || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])
             || (isset($parts['port']) && (int) $parts['port']!==443)) {
             throw ValidationException::withMessages(['api_base_url'=>__('sms.errors.invalid_provider_url')]);
