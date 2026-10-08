@@ -13,6 +13,7 @@ use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -320,7 +321,7 @@ final class B2bAccountLedgerContractTest extends TestCase
         $this->assertSame(60.0, $ledger->invoiceAmounts($invoice)['paid_amount']);
         $this->assertSame(0.0, $ledger->summary($customer, $storeId)['balance']);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         $ledger->settleInvoice($customer, $invoice, 1, 'EGP', $user, 'SETTLE-OVER');
     }
 
