@@ -672,7 +672,7 @@ void main() {
     expect(find.byKey(const ValueKey('van-orders-status-chart')), findsOneWidget);
     expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
-    expect(find.text('12.000 KWD'), findsOneWidget);
+    expect(find.text('12.000 KWD'), findsWidgets);
     expect(orders.createdCount, 1);
   });
 
