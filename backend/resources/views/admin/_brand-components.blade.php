@@ -223,8 +223,14 @@
         menu.style.left = '0px';
 
         const menuRect = menu.getBoundingClientRect();
-        const rtl = getComputedStyle(details).direction === 'rtl';
-        let left = rtl ? trigger.left : trigger.right - menuRect.width;
+        // Row actions normally live at the visual edge of a grid. Prefer opening the
+        // menu inward (to the left of the trigger) in both RTL and LTR, then fall
+        // back to the opposite side only when that side has materially more room.
+        const inwardLeft = trigger.right - menuRect.width;
+        const outwardLeft = trigger.left;
+        const fitsInward = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;
+        const fitsOutward = outwardLeft >= margin && outwardLeft + menuRect.width <= window.innerWidth - margin;
+        let left = fitsInward ? inwardLeft : (fitsOutward ? outwardLeft : inwardLeft);
         left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
 
         let top = trigger.bottom + 6;
