@@ -488,7 +488,7 @@
                 @endif
             </div>
             @if($storeId > 0)
-            <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list">
+            <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
                 @csrf
                 @if($editingOffer)<input type="hidden" name="offer_id" value="{{ $editingOffer->id }}">@endif
                 <div class="flash-wizard-progress" data-flash-wizard-progress aria-label="{{ __('commercial.flash.form_description') }}">
@@ -1143,7 +1143,19 @@
         step.appendChild(actions);
     });
     if (wizardSteps.length) showWizardStep(0);
-    flashForm?.addEventListener('submit', () => wizardSteps.forEach((step) => { step.hidden = false; }));
+    flashForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        wizardSteps.forEach((step) => { step.hidden = false; });
+        if (!flashForm.checkValidity()) {
+            const invalid = flashForm.querySelector(':invalid');
+            const invalidStep = invalid?.closest('[data-flash-wizard-step]');
+            const invalidIndex = wizardSteps.indexOf(invalidStep);
+            if (invalidIndex >= 0) showWizardStep(invalidIndex);
+            invalid?.reportValidity?.();
+            return;
+        }
+        flashForm.submit();
+    });
 
     const productContext = document.querySelector('[data-flash-product-context]');
     const applyProductContext = () => {
