@@ -145,15 +145,6 @@ final class SmsGateway
             }
         }
 
-        $result ??= [
-            'status' => 'failed',
-            'provider_code' => 'no_result',
-            'error_code' => 'provider_failed',
-            'message' => __('sms.errors.provider_unavailable'),
-            'latency_ms' => 0,
-            'transient' => false,
-        ];
-
         $log->forceFill([
             'status' => $result['status'],
             'provider_response_code' => $result['provider_code'],
