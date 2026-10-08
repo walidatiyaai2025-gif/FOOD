@@ -28,11 +28,10 @@ CustomerRouteAuthority customerRouteAuthorityFor(
     case CustomerRoutePaths.diagnostics:
       return CustomerRouteAuthority.diagnostics;
 
-    // Explicit store-scoped routes are owned by the multi-store design. This
-    // intentionally wins over the older generic retail journey.
+    // Marketplace and wholesale commerce routes are owned by the multi-store
+    // design. Retail store-scoped routes intentionally stay on the shared
+    // RetailCustomerJourneyScreen used by production preview/runtime.
     case CustomerRoutePaths.marketplace:
-    case CustomerRoutePaths.retailHome:
-    case CustomerRoutePaths.retailProductDetails:
     case CustomerRoutePaths.b2bHome:
     case CustomerRoutePaths.b2bProducts:
     case CustomerRoutePaths.b2bCart:
@@ -50,6 +49,8 @@ CustomerRouteAuthority customerRouteAuthorityFor(
           : CustomerRouteAuthority.b2bJourney;
 
     case CustomerRoutePaths.home:
+    case CustomerRoutePaths.retailHome:
+    case CustomerRoutePaths.retailProductDetails:
     case CustomerRoutePaths.offers:
     case CustomerRoutePaths.products:
     case CustomerRoutePaths.productDetails:
