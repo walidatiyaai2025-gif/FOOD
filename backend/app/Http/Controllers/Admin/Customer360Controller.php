@@ -26,6 +26,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -469,7 +470,7 @@ final class Customer360Controller extends Controller
         $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
         try {
             $export = $exports->build($report, $format, $locale);
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
             abort(503, 'Document export is temporarily unavailable.');
         }
 
