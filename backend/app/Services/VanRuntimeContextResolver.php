@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\VanAssignment;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class VanRuntimeContextResolver
