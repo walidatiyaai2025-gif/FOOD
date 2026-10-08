@@ -33,6 +33,8 @@ final class ReportController extends Controller
         unset($validated['page'], $validated['per_page']);
 
         $data = $reports->run($user, $report, $validated, $perPage, ($page - 1) * $perPage);
+        // More rows are reachable through pagination, so the UI is not truncated.
+        $data['meta']['truncated'] = false;
         $rowsPaginator = new LengthAwarePaginator(
             $data['rows'],
             (int) ($data['meta']['row_count'] ?? count($data['rows'])),
