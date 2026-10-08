@@ -91,6 +91,108 @@ final class PlatformCustomerService
             ->first();
     }
 
+    public function reconcileWholesaleCustomerIdentity(
+        User $user,
+        B2bCustomer $linkedCustomer,
+        string $registrationSource = 'dashboard',
+    ): PlatformCustomer {
+        $registrationSource = $this->normalizeRegistrationSource($registrationSource);
+
+        return DB::transaction(function () use (
+            $user,
+            $linkedCustomer,
+            $registrationSource,
+        ): PlatformCustomer {
+            abort_if(
+                $linkedCustomer->legacy_customer_id === null,
+                409,
+                'Wholesale customer legacy identity is incomplete.',
+            );
+
+            abort_if(
+                $linkedCustomer->user_id !== null
+                    && (int) $linkedCustomer->user_id !== (int) $user->getKey(),
+                409,
+                'Wholesale customer is linked to another User identity.',
+            );
+
+            $legacy = Customer::query()
+                ->whereKey((int) $linkedCustomer->legacy_customer_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_if(
+                $legacy->user_id !== null
+                    && (int) $legacy->user_id !== (int) $user->getKey(),
+                409,
+                'Wholesale legacy customer is linked to another User identity.',
+            );
+
+            $email = strtolower(trim((string) $user->email));
+            $platform = PlatformCustomer::query()
+                ->where('user_id', $user->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if ($platform instanceof PlatformCustomer) {
+                $platform->forceFill([
+                    'name' => (string) $user->name,
+                    'phone' => $platform->phone ?? $linkedCustomer->phone,
+                    'email' => $email,
+                    'is_active' => true,
+                ])->save();
+
+                User::query()
+                    ->whereKey($user->getKey())
+                    ->update([
+                        'is_platform_customer' => true,
+                        'updated_at' => now(),
+                    ]);
+
+                return $platform->refresh();
+            }
+
+            abort_if(
+                PlatformCustomer::query()
+                    ->where('legacy_customer_id', $legacy->getKey())
+                    ->where('user_id', '!=', $user->getKey())
+                    ->exists(),
+                409,
+                'Wholesale legacy identity is already owned by another Platform Customer.',
+            );
+
+            if ($linkedCustomer->user_id === null) {
+                $linkedCustomer->forceFill(['user_id' => $user->getKey()])->save();
+            }
+
+            if ($legacy->user_id === null) {
+                $legacy->forceFill(['user_id' => $user->getKey()])->save();
+            }
+
+            $platform = PlatformCustomer::query()->create([
+                'user_id' => $user->getKey(),
+                'legacy_customer_id' => $legacy->getKey(),
+                'name' => (string) $user->name,
+                'phone' => $linkedCustomer->phone,
+                'email' => $email,
+                'origin_channel' => 'b2b',
+                'origin_store_id' => $this->mainWholesaleStoreId(),
+                'registration_source' => $registrationSource,
+                'registered_at' => now(),
+                'is_active' => true,
+            ]);
+
+            User::query()
+                ->whereKey($user->getKey())
+                ->update([
+                    'is_platform_customer' => true,
+                    'updated_at' => now(),
+                ]);
+
+            return $platform->refresh();
+        }, 3);
+    }
+
     public function reconcileRetailMerchantIdentity(
         User $user,
         B2bCustomer $linkedCustomer,
