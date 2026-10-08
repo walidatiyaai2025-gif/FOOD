@@ -1004,7 +1004,7 @@
         if (!target) return;
         event.preventDefault();
         addProductRow();
-    });
+    }, true);
     if (builder && template && addButton) builder.dataset.foodexProductBuilderInit = '1';
     window.foodexFlashAddProductRow = addProductRow;
 
