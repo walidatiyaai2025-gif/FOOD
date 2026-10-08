@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Jobs\DispatchPushNotification;
+use App\Models\AuditLog;
 use App\Models\DriverAssignment;
 use App\Models\Notification;
 use App\Models\Order;
@@ -995,12 +996,40 @@ final class OrderOperationsController extends Controller
             })
             ->all();
 
+        $dispatchAudit = AuditLog::query()
+            ->leftJoin('users', 'users.id', '=', 'audit_logs.user_id')
+            ->where('audit_logs.auditable_type', Order::class)
+            ->where('audit_logs.auditable_id', $order->getKey())
+            ->where('audit_logs.event', 'like', 'order.dispatch.%')
+            ->latest('audit_logs.id')
+            ->get([
+                'audit_logs.event',
+                'audit_logs.after',
+                'audit_logs.created_at',
+                'users.name as actor_name',
+            ])
+            ->map(static function (AuditLog $entry): array {
+                $after = is_array($entry->after) ? $entry->after : [];
+
+                return [
+                    'event_key' => str_replace('.', '_', (string) $entry->event),
+                    'actor' => trim((string) ($entry->actor_name ?? '')),
+                    'status' => $after['status'] ?? null,
+                    'source' => $after['routing_source'] ?? null,
+                    'reason' => $after['routing_reason'] ?? null,
+                    'assignee_type' => $after['current_assignee_type'] ?? null,
+                    'created_at' => $entry->created_at,
+                ];
+            })
+            ->all();
+
         return [
             ...$row,
             'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
             'van_assignments' => $vanAssignments,
+            'dispatch_audit' => $dispatchAudit,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
         ];
     }
