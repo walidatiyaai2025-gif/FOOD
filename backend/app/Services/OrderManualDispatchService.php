@@ -38,7 +38,7 @@ final class OrderManualDispatchService
         return DB::transaction(function () use ($order, $actor, $driverAssignment, $reason): OrderDispatchState {
             $otherActiveDriver = DriverAssignment::query()
                 ->where('order_id', $order->id)
-                ->whereKeyNot($driverAssignment->id)
+                ->where('id', '!=', $driverAssignment->id)
                 ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
                 ->lockForUpdate()
                 ->exists();
