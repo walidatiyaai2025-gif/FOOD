@@ -73,7 +73,7 @@ void main() {
       );
 
       await tester.pump();
-      expect(find.byType(FoodexTrendChart), findsOneWidget);
+      expect(find.byType(FoodexTrendChart), findsNWidgets(2));
       expect(find.byType(FoodexSparkline), findsOneWidget);
       expect(find.byType(FoodexBarChart), findsOneWidget);
       expect(find.byType(FoodexDonutChart), findsOneWidget);
