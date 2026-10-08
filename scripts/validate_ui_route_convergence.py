@@ -92,8 +92,8 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
         if isinstance(authority_path, str) and (root / authority_path).is_file():
             authority = _read(root, authority_path)
             expected = {
-                "CustomerRoutePaths.retailHome": "CustomerRouteAuthority.multiStore",
-                "CustomerRoutePaths.retailProductDetails": "CustomerRouteAuthority.multiStore",
+                "CustomerRoutePaths.retailHome": "CustomerRouteAuthority.retailJourney",
+                "CustomerRoutePaths.retailProductDetails": "CustomerRouteAuthority.retailJourney",
                 "CustomerRoutePaths.b2bOrders": "CustomerRouteAuthority.multiStore",
                 "CustomerRoutePaths.b2bOrderDetails": "CustomerRouteAuthority.multiStore",
                 "CustomerRoutePaths.b2bDashboard": "CustomerRouteAuthority.b2bJourney",
