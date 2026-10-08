@@ -65,11 +65,10 @@ final class RetailMerchantDashboardService
             ? $this->wholesaleAccount($user, $retailStoreId)
             : null;
         $purchasePlan = is_array(data_get($wholesaleAccount, 'finance'))
-            ? $this->purchasePlan->previewFromRecommendations(
+            ? $this->purchasePlan->previewForOwner(
+                $user,
+                $retailStoreId,
                 $recommendations->all(),
-                (float) data_get($wholesaleAccount, 'finance.purchasing_power', 0),
-                null,
-                (string) data_get($wholesaleAccount, 'finance.currency', 'KWD'),
             )
             : null;
 
