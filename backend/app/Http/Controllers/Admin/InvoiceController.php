@@ -19,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 final class InvoiceController extends Controller
 {
-    public function show(Request $request, int $invoice, InvoiceService $invoices): View
+    public function show(Request $request, int $invoice, InvoiceService $invoices, B2bAccountLedgerService $ledger): View
     {
         $user = $this->actor($request);
         $model = Invoice::query()->findOrFail($invoice);
@@ -29,6 +29,7 @@ final class InvoiceController extends Controller
             'invoice' => $invoices->payload($model, true),
             'model' => $model,
             'canManage' => $this->can($user, $model, 'finance.manage'),
+            'amounts' => $model->b2b_customer_id === null ? null : $ledger->invoiceAmounts($model),
         ]);
     }
 
