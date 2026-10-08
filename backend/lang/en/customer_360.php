@@ -92,6 +92,7 @@ return [
         'reverse' => 'Reverse',
         'reversal_reason' => 'Reversal reason',
         'cancel' => 'Cancel',
+        'xlsx' => 'XLSX',
     ],
     'addresses' => [
         'description' => 'Manage the customer saved addresses.',
