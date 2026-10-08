@@ -54,7 +54,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->assertJsonPath('data.assignment_type', 'b2c');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $id = $created->json('data.id');
 
         $this->postJson(
@@ -241,7 +241,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
             'status' => 'accepted',
         ])->assertOk();
@@ -337,7 +337,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         foreach (['accepted', 'picked_up', 'out_for_delivery'] as $status) {
             $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
                 'status' => $status,
@@ -401,7 +401,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
             'status' => 'accepted',
         ])->assertOk();
@@ -445,7 +445,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         foreach (['accepted', 'picked_up', 'out_for_delivery'] as $status) {
             $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
                 'status' => $status,
@@ -508,7 +508,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         foreach (['accepted', 'picked_up', 'out_for_delivery'] as $status) {
             $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
                 'status' => $status,
@@ -560,7 +560,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $headers = ['Idempotency-Key' => 'accept-retry-0001'];
         $payload = [
             'status' => 'accepted',
@@ -727,7 +727,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson("/api/v1/driver/assignments/{$assignmentId}")
             ->assertOk()
             ->assertJsonPath('data.order.address.line1', 'Original delivery street')
@@ -804,7 +804,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.reassigned']);
 
-        Sanctum::actingAs($driverOneUser);
+        Sanctum::actingAs($driverOneUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(0, 'data');
@@ -824,7 +824,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         $history->assertJsonMissingPath('data.0.order.customer');
         $history->assertJsonMissingPath('data.0.order.navigation');
 
-        Sanctum::actingAs($driverTwoUser);
+        Sanctum::actingAs($driverTwoUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(1, 'data')
@@ -841,7 +841,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'status' => 'unassigned',
         ]);
 
-        Sanctum::actingAs($driverTwoUser);
+        Sanctum::actingAs($driverTwoUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(0, 'data');
@@ -872,7 +872,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertConflict();
 
@@ -913,7 +913,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments?scope=active')
             ->assertOk()
             ->assertJsonCount(0, 'data');
@@ -963,7 +963,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertCreated()->json('data.id');
 
-        Sanctum::actingAs($driverTwoUser);
+        Sanctum::actingAs($driverTwoUser, ['app:driver']);
         $this->getJson("/api/v1/driver/assignments/{$assignmentId}")->assertNotFound();
         $this->postJson("/api/v1/driver/assignments/{$assignmentId}/status", [
             'status' => 'accepted',
@@ -998,7 +998,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         ])->assertConflict();
         $this->assertNull($driver->fresh()->store_id);
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')->assertConflict();
         $this->assertNull($driver->fresh()->store_id);
     }
@@ -1111,7 +1111,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'is_active' => true,
         ]);
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')->assertConflict();
     }
 
@@ -1144,7 +1144,7 @@ class DriverAssignmentLifecycleTest extends TestCase
             'order_id' => $order->id,
         ])->assertConflict();
 
-        Sanctum::actingAs($driverUser);
+        Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
             ->assertOk()
             ->assertJsonCount(0, 'data');
