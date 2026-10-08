@@ -37,7 +37,7 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint app/Http/Controllers/Admin/FieldOperationsController.php && git --no-pager diff -- app/Http/Controllers/Admin/FieldOperationsController.php && exit 1"
+            "vendor/bin/pint --test app routes tests"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
