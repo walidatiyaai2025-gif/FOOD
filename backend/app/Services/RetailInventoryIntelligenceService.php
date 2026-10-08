@@ -236,6 +236,7 @@ final class RetailInventoryIntelligenceService
         foreach (self::VELOCITY_WEIGHTS as $window => $weight) {
             if ($days[$window] <= 0) {
                 $effectiveWeights[$window] = 0.0;
+
                 continue;
             }
 
