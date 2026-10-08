@@ -45,6 +45,14 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', fn () => redirect()->route('admin.b2c.login'));
 
+Route::get('/downloads/apps/{app}/latest.apk', [MobileAppDownloadController::class, 'latest'])
+    ->whereIn('app', ['customer', 'driver', 'van'])
+    ->name('public.mobile-apps.latest');
+Route::get('/downloads/apps/{app}/{version}.apk', [MobileAppDownloadController::class, 'versioned'])
+    ->whereIn('app', ['customer', 'driver', 'van'])
+    ->where('version', '\\d+\\.\\d+\\.\\d+')
+    ->name('public.mobile-apps.versioned');
+
 Route::view('/privacy', 'public.legal', [
     'title' => 'FOODEX Privacy Policy',
     'content' => '<div class="card"><p>FOODEX processes account, order, delivery, device and support data only as needed to operate the service, secure accounts, fulfill transactions and meet legal or accounting obligations.</p><p>Store submission declarations must match the actual production build and configured integrations. Contact Support for privacy questions or deletion status.</p></div>',
