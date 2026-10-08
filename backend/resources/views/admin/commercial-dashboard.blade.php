@@ -999,14 +999,19 @@
         setupProductRow(row);
         return true;
     };
-    document.addEventListener('click', (event) => {
-        const target = event.target instanceof Element ? event.target.closest('[data-flash-product-add]') : null;
-        if (!target) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        event.stopPropagation();
+    let addGestureHandled = false;
+    const handleAddGesture = (event) => {
+        if (addGestureHandled) return;
+        addGestureHandled = true;
+        event?.preventDefault?.();
         addProductRow();
-    }, true);
+        queueMicrotask(() => { addGestureHandled = false; });
+    };
+    addButton?.addEventListener('pointerdown', handleAddGesture, { capture: true });
+    addButton?.addEventListener('click', handleAddGesture, { capture: true });
+    addButton?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') handleAddGesture(event);
+    }, { capture: true });
     if (builder && template && addButton) builder.dataset.foodexProductBuilderInit = '1';
     window.foodexFlashAddProductRow = addProductRow;
 
