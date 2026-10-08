@@ -999,19 +999,21 @@
         setupProductRow(row);
         return true;
     };
-    let addGestureHandled = false;
     const handleAddGesture = (event) => {
-        if (addGestureHandled) return;
-        addGestureHandled = true;
-        event?.preventDefault?.();
+        const target = event?.target instanceof Element ? event.target.closest('[data-flash-product-add]') : null;
+        if (!target || target !== addButton) return;
+        event.preventDefault();
         addProductRow();
-        queueMicrotask(() => { addGestureHandled = false; });
     };
-    addButton?.addEventListener('pointerdown', handleAddGesture, { capture: true });
-    addButton?.addEventListener('click', handleAddGesture, { capture: true });
+    // Window capture runs before document/form-level handlers, so the Add Product action
+    // remains reliable even when shared UI behavior closes popovers or intercepts bubbling clicks.
+    window.addEventListener('click', handleAddGesture, true);
     addButton?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') handleAddGesture(event);
-    }, { capture: true });
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            addProductRow();
+        }
+    });
     if (builder && template && addButton) builder.dataset.foodexProductBuilderInit = '1';
     window.foodexFlashAddProductRow = addProductRow;
 
