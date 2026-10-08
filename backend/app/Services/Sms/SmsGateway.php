@@ -20,7 +20,7 @@ final class SmsGateway
         if (! in_array($message->purpose,(array) config('sms.purposes'),true)) {
             throw ValidationException::withMessages(['purpose'=>__('sms.errors.invalid_purpose')]);
         }
-        if ($message->purpose==='otp' && ! $setting->otp_sender_enabled) {
+        if (in_array($message->purpose,['otp','auth'],true) && ! $setting->otp_sender_enabled) {
             throw ValidationException::withMessages(['sms'=>__('sms.errors.otp_disabled')]);
         }
         if (in_array($message->purpose,['order_notification','dispatch','marketing'],true)
