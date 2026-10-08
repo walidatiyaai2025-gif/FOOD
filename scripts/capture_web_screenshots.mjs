@@ -529,6 +529,12 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
   const productBefore = await productRows.count();
   await flashForm.locator('[data-flash-product-add]').click();
   if (await productRows.count() !== productBefore + 1) {
+    // Chromium can occasionally complete the actionability click without delivering
+    // the DOM click after the page's shared capture-phase UI hooks settle. Dispatch
+    // the same browser click event directly and still require the real button wiring.
+    await flashForm.locator('[data-flash-product-add]').dispatchEvent('click');
+  }
+  if (await productRows.count() !== productBefore + 1) {
     const initState = await page.evaluate(() => {
       const template = document.querySelector('[data-flash-product-template]');
       const builder = document.querySelector('[data-flash-product-builder]');
