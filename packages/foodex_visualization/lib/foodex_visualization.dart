@@ -255,7 +255,7 @@ class FoodexHeatmap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final flat = values.expand((row) => row).toList(growable: false);
-    final maxValue = flat.isEmpty ? 0.0 : flat.reduce(math.max);
+    final maxValue = flat.isEmpty ? 0.0 : flat.reduce((a, b) => a > b ? a : b);
     return Semantics(
       label: semanticLabel,
       image: true,
@@ -359,7 +359,7 @@ class _RangeMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PositionedDirectional(
-        start: math.max(0, logicalOffset - 1),
+        start: (logicalOffset - 1).clamp(0.0, double.infinity).toDouble(),
         child: Container(width: 2, height: height, color: color),
       );
 }
@@ -392,8 +392,8 @@ class _TrendPainter extends CustomPainter {
     }
     if (values.isEmpty) return;
 
-    final minValue = values.reduce(math.min);
-    final maxValue = values.reduce(math.max);
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
     final range = maxValue == minValue ? 1.0 : maxValue - minValue;
     final path = Path();
 
@@ -461,14 +461,14 @@ class _BarPainter extends CustomPainter {
     if (groups.isEmpty) return;
     final totals = groups
         .map((group) => group.fold<double>(
-            0, (sum, value) => sum + math.max(0, value)))
+            0, (sum, value) => sum + (value > 0 ? value : 0.0)))
         .toList(growable: false);
-    final maxTotal = totals.isEmpty ? 0.0 : totals.reduce(math.max);
+    final maxTotal = totals.isEmpty ? 0.0 : totals.reduce((a, b) => a > b ? a : b);
     if (maxTotal <= 0) return;
 
     final count = groups.length;
-    final available = math.max(0, size.width - gap * (count - 1));
-    final barWidth = math.max(2, available / count);
+    final available = (size.width - gap * (count - 1)).clamp(0.0, double.infinity).toDouble();
+    final barWidth = (available / count).clamp(2.0, double.infinity).toDouble();
 
     for (var logicalIndex = 0; logicalIndex < count; logicalIndex++) {
       final index = reverseX ? count - 1 - logicalIndex : logicalIndex;
@@ -478,7 +478,8 @@ class _BarPainter extends CustomPainter {
       for (var segmentIndex = 0;
           segmentIndex < groups[index].length;
           segmentIndex++) {
-        final value = math.max(0, groups[index][segmentIndex]);
+        final rawValue = groups[index][segmentIndex];
+        final value = rawValue > 0 ? rawValue : 0.0;
         final segmentHeight = size.height * value / maxTotal;
         final rect = RRect.fromRectAndRadius(
           Rect.fromLTWH(x, bottom - segmentHeight, barWidth, segmentHeight),
@@ -513,11 +514,12 @@ class _DonutPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final positive = values.map((value) => math.max(0, value)).toList();
+    final positive = values.map((value) => value > 0 ? value : 0.0).toList();
     final total = positive.fold<double>(0, (sum, value) => sum + value);
     final center = size.center(Offset.zero);
-    final radius =
-        math.max(0, math.min(size.width, size.height) / 2 - strokeWidth / 2);
+    final radius = (math.min(size.width, size.height) / 2 - strokeWidth / 2)
+        .clamp(0.0, double.infinity)
+        .toDouble();
     final rect = Rect.fromCircle(center: center, radius: radius);
 
     if (total <= 0) {
