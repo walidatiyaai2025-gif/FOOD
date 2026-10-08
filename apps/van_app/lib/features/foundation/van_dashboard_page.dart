@@ -283,22 +283,39 @@ class _VanDashboardPageState extends State<VanDashboardPage>
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    spacing: 12,
-                    runSpacing: 8,
+                  Row(
                     children: [
-                      TextButton.icon(
-                        key: const ValueKey('van-dashboard-open-receipts'),
-                        onPressed: widget.onOpenReceipts,
-                        icon: const Icon(Icons.receipt_long_outlined),
-                        label: Text(_money(_receiptTotal)),
+                      Expanded(
+                        child: Text(
+                          '${_text('Collected', 'المحصل')}: ${_money(_receiptTotal)} · '
+                          '${_text('Remitted', 'المورد')}: ${_money(_remittanceTotal)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ),
-                      TextButton.icon(
-                        key: const ValueKey('van-dashboard-open-remittance'),
-                        onPressed: widget.onOpenRemittance,
-                        icon: const Icon(Icons.account_balance_outlined),
-                        label: Text(_money(_remittanceTotal)),
+                      PopupMenuButton<String>(
+                        key: const ValueKey('van-dashboard-cash-flow-menu'),
+                        tooltip: _text('Open details', 'فتح التفاصيل'),
+                        onSelected: (value) {
+                          if (value == 'receipts') {
+                            widget.onOpenReceipts();
+                          } else if (value == 'remittance') {
+                            widget.onOpenRemittance();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'receipts',
+                            child: Text(
+                              _text('Open receipts', 'فتح الإيصالات'),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'remittance',
+                            child: Text(
+                              _text('Open remittance', 'فتح التوريد'),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
