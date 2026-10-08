@@ -1,5 +1,3 @@
-library foodex_visualization;
-
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -260,35 +258,38 @@ class FoodexHeatmap extends StatelessWidget {
       label: semanticLabel,
       image: true,
       child: ExcludeSemantics(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final row in values)
-              Padding(
-                padding: EdgeInsets.only(bottom: cellGap),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final value in row)
-                      Padding(
-                        padding: EdgeInsetsDirectional.only(end: cellGap),
-                        child: Container(
-                          width: minCellSize,
-                          height: minCellSize,
-                          decoration: BoxDecoration(
-                            color: _heatColor(value, maxValue),
-                            borderRadius: BorderRadius.circular(cellRadius),
-                            border: Border.all(
-                              color: FoodexChartPalette.border,
-                              width: .5,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final row in values)
+                Padding(
+                  padding: EdgeInsets.only(bottom: cellGap),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final value in row)
+                        Padding(
+                          padding: EdgeInsetsDirectional.only(end: cellGap),
+                          child: Container(
+                            width: minCellSize,
+                            height: minCellSize,
+                            decoration: BoxDecoration(
+                              color: _heatColor(value, maxValue),
+                              borderRadius: BorderRadius.circular(cellRadius),
+                              border: Border.all(
+                                color: FoodexChartPalette.border,
+                                width: .5,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -313,7 +314,7 @@ class FoodexChartLegend extends StatelessWidget {
     required this.labels,
     this.colors = FoodexChartPalette.series,
     this.spacing = 12,
-  });
+  }) : assert(colors.length > 0);
 
   final List<String> labels;
   final List<Color> colors;
