@@ -92,6 +92,7 @@ return [
         'reverse' => 'عكس القيد',
         'reversal_reason' => 'سبب العكس',
         'cancel' => 'إلغاء',
+        'xlsx' => 'XLSX',
     ],
     'addresses' => [
         'description' => 'إدارة العناوين المحفوظة للعميل.',
