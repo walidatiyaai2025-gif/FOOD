@@ -159,10 +159,11 @@
         const title = summary.textContent.trim();
         const host = document.createElement('div');
         host.className = 'foodex-operational-dialog-host';
+        host.style.cssText = details.style.cssText;
 
         const trigger = document.createElement('button');
         trigger.type = 'button';
-        trigger.className = details.dataset.modalButtonClass || 'foodex-action-secondary';
+        trigger.className = details.dataset.modalButtonClass || summary.className || 'foodex-action-secondary';
         trigger.dataset.foodexDialogOpen = String(index);
         trigger.textContent = title;
 
@@ -217,7 +218,14 @@
             if (event.key === 'Escape' && !backdrop.hidden) shut();
         });
     };
-    document.querySelectorAll('details[data-foodex-operational-modal]').forEach(enhance);
+    const initOperationalModals = () => {
+        document.querySelectorAll('details[data-foodex-operational-modal]').forEach(enhance);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initOperationalModals, { once: true });
+    } else {
+        initOperationalModals();
+    }
 })();
 </script>
 <script id="foodex-ops-popover-runtime">
