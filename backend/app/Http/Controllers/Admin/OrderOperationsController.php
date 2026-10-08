@@ -604,15 +604,31 @@ final class OrderOperationsController extends Controller
 
         if ((string) $data['assignee_type'] === 'driver') {
             $driverId = (int) $data['assignee_id'];
-            $active = DriverAssignment::query()
-                ->where('order_id', $model->getKey())
-                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-                ->latest('id')
-                ->first();
 
-            if ($active instanceof DriverAssignment && (int) $active->driver_id === $driverId) {
-                $dispatch->assignDriver($model, $actor, $active, $reason);
-            } else {
+            DB::transaction(function () use (
+                $model,
+                $actor,
+                $driverId,
+                $reason,
+                $request,
+                $deliveries,
+                $audit,
+                $notifier,
+                $dispatch,
+            ): void {
+                $active = DriverAssignment::query()
+                    ->where('order_id', $model->getKey())
+                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                    ->lockForUpdate()
+                    ->latest('id')
+                    ->first();
+
+                if ($active instanceof DriverAssignment && (int) $active->driver_id === $driverId) {
+                    $dispatch->assignDriver($model, $actor, $active, $reason);
+
+                    return;
+                }
+
                 $request->merge([
                     'driver_id' => $driverId,
                     'order_id' => (int) $model->getKey(),
@@ -630,7 +646,7 @@ final class OrderOperationsController extends Controller
                     ->first();
                 abort_unless($assignment instanceof DriverAssignment, 409, 'Driver assignment was not persisted.');
                 $dispatch->assignDriver($model, $actor, $assignment, $reason);
-            }
+            });
 
             return back()->with('status', $this->msg(
                 'تم توجيه الطلب إلى السائق.',
@@ -639,33 +655,48 @@ final class OrderOperationsController extends Controller
         }
 
         $vanId = (int) $data['assignee_id'];
-        $vanAssignable = DB::table('vans')
-            ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
-            ->where('vans.id', $vanId)
-            ->where('vans.status', 'active')
-            ->where('van_assignments.status', 'active')
-            ->where('van_assignments.effective_from', '<=', now())
-            ->where(fn ($query) => $query
-                ->whereNull('van_assignments.effective_until')
-                ->orWhere('van_assignments.effective_until', '>', now()))
-            ->exists();
-        abort_unless($vanAssignable, 422, 'Selected Van has no effective active assignment.');
 
-        $activeDriver = DriverAssignment::query()
-            ->where('order_id', $model->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->latest('id')
-            ->first();
+        DB::transaction(function () use (
+            $model,
+            $actor,
+            $order,
+            $vanId,
+            $reason,
+            $request,
+            $deliveries,
+            $audit,
+            $notifier,
+            $dispatch,
+        ): void {
+            $vanAssignable = DB::table('vans')
+                ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
+                ->where('vans.id', $vanId)
+                ->where('vans.status', 'active')
+                ->where('van_assignments.status', 'active')
+                ->where('van_assignments.effective_from', '<=', now())
+                ->where(fn ($query) => $query
+                    ->whereNull('van_assignments.effective_until')
+                    ->orWhere('van_assignments.effective_until', '>', now()))
+                ->exists();
+            abort_unless($vanAssignable, 422, 'Selected Van has no effective active assignment.');
 
-        if ($activeDriver instanceof DriverAssignment) {
-            $request->merge([
-                'store_id' => (int) $model->store_id,
-                'reason' => $reason,
-            ]);
-            $deliveries->unassign($request, $order, $audit, $notifier);
-        }
+            $activeDriver = DriverAssignment::query()
+                ->where('order_id', $model->getKey())
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
 
-        $dispatch->assignVan($model, $actor, $vanId, $reason);
+            if ($activeDriver instanceof DriverAssignment) {
+                $request->merge([
+                    'store_id' => (int) $model->store_id,
+                    'reason' => $reason,
+                ]);
+                $deliveries->unassign($request, $order, $audit, $notifier);
+            }
+
+            $dispatch->assignVan($model, $actor, $vanId, $reason);
+        });
 
         return back()->with('status', $this->msg(
             'تم توجيه الطلب إلى الفان.',
@@ -694,21 +725,34 @@ final class OrderOperationsController extends Controller
         ]);
         $reason = trim((string) $data['reason']);
 
-        $activeDriver = DriverAssignment::query()
-            ->where('order_id', $model->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->latest('id')
-            ->first();
+        DB::transaction(function () use (
+            $model,
+            $actor,
+            $order,
+            $reason,
+            $request,
+            $deliveries,
+            $audit,
+            $notifier,
+            $dispatch,
+        ): void {
+            $activeDriver = DriverAssignment::query()
+                ->where('order_id', $model->getKey())
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
 
-        if ($activeDriver instanceof DriverAssignment) {
-            $request->merge([
-                'store_id' => (int) $model->store_id,
-                'reason' => $reason,
-            ]);
-            $deliveries->unassign($request, $order, $audit, $notifier);
-        }
+            if ($activeDriver instanceof DriverAssignment) {
+                $request->merge([
+                    'store_id' => (int) $model->store_id,
+                    'reason' => $reason,
+                ]);
+                $deliveries->unassign($request, $order, $audit, $notifier);
+            }
 
-        $dispatch->clear($model, $actor, $reason);
+            $dispatch->clear($model, $actor, $reason);
+        });
 
         return back()->with('status', $this->msg(
             'تم إرجاع الطلب إلى قائمة التوجيه المعلق.',
