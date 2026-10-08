@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 final class VanRegistryService
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     /** @param array<string,mixed> $attributes */
     public function createVan(array $attributes): Van
     {
@@ -75,7 +77,7 @@ final class VanRegistryService
                 }
             }
 
-            return VanAssignment::query()->create([
+            $assignment = VanAssignment::query()->create([
                 'public_id' => (string) Str::uuid(),
                 'van_id' => $van->id,
                 'driver_id' => $attributes['driver_id'] ?? null,
@@ -90,6 +92,18 @@ final class VanRegistryService
                 'loaded_work_count' => $attributes['loaded_work_count'] ?? 0,
                 'created_by' => $actor->id,
             ]);
+
+            $this->audit->record('van.assignment.created', $actor, $assignment, null, [
+                'van_id' => (int) $assignment->van_id,
+                'driver_id' => $assignment->driver_id === null ? null : (int) $assignment->driver_id,
+                'representative_user_id' => $assignment->representative_user_id === null ? null : (int) $assignment->representative_user_id,
+                'assignment_type' => (string) $assignment->assignment_type,
+                'territory_key' => $assignment->territory_key,
+                'effective_from' => (string) $assignment->effective_from,
+                'effective_until' => $assignment->effective_until === null ? null : (string) $assignment->effective_until,
+            ]);
+
+            return $assignment;
         });
     }
 
