@@ -949,6 +949,55 @@
         });
     });
 
+    const builder = document.querySelector('[data-flash-product-builder]');
+    const template = document.querySelector('[data-flash-product-template]');
+    const addButton = document.querySelector('[data-flash-product-add]');
+    const catalogNode = document.querySelector('[data-flash-unit-catalog]');
+    let unitCatalog = {};
+    try { unitCatalog = catalogNode ? JSON.parse(catalogNode.textContent || '{}') : {}; } catch (_) { unitCatalog = {}; }
+    let nextProductIndex = builder ? builder.querySelectorAll('[data-flash-product-row]').length : 0;
+
+    const syncSellingUnits = (row, preserve = true) => {
+        const product = row.querySelector('[data-flash-product]');
+        const unit = row.querySelector('[data-flash-unit]');
+        if (!product || !unit) return;
+        const wanted = preserve ? (unit.dataset.selectedUnit || unit.value) : '';
+        unit.replaceChildren();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = @json(__('commercial.flash.select_selling_unit'));
+        unit.appendChild(placeholder);
+        (unitCatalog[String(product.value)] || []).forEach((item) => {
+            const option = document.createElement('option');
+            option.value = item.code;
+            option.textContent = item.name + ' · ' + item.code + ' · ×' + item.factor;
+            option.selected = item.code === wanted;
+            unit.appendChild(option);
+        });
+        delete unit.dataset.selectedUnit;
+    };
+
+    const setupProductRow = (row) => {
+        const product = row.querySelector('[data-flash-product]');
+        product?.addEventListener('change', () => syncSellingUnits(row, false));
+        row.querySelector('[data-flash-product-remove]')?.addEventListener('click', () => {
+            if (!builder || builder.querySelectorAll('[data-flash-product-row]').length <= 1) return;
+            row.remove();
+        });
+        syncSellingUnits(row, true);
+    };
+
+    builder?.querySelectorAll('[data-flash-product-row]').forEach(setupProductRow);
+    addButton?.addEventListener('click', () => {
+        if (!builder || !template) return;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextProductIndex++));
+        const row = wrapper.firstElementChild;
+        if (!row) return;
+        builder.appendChild(row);
+        setupProductRow(row);
+    });
+
     try {
         document.querySelectorAll('[data-flash-lookup]').forEach((lookup) => {
         const toggle = lookup.querySelector('[data-flash-lookup-toggle]');
@@ -1005,54 +1054,6 @@
         // Keep the rest of the commercial workspace interactive even if a lookup enhancement cannot initialize.
     }
 
-    const builder = document.querySelector('[data-flash-product-builder]');
-    const template = document.querySelector('[data-flash-product-template]');
-    const addButton = document.querySelector('[data-flash-product-add]');
-    const catalogNode = document.querySelector('[data-flash-unit-catalog]');
-    let unitCatalog = {};
-    try { unitCatalog = catalogNode ? JSON.parse(catalogNode.textContent || '{}') : {}; } catch (_) { unitCatalog = {}; }
-    let nextProductIndex = builder ? builder.querySelectorAll('[data-flash-product-row]').length : 0;
-
-    const syncSellingUnits = (row, preserve = true) => {
-        const product = row.querySelector('[data-flash-product]');
-        const unit = row.querySelector('[data-flash-unit]');
-        if (!product || !unit) return;
-        const wanted = preserve ? (unit.dataset.selectedUnit || unit.value) : '';
-        unit.replaceChildren();
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = @json(__('commercial.flash.select_selling_unit'));
-        unit.appendChild(placeholder);
-        (unitCatalog[String(product.value)] || []).forEach((item) => {
-            const option = document.createElement('option');
-            option.value = item.code;
-            option.textContent = item.name + ' · ' + item.code + ' · ×' + item.factor;
-            option.selected = item.code === wanted;
-            unit.appendChild(option);
-        });
-        delete unit.dataset.selectedUnit;
-    };
-
-    const setupProductRow = (row) => {
-        const product = row.querySelector('[data-flash-product]');
-        product?.addEventListener('change', () => syncSellingUnits(row, false));
-        row.querySelector('[data-flash-product-remove]')?.addEventListener('click', () => {
-            if (!builder || builder.querySelectorAll('[data-flash-product-row]').length <= 1) return;
-            row.remove();
-        });
-        syncSellingUnits(row, true);
-    };
-
-    builder?.querySelectorAll('[data-flash-product-row]').forEach(setupProductRow);
-    addButton?.addEventListener('click', () => {
-        if (!builder || !template) return;
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextProductIndex++));
-        const row = wrapper.firstElementChild;
-        if (!row) return;
-        builder.appendChild(row);
-        setupProductRow(row);
-    });
 })();
 </script>
 </body>
