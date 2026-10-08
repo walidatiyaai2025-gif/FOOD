@@ -141,16 +141,40 @@
 </style>
 <script id="foodex-ops-popover-runtime">
 (() => {
-    const positionMenu = (details) => {
-        if (!(details instanceof HTMLDetailsElement) || !details.open) return;
+    const isEllipsisActions = (details) => {
+        if (!(details instanceof HTMLDetailsElement)) return false;
         const summary = details.querySelector(':scope > summary');
-        const menu = details.querySelector(':scope > .foodex-ops-menu');
+        const label = (summary?.textContent || '').trim();
+        return label === '⋮' || label === '…' || label === '...'
+            || details.classList.contains('foodex-ops-actions')
+            || details.classList.contains('row-actions')
+            || details.classList.contains('catalog-actions');
+    };
+
+    const actionMenus = () => [...document.querySelectorAll('details[open]')].filter(isEllipsisActions);
+
+    const directMenu = (details) => details.querySelector(
+        ':scope > .foodex-ops-menu, :scope > .row-action-menu, :scope > .catalog-action-menu'
+    ) || [...details.children].find((child) => child instanceof HTMLElement && child.tagName !== 'SUMMARY');
+
+    const positionMenu = (details) => {
+        if (!isEllipsisActions(details) || !details.open) return;
+        const summary = details.querySelector(':scope > summary');
+        const menu = directMenu(details);
         if (!(summary instanceof HTMLElement) || !(menu instanceof HTMLElement)) return;
 
         const trigger = summary.getBoundingClientRect();
         const margin = 8;
+
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '10050';
         menu.style.visibility = 'hidden';
         menu.style.inset = 'auto';
+        menu.style.insetInlineStart = 'auto';
+        menu.style.insetInlineEnd = 'auto';
+        menu.style.right = 'auto';
+        menu.style.bottom = 'auto';
+        menu.style.maxWidth = 'min(320px, calc(100vw - 16px))';
         menu.style.top = '0px';
         menu.style.left = '0px';
 
@@ -170,15 +194,13 @@
         menu.style.visibility = 'visible';
     };
 
-    const repositionOpenMenus = () => {
-        document.querySelectorAll('.foodex-ops-actions[open]').forEach(positionMenu);
-    };
+    const repositionOpenMenus = () => actionMenus().forEach(positionMenu);
 
     document.addEventListener('toggle', (event) => {
         const details = event.target;
-        if (!(details instanceof HTMLDetailsElement) || !details.classList.contains('foodex-ops-actions')) return;
+        if (!isEllipsisActions(details)) return;
         if (details.open) {
-            document.querySelectorAll('.foodex-ops-actions[open]').forEach((other) => {
+            actionMenus().forEach((other) => {
                 if (other !== details) other.open = false;
             });
             requestAnimationFrame(() => positionMenu(details));
@@ -186,10 +208,11 @@
     }, true);
 
     document.addEventListener('click', (event) => {
-        document.querySelectorAll('.foodex-ops-actions[open]').forEach((details) => {
+        actionMenus().forEach((details) => {
             if (!details.contains(event.target)) details.open = false;
         });
     });
+
     window.addEventListener('resize', repositionOpenMenus, { passive: true });
     document.addEventListener('scroll', repositionOpenMenus, true);
 })();
