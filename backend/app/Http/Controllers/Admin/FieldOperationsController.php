@@ -924,14 +924,14 @@ final class FieldOperationsController extends Controller
         $advanced = $user->hasRole('SUPER_ADMIN') ? trim((string) ($data['rules_json'] ?? '')) : '';
         if ($advanced !== '') {
             $decoded = json_decode($advanced, true, 512, JSON_THROW_ON_ERROR);
-            if (!is_array($decoded) || !array_is_list($decoded)) {
+            if (! is_array($decoded) || ! array_is_list($decoded)) {
                 throw ValidationException::withMessages([
                     'rules_json' => [__('field_operations.structured_rule_required')],
                 ]);
             }
 
             return array_map(function (mixed $rule): array {
-                if (!is_array($rule) || trim((string) ($rule['name'] ?? '')) === '') {
+                if (! is_array($rule) || trim((string) ($rule['name'] ?? '')) === '') {
                     throw ValidationException::withMessages([
                         'rules_json' => [__('field_operations.structured_rule_required')],
                     ]);
