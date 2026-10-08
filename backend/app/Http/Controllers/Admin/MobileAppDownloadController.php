@@ -113,7 +113,12 @@ final class MobileAppDownloadController extends Controller
             }
 
             if (filesize($temporaryPath) === 0 && $artifactResponse->body() !== '') {
-                file_put_contents($temporaryPath, $artifactResponse->body());
+                if (file_put_contents($temporaryPath, $artifactResponse->body()) === false) {
+                    @unlink($temporaryPath);
+                    throw new RuntimeException('Could not persist downloaded FOODEX APK bytes.');
+                }
+
+                clearstatcache(true, $temporaryPath);
             }
 
             $actualSha256 = hash_file('sha256', $temporaryPath);
