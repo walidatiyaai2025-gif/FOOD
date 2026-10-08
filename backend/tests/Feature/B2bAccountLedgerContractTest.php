@@ -303,6 +303,62 @@ final class B2bAccountLedgerContractTest extends TestCase
         ]);
     }
 
+    public function test_invoice_settlement_is_ledger_authoritative_and_rejects_overpayment(): void
+    {
+        [$user, $legacyCustomer, $customer, $storeId] = $this->account(100);
+        $invoice = $this->invoice($legacyCustomer->id, $customer->id, $storeId, 60, now()->subDay());
+        $ledger = app(B2bAccountLedgerService::class);
+
+        $partial = $ledger->settleInvoice($customer, $invoice, 25, 'EGP', $user, 'SETTLE-25');
+        $this->assertSame(60.0, $partial['outstanding_before']);
+        $this->assertSame(35.0, $partial['outstanding_after']);
+        $this->assertSame(25.0, $ledger->invoiceAmounts($invoice)['paid_amount']);
+        $this->assertSame(-35.0, $ledger->summary($customer, $storeId)['balance']);
+
+        $full = $ledger->settleInvoice($customer, $invoice, 35, 'EGP', $user, 'SETTLE-35');
+        $this->assertSame(0.0, $full['outstanding_after']);
+        $this->assertSame(60.0, $ledger->invoiceAmounts($invoice)['paid_amount']);
+        $this->assertSame(0.0, $ledger->summary($customer, $storeId)['balance']);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $ledger->settleInvoice($customer, $invoice, 1, 'EGP', $user, 'SETTLE-OVER');
+    }
+
+    public function test_reversal_is_append_only_idempotent_and_restores_invoice_outstanding(): void
+    {
+        [$user, $legacyCustomer, $customer, $storeId] = $this->account(100);
+        $invoice = $this->invoice($legacyCustomer->id, $customer->id, $storeId, 60, now()->subDay());
+        $ledger = app(B2bAccountLedgerService::class);
+
+        $settlement = $ledger->settleInvoice($customer, $invoice, 20, 'EGP', $user, 'SETTLE-REV');
+        $beforeCount = DB::table('customer_account_ledger_entries')->count();
+
+        $reversal = $ledger->reverseManualEntry(
+            $customer,
+            (int) $settlement['ledger_entry_id'],
+            $user,
+            'Operator corrected the settlement',
+        );
+        $same = $ledger->reverseManualEntry(
+            $customer,
+            (int) $settlement['ledger_entry_id'],
+            $user,
+            'Repeated request',
+        );
+
+        $this->assertSame($reversal['ledger_entry_id'], $same['ledger_entry_id']);
+        $this->assertSame($beforeCount + 1, DB::table('customer_account_ledger_entries')->count());
+        $this->assertSame(60.0, $ledger->invoiceAmounts($invoice)['outstanding_amount']);
+        $this->assertSame(-60.0, $ledger->summary($customer, $storeId)['balance']);
+        $this->assertDatabaseHas('customer_account_ledger_entries', [
+            'id' => $reversal['ledger_entry_id'],
+            'source' => 'ledger_reversal',
+            'reference' => 'REVERSAL-'.$settlement['ledger_entry_id'],
+            'debit' => 20,
+            'credit' => 0,
+        ]);
+    }
+
     /** @return array{0:User,1:Customer,2:B2bCustomer,3:int} */
     private function account(float $creditLimit): array
     {
