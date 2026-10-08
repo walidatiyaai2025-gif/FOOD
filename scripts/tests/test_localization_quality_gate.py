@@ -146,5 +146,25 @@ class LocalizationQualityGateTest(unittest.TestCase):
             module.ROOT = original_root
 
 
+    def test_blade_control_flow_fragments_are_not_visible_copy(self):
+        errors = []
+        module.scan_added_lines(
+            [
+                (
+                    "backend/resources/views/admin/catalog-management.blade.php",
+                    320,
+                    "@foreach($categories->where('id','!=',$c->id) as $parent)<option>{{ $parent->name }}</option>@endforeach",
+                ),
+                (
+                    "backend/resources/views/admin/customer-360-show.blade.php",
+                    253,
+                    "@if($orders->isEmpty())<div>{{ __('customer_360.records.no_orders') }}</div>@endif",
+                ),
+            ],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+
 if __name__ == "__main__":
     unittest.main()
