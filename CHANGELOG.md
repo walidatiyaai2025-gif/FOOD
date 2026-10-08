@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.64 - 2026-10-08
+
+- Promote the latest clean `main` convergence into FOODEX 1.0.64, including Dashboard pagination coverage, viewport-safe grid action menus, Retail-owner Flash audience lookup/targeting, geography reset/rebuild tooling, and the complete Egypt FOOD Van geography dataset.
+- Build Dashboard Update, Customer, Driver and Van Android artifacts plus the Laravel first-install package from one release source commit with synchronized mobile identity `1.0.64+64`.
+- Enforce binary endpoint provenance so every Android APK embeds `https://foodex.50sols.com` and rejects the obsolete `https://vanfoodex.50sols.com` endpoint.
+- Require fresh-install evidence, synchronized release manifests, update-bundle validation, localization quality and the repository/mobile CI gates before publication.
+
 ## 1.0.61 - 2026-10-07
 
 - Rebuild Customer, Driver and Van Android artifacts from the final main integration so their embedded production API endpoint is `https://foodex.50sols.com`.

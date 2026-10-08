@@ -2,8 +2,8 @@
   "schema_version": 1,
   "production_base_url": "https://foodex.50sols.com",
   "release": {
-    "version": "1.0.61",
-    "build": 61
+    "version": "1.0.64",
+    "build": 64
   },
   "public_urls": {
     "privacy": "https://foodex.50sols.com/privacy",
@@ -69,8 +69,8 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.61",
-      "build": "61",
+      "version": "1.0.64",
+      "build": "64",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -132,8 +132,8 @@
         "optional location",
         "diagnostics/support data"
       ],
-      "version": "1.0.61",
-      "build": "61",
+      "version": "1.0.64",
+      "build": "64",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -215,8 +215,8 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.61",
-      "build": "61",
+      "version": "1.0.64",
+      "build": "64",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -279,8 +279,8 @@
         "precise active-delivery location",
         "diagnostics/support data"
       ],
-      "version": "1.0.61",
-      "build": "61",
+      "version": "1.0.64",
+      "build": "64",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -363,8 +363,8 @@
         "operational location where enabled",
         "diagnostics/support data"
       ],
-      "version": "1.0.61",
-      "build": "61",
+      "version": "1.0.64",
+      "build": "64",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
@@ -428,8 +428,8 @@
         "operational location where enabled",
         "diagnostics/support data"
       ],
-      "version": "1.0.61",
-      "build": "61",
+      "version": "1.0.64",
+      "build": "64",
       "support_url": "https://foodex.50sols.com/support",
       "privacy_url": "https://foodex.50sols.com/privacy",
       "terms_url": "https://foodex.50sols.com/terms",
