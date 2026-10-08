@@ -51,7 +51,7 @@ class DashboardUxSweepContractTest extends TestCase
         $this->assertStringContainsString('data-flash-wizard-step="4"', $view);
         $this->assertStringContainsString('data-flash-product-context', $view);
         $this->assertStringContainsString('data-product-context=', $view);
-        $this->assertStringContainsString("'catalogs.channel as catalog_channel'", $controller);
+        $this->assertStringContainsString('\'catalogs.channel as catalog_channel\'', $controller);
     }
 
     public function test_dashboard_review_metadata_does_not_render_raw_internal_enums(): void
