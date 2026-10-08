@@ -734,6 +734,7 @@
 </div>
 <script>
 (() => {
+    document.documentElement.dataset.foodexCommercialScriptInit = '1';
     document.querySelectorAll('[data-commercial-channel-picker]').forEach((picker) => {
         const output = picker.querySelector('[data-commercial-channels-json]');
         const boxes = [...picker.querySelectorAll('[data-commercial-channel]')];
@@ -1004,6 +1005,8 @@
         event.preventDefault();
         addProductRow();
     });
+    if (builder && template && addButton) builder.dataset.foodexProductBuilderInit = '1';
+    window.foodexFlashAddProductRow = addProductRow;
 
     try {
         document.querySelectorAll('[data-flash-lookup]').forEach((lookup) => {
