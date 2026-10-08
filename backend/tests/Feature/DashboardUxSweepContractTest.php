@@ -58,8 +58,8 @@ class DashboardUxSweepContractTest extends TestCase
     {
         $view = file_get_contents(resource_path('views/admin/field-operations.blade.php'));
 
-        $this->assertStringContainsString("field_operations.resolution_sources.", $view);
-        $this->assertStringContainsString("field_operations.quality_classes.", $view);
+        $this->assertStringContainsString('field_operations.resolution_sources.', $view);
+        $this->assertStringContainsString('field_operations.quality_classes.', $view);
         $this->assertStringNotContainsString('Str::headline((string)$event->event_type', $view);
         $this->assertStringNotContainsString('{{ $review->quality_class }}', $view);
     }
