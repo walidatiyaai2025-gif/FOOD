@@ -536,7 +536,7 @@
                     <div class="commercial-grid">
                         <div class="flash-lookup-field">
                             <span>{{ __('commercial.flash.customers') }}</span>
-                            <div class="flash-lookup" data-flash-lookup data-flash-lookup-kind="customers">
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="customers">
                                 <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false">
                                     <span data-flash-lookup-summary>{{ $selectedCustomerIds->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedCustomerIds->count()]) }}</span>
                                 </button>
@@ -563,7 +563,7 @@
                         </div>
                         <div class="flash-lookup-field">
                             <span>{{ __('commercial.flash.customer_groups') }}</span>
-                            <div class="flash-lookup" data-flash-lookup data-flash-lookup-kind="customer-groups">
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="customer-groups">
                                 <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false"><span data-flash-lookup-summary>{{ $selectedGroupIds->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedGroupIds->count()]) }}</span></button>
                                 <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
                                     <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
@@ -579,7 +579,7 @@
                         </div>
                         <div class="flash-lookup-field">
                             <span>{{ __('commercial.flash.regions') }}</span>
-                            <div class="flash-lookup" data-flash-lookup data-flash-lookup-kind="regions">
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="regions">
                                 <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false"><span data-flash-lookup-summary>{{ $selectedRegions->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedRegions->count()]) }}</span></button>
                                 <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
                                     <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
@@ -595,7 +595,7 @@
                         </div>
                         <div class="flash-lookup-field">
                             <span>{{ __('commercial.flash.routes') }}</span>
-                            <div class="flash-lookup" data-flash-lookup data-flash-lookup-kind="routes">
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="routes">
                                 <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false"><span data-flash-lookup-summary>{{ $selectedRoutes->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedRoutes->count()]) }}</span></button>
                                 <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
                                     <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
@@ -957,13 +957,15 @@
         const summary = lookup.querySelector('[data-flash-lookup-summary]');
         const options = [...lookup.querySelectorAll('[data-flash-lookup-option]')];
         const boxes = options.map((option) => option.querySelector('input[type="checkbox"]')).filter(Boolean);
+        const selectLabel = lookup.dataset.flashSelectLabel || '';
+        const selectedTemplate = lookup.dataset.flashSelectedTemplate || '__COUNT__';
 
         const syncSummary = () => {
             if (!summary) return;
             const count = boxes.filter((box) => box.checked).length;
             summary.textContent = count === 0
-                ? @json(__('commercial.flash.select_lookup'))
-                : @json(__('commercial.flash.selected_count', ['count'=>'__COUNT__'])).replace('__COUNT__', String(count));
+                ? selectLabel
+                : selectedTemplate.replace('__COUNT__', String(count));
         };
         const close = () => {
             if (menu) menu.hidden = true;
