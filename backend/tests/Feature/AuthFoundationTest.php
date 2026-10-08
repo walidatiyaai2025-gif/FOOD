@@ -227,6 +227,11 @@ class AuthFoundationTest extends TestCase
             ->getJson('/api/v1/driver/wallet')
             ->assertForbidden();
 
+        // Feature tests reuse the same application instance across requests.
+        // Forget the resolved guard so the second request is authenticated from
+        // its own bearer token rather than the previous request's cached guard.
+        $this->app['auth']->forgetGuards();
+
         $this->withToken($driverToken)
             ->getJson('/api/v1/van/no-order-reasons')
             ->assertForbidden();
