@@ -356,6 +356,46 @@ class RetailMerchantIdentityIsolationTest extends TestCase
             ->assertJsonPath('user.b2b_customer_ids.0', $customer->id);
     }
 
+    public function test_retail_manager_can_keep_wholesale_purchase_context_without_owner_finance_access(): void
+    {
+        $owner = $this->user('finance-owner-merchant@example.test');
+        [$store, $b2bCustomerId] = $this->managedStore($owner, 'OWNER-FINANCE', true);
+
+        $manager = $this->user('finance-manager-staff@example.test');
+        $this->assignManager($manager, $store);
+
+        $request = Request::create('/api/v1/b2b/products', 'GET');
+        $request->headers->set('X-FOODEX-Retail-Store-ID', (string) $store->id);
+
+        $this->assertSame(
+            $b2bCustomerId,
+            (int) app(CustomerDomainResolver::class)
+                ->b2bFromRequest($manager, $request)
+                ->getKey(),
+        );
+
+        Sanctum::actingAs($manager);
+
+        $this->withHeader('X-FOODEX-Retail-Store-ID', (string) $store->id)
+            ->getJson('/api/v1/b2b/account-summary')
+            ->assertForbidden();
+
+        $this->withHeader('X-FOODEX-Retail-Store-ID', (string) $store->id)
+            ->getJson('/api/v1/b2b/dashboard')
+            ->assertForbidden();
+
+        Sanctum::actingAs($owner);
+
+        $this->withHeader('X-FOODEX-Retail-Store-ID', (string) $store->id)
+            ->getJson('/api/v1/b2b/account-summary')
+            ->assertOk();
+
+        $this->withHeader('X-FOODEX-Retail-Store-ID', (string) $store->id)
+            ->getJson('/api/v1/b2b/dashboard')
+            ->assertOk()
+            ->assertJsonPath('customer.id', $b2bCustomerId);
+    }
+
     /** @return array{0:Store,1:int} */
     private function managedStore(User $manager, string $code, bool $owner = true): array
     {
