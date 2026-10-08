@@ -1,0 +1,30 @@
+<?php
+return [
+'title'=>'بوابة الرسائل النصية','eyebrow'=>'اتصالات النظام',
+'description'=>'إعداد مركزي لإرسال OTP ورسائل الدخول والطلبات والتوجيه وكل استخدامات SMS المستقبلية.',
+'back'=>'العودة إلى مركز الإدارة','settings'=>'إعدادات المزود','enabled'=>'تفعيل SMS','provider'=>'المزود',
+'base_url'=>'رابط API الأساسي','endpoint'=>'مسار Endpoint','token'=>'API Token','token_hint'=>'اتركه فارغًا للاحتفاظ بالرمز المشفر الحالي.',
+'sender'=>'اسم المرسل الافتراضي','country_code'=>'كود الدولة الافتراضي','operator_mode'=>'تحديد شركة الاتصالات',
+'automatic'=>'تلقائي','manual'=>'يدوي عند الحاجة','timeout'=>'مهلة الطلب بالثواني','retry_count'=>'عدد المحاولات الإضافية',
+'retry_backoff'=>'الانتظار بين المحاولات بالثواني','delivery_logging'=>'تسجيل حالة الإرسال','otp_enabled'=>'تفعيل إرسال OTP',
+'notifications_enabled'=>'تفعيل رسائل الإشعارات','save'=>'حفظ إعدادات SMS','saved'=>'تم حفظ إعدادات SMS.',
+'test'=>'إرسال SMS تجريبية','test_title'=>'إرسال رسالة تجريبية','phone'=>'رقم الهاتف','message'=>'الرسالة','operator'=>'شركة الاتصالات',
+'operator_auto'=>'تحديد تلقائي','sender_override'=>'اسم مرسل بديل - اختياري','send'=>'إرسال التجربة','cancel'=>'إلغاء',
+'recent'=>'آخر محاولات إرسال SMS','request_id'=>'Request ID','recipient'=>'المستلم','purpose'=>'الغرض','status'=>'الحالة',
+'attempts'=>'المحاولات','latency'=>'زمن الاستجابة','provider_code'=>'نتيجة المزود','timestamp'=>'الوقت','not_configured'=>'غير مضبوط',
+'no_logs'=>'لا توجد محاولات إرسال حتى الآن.','test_sent'=>'تم إرسال الرسالة التجريبية. الطلب :request · :latency مللي ثانية.',
+'test_failed'=>'فشل إرسال الرسالة: :reason (الطلب :request).',
+'provider'=>[
+'sent'=>'تم الإرسال بنجاح','invalid_authorization'=>'رمز التفويض لدى المزود غير صالح','empty_mobile'=>'رقم الهاتف فارغ',
+'empty_message'=>'نص الرسالة فارغ','invalid_sender'=>'اسم المرسل غير صالح','no_credit'=>'لا يوجد رصيد متاح لدى المزود',
+'unknown_response'=>'استجابة غير معروفة من المزود'],
+'errors'=>[
+'disabled'=>'إرسال SMS غير مفعل.','not_configured'=>'مزود SMS غير مضبوط.',
+'token_required'=>'يجب إدخال API Token قبل تفعيل SMS.','invalid_provider_url'=>'يجب استخدام HTTPS والدومين المعتمد لمزود Advansys.',
+'invalid_endpoint'=>'مسار Advansys غير معتمد.','unsupported_provider'=>'مزود SMS الحالي غير مدعوم.',
+'invalid_phone'=>'أدخل رقم هاتف محلي أو دولي صالح.','operator_required'=>'تعذر تحديد شركة الاتصالات تلقائيًا. اخترها يدويًا.',
+'invalid_request_id'=>'يجب أن يكون Request ID بصيغة UUID.','invalid_message'=>'نص الرسالة فارغ أو أطول من المسموح.',
+'sender_required'=>'اسم المرسل مطلوب.','invalid_purpose'=>'غرض الرسالة غير مدعوم.','otp_disabled'=>'إرسال OTP غير مفعل.',
+'notifications_disabled'=>'إرسال إشعارات SMS غير مفعل.','rate_limited'=>'تم تجاوز حد إرسال الرسائل. أعد المحاولة لاحقًا.',
+'provider_unavailable'=>'مزود SMS غير متاح مؤقتًا.','provider_http'=>'أعاد مزود SMS خطأ HTTP.'],
+];
