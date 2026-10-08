@@ -46,6 +46,14 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', fn () => redirect()->route('admin.b2c.login'));
 
+Route::get('/downloads/apps/{app}/latest.apk', [MobileAppDownloadController::class, 'latest'])
+    ->whereIn('app', ['customer', 'driver', 'van'])
+    ->name('public.mobile-apps.latest');
+Route::get('/downloads/apps/{app}/{version}.apk', [MobileAppDownloadController::class, 'versioned'])
+    ->whereIn('app', ['customer', 'driver', 'van'])
+    ->where('version', '\\d+\\.\\d+\\.\\d+')
+    ->name('public.mobile-apps.versioned');
+
 Route::view('/privacy', 'public.legal', [
     'title' => 'FOODEX Privacy Policy',
     'content' => '<div class="card"><p>FOODEX processes account, order, delivery, device and support data only as needed to operate the service, secure accounts, fulfill transactions and meet legal or accounting obligations.</p><p>Store submission declarations must match the actual production build and configured integrations. Contact Support for privacy questions or deletion status.</p></div>',
@@ -170,6 +178,9 @@ Route::prefix('admin')
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
         Route::post('/customer-360/{platformCustomer}/finance-entries', [Customer360Controller::class, 'storeFinanceEntry'])->whereNumber('platformCustomer')->name('customer-360.finance-entries.store');
+        Route::post('/customer-360/{platformCustomer}/invoices/{invoice}/settle', [Customer360Controller::class, 'settleInvoice'])->whereNumber('platformCustomer')->whereNumber('invoice')->name('customer-360.invoices.settle');
+        Route::post('/customer-360/{platformCustomer}/finance-entries/{ledgerEntry}/reverse', [Customer360Controller::class, 'reverseFinanceEntry'])->whereNumber('platformCustomer')->whereNumber('ledgerEntry')->name('customer-360.finance-entries.reverse');
+        Route::get('/customer-360/{platformCustomer}/statement/export', [Customer360Controller::class, 'statementExport'])->whereNumber('platformCustomer')->name('customer-360.statement.export');
         Route::patch('/customer-360/{platformCustomer}/credit-limit', [Customer360Controller::class, 'updateCreditLimit'])->whereNumber('platformCustomer')->name('customer-360.credit-limit.update');
         Route::get('/customer-360/{invalidCustomerReference}', [Customer360Controller::class, 'invalidReference'])
             ->where('invalidCustomerReference', '[^0-9]+')
@@ -180,6 +191,7 @@ Route::prefix('admin')
         Route::delete('/customer-360/{platformCustomer}/addresses/{address}', [Customer360Controller::class, 'destroyAddress'])->whereNumber('platformCustomer')->whereNumber('address')->name('customer-360.addresses.destroy');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
         Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])->whereNumber('invoice')->name('invoices.download');
+        Route::post('/invoices/{invoice}/settle', [InvoiceController::class, 'settle'])->whereNumber('invoice')->name('invoices.settle');
         Route::post('/invoices/{invoice}/void-reissue', [InvoiceController::class, 'reissue'])->whereNumber('invoice')->name('invoices.reissue');
         Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
         Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
