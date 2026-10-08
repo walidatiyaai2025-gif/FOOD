@@ -128,7 +128,8 @@
     .foodex-ops-actions>summary{list-style:none;width:var(--foodex-touch-target);height:var(--foodex-touch-target);display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);cursor:pointer;font-size:20px;line-height:1}
     .foodex-ops-actions>summary::-webkit-details-marker{display:none}
     .foodex-ops-actions>summary:hover,.foodex-ops-actions[open]>summary{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
-    .foodex-ops-menu{position:absolute;z-index:60;inset-inline-end:0;top:calc(100% + 6px);min-width:180px;padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-raised)}
+    .foodex-ops-menu{position:fixed;z-index:10050;min-width:180px;max-width:min(320px,calc(100vw - 16px));padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-raised);visibility:hidden}
+    .foodex-ops-actions[open]>.foodex-ops-menu{visibility:visible}
     .foodex-ops-menu a,.foodex-ops-menu button{width:100%;min-height:40px;display:flex;align-items:center;justify-content:flex-start;padding:0 var(--foodex-space-3);border:0;border-radius:8px;background:transparent;color:var(--foodex-ink);text-decoration:none;font:inherit;cursor:pointer}
     .foodex-ops-menu a:hover,.foodex-ops-menu button:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     .foodex-ops-menu .danger{color:var(--foodex-red)!important;background:transparent!important}
@@ -138,6 +139,61 @@
     @media(max-width:767px){.foodex-ops-toolbar,.foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)}.foodex-ops-grid .foodex-ops-hide-mobile{display:none}}
 
 </style>
+<script id="foodex-ops-popover-runtime">
+(() => {
+    const positionMenu = (details) => {
+        if (!(details instanceof HTMLDetailsElement) || !details.open) return;
+        const summary = details.querySelector(':scope > summary');
+        const menu = details.querySelector(':scope > .foodex-ops-menu');
+        if (!(summary instanceof HTMLElement) || !(menu instanceof HTMLElement)) return;
+
+        const trigger = summary.getBoundingClientRect();
+        const margin = 8;
+        menu.style.visibility = 'hidden';
+        menu.style.inset = 'auto';
+        menu.style.top = '0px';
+        menu.style.left = '0px';
+
+        const menuRect = menu.getBoundingClientRect();
+        const rtl = getComputedStyle(details).direction === 'rtl';
+        let left = rtl ? trigger.left : trigger.right - menuRect.width;
+        left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
+
+        let top = trigger.bottom + 6;
+        if (top + menuRect.height > window.innerHeight - margin && trigger.top - menuRect.height - 6 >= margin) {
+            top = trigger.top - menuRect.height - 6;
+        }
+        top = Math.max(margin, Math.min(top, window.innerHeight - menuRect.height - margin));
+
+        menu.style.left = Math.round(left) + 'px';
+        menu.style.top = Math.round(top) + 'px';
+        menu.style.visibility = 'visible';
+    };
+
+    const repositionOpenMenus = () => {
+        document.querySelectorAll('.foodex-ops-actions[open]').forEach(positionMenu);
+    };
+
+    document.addEventListener('toggle', (event) => {
+        const details = event.target;
+        if (!(details instanceof HTMLDetailsElement) || !details.classList.contains('foodex-ops-actions')) return;
+        if (details.open) {
+            document.querySelectorAll('.foodex-ops-actions[open]').forEach((other) => {
+                if (other !== details) other.open = false;
+            });
+            requestAnimationFrame(() => positionMenu(details));
+        }
+    }, true);
+
+    document.addEventListener('click', (event) => {
+        document.querySelectorAll('.foodex-ops-actions[open]').forEach((details) => {
+            if (!details.contains(event.target)) details.open = false;
+        });
+    });
+    window.addEventListener('resize', repositionOpenMenus, { passive: true });
+    document.addEventListener('scroll', repositionOpenMenus, true);
+})();
+</script>
 
 <script id="foodex-placeholder-audit">
 document.addEventListener('DOMContentLoaded', () => {
