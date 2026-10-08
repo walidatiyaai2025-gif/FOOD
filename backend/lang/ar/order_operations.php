@@ -71,6 +71,15 @@ return [
         'routing_reason' => 'سبب التوجيه',
         'territory' => 'منطقة الخدمة',
         'uncovered' => 'عنوان خارج التغطية أو لم يتم حسم منطقته',
+        'audit_title' => 'سجل تدقيق التوجيه',
+        'audit_empty' => 'لا توجد أحداث تدقيق للتوجيه.',
+        'system_actor' => 'النظام',
+        'audit_events' => [
+            'order_dispatch_assigned' => 'تعيين تلقائي لجهة التنفيذ',
+            'order_dispatch_awaiting' => 'تحويل إلى قائمة التوجيه المعلق',
+            'order_dispatch_manual_assigned' => 'تعيين بواسطة خدمة العملاء',
+            'order_dispatch_manual_cleared' => 'إعادة الطلب إلى التوجيه المعلق بواسطة خدمة العملاء',
+        ],
     ],
     'detail' => [
         'context' => 'سياق الطلب',
