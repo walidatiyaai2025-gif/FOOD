@@ -392,6 +392,90 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_dashboard_dispatch_assigns_driver_and_clear_returns_order_to_pending_queue(): void
+    {
+        $store = $this->store('OPS-DISPATCH');
+        $admin = $this->storeAdmin($store, 'ops-dispatch-admin@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Dispatch Buyer']);
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-DISPATCH-1001',
+        );
+
+        $driverUser = User::query()->create([
+            'name' => 'Dispatch Driver',
+            'email' => 'ops-dispatch-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patch("/admin/operations/orders/{$order}/dispatch", [
+                'assignee_type' => 'driver',
+                'assignee_id' => $driver,
+                'reason' => 'Customer Service assignment',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order,
+            'driver_id' => $driver,
+            'status' => 'assigned',
+        ]);
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_driver_assignment',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $driver,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&dispatch_status=assigned')
+            ->assertOk()
+            ->assertSee('OPS-DISPATCH-1001')
+            ->assertSee('Dispatch Driver');
+
+        $this->actingAs($admin)
+            ->delete("/admin/operations/orders/{$order}/dispatch", [
+                'reason' => 'Driver unavailable',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order,
+            'status' => 'awaiting_dispatch',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_unassigned',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
+        ]);
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order,
+            'driver_id' => $driver,
+            'status' => 'unassigned',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&dispatch_status=awaiting_dispatch')
+            ->assertOk()
+            ->assertSee('OPS-DISPATCH-1001')
+            ->assertSee('This order requires a Customer Service dispatch decision.');
+    }
+
     public function test_order_detail_renders_driver_assignment_timestamps_without_500(): void
     {
         $store = $this->store('OPS-DETAIL-DRIVER');
