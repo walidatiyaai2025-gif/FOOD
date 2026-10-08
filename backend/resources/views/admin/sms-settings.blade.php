@@ -33,17 +33,26 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 
 <section class="card"><h2>{{ __('sms.recent') }}</h2><div class="table-wrap"><table><thead><tr><th>{{ __('sms.request_id') }}</th><th>{{ __('sms.recipient') }}</th><th>{{ __('sms.purpose') }}</th><th>{{ __('sms.status') }}</th><th>{{ __('sms.attempts') }}</th><th>{{ __('sms.latency') }}</th><th>{{ __('sms.provider_code') }}</th><th>{{ __('sms.timestamp') }}</th></tr></thead><tbody>
 @forelse($recentLogs as $log)
-<tr><td><code>{{ $log->request_id }}</code></td><td>{{ $log->recipient_masked }}</td><td>{{ $log->purpose }}</td><td>{{ $log->status }}</td><td>{{ $log->attempts }}</td><td>{{ $log->latency_ms ?? '—' }} ms</td><td>{{ $log->provider_response_code ?? '—' }}</td><td>{{ $log->created_at }}</td></tr>
+<tr><td><code>{{ $log->request_id }}</code></td><td>{{ $log->recipient_masked }}</td><td>{{ $log->purpose }}</td><td>{{ $log->status }}</td><td>{{ $log->attempts }}</td><td>{{ $log->latency_ms ?? '—' }} ms</td><td>{{ $log->status === 'sent' ? __('sms.provider.sent') : ($log->error_message ?: __('sms.provider.unknown_response')) }} @if($log->provider_response_code)<small>({{ $log->provider_response_code }})</small>@endif</td><td>{{ $log->created_at }}</td></tr>
 @empty<tr><td colspan="8">{{ __('sms.no_logs') }}</td></tr>@endforelse
 </tbody></table></div></section>
 </div>
 
 <dialog id="testSmsDialog"><form class="modal" method="post" action="{{ route('admin.sms-settings.test') }}">@csrf
-<h2>{{ __('sms.test_title') }}</h2><div class="grid">
+<h2>{{ __('sms.test_title') }}</h2>
+@if(session('sms_test_result'))
+<div class="notice {{ session('sms_test_result.status') === 'sent' ? '' : 'error' }}">
+<strong>{{ session('sms_test_result.meaning') }}</strong><br>
+<small>{{ __('sms.request_id') }}: <code>{{ session('sms_test_result.request_id') }}</code> · {{ __('sms.timestamp') }}: {{ session('sms_test_result.timestamp') }} · {{ __('sms.latency') }}: {{ session('sms_test_result.latency_ms') }} ms</small>
+</div>
+@endif<div class="grid">
 <div class="field"><label>{{ __('sms.phone') }}</label><input name="phone" required placeholder="01012345678"></div>
 <div class="field"><label>{{ __('sms.operator') }}</label><select name="operator_id"><option value="">{{ __('sms.operator_auto') }}</option><option value="1">Vodafone</option><option value="2">Orange</option><option value="3">Etisalat</option><option value="7">WE</option></select></div>
 <div class="field full"><label>{{ __('sms.message') }}</label><textarea name="message" rows="4" required></textarea></div>
 <div class="field full"><label>{{ __('sms.sender_override') }}</label><input name="sender"></div>
 </div><div class="actions"><button class="btn" type="submit">{{ __('sms.send') }}</button><button class="btn secondary" type="button" onclick="document.getElementById('testSmsDialog').close()">{{ __('sms.cancel') }}</button></div>
 </form></dialog>
+@if(session('sms_test_result'))
+<script>document.getElementById('testSmsDialog').showModal();</script>
+@endif
 </body></html>
