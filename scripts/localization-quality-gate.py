@@ -101,6 +101,32 @@ def looks_like_technical_literal(value: str) -> bool:
     return False
 
 
+def blade_line_is_inside_nonvisible_block(path: str, lineno: int) -> bool:
+    """Return True when a Blade source line is inside a script/style block.
+
+    The localization gate checks rendered HTML wording, not JavaScript/CSS syntax.
+    Looking at the complete checked-out file avoids false positives when only an
+    inner script/style line is part of the git diff.
+    """
+    file_path = ROOT / path
+    if not file_path.is_file() or lineno < 1:
+        return False
+
+    text = file_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    if lineno > len(lines):
+        return False
+
+    prefix = "\n".join(lines[:lineno]).lower()
+    for tag in ("script", "style"):
+        opening = prefix.rfind(f"<{tag}")
+        closing = prefix.rfind(f"</{tag}>")
+        if opening > closing:
+            return True
+
+    return False
+
+
 def extract_dart_map(text: str, name: str) -> tuple[set[str], tuple[int, int]]:
     marker = re.search(
         rf"static\s+const\s+Map<String,\s*String>\s+{re.escape(name)}\s*=\s*\{{",
@@ -316,6 +342,9 @@ def scan_added_lines(
                     )
 
         if path.endswith(".blade.php") and path.startswith("backend/resources/views/"):
+            if blade_line_is_inside_nonvisible_block(path, lineno):
+                continue
+
             if re.search(r"\$ar\s*\?\s*['\"]", line):
                 errors.append(
                     f"{path}:{lineno}: inline ar/en literal branch detected; "
