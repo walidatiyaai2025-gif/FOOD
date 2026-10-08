@@ -409,19 +409,12 @@
             @forelse($reviews as $review)<tr><td><strong>{{ __('field_operations.address_review') }}</strong><div class="fieldops-muted">{{ $review->public_id ?: __('field_operations.public_reference_unavailable') }}</div>
                 <details style="margin-top:6px"><summary>{{ __('field_operations.details_history') }}</summary>
                     <div class="fieldops-muted" style="margin-top:6px">{{ $review->reason ?: __('field_operations.no_recorded_reason') }}</div>
-                    @php
-                        $sourceKey = 'field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown');
-                        $qualityKey = 'field_operations.quality_classes.'.($review->quality_class ?: 'unknown');
-                    @endphp
-                    <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Facades\Lang::has($sourceKey) ? __($sourceKey) : __('field_operations.resolution_sources.unknown') }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
+                    <div>{{ __('field_operations.source') }}: {{ \Illuminate\Support\Facades\Lang::has('field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown')) ? __('field_operations.resolution_sources.'.($review->resolution_source ?: 'unknown')) : __('field_operations.resolution_sources.unknown') }} · {{ __('field_operations.resolved_by') }}: {{ $resolverNames->get($review->resolved_by) ?: '—' }} · {{ $review->resolved_at ?: '—' }}</div>
                     @foreach($review->events as $event)
-                        @php
-                            $eventKey = 'field_operations.review_statuses.'.$event->event_type;
-                        @endphp
-                        <div class="fieldops-code">{{ $event->created_at }} · {{ \Illuminate\Support\Facades\Lang::has($eventKey) ? __($eventKey) : __('field_operations.review_statuses.unmapped') }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>
+                        <div class="fieldops-code">{{ $event->created_at }} · {{ \Illuminate\Support\Facades\Lang::has('field_operations.review_statuses.'.$event->event_type) ? __('field_operations.review_statuses.'.$event->event_type) : __('field_operations.review_statuses.unmapped') }} · {{ $event->old_status ? __('field_operations.review_statuses.'.$event->old_status) : '—' }} → {{ __('field_operations.review_statuses.'.$event->new_status) }} · {{ $event->reason ?: '—' }}</div>
                     @endforeach
                 </details>
-            </td><td>{{ \Illuminate\Support\Facades\Lang::has($qualityKey) ? __($qualityKey) : __('field_operations.quality_classes.unknown') }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $territoryLabels->get($review->territory_key) ?: __('field_operations.unknown_territory') }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
+            </td><td>{{ \Illuminate\Support\Facades\Lang::has('field_operations.quality_classes.'.($review->quality_class ?: 'unknown')) ? __('field_operations.quality_classes.'.($review->quality_class ?: 'unknown')) : __('field_operations.quality_classes.unknown') }} @if($review->confidence!==null)· {{ number_format((float)$review->confidence*100,1) }}%@endif</td><td>{{ $territoryLabels->get($review->territory_key) ?: __('field_operations.unknown_territory') }}</td><td>{{ __('field_operations.review_statuses.'.$review->status) }}</td><td>
                 @if($canManageAddress)<details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                     @foreach(['confirm','reject','reopen'] as $action)
                     <form method="post" action="{{ route('admin.field-operations.address-quality.action',['review'=>$review,'action'=>$action]) }}">@csrf
