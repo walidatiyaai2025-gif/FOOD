@@ -22,6 +22,8 @@ final class RetailReorderIntelligenceService
 
     private const PRIORITY_MARGIN_REFERENCE = 0.50;
 
+    private const MAX_LEAD_TIME_SAMPLES = 30;
+
     public function __construct(
         private readonly RetailInventoryIntelligenceService $inventory,
         private readonly RetailWholesaleLineageService $lineage,
@@ -43,23 +45,26 @@ final class RetailReorderIntelligenceService
         $asOf = ($asOf ?? CarbonImmutable::now(self::TIMEZONE))->setTimezone(self::TIMEZONE);
         $inventory = $this->inventory->forStore($retailStoreId, $asOf);
         $leadTime = $this->leadTime($retailStoreId);
-        $mappings = collect($this->lineage->mappingsForStore($retailStoreId))
-            ->groupBy('retail_product_id');
+        $mappingRows = $this->lineage->mappingsForStore($retailStoreId);
+        $mappings = collect($mappingRows)->groupBy('retail_product_id');
         $customer = $this->linkedWholesaleCustomer($retailStoreId);
+        $commercial = $this->commercialContext($mappingRows, $customer);
 
         $rows = collect($inventory['products'])
             ->map(function (array $product) use (
-                $retailStoreId,
                 $leadTime,
                 $mappings,
                 $customer,
+                $commercial,
             ): array {
                 return $this->recommendation(
-                    $retailStoreId,
                     $product,
                     $leadTime,
                     $mappings->get($product['product_id'], collect())->values()->all(),
                     $customer,
+                    $commercial['prices'],
+                    $commercial['availability'],
+                    $commercial['pricing_status'],
                 );
             })
             ->values();
@@ -93,11 +98,13 @@ final class RetailReorderIntelligenceService
 
     /** @return array<string,mixed> */
     private function recommendation(
-        int $retailStoreId,
         array $product,
         array $leadTime,
         array $productMappings,
         ?B2bCustomer $customer,
+        array $prices,
+        array $availability,
+        int $pricingStatus,
     ): array {
         $velocity = (float) $product['sales']['velocity_units_per_day'];
         $availableRetail = (float) $product['stock']['available'];
@@ -114,7 +121,9 @@ final class RetailReorderIntelligenceService
         $targetStock = round($velocity * $targetCoverDays, 3);
         $retailNeed = round(max(0.0, $targetStock - max(0.0, $availableRetail)), 3);
 
-        $retailPrice = $this->retailSellingPrice($retailStoreId, (int) $product['product_id']);
+        $retailPrice = $product['retail_unit_price'] === null
+            ? null
+            : (float) $product['retail_unit_price'];
         $dailyRevenue = round($velocity * ($retailPrice ?? 0.0), 3);
 
         $base = [
@@ -214,8 +223,9 @@ final class RetailReorderIntelligenceService
             );
         }
 
-        $source = $this->wholesaleSource((int) $mapping['source_wholesale_product_id']);
-        if ($source === null) {
+        $sourceStoreId = (int) ($mapping['source_wholesale_store_id'] ?? 0);
+        $sourceProductId = (int) ($mapping['source_wholesale_product_id'] ?? 0);
+        if ($sourceStoreId <= 0 || $sourceProductId <= 0) {
             return $this->blocked(
                 $base,
                 'invalid_mapping',
@@ -226,10 +236,10 @@ final class RetailReorderIntelligenceService
         }
 
         $base['mapping'] = [
-            'source_wholesale_product_id' => (int) $mapping['source_wholesale_product_id'],
+            'source_wholesale_product_id' => $sourceProductId,
             'source_sku' => (string) $mapping['source_sku'],
             'source_name' => (string) $mapping['source_name'],
-            'source_wholesale_store_id' => (int) $source->store_id,
+            'source_wholesale_store_id' => $sourceStoreId,
             'quantity_conversion_factor' => round($factor, 3),
         ];
 
@@ -297,13 +307,9 @@ final class RetailReorderIntelligenceService
             );
         }
 
-        try {
-            $price = $this->pricing->resolve(
-                $customer,
-                (int) $source->store_id,
-                (int) $mapping['source_wholesale_product_id'],
-            );
-        } catch (HttpException $exception) {
+        $commercialKey = $this->commercialKey($sourceStoreId, $sourceProductId);
+        $price = $prices[$commercialKey] ?? null;
+        if (! is_array($price)) {
             return $this->blocked(
                 $base,
                 'reorder',
@@ -311,15 +317,12 @@ final class RetailReorderIntelligenceService
                 'authoritative_pricing_unavailable',
                 [
                     'retail_units_needed' => $retailNeed,
-                    'pricing_status' => $exception->getStatusCode(),
+                    'pricing_status' => $pricingStatus,
                 ],
             );
         }
 
-        $wholesaleAvailable = $this->wholesaleAvailable(
-            (int) $source->store_id,
-            (int) $mapping['source_wholesale_product_id'],
-        );
+        $wholesaleAvailable = (float) ($availability[$commercialKey] ?? 0.0);
         $rawWholesaleNeed = $retailNeed / $factor;
         $fullQuantity = $this->roundUpToB2bQuantity(
             $rawWholesaleNeed,
@@ -446,6 +449,86 @@ final class RetailReorderIntelligenceService
         return $row;
     }
 
+    /**
+     * @param  list<array<string,mixed>>  $mappings
+     * @return array{prices:array<string,array<string,mixed>>,availability:array<string,float>,pricing_status:int}
+     */
+    private function commercialContext(array $mappings, ?B2bCustomer $customer): array
+    {
+        $targets = collect($mappings)
+            ->filter(static fn (array $mapping): bool => ($mapping['status'] ?? null) === 'valid')
+            ->map(static fn (array $mapping): array => [
+                'store_id' => (int) ($mapping['source_wholesale_store_id'] ?? 0),
+                'product_id' => (int) ($mapping['source_wholesale_product_id'] ?? 0),
+            ])
+            ->filter(static fn (array $target): bool => $target['store_id'] > 0 && $target['product_id'] > 0)
+            ->unique(fn (array $target): string => $this->commercialKey(
+                $target['store_id'],
+                $target['product_id'],
+            ))
+            ->values();
+
+        if ($targets->isEmpty()) {
+            return [
+                'prices' => [],
+                'availability' => [],
+                'pricing_status' => 409,
+            ];
+        }
+
+        $groupedTargets = $targets->groupBy('store_id');
+        $availableRows = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('warehouses.is_active', true)
+            ->where(function ($query) use ($groupedTargets): void {
+                foreach ($groupedTargets as $storeId => $rows) {
+                    $query->orWhere(function ($targetQuery) use ($storeId, $rows): void {
+                        $targetQuery
+                            ->where('warehouses.store_id', (int) $storeId)
+                            ->whereIn(
+                                'inventories.product_id',
+                                $rows->pluck('product_id')->map(static fn (mixed $id): int => (int) $id)->all(),
+                            );
+                    });
+                }
+            })
+            ->groupBy('warehouses.store_id', 'inventories.product_id')
+            ->get([
+                'warehouses.store_id',
+                'inventories.product_id',
+                DB::raw('COALESCE(SUM(inventories.quantity - inventories.reserved_quantity), 0) as available'),
+            ]);
+
+        $availability = [];
+        foreach ($availableRows as $row) {
+            $availability[$this->commercialKey((int) $row->store_id, (int) $row->product_id)] = round(
+                max(0.0, (float) $row->available),
+                3,
+            );
+        }
+
+        $prices = [];
+        $pricingStatus = 409;
+        if ($customer instanceof B2bCustomer) {
+            try {
+                $prices = $this->pricing->resolveMany($customer, $targets->all());
+            } catch (HttpException $exception) {
+                $pricingStatus = $exception->getStatusCode();
+            }
+        }
+
+        return [
+            'prices' => $prices,
+            'availability' => $availability,
+            'pricing_status' => $pricingStatus,
+        ];
+    }
+
+    private function commercialKey(int $storeId, int $productId): string
+    {
+        return $storeId.':'.$productId;
+    }
+
     /** @return array<string,mixed> */
     private function leadTime(int $retailStoreId): array
     {
@@ -453,6 +536,7 @@ final class RetailReorderIntelligenceService
             ->join('orders as source_orders', 'source_orders.id', '=', 'replenishments.source_order_id')
             ->where('replenishments.retail_store_id', $retailStoreId)
             ->orderByDesc('replenishments.received_at')
+            ->limit(self::MAX_LEAD_TIME_SAMPLES)
             ->get([
                 'source_orders.created_at as ordered_at',
                 'replenishments.received_at',
@@ -498,49 +582,6 @@ final class RetailReorderIntelligenceService
             ->value('b2b_customer_id');
 
         return $customerId === null ? null : B2bCustomer::query()->find((int) $customerId);
-    }
-
-    private function wholesaleSource(int $sourceProductId): ?object
-    {
-        return DB::table('products')
-            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('stores', 'stores.id', '=', 'catalogs.store_id')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('products.id', $sourceProductId)
-            ->where('products.is_active', true)
-            ->where('catalogs.channel', 'b2b')
-            ->where('catalogs.is_active', true)
-            ->where('catalogs.is_migration_quarantine', false)
-            ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2B')
-            ->first([
-                'products.id',
-                'catalogs.store_id',
-            ]);
-    }
-
-    private function wholesaleAvailable(int $storeId, int $productId): float
-    {
-        $row = DB::table('inventories')
-            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-            ->where('warehouses.store_id', $storeId)
-            ->where('warehouses.is_active', true)
-            ->where('inventories.product_id', $productId)
-            ->selectRaw('COALESCE(SUM(inventories.quantity - inventories.reserved_quantity), 0) as available')
-            ->first();
-
-        return round(max(0.0, (float) ($row->available ?? 0)), 3);
-    }
-
-    private function retailSellingPrice(int $storeId, int $productId): ?float
-    {
-        $price = DB::table('store_products')
-            ->where('store_id', $storeId)
-            ->where('product_id', $productId)
-            ->where('is_active', true)
-            ->value('price');
-
-        return $price === null ? null : round((float) $price, 3);
     }
 
     private function roundUpToB2bQuantity(float $quantity, float $minimum, float $increment): float
