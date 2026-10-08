@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
@@ -109,6 +110,69 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
     await _loadProducts();
   }
 
+  int get _unavailableCount =>
+      _products.where((product) => !product.isAvailable).length;
+
+  int get _lowStockCount => _products.where((product) {
+        final quantity = product.availableQuantity;
+        return product.isAvailable &&
+            quantity != null &&
+            quantity <= product.minimumQuantity;
+      }).length;
+
+  int get _healthyCount =>
+      _products.length - _unavailableCount - _lowStockCount;
+
+  Widget _stockAnalytics(BuildContext context) => Card(
+        key: const ValueKey('van-catalog-stock-analytics'),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _text('Catalog availability', 'توفر الكتالوج'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _text(
+                  'Which products can be sold now, and which need stock attention?',
+                  'ما المنتجات المتاحة للبيع الآن وما الذي يحتاج متابعة مخزون؟',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              FoodexDonutChart(
+                key: const ValueKey('van-catalog-stock-chart'),
+                values: [
+                  _healthyCount.toDouble(),
+                  _lowStockCount.toDouble(),
+                  _unavailableCount.toDouble(),
+                ],
+                semanticLabel: _text(
+                  'Healthy, low-stock and unavailable catalog distribution',
+                  'توزيع منتجات الكتالوج السليمة ومنخفضة المخزون وغير المتاحة',
+                ),
+                size: 134,
+                strokeWidth: 18,
+              ),
+              const SizedBox(height: 10),
+              FoodexChartLegend(
+                labels: [
+                  _text('Available', 'متاح'),
+                  _text('Low stock', 'مخزون منخفض'),
+                  _text('Unavailable', 'غير متاح'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     if (_loading && _customers.isEmpty) {
@@ -188,7 +252,9 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
               action: _loadProducts,
               actionLabel: _text('Refresh', 'تحديث'),
             )
-          else
+          else ...[
+            _stockAnalytics(context),
+            const SizedBox(height: 10),
             for (final product in _products)
               Card(
                 key: ValueKey('van-catalog-product-${product.id}'),
@@ -248,6 +314,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                   ),
                 ),
               ),
+          ],
           const SizedBox(height: 6),
           VanActionButton.icon(
             key: const ValueKey('van-catalog-open-cart'),
