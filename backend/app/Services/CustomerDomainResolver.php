@@ -97,6 +97,11 @@ final class CustomerDomainResolver
                 );
 
                 $this->reconcileLegacyB2bReferences($legacy->getKey(), $customer->getKey());
+                app(PlatformCustomerService::class)->reconcileWholesaleCustomerIdentity(
+                    $user,
+                    $customer,
+                    'migration',
+                );
             }
         }
 
