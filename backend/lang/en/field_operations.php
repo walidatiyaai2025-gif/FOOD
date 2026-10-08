@@ -130,6 +130,7 @@ return [
         'rejected' => 'Rejected',
     ],
     'resolution_sources' => [
+        'unknown' => 'Unknown source',
         'unresolved' => 'Unresolved',
         'admin_confirmed' => 'Admin confirmed',
         'evidence' => 'Evidence fixture',
