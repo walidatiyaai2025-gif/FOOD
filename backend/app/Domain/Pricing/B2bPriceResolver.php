@@ -41,8 +41,8 @@ class B2bPriceResolver
     {
         $targets = collect($targets)
             ->map(static fn (array $target): array => [
-                'store_id' => (int) ($target['store_id'] ?? 0),
-                'product_id' => (int) ($target['product_id'] ?? 0),
+                'store_id' => (int) $target['store_id'],
+                'product_id' => (int) $target['product_id'],
             ])
             ->filter(static fn (array $target): bool => $target['store_id'] > 0 && $target['product_id'] > 0)
             ->unique(fn (array $target): string => $this->key($target['store_id'], $target['product_id']))
