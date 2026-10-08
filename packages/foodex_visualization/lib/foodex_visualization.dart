@@ -314,7 +314,7 @@ class FoodexChartLegend extends StatelessWidget {
     required this.labels,
     this.colors = FoodexChartPalette.series,
     this.spacing = 12,
-  }) : assert(colors.length > 0);
+  });
 
   final List<String> labels;
   final List<Color> colors;
@@ -322,6 +322,9 @@ class FoodexChartLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedColors =
+        colors.isEmpty ? FoodexChartPalette.series : colors;
+
     return Wrap(
       spacing: spacing,
       runSpacing: 8,
@@ -334,7 +337,7 @@ class FoodexChartLegend extends StatelessWidget {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: colors[index % colors.length],
+                  color: resolvedColors[index % resolvedColors.length],
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
