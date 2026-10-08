@@ -321,8 +321,7 @@ final class RetailInventoryIntelligenceService
             ->groupBy('inventories.product_id')
             ->select('inventories.product_id')
             ->selectRaw('SUM(inventories.quantity) as on_hand')
-            ->get()
-            ->pluck('on_hand', 'product_id');
+            ->pluck('on_hand', 'inventories.product_id');
 
         $movements = DB::table('stock_movements')
             ->join('inventories', 'inventories.id', '=', 'stock_movements.inventory_id')
