@@ -360,7 +360,7 @@
                 </details>
             </section>
             @endif
-            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.code') }}</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@forelse($nodes as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $node->localized_name }}</td><td>{{ $node->parent?->localized_name ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endforelse</tbody></table></div></section>
+            <section class="fieldops-card"><h2>{{ __('field_operations.geography_hierarchy') }}</h2><div class="table-wrap"><table class="foodex-ops-grid" data-pagination-required><thead><tr><th>#</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.code') }}</th><th>{{ __('field_operations.name') }}</th><th>{{ __('field_operations.parent') }}</th></tr></thead><tbody>@forelse($nodeRows as $node)<tr><td>{{ $node->id }}</td><td>{{ __('field_operations.geography_types.'.$node->type) }}</td><td>{{ $node->code }}</td><td>{{ $node->localized_name }}</td><td>{{ $node->parent?->localized_name ?: '—' }}</td></tr>@empty<tr><td colspan="5">{{ __('field_operations.no_geography_nodes') }}</td></tr>@endforelse</tbody></table></div>{{ $nodeRows->links() }}</section>
             <section class="fieldops-card">
                 <h2>{{ __('field_operations.coverage_map') }}</h2>
                 <p class="fieldops-muted">{{ __('field_operations.coverage_map_help') }}</p>
@@ -394,12 +394,13 @@
                 </form>
                 @endif
             </section>
-            <section class="fieldops-card"><h2>{{ __('field_operations.service_territories') }}</h2>
-                @forelse($territories as $territory)
+            <section class="fieldops-card" data-pagination-required><h2>{{ __('field_operations.service_territories') }}</h2>
+                @forelse($territoryRows as $territory)
                     <article style="padding:14px 0;border-bottom:1px solid var(--foodex-border)">
                         <div class="fieldops-actions"><strong>{{ $territory->localized_name }} · {{ $territory->code }}</strong><span class="fieldops-status">{{ __('field_operations.statuses.'.$territory->status) }}</span><span>{{ __('field_operations.geometries') }}: {{ $territory->geometries->count() }}</span></div>
                     </article>
                 @empty<div class="foodex-ops-state">{{ __('field_operations.no_service_territories') }}</div>@endforelse
+                {{ $territoryRows->links() }}
             </section>
 
         @elseif($section === 'address-quality')
