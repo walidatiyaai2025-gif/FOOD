@@ -1390,7 +1390,7 @@ class B2cWorkspaceController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        if (!isset($data['from']) && !isset($data['to']) && isset($data['date'])) {
+        if (! isset($data['from']) && ! isset($data['to']) && isset($data['date'])) {
             return [$data['date'], $data['date']];
         }
 
@@ -1461,7 +1461,7 @@ class B2cWorkspaceController extends Controller
         abort_if($storeIds === [], 403, 'No assigned Retail store.');
 
         if ($requestedStoreId > 0) {
-            if (!in_array($requestedStoreId, $storeIds, true)) {
+            if (! in_array($requestedStoreId, $storeIds, true)) {
                 abort(404);
             }
             $selectedStoreId = $requestedStoreId;
