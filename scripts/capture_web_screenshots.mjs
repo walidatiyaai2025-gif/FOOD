@@ -529,7 +529,14 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
   const productBefore = await productRows.count();
   await flashForm.locator('[data-flash-product-add]').click();
   if (await productRows.count() !== productBefore + 1) {
-    throw new Error(`Flash Product Builder did not add a product row (${locale}); page errors: ${pageErrors.join(' | ') || 'none'}`);
+    const initState = await page.evaluate(() => ({
+      script: document.documentElement.dataset.foodexCommercialScriptInit || '0',
+      builder: document.querySelector('[data-flash-product-builder]')?.dataset.foodexProductBuilderInit || '0',
+      addFn: typeof window.foodexFlashAddProductRow,
+      buttonCount: document.querySelectorAll('[data-flash-product-add]').length,
+      templateCount: document.querySelectorAll('[data-flash-product-template]').length,
+    }));
+    throw new Error(`Flash Product Builder did not add a product row (${locale}); init=${JSON.stringify(initState)}; page errors: ${pageErrors.join(' | ') || 'none'}`);
   }
 
   const addedProduct = productRows.last();
