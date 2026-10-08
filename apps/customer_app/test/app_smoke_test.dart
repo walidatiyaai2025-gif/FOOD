@@ -9,6 +9,7 @@ void main() {
     expect(find.byKey(const ValueKey('foodex-splash-logo')), findsNothing);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(find.byType(MaterialApp), findsOneWidget);
     expect(app.locale, const Locale('ar'));
     expect(app.supportedLocales, const [Locale('ar'), Locale('en')]);
 

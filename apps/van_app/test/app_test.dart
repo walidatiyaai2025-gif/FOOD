@@ -67,6 +67,7 @@ void main() {
     expect(find.text('Customers'), findsWidgets);
     expect(find.text('Product Catalog'), findsOneWidget);
     expect(find.text('Order Builder'), findsOneWidget);
+    expect(vanProductionScreenInventory.contains(VanScreenId.orders), isTrue);
     expect(vanProductionScreenInventory.contains(VanScreenId.notifications), isTrue);
     expect(vanProductionScreenInventory.contains(VanScreenId.profile), isTrue);
 

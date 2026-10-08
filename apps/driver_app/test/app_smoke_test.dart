@@ -12,6 +12,7 @@ void main() {
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
     expect(find.byKey(const Key('driver-login-password')), findsOneWidget);
     expect(find.byKey(const Key('driver-app-version-footer')), findsOneWidget);
+    expect(find.byType(MaterialApp), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.locale, const Locale('ar'));
