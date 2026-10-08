@@ -30,7 +30,7 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('.foodex-ops-detail-grid{', $brand);
         $this->assertStringContainsString('.foodex-ops-state{', $brand);
         $this->assertStringContainsString('width:var(--foodex-touch-target);height:var(--foodex-touch-target)', $brand);
-        $this->assertStringContainsString("position:'fixed'", $brand);
+        $this->assertStringContainsString("menu.style.position = 'fixed'", $brand);
         $this->assertStringContainsString("zIndex = '10050'", $brand);
         $this->assertStringContainsString("document.addEventListener('scroll', repositionOpenMenus, true)", $brand);
     }
