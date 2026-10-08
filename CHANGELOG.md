@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.65 - 2026-10-08
+
+- Promote all post-1.0.64 changes merged through latest main `ee3e27e0a2c256eb7380bcabdaa77ea7c0652d1f`, including the completed Merchant Intelligence integration from #1122 / PR #1136.
+- Ship authoritative Wholesale/Retail source lineage, batch B2B pricing and inventory snapshot improvements, reorder/query scaling fixes, Dashboard cart validation, and integrated Customer/Driver/Van runnable product gates.
+- Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts plus the Laravel first-install package from one release source with mobile identity `1.0.65+65`.
+- Require release/update-bundle, localization, repository policy, mobile validation and fresh-install evidence before publication.
+
 ## 1.0.64 - 2026-10-08
 
 - Promote the latest clean `main` convergence into FOODEX 1.0.64, including Dashboard pagination coverage, viewport-safe grid action menus, Retail-owner Flash audience lookup/targeting, geography reset/rebuild tooling, and the complete Egypt FOOD Van geography dataset.
