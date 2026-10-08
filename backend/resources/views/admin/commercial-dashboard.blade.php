@@ -79,6 +79,7 @@
         .structured-add{border:1px solid var(--foodex-green);background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .structured-remove{border:1px solid #f2b8b5;background:#fff;color:#a61b1b}
         .flash-form-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
+        .flash-form-section[hidden]{display:none}
         .flash-form-section h3{margin:0;font-size:.92rem}
         .flash-wizard-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:2px 0 4px}
         .flash-wizard-progress button{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer}
