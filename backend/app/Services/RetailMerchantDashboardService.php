@@ -158,9 +158,12 @@ final class RetailMerchantDashboardService
                 ->whereNotIn('source_orders.status', ['cancelled', 'refunded'])
                 ->whereExists(function ($query) use ($retailStoreId): void {
                     $query->selectRaw('1')
-                        ->from('retail_replenishments')
-                        ->whereColumn('retail_replenishments.source_order_id', 'source_orders.id')
-                        ->where('retail_replenishments.retail_store_id', $retailStoreId);
+                        ->from('retail_wholesale_accounts')
+                        ->whereColumn(
+                            'retail_wholesale_accounts.b2b_customer_id',
+                            'source_orders.b2b_customer_id',
+                        )
+                        ->where('retail_wholesale_accounts.retail_store_id', $retailStoreId);
                 })
                 ->sum('source_orders.grand_total');
 
