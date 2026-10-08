@@ -151,13 +151,13 @@
     "G13_function_screen_journey_convergence"
   ],
   "done_condition": {
-    "W9_passed": true,
-    "open_mission_prs": 0,
-    "unresolved_valid_mission_work_outside_main": 0,
-    "final_main_sha_recorded": true,
-    "all_W1_to_W8_and_W8B_verified_on_main": true,
-    "W8B_passed": true,
-    "all_G0_to_G13_pass": true
+    "all_W1_to_W8_and_W8B_verified_on_main": false,
+    "W8B_passed": false,
+    "W9_passed": false,
+    "all_G0_to_G13_pass": false,
+    "open_mission_prs": 1,
+    "unresolved_valid_mission_work_outside_main": 1,
+    "final_main_sha_recorded": false
   },
   "release_boundary": {
     "integrated_runnable_does_not_publish_release": true,
