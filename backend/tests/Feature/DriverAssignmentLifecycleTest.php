@@ -165,6 +165,52 @@ class DriverAssignmentLifecycleTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'delivery.assignment.status_changed']);
     }
 
+    public function test_retail_customer_support_can_assign_driver_without_driver_registry_permission(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2c');
+        $order->update(['status' => 'ready']);
+
+        $support = User::query()->create([
+            'name' => 'Retail Customer Support',
+            'email' => 'dispatch-support@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $supportRoleId = (int) Role::query()->where('code', 'RETAIL_CUSTOMER_SUPPORT')->value('id');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $support->id,
+            'store_id' => $storeId,
+            'role_id' => $supportRoleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $driverUser = $this->roleUser('B2C_DRIVER', 'dispatch-support-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $this->assertFalse($support->hasPermission('drivers.b2c.manage', $storeId));
+        $this->assertTrue($support->hasPermission('orders.dispatch', $storeId));
+
+        Sanctum::actingAs($support);
+        $this->postJson('/api/v1/admin/deliveries/assign', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'status' => 'assigned',
+        ]);
+    }
+
     public function test_failed_delivery_requires_reason_and_other_requires_note(): void
     {
         $this->seed(CoreReferenceSeeder::class);
