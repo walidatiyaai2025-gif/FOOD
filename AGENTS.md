@@ -1329,3 +1329,73 @@ If coverage/runtime/final-release validation discovers a real defect:
 - rerun all dependent gates whose evidence/source lineage became stale.
 
 This policy exists specifically to prevent a mission from being declared complete while the installed product still violates its authoritative plan.
+
+
+---
+
+## 27. Localization CI reliability charter — no false-positive debt
+
+The FOODEX localization gate is a **product-language correctness gate**, not a generic Blade/JavaScript syntax scanner. Its implementation and maintenance must preserve that boundary.
+
+### 27.1 Context-aware scanning is mandatory
+
+Localization checks must distinguish user-facing content from technical source code.
+
+For Blade templates:
+
+- visible HTML text and user-facing attributes such as `placeholder`, `title`, and `aria-label` are localization-owned;
+- JavaScript inside `<script>` blocks is not user-facing text merely because it contains comparison operators such as `>`, `<`, `>=`, or `<=`;
+- CSS inside `<style>` blocks is not user-facing text;
+- Blade expressions embedded in script/style blocks must be evaluated only by rules that actually apply to visible localized output;
+- the scanner must never classify raw JavaScript/CSS syntax as untranslated UI wording.
+
+A localization failure must identify a real locale defect or a specifically documented unsupported construct. Parser false positives are CI defects and must be fixed in the gate itself.
+
+### 27.2 Regression tests are required for the gate
+
+Every localization-gate parser bug must add a regression test before the fix is considered complete.
+
+At minimum, localization gate tests must cover:
+
+- legitimate raw visible Blade text failing;
+- translated Blade text passing;
+- JavaScript comparison expressions inside Blade script blocks passing;
+- CSS/style content passing;
+- multiline script blocks passing;
+- legitimate user-facing JS text, when explicitly scanned, being handled by an appropriate JS-aware rule rather than the Blade visible-text regex;
+- Arabic/English catalog parity;
+- explicit technical literals and justified exceptions.
+
+A parser fix without a regression test is incomplete.
+
+### 27.3 Do not solve parser defects with allow-marker accumulation
+
+`localization-gate: allow` is reserved for genuine, narrow technical literals whose intent is clear.
+
+It must **not** be used to silence:
+
+- JavaScript/CSS false positives;
+- broad blocks of UI code;
+- recurring parser mistakes;
+- code that should be correctly understood by the scanner.
+
+If the same class of false positive can recur, fix the scanner once instead of adding per-line exceptions.
+
+### 27.4 Localization preflight must fail before push
+
+The same authoritative localization check used by Required CI must be callable from repository preflight tooling.
+
+Workers changing UI/localization-sensitive files must run the localization preflight before push when practical. The local/pre-push check and GitHub Required CI must use the same script/rules so that CI does not discover avoidable parser failures after remote execution begins.
+
+### 27.5 Required CI failures are actionable repository work
+
+When `FOODEX Required CI Gate / Localization quality / Arabic / English localization quality` is red:
+
+1. inspect the exact failing rule and source line;
+2. classify the failure as either a real localization defect or a gate/parser defect;
+3. fix the real source localization when the product is wrong;
+4. fix the localization gate plus regression tests when the parser is wrong;
+5. rerun the exact-head gate;
+6. do not bypass, waive, or repeatedly rerun an unchanged failing head.
+
+A green localization gate should mean the changed product satisfies the AR/EN localization contract, not merely that source text happened to avoid a fragile regex.
