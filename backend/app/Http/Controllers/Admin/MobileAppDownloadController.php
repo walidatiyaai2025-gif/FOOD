@@ -72,12 +72,23 @@ final class MobileAppDownloadController extends Controller
         }
 
         $manifest = $manifestResponse->json();
-        $entry = is_array($manifest) ? ($manifest[$app] ?? null) : null;
+        if (! is_array($manifest) || ($manifest['version'] ?? null) !== $version) {
+            abort(502, 'FOODEX release manifest does not match the requested release.');
+        }
+
+        $androidApps = $manifest['android_apps'] ?? null;
+        if (! is_array($androidApps)) {
+            abort(502, 'FOODEX release manifest does not contain Android artifacts.');
+        }
+
+        $entry = collect($androidApps)->first(
+            static fn (mixed $candidate): bool => is_array($candidate) && ($candidate['app'] ?? null) === $app,
+        );
         $filename = 'FOODEX-'.$label.'-'.$version.'.apk';
 
         if (
             ! is_array($entry)
-            || ($manifest['version'] ?? null) !== $version
+            || ($entry['version'] ?? null) !== $version
             || ($entry['file'] ?? null) !== $filename
             || ! is_string($entry['sha256'] ?? null)
             || preg_match('/^[a-f0-9]{64}$/', $entry['sha256']) !== 1
