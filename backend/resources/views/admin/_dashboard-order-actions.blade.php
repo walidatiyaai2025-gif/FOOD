@@ -199,6 +199,23 @@
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id']]) }}">{{ app()->getLocale()==='ar'?'عرض':'View' }}</a>
                     <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$row['_invoice']['id'],'locale'=>app()->getLocale()]) }}">PDF</a>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id'],'print'=>1]) }}">{{ app()->getLocale()==='ar'?'طباعة':'Print' }}</a>
+                    @if($isB2bOrder && ($user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.manage')) && !empty($row['_settlement']) && ($row['_settlement']['invoice_outstanding'] ?? 0) > 0.0005)
+                        @php($orderSettlementDialog = 'order-settlement-'.$row['_id'])
+                        <button class="foodex-primary" type="button" onclick="document.getElementById('{{ $orderSettlementDialog }}').showModal()">{{ __('customer_360.finance.settle_invoice') }}</button>
+                        <dialog id="{{ $orderSettlementDialog }}">
+                            <form method="post" action="{{ route('admin.invoices.settle',['invoice'=>$row['_invoice']['id']]) }}" class="workspace-inline-form" style="min-width:min(520px,90vw);display:grid;gap:10px">
+                                @csrf
+                                <strong>{{ __('customer_360.finance.settle_invoice') }}</strong>
+                                <label>{{ __('customer_360.finance.amount') }}<input name="amount" type="number" min="0.001" step="0.001" max="{{ number_format((float)$row['_settlement']['invoice_outstanding'],3,'.','') }}" value="{{ number_format((float)$row['_settlement']['invoice_outstanding'],3,'.','') }}" required></label>
+                                <label>{{ __('customer_360.finance.reference') }}<input name="reference" maxlength="120"></label>
+                                <label>{{ __('customer_360.finance.description') }}<textarea name="description" maxlength="500"></textarea></label>
+                                <div class="links">
+                                    <button class="foodex-primary" type="submit">{{ __('customer_360.finance.record_payment') }}</button>
+                                    <button type="button" onclick="document.getElementById('{{ $orderSettlementDialog }}').close()">{{ __('customer_360.statement.cancel') }}</button>
+                                </div>
+                            </form>
+                        </dialog>
+                    @endif
                 </div>
             @endif
             @if($row['_customer_note'])
