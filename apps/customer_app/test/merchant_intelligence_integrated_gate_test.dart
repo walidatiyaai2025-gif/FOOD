@@ -9,9 +9,9 @@ void main() {
     final journey =
         File('lib/features/b2b/b2b_journey_screen.dart').readAsStringSync();
 
-    expect(authority, contains('/b2b/orders'));
-    expect(authority, contains('/b2b/cart'));
-    expect(authority, contains('/b2b/checkout'));
+    expect(authority, contains('CustomerRoutePaths.b2bOrders'));
+    expect(authority, contains('CustomerRoutePaths.b2bCart'));
+    expect(authority, contains('CustomerRoutePaths.b2bCheckout'));
     expect(journey, contains('FoodexBarChart('));
     expect(journey, contains('FoodexDonutChart('));
     expect(journey, contains("path: '/b2b/orders/\$id'"));
