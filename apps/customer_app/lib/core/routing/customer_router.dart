@@ -126,7 +126,17 @@ class CustomerAppRouter {
             ) !=
             null;
 
-    if (_isRetailJourney(requested) && !wholesaleAuthHandoff) {
+    final requestedAuthority = customerRouteAuthorityFor(
+      requested,
+      requestedLocation,
+    );
+    final shouldNormalizeRetail =
+        requested.channel == CustomerChannel.b2c &&
+        (requestedAuthority == CustomerRouteAuthority.retailJourney ||
+            requestedAuthority == CustomerRouteAuthority.multiStore ||
+            requested.pattern == CustomerRoutePaths.checkoutAuth);
+
+    if (shouldNormalizeRetail && !wholesaleAuthHandoff) {
       final normalized = _normalizeRetailLocation(
         requested,
         requestedLocation,
