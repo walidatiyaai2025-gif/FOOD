@@ -323,10 +323,10 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/driver/wallet/remittances', [DriverCollectionController::class, 'remit']);
 
             Route::middleware('driver.location.fresh')->group(function (): void {
-            Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
-            Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
-            Route::get('/driver/assignments/{assignment}/invoice/download', [DriverAssignmentController::class, 'downloadInvoice'])->whereNumber('assignment');
-            Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
+                Route::get('/driver/assignments', [DriverAssignmentController::class, 'index']);
+                Route::get('/driver/assignments/{assignment}', [DriverAssignmentController::class, 'show'])->whereNumber('assignment');
+                Route::get('/driver/assignments/{assignment}/invoice/download', [DriverAssignmentController::class, 'downloadInvoice'])->whereNumber('assignment');
+                Route::post('/driver/assignments/{assignment}/status', [DriverAssignmentController::class, 'transition'])->whereNumber('assignment');
                 Route::post('/driver/assignments/{assignment}/collections', [DriverCollectionController::class, 'collect'])->whereNumber('assignment');
             });
         });
