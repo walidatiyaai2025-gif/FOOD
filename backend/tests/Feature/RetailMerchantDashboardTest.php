@@ -56,6 +56,9 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertSame('available', $result['wholesale_account']['finance_status']);
         $this->assertSame('KWD', $result['wholesale_account']['finance']['currency']);
         $this->assertSame(100.0, $result['wholesale_account']['finance']['purchasing_power']);
+        $this->assertSame(100.0, $result['purchase_plan']['effective_budget']);
+        $this->assertSame(25.0, $result['purchase_plan']['allocated_cost']);
+        $this->assertSame(2.0, $result['purchase_plan']['rows'][0]['budget_executable_quantity']);
 
         $this->assertSame(1, $result['summary']['reorder_now']);
         $this->assertSame(25.0, $result['summary']['expected_reorder_spend']);
@@ -76,6 +79,7 @@ class RetailMerchantDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('data-merchant-intelligence', false)
             ->assertSee('data-owner-wholesale-account', false)
+            ->assertSee('data-suggested-wholesale-plan', false)
             ->assertSee('SMART-RETAIL-SKU');
     }
 
@@ -109,7 +113,119 @@ class RetailMerchantDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('data-merchant-intelligence', false)
             ->assertDontSee('data-owner-wholesale-account', false)
+            ->assertDontSee('data-suggested-wholesale-plan', false)
             ->assertSee('SMART-RETAIL-SKU');
+    }
+
+    public function test_owner_can_apply_reviewed_plan_idempotently_to_existing_wholesale_cart(): void
+    {
+        $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $owner = $this->user('merchant-cart-owner@example.test');
+        $fixture = $this->merchantFixture($owner, $asOf);
+        $this->assignManager($owner, $fixture['retail_store']);
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDay(), 'CART-RECENT');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDays(10), 'CART-MIDDLE');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 16, $asOf->subDays(20), 'CART-OLDER');
+
+        $payload = [
+            'store_id' => $fixture['retail_store'],
+            'budget' => 25,
+            'quantities' => [$fixture['retail_product'] => 2],
+        ];
+
+        $this->actingAs($owner)
+            ->post('/admin/b2c/merchant-intelligence/suggested-cart', $payload)
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $cartId = (int) DB::table('carts')
+            ->where('store_id', $fixture['wholesale_store'])
+            ->where('b2b_customer_id', $fixture['b2b_customer'])
+            ->where('channel', 'b2b')
+            ->value('id');
+        $this->assertGreaterThan(0, $cartId);
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id' => $cartId,
+            'product_id' => $fixture['wholesale_product'],
+            'quantity' => 2,
+            'unit_price_snapshot' => 12.5,
+        ]);
+
+        $this->actingAs($owner)
+            ->post('/admin/b2c/merchant-intelligence/suggested-cart', $payload)
+            ->assertRedirect();
+
+        $this->assertSame(
+            2.0,
+            (float) DB::table('cart_items')
+                ->where('cart_id', $cartId)
+                ->where('product_id', $fixture['wholesale_product'])
+                ->value('quantity'),
+        );
+        $this->assertSame(
+            1,
+            DB::table('cart_items')
+                ->where('cart_id', $cartId)
+                ->where('product_id', $fixture['wholesale_product'])
+                ->count(),
+        );
+    }
+
+    public function test_plan_reprices_at_mutation_time_and_blocks_stale_budget(): void
+    {
+        $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $owner = $this->user('merchant-reprice-owner@example.test');
+        $fixture = $this->merchantFixture($owner, $asOf);
+        $this->assignManager($owner, $fixture['retail_store']);
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDay(), 'PRICE-RECENT');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDays(10), 'PRICE-MIDDLE');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 16, $asOf->subDays(20), 'PRICE-OLDER');
+
+        DB::table('b2b_price_rules')
+            ->where('store_id', $fixture['wholesale_store'])
+            ->where('product_id', $fixture['wholesale_product'])
+            ->update(['unit_price' => 20, 'updated_at' => now()]);
+
+        $this->actingAs($owner)
+            ->from('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->post('/admin/b2c/merchant-intelligence/suggested-cart', [
+                'store_id' => $fixture['retail_store'],
+                'budget' => 25,
+                'quantities' => [$fixture['retail_product'] => 2],
+            ])
+            ->assertRedirect('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->assertSessionHasErrors('budget');
+
+        $this->assertDatabaseMissing('carts', [
+            'store_id' => $fixture['wholesale_store'],
+            'b2b_customer_id' => $fixture['b2b_customer'],
+            'channel' => 'b2b',
+        ]);
+    }
+
+    public function test_retail_manager_cannot_mutate_owner_wholesale_cart(): void
+    {
+        $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $owner = $this->user('merchant-cart-private-owner@example.test');
+        $manager = $this->user('merchant-cart-private-manager@example.test');
+        $fixture = $this->merchantFixture($owner, $asOf);
+        $this->assignManager($manager, $fixture['retail_store']);
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDay(), 'PRIVATE-RECENT');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDays(10), 'PRIVATE-MIDDLE');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 16, $asOf->subDays(20), 'PRIVATE-OLDER');
+
+        $this->actingAs($manager)
+            ->post('/admin/b2c/merchant-intelligence/suggested-cart', [
+                'store_id' => $fixture['retail_store'],
+                'budget' => 25,
+                'quantities' => [$fixture['retail_product'] => 2],
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('carts', [
+            'store_id' => $fixture['wholesale_store'],
+            'channel' => 'b2b',
+        ]);
     }
 
     public function test_canonical_dashboard_and_inventory_drill_down_are_wired_in_place(): void
@@ -201,6 +317,7 @@ class RetailMerchantDashboardTest extends TestCase
             'wholesale_store' => $wholesaleStore,
             'retail_product' => $retailProduct,
             'wholesale_product' => $wholesaleProduct,
+            'b2b_customer' => (int) $customer->getKey(),
         ];
     }
 

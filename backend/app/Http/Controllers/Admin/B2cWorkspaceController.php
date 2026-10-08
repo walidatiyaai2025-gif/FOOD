@@ -16,6 +16,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
 use App\Services\StorefrontDraftEditorService;
+use App\Services\SuggestedWholesalePurchasePlanService;
 use App\Support\AdminNavigation;
 use App\Support\CommercialDashboardContract;
 use App\Support\TenantContextResolver;
@@ -205,6 +206,35 @@ class B2cWorkspaceController extends Controller
         $orders->transition($request, $order, $audit, $dashboardNotifier);
 
         return back()->with('status', app()->getLocale() === 'ar' ? 'تم تحديث حالة الطلب.' : 'Order status updated.');
+    }
+
+    public function applySuggestedWholesaleCart(
+        Request $request,
+        SuggestedWholesalePurchasePlanService $purchasePlan,
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $storeId = $this->workspaceStoreId($request, $user);
+
+        $validated = $request->validate([
+            'budget' => ['nullable', 'numeric', 'min:0'],
+            'quantities' => ['required', 'array', 'min:1'],
+            'quantities.*' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $result = $purchasePlan->apply(
+            $user,
+            $storeId,
+            (array) $validated['quantities'],
+            array_key_exists('budget', $validated) && $validated['budget'] !== null
+                ? (float) $validated['budget']
+                : null,
+        );
+
+        return back()->with(
+            'status',
+            __('admin.b2c_dashboard.merchant_intelligence.plan.cart_updated'),
+        )->with('merchant_purchase_plan_result', $result);
     }
 
     public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse

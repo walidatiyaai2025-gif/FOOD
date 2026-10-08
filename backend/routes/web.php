@@ -232,6 +232,7 @@ Route::prefix('admin')
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
+        Route::post('/b2c/merchant-intelligence/suggested-cart', [B2cWorkspaceController::class, 'applySuggestedWholesaleCart'])->name('b2c.merchant-intelligence.cart');
         Route::get('/b2c/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
         Route::put('/b2c/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
         Route::put('/b2c/commercial/feature-flags', [CommercialDashboardController::class, 'saveFeatureFlags'])->name('commercial.feature-flags.save');
