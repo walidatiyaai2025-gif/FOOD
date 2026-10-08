@@ -186,7 +186,7 @@ class RetailInventoryIntelligenceTest extends TestCase
     }
 
     /**
-     * @param list<array{0:float|int,1:float|int}> $rows
+     * @param  list<array{0:float|int,1:float|int}>  $rows
      * @return list<int>
      */
     private function stock(int $storeId, int $productId, array $rows): array
