@@ -17,9 +17,13 @@ final class RetailInventoryIntelligenceService
     ];
 
     private const FAST_MOVER_UNITS_PER_DAY = 1.0;
+
     private const SLOW_MOVER_UNITS_PER_DAY = 0.2;
+
     private const CRITICAL_COVER_DAYS = 3.0;
+
     private const UNDERSTOCK_COVER_DAYS = 7.0;
+
     private const OVERSTOCK_COVER_DAYS = 45.0;
 
     /**
@@ -214,7 +218,7 @@ final class RetailInventoryIntelligenceService
     }
 
     /**
-     * @param array{days_1_7:float,days_8_14:float,days_15_30:float,days_1_30:float} $units
+     * @param  array{days_1_7:float,days_8_14:float,days_15_30:float,days_1_30:float}  $units
      * @return array{0:float,1:array<string,int>,2:array<string,float>}
      */
     private function velocity(array $units, int $historyDays): array
@@ -298,7 +302,7 @@ final class RetailInventoryIntelligenceService
     }
 
     /**
-     * @param array<int,object> $products
+     * @param  array<int,object>  $products
      * @return array<int,array<string,mixed>>
      */
     private function aging(int $storeId, CarbonImmutable $asOf, array $products): array
