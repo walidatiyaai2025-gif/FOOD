@@ -129,7 +129,7 @@ async function openFirstRecordActionMenu(page, selector, label) {
   if (!(await details.evaluate((node) => node.hasAttribute('open')))) {
     throw new Error(`Record-action menu did not open for ${label}`);
   }
-  const menu = details.locator('.row-action-menu').first();
+  const menu = page.locator('.row-action-menu[data-foodex-action-portal="1"], .row-action-menu').filter({ visible: true }).first();
   await menu.waitFor({ state: 'visible' });
 }
 
