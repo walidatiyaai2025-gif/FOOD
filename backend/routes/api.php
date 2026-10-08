@@ -49,6 +49,7 @@ use App\Http\Controllers\Api\V1\VanFlashOfferController;
 use App\Http\Controllers\Api\V1\VanOrderController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
 use App\Http\Controllers\Api\V1\VanVisitController;
+use App\Http\Middleware\EnsureVanRuntimeAccess;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -166,7 +167,7 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:60,1')
             ->name('api.runtime-inspector.events');
 
-        Route::prefix('van')->middleware(\App\Http\Middleware\EnsureVanRuntimeAccess::class)->group(function (): void {
+        Route::prefix('van')->middleware(EnsureVanRuntimeAccess::class)->group(function (): void {
             Route::get('/customers', [VanVisitController::class, 'customers']);
             Route::get('/customers/{type}/{customer}', [VanVisitController::class, 'customer'])
                 ->whereIn('type', ['b2b', 'b2c'])
