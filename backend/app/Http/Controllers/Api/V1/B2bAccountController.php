@@ -43,8 +43,7 @@ class B2bAccountController extends Controller
         Request $request,
         B2bCustomerService $customers,
         PlatformCustomerService $platformCustomers,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         Gate::authorize('b2b.accounts.manage');
 
         $data = $request->validate([
