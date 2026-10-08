@@ -110,6 +110,38 @@ class OrderManualDispatchServiceTest extends TestCase
         ]);
     }
 
+    public function test_van_dispatch_rejects_when_active_driver_was_not_ended(): void
+    {
+        [$order, $actor, $store] = $this->fixture('DUAL');
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'VAN-DUAL']);
+        $registry->assign($actor, $van, [
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-01T00:00:00Z',
+        ]);
+
+        $driverUser = User::factory()->create();
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $store->id,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(OrderManualDispatchService::class)
+            ->assignVan($order, $actor, $van->id, 'Unsafe dual assignment attempt');
+    }
+
     /** @return array{0:Order,1:User,2:Store} */
     private function fixture(string $suffix): array
     {
