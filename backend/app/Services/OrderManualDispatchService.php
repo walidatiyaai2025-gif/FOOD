@@ -293,7 +293,8 @@ final class OrderManualDispatchService
     /** @param array<string,mixed> $manual */
     private function context(OrderDispatchState $state, array $manual): array
     {
-        $context = is_array($state->context) ? $state->context : [];
+        /** @var array<string,mixed> $context */
+        $context = $state->getAttribute('context') ?? [];
         $context['manual_dispatch'] = $manual;
 
         return $context;
