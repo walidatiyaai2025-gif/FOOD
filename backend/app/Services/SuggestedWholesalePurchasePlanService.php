@@ -21,7 +21,7 @@ final class SuggestedWholesalePurchasePlanService
     ) {}
 
     /**
-     * @param list<array<string,mixed>> $recommendations
+     * @param  list<array<string,mixed>>  $recommendations
      * @return array<string,mixed>
      */
     public function previewFromRecommendations(
@@ -175,7 +175,7 @@ final class SuggestedWholesalePurchasePlanService
      * writing to the existing B2B cart. Quantities are cart target quantities,
      * so retrying the same reviewed plan is idempotent.
      *
-     * @param array<int|string,mixed> $requestedQuantities
+     * @param  array<int|string,mixed>  $requestedQuantities
      * @return array<string,mixed>
      */
     public function apply(
@@ -363,7 +363,7 @@ final class SuggestedWholesalePurchasePlanService
                 }
 
                 if (! $item->exists || abs((float) $item->quantity - (float) $mutation['target_quantity']) > 0.0001) {
-                    ++$changedLines;
+                    $changedLines++;
                 }
                 $item->quantity = $mutation['target_quantity'];
                 $item->unit_price_snapshot = $mutation['unit_price'];
