@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class B2bAccountLifecycleTest extends TestCase
@@ -31,12 +32,44 @@ class B2bAccountLifecycleTest extends TestCase
         ])->assertCreated()->assertJsonPath('data.status', 'pending');
 
         $id = $created->json('data.id');
-        $this->assertDatabaseHas('users', ['email' => 'buyer@example.test', 'is_active' => false]);
+        $customerId = (int) $created->json('data.customer.id');
+        $userId = (int) User::query()->where('email', 'buyer@example.test')->value('id');
+        $legacyCustomerId = (int) DB::table('b2b_customers')
+            ->where('id', $customerId)
+            ->value('legacy_customer_id');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $userId,
+            'email' => 'buyer@example.test',
+            'is_active' => false,
+            'is_platform_customer' => true,
+        ]);
+        $this->assertDatabaseHas('platform_customers', [
+            'user_id' => $userId,
+            'legacy_customer_id' => $legacyCustomerId,
+            'origin_channel' => 'b2b',
+            'registration_source' => 'dashboard',
+            'is_active' => true,
+        ]);
+        $this->assertSame(
+            1,
+            DB::table('b2b_customers')->where('user_id', $userId)->count(),
+        );
+        $this->assertSame(
+            1,
+            DB::table('platform_customers')->where('user_id', $userId)->count(),
+        );
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.account.created']);
 
         $this->withToken($token)->patchJson("/api/v1/admin/b2b/accounts/{$id}/status", ['status' => 'active'])
             ->assertOk()->assertJsonPath('data.status', 'active');
         $this->assertDatabaseHas('users', ['email' => 'buyer@example.test', 'is_active' => true]);
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'buyer@example.test',
+            'password' => 'password123',
+        ])->assertOk()
+            ->assertJsonPath('user.platform_customer', true)
+            ->assertJsonPath('user.b2b_customer_ids.0', $customerId);
         $this->assertDatabaseHas('audit_logs', ['event' => 'b2b.account.status_changed']);
     }
 
