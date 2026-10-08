@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -93,6 +94,56 @@ class LocalizationQualityGateTest(unittest.TestCase):
             errors,
         )
         self.assertEqual([], errors)
+
+
+    def test_blade_javascript_comparison_is_not_user_facing_text(self):
+        original_root = module.ROOT
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                module.ROOT = Path(temp_dir)
+                path = Path(temp_dir) / "backend/resources/views/admin/example.blade.php"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "<div>{{ __('orders.title') }}</div>\n"
+                    "<script>\n"
+                    "const fits = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;\n"
+                    "</script>\n",
+                    encoding="utf-8",
+                )
+                errors = []
+                module.scan_added_lines(
+                    [(
+                        "backend/resources/views/admin/example.blade.php",
+                        3,
+                        "const fits = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;",
+                    )],
+                    errors,
+                )
+                self.assertEqual([], errors)
+        finally:
+            module.ROOT = original_root
+
+    def test_blade_style_content_is_not_user_facing_text(self):
+        original_root = module.ROOT
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                module.ROOT = Path(temp_dir)
+                path = Path(temp_dir) / "backend/resources/views/admin/example.blade.php"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "<style>\n"
+                    ".grid > .cell { width: calc(100% - 8px); }\n"
+                    "</style>\n",
+                    encoding="utf-8",
+                )
+                errors = []
+                module.scan_added_lines(
+                    [("backend/resources/views/admin/example.blade.php", 2, ".grid > .cell { width: calc(100% - 8px); }")],
+                    errors,
+                )
+                self.assertEqual([], errors)
+        finally:
+            module.ROOT = original_root
 
 
 if __name__ == "__main__":
