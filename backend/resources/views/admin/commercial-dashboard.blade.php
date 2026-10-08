@@ -79,7 +79,15 @@
         .structured-add{border:1px solid var(--foodex-green);background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .structured-remove{border:1px solid #f2b8b5;background:#fff;color:#a61b1b}
         .flash-form-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
+        .flash-form-section[hidden]{display:none}
         .flash-form-section h3{margin:0;font-size:.92rem}
+        .flash-wizard-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:2px 0 4px}
+        .flash-wizard-progress button{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-muted);font-weight:800;cursor:pointer}
+        .flash-wizard-progress button[aria-current="step"]{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
+        .flash-wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:4px}
+        .flash-product-context{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+        .flash-product-context label{display:grid;gap:6px;min-width:min(100%,280px);font-weight:700;font-size:.8rem}
+        @media(max-width:767px){.flash-wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr))}}
         .flash-lookup-field{display:grid;gap:6px;font-weight:700;font-size:.8rem;min-width:0}
         .flash-lookup{position:relative}
         .flash-lookup-toggle{width:100%;min-height:42px;padding:0 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;font:inherit;cursor:pointer;text-align:start}
@@ -481,11 +489,16 @@
                 @endif
             </div>
             @if($storeId > 0)
-            <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list">
+            <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
                 @csrf
                 @if($editingOffer)<input type="hidden" name="offer_id" value="{{ $editingOffer->id }}">@endif
+                <div class="flash-wizard-progress" data-flash-wizard-progress aria-label="{{ __('commercial.flash.form_description') }}">
+                    @foreach(['basics','channels','audience','products','rules'] as $wizardIndex=>$wizardKey)
+                        <button type="button" data-flash-wizard-go="{{ $wizardIndex }}" @if($wizardIndex===0) aria-current="step" @endif>{{ __('commercial.flash.'. $wizardKey) }}</button>
+                    @endforeach
+                </div>
 
-                <section class="flash-form-section">
+                <section class="flash-form-section" data-flash-wizard-step="0">
                     <h3>{{ __('commercial.flash.basics') }}</h3>
                     <div class="commercial-grid">
                         <label>{{ __('commercial.flash.name') }}<input name="name" value="{{ old('name', $editingOffer->name ?? '') }}" required></label>
@@ -521,7 +534,7 @@
                     </div>
                 </section>
 
-                <section class="flash-form-section">
+                <section class="flash-form-section" data-flash-wizard-step="1">
                     <h3>{{ __('commercial.flash.channels') }}</h3>
                     <div class="commercial-choice-grid">
                         @foreach(['customer','van'] as $channel)
@@ -530,7 +543,7 @@
                     </div>
                 </section>
 
-                <section class="flash-form-section">
+                <section class="flash-form-section" data-flash-wizard-step="2">
                     <h3>{{ __('commercial.flash.audience') }}</h3>
                     <p class="muted">{{ __('commercial.flash.audience_hint') }}</p>
                     <div class="commercial-grid">
@@ -612,10 +625,19 @@
                     </div>
                 </section>
 
-                <section class="flash-form-section">
+                <section class="flash-form-section" data-flash-wizard-step="3">
                     <div class="feature-flags-head">
                         <div><h3>{{ __('commercial.flash.products') }}</h3><p class="muted">{{ __('commercial.flash.products_hint') }}</p></div>
                         <button type="button" class="flash-secondary" data-flash-product-add>{{ __('commercial.flash.add_product') }}</button>
+                    </div>
+                    <div class="flash-product-context">
+                        <label>{{ __('commercial.flash.product_context') }}
+                            <select data-flash-product-context>
+                                <option value="all">{{ __('commercial.flash.context_all') }}</option>
+                                <option value="retail">{{ __('commercial.flash.context_retail') }}</option>
+                                <option value="wholesale">{{ __('commercial.flash.context_wholesale') }}</option>
+                            </select>
+                        </label>
                     </div>
                     <div class="flash-product-builder" data-flash-product-builder>
                         @foreach($offerProductRows as $index=>$row)
@@ -624,7 +646,7 @@
                                     <select name="products[{{ $index }}][product_id]" data-flash-product required>
                                         <option value="">{{ __('commercial.flash.select_product') }}</option>
                                         @foreach($flashProducts as $product)
-                                            <option value="{{ $product->id }}" @selected((int)($row['product_id'] ?? 0)===(int)$product->id)>{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }}</option>
+                                            <option value="{{ $product->id }}" data-product-context="{{ in_array(strtolower((string)($product->catalog_channel ?? '')), ['b2b','wholesale'], true) ? 'wholesale' : 'retail' }}" @selected((int)($row['product_id'] ?? 0)===(int)$product->id)>{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }}</option>
                                         @endforeach
                                     </select>
                                 </label>
@@ -645,7 +667,7 @@
                             <label>{{ __('commercial.flash.product') }}
                                 <select name="products[__INDEX__][product_id]" data-flash-product required>
                                     <option value="">{{ __('commercial.flash.select_product') }}</option>
-                                    @foreach($flashProducts as $product)<option value="{{ $product->id }}">{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }}</option>@endforeach
+                                    @foreach($flashProducts as $product)<option value="{{ $product->id }}" data-product-context="{{ in_array(strtolower((string)($product->catalog_channel ?? '')), ['b2b','wholesale'], true) ? 'wholesale' : 'retail' }}">{{ $product->name }}{{ $product->sku ? ' · '.$product->sku : '' }}</option>@endforeach
                                 </select>
                             </label>
                             <label>{{ __('commercial.flash.selling_unit') }}<select name="products[__INDEX__][selling_unit_code]" data-flash-unit required><option value="">{{ __('commercial.flash.select_selling_unit') }}</option></select></label>
@@ -656,7 +678,7 @@
                     </template>
                 </section>
 
-                <section class="flash-form-section">
+                <section class="flash-form-section" data-flash-wizard-step="4">
                     <h3>{{ __('commercial.flash.rules') }}</h3>
                     <div class="commercial-grid">
                         <label>{{ __('commercial.flash.allocation_mode') }}<select name="allocation_mode"><option value="shared" @selected(old('allocation_mode', $editingOffer->allocation_mode ?? 'shared')==='shared')>{{ __('commercial.flash.shared') }}</option><option value="reserved" @selected(old('allocation_mode', $editingOffer->allocation_mode ?? 'shared')==='reserved')>{{ __('commercial.flash.reserved') }}</option></select></label>
@@ -1074,6 +1096,92 @@
     } catch (_) {
         // Keep the rest of the commercial workspace interactive even if a lookup enhancement cannot initialize.
     }
+
+    const flashForm = document.querySelector('[data-flash-offer-form] form');
+    const wizardSteps = flashForm ? [...flashForm.querySelectorAll('[data-flash-wizard-step]')] : [];
+    const wizardButtons = flashForm ? [...flashForm.querySelectorAll('[data-flash-wizard-go]')] : [];
+    let activeWizardStep = 0;
+    const showWizardStep = (index) => {
+        if (!wizardSteps.length) return;
+        activeWizardStep = Math.max(0, Math.min(index, wizardSteps.length - 1));
+        wizardSteps.forEach((step, stepIndex) => { step.hidden = stepIndex !== activeWizardStep; });
+        wizardButtons.forEach((button, stepIndex) => {
+            if (stepIndex === activeWizardStep) button.setAttribute('aria-current', 'step');
+            else button.removeAttribute('aria-current');
+        });
+        wizardSteps[activeWizardStep]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+    wizardButtons.forEach((button, index) => button.addEventListener('click', () => showWizardStep(index)));
+    wizardSteps.forEach((step, index) => {
+        const actions = document.createElement('div');
+        actions.className = 'flash-wizard-actions';
+        if (index > 0) {
+            const previous = document.createElement('button');
+            previous.type = 'button';
+            previous.className = 'flash-secondary';
+            previous.textContent = @json(__('commercial.flash.wizard_previous'));
+            previous.addEventListener('click', () => showWizardStep(index - 1));
+            actions.appendChild(previous);
+        } else {
+            actions.appendChild(document.createElement('span'));
+        }
+        if (index < wizardSteps.length - 1) {
+            const next = document.createElement('button');
+            next.type = 'button';
+            next.className = 'foodex-primary';
+            next.textContent = @json(__('commercial.flash.wizard_next'));
+            next.addEventListener('click', () => {
+                const controls = [...step.querySelectorAll('input,select,textarea')].filter((control) => !control.disabled);
+                const invalid = controls.find((control) => typeof control.checkValidity === 'function' && !control.checkValidity());
+                if (invalid) {
+                    invalid.reportValidity();
+                    return;
+                }
+                showWizardStep(index + 1);
+            });
+            actions.appendChild(next);
+        }
+        step.appendChild(actions);
+    });
+    if (wizardSteps.length) showWizardStep(0);
+    flashForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        wizardSteps.forEach((step) => { step.hidden = false; });
+        if (!flashForm.checkValidity()) {
+            const invalid = flashForm.querySelector(':invalid');
+            const invalidStep = invalid?.closest('[data-flash-wizard-step]');
+            const invalidIndex = wizardSteps.indexOf(invalidStep);
+            if (invalidIndex >= 0) showWizardStep(invalidIndex);
+            invalid?.reportValidity?.();
+            return;
+        }
+        flashForm.submit();
+    });
+
+    const productContext = document.querySelector('[data-flash-product-context]');
+    const applyProductContext = () => {
+        const context = productContext?.value || 'all';
+        document.querySelectorAll('[data-flash-product]').forEach((select) => {
+            [...select.options].forEach((option) => {
+                if (!option.value) return;
+                const matches = context === 'all' || option.dataset.productContext === context;
+                option.hidden = !matches;
+                option.disabled = !matches;
+            });
+            const selected = select.selectedOptions[0];
+            if (selected?.disabled) {
+                select.value = '';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    };
+    productContext?.addEventListener('change', applyProductContext);
+    window.addEventListener('click', (event) => {
+        if (event.target instanceof Element && event.target.closest('[data-flash-product-add]')) {
+            requestAnimationFrame(applyProductContext);
+        }
+    }, true);
+    applyProductContext();
 
 })();
 </script>

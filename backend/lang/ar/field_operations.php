@@ -132,6 +132,19 @@ return [
         'confirmed' => 'مؤكد',
         'rejected' => 'مرفوض',
     ],
+    'resolution_sources' => [
+        'unknown' => 'مصدر غير معروف',
+        'unresolved' => 'غير محسوم',
+        'admin_confirmed' => 'تأكيد إداري',
+        'evidence' => 'بيانات إثبات',
+    ],
+    'quality_classes' => [
+        'unknown' => 'غير معروف',
+        'low_confidence' => 'ثقة منخفضة',
+        'needs_review' => 'يحتاج مراجعة',
+        'review_required' => 'المراجعة مطلوبة',
+        'confirmed' => 'مؤكد',
+    ],
     'visit_statuses' => [
         'planned' => 'مخطط',
         'started' => 'بدأت',

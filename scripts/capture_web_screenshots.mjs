@@ -225,8 +225,8 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   await page.goto(`${baseUrl}/admin/notification-campaigns`, { waitUntil: 'networkidle' });
   await assertSharedAdminRuntimeShell(page, `campaigns/actions/desktop/${locale}`);
   const editCampaignLabel = locale === 'ar' ? 'تعديل الحملة' : 'Edit campaign';
-  if (await page.locator('details > summary').filter({ hasText: editCampaignLabel }).count() < 1) {
-    throw new Error(`Campaign runtime evidence did not render explicit Edit: ${editCampaignLabel}`);
+  if (await page.getByRole('button', { name: editCampaignLabel, exact: true }).count() < 1) {
+    throw new Error(`Campaign runtime evidence did not render explicit modal Edit button: ${editCampaignLabel}`);
   }
   await openFirstRecordActionMenu(page, '[data-notification-campaign-actions]', `campaigns/${locale}`);
   await snap(page, `02_Web/B2C_Admin/18_campaign_actions__desktop__${locale}.png`);
@@ -523,6 +523,16 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
   }
   if (await flashForm.locator('input[name="channels[]"][value="van"]').count() !== 1) {
     throw new Error(`Structured Van channel control missing from Flash Offers (${locale})`);
+  }
+
+  const productsWizardButton = flashForm.locator('[data-flash-wizard-go="3"]');
+  if (await productsWizardButton.count() !== 1) {
+    throw new Error(`Flash Offers Products wizard step is missing (${locale})`);
+  }
+  await productsWizardButton.click();
+  const productsWizardStep = flashForm.locator('[data-flash-wizard-step="3"]');
+  if (await productsWizardStep.count() !== 1 || await productsWizardStep.getAttribute('hidden') !== null) {
+    throw new Error(`Flash Offers Products wizard step did not become active (${locale})`);
   }
 
   const productRows = flashForm.locator('[data-flash-product-row]');

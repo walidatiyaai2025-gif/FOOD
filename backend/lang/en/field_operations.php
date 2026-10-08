@@ -132,6 +132,19 @@ return [
         'confirmed' => 'Confirmed',
         'rejected' => 'Rejected',
     ],
+    'resolution_sources' => [
+        'unknown' => 'Unknown source',
+        'unresolved' => 'Unresolved',
+        'admin_confirmed' => 'Admin confirmed',
+        'evidence' => 'Evidence fixture',
+    ],
+    'quality_classes' => [
+        'unknown' => 'Unknown',
+        'low_confidence' => 'Low confidence',
+        'needs_review' => 'Needs review',
+        'review_required' => 'Review required',
+        'confirmed' => 'Confirmed',
+    ],
     'visit_statuses' => [
         'planned' => 'Planned',
         'started' => 'Started',

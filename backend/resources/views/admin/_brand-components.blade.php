@@ -59,9 +59,20 @@
     .foodex-tabs a.active,.foodex-tab.active{border-color:var(--foodex-green);color:var(--foodex-green-dark)}
     .foodex-modal-backdrop{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:var(--foodex-space-4);background:rgba(23,32,51,.42)}
     .foodex-modal{width:min(100%,620px);max-height:min(88vh,760px);overflow:auto;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-lg);box-shadow:var(--foodex-shadow-raised);padding:var(--foodex-space-6)}
+    .foodex-operational-dialog-host .foodex-modal{width:min(100%,920px)}
+    .foodex-modal-backdrop[hidden]{display:none!important}
+    .foodex-modal-header{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);margin-bottom:var(--foodex-space-4)}
+    .foodex-modal-header h2,.foodex-modal-header h3{margin:0}
+    .foodex-modal-close{width:var(--foodex-touch-target);height:var(--foodex-touch-target);display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);font:inherit;font-size:22px;cursor:pointer}
+    body.foodex-modal-open{overflow:hidden}
     .pagination,.pager{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center;margin-top:var(--foodex-space-5)}
     .pagination a,.pagination span,.pager a,.pager span{min-width:var(--foodex-touch-target);min-height:var(--foodex-touch-target);display:inline-grid;place-items:center;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink);text-decoration:none;padding:0 var(--foodex-space-2)}
     .pagination [aria-current="page"],.pager [aria-current="page"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}
+    .pagination nav,.pager nav{max-width:100%}
+    .pagination svg,.pager svg{width:18px;height:18px}
+    html[dir=rtl] .pagination svg,html[dir=rtl] .pager svg{transform:scaleX(-1)}
+    .pagination [aria-disabled="true"],.pager [aria-disabled="true"]{opacity:.48}
+    @media(max-width:767px){.pagination a,.pagination span,.pager a,.pager span{min-width:38px;min-height:38px;padding-inline:7px;font-size:.82rem}}
     .badge{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-medium)}
 
 
@@ -139,6 +150,86 @@
     @media(max-width:767px){.foodex-ops-toolbar,.foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)}.foodex-ops-grid .foodex-ops-hide-mobile{display:none}}
 
 </style>
+<script id="foodex-operational-modal-runtime">
+(() => {
+    const enhance = (details, index) => {
+        if (!(details instanceof HTMLDetailsElement) || details.dataset.foodexModalReady === '1') return;
+        const summary = details.querySelector(':scope > summary');
+        if (!(summary instanceof HTMLElement)) return;
+        details.dataset.foodexModalReady = '1';
+        const title = summary.textContent.trim();
+        const host = document.createElement('div');
+        host.className = ['foodex-operational-dialog-host', ...details.classList].join(' ');
+        host.style.cssText = details.style.cssText;
+        Object.entries(details.dataset).forEach(([key, value]) => { host.dataset[key] = value; });
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = details.dataset.modalButtonClass || summary.className || 'foodex-action-secondary';
+        trigger.dataset.foodexDialogOpen = String(index);
+        trigger.textContent = title;
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'foodex-modal-backdrop';
+        backdrop.hidden = true;
+        backdrop.dataset.foodexDialog = String(index);
+
+        const dialog = document.createElement('section');
+        dialog.className = 'foodex-modal';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        const headingId = 'foodex-dialog-title-' + index;
+        dialog.setAttribute('aria-labelledby', headingId);
+
+        const header = document.createElement('div');
+        header.className = 'foodex-modal-header';
+        const heading = document.createElement('h3');
+        heading.id = headingId;
+        heading.textContent = title;
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'foodex-modal-close';
+        close.setAttribute('aria-label', document.documentElement.dir === 'rtl' ? 'إغلاق' : 'Close');
+        close.textContent = '×';
+        header.append(heading, close);
+
+        const body = document.createElement('div');
+        body.className = 'foodex-modal-body';
+        [...details.children].filter((child) => child !== summary).forEach((child) => body.appendChild(child));
+        dialog.append(header, body);
+        backdrop.appendChild(dialog);
+        host.append(trigger, backdrop);
+        details.replaceWith(host);
+
+        let priorFocus = null;
+        const open = () => {
+            priorFocus = document.activeElement;
+            backdrop.hidden = false;
+            document.body.classList.add('foodex-modal-open');
+            close.focus();
+        };
+        const shut = () => {
+            backdrop.hidden = true;
+            document.body.classList.remove('foodex-modal-open');
+            if (priorFocus instanceof HTMLElement) priorFocus.focus();
+        };
+        trigger.addEventListener('click', open);
+        close.addEventListener('click', shut);
+        backdrop.addEventListener('click', (event) => { if (event.target === backdrop) shut(); });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !backdrop.hidden) shut();
+        });
+    };
+    const initOperationalModals = () => {
+        document.querySelectorAll('details[data-foodex-operational-modal]').forEach(enhance);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initOperationalModals, { once: true });
+    } else {
+        initOperationalModals();
+    }
+})();
+</script>
 <script id="foodex-ops-popover-runtime">
 (() => {
     const portals = new WeakMap();

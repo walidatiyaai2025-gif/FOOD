@@ -848,6 +848,7 @@ final class CommercialDashboardController extends Controller
     {
         $flashProducts = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->leftJoin('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
             ->where('store_products.is_active', true)
             ->where('products.is_active', true)
@@ -856,6 +857,7 @@ final class CommercialDashboardController extends Controller
                 'products.id',
                 'products.name',
                 'products.sku',
+                'catalogs.channel as catalog_channel',
             ]);
 
         $flashSellingUnits = DB::table('product_selling_units')
