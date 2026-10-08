@@ -246,6 +246,7 @@
                         <label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from" required></label>
                         <label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until"></label>
                         <label>{{ __('field_operations.loaded_work') }}<input type="number" min="0" name="loaded_work_count" value="0"></label>
+                        <label><span>{{ __('field_operations.allow_van_app') }}</span><input type="hidden" name="allow_van_app" value="0"><input type="checkbox" name="allow_van_app" value="1"> <small class="fieldops-muted">{{ __('field_operations.allow_van_app_help') }}</small></label>
                     </div>
                     <button class="foodex-primary" type="submit">{{ __('field_operations.save_assignment') }}</button>
                 </form>
