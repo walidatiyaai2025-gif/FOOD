@@ -557,7 +557,6 @@ final class OrderOperationsController extends Controller
         OrderController $orders,
         AuditLogger $audit,
         DashboardOperationalNotifier $notifier,
-        OrderManualDispatchService $dispatch,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
@@ -748,6 +747,7 @@ final class OrderOperationsController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $notifier,
+        OrderManualDispatchService $dispatch,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
