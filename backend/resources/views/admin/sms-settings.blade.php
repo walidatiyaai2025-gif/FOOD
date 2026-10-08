@@ -31,7 +31,7 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 <div class="actions"><button class="btn" type="submit">{{ __('sms.save') }}</button><button class="btn secondary" type="button" onclick="document.getElementById('testSmsDialog').showModal()">{{ __('sms.test') }}</button></div>
 </form></section>
 
-<section class="card"><h2>{{ __('sms.recent') }}</h2><div class="table-wrap"><table><thead><tr><th>{{ __('sms.request_id') }}</th><th>{{ __('sms.recipient') }}</th><th>{{ __('sms.purpose') }}</th><th>{{ __('sms.status') }}</th><th>{{ __('sms.attempts') }}</th><th>{{ __('sms.latency') }}</th><th>{{ __('sms.provider_code') }}</th><th>{{ __('sms.timestamp') }}</th></tr></thead><tbody>
+<section class="card"><h2>{{ __('sms.recent') }}</h2><div class="table-wrap"><table data-pagination-exempt="bounded-recent-sms-log-window-50"><thead><tr><th>{{ __('sms.request_id') }}</th><th>{{ __('sms.recipient') }}</th><th>{{ __('sms.purpose') }}</th><th>{{ __('sms.status') }}</th><th>{{ __('sms.attempts') }}</th><th>{{ __('sms.latency') }}</th><th>{{ __('sms.provider_code') }}</th><th>{{ __('sms.timestamp') }}</th></tr></thead><tbody>
 @forelse($recentLogs as $log)
 <tr><td><code>{{ $log->request_id }}</code></td><td>{{ $log->recipient_masked }}</td><td>{{ $log->purpose }}</td><td>{{ $log->status }}</td><td>{{ $log->attempts }}</td><td>{{ $log->latency_ms ?? '—' }} ms</td><td>{{ $log->status === 'sent' ? __('sms.provider.sent') : ($log->error_message ?: __('sms.provider.unknown_response')) }} @if($log->provider_response_code)<small>({{ $log->provider_response_code }})</small>@endif</td><td>{{ $log->created_at }}</td></tr>
 @empty<tr><td colspan="8">{{ __('sms.no_logs') }}</td></tr>@endforelse
