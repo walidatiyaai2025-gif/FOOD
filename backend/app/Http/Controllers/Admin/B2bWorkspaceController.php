@@ -42,6 +42,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -148,6 +149,9 @@ class B2bWorkspaceController extends Controller
             ? $this->dashboard->build($user, $storeIds, $dashboardFrom, $dashboardTo)
             : null;
         $moduleData = $module === 'dashboard' ? null : $this->moduleData($module, $storeIds, $user, $request);
+        if (is_array($moduleData)) {
+            $moduleData = $this->paginateModuleCollections($request, $moduleData);
+        }
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
             fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
@@ -1786,4 +1790,47 @@ class B2bWorkspaceController extends Controller
     {
         return app()->getLocale() === 'ar' ? $ar : $en;
     }
+
+    /**
+     * Server-side pagination contract for Dashboard workspace record grids.
+     *
+     * @param array<string,mixed> $moduleData
+     * @return array<string,mixed>
+     */
+    private function paginateModuleCollections(Request $request, array $moduleData): array
+    {
+        foreach ([
+            ['key' => 'rows', 'page' => 'rows_page', 'paginator' => 'rows_paginator'],
+            ['key' => 'assignments_list', 'page' => 'assignments_page', 'paginator' => 'assignments_paginator'],
+        ] as $contract) {
+            $key = $contract['key'];
+            if (! isset($moduleData[$key]) || ! is_array($moduleData[$key])) {
+                continue;
+            }
+
+            $items = collect($moduleData[$key])->values();
+            $perPage = 25;
+            $pageName = $contract['page'];
+            $currentPage = max(1, (int) $request->query($pageName, 1));
+            $pageItems = $items->forPage($currentPage, $perPage)->values();
+
+            $paginator = new LengthAwarePaginator(
+                $pageItems,
+                $items->count(),
+                $perPage,
+                $currentPage,
+                [
+                    'path' => $request->url(),
+                    'pageName' => $pageName,
+                    'query' => $request->except($pageName),
+                ],
+            );
+
+            $moduleData[$key] = $pageItems->all();
+            $moduleData[$contract['paginator']] = $paginator;
+        }
+
+        return $moduleData;
+    }
+
 }
