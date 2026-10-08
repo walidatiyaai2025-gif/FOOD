@@ -185,11 +185,15 @@ final class SuggestedWholesalePurchasePlanService
         ?float $requestedBudget = null,
     ): array {
         $customer = $this->ownerCustomer($user, $retailStoreId);
-        $finance = $this->ledger->summary($customer);
+        $principalStoreId = $this->principal->storeId();
+        $finance = $this->ledger->summary($customer, $principalStoreId);
         $purchasingPower = max(0.0, (float) $finance['purchasing_power']);
+        $cartState = $this->existingCartState($customer, $principalStoreId, true);
+        $availablePlanBudget = max(0.0, round($purchasingPower - (float) $cartState['cost'], 3));
         $effectiveBudget = $requestedBudget === null
-            ? $purchasingPower
-            : min($purchasingPower, max(0.0, $requestedBudget));
+            ? $availablePlanBudget
+            : min($availablePlanBudget, max(0.0, $requestedBudget));
+        $existingQuantities = $this->existingCartQuantities($customer, $principalStoreId);
 
         $fresh = $this->reorder->forStore($retailStoreId);
         $rows = collect($fresh['recommendations'])
@@ -197,7 +201,7 @@ final class SuggestedWholesalePurchasePlanService
             ->keyBy(fn (array $row): int => (int) $row['retail_product_id']);
 
         $selected = [];
-        $selectedCost = 0.0;
+        $selectedIncrementalCost = 0.0;
 
         foreach ($requestedQuantities as $retailProductId => $rawQuantity) {
             $quantity = is_numeric($rawQuantity) ? (float) $rawQuantity : 0.0;
@@ -207,9 +211,7 @@ final class SuggestedWholesalePurchasePlanService
 
             $row = $rows->get((int) $retailProductId);
             if (! is_array($row)) {
-                throw ValidationException::withMessages([
-                    'quantities' => ['A selected recommendation is no longer executable. Refresh and review the current plan.'],
-                ]);
+                $this->fail('quantities', 'stale_recommendation');
             }
 
             $mapping = (array) ($row['mapping'] ?? []);
@@ -222,132 +224,167 @@ final class SuggestedWholesalePurchasePlanService
                 (float) ($commercial['ordering_increment'] ?? 0),
             );
             if ($quantity > $maxQuantity + 0.0001) {
-                throw ValidationException::withMessages([
-                    'quantities' => ['A selected quantity exceeds the latest executable recommendation or live availability.'],
-                ]);
+                $this->fail('quantities', 'stale_quantity');
             }
 
             $storeId = (int) ($mapping['source_wholesale_store_id'] ?? 0);
             $productId = (int) ($mapping['source_wholesale_product_id'] ?? 0);
             if ($storeId <= 0 || $productId <= 0) {
-                throw ValidationException::withMessages([
-                    'quantities' => ['A selected recommendation no longer has one authoritative Wholesale source.'],
-                ]);
+                $this->fail('quantities', 'missing_source');
+            }
+            if ($storeId !== $principalStoreId) {
+                $this->fail('quantities', 'non_principal_source');
             }
 
-            $pricing = $this->pricing->resolve($customer, $storeId, $productId);
+            $pricing = $this->pricing->resolve($customer, $principalStoreId, $productId);
             $this->assertValidQuantity(
                 $quantity,
                 (float) $pricing['minimum_quantity'],
                 (float) $pricing['ordering_increment'],
             );
-            $available = $this->liveAvailable($storeId, $productId);
+            $available = $this->liveAvailable($principalStoreId, $productId);
             if ($quantity > $available + 0.0001) {
-                throw ValidationException::withMessages([
-                    'quantities' => ['A selected quantity exceeds current Wholesale availability. Refresh and review the plan.'],
-                ]);
+                $this->fail('quantities', 'availability_changed');
             }
 
-            $lineCost = round($quantity * (float) $pricing['price'], 3);
-            $selectedCost = round($selectedCost + $lineCost, 3);
+            $existingQuantity = (float) ($existingQuantities[$productId] ?? 0.0);
+            $targetQuantity = max($existingQuantity, $quantity);
+            $incrementalQuantity = max(0.0, $targetQuantity - $existingQuantity);
+            $lineIncrementalCost = round($incrementalQuantity * (float) $pricing['price'], 3);
+            $selectedIncrementalCost = round($selectedIncrementalCost + $lineIncrementalCost, 3);
             $selected[] = [
-                'store_id' => $storeId,
+                'store_id' => $principalStoreId,
                 'product_id' => $productId,
                 'quantity' => round($quantity, 3),
             ];
         }
 
         if ($selected === []) {
-            throw ValidationException::withMessages([
-                'quantities' => ['Select at least one executable recommendation before adding the plan to the Wholesale cart.'],
-            ]);
+            $this->fail('quantities', 'empty_selection');
         }
 
-        if ($selectedCost > $effectiveBudget + 0.0001) {
-            throw ValidationException::withMessages([
-                'budget' => ['The reviewed plan exceeds the latest available purchasing power or selected budget.'],
-            ]);
+        if ($selectedIncrementalCost > $effectiveBudget + 0.0001) {
+            $this->fail('budget', 'budget_exceeded');
         }
 
-        $result = DB::transaction(function () use ($customer, $selected): array {
-            $cartIds = [];
-            $changedLines = 0;
+        $result = DB::transaction(function () use (
+            $customer,
+            $selected,
+            $principalStoreId,
+            $requestedBudget,
+        ): array {
+            $cart = Cart::query()
+                ->where('store_id', $principalStoreId)
+                ->where('b2b_customer_id', $customer->getKey())
+                ->where('channel', 'b2b')
+                ->lockForUpdate()
+                ->first();
 
-            foreach ($selected as $line) {
-                $this->assertActiveWholesaleProduct($line['store_id'], $line['product_id']);
-                $pricing = $this->pricing->resolve($customer, $line['store_id'], $line['product_id']);
+            if (! $cart instanceof Cart) {
+                $cart = Cart::query()->create([
+                    'store_id' => $principalStoreId,
+                    'customer_id' => $customer->legacy_customer_id,
+                    'b2b_customer_id' => $customer->getKey(),
+                    'channel' => 'b2b',
+                    'guest_token' => null,
+                ]);
+            }
+
+            $items = CartItem::query()
+                ->where('cart_id', $cart->getKey())
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('product_id');
+
+            $baseCartCost = 0.0;
+            foreach ($items as $item) {
+                $this->assertActiveWholesaleProduct($principalStoreId, (int) $item->product_id);
+                $pricing = $this->pricing->resolve($customer, $principalStoreId, (int) $item->product_id);
                 $this->assertValidQuantity(
-                    $line['quantity'],
+                    (float) $item->quantity,
                     (float) $pricing['minimum_quantity'],
                     (float) $pricing['ordering_increment'],
                 );
-                $available = $this->liveAvailable($line['store_id'], $line['product_id']);
-                if ($line['quantity'] > $available + 0.0001) {
-                    throw ValidationException::withMessages([
-                        'quantities' => ['Wholesale availability changed while the plan was being applied. Refresh and review again.'],
-                    ]);
+                $available = $this->liveAvailable($principalStoreId, (int) $item->product_id);
+                if ((float) $item->quantity > $available + 0.0001) {
+                    $this->fail('quantities', 'existing_cart_invalid');
                 }
+                $baseCartCost = round($baseCartCost + ((float) $item->quantity * (float) $pricing['price']), 3);
+            }
 
-                $cart = Cart::query()->firstOrCreate(
-                    [
-                        'store_id' => $line['store_id'],
-                        'b2b_customer_id' => $customer->getKey(),
-                        'channel' => 'b2b',
-                    ],
-                    [
-                        'customer_id' => $customer->legacy_customer_id,
-                        'guest_token' => null,
-                    ],
-                );
+            $liveFinance = $this->ledger->summary($customer, $principalStoreId);
+            $livePurchasingPower = max(0.0, (float) $liveFinance['purchasing_power']);
+            $liveAvailablePlanBudget = max(0.0, round($livePurchasingPower - $baseCartCost, 3));
+            $liveEffectiveBudget = $requestedBudget === null
+                ? $liveAvailablePlanBudget
+                : min($liveAvailablePlanBudget, max(0.0, $requestedBudget));
+            $liveIncrementalCost = 0.0;
+            $mutations = [];
 
-                $item = CartItem::query()
-                    ->where('cart_id', $cart->getKey())
-                    ->where('product_id', $line['product_id'])
-                    ->lockForUpdate()
-                    ->first();
-
-                $existingQuantity = $item instanceof CartItem ? (float) $item->quantity : 0.0;
+            foreach ($selected as $line) {
+                $this->assertActiveWholesaleProduct($principalStoreId, $line['product_id']);
+                $pricing = $this->pricing->resolve($customer, $principalStoreId, $line['product_id']);
+                $existingItem = $items->get($line['product_id']);
+                $existingQuantity = $existingItem instanceof CartItem ? (float) $existingItem->quantity : 0.0;
                 $targetQuantity = max($existingQuantity, (float) $line['quantity']);
                 $this->assertValidQuantity(
                     $targetQuantity,
                     (float) $pricing['minimum_quantity'],
                     (float) $pricing['ordering_increment'],
                 );
+                $available = $this->liveAvailable($principalStoreId, $line['product_id']);
                 if ($targetQuantity > $available + 0.0001) {
-                    throw ValidationException::withMessages([
-                        'quantities' => ['The existing Wholesale cart quantity exceeds current availability. Review the cart before applying the plan.'],
-                    ]);
+                    $this->fail('quantities', 'availability_changed');
                 }
 
+                $incrementalQuantity = max(0.0, $targetQuantity - $existingQuantity);
+                $incrementalCost = round($incrementalQuantity * (float) $pricing['price'], 3);
+                $liveIncrementalCost = round($liveIncrementalCost + $incrementalCost, 3);
+                $mutations[] = [
+                    'item' => $existingItem,
+                    'product_id' => $line['product_id'],
+                    'target_quantity' => round($targetQuantity, 3),
+                    'unit_price' => (float) $pricing['price'],
+                ];
+            }
+
+            if ($liveIncrementalCost > $liveEffectiveBudget + 0.0001) {
+                $this->fail('budget', 'price_or_credit_changed');
+            }
+
+            $changedLines = 0;
+            foreach ($mutations as $mutation) {
+                $item = $mutation['item'];
                 if (! $item instanceof CartItem) {
                     $item = new CartItem([
                         'cart_id' => $cart->getKey(),
-                        'product_id' => $line['product_id'],
+                        'product_id' => $mutation['product_id'],
                     ]);
                 }
 
-                if (! $item->exists || abs((float) $item->quantity - $targetQuantity) > 0.0001) {
+                if (! $item->exists || abs((float) $item->quantity - (float) $mutation['target_quantity']) > 0.0001) {
                     $changedLines++;
                 }
-                $item->quantity = round($targetQuantity, 3);
-                $item->unit_price_snapshot = (float) $pricing['price'];
+                $item->quantity = $mutation['target_quantity'];
+                $item->unit_price_snapshot = $mutation['unit_price'];
                 $item->save();
-                $cartIds[(int) $cart->getKey()] = true;
             }
 
             return [
-                'cart_ids' => array_map('intval', array_keys($cartIds)),
+                'cart_ids' => [(int) $cart->getKey()],
                 'changed_lines' => $changedLines,
+                'selected_cost' => $liveIncrementalCost,
+                'existing_cart_cost' => $baseCartCost,
+                'cart_total_after' => round($baseCartCost + $liveIncrementalCost, 3),
+                'effective_budget' => round($liveEffectiveBudget, 3),
+                'purchasing_power' => round($livePurchasingPower, 3),
+                'currency' => (string) $liveFinance['currency'],
             ];
-        });
+        }, 3);
 
         return [
             ...$result,
             'selected_lines' => count($selected),
-            'selected_cost' => $selectedCost,
-            'effective_budget' => round($effectiveBudget, 3),
-            'purchasing_power' => round($purchasingPower, 3),
-            'currency' => (string) $finance['currency'],
         ];
     }
 
@@ -358,9 +395,71 @@ final class SuggestedWholesalePurchasePlanService
             ->where('owner_user_id', $user->getKey())
             ->value('b2b_customer_id');
 
-        abort_if($customerId === null, 403, 'Only the Retail store owner can mutate the linked personal Wholesale cart.');
+        if ($customerId === null) {
+            abort(403, __('admin.b2c_dashboard.merchant_intelligence.plan.errors.owner_only'));
+        }
 
         return B2bCustomer::query()->findOrFail((int) $customerId);
+    }
+
+    /** @return array{cost:float,review_required:bool} */
+    private function existingCartState(B2bCustomer $customer, int $storeId, bool $strict): array
+    {
+        $cart = Cart::query()
+            ->where('store_id', $storeId)
+            ->where('b2b_customer_id', $customer->getKey())
+            ->where('channel', 'b2b')
+            ->first();
+
+        if (! $cart instanceof Cart) {
+            return ['cost' => 0.0, 'review_required' => false];
+        }
+
+        $cost = 0.0;
+        foreach (CartItem::query()->where('cart_id', $cart->getKey())->get() as $item) {
+            try {
+                $this->assertActiveWholesaleProduct($storeId, (int) $item->product_id);
+                $pricing = $this->pricing->resolve($customer, $storeId, (int) $item->product_id);
+                $this->assertValidQuantity(
+                    (float) $item->quantity,
+                    (float) $pricing['minimum_quantity'],
+                    (float) $pricing['ordering_increment'],
+                );
+                $available = $this->liveAvailable($storeId, (int) $item->product_id);
+                if ((float) $item->quantity > $available + 0.0001) {
+                    throw new \RuntimeException('cart availability drift');
+                }
+                $cost = round($cost + ((float) $item->quantity * (float) $pricing['price']), 3);
+            } catch (Throwable $exception) {
+                if ($strict) {
+                    $this->fail('quantities', 'existing_cart_invalid');
+                }
+
+                return ['cost' => $cost, 'review_required' => true];
+            }
+        }
+
+        return ['cost' => $cost, 'review_required' => false];
+    }
+
+    /** @return array<int,float> */
+    private function existingCartQuantities(B2bCustomer $customer, int $storeId): array
+    {
+        $cartId = Cart::query()
+            ->where('store_id', $storeId)
+            ->where('b2b_customer_id', $customer->getKey())
+            ->where('channel', 'b2b')
+            ->value('id');
+
+        if ($cartId === null) {
+            return [];
+        }
+
+        return CartItem::query()
+            ->where('cart_id', $cartId)
+            ->pluck('quantity', 'product_id')
+            ->map(static fn (mixed $quantity): float => (float) $quantity)
+            ->all();
     }
 
     private function liveAvailable(int $storeId, int $productId): float
@@ -378,6 +477,10 @@ final class SuggestedWholesalePurchasePlanService
 
     private function assertActiveWholesaleProduct(int $storeId, int $productId): void
     {
+        if ($storeId !== $this->principal->storeId()) {
+            $this->fail('quantities', 'non_principal_source');
+        }
+
         $exists = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join) use ($storeId): void {
@@ -397,7 +500,9 @@ final class SuggestedWholesalePurchasePlanService
             ->where('store_types.code', 'B2B')
             ->exists();
 
-        abort_unless($exists, 409, 'The selected Wholesale product is no longer available in its source store.');
+        if (! $exists) {
+            $this->fail('quantities', 'product_unavailable');
+        }
     }
 
     private function assertValidQuantity(float $quantity, float $minimum, float $increment): void
@@ -405,16 +510,12 @@ final class SuggestedWholesalePurchasePlanService
         $minimum = max(0.001, $minimum);
         $increment = max(0.001, $increment);
         if ($quantity + 0.0001 < $minimum) {
-            throw ValidationException::withMessages([
-                'quantities' => ['A selected quantity is below the current Wholesale minimum.'],
-            ]);
+            $this->fail('quantities', 'below_minimum');
         }
 
         $steps = ($quantity - $minimum) / $increment;
         if (abs($steps - round($steps)) >= 0.0001) {
-            throw ValidationException::withMessages([
-                'quantities' => ['A selected quantity does not match the current Wholesale ordering increment.'],
-            ]);
+            $this->fail('quantities', 'invalid_increment');
         }
     }
 
@@ -441,4 +542,11 @@ final class SuggestedWholesalePurchasePlanService
 
         return round(min($desired, $minimum + (max(0, $steps) * $increment)), 3);
     }
+    private function fail(string $field, string $key): never
+    {
+        throw ValidationException::withMessages([
+            $field => [__('admin.b2c_dashboard.merchant_intelligence.plan.errors.'.$key)],
+        ]);
+    }
+
 }
