@@ -10,6 +10,19 @@ import 'package:foodex_van_app/features/notifications/van_notification_contract.
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
 
+Future<void> _scrollUntilBuilt(
+  WidgetTester tester,
+  Finder scrollable,
+  Finder target,
+) async {
+  for (var attempt = 0;
+      attempt < 12 && target.evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(scrollable, const Offset(0, -180));
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   test('approved Van production inventory stays locked to 19 surfaces', () {
     expect(vanProductionScreenInventory.length, 19);
@@ -610,19 +623,26 @@ void main() {
       of: find.byKey(const ValueKey('van-catalog-page')),
       matching: find.byType(Scrollable),
     ).first;
+    final addProduct =
+        find.byKey(const ValueKey('van-catalog-add-301'));
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('van-catalog-add-301')),
+      addProduct,
       180,
       scrollable: catalogScrollable,
     );
-    await tester.tap(find.byKey(const ValueKey('van-catalog-add-301')));
+    await tester.drag(catalogScrollable, const Offset(0, -140));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('van-catalog-open-cart')),
-      180,
-      scrollable: catalogScrollable,
-    );
-    await tester.tap(find.byKey(const ValueKey('van-catalog-open-cart')));
+    expect(tester.widget<IconButton>(addProduct).onPressed, isNotNull);
+    await tester.tap(addProduct);
+    await tester.pumpAndSettle();
+
+    final openCart =
+        find.byKey(const ValueKey('van-catalog-open-cart'));
+    await _scrollUntilBuilt(tester, catalogScrollable, openCart);
+    expect(openCart, findsOneWidget);
+    await tester.ensureVisible(openCart);
+    await tester.pumpAndSettle();
+    await tester.tap(openCart);
     await tester.pumpAndSettle();
 
     expect(
