@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bCustomer;
 use App\Models\Invoice;
 use App\Models\User;
+use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use Illuminate\Contracts\View\View;
@@ -48,6 +51,40 @@ final class InvoiceController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$model->invoice_number.'.pdf"',
             'Cache-Control' => 'private, no-store',
         ]);
+    }
+
+    public function settle(
+        Request $request,
+        int $invoice,
+        B2bAccountLedgerService $ledger,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $user = $this->actor($request);
+        $model = Invoice::query()->findOrFail($invoice);
+        $this->authorizeInvoice($user, $model, 'finance.manage');
+        abort_unless(strtolower((string) $model->channel) === 'b2b' && $model->b2b_customer_id !== null, 409);
+
+        $customer = B2bCustomer::query()->findOrFail((int) $model->b2b_customer_id);
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'reference' => ['nullable', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $result = $ledger->settleInvoice(
+            $customer,
+            $model,
+            (float) $validated['amount'],
+            (string) $model->currency,
+            $user,
+            $validated['reference'] ?? null,
+            $validated['description'] ?? null,
+        );
+        $audit->record('invoice.settled', $user, $model, null, $result, $request);
+
+        return redirect()
+            ->route('admin.invoices.show', ['invoice' => $model->getKey()])
+            ->with('status', app()->getLocale() === 'ar' ? 'تم تسجيل دفعة الفاتورة.' : 'Invoice payment recorded.');
     }
 
     public function reissue(Request $request, int $invoice, InvoiceService $invoices): RedirectResponse
