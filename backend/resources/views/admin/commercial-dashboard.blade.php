@@ -706,12 +706,13 @@
             @empty
                 <p class="muted">{{ __('commercial.flash.no_offers') }}</p>
             @endforelse
+            {{ $flashOffers->links() }}
         </section>
 
         <section class="commercial-card">
             <h2>{{ __('commercial.flash.existing_promotions') }}</h2>
             <div style="overflow:auto">
-                <table class="commercial-table">
+                <table class="commercial-table" data-pagination-required>
                     <thead><tr><th>{{ __('commercial.flash.promotion_name') }}</th><th>{{ __('commercial.flash.promotion_type') }}</th><th>{{ __('commercial.flash.promotion_value') }}</th><th>{{ __('commercial.flash.promotion_period') }}</th><th>{{ __('commercial.flash.status') }}</th></tr></thead>
                     <tbody>
                     @forelse($existingPromotions as $promotion)
@@ -728,6 +729,7 @@
                     </tbody>
                 </table>
             </div>
+            {{ $existingPromotions->links() }}
         </section>
     @endif
     </main>
