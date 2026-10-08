@@ -561,7 +561,7 @@ final class OrderOperationsController extends Controller
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
-            'drivers.'.strtolower((string) $model->channel).'.manage',
+            'orders.dispatch',
             (string) $model->channel,
         );
 
@@ -591,7 +591,7 @@ final class OrderOperationsController extends Controller
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
-            'drivers.'.strtolower((string) $model->channel).'.manage',
+            'orders.dispatch',
             (string) $model->channel,
         );
 
