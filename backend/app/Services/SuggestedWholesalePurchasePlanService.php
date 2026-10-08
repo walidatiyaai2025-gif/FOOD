@@ -363,7 +363,7 @@ final class SuggestedWholesalePurchasePlanService
                 }
 
                 if (! $item->exists || abs((float) $item->quantity - (float) $mutation['target_quantity']) > 0.0001) {
-                    $changedLines++;
+                    ++$changedLines;
                 }
                 $item->quantity = $mutation['target_quantity'];
                 $item->unit_price_snapshot = $mutation['unit_price'];
