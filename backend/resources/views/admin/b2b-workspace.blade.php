@@ -200,16 +200,16 @@
         </div>
 
         <div class="b2b-ref-middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
-            <article class="b2b-ref-card b2b-ref-panel" data-dashboard-primary-card="sales">
-                <div class="b2b-ref-panel-head">
-                    <h2>{{ $isAr?'المبيعات':'Sales' }}</h2>
+            <article class="b2b-ref-card b2b-ref-panel foodex-viz-card" data-dashboard-primary-card="sales" data-platform-analytics="b2b-sales">
+                <div class="b2b-ref-panel-head foodex-viz-header">
+                    <div><h2 class="foodex-viz-title">{{ $isAr?'المبيعات':'Sales' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'اتجاه المبيعات من بيانات الطلبات المعتمدة':'Sales trend from authoritative order data' }}</p></div>
                     <form class="b2b-date-range" method="get" action="{{ route('admin.b2b.module',['module'=>'dashboard']) }}">
                         <label>{{ $isAr?'من':'From' }}<input type="date" name="from" value="{{ request('from') }}"></label>
                         <label>{{ $isAr?'إلى':'To' }}<input type="date" name="to" value="{{ request('to') }}"></label>
                         <button class="foodex-filter-action" type="submit">{{ $isAr?'تطبيق':'Apply' }}</button>
                     </form>
                 </div>
-                <div class="b2b-ref-chart-wrap">
+                <div class="b2b-ref-chart-wrap foodex-viz-canvas">
                     <svg viewBox="0 0 560 200" role="img" aria-label="{{ $isAr?'مبيعات الفترة المحددة':'Sales over the selected period' }}">
                         <defs><linearGradient id="b2bRevenueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#33c56b" stop-opacity=".26"/><stop offset="100%" stop-color="#33c56b" stop-opacity=".02"/></linearGradient></defs>
                         @foreach([46,90,134,178] as $gridY)<line class="b2b-ref-chart-grid" x1="38" y1="{{ $gridY }}" x2="524" y2="{{ $gridY }}"/>@endforeach
@@ -218,7 +218,7 @@
                         <text class="b2b-ref-axis" x="2" y="93">{{ number_format($maxRevenue*.66/1000,0) }}K</text>
                         <text class="b2b-ref-axis" x="2" y="49">{{ number_format($maxRevenue/1000,0) }}K</text>
                         @if($areaPath)<path class="b2b-ref-chart-area" d="{{ $areaPath }}"/>@endif
-                        @if($polyline)<polyline class="b2b-ref-chart-line" points="{{ $polyline }}"/>@endif
+                        @if($polyline)<polyline class="b2b-ref-chart-line foodex-viz-line" points="{{ $polyline }}"/>@endif
                         @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8"/>@endforeach
                         @if(count($chartPoints))
                             @php
@@ -231,6 +231,7 @@
                     </svg>
                     <div class="b2b-ref-chart-labels" style="grid-template-columns:repeat({{ max(1,count($dashboard['series'])) }},minmax(0,1fr))">@foreach($dashboard['series'] as $index=>$point)<span>{{ ($index % $labelEvery === 0 || $index === count($dashboard['series'])-1) ? $point['label'] : '' }}</span>@endforeach</div>
                 </div>
+                <a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-sales" href="{{ route('admin.b2b.module',['module'=>'reports']) }}">{{ $isAr?'فتح تقارير الجملة':'Open Wholesale reports' }}</a>
             </article>
 
             @if($canViewDriverTracking)
@@ -249,11 +250,11 @@
             </article>
             @endif
 
-            <article class="b2b-ref-card b2b-ref-panel" data-dashboard-primary-card="order-distribution">
-                <div class="b2b-ref-panel-head"><h2>{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2></div>
+            <article class="b2b-ref-card b2b-ref-panel foodex-viz-card" data-dashboard-primary-card="order-distribution" data-platform-analytics="b2b-order-distribution">
+                <div class="b2b-ref-panel-head foodex-viz-header"><div><h2 class="foodex-viz-title">{{ $isAr?'توزيع الطلبات':'Order distribution' }}</h2><p class="foodex-viz-subtitle">{{ $isAr?'الحالة الحالية لطلبات الجملة':'Current Wholesale order-state mix' }}</p></div><a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-order-distribution" href="{{ route('admin.b2b.module',['module'=>'orders']) }}">{{ $isAr?'فتح الطلبات':'Open orders' }}</a></div>
                 <div class="b2b-ref-donut-body">
-                    <div class="b2b-ref-donut" style="background:{{ $distributionCount > 0 ? 'conic-gradient(#13984b 0 '.$processingEnd.'%,#73d99b '.$processingEnd.'% '.$deliveryEnd.'%,#2d86dc '.$deliveryEnd.'% 100%)' : '#edf1f5' }}"></div>
-                    <div class="b2b-ref-legend">
+                    <div class="b2b-ref-donut foodex-viz-donut" role="img" aria-label="{{ $isAr?'توزيع حالات طلبات الجملة':'Wholesale order status distribution' }}" style="--foodex-viz-p1:{{ $distributionCount > 0 ? $processingEnd : 0 }}%;--foodex-viz-p2:{{ $distributionCount > 0 ? $deliveryEnd : 0 }}%;--foodex-viz-p3:{{ $distributionCount > 0 ? 100 : 0 }}%"></div>
+                    <div class="b2b-ref-legend foodex-viz-legend">
                         <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#13984b"></span><span>{{ $isAr?'قيد التجهيز':'Processing' }}</span><strong>{{ $processingPct }}%</strong></div>
                         <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#73d99b"></span><span>{{ $isAr?'قيد التوصيل':'In delivery' }}</span><strong>{{ $deliveryPct }}%</strong></div>
                         <div class="b2b-ref-legend-row"><span class="b2b-ref-legend-dot" style="background:#2d86dc"></span><span>{{ $isAr?'مكتمل':'Completed' }}</span><strong>{{ $completedPct }}%</strong></div>
@@ -310,6 +311,7 @@
                 @else
                     <div class="b2b-ref-empty">{{ $isAr ? 'لا توجد مبيعات منتجات في الفترة المحددة' : 'No product sales in the selected period' }}</div>
                 @endif
+                <a class="b2b-ref-more" data-platform-analytics-drilldown="b2b-products" href="{{ route('admin.b2b.module',['module'=>'products']) }}">{{ $isAr?'فتح كتالوج الجملة':'Open Wholesale catalog' }}</a>
             </article>
 
             <article class="b2b-ref-card b2b-ref-panel">
