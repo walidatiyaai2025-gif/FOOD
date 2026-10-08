@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
 use App\Http\Controllers\Admin\MobileAppDownloadController;
 use App\Http\Controllers\Admin\MobileSettingsController;
+use App\Http\Controllers\Admin\SmsSettingsController;
 use App\Http\Controllers\Admin\OrderOperationsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
@@ -333,6 +334,9 @@ Route::prefix('admin')
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
         Route::get('/settings/app-versions', [AppVersionController::class, 'index'])->name('app-versions.index');
         Route::post('/settings/app-versions', [AppVersionController::class, 'store'])->name('app-versions.store');
+        Route::get('/settings/sms', [SmsSettingsController::class, 'index'])->name('sms-settings.index');
+        Route::put('/settings/sms', [SmsSettingsController::class, 'update'])->name('sms-settings.update');
+        Route::post('/settings/sms/test', [SmsSettingsController::class, 'test'])->middleware('throttle:10,1')->name('sms-settings.test');
         Route::get('/settings/mobile', [MobileSettingsController::class, 'index'])->name('mobile-settings.index');
         Route::put('/settings/mobile/app', [MobileSettingsController::class, 'updateApp'])->name('mobile-settings.app');
         Route::put('/settings/mobile/driver-location-policy', [MobileSettingsController::class, 'updateDriverLocationPolicy'])->name('mobile-settings.driver-location-policy');
