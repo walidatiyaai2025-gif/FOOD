@@ -949,7 +949,8 @@
         });
     });
 
-    document.querySelectorAll('[data-flash-lookup]').forEach((lookup) => {
+    try {
+        document.querySelectorAll('[data-flash-lookup]').forEach((lookup) => {
         const toggle = lookup.querySelector('[data-flash-lookup-toggle]');
         const menu = lookup.querySelector('[data-flash-lookup-menu]');
         const search = lookup.querySelector('[data-flash-lookup-search]');
@@ -996,8 +997,11 @@
         document.addEventListener('click', (event) => {
             if (!lookup.contains(event.target)) close();
         });
-        syncSummary();
-    });
+            syncSummary();
+        });
+    } catch (_) {
+        // Keep the rest of the commercial workspace interactive even if a lookup enhancement cannot initialize.
+    }
 
     const builder = document.querySelector('[data-flash-product-builder]');
     const template = document.querySelector('[data-flash-product-template]');
