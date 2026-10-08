@@ -36,6 +36,9 @@ final class AdministrationHubController extends Controller
                 || $user->hasPermission('mobile_settings.manage')
                 || $user->hasPermission('push_settings.manage')
                 || $user->hasPermission('push_settings.test'),
+            'canSmsSettings' => $user->hasRole('SUPER_ADMIN')
+                || $user->hasPermission('sms_settings.manage')
+                || $user->hasPermission('sms_settings.test'),
             'canTranslations' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('translations.manage'),
             'canAssistantSettings' => $user->hasRole('SUPER_ADMIN')
                 || $user->hasPermission('settings.view')
