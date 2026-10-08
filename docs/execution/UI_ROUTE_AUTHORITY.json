@@ -17,12 +17,12 @@
         {
           "id": "customer.retail.store.home",
           "route": "/retail/:store/home",
-          "authority": "RetailStorefrontDesignScreen"
+          "authority": "RetailCustomerJourneyScreen"
         },
         {
           "id": "customer.retail.store.product",
           "route": "/retail/:store/products/:product",
-          "authority": "RetailProductDetailsDesignScreen"
+          "authority": "RetailCustomerJourneyScreen"
         },
         {
           "id": "customer.retail.legacy.journey",
@@ -84,6 +84,14 @@
         {
           "file": "apps/customer_app/lib/core/routing/customer_router.dart",
           "marker": "_isRetailJourney("
+        },
+        {
+          "file": "apps/customer_app/lib/features/storefront/multistore_design_screen.dart",
+          "marker": "RetailStorefrontDesignScreen("
+        },
+        {
+          "file": "apps/customer_app/lib/features/storefront/multistore_design_screen.dart",
+          "marker": "RetailProductDetailsDesignScreen("
         }
       ]
     },
