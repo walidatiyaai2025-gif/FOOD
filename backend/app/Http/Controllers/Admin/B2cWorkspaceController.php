@@ -233,9 +233,7 @@ class B2cWorkspaceController extends Controller
 
         return back()->with(
             'status',
-            app()->getLocale() === 'ar'
-                ? 'تمت مراجعة الخطة وإضافتها إلى سلة الجملة الحالية بدون إنشاء طلب.'
-                : 'The reviewed plan was added to the existing Wholesale cart without placing an order.',
+            __('admin.b2c_dashboard.merchant_intelligence.plan.cart_updated'),
         )->with('merchant_purchase_plan_result', $result);
     }
 
