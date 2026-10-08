@@ -28,7 +28,7 @@ final class OrderManualDispatchService
 
         return DB::transaction(function () use ($order, $actor, $driverAssignment, $reason): OrderDispatchState {
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
-            $source = $this->manualSource($state);
+            $source = $this->manualSource($state, 'driver', (int) $driverAssignment->driver_id);
 
             OrderVanAssignment::query()
                 ->where('order_id', $order->id)
@@ -109,7 +109,7 @@ final class OrderManualDispatchService
 
         return DB::transaction(function () use ($order, $actor, $van, $effectiveAssignment, $reason, $moment): OrderDispatchState {
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
-            $source = $this->manualSource($state);
+            $source = $this->manualSource($state, 'van', (int) $van->id);
 
             $active = OrderVanAssignment::query()
                 ->where('order_id', $order->id)
@@ -227,8 +227,18 @@ final class OrderManualDispatchService
         });
     }
 
-    private function manualSource(OrderDispatchState $state): string
+    private function manualSource(OrderDispatchState $state, string $assigneeType, int $assigneeId): string
     {
+        if (
+            $state->exists
+            && (string) $state->status === 'assigned'
+            && (string) $state->current_assignee_type === $assigneeType
+            && (int) $state->current_assignee_id === $assigneeId
+            && in_array((string) $state->routing_source, ['manual_customer_service', 'reassignment_override'], true)
+        ) {
+            return (string) $state->routing_source;
+        }
+
         return $state->exists
             && ($state->status === 'assigned' || $state->current_assignee_id !== null)
                 ? 'reassignment_override'
