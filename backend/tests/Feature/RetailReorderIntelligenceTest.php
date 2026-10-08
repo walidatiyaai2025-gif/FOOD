@@ -114,6 +114,43 @@ class RetailReorderIntelligenceTest extends TestCase
         $this->assertSame(0.0, $row['priority_score']);
     }
 
+    public function test_reorder_query_count_does_not_scale_with_catalog_size(): void
+    {
+        $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
+        $fixture = $this->merchantFixture($asOf, 20);
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDay(), 'PERF-BASE-RECENT');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 7, $asOf->subDays(10), 'PERF-BASE-MIDDLE');
+        $this->retailSale($fixture['retail_store'], $fixture['retail_product'], 16, $asOf->subDays(20), 'PERF-BASE-OLDER');
+
+        $queryCount = 0;
+        DB::listen(static function () use (&$queryCount): void {
+            $queryCount++;
+        });
+
+        $service = app(RetailReorderIntelligenceService::class);
+        $service->forStore($fixture['retail_store'], $asOf);
+        $singleProductQueries = $queryCount;
+
+        for ($index = 1; $index <= 8; $index++) {
+            $retailProduct = $this->addMappedProduct($fixture, $asOf, $index);
+            $this->retailSale($fixture['retail_store'], $retailProduct, 7, $asOf->subDay(), 'PERF-'.$index.'-RECENT');
+            $this->retailSale($fixture['retail_store'], $retailProduct, 7, $asOf->subDays(10), 'PERF-'.$index.'-MIDDLE');
+            $this->retailSale($fixture['retail_store'], $retailProduct, 16, $asOf->subDays(20), 'PERF-'.$index.'-OLDER');
+        }
+
+        $queryCount = 0;
+        $result = $service->forStore($fixture['retail_store'], $asOf);
+        $expandedCatalogQueries = $queryCount;
+
+        $this->assertCount(9, $result['recommendations']);
+        $this->assertLessThanOrEqual(
+            $singleProductQueries + 1,
+            $expandedCatalogQueries,
+            'Reorder intelligence must batch product-dependent reads instead of adding queries per product.',
+        );
+        $this->assertLessThanOrEqual(20, $expandedCatalogQueries);
+    }
+
     public function test_missing_mapping_is_an_explicit_business_blocker_instead_of_a_guess(): void
     {
         $asOf = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Kuwait');
@@ -204,6 +241,61 @@ class RetailReorderIntelligenceTest extends TestCase
             'b2b_customer' => (int) $customer->getKey(),
             'legacy_customer' => (int) $customer->legacy_customer_id,
         ];
+    }
+
+    /** @param array<string,int> $fixture */
+    private function addMappedProduct(
+        array $fixture,
+        CarbonImmutable $asOf,
+        int $index,
+    ): int {
+        $retailProduct = $this->product(
+            $fixture['retail_store'],
+            'b2c',
+            'REORDER-PERF-RETAIL-'.$index,
+            3.000,
+            0.500,
+            2,
+            $asOf->subDays(40),
+        );
+        $wholesaleProduct = $this->product(
+            $fixture['wholesale_store'],
+            'b2b',
+            'REORDER-PERF-WHOLESALE-'.$index,
+            15.000,
+            null,
+            20,
+            $asOf->subDays(40),
+        );
+        $tierId = (int) DB::table('b2b_price_tiers')
+            ->where('code', 'STANDARD')
+            ->value('id');
+
+        DB::table('b2b_price_rules')->insert([
+            'price_tier_id' => $tierId,
+            'store_id' => $fixture['wholesale_store'],
+            'product_id' => $wholesaleProduct,
+            'unit_price' => 12.500,
+            'minimum_quantity' => 2,
+            'ordering_increment' => 2,
+            'pack_size' => 1,
+            'case_size' => 2,
+            'pack_label' => 'Case',
+            'is_active' => true,
+            'created_at' => $asOf->subDays(40)->utc()->toDateTimeString(),
+            'updated_at' => $asOf->subDays(40)->utc()->toDateTimeString(),
+        ]);
+        DB::table('retail_wholesale_product_mappings')->insert([
+            'retail_store_id' => $fixture['retail_store'],
+            'source_wholesale_product_id' => $wholesaleProduct,
+            'retail_product_id' => $retailProduct,
+            'quantity_conversion_factor' => 24,
+            'mapped_by_user_id' => null,
+            'created_at' => $asOf->subDays(35)->utc()->toDateTimeString(),
+            'updated_at' => $asOf->subDays(35)->utc()->toDateTimeString(),
+        ]);
+
+        return $retailProduct;
     }
 
     private function store(string $type, string $code): int
