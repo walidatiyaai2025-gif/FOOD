@@ -67,10 +67,14 @@ class MobileAppDownloadTest extends TestCase
         Http::fake([
             'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/LATEST_RELEASE.json' => Http::response([
                 'version' => '9.8.7',
-                'customer' => [
-                    'file' => 'FOODEX-Customer-9.8.7.apk',
-                    'bytes' => strlen($payload),
-                    'sha256' => $sha256,
+                'android_apps' => [
+                    [
+                        'app' => 'customer',
+                        'version' => '9.8.7',
+                        'file' => 'FOODEX-Customer-9.8.7.apk',
+                        'bytes' => strlen($payload),
+                        'sha256' => $sha256,
+                    ],
                 ],
             ]),
             'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk' => Http::response($payload),
@@ -98,10 +102,14 @@ class MobileAppDownloadTest extends TestCase
         Http::fake([
             'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/LATEST_RELEASE.json' => Http::response([
                 'version' => '9.8.7',
-                'customer' => [
-                    'file' => 'FOODEX-Customer-9.8.7.apk',
-                    'bytes' => strlen($payload),
-                    'sha256' => $sha256,
+                'android_apps' => [
+                    [
+                        'app' => 'customer',
+                        'version' => '9.8.7',
+                        'file' => 'FOODEX-Customer-9.8.7.apk',
+                        'bytes' => strlen($payload),
+                        'sha256' => $sha256,
+                    ],
                 ],
             ]),
             'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk' => Http::response($payload),
@@ -117,10 +125,14 @@ class MobileAppDownloadTest extends TestCase
         Http::fake([
             'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/LATEST_RELEASE.json' => Http::response([
                 'version' => '9.8.7',
-                'customer' => [
-                    'file' => 'FOODEX-Customer-9.8.7.apk',
-                    'bytes' => 3,
-                    'sha256' => str_repeat('a', 64),
+                'android_apps' => [
+                    [
+                        'app' => 'customer',
+                        'version' => '9.8.7',
+                        'file' => 'FOODEX-Customer-9.8.7.apk',
+                        'bytes' => 3,
+                        'sha256' => str_repeat('a', 64),
+                    ],
                 ],
             ]),
             'https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk' => Http::response('bad'),
