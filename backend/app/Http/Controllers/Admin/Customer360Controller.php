@@ -113,7 +113,7 @@ final class Customer360Controller extends Controller
         return redirect()->route('admin.customer-360.index');
     }
 
-    public function show(Request $request, int $platformCustomer): View
+    public function show(Request $request, int $platformCustomer, B2bAccountLedgerService $ledger): View
     {
         $actor = $this->actor($request);
         $access = $this->access($actor);
@@ -179,8 +179,9 @@ final class Customer360Controller extends Controller
                 'stores.name as store_name',
             ], 'invoices_page')
             ->withQueryString();
-        $invoices->setCollection($invoices->getCollection()->map(function (mixed $row): array {
+        $invoices->setCollection($invoices->getCollection()->map(function (mixed $row) use ($ledger): array {
             $row = (object) $row;
+            $amounts = $ledger->invoiceAmounts(Invoice::query()->findOrFail((int) $row->id));
 
             return [
                 'id' => (int) $row->id,
@@ -192,6 +193,8 @@ final class Customer360Controller extends Controller
                 'status_label' => $this->businessLabel((string) $row->status),
                 'currency' => (string) $row->currency,
                 'total' => (float) $row->total,
+                'paid_amount' => (float) $amounts['paid_amount'],
+                'outstanding_amount' => (float) $amounts['outstanding_amount'],
                 'issued_at' => $row->issued_at,
                 'url' => route('admin.invoices.show', ['invoice' => $row->id]),
                 'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
@@ -203,6 +206,19 @@ final class Customer360Controller extends Controller
             ->orderBy('id')
             ->get();
         $wholesale = $this->wholesaleInfo($customer, $access);
+        $statementFilters = $request->validate([
+            'statement_from' => ['nullable', 'date'],
+            'statement_to' => ['nullable', 'date', 'after_or_equal:statement_from'],
+        ]);
+        $statement = null;
+        $domain = $this->wholesaleDomain($customer, $access);
+        if ($domain instanceof B2bCustomer && $wholesale !== null) {
+            $statement = $ledger->statement(
+                $domain,
+                $statementFilters['statement_from'] ?? null,
+                $statementFilters['statement_to'] ?? null,
+            );
+        }
 
         return view('admin.customer-360-show', [
             'user' => $actor,
@@ -215,6 +231,8 @@ final class Customer360Controller extends Controller
             'invoices' => $invoices,
             'retailStores' => $this->retailDomains($customer, $access),
             'wholesale' => $wholesale,
+            'statement' => $statement,
+            'statementFilters' => $statementFilters,
             'canManageFinance' => $wholesale !== null && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage')),
             'addresses' => $addresses,
             'canManageAddresses' => $this->canManageAddresses($actor, $customer, $access),
