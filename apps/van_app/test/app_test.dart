@@ -360,6 +360,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-dashboard-page')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-dashboard-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
     expect(
       find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
       findsOneWidget,
@@ -598,8 +606,22 @@ void main() {
     expect(find.byKey(const ValueKey('van-catalog-stock-chart')), findsOneWidget);
     expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('Water Case'), findsOneWidget);
+    final catalogScrollable = find.descendant(
+      of: find.byKey(const ValueKey('van-catalog-page')),
+      matching: find.byType(Scrollable),
+    ).first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-catalog-add-301')),
+      180,
+      scrollable: catalogScrollable,
+    );
     await tester.tap(find.byKey(const ValueKey('van-catalog-add-301')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-catalog-open-cart')),
+      180,
+      scrollable: catalogScrollable,
+    );
     await tester.tap(find.byKey(const ValueKey('van-catalog-open-cart')));
     await tester.pumpAndSettle();
 
