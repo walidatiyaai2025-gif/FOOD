@@ -790,7 +790,7 @@ final class FieldOperationsController extends Controller
             'rules.*.action_key' => ['nullable', 'string', 'max:160'],
             'rules.*.action_value' => ['nullable', 'string', 'max:1000'],
             'rules.*.enabled' => ['nullable', Rule::in(['0', '1'])],
-            'rules_json' => [Rule::prohibitedIf(! $user->hasRole('SUPER_ADMIN')), 'nullable', 'json'],
+            'rules_json' => [Rule::prohibitedIf(!$user->hasRole('SUPER_ADMIN')), 'nullable', 'json'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'effective_from' => ['nullable', 'date'],
             'effective_until' => ['nullable', 'date'],
