@@ -141,6 +141,8 @@
 </style>
 <script id="foodex-ops-popover-runtime">
 (() => {
+    const portals = new WeakMap();
+
     const isEllipsisActions = (details) => {
         if (!(details instanceof HTMLDetailsElement)) return false;
         const summary = details.querySelector(':scope > summary');
@@ -153,14 +155,56 @@
 
     const actionMenus = () => [...document.querySelectorAll('details[open]')].filter(isEllipsisActions);
 
-    const directMenu = (details) => details.querySelector(
-        ':scope > .foodex-ops-menu, :scope > .row-action-menu, :scope > .catalog-action-menu'
-    ) || [...details.children].find((child) => child instanceof HTMLElement && child.tagName !== 'SUMMARY');
+    const findMenu = (details) => {
+        const portal = portals.get(details);
+        if (portal?.menu?.isConnected) return portal.menu;
+        return details.querySelector(
+            ':scope > .foodex-ops-menu, :scope > .row-action-menu, :scope > .catalog-action-menu'
+        ) || [...details.children].find((child) => child instanceof HTMLElement && child.tagName !== 'SUMMARY');
+    };
+
+    const portalMenu = (details) => {
+        const existing = portals.get(details);
+        if (existing?.menu?.isConnected) return existing.menu;
+
+        const menu = findMenu(details);
+        if (!(menu instanceof HTMLElement)) return null;
+
+        const placeholder = document.createComment('foodex-action-menu-portal');
+        menu.parentNode?.insertBefore(placeholder, menu);
+        document.body.appendChild(menu);
+        menu.dataset.foodexActionPortal = '1';
+        portals.set(details, { menu, placeholder });
+        return menu;
+    };
+
+    const restoreMenu = (details) => {
+        const portal = portals.get(details);
+        if (!portal) return;
+        const { menu, placeholder } = portal;
+        if (placeholder?.parentNode && menu) placeholder.parentNode.insertBefore(menu, placeholder);
+        placeholder?.remove();
+        menu?.removeAttribute('data-foodex-action-portal');
+        if (menu instanceof HTMLElement) {
+            menu.style.position = '';
+            menu.style.zIndex = '';
+            menu.style.visibility = '';
+            menu.style.inset = '';
+            menu.style.insetInlineStart = '';
+            menu.style.insetInlineEnd = '';
+            menu.style.right = '';
+            menu.style.bottom = '';
+            menu.style.maxWidth = '';
+            menu.style.top = '';
+            menu.style.left = '';
+        }
+        portals.delete(details);
+    };
 
     const positionMenu = (details) => {
         if (!isEllipsisActions(details) || !details.open) return;
         const summary = details.querySelector(':scope > summary');
-        const menu = directMenu(details);
+        const menu = portalMenu(details);
         if (!(summary instanceof HTMLElement) || !(menu instanceof HTMLElement)) return;
 
         const trigger = summary.getBoundingClientRect();
@@ -194,22 +238,34 @@
         menu.style.visibility = 'visible';
     };
 
+    const closeMenu = (details) => {
+        if (!(details instanceof HTMLDetailsElement)) return;
+        details.open = false;
+        restoreMenu(details);
+    };
+
     const repositionOpenMenus = () => actionMenus().forEach(positionMenu);
 
     document.addEventListener('toggle', (event) => {
         const details = event.target;
         if (!isEllipsisActions(details)) return;
+
         if (details.open) {
             actionMenus().forEach((other) => {
-                if (other !== details) other.open = false;
+                if (other !== details) closeMenu(other);
             });
             requestAnimationFrame(() => positionMenu(details));
+        } else {
+            restoreMenu(details);
         }
     }, true);
 
     document.addEventListener('click', (event) => {
         actionMenus().forEach((details) => {
-            if (!details.contains(event.target)) details.open = false;
+            const portal = portals.get(details);
+            const insideTrigger = details.contains(event.target);
+            const insideMenu = portal?.menu instanceof HTMLElement && portal.menu.contains(event.target);
+            if (!insideTrigger && !insideMenu) closeMenu(details);
         });
     });
 
