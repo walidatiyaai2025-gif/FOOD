@@ -66,3 +66,5 @@
     --foodex-breakpoint-tablet:768px;
 }
 </style>
+
+<link rel="stylesheet" href="{{ asset('assets/admin/foodex-visualization.css') }}">
