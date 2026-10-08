@@ -121,17 +121,32 @@ final class SmsSettingsController extends Controller
             'latency_ms'=>$log->latency_ms,
         ],$request);
 
+        $testResult=[
+            'status'=>$log->status,
+            'meaning'=>$log->status==='sent'
+                ? __('sms.provider.sent')
+                : ($log->error_message ?: __('sms.provider.unknown_response')),
+            'request_id'=>$log->request_id,
+            'timestamp'=>$log->created_at?->toIso8601String() ?? now()->toIso8601String(),
+            'latency_ms'=>$log->latency_ms ?? 0,
+        ];
+
         if ($log->status!=='sent') {
-            return back()->withErrors(['sms_test'=>__('sms.test_failed',[
-                'reason'=>$log->error_message ?: __('sms.provider.unknown_response'),
-                'request'=>$log->request_id,
-            ])]);
+            return back()
+                ->withInput()
+                ->with('sms_test_result',$testResult)
+                ->withErrors(['sms_test'=>__('sms.test_failed',[
+                    'reason'=>$testResult['meaning'],
+                    'request'=>$log->request_id,
+                ])]);
         }
 
-        return back()->with('status',__('sms.test_sent',[
-            'request'=>$log->request_id,
-            'latency'=>$log->latency_ms ?? 0,
-        ]));
+        return back()
+            ->with('sms_test_result',$testResult)
+            ->with('status',__('sms.test_sent',[
+                'request'=>$log->request_id,
+                'latency'=>$log->latency_ms ?? 0,
+            ]));
     }
 
     private function authorizeAny(Request $request): User
