@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\VanAssignment;
 use App\Services\VanRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +36,7 @@ class VanRegistryServiceTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'van.assignment.created',
             'user_id' => $actor->id,
-            'auditable_type' => \App\Models\VanAssignment::class,
+            'auditable_type' => VanAssignment::class,
             'auditable_id' => $current->id,
         ]);
         $this->assertCount(1, $service->effectiveAssignments('2026-01-15T00:00:00Z'));
