@@ -22,7 +22,9 @@ class PlatformAnalyticsRolloutContractTest extends TestCase
 
         $this->assertStringContainsString('FoodexBarChart(', $customer);
         $this->assertStringContainsString('FoodexDonutChart(', $customer);
-        $this->assertStringContainsString('DriverWorkloadAnalytics', $driver);
+        $this->assertStringContainsString('_DriverWorkloadChart', $driver);
+        $this->assertStringContainsString('FoodexDonutChart(', $driver);
+        $this->assertStringContainsString('driver-home-workload-chart', $driver);
 
         $this->assertStringContainsString('FoodexBarChart(', $vanDashboard);
         $this->assertStringContainsString('FoodexDonutChart(', $vanOrders);
