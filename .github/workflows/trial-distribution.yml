@@ -1379,6 +1379,9 @@ jobs:
             "Release/FOODEX-Customer-${CURRENT_VERSION}.apk" \
             "Release/FOODEX-Driver-${CURRENT_VERSION}.apk" \
             "Release/FOODEX-Van-${CURRENT_VERSION}.apk" \
+            Release/FOODEX-Customer.apk \
+            Release/FOODEX-Driver.apk \
+            Release/FOODEX-Van.apk \
             Release/LATEST_RELEASE.json \
             Release/BUILD_INFO.json \
             Release/FOODEX-Laravel-Setup.zip \
@@ -1394,6 +1397,9 @@ jobs:
           grep -Fx "FOODEX-Customer-${CURRENT_VERSION}.apk" <<<"$assets"
           grep -Fx "FOODEX-Driver-${CURRENT_VERSION}.apk" <<<"$assets"
           grep -Fx "FOODEX-Van-${CURRENT_VERSION}.apk" <<<"$assets"
+          grep -Fx "FOODEX-Customer.apk" <<<"$assets"
+          grep -Fx "FOODEX-Driver.apk" <<<"$assets"
+          grep -Fx "FOODEX-Van.apk" <<<"$assets"
           grep -Fx "LATEST_RELEASE.json" <<<"$assets"
           grep -Fx "BUILD_INFO.json" <<<"$assets"
           grep -Fx "FOODEX-Laravel-Setup.zip" <<<"$assets"
