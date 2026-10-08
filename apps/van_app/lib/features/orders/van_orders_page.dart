@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
@@ -100,6 +101,94 @@ class _VanOrdersPageState extends State<VanOrdersPage>
     }
   }
 
+  int get _activeCount => _orders.where((order) {
+        return !{
+          'delivered',
+          'completed',
+          'cancelled',
+          'refunded',
+          'failed',
+        }.contains(order.status);
+      }).length;
+
+  int get _completedCount => _orders
+      .where((order) => {'delivered', 'completed'}.contains(order.status))
+      .length;
+
+  int get _exceptionCount => _orders
+      .where((order) => {'cancelled', 'refunded', 'failed'}.contains(order.status))
+      .length;
+
+  double get _ordersValue =>
+      _orders.fold(0, (sum, order) => sum + order.grandTotal);
+
+  String get _ordersCurrency {
+    final currencies = _orders.map((order) => order.currency).toSet();
+    return currencies.length == 1 ? currencies.first : '';
+  }
+
+  Widget _analytics(BuildContext context) => Card(
+        key: const ValueKey('van-orders-analytics'),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _text('Order outcomes', 'نتائج الطلبات'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _text(
+                  'Which orders still need attention, and what has completed?',
+                  'ما الطلبات التي ما زالت تحتاج متابعة وما الذي اكتمل؟',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  _ordersCurrency.isEmpty
+                      ? _ordersValue.toStringAsFixed(3)
+                      : '${_ordersValue.toStringAsFixed(3)} $_ordersCurrency',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FoodexDonutChart(
+                key: const ValueKey('van-orders-status-chart'),
+                values: [
+                  _activeCount.toDouble(),
+                  _completedCount.toDouble(),
+                  _exceptionCount.toDouble(),
+                ],
+                semanticLabel: _text(
+                  'Active, completed and exception order distribution',
+                  'توزيع الطلبات النشطة والمكتملة والاستثنائية',
+                ),
+                size: 134,
+                strokeWidth: 18,
+              ),
+              const SizedBox(height: 10),
+              FoodexChartLegend(
+                labels: [
+                  _text('Active', 'نشط'),
+                  _text('Completed', 'مكتمل'),
+                  _text('Exceptions', 'استثناءات'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
   String _statusLabel(String value) {
     switch (value) {
       case 'pending':
@@ -152,7 +241,9 @@ class _VanOrdersPageState extends State<VanOrdersPage>
             )
           else if (_orders.isEmpty)
             _state(_text('No Van orders yet.', 'لا توجد طلبات فان بعد.'))
-          else
+          else ...[
+            _analytics(context),
+            const SizedBox(height: 10),
             for (final order in _orders)
               Card(
                 key: ValueKey('van-order-${order.id}'),
@@ -207,6 +298,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                   ),
                 ),
               ),
+          ],
         ],
       ),
     );

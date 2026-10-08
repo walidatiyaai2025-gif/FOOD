@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
@@ -11,10 +12,18 @@ class VanDashboardPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onSessionExpired,
+    required this.onOpenCustomers,
+    required this.onOpenWallet,
+    required this.onOpenReceipts,
+    required this.onOpenRemittance,
   });
 
   final VanWalletRepository repository;
   final Future<void> Function() onSessionExpired;
+  final VoidCallback onOpenCustomers;
+  final VoidCallback onOpenWallet;
+  final VoidCallback onOpenReceipts;
+  final VoidCallback onOpenRemittance;
 
   @override
   State<VanDashboardPage> createState() => _VanDashboardPageState();
@@ -106,6 +115,27 @@ class _VanDashboardPageState extends State<VanDashboardPage>
   int get _remittanceCount =>
       _accounts.fold(0, (sum, account) => sum + account.remittances.length);
 
+  double get _receiptTotal => _accounts.fold(
+        0,
+        (sum, account) =>
+            sum +
+            account.receipts.fold<double>(
+              0,
+              (receiptSum, receipt) => receiptSum + receipt.amount,
+            ),
+      );
+
+  double get _remittanceTotal => _accounts.fold(
+        0,
+        (sum, account) =>
+            sum +
+            account.remittances.fold<double>(
+              0,
+              (remittanceSum, remittance) =>
+                  remittanceSum + remittance.amount,
+            ),
+      );
+
   String get _currency {
     if (_accounts.isEmpty) return 'KWD';
     final currencies = _accounts.map((a) => a.currency).toSet();
@@ -180,31 +210,124 @@ class _VanDashboardPageState extends State<VanDashboardPage>
                 icon: Icons.storefront_outlined,
                 label: _text('Assigned customers', 'العملاء المسندون'),
                 value: '${_customers.length}',
+                onTap: widget.onOpenCustomers,
               ),
               _KpiCard(
                 key: const ValueKey('van-dashboard-custody'),
                 icon: Icons.account_balance_wallet_outlined,
                 label: _text('Custody balance', 'رصيد العهدة'),
                 value: _money(_custodyBalance),
+                onTap: widget.onOpenWallet,
               ),
               _KpiCard(
                 key: const ValueKey('van-dashboard-remittable'),
                 icon: Icons.account_balance_outlined,
                 label: _text('Available to remit', 'المتاح للتوريد'),
                 value: _money(_availableToRemit),
+                onTap: widget.onOpenRemittance,
               ),
               _KpiCard(
                 key: const ValueKey('van-dashboard-receipts'),
                 icon: Icons.receipt_long_outlined,
                 label: _text('Posted receipts', 'الإيصالات المسجلة'),
                 value: '$_receiptCount',
+                onTap: widget.onOpenReceipts,
               ),
             ],
           ),
           const SizedBox(height: 12),
           Card(
+            key: const ValueKey('van-dashboard-cash-flow-analytics'),
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _text(
+                      'Collections vs remittances',
+                      'التحصيلات مقابل التوريدات',
+                    ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _text(
+                      'What share of collected cash is still awaiting remittance?',
+                      'ما نسبة التحصيلات التي ما زالت بانتظار التوريد؟',
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  FoodexBarChart(
+                    key: const ValueKey('van-dashboard-cash-flow-chart'),
+                    groups: [
+                      [_receiptTotal],
+                      [_remittanceTotal],
+                    ],
+                    semanticLabel: _text(
+                      'Collected and remitted cash comparison',
+                      'مقارنة مبالغ التحصيل والتوريد',
+                    ),
+                    height: 116,
+                    gap: 18,
+                  ),
+                  const SizedBox(height: 10),
+                  FoodexChartLegend(
+                    labels: [
+                      _text('Collected', 'المحصل'),
+                      _text('Remitted', 'المورد'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${_text('Collected', 'المحصل')}: ${_money(_receiptTotal)} · '
+                          '${_text('Remitted', 'المورد')}: ${_money(_remittanceTotal)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        key: const ValueKey('van-dashboard-cash-flow-menu'),
+                        tooltip: _text('Open details', 'فتح التفاصيل'),
+                        onSelected: (value) {
+                          if (value == 'receipts') {
+                            widget.onOpenReceipts();
+                          } else if (value == 'remittance') {
+                            widget.onOpenRemittance();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'receipts',
+                            child: Text(
+                              _text('Open receipts', 'فتح الإيصالات'),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'remittance',
+                            child: Text(
+                              _text('Open remittance', 'فتح التوريد'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
             elevation: 0,
             child: ListTile(
+              onTap: widget.onOpenRemittance,
               leading: const CircleAvatar(
                 backgroundColor: FoodexVanTokens.mint,
                 child: Icon(
@@ -238,39 +361,45 @@ class _KpiCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: FoodexVanTokens.green),
-            const Spacer(),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: FoodexVanTokens.green),
+              const Spacer(),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

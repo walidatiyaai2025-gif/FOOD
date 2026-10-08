@@ -78,6 +78,41 @@ class _LiveStatusRepo implements DriverAssignmentRepository {
   }) async {}
 }
 
+class _StaleStatusRepo implements DriverAssignmentRepository {
+  int listCalls = 0;
+
+  @override
+  Future<List<DriverAssignment>> list(DriverChannel channel) async {
+    listCalls++;
+    if (listCalls > 1) {
+      throw StateError('offline');
+    }
+    return const [
+      DriverAssignment(
+        id: 20,
+        channel: DriverChannel.b2c,
+        reference: 'STALE-ACCEPTED',
+        status: 'accepted',
+      ),
+      DriverAssignment(
+        id: 21,
+        channel: DriverChannel.b2c,
+        reference: 'STALE-DONE',
+        status: 'delivered',
+      ),
+    ];
+  }
+
+  @override
+  Future<void> transition(
+    int id,
+    DriverChannel channel,
+    String status, {
+    String? note,
+    String? failureReason,
+  }) async {}
+}
+
 class ChannelRecordingRepo implements DriverAssignmentRepository {
   DriverChannel? requestedChannel;
 
@@ -165,6 +200,9 @@ void main() {
 
     expect(find.byKey(const Key('driver-home-driver-name')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-grid')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-workload-chart')), findsOneWidget);
+    expect(find.text('توزيع التوصيلات'), findsOneWidget);
+    expect(find.text('مقبول · 1'), findsOneWidget);
     expect(find.text('قناة العمل'), findsNothing);
     expect(find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
@@ -244,6 +282,29 @@ void main() {
       find.descendant(of: failedCard, matching: find.text('1')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('home workload chart marks retained data stale after refresh failure',
+      (tester) async {
+    final repo = _StaleStatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-home-workload-chart')), findsOneWidget);
+    expect(find.text('مقبول · 1'), findsOneWidget);
+    expect(find.textContaining('آخر بيانات مؤكدة'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 15));
+    await tester.pump();
+
+    expect(repo.listCalls, greaterThan(1));
+    expect(find.textContaining('آخر بيانات مؤكدة'), findsOneWidget);
+    expect(find.text('مقبول · 1'), findsOneWidget);
   });
 
   testWidgets('home live refresh timer is stopped when the page is disposed',

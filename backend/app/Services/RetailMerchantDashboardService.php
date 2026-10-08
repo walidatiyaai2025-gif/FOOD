@@ -19,6 +19,7 @@ final class RetailMerchantDashboardService
         private readonly RetailReorderIntelligenceService $reorder,
         private readonly RetailMerchantIdentityService $identity,
         private readonly B2bAccountLedgerService $ledger,
+        private readonly SuggestedWholesalePurchasePlanService $purchasePlan,
     ) {}
 
     /** @return array<string,mixed> */
@@ -60,6 +61,16 @@ final class RetailMerchantDashboardService
             ->sum(fn (array $row): float => (float) data_get($row, 'recommendation.expected_cost', 0)), 3);
         $lostSalesRisk = round((float) $recommendations
             ->sum(fn (array $row): float => (float) data_get($row, 'economics.lost_sales_risk_revenue', 0)), 3);
+        $wholesaleAccount = $isOwner
+            ? $this->wholesaleAccount($user, $retailStoreId)
+            : null;
+        $purchasePlan = is_array(data_get($wholesaleAccount, 'finance'))
+            ? $this->purchasePlan->previewForOwner(
+                $user,
+                $retailStoreId,
+                $recommendations->all(),
+            )
+            : null;
 
         return [
             'retail_store_id' => $retailStoreId,
@@ -92,9 +103,8 @@ final class RetailMerchantDashboardService
                 'margin_velocity' => $this->marginVelocity($recommendations->all()),
                 'inventory_aging' => $this->agingDistribution($inventory['products']),
             ],
-            'wholesale_account' => $isOwner
-                ? $this->wholesaleAccount($user, $retailStoreId)
-                : null,
+            'wholesale_account' => $wholesaleAccount,
+            'purchase_plan' => $purchasePlan,
         ];
     }
 

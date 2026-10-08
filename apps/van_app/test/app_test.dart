@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_van_app/app.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
@@ -8,6 +9,19 @@ import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
+
+Future<void> _scrollUntilBuilt(
+  WidgetTester tester,
+  Finder scrollable,
+  Finder target,
+) async {
+  for (var attempt = 0;
+      attempt < 12 && target.evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(scrollable, const Offset(0, -180));
+    await tester.pumpAndSettle();
+  }
+}
 
 void main() {
   test('approved Van production inventory stays locked to 19 surfaces', () {
@@ -360,6 +374,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-dashboard-page')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-dashboard-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(
+      find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
+      findsOneWidget,
+    );
+    expect(find.byType(FoodexBarChart), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('15.000 KWD'), findsOneWidget);
     expect(find.text('9.000 KWD'), findsOneWidget);
@@ -439,6 +466,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-routes-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-routes-status-chart')), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('ROUTE-A'), findsOneWidget);
     expect(find.text('2 assigned visits'), findsOneWidget);
   });
@@ -588,10 +617,33 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-catalog-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-catalog-stock-chart')), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('Water Case'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('van-catalog-add-301')));
+    final catalogScrollable = find.descendant(
+      of: find.byKey(const ValueKey('van-catalog-page')),
+      matching: find.byType(Scrollable),
+    ).first;
+    final addProduct =
+        find.byKey(const ValueKey('van-catalog-add-301'));
+    await tester.scrollUntilVisible(
+      addProduct,
+      180,
+      scrollable: catalogScrollable,
+    );
+    await tester.drag(catalogScrollable, const Offset(0, -140));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('van-catalog-open-cart')));
+    expect(tester.widget<IconButton>(addProduct).onPressed, isNotNull);
+    await tester.tap(addProduct);
+    await tester.pumpAndSettle();
+
+    final openCart =
+        find.byKey(const ValueKey('van-catalog-open-cart'));
+    await _scrollUntilBuilt(tester, catalogScrollable, openCart);
+    expect(openCart, findsOneWidget);
+    await tester.ensureVisible(openCart);
+    await tester.pumpAndSettle();
+    await tester.tap(openCart);
     await tester.pumpAndSettle();
 
     expect(
@@ -618,8 +670,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-orders-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-orders-status-chart')), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
-    expect(find.text('12.000 KWD'), findsOneWidget);
+    expect(find.text('12.000 KWD'), findsWidgets);
     expect(orders.createdCount, 1);
   });
 

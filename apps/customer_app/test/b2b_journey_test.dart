@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
@@ -2066,8 +2067,22 @@ void main() {
       find.byKey(const ValueKey('b2b-purchases-category-donut')),
       findsOneWidget,
     );
-    expect(find.text('Rice'), findsOneWidget);
-    expect(find.text('Oil'), findsOneWidget);
+    expect(find.byType(FoodexBarChart), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(FoodexChartLegend),
+        matching: find.text('Rice'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(FoodexChartLegend),
+        matching: find.text('Oil'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('B2B-77'), findsOneWidget);
     expect(api.lastPath, contains('store_id=7'));
 
