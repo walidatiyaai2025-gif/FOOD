@@ -10,10 +10,10 @@ import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
+import '../../core/routing/customer_route_authority.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
-import 'retail_multistore_screens.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'platform_marketplace_screen.dart';
 import 'wholesale_multistore_screens.dart';
@@ -21,27 +21,9 @@ import 'wholesale_multistore_screens.dart';
 bool shouldUseMultiStoreDesign(
   CustomerRouteDefinition definition,
   String location,
-) {
-  switch (definition.pattern) {
-    case CustomerRoutePaths.marketplace:
-    case CustomerRoutePaths.retailHome:
-    case CustomerRoutePaths.retailProductDetails:
-    case CustomerRoutePaths.b2bHome:
-    case CustomerRoutePaths.b2bProducts:
-    case CustomerRoutePaths.b2bCart:
-    case CustomerRoutePaths.b2bCheckout:
-    case CustomerRoutePaths.b2bOrders:
-    case CustomerRoutePaths.b2bOrderDetails:
-      return true;
-    case CustomerRoutePaths.home:
-    case CustomerRoutePaths.productDetails:
-      return false;
-    case CustomerRoutePaths.b2bProductDetails:
-      return wholesaleStoreIdFromLocation(location) > 0;
-    default:
-      return false;
-  }
-}
+) =>
+    customerRouteAuthorityFor(definition, location) ==
+    CustomerRouteAuthority.multiStore;
 
 class MultiStoreDesignScreen extends StatelessWidget {
   const MultiStoreDesignScreen({
@@ -117,30 +99,6 @@ class MultiStoreDesignScreen extends StatelessWidget {
           client: marketplaceClient,
           barcodeScanner:
               marketplaceBarcodeScanner ?? showMarketplaceBarcodeScanner,
-        );
-      case CustomerRoutePaths.home:
-      case CustomerRoutePaths.retailHome:
-        return withFooter(
-          RetailStorefrontDesignScreen(
-            location: location,
-            session: session,
-            catalogApi: catalogApi,
-            storefrontApi: storefrontApi,
-            actionApi: actionApi,
-          ),
-          CustomerFooterDestination.home,
-        );
-      case CustomerRoutePaths.productDetails:
-      case CustomerRoutePaths.retailProductDetails:
-        return withFooter(
-          RetailProductDetailsDesignScreen(
-            location: location,
-            session: session,
-            catalogApi: catalogApi,
-            actionApi: actionApi,
-            favoritesApi: favoritesApi,
-          ),
-          CustomerFooterDestination.products,
         );
       case CustomerRoutePaths.b2bHome:
         return withFooter(

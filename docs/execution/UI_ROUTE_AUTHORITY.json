@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "issue": 1100,
+  "purpose": "One documented production UI/route authority per function and scope.",
+  "surfaces": {
+    "customer": {
+      "authority_source": "apps/customer_app/lib/core/routing/customer_route_authority.dart",
+      "router": "apps/customer_app/lib/core/routing/customer_router.dart",
+      "evidence_test": "apps/customer_app/test/screenshot_evidence_test.dart",
+      "authority_test": "apps/customer_app/test/customer_route_authority_test.dart",
+      "functions": [
+        {
+          "id": "customer.marketplace",
+          "route": "/marketplace",
+          "authority": "MultiStoreDesignScreen"
+        },
+        {
+          "id": "customer.retail.store.home",
+          "route": "/retail/:store/home",
+          "authority": "RetailCustomerJourneyScreen"
+        },
+        {
+          "id": "customer.retail.store.product",
+          "route": "/retail/:store/products/:product",
+          "authority": "RetailCustomerJourneyScreen"
+        },
+        {
+          "id": "customer.retail.legacy.journey",
+          "route": "/home,/offers,/products,/products/:id,/categories,/favorites,/orders,/notifications,/profile/*,/cart,/checkout/*",
+          "authority": "RetailCustomerJourneyScreen"
+        },
+        {
+          "id": "customer.wholesale.home",
+          "route": "/b2b/home",
+          "authority": "WholesaleHomeDesignScreen"
+        },
+        {
+          "id": "customer.wholesale.catalog",
+          "route": "/b2b/products",
+          "authority": "WholesaleCatalogDesignScreen"
+        },
+        {
+          "id": "customer.wholesale.product.scoped",
+          "route": "/b2b/products/:id + wholesale store context",
+          "authority": "WholesaleProductDetailsDesignScreen"
+        },
+        {
+          "id": "customer.wholesale.orders",
+          "route": "/b2b/orders,/b2b/orders/:id",
+          "authority": "WholesaleOrdersDesignScreen / WholesaleOrderDetailsDesignScreen"
+        },
+        {
+          "id": "customer.wholesale.checkout",
+          "route": "/b2b/cart,/b2b/checkout",
+          "authority": "MultiStoreDesignScreen"
+        },
+        {
+          "id": "customer.wholesale.account",
+          "route": "/b2b/dashboard,/b2b/reports/*,/b2b/invoices*,/b2b/account-statement,/b2b/notifications,/b2b/profile*,/b2b/profile/addresses",
+          "authority": "B2bJourneyScreen"
+        },
+        {
+          "id": "customer.auth",
+          "route": "/entry,/auth/checkout",
+          "authority": "UnifiedCustomerAuthScreen"
+        }
+      ],
+      "compatibility": [
+        {
+          "id": "customer.wholesale.product.unscoped",
+          "route": "/b2b/products/:id without wholesale store context",
+          "authority": "B2bJourneyScreen",
+          "status": "compatibility_only"
+        }
+      ],
+      "forbidden_files": [
+        "apps/customer_app/lib/features/home/b2c_journey_screen.dart"
+      ],
+      "forbidden_markers": [
+        {
+          "file": "apps/customer_app/lib/features/b2b/b2b_journey_screen.dart",
+          "marker": "CustomerOrdersScreen("
+        },
+        {
+          "file": "apps/customer_app/lib/core/routing/customer_router.dart",
+          "marker": "_isRetailJourney("
+        },
+        {
+          "file": "apps/customer_app/lib/features/storefront/multistore_design_screen.dart",
+          "marker": "RetailStorefrontDesignScreen("
+        },
+        {
+          "file": "apps/customer_app/lib/features/storefront/multistore_design_screen.dart",
+          "marker": "RetailProductDetailsDesignScreen("
+        }
+      ]
+    },
+    "driver": {
+      "authority_source": "apps/driver_app/lib/navigation.dart",
+      "evidence_test": "apps/driver_app/test/screenshot_evidence_test.dart",
+      "functions": [
+        {
+          "id": "driver.b2c.home",
+          "route": "/driver/b2c/home",
+          "authority": "DriverNavigator._homeFor"
+        },
+        {
+          "id": "driver.b2c.deliveries",
+          "route": "/driver/b2c/deliveries",
+          "authority": "DriverJourneyRuntimePage"
+        },
+        {
+          "id": "driver.b2b.home",
+          "route": "/driver/b2b/home",
+          "authority": "DriverNavigator._homeFor"
+        },
+        {
+          "id": "driver.b2b.deliveries",
+          "route": "/driver/b2b/deliveries",
+          "authority": "DriverJourneyRuntimePage"
+        },
+        {
+          "id": "driver.notifications",
+          "route": "/driver/{channel}/notifications",
+          "authority": "DriverNotificationPage"
+        },
+        {
+          "id": "driver.wallet",
+          "route": "/driver/{channel}/wallet",
+          "authority": "DriverWalletPage"
+        }
+      ],
+      "forbidden_files": [
+        "apps/driver_app/lib/features/tasks/driver_journey.dart"
+      ]
+    },
+    "van": {
+      "authority_source": "apps/van_app/lib/features/foundation/van_screen_inventory.dart",
+      "router": "apps/van_app/lib/features/foundation/van_foundation_screen.dart",
+      "evidence_test": "apps/van_app/test/screenshot_evidence_test.dart",
+      "production_screens": [
+        "login",
+        "dashboard",
+        "routes",
+        "routeMap",
+        "routeDetail",
+        "customers",
+        "visit",
+        "customer360",
+        "catalog",
+        "orderBuilder",
+        "orderReview",
+        "orders",
+        "offers",
+        "wallet",
+        "collection",
+        "receipt",
+        "remittance",
+        "notifications",
+        "profile"
+      ]
+    },
+    "dashboard": {
+      "authority_source": "backend/routes/web.php",
+      "api_authority_source": "backend/routes/api.php",
+      "shell": "backend/resources/views/admin/shell.blade.php",
+      "sidebar": "backend/resources/views/admin/_sidebar.blade.php",
+      "convergence_test": "backend/tests/Feature/SidebarOnlyDashboardNavigationTest.php",
+      "responsive_test": "backend/tests/Feature/AdminResponsiveLayoutTest.php",
+      "localization_sources": [
+        "backend/lang/ar",
+        "backend/lang/en"
+      ]
+    }
+  },
+  "design_systems": [
+    "apps/customer_app/lib/core/theme/customer_ui_v3_tokens.dart",
+    "apps/customer_app/lib/features/storefront/storefront_design_system.dart",
+    "apps/driver_app/lib/core/theme/foodex_theme.dart",
+    "apps/van_app/lib/core/theme/foodex_van_theme.dart",
+    "backend/resources/views/admin/_brand-components.blade.php"
+  ]
+}

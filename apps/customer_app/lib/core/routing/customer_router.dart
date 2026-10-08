@@ -23,6 +23,7 @@ import '../../features/storefront/marketplace_barcode_scanner.dart';
 import '../../features/storefront/multistore_design_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import 'customer_commerce_context.dart';
+import 'customer_route_authority.dart';
 import 'customer_pending_action.dart';
 import 'customer_routes.dart';
 
@@ -125,7 +126,17 @@ class CustomerAppRouter {
             ) !=
             null;
 
-    if (_isRetailJourney(requested) && !wholesaleAuthHandoff) {
+    final requestedAuthority = customerRouteAuthorityFor(
+      requested,
+      requestedLocation,
+    );
+    final shouldNormalizeRetail =
+        requested.channel == CustomerChannel.b2c &&
+        (requestedAuthority == CustomerRouteAuthority.retailJourney ||
+            requestedAuthority == CustomerRouteAuthority.multiStore ||
+            requested.pattern == CustomerRoutePaths.checkoutAuth);
+
+    if (shouldNormalizeRetail && !wholesaleAuthHandoff) {
       final normalized = _normalizeRetailLocation(
         requested,
         requestedLocation,
@@ -177,27 +188,6 @@ class CustomerAppRouter {
 
     return null;
   }
-
-  bool _isRetailJourney(CustomerRouteDefinition definition) =>
-      const <String>{
-        CustomerRoutePaths.home,
-        CustomerRoutePaths.retailHome,
-        CustomerRoutePaths.offers,
-        CustomerRoutePaths.products,
-        CustomerRoutePaths.productDetails,
-        CustomerRoutePaths.retailProductDetails,
-        CustomerRoutePaths.categories,
-        CustomerRoutePaths.favorites,
-        CustomerRoutePaths.orders,
-        CustomerRoutePaths.notifications,
-        CustomerRoutePaths.addresses,
-        CustomerRoutePaths.settings,
-        CustomerRoutePaths.cart,
-        CustomerRoutePaths.checkoutAuth,
-        CustomerRoutePaths.checkoutAddressPayment,
-        CustomerRoutePaths.orderTracking,
-        CustomerRoutePaths.profile,
-      }.contains(definition.pattern);
 
   String? _normalizeRetailLocation(
     CustomerRouteDefinition definition,
@@ -285,7 +275,13 @@ class CustomerAppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) {
-        if (definition.pattern == CustomerRoutePaths.entry) {
+        final authority = customerRouteAuthorityFor(
+          definition,
+          requestedLocation,
+        );
+
+        if (authority == CustomerRouteAuthority.unifiedAuth &&
+            definition.pattern == CustomerRoutePaths.entry) {
           final uri = Uri.parse(requestedLocation);
           return UnifiedCustomerAuthScreen(
             nextRoute: CustomerRoutePaths.b2bDashboard,
@@ -302,11 +298,12 @@ class CustomerAppRouter {
           );
         }
 
-        if (definition.pattern == CustomerRoutePaths.diagnostics) {
+        if (authority == CustomerRouteAuthority.diagnostics) {
           return const CustomerDiagnosticsScreen();
         }
 
-        if (definition.pattern == CustomerRoutePaths.checkoutAuth) {
+        if (authority == CustomerRouteAuthority.unifiedAuth &&
+            definition.pattern == CustomerRoutePaths.checkoutAuth) {
           final uri = Uri.parse(requestedLocation);
           final rawNext = uri.queryParameters['next'];
           var commerceContext =
@@ -361,7 +358,7 @@ class CustomerAppRouter {
           );
         }
 
-        if (_isRetailJourney(definition)) {
+        if (authority == CustomerRouteAuthority.retailJourney) {
           return RetailCustomerJourneyScreen(
             definition: definition,
             location: requestedLocation,
@@ -381,7 +378,7 @@ class CustomerAppRouter {
           );
         }
 
-        if (shouldUseMultiStoreDesign(definition, requestedLocation)) {
+        if (authority == CustomerRouteAuthority.multiStore) {
           return MultiStoreDesignScreen(
             definition: definition,
             location: requestedLocation,
@@ -406,13 +403,12 @@ class CustomerAppRouter {
           );
         }
 
-        if (definition.channel == CustomerChannel.b2b) {
+        if (authority == CustomerRouteAuthority.b2bJourney) {
           return B2bJourneyScreen(
             definition: definition,
             location: requestedLocation,
             api: b2bApi,
             accountApi: b2bAccountApi,
-            ordersApi: customerOrdersApi,
             storefrontApi: storefrontApi,
             actionApi: actionApi,
             onLocaleChanged: onLocaleChanged,
