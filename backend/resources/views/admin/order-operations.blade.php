@@ -8,7 +8,7 @@
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
 .filters{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:10px;padding:16px;margin-bottom:16px}.filters label{display:grid;gap:5px;font-weight:700;font-size:.8rem}
 .status-tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;margin-bottom:2px}.status-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:999px;text-decoration:none;color:inherit;background:var(--foodex-surface,#fff);font-weight:800}.status-tab[aria-current="page"]{outline:2px solid currentColor}.status-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.06);font-size:.78rem}
-.table-wrap{overflow:auto}.ops-table{min-width:1200px}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:6px 0 0}.row-action-menu select{min-width:0;width:100%}.row-action-menu button{width:100%}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}
+.table-wrap{overflow:auto}.ops-table{min-width:1200px}.row-actions{position:relative;display:inline-block}.row-actions summary{list-style:none;width:34px;height:34px;border:1px solid var(--foodex-green,#179c52);border-radius:50%;display:grid;place-items:center;background:var(--foodex-green,#179c52);color:#fff;cursor:pointer;font-size:20px;line-height:1}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open] summary{box-shadow:0 0 0 3px rgba(23,156,82,.14)}.row-action-menu{position:absolute;z-index:40;inset-inline-end:0;top:40px;width:220px;background:#fff;border:1px solid var(--foodex-border);border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.14);padding:8px}.row-action-menu>a{display:block;text-decoration:none;color:var(--foodex-ink);font-weight:800;padding:9px 10px;border-radius:8px}.row-action-menu>a:hover{background:#f6f8fa}.row-action-menu form{display:grid;gap:8px;margin:6px 0 0}.row-action-menu select{min-width:0;width:100%}.row-action-menu button{width:100%}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.order-detail-drawer{position:fixed;inset:0 0 0 auto;width:min(860px,94vw);height:100vh;max-height:none;margin:0;border:0;border-inline-start:1px solid var(--foodex-border);padding:0;background:var(--foodex-surface,#fff);box-shadow:-18px 0 50px rgba(15,23,42,.18);z-index:100}.order-detail-drawer::backdrop{background:rgba(15,23,42,.35)}.order-detail-drawer-shell{padding:20px;overflow:auto;height:100%}.order-detail-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.order-detail-close{text-decoration:none;font-weight:900;font-size:1.35rem;color:inherit}.timeline{display:grid;gap:8px}.timeline-item{padding:10px;border:1px solid var(--foodex-border);border-radius:10px}
 @media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.detail-grid{grid-template-columns:1fr}}@media(max-width:600px){.filters{grid-template-columns:1fr}}
 </style>
 </head>
@@ -94,7 +94,11 @@ $businessLabel = static function ($value): string {
 {{ $orders->links() }}
 
 @if($detail)
-<section class="detail-grid" style="margin-top:18px">
+@php($detailCloseQuery=request()->except(['order']))
+<dialog class="order-detail-drawer" open aria-label="{{ __('order_operations.view_order') }}">
+<div class="order-detail-drawer-shell">
+<div class="order-detail-drawer-head"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.filters.reset') }}">×</a></div>
+<section class="detail-grid">
 <div class="foodex-card panel">
 <h2>{{ __('order_operations.detail.context') }} · {{ $detail['number'] }}</h2>
 <div class="timeline-item" data-order-authoritative-context>
@@ -159,6 +163,8 @@ $businessLabel = static function ($value): string {
 </div>
 </div>
 </section>
+</div>
+</dialog>
 @endif
 </main>
 <aside class="sidebar">@include('admin._sidebar')</aside>
