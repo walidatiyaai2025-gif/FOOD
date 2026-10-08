@@ -8,6 +8,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  foodex_visualization:
+    path: ../../packages/foodex_visualization
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.8
