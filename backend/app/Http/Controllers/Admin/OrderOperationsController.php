@@ -6,10 +6,13 @@ use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Jobs\DispatchPushNotification;
+use App\Models\AuditLog;
 use App\Models\DriverAssignment;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\OrderDispatchState;
 use App\Models\OrderStatusHistory;
+use App\Models\OrderVanAssignment;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
@@ -18,6 +21,7 @@ use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\OrderManualDispatchService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +56,7 @@ final class OrderOperationsController extends Controller
             'order_number' => ['nullable', 'string', 'max:80'],
             'status' => ['nullable', 'string', Rule::in($statusCodes)],
             'driver_id' => ['nullable', 'integer', 'min:1'],
+            'dispatch_status' => ['nullable', 'string', Rule::in(['awaiting_dispatch', 'assigned'])],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
@@ -62,7 +67,8 @@ final class OrderOperationsController extends Controller
             : $this->defaultOperationalChannel($actor);
         $data['channel'] = $operationalChannel;
 
-        $scopes = $this->operationalScopes($actor, $operationalChannel);
+        $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
+        $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
         $storeIds = array_values(array_unique(array_merge(
             $scopes['b2b'],
             $scopes['b2c'],
@@ -94,6 +100,16 @@ final class OrderOperationsController extends Controller
                 }),
             );
 
+        if (isset($data['dispatch_status'])) {
+            $dispatchStatus = (string) $data['dispatch_status'];
+            $orderQuery->whereExists(function ($dispatch) use ($dispatchStatus): void {
+                $dispatch->selectRaw('1')
+                    ->from('order_dispatch_states')
+                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                    ->where('order_dispatch_states.status', $dispatchStatus);
+            });
+        }
+
         $statusCounts = (clone $orderQuery)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
@@ -123,7 +139,7 @@ final class OrderOperationsController extends Controller
             ->all();
 
         $rows = collect($orders->items())
-            ->map(fn (Order $order): array => $this->row($order, $statusLabels, $activeStatusCodes))
+            ->map(fn (Order $order): array => $this->row($order, $statusLabels, $activeStatusCodes, $dispatchScopes))
             ->all();
 
         $stores = DB::table('stores')
@@ -155,13 +171,25 @@ final class OrderOperationsController extends Controller
                 'users.name',
             ]);
 
+        $vans = DB::table('vans')
+            ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
+            ->where('vans.status', 'active')
+            ->where('van_assignments.status', 'active')
+            ->where('van_assignments.effective_from', '<=', now())
+            ->where(fn ($query) => $query
+                ->whereNull('van_assignments.effective_until')
+                ->orWhere('van_assignments.effective_until', '>', now()))
+            ->orderBy('vans.code')
+            ->distinct()
+            ->get(['vans.id', 'vans.code', 'vans.plate_number']);
+
         $detail = null;
         if (isset($data['order'])) {
             $detailOrder = Order::query()
                 ->whereKey((int) $data['order'])
                 ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
                 ->firstOrFail();
-            $detail = $this->detail($actor, $detailOrder, $statusLabels, $activeStatusCodes);
+            $detail = $this->detail($actor, $detailOrder, $statusLabels, $activeStatusCodes, $dispatchScopes);
         }
 
         return view('admin.order-operations', [
@@ -173,6 +201,7 @@ final class OrderOperationsController extends Controller
             'rows' => $rows,
             'stores' => $stores,
             'drivers' => $drivers,
+            'vans' => $vans,
             'detail' => $detail,
             'statuses' => array_map(
                 static fn (array $option): string => (string) $option['code'],
@@ -549,19 +578,202 @@ final class OrderOperationsController extends Controller
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
     }
 
+    public function dispatch(
+        Request $request,
+        int $order,
+        DriverAssignmentController $deliveries,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $notifier,
+        OrderManualDispatchService $dispatch,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $this->scope->assertStore(
+            $actor,
+            (int) $model->store_id,
+            'orders.dispatch',
+            (string) $model->channel,
+        );
+
+        $data = $request->validate([
+            'assignee_type' => ['required', Rule::in(['driver', 'van'])],
+            'assignee_id' => ['required', 'integer', 'min:1'],
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+        $reason = trim((string) $data['reason']);
+
+        if ((string) $data['assignee_type'] === 'driver') {
+            $driverId = (int) $data['assignee_id'];
+
+            DB::transaction(function () use (
+                $model,
+                $actor,
+                $driverId,
+                $reason,
+                $request,
+                $deliveries,
+                $audit,
+                $notifier,
+                $dispatch,
+            ): void {
+                $active = DriverAssignment::query()
+                    ->where('order_id', $model->getKey())
+                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                    ->lockForUpdate()
+                    ->latest('id')
+                    ->first();
+
+                if ($active instanceof DriverAssignment && (int) $active->driver_id === $driverId) {
+                    $dispatch->assignDriver($model, $actor, $active, $reason);
+
+                    return;
+                }
+
+                $request->merge([
+                    'driver_id' => $driverId,
+                    'order_id' => (int) $model->getKey(),
+                    'store_id' => (int) $model->store_id,
+                    'replace_existing' => true,
+                    'customer_service_override' => true,
+                ]);
+                $deliveries->assign($request, $audit, $notifier);
+
+                $assignment = DriverAssignment::query()
+                    ->where('order_id', $model->getKey())
+                    ->where('driver_id', $driverId)
+                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                    ->latest('id')
+                    ->first();
+                abort_unless($assignment instanceof DriverAssignment, 409, 'Driver assignment was not persisted.');
+                $dispatch->assignDriver($model, $actor, $assignment, $reason);
+            });
+
+            return back()->with('status', $this->msg(
+                'تم توجيه الطلب إلى السائق.',
+                'Order dispatched to driver.',
+            ));
+        }
+
+        $vanId = (int) $data['assignee_id'];
+
+        DB::transaction(function () use (
+            $model,
+            $actor,
+            $order,
+            $vanId,
+            $reason,
+            $request,
+            $deliveries,
+            $audit,
+            $notifier,
+            $dispatch,
+        ): void {
+            $vanAssignable = DB::table('vans')
+                ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
+                ->where('vans.id', $vanId)
+                ->where('vans.status', 'active')
+                ->where('van_assignments.status', 'active')
+                ->where('van_assignments.effective_from', '<=', now())
+                ->where(fn ($query) => $query
+                    ->whereNull('van_assignments.effective_until')
+                    ->orWhere('van_assignments.effective_until', '>', now()))
+                ->exists();
+            abort_unless($vanAssignable, 422, 'Selected Van has no effective active assignment.');
+
+            $activeDriver = DriverAssignment::query()
+                ->where('order_id', $model->getKey())
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            if ($activeDriver instanceof DriverAssignment) {
+                $request->merge([
+                    'store_id' => (int) $model->store_id,
+                    'reason' => $reason,
+                ]);
+                $deliveries->unassign($request, $order, $audit, $notifier);
+            }
+
+            $dispatch->assignVan($model, $actor, $vanId, $reason);
+        });
+
+        return back()->with('status', $this->msg(
+            'تم توجيه الطلب إلى الفان.',
+            'Order dispatched to Van.',
+        ));
+    }
+
+    public function clearDispatch(
+        Request $request,
+        int $order,
+        DriverAssignmentController $deliveries,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $notifier,
+        OrderManualDispatchService $dispatch,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $this->scope->assertStore(
+            $actor,
+            (int) $model->store_id,
+            'orders.dispatch',
+            (string) $model->channel,
+        );
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+        $reason = trim((string) $data['reason']);
+
+        DB::transaction(function () use (
+            $model,
+            $actor,
+            $order,
+            $reason,
+            $request,
+            $deliveries,
+            $audit,
+            $notifier,
+            $dispatch,
+        ): void {
+            $activeDriver = DriverAssignment::query()
+                ->where('order_id', $model->getKey())
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            if ($activeDriver instanceof DriverAssignment) {
+                $request->merge([
+                    'store_id' => (int) $model->store_id,
+                    'reason' => $reason,
+                ]);
+                $deliveries->unassign($request, $order, $audit, $notifier);
+            }
+
+            $dispatch->clear($model, $actor, $reason);
+        });
+
+        return back()->with('status', $this->msg(
+            'تم إرجاع الطلب إلى قائمة التوجيه المعلق.',
+            'Order returned to the pending dispatch queue.',
+        ));
+    }
+
     public function reassign(
         Request $request,
         int $order,
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $notifier,
+        OrderManualDispatchService $dispatch,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
-            'drivers.'.strtolower((string) $model->channel).'.manage',
+            'orders.dispatch',
             (string) $model->channel,
         );
 
@@ -576,6 +788,21 @@ final class OrderOperationsController extends Controller
 
         $deliveries->assign($request, $audit, $notifier);
 
+        $assignment = DriverAssignment::query()
+            ->where('order_id', $model->getKey())
+            ->where('driver_id', (int) $request->input('driver_id'))
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+            ->latest('id')
+            ->first();
+        if ($assignment instanceof DriverAssignment) {
+            $dispatch->assignDriver(
+                $model,
+                $actor,
+                $assignment,
+                trim((string) $request->input('reason', 'legacy_driver_assignment')),
+            );
+        }
+
         return back()->with('status', $this->msg('تم تعيين السائق للطلب.', 'Driver assigned to order.'));
     }
 
@@ -585,18 +812,24 @@ final class OrderOperationsController extends Controller
         DriverAssignmentController $deliveries,
         AuditLogger $audit,
         DashboardOperationalNotifier $notifier,
+        OrderManualDispatchService $dispatch,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
-            'drivers.'.strtolower((string) $model->channel).'.manage',
+            'orders.dispatch',
             (string) $model->channel,
         );
 
         $request->merge(['store_id' => (int) $model->store_id]);
         $deliveries->unassign($request, $order, $audit, $notifier);
+        $dispatch->clear(
+            $model,
+            $actor,
+            trim((string) $request->input('reason', 'legacy_driver_unassign')),
+        );
 
         return back()->with('status', $this->msg('تم سحب الطلب من السائق.', 'Order unassigned from driver.'));
     }
@@ -619,8 +852,13 @@ final class OrderOperationsController extends Controller
      * @param  list<string>  $activeStatusCodes
      * @return array<string,mixed>
      */
-    private function row(Order $order, array $statusLabels, array $activeStatusCodes): array
-    {
+    private function row(
+        Order $order,
+        array $statusLabels,
+        array $activeStatusCodes,
+        array $dispatchScopes,
+    ): array {
+
         $assignment = DriverAssignment::query()
             ->where('order_id', $order->getKey())
             ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
@@ -633,6 +871,36 @@ final class OrderOperationsController extends Controller
                 ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
                 ->where('drivers.id', $assignment->driver_id)
                 ->first(['drivers.id', 'drivers.user_id', 'users.name']);
+
+        $dispatch = OrderDispatchState::query()
+            ->where('order_id', $order->getKey())
+            ->first();
+        /** @var OrderDispatchState|null $dispatch */
+        $dispatchAssignee = null;
+        if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'driver') {
+            $dispatchDriver = DB::table('drivers')
+                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                ->where('drivers.id', (int) $dispatch->current_assignee_id)
+                ->first(['users.name']);
+            $dispatchAssignee = $dispatchDriver === null
+                ? $this->msg('سائق بدون اسم', 'Unnamed driver')
+                : (trim((string) $dispatchDriver->name)
+                    ?: $this->msg('سائق بدون اسم', 'Unnamed driver'));
+        } elseif ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'van') {
+            $dispatchVan = DB::table('vans')
+                ->where('id', (int) $dispatch->current_assignee_id)
+                ->first(['code', 'plate_number']);
+            if ($dispatchVan !== null) {
+                $dispatchAssignee = trim((string) $dispatchVan->code)
+                    .($dispatchVan->plate_number ? ' · '.$dispatchVan->plate_number : '');
+            }
+        }
+
+        $dispatchTerritory = $dispatch?->service_territory_id === null
+            ? null
+            : DB::table('service_territories')
+                ->where('id', (int) $dispatch->service_territory_id)
+                ->first(['code', 'name_ar', 'name_en']);
 
         $customerName = strtolower((string) $order->channel) === 'b2b'
             ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->value('name')
@@ -690,6 +958,20 @@ final class OrderOperationsController extends Controller
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
             'driver' => $driver?->name,
+            'dispatch_status' => $dispatch === null ? 'unrouted' : (string) $dispatch->status,
+            'dispatch_source' => $dispatch?->routing_source,
+            'dispatch_reason' => $dispatch?->routing_reason,
+            'dispatch_assignee_type' => $dispatch?->current_assignee_type,
+            'dispatch_assignee' => $dispatchAssignee,
+            'dispatch_territory' => $dispatchTerritory === null
+                ? null
+                : ((app()->getLocale() === 'ar' ? $dispatchTerritory->name_ar : $dispatchTerritory->name_en)
+                    ?: $dispatchTerritory->code),
+            'can_dispatch' => in_array(
+                (int) $order->store_id,
+                $dispatchScopes[strtolower((string) $order->channel)] ?? [],
+                true,
+            ),
         ];
     }
 
@@ -698,9 +980,14 @@ final class OrderOperationsController extends Controller
      * @param  list<string>  $activeStatusCodes
      * @return array<string,mixed>
      */
-    private function detail(User $actor, Order $order, array $statusLabels, array $activeStatusCodes): array
-    {
-        $row = $this->row($order, $statusLabels, $activeStatusCodes);
+    private function detail(
+        User $actor,
+        Order $order,
+        array $statusLabels,
+        array $activeStatusCodes,
+        array $dispatchScopes,
+    ): array {
+        $row = $this->row($order, $statusLabels, $activeStatusCodes, $dispatchScopes);
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $history = OrderStatusHistory::query()
@@ -734,11 +1021,63 @@ final class OrderOperationsController extends Controller
             })
             ->all();
 
+        $vanAssignments = OrderVanAssignment::query()
+            ->where('order_id', $order->getKey())
+            ->latest('id')
+            ->get()
+            ->map(function (OrderVanAssignment $assignment): array {
+                $van = DB::table('vans')
+                    ->where('id', $assignment->van_id)
+                    ->first(['code', 'plate_number']);
+
+                return [
+                    'van' => $van === null
+                        ? $this->msg('فان غير متاح', 'Unavailable Van')
+                        : trim((string) $van->code).($van->plate_number ? ' · '.$van->plate_number : ''),
+                    'status' => (string) $assignment->status,
+                    'source' => (string) $assignment->source,
+                    'reason' => $assignment->reason,
+                    'assigned_at' => $assignment->assigned_at,
+                    'ended_at' => $assignment->ended_at,
+                ];
+            })
+            ->all();
+
+        $dispatchAudit = AuditLog::query()
+            ->leftJoin('users', 'users.id', '=', 'audit_logs.user_id')
+            ->where('audit_logs.auditable_type', Order::class)
+            ->where('audit_logs.auditable_id', $order->getKey())
+            ->where('audit_logs.event', 'like', 'order.dispatch.%')
+            ->latest('audit_logs.id')
+            ->get([
+                'audit_logs.event',
+                'audit_logs.after',
+                'audit_logs.created_at',
+                'users.name as actor_name',
+            ])
+            ->map(static function (AuditLog $entry): array {
+                /** @var array<string,mixed> $after */
+                $after = $entry->getAttribute('after') ?? [];
+
+                return [
+                    'event_key' => str_replace('.', '_', (string) $entry->event),
+                    'actor' => trim((string) ($entry->actor_name ?? '')),
+                    'status' => $after['status'] ?? null,
+                    'source' => $after['routing_source'] ?? null,
+                    'reason' => $after['routing_reason'] ?? null,
+                    'assignee_type' => $after['current_assignee_type'] ?? null,
+                    'created_at' => $entry->created_at,
+                ];
+            })
+            ->all();
+
         return [
             ...$row,
             'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
+            'van_assignments' => $vanAssignments,
+            'dispatch_audit' => $dispatchAudit,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
         ];
     }
@@ -804,17 +1143,20 @@ final class OrderOperationsController extends Controller
     }
 
     /** @return array{b2b:array<int,int>,b2c:array<int,int>} */
-    private function operationalScopes(User $actor, string $channel): array
-    {
+    private function operationalScopes(
+        User $actor,
+        string $channel,
+        string $permission = 'orders.view',
+    ): array {
         $principalStoreId = app(WholesalePrincipal::class)->storeId();
         $b2b = in_array($channel, ['all', 'b2b'], true)
             ? array_values(array_filter(
-                $this->scope->allowedStoreIds($actor, 'orders.view', 'b2b'),
+                $this->scope->allowedStoreIds($actor, $permission, 'b2b'),
                 static fn (int $storeId): bool => $storeId === $principalStoreId,
             ))
             : [];
         $b2c = in_array($channel, ['all', 'b2c'], true)
-            ? $this->scope->allowedStoreIds($actor, 'orders.view', 'b2c')
+            ? $this->scope->allowedStoreIds($actor, $permission, 'b2c')
             : [];
 
         return ['b2b' => $b2b, 'b2c' => $b2c];
