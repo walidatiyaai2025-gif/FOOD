@@ -130,6 +130,7 @@ return [
         'rejected' => 'مرفوض',
     ],
     'resolution_sources' => [
+        'unknown' => 'مصدر غير معروف',
         'unresolved' => 'غير محسوم',
         'admin_confirmed' => 'تأكيد إداري',
         'evidence' => 'بيانات إثبات',
