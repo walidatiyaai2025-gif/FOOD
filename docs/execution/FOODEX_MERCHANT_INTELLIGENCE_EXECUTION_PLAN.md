@@ -69,6 +69,10 @@ Hard invariants:
 8. **No client-trusted pricing, credit, balance, inventory or recommendation inputs.**
 9. **No LLM/AI calculation of core inventory, finance or order quantities.**
 10. **All recommendations must be explainable from deterministic facts.**
+11. **No backend/API-only user-facing business function counts as complete.**
+12. **Every user-facing function must have a real, normally reachable, authoritative screen/action path.**
+13. **No placeholder, dead CTA, orphan route, mock-only surface or undocumented-deep-link-only capability can satisfy completion.**
+14. **Mutations must reconcile related screens so connected surfaces do not show contradictory state.**
 
 ---
 
@@ -534,6 +538,50 @@ Never display stale recommendation values as current without an explicit stale s
 
 ---
 
+## 12A. Functional Screen & Journey Convergence
+
+Issue **#1129 (W8B)** is a release-blocking acceptance lane that consumes the completed route/UI authority from #1100 and proves actual functional usability.
+
+### Mandatory function-to-screen chain
+
+Every in-scope user-facing function must prove:
+
+```
+Function
+ -> Authorized entry point
+ -> Canonical route
+ -> Real production screen/surface
+ -> Authoritative data source
+ -> Executable action
+ -> Persisted result
+ -> Immediate truthful UI feedback
+ -> Connected upstream/downstream screens reconciled
+```
+
+A missing link means the feature is incomplete.
+
+### Screen Coverage Matrix
+
+The repository-tracked matrix is:
+
+`docs/execution/FOODEX_FUNCTION_SCREEN_COVERAGE_MATRIX.md`
+
+Each row must identify the Function/Requirement ID, domain, actor, entry point, canonical route, screen, action surface, related screens, backend authority, permissions, state handling, localization/responsiveness and runtime/E2E evidence.
+
+Allowed acceptance states are PASS / PARTIAL / FAIL / UNKNOWN / UNOWNED. Any state other than PASS is release-blocking for required in-scope functions.
+
+### Mandatory connectivity examples
+
+- Dashboard stock-risk KPI -> exact filtered inventory/replenishment context.
+- Recommendation row -> exact product/replenishment detail -> explainability -> suggested Wholesale plan.
+- Accepted recommendation -> existing authoritative B2B cart -> checkout/order -> purchase history/inventory/reporting reflection.
+- Order -> dispatch assignment -> Driver/Van operational screen -> lifecycle result -> Dashboard/Customer status reflection.
+- Finance summary -> invoice/statement/settlement screen -> persisted financial result -> refreshed account context.
+
+No generic redirect is acceptable when the exact business record/context is known.
+
+---
+
 ## 13. Atomic execution lanes
 
 | Lane | Issue | Scope | Dependencies |
@@ -547,7 +595,8 @@ Never display stale recommendation values as current without an explicit stale s
 | W6 | #1119 | Merchant Smart Dashboard UX + analytics | W1, W3, W4, W5 |
 | W7 | #1120 | Suggested Wholesale cart + budget/credit | W1, W4; integrate after W6 route/component authority settles |
 | W8 | #1121 | Platform-wide analytics/chart rollout | W5; use atomic sub-issues if file ownership conflicts |
-| W9 | #1122 | Integrated product/runtime/performance gate | W1–W8 |
+| W8B | #1129 | Functional Screen + Journey Convergence | W6, W7, W8; consumes #1100 route authority |
+| W9 | #1122 | Integrated product/runtime/performance gate | W1–W8 + W8B |
 
 Parallelism is allowed only where file/subsystem ownership is disjoint. Shared components/files get one owner at a time.
 
@@ -563,7 +612,8 @@ W0
 └── W5 ───────────────> W6
     └───────────────> W8
 
-W1..W8 ──> W9
+W6/W7/W8 ──> W8B ──> W9
+W1..W8 + W8B ──> W9
 ```
 
 W5 can progress in parallel with W1/W2/W3 if shared-file fences are respected.
@@ -599,7 +649,8 @@ Use this order unless live blockers dictate otherwise:
 7. W6;
 8. W7;
 9. W8;
-10. W9 final convergence.
+10. W8B functional screen/journey convergence;
+11. W9 final convergence.
 
 ---
 
@@ -638,7 +689,7 @@ But **product completion is binary**. 99% is not “integrated runnable” if on
 FOODEX reaches **Merchant Intelligence integrated runnable** only if **all** gates below pass.
 
 ### G0 — Repository convergence
-- all required W1–W8 child work merged;
+- all required W1–W8 and W8B child work merged;
 - no unresolved valid mission PR/branch waiting outside main;
 - exact final main SHA recorded.
 
@@ -744,7 +795,18 @@ From a clean supported environment:
 - no mock-only dependency;
 - no hidden manual database operation.
 
-Only after G0–G12 pass may #1122 mark the mission **INTEGRATED_RUNNABLE**.
+### G13 — Functional screen & journey convergence
+- every required user-facing function is represented in the Screen Coverage Matrix;
+- every required matrix row is PASS; PARTIAL / FAIL / UNKNOWN / UNOWNED block completion;
+- no backend/API-only user-facing business function remains;
+- no hidden/orphaned/placeholder/mock-only/dead-control path remains;
+- normal navigation reaches every required function;
+- exact-record/context drill-down is used where known;
+- actions persist and produce truthful feedback;
+- related screens refresh/invalidate so state stays consistent across Dashboard + Customer + Driver + Van;
+- critical cross-domain journeys pass runtime E2E on the exact integrated SHA.
+
+Only after G0–G13 pass, including #1129 PASS, may #1122 mark the mission **INTEGRATED_RUNNABLE**.
 
 ---
 
@@ -781,6 +843,9 @@ At minimum W9 must exercise:
 12. AR/RTL and EN/LTR preserve hierarchy and density.
 13. Large product catalog completes within accepted performance budget.
 14. Existing non-owner Retail tenant isolation remains unchanged.
+15. Every required function has a real reachable screen/action path; no API-only completion.
+16. Every actionable KPI/chart/card/list row drills to the exact relevant screen/context where applicable.
+17. Cross-screen mutation reconciliation is proven so related surfaces do not disagree after actions.
 
 ---
 
@@ -806,8 +871,8 @@ When #1122 passes, report:
 ```
 FOODEX Merchant Intelligence: INTEGRATED_RUNNABLE
 Final main SHA: <sha>
-W1-W8: VERIFIED_ON_MAIN
-G0-G12: PASS
+W1-W8 + W8B: VERIFIED_ON_MAIN
+G0-G13: PASS
 Open mission PRs: 0
 Known mission blockers: 0
 Runtime evidence: PASS (AR/EN, responsive, production-like data)

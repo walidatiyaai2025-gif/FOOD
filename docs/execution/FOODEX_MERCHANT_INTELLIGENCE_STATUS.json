@@ -17,16 +17,108 @@
     "release_requires_explicit_owner_request": true
   },
   "lanes": [
-    {"id":"W0","issue":1113,"name":"Mission control publication","depends_on":[]},
-    {"id":"W1","issue":1114,"name":"Canonical merchant identity and authorization","depends_on":["W0"]},
-    {"id":"W2","issue":1115,"name":"Retail-Wholesale mapping and replenishment lineage","depends_on":["W0","W1"]},
-    {"id":"W3","issue":1116,"name":"Inventory intelligence engine","depends_on":["W2"]},
-    {"id":"W4","issue":1117,"name":"Lead-time and reorder engine","depends_on":["W2","W3"]},
-    {"id":"W5","issue":1118,"name":"Visualization design system","depends_on":["W0"]},
-    {"id":"W6","issue":1119,"name":"Merchant Smart Dashboard","depends_on":["W1","W3","W4","W5"]},
-    {"id":"W7","issue":1120,"name":"Suggested Wholesale cart and credit-aware plan","depends_on":["W1","W4"]},
-    {"id":"W8","issue":1121,"name":"Platform-wide analytics rollout","depends_on":["W5"]},
-    {"id":"W9","issue":1122,"name":"Integrated runnable product gate","depends_on":["W1","W2","W3","W4","W5","W6","W7","W8"]}
+    {
+      "id": "W0",
+      "issue": 1113,
+      "name": "Mission control publication",
+      "depends_on": []
+    },
+    {
+      "id": "W1",
+      "issue": 1114,
+      "name": "Canonical merchant identity and authorization",
+      "depends_on": [
+        "W0"
+      ]
+    },
+    {
+      "id": "W2",
+      "issue": 1115,
+      "name": "Retail-Wholesale mapping and replenishment lineage",
+      "depends_on": [
+        "W0",
+        "W1"
+      ]
+    },
+    {
+      "id": "W3",
+      "issue": 1116,
+      "name": "Inventory intelligence engine",
+      "depends_on": [
+        "W2"
+      ]
+    },
+    {
+      "id": "W4",
+      "issue": 1117,
+      "name": "Lead-time and reorder engine",
+      "depends_on": [
+        "W2",
+        "W3"
+      ]
+    },
+    {
+      "id": "W5",
+      "issue": 1118,
+      "name": "Visualization design system",
+      "depends_on": [
+        "W0"
+      ]
+    },
+    {
+      "id": "W6",
+      "issue": 1119,
+      "name": "Merchant Smart Dashboard",
+      "depends_on": [
+        "W1",
+        "W3",
+        "W4",
+        "W5"
+      ]
+    },
+    {
+      "id": "W7",
+      "issue": 1120,
+      "name": "Suggested Wholesale cart and credit-aware plan",
+      "depends_on": [
+        "W1",
+        "W4"
+      ]
+    },
+    {
+      "id": "W8",
+      "issue": 1121,
+      "name": "Platform-wide analytics rollout",
+      "depends_on": [
+        "W5"
+      ]
+    },
+    {
+      "id": "W8B",
+      "issue": 1129,
+      "name": "Functional screen and journey convergence",
+      "depends_on": [
+        "W6",
+        "W7",
+        "W8"
+      ]
+    },
+    {
+      "id": "W9",
+      "issue": 1122,
+      "name": "Integrated runnable product gate",
+      "depends_on": [
+        "W1",
+        "W2",
+        "W3",
+        "W4",
+        "W5",
+        "W6",
+        "W7",
+        "W8",
+        "W8B"
+      ]
+    }
   ],
   "selection_priority": [
     "mission_ci_red",
@@ -38,6 +130,7 @@
     "W6",
     "W7",
     "W8",
+    "W8B",
     "W9"
   ],
   "lane_complete_state": "VERIFIED_ON_MAIN",
@@ -54,18 +147,35 @@
     "G9_freshness_failure_behavior",
     "G10_performance",
     "G11_ci_runtime_evidence",
-    "G12_clean_environment_runnable_readiness"
+    "G12_clean_environment_runnable_readiness",
+    "G13_function_screen_journey_convergence"
   ],
   "done_condition": {
-    "all_W1_to_W8_verified_on_main": true,
     "W9_passed": true,
-    "all_G0_to_G12_pass": true,
     "open_mission_prs": 0,
     "unresolved_valid_mission_work_outside_main": 0,
-    "final_main_sha_recorded": true
+    "final_main_sha_recorded": true,
+    "all_W1_to_W8_and_W8B_verified_on_main": true,
+    "W8B_passed": true,
+    "all_G0_to_G13_pass": true
   },
   "release_boundary": {
     "integrated_runnable_does_not_publish_release": true,
     "version_bump_requires_explicit_release_intent": true
+  },
+  "functional_screen_contract": {
+    "issue": 1129,
+    "prior_route_authority_issue": 1100,
+    "matrix_path": "docs/execution/FOODEX_FUNCTION_SCREEN_COVERAGE_MATRIX.md",
+    "no_backend_only_business_functions": true,
+    "no_orphan_or_hidden_only_functions": true,
+    "exact_context_drilldown_required": true,
+    "persisted_result_and_cross_screen_reconciliation_required": true,
+    "blocking_statuses": [
+      "PARTIAL",
+      "FAIL",
+      "UNKNOWN",
+      "UNOWNED"
+    ]
   }
 }
