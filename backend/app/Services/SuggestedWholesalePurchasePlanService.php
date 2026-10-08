@@ -9,6 +9,7 @@ use App\Models\CartItem;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class SuggestedWholesalePurchasePlanService
 {
@@ -16,6 +17,7 @@ final class SuggestedWholesalePurchasePlanService
         private readonly RetailReorderIntelligenceService $reorder,
         private readonly B2bAccountLedgerService $ledger,
         private readonly B2bPriceResolver $pricing,
+        private readonly WholesalePrincipal $principal,
     ) {}
 
     /**
@@ -27,15 +29,29 @@ final class SuggestedWholesalePurchasePlanService
         float $purchasingPower,
         ?float $requestedBudget = null,
         string $currency = 'KWD',
+        float $existingCartCost = 0.0,
     ): array {
         $creditLimit = max(0.0, $purchasingPower);
+        $existingCartCost = max(0.0, $existingCartCost);
+        $availablePlanBudget = max(0.0, round($creditLimit - $existingCartCost, 3));
         $budget = $requestedBudget === null
-            ? $creditLimit
-            : min($creditLimit, max(0.0, $requestedBudget));
+            ? $availablePlanBudget
+            : min($availablePlanBudget, max(0.0, $requestedBudget));
         $remaining = $budget;
         $rows = [];
+        $ordered = collect($recommendations)
+            ->sort(function (array $left, array $right): int {
+                $priority = ((float) ($right['priority_score'] ?? 0))
+                    <=> ((float) ($left['priority_score'] ?? 0));
 
-        foreach ($recommendations as $row) {
+                return $priority !== 0
+                    ? $priority
+                    : ((int) ($left['retail_product_id'] ?? 0))
+                        <=> ((int) ($right['retail_product_id'] ?? 0));
+            })
+            ->values();
+
+        foreach ($ordered as $row) {
             if (! (bool) data_get($row, 'recommendation.is_executable', false)) {
                 continue;
             }
@@ -103,12 +119,55 @@ final class SuggestedWholesalePurchasePlanService
         return [
             'currency' => strtoupper($currency),
             'purchasing_power' => round($creditLimit, 3),
+            'existing_cart_cost' => round($existingCartCost, 3),
+            'available_plan_budget' => round($availablePlanBudget, 3),
             'requested_budget' => $requestedBudget === null ? null : round(max(0.0, $requestedBudget), 3),
             'effective_budget' => round($budget, 3),
             'allocated_cost' => round($budget - $remaining, 3),
             'remaining_budget' => round($remaining, 3),
             'rows' => $rows,
         ];
+    }
+
+    /**
+     * @param  list<array<string,mixed>>  $recommendations
+     * @return array<string,mixed>
+     */
+    public function previewForOwner(
+        User $user,
+        int $retailStoreId,
+        array $recommendations,
+        ?float $requestedBudget = null,
+    ): array {
+        $customer = $this->ownerCustomer($user, $retailStoreId);
+        $principalStoreId = $this->principal->storeId();
+        $finance = $this->ledger->summary($customer, $principalStoreId);
+        $cartState = $this->existingCartState($customer, $principalStoreId, false);
+        $sourceMismatchCount = collect($recommendations)
+            ->filter(fn (array $row): bool => (bool) data_get($row, 'recommendation.is_executable', false))
+            ->filter(fn (array $row): bool => (int) data_get($row, 'mapping.source_wholesale_store_id', 0) !== $principalStoreId)
+            ->count();
+        $eligible = collect($recommendations)
+            ->filter(fn (array $row): bool => (int) data_get($row, 'mapping.source_wholesale_store_id', 0) === $principalStoreId)
+            ->values()
+            ->all();
+
+        $preview = $this->previewFromRecommendations(
+            $eligible,
+            (float) $finance['purchasing_power'],
+            $requestedBudget,
+            (string) $finance['currency'],
+            $cartState['review_required']
+                ? (float) $finance['purchasing_power']
+                : (float) $cartState['cost'],
+        );
+
+        $preview['principal_wholesale_store_id'] = $principalStoreId;
+        $preview['existing_cart_cost'] = round((float) $cartState['cost'], 3);
+        $preview['cart_review_required'] = (bool) $cartState['review_required'];
+        $preview['source_store_mismatch_count'] = $sourceMismatchCount;
+
+        return $preview;
     }
 
     /**
