@@ -225,8 +225,8 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   await page.goto(`${baseUrl}/admin/notification-campaigns`, { waitUntil: 'networkidle' });
   await assertSharedAdminRuntimeShell(page, `campaigns/actions/desktop/${locale}`);
   const editCampaignLabel = locale === 'ar' ? 'تعديل الحملة' : 'Edit campaign';
-  if (await page.locator('details > summary').filter({ hasText: editCampaignLabel }).count() < 1) {
-    throw new Error(`Campaign runtime evidence did not render explicit Edit: ${editCampaignLabel}`);
+  if (await page.getByRole('button', { name: editCampaignLabel, exact: true }).count() < 1) {
+    throw new Error(`Campaign runtime evidence did not render explicit modal Edit button: ${editCampaignLabel}`);
   }
   await openFirstRecordActionMenu(page, '[data-notification-campaign-actions]', `campaigns/${locale}`);
   await snap(page, `02_Web/B2C_Admin/18_campaign_actions__desktop__${locale}.png`);
