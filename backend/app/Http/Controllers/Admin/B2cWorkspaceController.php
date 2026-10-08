@@ -1533,5 +1533,4 @@ class B2cWorkspaceController extends Controller
 
         return $moduleData;
     }
-
 }
