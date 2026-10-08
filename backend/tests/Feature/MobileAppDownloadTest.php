@@ -59,7 +59,6 @@ class MobileAppDownloadTest extends TestCase
             ->assertRedirect(route('public.mobile-apps.latest', ['app' => 'driver']));
     }
 
-
     public function test_public_versioned_customer_apk_is_served_as_verified_attachment_from_foodex_route(): void
     {
         $payload = 'verified-apk-bytes';
