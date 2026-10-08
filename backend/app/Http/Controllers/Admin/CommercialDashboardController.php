@@ -245,24 +245,29 @@ final class CommercialDashboardController extends Controller
         $existingPromotions = DB::table('promotions')
             ->where('store_id', $storeId)
             ->orderByDesc('created_at')
-            ->limit(100)
-            ->get()
-            ->map(function (object $promotion): object {
-                $type = strtolower(trim((string) $promotion->type));
-                $typeKey = match ($type) {
-                    'percentage', 'percent' => 'percentage',
-                    'fixed', 'fixed_amount', 'amount' => 'fixed',
-                    'bundle', 'buy_x_get_y' => 'bundle',
-                    default => 'generic',
-                };
-                $promotion->localized_label = __('commercial.flash.promotion_types.'.$typeKey);
+            ->paginate(25, ['*'], 'promotion_page')
+            ->withQueryString();
+        $existingPromotions->setCollection($existingPromotions->getCollection()->map(function (object $promotion): object {
+            $type = strtolower(trim((string) $promotion->type));
+            $typeKey = match ($type) {
+                'percentage', 'percent' => 'percentage',
+                'fixed', 'fixed_amount', 'amount' => 'fixed',
+                'bundle', 'buy_x_get_y' => 'bundle',
+                default => 'generic',
+            };
+            $promotion->localized_label = __('commercial.flash.promotion_types.'.$typeKey);
 
-                return $promotion;
-            });
+            return $promotion;
+        }));
+        $flashOffers = DB::table('flash_offers')
+            ->where('store_id', $storeId)
+            ->orderByDesc('id')
+            ->paginate(25, ['*'], 'offer_page')
+            ->withQueryString();
 
         return $this->render($request, $user, $storeId, 'flash-offers', [
             'existingPromotions' => $existingPromotions,
-            'flashOffers' => DB::table('flash_offers')->where('store_id', $storeId)->orderByDesc('id')->limit(100)->get(),
+            'flashOffers' => $flashOffers,
             ...$lookups,
             'editingOffer' => $editingOffer,
             'editingProducts' => $editingProducts,
@@ -887,11 +892,34 @@ final class CommercialDashboardController extends Controller
             ->unique()
             ->values();
 
+        $retailOwnerMeta = DB::table('retail_wholesale_accounts as retail_links')
+            ->join('b2b_customers as retail_b2b', 'retail_b2b.id', '=', 'retail_links.b2b_customer_id')
+            ->join('stores as retail_stores', 'retail_stores.id', '=', 'retail_links.retail_store_id')
+            ->leftJoin('users as retail_owners', 'retail_owners.id', '=', 'retail_links.owner_user_id')
+            ->whereNotNull('retail_b2b.legacy_customer_id')
+            ->where('retail_stores.is_active', true)
+            ->get([
+                'retail_b2b.legacy_customer_id as legacy_customer_id',
+                'retail_stores.name as store_name',
+                'retail_owners.name as owner_name',
+                'retail_owners.email as owner_email',
+            ])
+            ->keyBy(static fn (object $row): int => (int) $row->legacy_customer_id);
+
         $audienceCustomers = DB::table('customers')
             ->whereIn('id', $legacyCustomerIds)
             ->orderBy('name')
             ->limit(300)
-            ->get(['id', 'name', 'email', 'phone']);
+            ->get(['id', 'name', 'email', 'phone'])
+            ->map(static function (object $customer) use ($retailOwnerMeta): object {
+                $retail = $retailOwnerMeta->get((int) $customer->id);
+                $customer->audience_kind = $retail === null ? 'customer' : 'retail_owner';
+                $customer->retail_store_name = $retail?->store_name;
+                $customer->owner_name = $retail?->owner_name;
+                $customer->owner_email = $retail?->owner_email;
+
+                return $customer;
+            });
 
         $audienceGroups = DB::table('commercial_customer_groups')
             ->where('is_active', true)

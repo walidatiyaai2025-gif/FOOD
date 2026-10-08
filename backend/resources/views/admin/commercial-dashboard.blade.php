@@ -80,7 +80,18 @@
         .structured-remove{border:1px solid #f2b8b5;background:#fff;color:#a61b1b}
         .flash-form-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
         .flash-form-section h3{margin:0;font-size:.92rem}
-        .flash-multi{min-height:112px}
+        .flash-lookup-field{display:grid;gap:6px;font-weight:700;font-size:.8rem;min-width:0}
+        .flash-lookup{position:relative}
+        .flash-lookup-toggle{width:100%;min-height:42px;padding:0 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;font:inherit;cursor:pointer;text-align:start}
+        .flash-lookup-toggle::after{content:'⌄';color:var(--foodex-muted);font-size:1rem}
+        .flash-lookup-menu{position:absolute;z-index:40;inset-inline:0;top:calc(100% + 6px);padding:10px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;box-shadow:0 16px 38px rgba(15,23,42,.14);display:grid;gap:8px}
+        .flash-lookup-menu[hidden]{display:none}
+        .flash-lookup-search{width:100%;min-height:40px}
+        .flash-lookup-options{max-height:230px;overflow:auto;display:grid;gap:4px}
+        .flash-lookup-option{display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:9px;font-weight:600;cursor:pointer}
+        .flash-lookup-option:hover{background:var(--foodex-green-soft)}
+        .flash-lookup-option input{width:16px;height:16px;margin-top:2px;accent-color:var(--foodex-green);flex:0 0 auto}
+        .flash-lookup-empty{padding:10px;color:var(--foodex-muted);font-weight:600}
         .flash-product-builder{display:grid;gap:10px}
         .flash-product-row{display:grid;grid-template-columns:2fr 1.35fr 1fr 1fr auto;gap:10px;align-items:end;padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:#fbfcfd}
         .flash-product-row label{display:grid;gap:6px;font-weight:700;font-size:.8rem}
@@ -497,7 +508,16 @@
                     <div class="commercial-grid">
                         <label>{{ __('commercial.flash.starts') }}<input type="datetime-local" name="starts_at" value="{{ old('starts_at', $editingStarts) }}" required></label>
                         <label>{{ __('commercial.flash.ends') }}<input type="datetime-local" name="ends_at" value="{{ old('ends_at', $editingEnds) }}" required></label>
-                        <label>{{ __('commercial.flash.timezone') }}<input name="timezone" value="{{ old('timezone', $editingOffer->timezone ?? 'Asia/Kuwait') }}" required></label>
+                        @php
+                            $selectedTimezone = old('timezone', $editingOffer->timezone ?? 'Asia/Kuwait');
+                        @endphp
+                        <label>{{ __('commercial.flash.timezone') }}
+                            <select name="timezone" required>
+                                @foreach(timezone_identifiers_list() as $timezone)
+                                    <option value="{{ $timezone }}" {{ $selectedTimezone === $timezone ? 'selected' : '' }}>{{ $timezone }}</option>
+                                @endforeach
+                            </select>
+                        </label>
                     </div>
                 </section>
 
@@ -514,34 +534,81 @@
                     <h3>{{ __('commercial.flash.audience') }}</h3>
                     <p class="muted">{{ __('commercial.flash.audience_hint') }}</p>
                     <div class="commercial-grid">
-                        <label>{{ __('commercial.flash.customers') }}
-                            <select class="flash-multi" name="audience_customer_ids[]" multiple>
-                                @foreach($audienceCustomers as $customer)
-                                    <option value="{{ $customer->id }}" @selected($selectedCustomerIds->contains((int)$customer->id))>{{ $customer->name }}{{ $customer->email ? ' · '.$customer->email : '' }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label>{{ __('commercial.flash.customer_groups') }}
-                            <select class="flash-multi" name="audience_customer_group_ids[]" multiple>
-                                @foreach($audienceGroups as $group)
-                                    <option value="{{ $group->id }}" @selected($selectedGroupIds->contains((int)$group->id))>{{ $group->name }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label>{{ __('commercial.flash.regions') }}
-                            <select class="flash-multi" name="audience_regions[]" multiple>
-                                @foreach($audienceRegions as $region)
-                                    <option value="{{ $region }}" @selected($selectedRegions->contains($region))>{{ $region }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label>{{ __('commercial.flash.routes') }}
-                            <select class="flash-multi" name="audience_routes[]" multiple>
-                                @foreach($audienceRoutes as $route)
-                                    <option value="{{ $route }}" @selected($selectedRoutes->contains($route))>{{ $route }}</option>
-                                @endforeach
-                            </select>
-                        </label>
+                        <div class="flash-lookup-field">
+                            <span>{{ __('commercial.flash.customers') }}</span>
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="customers">
+                                <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false">
+                                    <span data-flash-lookup-summary>{{ $selectedCustomerIds->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedCustomerIds->count()]) }}</span>
+                                </button>
+                                <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
+                                    <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
+                                    <div class="flash-lookup-options" data-flash-lookup-options>
+                                        @forelse($audienceCustomers as $customer)
+                                            @php
+                                                $isRetailOwner = ($customer->audience_kind ?? 'customer') === 'retail_owner';
+                                                $customerLabel = $isRetailOwner
+                                                    ? trim((string)($customer->retail_store_name ?: $customer->name)).' · '.trim((string)($customer->owner_name ?: $customer->name)).(($customer->owner_email ?: $customer->email) ? ' · '.($customer->owner_email ?: $customer->email) : '').' · '.__('commercial.flash.retail_store_owner')
+                                                    : $customer->name.($customer->email ? ' · '.$customer->email : '');
+                                            @endphp
+                                            <label class="flash-lookup-option" data-flash-lookup-option data-flash-retail-owner="{{ $isRetailOwner ? '1' : '0' }}">
+                                                <input type="checkbox" name="audience_customer_ids[]" value="{{ $customer->id }}" {{ $selectedCustomerIds->contains((int)$customer->id) ? 'checked' : '' }}>
+                                                <span>{{ $customerLabel }}</span>
+                                            </label>
+                                        @empty
+                                            <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flash-lookup-field">
+                            <span>{{ __('commercial.flash.customer_groups') }}</span>
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="customer-groups">
+                                <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false"><span data-flash-lookup-summary>{{ $selectedGroupIds->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedGroupIds->count()]) }}</span></button>
+                                <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
+                                    <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
+                                    <div class="flash-lookup-options" data-flash-lookup-options>
+                                        @forelse($audienceGroups as $group)
+                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_customer_group_ids[]" value="{{ $group->id }}" {{ $selectedGroupIds->contains((int)$group->id) ? 'checked' : '' }}><span>{{ $group->name }}</span></label>
+                                        @empty
+                                            <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flash-lookup-field">
+                            <span>{{ __('commercial.flash.regions') }}</span>
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="regions">
+                                <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false"><span data-flash-lookup-summary>{{ $selectedRegions->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedRegions->count()]) }}</span></button>
+                                <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
+                                    <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
+                                    <div class="flash-lookup-options" data-flash-lookup-options>
+                                        @forelse($audienceRegions as $region)
+                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_regions[]" value="{{ $region }}" {{ $selectedRegions->contains($region) ? 'checked' : '' }}><span>{{ $region }}</span></label>
+                                        @empty
+                                            <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flash-lookup-field">
+                            <span>{{ __('commercial.flash.routes') }}</span>
+                            <div class="flash-lookup" data-flash-lookup data-flash-select-label="{{ __('commercial.flash.select_lookup') }}" data-flash-selected-template="{{ __('commercial.flash.selected_count', ['count'=>'__COUNT__']) }}" data-flash-lookup-kind="routes">
+                                <button type="button" class="flash-lookup-toggle" data-flash-lookup-toggle aria-expanded="false"><span data-flash-lookup-summary>{{ $selectedRoutes->isEmpty() ? __('commercial.flash.select_lookup') : __('commercial.flash.selected_count', ['count'=>$selectedRoutes->count()]) }}</span></button>
+                                <div class="flash-lookup-menu" data-flash-lookup-menu hidden>
+                                    <input type="search" class="flash-lookup-search" data-flash-lookup-search placeholder="{{ __('commercial.flash.search_lookup') }}" autocomplete="off">
+                                    <div class="flash-lookup-options" data-flash-lookup-options>
+                                        @forelse($audienceRoutes as $route)
+                                            <label class="flash-lookup-option" data-flash-lookup-option><input type="checkbox" name="audience_routes[]" value="{{ $route }}" {{ $selectedRoutes->contains($route) ? 'checked' : '' }}><span>{{ $route }}</span></label>
+                                        @empty
+                                            <span class="flash-lookup-empty">{{ __('commercial.flash.no_lookup_values') }}</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -639,12 +706,13 @@
             @empty
                 <p class="muted">{{ __('commercial.flash.no_offers') }}</p>
             @endforelse
+            {{ $flashOffers->links() }}
         </section>
 
         <section class="commercial-card">
             <h2>{{ __('commercial.flash.existing_promotions') }}</h2>
             <div style="overflow:auto">
-                <table class="commercial-table">
+                <table class="commercial-table" data-pagination-required>
                     <thead><tr><th>{{ __('commercial.flash.promotion_name') }}</th><th>{{ __('commercial.flash.promotion_type') }}</th><th>{{ __('commercial.flash.promotion_value') }}</th><th>{{ __('commercial.flash.promotion_period') }}</th><th>{{ __('commercial.flash.status') }}</th></tr></thead>
                     <tbody>
                     @forelse($existingPromotions as $promotion)
@@ -661,12 +729,14 @@
                     </tbody>
                 </table>
             </div>
+            {{ $existingPromotions->links() }}
         </section>
     @endif
     </main>
 </div>
 <script>
 (() => {
+    document.documentElement.dataset.foodexCommercialScriptInit = '1';
     document.querySelectorAll('[data-commercial-channel-picker]').forEach((picker) => {
         const output = picker.querySelector('[data-commercial-channels-json]');
         const boxes = [...picker.querySelectorAll('[data-commercial-channel]')];
@@ -921,15 +991,90 @@
     };
 
     builder?.querySelectorAll('[data-flash-product-row]').forEach(setupProductRow);
-    addButton?.addEventListener('click', () => {
-        if (!builder || !template) return;
+    const addProductRow = () => {
+        if (!builder || !template) return false;
         const wrapper = document.createElement('div');
         wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(nextProductIndex++));
         const row = wrapper.firstElementChild;
-        if (!row) return;
+        if (!row) return false;
         builder.appendChild(row);
         setupProductRow(row);
+        return true;
+    };
+    const handleAddGesture = (event) => {
+        const target = event?.target instanceof Element ? event.target.closest('[data-flash-product-add]') : null;
+        if (!target || target !== addButton) return;
+        event.preventDefault();
+        addProductRow();
+    };
+    // Window capture runs before document/form-level handlers, so the Add Product action
+    // remains reliable even when shared UI behavior closes popovers or intercepts bubbling clicks.
+    window.addEventListener('click', handleAddGesture, true);
+    addButton?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            addProductRow();
+        }
     });
+    if (builder && template && addButton) builder.dataset.foodexProductBuilderInit = '1';
+    window.foodexFlashAddProductRow = addProductRow;
+
+    try {
+        document.querySelectorAll('[data-flash-lookup]').forEach((lookup) => {
+        const toggle = lookup.querySelector('[data-flash-lookup-toggle]');
+        const menu = lookup.querySelector('[data-flash-lookup-menu]');
+        const search = lookup.querySelector('[data-flash-lookup-search]');
+        const summary = lookup.querySelector('[data-flash-lookup-summary]');
+        const options = [...lookup.querySelectorAll('[data-flash-lookup-option]')];
+        const boxes = options.map((option) => option.querySelector('input[type="checkbox"]')).filter(Boolean);
+        const selectLabel = lookup.dataset.flashSelectLabel || '';
+        const selectedTemplate = lookup.dataset.flashSelectedTemplate || '__COUNT__';
+
+        const syncSummary = () => {
+            if (!summary) return;
+            const count = boxes.filter((box) => box.checked).length;
+            summary.textContent = count === 0
+                ? selectLabel
+                : selectedTemplate.replace('__COUNT__', String(count));
+        };
+        const close = () => {
+            if (menu) menu.hidden = true;
+            toggle?.setAttribute('aria-expanded', 'false');
+        };
+
+        toggle?.addEventListener('click', () => {
+            if (!menu) return;
+            const opening = menu.hidden;
+            document.querySelectorAll('[data-flash-lookup-menu]').forEach((other) => { other.hidden = true; });
+            document.querySelectorAll('[data-flash-lookup-toggle]').forEach((other) => other.setAttribute('aria-expanded', 'false'));
+            menu.hidden = !opening;
+            toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+            if (opening) search?.focus();
+        });
+
+        search?.addEventListener('input', () => {
+            const query = search.value.trim().toLocaleLowerCase();
+            options.forEach((option) => {
+                option.hidden = query !== '' && !option.textContent.toLocaleLowerCase().includes(query);
+            });
+        });
+
+        boxes.forEach((box) => box.addEventListener('change', syncSummary));
+        lookup.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                close();
+                toggle?.focus();
+            }
+        });
+        document.addEventListener('click', (event) => {
+            if (!lookup.contains(event.target)) close();
+        });
+            syncSummary();
+        });
+    } catch (_) {
+        // Keep the rest of the commercial workspace interactive even if a lookup enhancement cannot initialize.
+    }
+
 })();
 </script>
 </body>

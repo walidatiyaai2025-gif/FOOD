@@ -72,11 +72,22 @@ final class FlashOfferAudienceService
      */
     private function usersForCustomers(array $ids): array
     {
-        return DB::table('customers')
+        $directUsers = DB::table('customers')
             ->whereIn('id', $ids)
             ->whereNotNull('user_id')
             ->pluck('user_id')
-            ->map(static fn ($id): int => (int) $id)
+            ->map(static fn ($id): int => (int) $id);
+
+        $retailOwnerUsers = DB::table('retail_wholesale_accounts as retail_links')
+            ->join('b2b_customers as retail_b2b', 'retail_b2b.id', '=', 'retail_links.b2b_customer_id')
+            ->whereIn('retail_b2b.legacy_customer_id', $ids)
+            ->whereNotNull('retail_links.owner_user_id')
+            ->pluck('retail_links.owner_user_id')
+            ->map(static fn ($id): int => (int) $id);
+
+        return $directUsers
+            ->merge($retailOwnerUsers)
+            ->filter(static fn (int $id): bool => $id > 0)
             ->unique()
             ->values()
             ->all();

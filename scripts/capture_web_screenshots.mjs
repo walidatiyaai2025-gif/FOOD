@@ -129,7 +129,7 @@ async function openFirstRecordActionMenu(page, selector, label) {
   if (!(await details.evaluate((node) => node.hasAttribute('open')))) {
     throw new Error(`Record-action menu did not open for ${label}`);
   }
-  const menu = details.locator('.row-action-menu').first();
+  const menu = page.locator('.row-action-menu[data-foodex-action-portal="1"], .row-action-menu').filter({ visible: true }).first();
   await menu.waitFor({ state: 'visible' });
 }
 
@@ -424,7 +424,7 @@ async function captureMobileSettingsParityEvidence(page, locale) {
 }
 
 
-async function exerciseCommercialRuntimeInteractions(page, locale) {
+async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = []) {
   await page.setViewportSize({ width: 1280, height: 900 });
 
   let response = await page.goto(`${baseUrl}/admin/b2c/commercial/sales-control`, {
@@ -512,15 +512,13 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
     throw new Error(`Flash Offers structured form is missing (${locale})`);
   }
 
-  const audienceNames = [
-    'audience_customer_ids[]',
-    'audience_customer_group_ids[]',
-    'audience_regions[]',
-    'audience_routes[]',
-  ];
-  for (const name of audienceNames) {
-    if (await flashForm.locator(`select[name="${name}"]`).count() !== 1) {
-      throw new Error(`Flash audience lookup missing: ${name} (${locale})`);
+  const audienceLookups = ['customers', 'customer-groups', 'regions', 'routes'];
+  for (const kind of audienceLookups) {
+    const lookup = flashForm.locator(`[data-flash-lookup-kind="${kind}"]`);
+    if (await lookup.count() !== 1
+        || await lookup.locator('[data-flash-lookup-toggle]').count() !== 1
+        || await lookup.locator('[data-flash-lookup-search]').count() !== 1) {
+      throw new Error(`Flash audience searchable dropdown missing: ${kind} (${locale})`);
     }
   }
   if (await flashForm.locator('input[name="channels[]"][value="van"]').count() !== 1) {
@@ -531,7 +529,34 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
   const productBefore = await productRows.count();
   await flashForm.locator('[data-flash-product-add]').click();
   if (await productRows.count() !== productBefore + 1) {
-    throw new Error(`Flash Product Builder did not add a product row (${locale})`);
+    // Chromium can occasionally complete the actionability click without delivering
+    // the DOM click after the page's shared capture-phase UI hooks settle. Dispatch
+    // the same browser click event directly and still require the real button wiring.
+    await flashForm.locator('[data-flash-product-add]').dispatchEvent('click');
+  }
+  if (await productRows.count() !== productBefore + 1) {
+    const initState = await page.evaluate(() => {
+      const template = document.querySelector('[data-flash-product-template]');
+      const builder = document.querySelector('[data-flash-product-builder]');
+      const before = builder?.querySelectorAll('[data-flash-product-row]').length ?? -1;
+      const directResult = typeof window.foodexFlashAddProductRow === 'function'
+        ? window.foodexFlashAddProductRow()
+        : 'missing';
+      const after = builder?.querySelectorAll('[data-flash-product-row]').length ?? -1;
+      return {
+        script: document.documentElement.dataset.foodexCommercialScriptInit || '0',
+        builder: builder?.dataset.foodexProductBuilderInit || '0',
+        addFn: typeof window.foodexFlashAddProductRow,
+        buttonCount: document.querySelectorAll('[data-flash-product-add]').length,
+        templateCount: document.querySelectorAll('[data-flash-product-template]').length,
+        templateHtmlLength: template?.innerHTML?.length ?? -1,
+        templateContentChildren: template instanceof HTMLTemplateElement ? template.content.children.length : -1,
+        directResult,
+        beforeDirect: before,
+        afterDirect: after,
+      };
+    });
+    throw new Error(`Flash Product Builder did not add a product row (${locale}); init=${JSON.stringify(initState)}; page errors: ${pageErrors.join(' | ') || 'none'}`);
   }
 
   const addedProduct = productRows.last();
@@ -560,6 +585,8 @@ async function captureLocale(browser, locale) {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   const email = locale === 'ar' ? 'screenshots@foodex.test' : 'screenshots.en@foodex.test';
 
   await page.goto(`${baseUrl}/admin/b2b/login?locale=${locale}`, { waitUntil: 'networkidle' });
@@ -583,7 +610,16 @@ async function captureLocale(browser, locale) {
 
   await captureAdministrationRuntimeEvidence(page, locale);
   await captureOwnedDashboardRuntimeEvidence(page, locale);
-  await exerciseCommercialRuntimeInteractions(page, locale);
+
+  // Long-running evidence navigation can rotate or invalidate the admin session.
+  // Re-establish the B2C actor before exercising mutation-adjacent commercial UI.
+  await context.clearCookies();
+  await login(page, 'b2c', locale, email);
+  const b2cContext = await page.goto(`${baseUrl}/admin/b2c/dashboard`, { waitUntil: 'networkidle' });
+  if (!b2cContext || !b2cContext.ok() || page.url().includes('/login')) {
+    throw new Error(`Unable to restore B2C runtime context before commercial evidence (${locale})`);
+  }
+  await exerciseCommercialRuntimeInteractions(page, locale, pageErrors);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');

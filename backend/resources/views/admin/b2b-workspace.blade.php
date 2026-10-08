@@ -267,7 +267,7 @@
                 <div class="b2b-ref-panel-head"><h2>{{ $isAr?'أحدث الطلبات':'Latest orders' }}</h2></div>
                 @if(count($dashboard['recent_orders']))
                 <div class="b2b-ref-orders-wrap">
-                    <table class="b2b-ref-orders">
+                    <table class="b2b-ref-orders" data-pagination-exempt="bounded-dashboard-snapshot">
                         <thead><tr><th>#</th><th>{{ $isAr?'رقم الطلب':'Order' }}</th><th>{{ $isAr?'العميل':'Customer' }}</th><th>{{ $isAr?'مخزن الصرف':'Source warehouse' }}</th><th>{{ $isAr?'المبلغ':'Amount' }}</th><th>{{ $isAr?'الحالة':'Status' }}</th></tr></thead>
                         <tbody>
                         @foreach($dashboard['recent_orders'] as $index=>$order)
@@ -550,7 +550,7 @@
       @include('admin._dashboard-order-create',['channel'=>'b2b'])
       @endif
       @if($module!=='storefront' && count($moduleData['rows']))
-      <div class="table-wrap"><table class="data foodex-table"><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
+      <div class="table-wrap"><table class="data foodex-table" data-pagination-required><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
         @elseif($column==='status')<span class="badge {{ $row[$column] }}">{{ $orderStateLabels[$row[$column]] ?? $row[$column] }}</span>
@@ -597,6 +597,7 @@
         @else{{ $row[$column] }}@endif
       </td>@endforeach</tr>@endforeach
       </tbody></table></div>
+      @if(isset($moduleData['rows_paginator'])){{ $moduleData['rows_paginator']->links() }}@endif
       @elseif($module!=='storefront')
       <div class="empty-state" role="status">{{ app()->getLocale()==='ar' ? 'لا توجد بيانات متاحة في هذا القسم.' : 'No records are available in this section.' }}</div>
       @endif

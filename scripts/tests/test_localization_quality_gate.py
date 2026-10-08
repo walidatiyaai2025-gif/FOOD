@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -90,6 +91,76 @@ class LocalizationQualityGateTest(unittest.TestCase):
         errors = []
         module.scan_added_lines(
             [("apps/driver_app/lib/features/debug/page.dart", 10, "Text('Protocol HTTP 200'), // localization-gate: allow technical protocol")],
+            errors,
+        )
+        self.assertEqual([], errors)
+
+
+    def test_blade_javascript_comparison_is_not_user_facing_text(self):
+        original_root = module.ROOT
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                module.ROOT = Path(temp_dir)
+                path = Path(temp_dir) / "backend/resources/views/admin/example.blade.php"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "<div>{{ __('orders.title') }}</div>\n"
+                    "<script>\n"
+                    "const fits = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;\n"
+                    "</script>\n",
+                    encoding="utf-8",
+                )
+                errors = []
+                module.scan_added_lines(
+                    [(
+                        "backend/resources/views/admin/example.blade.php",
+                        3,
+                        "const fits = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;",
+                    )],
+                    errors,
+                )
+                self.assertEqual([], errors)
+        finally:
+            module.ROOT = original_root
+
+    def test_blade_style_content_is_not_user_facing_text(self):
+        original_root = module.ROOT
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                module.ROOT = Path(temp_dir)
+                path = Path(temp_dir) / "backend/resources/views/admin/example.blade.php"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "<style>\n"
+                    ".grid > .cell { width: calc(100% - 8px); }\n"
+                    "</style>\n",
+                    encoding="utf-8",
+                )
+                errors = []
+                module.scan_added_lines(
+                    [("backend/resources/views/admin/example.blade.php", 2, ".grid > .cell { width: calc(100% - 8px); }")],
+                    errors,
+                )
+                self.assertEqual([], errors)
+        finally:
+            module.ROOT = original_root
+
+
+    def test_blade_control_flow_fragments_are_not_visible_copy(self):
+        errors = []
+        module.scan_added_lines(
+            [
+                (
+                    "backend/resources/views/admin/catalog-management.blade.php",
+                    320,
+                    "@foreach($categories->where('id','!=',$c->id) as $parent)<option>{{ $parent->name }}</option>@endforeach",
+                ),
+                (
+                    "backend/resources/views/admin/customer-360-show.blade.php",
+                    253,
+                    "@if($orders->isEmpty())<div>{{ __('customer_360.records.no_orders') }}</div>@endif",
+                ),
+            ],
             errors,
         )
         self.assertEqual([], errors)

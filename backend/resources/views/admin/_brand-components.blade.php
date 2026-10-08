@@ -128,7 +128,8 @@
     .foodex-ops-actions>summary{list-style:none;width:var(--foodex-touch-target);height:var(--foodex-touch-target);display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-ink);cursor:pointer;font-size:20px;line-height:1}
     .foodex-ops-actions>summary::-webkit-details-marker{display:none}
     .foodex-ops-actions>summary:hover,.foodex-ops-actions[open]>summary{background:var(--foodex-green-soft);border-color:#b7dfc4;color:var(--foodex-green-dark)}
-    .foodex-ops-menu{position:absolute;z-index:60;inset-inline-end:0;top:calc(100% + 6px);min-width:180px;padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-raised)}
+    .foodex-ops-menu{position:fixed;z-index:10050;min-width:180px;max-width:min(320px,calc(100vw - 16px));padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-raised);visibility:hidden}
+    .foodex-ops-actions[open]>.foodex-ops-menu{visibility:visible}
     .foodex-ops-menu a,.foodex-ops-menu button{width:100%;min-height:40px;display:flex;align-items:center;justify-content:flex-start;padding:0 var(--foodex-space-3);border:0;border-radius:8px;background:transparent;color:var(--foodex-ink);text-decoration:none;font:inherit;cursor:pointer}
     .foodex-ops-menu a:hover,.foodex-ops-menu button:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
     .foodex-ops-menu .danger{color:var(--foodex-red)!important;background:transparent!important}
@@ -138,6 +139,146 @@
     @media(max-width:767px){.foodex-ops-toolbar,.foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)}.foodex-ops-grid .foodex-ops-hide-mobile{display:none}}
 
 </style>
+<script id="foodex-ops-popover-runtime">
+(() => {
+    const portals = new WeakMap();
+
+    const isEllipsisActions = (details) => {
+        if (!(details instanceof HTMLDetailsElement)) return false;
+        const summary = details.querySelector(':scope > summary');
+        const label = (summary?.textContent || '').trim();
+        return label === '⋮' || label === '…' || label === '...'
+            || details.classList.contains('foodex-ops-actions')
+            || details.classList.contains('row-actions')
+            || details.classList.contains('catalog-actions');
+    };
+
+    const actionMenus = () => [...document.querySelectorAll('details[open]')].filter(isEllipsisActions);
+
+    const findMenu = (details) => {
+        const portal = portals.get(details);
+        if (portal?.menu?.isConnected) return portal.menu;
+        return details.querySelector(
+            ':scope > .foodex-ops-menu, :scope > .row-action-menu, :scope > .catalog-action-menu'
+        ) || [...details.children].find((child) => child instanceof HTMLElement && child.tagName !== 'SUMMARY');
+    };
+
+    const portalMenu = (details) => {
+        const existing = portals.get(details);
+        if (existing?.menu?.isConnected) return existing.menu;
+
+        const menu = findMenu(details);
+        if (!(menu instanceof HTMLElement)) return null;
+
+        const placeholder = document.createComment('foodex-action-menu-portal');
+        menu.parentNode?.insertBefore(placeholder, menu);
+        document.body.appendChild(menu);
+        menu.dataset.foodexActionPortal = '1';
+        portals.set(details, { menu, placeholder });
+        return menu;
+    };
+
+    const restoreMenu = (details) => {
+        const portal = portals.get(details);
+        if (!portal) return;
+        const { menu, placeholder } = portal;
+        if (placeholder?.parentNode && menu) placeholder.parentNode.insertBefore(menu, placeholder);
+        placeholder?.remove();
+        menu?.removeAttribute('data-foodex-action-portal');
+        if (menu instanceof HTMLElement) {
+            menu.style.position = '';
+            menu.style.zIndex = '';
+            menu.style.visibility = '';
+            menu.style.inset = '';
+            menu.style.insetInlineStart = '';
+            menu.style.insetInlineEnd = '';
+            menu.style.right = '';
+            menu.style.bottom = '';
+            menu.style.maxWidth = '';
+            menu.style.top = '';
+            menu.style.left = '';
+        }
+        portals.delete(details);
+    };
+
+    const positionMenu = (details) => {
+        if (!isEllipsisActions(details) || !details.open) return;
+        const summary = details.querySelector(':scope > summary');
+        const menu = portalMenu(details);
+        if (!(summary instanceof HTMLElement) || !(menu instanceof HTMLElement)) return;
+
+        const trigger = summary.getBoundingClientRect();
+        const margin = 8;
+
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '10050';
+        menu.style.visibility = 'hidden';
+        menu.style.inset = 'auto';
+        menu.style.insetInlineStart = 'auto';
+        menu.style.insetInlineEnd = 'auto';
+        menu.style.right = 'auto';
+        menu.style.bottom = 'auto';
+        menu.style.maxWidth = 'min(320px, calc(100vw - 16px))';
+        menu.style.top = '0px';
+        menu.style.left = '0px';
+
+        const menuRect = menu.getBoundingClientRect();
+        // Row actions normally live at the visual edge of a grid. Prefer opening the
+        // menu inward (to the left of the trigger) in both RTL and LTR, then fall
+        // back to the opposite side only when that side has materially more room.
+        const inwardLeft = trigger.right - menuRect.width;
+        const outwardLeft = trigger.left;
+        const fitsInward = inwardLeft >= margin && inwardLeft + menuRect.width <= window.innerWidth - margin;
+        const fitsOutward = outwardLeft >= margin && outwardLeft + menuRect.width <= window.innerWidth - margin;
+        let left = fitsInward ? inwardLeft : (fitsOutward ? outwardLeft : inwardLeft);
+        left = Math.max(margin, Math.min(left, window.innerWidth - menuRect.width - margin));
+
+        let top = trigger.bottom + 6;
+        if (top + menuRect.height > window.innerHeight - margin && trigger.top - menuRect.height - 6 >= margin) {
+            top = trigger.top - menuRect.height - 6;
+        }
+        top = Math.max(margin, Math.min(top, window.innerHeight - menuRect.height - margin));
+
+        menu.style.left = Math.round(left) + 'px';
+        menu.style.top = Math.round(top) + 'px';
+        menu.style.visibility = 'visible';
+    };
+
+    const closeMenu = (details) => {
+        if (!(details instanceof HTMLDetailsElement)) return;
+        details.open = false;
+        restoreMenu(details);
+    };
+
+    const repositionOpenMenus = () => actionMenus().forEach(positionMenu);
+
+    document.addEventListener('toggle', (event) => {
+        const details = event.target;
+        if (!isEllipsisActions(details)) return;
+
+        if (details.open) {
+            actionMenus().forEach((other) => {
+                if (other !== details) closeMenu(other);
+            });
+            requestAnimationFrame(() => positionMenu(details));
+        } else {
+            restoreMenu(details);
+        }
+    }, true);
+
+    document.addEventListener('click', (event) => {
+        actionMenus().forEach((details) => {
+            const portal = portals.get(details);
+            const insideTrigger = details.contains(event.target);
+            const insideMenu = portal?.menu instanceof HTMLElement && portal.menu.contains(event.target);
+            if (!insideTrigger && !insideMenu) closeMenu(details);
+        });
+    });
+
+    window.addEventListener('resize', repositionOpenMenus, { passive: true });
+    document.addEventListener('scroll', repositionOpenMenus, true);
+})();
+</script>
 
 <script id="foodex-placeholder-audit">
 document.addEventListener('DOMContentLoaded', () => {

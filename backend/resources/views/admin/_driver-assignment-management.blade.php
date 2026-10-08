@@ -23,7 +23,7 @@
             : 'Unassign or reassign an order while preserving the full assignment history.' }}
     </p>
     <div style="overflow:auto">
-        <table class="foodex-table data module-table" style="min-width:760px;width:100%">
+        <table class="foodex-table data module-table" data-pagination-required style="min-width:760px;width:100%">
             <thead>
                 <tr>
                     <th>{{ app()->getLocale()==='ar'?'الطلب':'Order' }}</th>
@@ -120,5 +120,6 @@
             </tbody>
         </table>
     </div>
+    @if(isset($moduleData['assignments_paginator'])){{ $moduleData['assignments_paginator']->links() }}@endif
 </div>
 @endif

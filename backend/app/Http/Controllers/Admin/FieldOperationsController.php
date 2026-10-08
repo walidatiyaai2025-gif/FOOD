@@ -533,40 +533,67 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['territories.manage', 'field_ops.manage']);
 
+        $localizeNode = function (GeographyNode $node): GeographyNode {
+            $node->setAttribute(
+                'localized_name',
+                $this->localizedText($node->name_ar, $node->name_en),
+            );
+            if ($node->parent !== null) {
+                $node->parent->setAttribute(
+                    'localized_name',
+                    $this->localizedText(
+                        $node->parent->getAttribute('name_ar'),
+                        $node->parent->getAttribute('name_en'),
+                    ),
+                );
+            }
+
+            return $node;
+        };
+
+        // Full lookup collection remains available to the create/edit controls.
+        // The visible hierarchy grid itself is server-paginated with its own page key.
         $nodes = GeographyNode::query()
             ->with('parent')
             ->orderBy('country_code')
             ->orderBy('type')
             ->orderBy('name_en')
             ->get()
-            ->each(function (GeographyNode $node): void {
-                $node->setAttribute(
-                    'localized_name',
-                    $this->localizedText($node->name_ar, $node->name_en),
-                );
-                if ($node->parent !== null) {
-                    $node->parent->setAttribute(
-                        'localized_name',
-                        $this->localizedText(
-                            $node->parent->getAttribute('name_ar'),
-                            $node->parent->getAttribute('name_en'),
-                        ),
-                    );
-                }
-            });
+            ->map($localizeNode);
+        $nodeRows = GeographyNode::query()
+            ->with('parent')
+            ->orderBy('country_code')
+            ->orderBy('type')
+            ->orderBy('name_en')
+            ->paginate(25, ['*'], 'geography_page')
+            ->withQueryString();
+        $nodeRows->setCollection($nodeRows->getCollection()->map($localizeNode));
+
+        $localizeTerritory = function (ServiceTerritory $territory): ServiceTerritory {
+            $territory->setAttribute(
+                'localized_name',
+                $this->localizedText($territory->name_ar, $territory->name_en),
+            );
+
+            return $territory;
+        };
+
+        // The map/editor needs the complete geometry set, while the record list is paginated.
         $territories = ServiceTerritory::query()
             ->with(['country', 'geometries'])
             ->orderByDesc('priority')
             ->orderBy('name_en')
             ->get()
-            ->each(function (ServiceTerritory $territory): void {
-                $territory->setAttribute(
-                    'localized_name',
-                    $this->localizedText($territory->name_ar, $territory->name_en),
-                );
-            });
+            ->map($localizeTerritory);
+        $territoryRows = ServiceTerritory::query()
+            ->with(['country', 'geometries'])
+            ->orderByDesc('priority')
+            ->orderBy('name_en')
+            ->paginate(25, ['*'], 'territory_page')
+            ->withQueryString();
+        $territoryRows->setCollection($territoryRows->getCollection()->map($localizeTerritory));
 
-        return $this->render($request, 'territories', compact('nodes', 'territories'));
+        return $this->render($request, 'territories', compact('nodes', 'nodeRows', 'territories', 'territoryRows'));
     }
 
     public function storeGeography(Request $request): RedirectResponse

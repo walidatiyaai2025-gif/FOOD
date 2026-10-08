@@ -24,6 +24,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -125,6 +126,36 @@ class B2cWorkspaceController extends Controller
         $moduleData = in_array($module, ['products', 'inventory', 'incoming_orders', 'orders', 'finance', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
             ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
             : null;
+        if (is_array($moduleData)) {
+            foreach ([
+                ['key' => 'rows', 'page' => 'rows_page', 'paginator' => 'rows_paginator'],
+                ['key' => 'assignments_list', 'page' => 'assignments_page', 'paginator' => 'assignments_paginator'],
+            ] as $paginationContract) {
+                $key = $paginationContract['key'];
+                if (! isset($moduleData[$key]) || ! is_array($moduleData[$key])) {
+                    continue;
+                }
+
+                $items = collect($moduleData[$key])->values();
+                $perPage = 25;
+                $pageName = $paginationContract['page'];
+                $currentPage = max(1, (int) $request->query($pageName, 1));
+                $pageItems = $items->forPage($currentPage, $perPage)->values();
+
+                $moduleData[$key] = $pageItems->all();
+                $moduleData[$paginationContract['paginator']] = new LengthAwarePaginator(
+                    $pageItems,
+                    $items->count(),
+                    $perPage,
+                    $currentPage,
+                    [
+                        'path' => $request->url(),
+                        'pageName' => $pageName,
+                        'query' => $request->except($pageName),
+                    ],
+                );
+            }
+        }
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
             fn (string $candidate): bool => $this->canOpenModule($user, $candidate, $storeId),

@@ -88,69 +88,82 @@ final class CatalogManagementController extends Controller
             ? 'categories.image_path'
             : DB::raw('NULL as image_path');
 
+        $productColumns = [
+            'products.id',
+            'products.sku',
+            'products.name',
+            'products.description',
+            'products.is_active',
+            'products.category_id',
+            'products.brand_id',
+            'products.unit_id',
+            'products.catalog_id',
+            'catalogs.store_id as catalog_store_id',
+            'catalogs.channel as catalog_channel',
+            'catalog_store.name as catalog_store_name',
+            'categories.name as category',
+            'brands.name as brand',
+            'units.name as unit',
+            DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
+        ];
+        $products = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
+            ->join('units', 'units.id', '=', 'products.unit_id')
+            ->whereIn('catalogs.store_id', $storeIds)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->orderByDesc('products.id')
+            ->paginate(25, $productColumns, 'product_page')
+            ->withQueryString();
+        $products->setCollection($products->getCollection()->map(function (object $product): object {
+            $availability = $this->availability->forStoreProduct(
+                (int) $product->catalog_store_id,
+                (int) $product->id,
+            );
+            $product->available_quantity = $availability['available_quantity'];
+            $product->availability_state = $availability['availability_state'];
+            $product->is_available = $availability['is_available'];
+
+            return $product;
+        }));
+
+        $categoryQuery = DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
+            ->leftJoin('categories as parent', 'parent.id', '=', 'categories.parent_id')
+            ->whereIn('catalogs.store_id', $storeIds)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->orderBy('categories.name');
+        $categoryColumns = [
+            'categories.id',
+            'categories.name',
+            'categories.slug',
+            $categoryImageColumn,
+            'categories.parent_id',
+            'categories.is_active',
+            'categories.catalog_id',
+            'catalogs.store_id as catalog_store_id',
+            'catalog_store.name as catalog_store_name',
+            'parent.name as parent_name',
+        ];
+        $categories = (clone $categoryQuery)->get($categoryColumns);
+        $categoryRows = (clone $categoryQuery)
+            ->paginate(25, $categoryColumns, 'category_page')
+            ->withQueryString();
+
+        $pageProductIds = $products->getCollection()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+
         return view('admin.catalog-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
             'navContext' => $navContext,
             'inventoryUrl' => $inventoryUrl,
             'tab' => $tab,
-            'products' => DB::table('products')
-                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-                ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
-                ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
-                ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
-                ->join('units', 'units.id', '=', 'products.unit_id')
-                ->whereIn('catalogs.store_id', $storeIds)
-                ->where('catalogs.is_migration_quarantine', false)
-                ->orderByDesc('products.id')
-                ->get([
-                    'products.id',
-                    'products.sku',
-                    'products.name',
-                    'products.description',
-                    'products.is_active',
-                    'products.category_id',
-                    'products.brand_id',
-                    'products.unit_id',
-                    'products.catalog_id',
-                    'catalogs.store_id as catalog_store_id',
-                    'catalogs.channel as catalog_channel',
-                    'catalog_store.name as catalog_store_name',
-                    'categories.name as category',
-                    'brands.name as brand',
-                    'units.name as unit',
-                    DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
-                ])
-                ->map(function (object $product): object {
-                    $availability = $this->availability->forStoreProduct(
-                        (int) $product->catalog_store_id,
-                        (int) $product->id,
-                    );
-                    $product->available_quantity = $availability['available_quantity'];
-                    $product->availability_state = $availability['availability_state'];
-                    $product->is_available = $availability['is_available'];
-
-                    return $product;
-                }),
-            'categories' => DB::table('categories')
-                ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
-                ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
-                ->leftJoin('categories as parent', 'parent.id', '=', 'categories.parent_id')
-                ->whereIn('catalogs.store_id', $storeIds)
-                ->where('catalogs.is_migration_quarantine', false)
-                ->orderBy('categories.name')
-                ->get([
-                    'categories.id',
-                    'categories.name',
-                    'categories.slug',
-                    $categoryImageColumn,
-                    'categories.parent_id',
-                    'categories.is_active',
-                    'categories.catalog_id',
-                    'catalogs.store_id as catalog_store_id',
-                    'catalog_store.name as catalog_store_name',
-                    'parent.name as parent_name',
-                ]),
+            'products' => $products,
+            'categories' => $categories,
+            'categoryRows' => $categoryRows,
             'brands' => $this->lookups
                 ->visible(Brand::query(), $actor, 'brands')
                 ->where('brands.is_active', true)
@@ -180,6 +193,7 @@ final class CatalogManagementController extends Controller
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
                 ->whereIn('catalogs.store_id', $storeIds)
                 ->where('catalogs.is_migration_quarantine', false)
+                ->whereIn('product_images.product_id', $pageProductIds)
                 ->orderBy('product_images.product_id')
                 ->orderByDesc('product_images.is_primary')
                 ->orderBy('product_images.sort_order')
@@ -194,6 +208,7 @@ final class CatalogManagementController extends Controller
                 ->groupBy('product_id'),
             'assignments' => DB::table('store_products')
                 ->whereIn('store_id', $storeIds)
+                ->whereIn('product_id', $pageProductIds)
                 ->get()
                 ->keyBy(fn ($row) => $row->store_id.':'.$row->product_id),
             'currencies' => DB::table('settings')

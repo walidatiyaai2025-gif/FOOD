@@ -11,6 +11,7 @@ use App\Services\ReportExportService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,13 +23,34 @@ final class ReportController extends Controller
         abort_unless($user instanceof User, 401);
 
         $report = (string) $request->query('report', 'orders');
-        $filters = $request->validate($this->rules());
-        $data = $reports->run($user, $report, $filters);
+        $validated = $request->validate([
+            ...$this->rules(),
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+        ]);
+        $page = max(1, (int) ($validated['page'] ?? 1));
+        $perPage = (int) ($validated['per_page'] ?? 25);
+        unset($validated['page'], $validated['per_page']);
+
+        $data = $reports->run($user, $report, $validated, $perPage, ($page - 1) * $perPage);
+        // More rows are reachable through pagination, so the UI is not truncated.
+        $data['meta']['truncated'] = false;
+        $rowsPaginator = new LengthAwarePaginator(
+            $data['rows'],
+            (int) ($data['meta']['row_count'] ?? count($data['rows'])),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->except('page'),
+            ],
+        );
 
         return view('admin.reports', [
             'report' => $report,
             'catalog' => $reports->catalog(),
             'data' => $data,
+            'rowsPaginator' => $rowsPaginator,
             'options' => $this->options($user),
         ]);
     }

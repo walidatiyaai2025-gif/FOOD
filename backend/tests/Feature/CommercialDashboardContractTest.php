@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\FlashOffer;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\CommercialFeatureFlags;
+use App\Services\FlashOfferAudienceService;
+use App\Services\RetailWholesaleAccountService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -376,6 +380,10 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('data-flash-offer-form', false)
             ->assertSee('data-flash-product-builder', false)
             ->assertSee('name="channels[]"', false)
+            ->assertSee('data-flash-lookup-kind="customers"', false)
+            ->assertSee('data-flash-lookup-kind="customer-groups"', false)
+            ->assertSee('data-flash-lookup-search', false)
+            ->assertDontSee('select class="flash-multi"', false)
             ->assertSee('name="products[0][product_id]"', false)
             ->assertSee('name="products[0][selling_unit_code]"', false)
             ->assertDontSee('Channels JSON')
@@ -460,6 +468,92 @@ class CommercialDashboardContractTest extends TestCase
             [$legacyCustomerId],
             json_decode((string) $offer->audience_customer_ids, true, 512, JSON_THROW_ON_ERROR),
         );
+    }
+
+    public function test_flash_offer_audience_lookup_includes_retail_store_owner_and_resolves_owner_identity(): void
+    {
+        [, $storeId] = $this->retailManager();
+        $productId = $this->flashProduct($storeId);
+
+        $targetStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'FLASH-RETAIL-TARGET',
+            'name' => 'Target Retail Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $owner = User::query()->create([
+            'name' => 'Retail Target Owner',
+            'email' => 'retail-target-owner@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $linkedCustomer = app(RetailWholesaleAccountService::class)->ensureForStore(
+            Store::query()->findOrFail($targetStoreId),
+            null,
+            $owner,
+        );
+        $legacyCustomerId = (int) $linkedCustomer->legacy_customer_id;
+
+        $this->assertNull(DB::table('customers')->where('id', $legacyCustomerId)->value('user_id'));
+
+        $superAdmin = User::query()->create([
+            'name' => 'Flash Retail Audience Admin',
+            'email' => 'flash-retail-audience-admin@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $superAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('data-flash-lookup-kind="customers"', false)
+            ->assertSee('data-flash-retail-owner', false)
+            ->assertSee('Target Retail Store')
+            ->assertSee('Retail Target Owner')
+            ->assertSee('retail-target-owner@example.test')
+            ->assertSee('Retail store owner');
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $storeId]), [
+                'name' => 'Retail Owner Audience Flash',
+                'title_ar' => 'عرض لصاحب متجر تجزئة',
+                'title_en' => 'Retail owner audience flash',
+                'status' => 'draft',
+                'starts_at' => now()->addMinutes(5)->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
+                'timezone' => 'Asia/Kuwait',
+                'channels' => ['customer'],
+                'audience_customer_ids' => [$legacyCustomerId],
+                'allocation_mode' => 'shared',
+                'reservation_seconds' => 300,
+                'retry_count' => 0,
+                'cooldown_seconds' => 0,
+                'priority' => 0,
+                'popup_frequency' => 'once_per_session',
+                'products' => [[
+                    'product_id' => $productId,
+                    'selling_unit_code' => 'PIECE',
+                    'flash_price' => 8,
+                    'allocation_base' => 20,
+                ]],
+            ])
+            ->assertRedirect()
+            ->assertSessionDoesntHaveErrors();
+
+        $offer = FlashOffer::query()
+            ->where('store_id', $storeId)
+            ->where('name', 'Retail Owner Audience Flash')
+            ->firstOrFail();
+
+        $this->assertSame([$legacyCustomerId], $offer->audience_customer_ids);
+        $this->assertTrue(app(FlashOfferAudienceService::class)->isEligible($offer, $owner->id));
     }
 
     public function test_flash_offer_rows_use_one_compact_action_menu_and_catalog_localization(): void

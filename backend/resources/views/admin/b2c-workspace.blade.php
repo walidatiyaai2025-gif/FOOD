@@ -643,7 +643,7 @@
             @endif
             @if(count($moduleData['rows']))
                 <div class="module-table-wrap">
-                    <table class="module-table foodex-table">
+                    <table class="module-table foodex-table" data-pagination-required>
                         <thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column] ?? $column }}</th>@endforeach</tr></thead>
                         <tbody>
                         @foreach($moduleData['rows'] as $row)
@@ -714,6 +714,7 @@
                         </tbody>
                     </table>
                 </div>
+                @if(isset($moduleData['rows_paginator'])){{ $moduleData['rows_paginator']->links() }}@endif
             @else
                 <div class="module-empty-state" role="status">{{ app()->getLocale()==='ar' ? 'لا توجد بيانات في هذا القسم للمتاجر المصرح بها.' : 'No records are available in this section for the assigned stores.' }}</div>
             @endif

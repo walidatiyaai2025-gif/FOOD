@@ -83,7 +83,7 @@
 
     <section class="card">
         <h2>Recent update history</h2>
-        <table>
+        <table data-pagination-required>
             <thead>
             <tr><th>From</th><th>To</th><th>Status</th><th>Started</th><th>Failure</th></tr>
             </thead>
@@ -112,6 +112,7 @@
             @endforelse
             </tbody>
         </table>
+        {{ $historyRows->links() }}
     </section>
 </main>
 <script>

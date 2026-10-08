@@ -87,9 +87,10 @@ $breakdownHeader = static function (string $key): string {
             @if(count($data['rows']) === 0)
                 <div class="empty">{{ __('reports.empty') }}</div>
             @else
-                <div class="table-wrap"><table><thead><tr>@foreach($data['columns'] as $column)<th>{{ __("reports.columns.$column") }}</th>@endforeach</tr></thead><tbody>
+                <div class="table-wrap"><table data-pagination-required><thead><tr>@foreach($data['columns'] as $column)<th>{{ __("reports.columns.$column") }}</th>@endforeach</tr></thead><tbody>
                 @foreach($data['rows'] as $row)<tr>@foreach($data['columns'] as $column)<td>{{ $row[$column] ?? '—' }}</td>@endforeach</tr>@endforeach
                 </tbody></table></div>
+                {{ $rowsPaginator->links() }}
             @endif
         </section>
 
@@ -104,7 +105,7 @@ $breakdownHeader = static function (string $key): string {
                         <div class="empty">{{ __('reports.empty') }}</div>
                     @else
                         <div class="table-wrap">
-                            <table class="foodex-table">
+                            <table class="foodex-table" data-pagination-exempt="summary-breakdown">
                                 <thead><tr>@foreach($breakdownColumns as $column)<th>{{ $breakdownHeader($column) }}</th>@endforeach</tr></thead>
                                 <tbody>
                                 @foreach($breakdownRows as $row)

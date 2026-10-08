@@ -30,7 +30,9 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('.foodex-ops-detail-grid{', $brand);
         $this->assertStringContainsString('.foodex-ops-state{', $brand);
         $this->assertStringContainsString('width:var(--foodex-touch-target);height:var(--foodex-touch-target)', $brand);
-        $this->assertStringContainsString('inset-inline-end:0', $brand);
+        $this->assertStringContainsString("menu.style.position = 'fixed'", $brand);
+        $this->assertStringContainsString("zIndex = '10050'", $brand);
+        $this->assertStringContainsString("document.addEventListener('scroll', repositionOpenMenus, true)", $brand);
     }
 
     public function test_field_operations_primitives_keep_existing_tabs_pagination_and_responsive_contracts(): void
