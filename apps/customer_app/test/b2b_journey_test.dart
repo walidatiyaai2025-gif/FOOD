@@ -2069,8 +2069,20 @@ void main() {
     );
     expect(find.byType(FoodexBarChart), findsOneWidget);
     expect(find.byType(FoodexDonutChart), findsOneWidget);
-    expect(find.text('Rice'), findsOneWidget);
-    expect(find.text('Oil'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(FoodexChartLegend),
+        matching: find.text('Rice'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(FoodexChartLegend),
+        matching: find.text('Oil'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('B2B-77'), findsOneWidget);
     expect(api.lastPath, contains('store_id=7'));
 
