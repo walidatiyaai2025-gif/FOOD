@@ -132,7 +132,7 @@ class VanControlPlaneParityTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('admin.mobile-apps.van.download'))
-            ->assertRedirect('https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Van.apk');
+            ->assertRedirect(route('public.mobile-apps.latest', ['app' => 'van']));
     }
 
     public function test_preview_center_exposes_real_van_runtime_contract_without_fake_impersonation(): void
