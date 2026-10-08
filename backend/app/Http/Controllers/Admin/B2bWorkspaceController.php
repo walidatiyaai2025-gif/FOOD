@@ -1832,5 +1832,4 @@ class B2bWorkspaceController extends Controller
 
         return $moduleData;
     }
-
 }
