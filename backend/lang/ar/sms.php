@@ -2,7 +2,7 @@
 return [
 'title'=>'بوابة الرسائل النصية','eyebrow'=>'اتصالات النظام',
 'description'=>'إعداد مركزي لإرسال OTP ورسائل الدخول والطلبات والتوجيه وكل استخدامات SMS المستقبلية.',
-'back'=>'العودة إلى مركز الإدارة','settings'=>'إعدادات المزود','enabled'=>'تفعيل SMS','provider'=>'المزود',
+'back'=>'العودة إلى مركز الإدارة','settings'=>'إعدادات المزود','enabled'=>'تفعيل SMS','provider_label'=>'المزود',
 'base_url'=>'رابط API الأساسي','endpoint'=>'مسار Endpoint','token'=>'API Token','token_hint'=>'اتركه فارغًا للاحتفاظ بالرمز المشفر الحالي.',
 'sender'=>'اسم المرسل الافتراضي','country_code'=>'كود الدولة الافتراضي','operator_mode'=>'تحديد شركة الاتصالات',
 'automatic'=>'تلقائي','manual'=>'يدوي عند الحاجة','timeout'=>'مهلة الطلب بالثواني','retry_count'=>'عدد المحاولات الإضافية',
@@ -10,6 +10,8 @@ return [
 'notifications_enabled'=>'تفعيل رسائل الإشعارات','save'=>'حفظ إعدادات SMS','saved'=>'تم حفظ إعدادات SMS.',
 'test'=>'إرسال SMS تجريبية','test_title'=>'إرسال رسالة تجريبية','phone'=>'رقم الهاتف','message'=>'الرسالة','operator'=>'شركة الاتصالات',
 'operator_auto'=>'تحديد تلقائي','sender_override'=>'اسم مرسل بديل - اختياري','send'=>'إرسال التجربة','cancel'=>'إلغاء',
+'providers'=>['advansys_bulk_sms'=>'أدفانسيس للرسائل النصية الجماعية'],
+'operators'=>['vodafone'=>'فودافون','orange'=>'أورنج','etisalat'=>'اتصالات','we'=>'وي'],
 'recent'=>'آخر محاولات إرسال SMS','request_id'=>'Request ID','recipient'=>'المستلم','purpose'=>'الغرض','status'=>'الحالة',
 'attempts'=>'المحاولات','latency'=>'زمن الاستجابة','provider_code'=>'نتيجة المزود','timestamp'=>'الوقت','not_configured'=>'غير مضبوط',
 'no_logs'=>'لا توجد محاولات إرسال حتى الآن.','test_sent'=>'تم إرسال الرسالة التجريبية. الطلب :request · :latency مللي ثانية.',
