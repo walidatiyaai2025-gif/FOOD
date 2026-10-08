@@ -1505,7 +1505,7 @@ class B2cWorkspaceController extends Controller
             ['key' => 'assignments_list', 'page' => 'assignments_page', 'paginator' => 'assignments_paginator'],
         ] as $contract) {
             $key = $contract['key'];
-            if (! isset($moduleData[$key]) || ! is_array($moduleData[$key])) {
+            if (! isset($moduleData[$key]) || !is_array($moduleData[$key])) {
                 continue;
             }
 
