@@ -137,7 +137,13 @@ final class RetailInventoryIntelligenceService
                         ->setTimezone(self::TIMEZONE);
                     $historyDays = min(
                         30,
-                        max(1, (int) $listedAt->startOfDay()->diffInDays($asOf->startOfDay()) + 1),
+                        max(
+                            1,
+                            (int) $listedAt->startOfDay()->diffInDays(
+                                $asOf->startOfDay(),
+                                false,
+                            ) + 1,
+                        ),
                     );
 
                     $units = [
@@ -310,7 +316,8 @@ final class RetailInventoryIntelligenceService
             ->groupBy('inventories.product_id')
             ->select('inventories.product_id')
             ->selectRaw('SUM(inventories.quantity) as on_hand')
-            ->pluck('on_hand', 'inventories.product_id');
+            ->get()
+            ->pluck('on_hand', 'product_id');
 
         $movements = DB::table('stock_movements')
             ->join('inventories', 'inventories.id', '=', 'stock_movements.inventory_id')
@@ -356,7 +363,10 @@ final class RetailInventoryIntelligenceService
                     ->setTimezone(self::TIMEZONE);
                 $ageDays = max(
                     0,
-                    (int) $receivedAt->startOfDay()->diffInDays($asOf->startOfDay()),
+                    (int) $receivedAt->startOfDay()->diffInDays(
+                        $asOf->startOfDay(),
+                        false,
+                    ),
                 );
                 $bucket = match (true) {
                     $ageDays <= 7 => 'days_0_7',
