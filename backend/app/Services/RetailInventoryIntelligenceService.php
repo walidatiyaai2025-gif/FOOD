@@ -97,6 +97,7 @@ final class RetailInventoryIntelligenceService
                 'products.id',
                 'products.sku',
                 'products.name',
+                'store_products.price as retail_unit_price',
                 'store_products.cost_price',
                 'store_products.created_at as listed_at',
                 'stock_totals.on_hand',
@@ -173,6 +174,9 @@ final class RetailInventoryIntelligenceService
                         'product_id' => (int) $row->id,
                         'sku' => (string) $row->sku,
                         'name' => (string) $row->name,
+                        'retail_unit_price' => $row->retail_unit_price === null
+                            ? null
+                            : round((float) $row->retail_unit_price, 3),
                         'stock' => [
                             'on_hand' => $onHand,
                             'reserved' => $reserved,
