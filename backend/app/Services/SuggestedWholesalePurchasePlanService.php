@@ -415,31 +415,57 @@ final class SuggestedWholesalePurchasePlanService
             return ['cost' => 0.0, 'review_required' => false];
         }
 
-        $cost = 0.0;
-        foreach (CartItem::query()->where('cart_id', $cart->getKey())->get() as $item) {
-            try {
-                $this->assertActiveWholesaleProduct($storeId, (int) $item->product_id);
-                $pricing = $this->pricing->resolve($customer, $storeId, (int) $item->product_id);
+        $items = CartItem::query()->where('cart_id', $cart->getKey())->get();
+        if ($items->isEmpty()) {
+            return ['cost' => 0.0, 'review_required' => false];
+        }
+
+        $productIds = $items
+            ->pluck('product_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        try {
+            $targets = array_map(
+                static fn (int $productId): array => [
+                    'store_id' => $storeId,
+                    'product_id' => $productId,
+                ],
+                $productIds,
+            );
+            $prices = $this->pricing->resolveMany($customer, $targets);
+            $availability = $this->liveAvailableMany($storeId, $productIds);
+
+            $cost = 0.0;
+            foreach ($items as $item) {
+                $productId = (int) $item->product_id;
+                $pricing = $prices[$storeId.':'.$productId] ?? null;
+                if (! is_array($pricing)) {
+                    throw new \RuntimeException('cart product or pricing unavailable');
+                }
+
                 $this->assertValidQuantity(
                     (float) $item->quantity,
                     (float) $pricing['minimum_quantity'],
                     (float) $pricing['ordering_increment'],
                 );
-                $available = $this->liveAvailable($storeId, (int) $item->product_id);
+                $available = (float) ($availability[$productId] ?? 0.0);
                 if ((float) $item->quantity > $available + 0.0001) {
                     throw new \RuntimeException('cart availability drift');
                 }
                 $cost = round($cost + ((float) $item->quantity * (float) $pricing['price']), 3);
-            } catch (Throwable $exception) {
-                if ($strict) {
-                    $this->fail('quantities', 'existing_cart_invalid');
-                }
-
-                return ['cost' => $cost, 'review_required' => true];
             }
-        }
 
-        return ['cost' => $cost, 'review_required' => false];
+            return ['cost' => $cost, 'review_required' => false];
+        } catch (Throwable $exception) {
+            if ($strict) {
+                $this->fail('quantities', 'existing_cart_invalid');
+            }
+
+            return ['cost' => 0.0, 'review_required' => true];
+        }
     }
 
     /** @return array<int,float> */
@@ -464,15 +490,37 @@ final class SuggestedWholesalePurchasePlanService
 
     private function liveAvailable(int $storeId, int $productId): float
     {
-        $row = DB::table('inventories')
+        return (float) ($this->liveAvailableMany($storeId, [$productId])[$productId] ?? 0.0);
+    }
+
+    /**
+     * @param  list<int>  $productIds
+     * @return array<int,float>
+     */
+    private function liveAvailableMany(int $storeId, array $productIds): array
+    {
+        $productIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): int => (int) $id, $productIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+        if ($productIds === []) {
+            return [];
+        }
+
+        return DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
             ->where('warehouses.store_id', $storeId)
             ->where('warehouses.is_active', true)
-            ->where('inventories.product_id', $productId)
-            ->selectRaw('COALESCE(SUM(inventories.quantity - inventories.reserved_quantity), 0) as available')
-            ->first();
-
-        return round(max(0.0, (float) ($row->available ?? 0)), 3);
+            ->whereIn('inventories.product_id', $productIds)
+            ->groupBy('inventories.product_id')
+            ->get([
+                'inventories.product_id',
+                DB::raw('COALESCE(SUM(inventories.quantity - inventories.reserved_quantity), 0) as available'),
+            ])
+            ->mapWithKeys(static fn (object $row): array => [
+                (int) $row->product_id => round(max(0.0, (float) $row->available), 3),
+            ])
+            ->all();
     }
 
     private function assertActiveWholesaleProduct(int $storeId, int $productId): void
