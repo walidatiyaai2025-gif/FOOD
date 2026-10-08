@@ -134,7 +134,8 @@ final class Customer360Controller extends Controller
                 'stores.name as store_name',
             ], 'orders_page')
             ->withQueryString();
-        $orders->setCollection($orders->getCollection()->map(function (object $row) use ($actor): array {
+        $orders->setCollection($orders->getCollection()->map(function (mixed $row) use ($actor): array {
+            $row = (object) $row;
             $channel = strtolower((string) $row->channel);
             $params = ['module' => 'orders', 'q' => $row->order_number];
             if ($channel === 'b2c') {
@@ -175,7 +176,7 @@ final class Customer360Controller extends Controller
                 'stores.name as store_name',
             ], 'invoices_page')
             ->withQueryString();
-        $invoices->setCollection($invoices->getCollection()->map(fn (object $row): array => [
+        $invoices->setCollection($invoices->getCollection()->map(fn (mixed $row): array => (static function (object $row): array { return [
             'id' => (int) $row->id,
             'number' => (string) $row->invoice_number,
             'store' => (string) ($row->store_name ?? '-'),
@@ -188,7 +189,7 @@ final class Customer360Controller extends Controller
             'issued_at' => $row->issued_at,
             'url' => route('admin.invoices.show', ['invoice' => $row->id]),
             'pdf_url' => route('admin.invoices.download', ['invoice' => $row->id, 'locale' => app()->getLocale()]),
-        ]));
+        ]; })((object) $row)));
 
         $addresses = $this->addressQuery($customer)
             ->orderByDesc('is_default')
