@@ -26,7 +26,28 @@ final class OrderManualDispatchService
     ): OrderDispatchState {
         $reason = $this->reason($reason);
 
+        if (
+            (int) $driverAssignment->order_id !== (int) $order->id
+            || in_array((string) $driverAssignment->status, ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'], true)
+        ) {
+            throw ValidationException::withMessages([
+                'assignee_id' => ['Driver assignment must be active and belong to this order.'],
+            ]);
+        }
+
         return DB::transaction(function () use ($order, $actor, $driverAssignment, $reason): OrderDispatchState {
+            $otherActiveDriver = DriverAssignment::query()
+                ->where('order_id', $order->id)
+                ->whereKeyNot($driverAssignment->id)
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->exists();
+
+            if ($otherActiveDriver) {
+                throw ValidationException::withMessages([
+                    'assignee_id' => ['Order cannot have more than one active Driver executor.'],
+                ]);
+            }
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
             $source = $this->manualSource($state, 'driver', (int) $driverAssignment->driver_id);
 
@@ -108,6 +129,18 @@ final class OrderManualDispatchService
         }
 
         return DB::transaction(function () use ($order, $actor, $van, $effectiveAssignment, $reason, $moment): OrderDispatchState {
+            $activeDriver = DriverAssignment::query()
+                ->where('order_id', $order->id)
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->exists();
+
+            if ($activeDriver) {
+                throw ValidationException::withMessages([
+                    'assignee_id' => ['Active Driver assignment must be ended before assigning a Van.'],
+                ]);
+            }
+
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
             $source = $this->manualSource($state, 'van', (int) $van->id);
 
@@ -186,6 +219,18 @@ final class OrderManualDispatchService
         $reason = $this->reason($reason);
 
         return DB::transaction(function () use ($order, $actor, $reason): OrderDispatchState {
+            $activeDriver = DriverAssignment::query()
+                ->where('order_id', $order->id)
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->lockForUpdate()
+                ->exists();
+
+            if ($activeDriver) {
+                throw ValidationException::withMessages([
+                    'reason' => ['Active Driver assignment must be ended before clearing dispatch.'],
+                ]);
+            }
+
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
 
             OrderVanAssignment::query()
