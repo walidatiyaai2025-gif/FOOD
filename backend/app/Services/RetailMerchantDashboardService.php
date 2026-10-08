@@ -85,6 +85,7 @@ final class RetailMerchantDashboardService
                 'slow_movers' => $slowMovers->take(10)->all(),
             ],
             'visualizations' => [
+                'sales_sparklines' => $this->salesSparklines($inventory['products']),
                 'retail_vs_wholesale' => $this->retailVsWholesaleSeries($retailStoreId, $rangeFrom, $rangeTo),
                 'stock_risk' => $this->stockRiskDistribution($inventory['products']),
                 'reorder_spend' => $this->reorderSpendDistribution($recommendations->all()),
@@ -105,6 +106,30 @@ final class RetailMerchantDashboardService
 
         return str_starts_with($state, 'blocked_')
             || in_array($action, ['missing_mapping', 'invalid_mapping', 'ambiguous_mapping', 'insufficient_data'], true);
+    }
+
+    /**
+     * Compact sales pace by W3 windows, normalized to units/day so unequal
+     * 7/7/16-day windows remain comparable.
+     *
+     * @param  list<array<string,mixed>>  $products
+     * @return array<int,list<float>>
+     */
+    private function salesSparklines(array $products): array
+    {
+        $result = [];
+
+        foreach ($products as $product) {
+            $units = (array) data_get($product, 'sales.units', []);
+            $windowDays = (array) data_get($product, 'sales.window_days_available', []);
+            $result[(int) $product['product_id']] = [
+                round((float) ($units['days_15_30'] ?? 0) / max(1, (int) ($windowDays['days_15_30'] ?? 16)), 3),
+                round((float) ($units['days_8_14'] ?? 0) / max(1, (int) ($windowDays['days_8_14'] ?? 7)), 3),
+                round((float) ($units['days_1_7'] ?? 0) / max(1, (int) ($windowDays['days_1_7'] ?? 7)), 3),
+            ];
+        }
+
+        return $result;
     }
 
     /** @return list<array{date:string,label:string,retail_sales:float,wholesale_purchases:float}> */
