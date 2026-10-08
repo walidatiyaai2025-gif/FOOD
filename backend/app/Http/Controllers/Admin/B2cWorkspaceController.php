@@ -124,7 +124,7 @@ class B2cWorkspaceController extends Controller
             )
             : null;
         $moduleData = in_array($module, ['products', 'inventory', 'incoming_orders', 'orders', 'finance', 'customers', 'promotions', 'drivers', 'storefront', 'content', 'reports', 'settings'], true)
-            ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess)
+            ? $this->moduleData($module, $storeIds, $user, $storeId, $supportAccess, $request)
             : null;
         if (is_array($moduleData)) {
             foreach ([
@@ -589,6 +589,7 @@ class B2cWorkspaceController extends Controller
         User $user,
         int $selectedStoreId,
         bool $supportAccess,
+        Request $request,
     ): array {
         if ($selectedStoreId <= 0) {
             return $this->controlPlanePreviewData($module);
@@ -634,7 +635,10 @@ class B2cWorkspaceController extends Controller
                         'status' => (bool) $row->status,
                     ])->all(),
             ],
-            'inventory' => $this->inventoryModuleData($storeIds),
+            'inventory' => $this->inventoryModuleData(
+                $storeIds,
+                $request->integer('focus_product') > 0 ? $request->integer('focus_product') : null,
+            ),
             'incoming_orders' => $this->orderModuleData($storeIds, true),
             'orders' => $this->orderModuleData($storeIds),
             'finance' => $this->financeModuleData($storeIds),
@@ -831,9 +835,10 @@ class B2cWorkspaceController extends Controller
     }
 
     /** @param list<int> $storeIds */
-    private function inventoryModuleData(array $storeIds): array
+    private function inventoryModuleData(array $storeIds, ?int $focusProductId = null): array
     {
         return [
+            'focus_product_id' => $focusProductId,
             'actions' => [],
             'inventory_options' => DB::table('inventories')
                 ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -866,6 +871,7 @@ class B2cWorkspaceController extends Controller
                 ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                 ->join('products', 'products.id', '=', 'inventories.product_id')
                 ->whereIn('warehouses.store_id', $storeIds)
+                ->when($focusProductId !== null, fn ($query) => $query->where('products.id', $focusProductId))
                 ->orderBy('products.name')
                 ->limit(100)
                 ->get([
