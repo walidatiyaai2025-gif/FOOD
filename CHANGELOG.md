@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.63 - 2026-10-08
+
+- Restore the Customer App invoices compact redesign from #1072 / PR #1075 after it was omitted from the immutable 1.0.62 release source.
+- Keep the invoices title/subtitle on one row and the responsive compact search/status/date/refresh/clear filter layout with the centered empty state.
+- Preserve invoice APIs, pagination, detail navigation, Arabic RTL / English behavior, and the 1.0.62 recovered application baseline.
+- Synchronize Customer, Driver and Van identities at 1.0.63+63 and keep the production API/runtime origin at `https://foodex.50sols.com`.
+- Leave `v1.0.62` immutable; this correction is published as a new patch release.
+
 ## 1.0.62 - 2026-10-07
 
 - Republish the terminal UIUX-V42 recovery release from the frozen #1043 lineage because the old v1.0.60 tag does not identify the generated 1.0.60 release artifacts.

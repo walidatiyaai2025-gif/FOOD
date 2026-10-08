@@ -2,7 +2,7 @@
 abstract final class FoodexEnvironment {
   static const apiBaseUrl = String.fromEnvironment(
     'FOODEX_API_BASE_URL',
-    defaultValue: 'https://vanfoodex.50sols.com',
+    defaultValue: 'https://foodex.50sols.com',
   );
 
   static const pushEnvironment = String.fromEnvironment(
