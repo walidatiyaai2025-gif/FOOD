@@ -17,6 +17,7 @@ use App\Models\VanAssignment;
 use App\Models\VanNoOrderReason;
 use App\Models\VanVisit;
 use App\Services\AddressQualityService;
+use App\Services\AuditLogger;
 use App\Services\CollectionCustodyService;
 use App\Services\CommercialFeatureFlags;
 use App\Services\FieldOperationsFinanceService;
@@ -49,6 +50,7 @@ final class FieldOperationsController extends Controller
         private readonly VanCustomerCollectionContextService $customerCollectionContext,
         private readonly TerritoryService $territoryService,
         private readonly AddressQualityService $addressQuality,
+        private readonly AuditLogger $audit,
         private readonly RoutingPolicyService $routing,
         private readonly CollectionCustodyService $custody,
     ) {
@@ -321,11 +323,23 @@ final class FieldOperationsController extends Controller
             if ($operatorUserId !== null) {
                 $operator = User::query()->findOrFail((int) $operatorUserId);
                 $vanRole = Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail();
+                $beforeAccess = $operator->hasPermission('van.login');
                 if ((bool) $data['allow_van_app']) {
                     $operator->roles()->syncWithoutDetaching([$vanRole->id]);
                 } else {
                     $operator->roles()->detach($vanRole->id);
                 }
+                $operator->unsetRelation('roles');
+                $afterAccess = $operator->hasPermission('van.login');
+                $this->audit->record('van.runtime_access.updated', $user, $operator, [
+                    'van_login' => $beforeAccess,
+                    'van_id' => (int) $van->id,
+                    'assignment_id' => (int) $assignment->id,
+                ], [
+                    'van_login' => $afterAccess,
+                    'van_id' => (int) $van->id,
+                    'assignment_id' => (int) $assignment->id,
+                ]);
             }
         }
 
