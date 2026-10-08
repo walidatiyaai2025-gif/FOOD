@@ -287,6 +287,20 @@ class RetailWholesaleReplenishmentTest extends TestCase
         $this->assertSame(7.25, $received[0]['retail_unit_cost']);
         $this->assertSame(36.25, $received[0]['line_total']);
 
+        DB::table('retail_wholesale_product_mappings')
+            ->where('retail_store_id', $retailStore)
+            ->where('source_wholesale_product_id', $sourceProduct)
+            ->update([
+                'quantity_conversion_factor' => 2,
+                'updated_at' => now(),
+            ]);
+
+        $historicalReceipt = $lineage->receivedItemsForStore(
+            $retailStore,
+            (int) $retailProduct->id,
+        );
+        $this->assertSame(1.0, $historicalReceipt[0]['quantity_conversion_factor']);
+
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'retail.wholesale_order_received',
             'auditable_id' => $retailStore,
@@ -320,7 +334,19 @@ class RetailWholesaleReplenishmentTest extends TestCase
             ->ensureForStore(Store::query()->findOrFail($retailStore));
         $admin = $this->globalAdmin('B2B_ADMIN', 'lineage-guard@example.test');
 
-        $unitId = (int) DB::table('units')->orderBy('id')->value('id');
+        $unitId = (int) DB::table('units')->insertGetId([
+            'store_id' => null,
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'code' => 'LINEAGE-EACH',
+            'name' => 'Lineage Each',
+            'name_ar' => 'وحدة تتبع',
+            'name_en' => 'Lineage Each',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $sourceCatalog = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $wholesaleStore,
             'channel' => 'b2b',
