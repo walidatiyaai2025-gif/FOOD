@@ -193,7 +193,7 @@ $businessLabel = static function ($value): string {
 <div class="timeline-item">
 <strong>{{ __('order_operations.dispatch.audit_events.'.$entry['event_key']) }}</strong>
 <div>{{ $entry['actor'] !== '' ? $entry['actor'] : __('order_operations.dispatch.system_actor') }}</div>
-@if($entry['status'])<div>{{ $businessLabel($entry['status']) }}</div>@endif
+@if($entry['status'])<div>{{ $businessLabel($entry['status']) }}</div>@endif {{-- localization-gate: allow status resolved through localized businessLabel --}}
 @if($entry['assignee_type'])<div>{{ __('order_operations.columns.assignee') }}: {{ $businessLabel($entry['assignee_type']) }}</div>@endif
 @if($entry['source'])<div>{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($entry['source']) }}</div>@endif
 @if($entry['reason'])<div>{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($entry['reason']) }}</div>@endif
