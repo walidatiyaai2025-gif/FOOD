@@ -8,6 +8,9 @@
         ->filter(fn ($row) => (bool) data_get($row, 'recommendation.is_executable', false))
         ->filter(fn ($row) => in_array((string) data_get($row, 'recommendation.action'), ['reorder_now', 'reorder_soon'], true))
         ->values();
+    $purchasePlan = data_get($merchant, 'purchase_plan');
+    $purchasePlanRows = collect(data_get($purchasePlan, 'rows', []));
+    $isMerchantOwner = (bool) data_get($merchant, 'owner_context.is_owner', false);
 
     $compareSeries = collect(data_get($merchant, 'visualizations.retail_vs_wholesale', []));
     $compareMax = max(1, (float) $compareSeries->max(
@@ -56,10 +59,10 @@
     .merchant-risk-wrap{display:flex;align-items:center;justify-content:center;gap:20px;min-height:170px}.merchant-risk-list{display:grid;gap:8px;font-size:.72rem}.merchant-risk-list span{display:flex;justify-content:space-between;gap:20px}
     .merchant-simple-bars{display:grid;gap:10px}.merchant-simple-row{display:grid;grid-template-columns:minmax(90px,.8fr) 1.8fr auto;gap:9px;align-items:center;font-size:.72rem}.merchant-simple-track{height:11px;border-radius:999px;background:var(--foodex-background);overflow:hidden}.merchant-simple-track i{height:100%;display:block;border-radius:inherit;background:var(--foodex-green)}.merchant-simple-row.warning .merchant-simple-track i{background:var(--foodex-orange)}.merchant-simple-row.danger .merchant-simple-track i{background:var(--foodex-red)}.merchant-simple-row.info .merchant-simple-track i{background:var(--foodex-blue)}
     .merchant-scatter{position:relative;min-height:190px;border-inline-start:1px solid var(--foodex-border);border-bottom:1px solid var(--foodex-border);margin:12px 14px 24px 28px;background:linear-gradient(to right,var(--foodex-viz-grid) 1px,transparent 1px),linear-gradient(to top,var(--foodex-viz-grid) 1px,transparent 1px);background-size:25% 25%}.merchant-dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--foodex-green);transform:translate(-50%,50%);border:2px solid #fff;box-shadow:0 0 0 1px var(--foodex-border)}.merchant-dot[data-action="reorder_now"]{background:var(--foodex-red)}.merchant-dot[data-action="reorder_soon"]{background:var(--foodex-orange)}.merchant-scatter-x,.merchant-scatter-y{position:absolute;color:var(--foodex-muted);font-size:.62rem}.merchant-scatter-x{bottom:-22px;inset-inline:0;text-align:center}.merchant-scatter-y{inset-inline-start:-30px;top:50%;writing-mode:vertical-rl;transform:translateY(-50%)}
-    .merchant-plan-list{display:grid;gap:8px}.merchant-plan-row{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(150px,1fr) repeat(5,minmax(80px,.65fr));gap:8px;align-items:center;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);padding:10px}.merchant-plan-cell span{display:block;color:var(--foodex-muted);font-size:.63rem}.merchant-plan-cell b{font-size:.74rem}.merchant-plan-cell strong{display:block}.merchant-plan-cell small{display:block;color:var(--foodex-muted)}
+    .merchant-plan-list{display:grid;gap:8px}.merchant-plan-row{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(150px,1fr) repeat(5,minmax(80px,.65fr));gap:8px;align-items:center;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);padding:10px}.merchant-plan-cell span{display:block;color:var(--foodex-muted);font-size:.63rem}.merchant-plan-cell b{font-size:.74rem}.merchant-plan-cell strong{display:block}.merchant-plan-cell small{display:block;color:var(--foodex-muted)}.merchant-plan-budget{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 12px}.merchant-plan-budget>div{padding:10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-sm);background:var(--foodex-background)}.merchant-plan-budget span{display:block;font-size:.64rem;color:var(--foodex-muted)}.merchant-plan-budget b{display:block;margin-top:3px}.merchant-plan-budget input,.merchant-plan-qty{width:100%;min-height:38px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-sm);background:var(--foodex-surface);color:var(--foodex-text);padding:7px 9px}.merchant-plan-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px}.merchant-plan-limit{display:inline-flex;margin-top:4px;border-radius:999px;padding:3px 6px;background:var(--foodex-orange-soft);color:var(--foodex-orange);font-size:.6rem;font-weight:800}
     .merchant-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--foodex-space-3)}.merchant-mini-list{display:grid;gap:7px}.merchant-mini-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--foodex-border)}.merchant-mini-row:last-child{border-bottom:0}.merchant-mini-row small{display:block;color:var(--foodex-muted)}
     @media(max-width:1180px){.merchant-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.merchant-grid,.merchant-charts{grid-template-columns:1fr}.merchant-rec{grid-template-columns:minmax(160px,.8fr) minmax(0,2fr)}.merchant-rec-actions{grid-column:1/-1;justify-content:flex-start}.merchant-rec-metrics{grid-template-columns:repeat(3,minmax(76px,1fr))}.merchant-plan-row{grid-template-columns:repeat(3,minmax(120px,1fr))}}
-    @media(max-width:720px){.merchant-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.merchant-secondary{grid-template-columns:1fr}.merchant-rec{grid-template-columns:1fr}.merchant-rec-product,.merchant-rec-metrics,.merchant-rec-actions{grid-column:1}.merchant-rec-metrics{grid-template-columns:repeat(2,minmax(90px,1fr))}.merchant-account-grid{grid-template-columns:1fr 1fr}.merchant-plan-row{grid-template-columns:1fr 1fr}}
+    @media(max-width:720px){.merchant-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.merchant-secondary{grid-template-columns:1fr}.merchant-rec{grid-template-columns:1fr}.merchant-rec-product,.merchant-rec-metrics,.merchant-rec-actions{grid-column:1}.merchant-rec-metrics{grid-template-columns:repeat(2,minmax(90px,1fr))}.merchant-account-grid{grid-template-columns:1fr 1fr}.merchant-plan-row{grid-template-columns:1fr 1fr}.merchant-plan-budget{grid-template-columns:1fr 1fr}}
 </style>
 
 <section class="merchant-intelligence" data-merchant-intelligence>
@@ -273,21 +276,55 @@
 
     <article class="panel" id="suggested-purchase-plan">
         <div class="panel-title"><div><h2>{{ __('admin.b2c_dashboard.merchant_intelligence.purchase_plan_title') }}</h2><small>{{ __('admin.b2c_dashboard.merchant_intelligence.purchase_plan_subtitle') }}</small></div></div>
-        <div class="merchant-plan-list">
-            @forelse($executablePlan as $row)
-                <div class="merchant-plan-row">
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_product') }}</span><strong>{{ $row['name'] }}</strong><small>{{ $row['sku'] }}</small></div>
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_source') }}</span><strong>{{ data_get($row,'mapping.source_name','—') }}</strong><small>{{ data_get($row,'mapping.source_sku','') }}</small></div>
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_qty') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }}</b></div>
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_equivalent') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_retail_equivalent',0),2) }}</b></div>
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.case_equivalent') }}</span><b>{{ data_get($row,'commercial.recommended_case_equivalent')===null?'—':number_format((float)data_get($row,'commercial.recommended_case_equivalent'),2) }}</b></div>
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
-                    <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</span><b>{{ number_format((float)($row['priority_score'] ?? 0),1) }}/100</b></div>
+        @if($isMerchantOwner && is_array($purchasePlan))
+            <form method="POST" action="{{ route('admin.b2c.merchant-intelligence.cart') }}" data-suggested-wholesale-plan>
+                @csrf
+                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                <div class="merchant-plan-budget">
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.purchasing_power') }}</span><b>{{ data_get($purchasePlan,'currency','KWD') }} {{ number_format((float)data_get($purchasePlan,'purchasing_power',0),3) }}</b></div>
+                    <div><label><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.budget') }}</span><input name="budget" type="number" min="0" step="0.001" max="{{ number_format((float)data_get($purchasePlan,'purchasing_power',0),3,'.','') }}" value="{{ number_format((float)data_get($purchasePlan,'effective_budget',0),3,'.','') }}"></label></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.allocated') }}</span><b>{{ data_get($purchasePlan,'currency','KWD') }} {{ number_format((float)data_get($purchasePlan,'allocated_cost',0),3) }}</b></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.remaining') }}</span><b>{{ data_get($purchasePlan,'currency','KWD') }} {{ number_format((float)data_get($purchasePlan,'remaining_budget',0),3) }}</b></div>
                 </div>
-            @empty
-                <div class="foodex-viz-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.no_executable_plan') }}</div>
-            @endforelse
-        </div>
+                <div class="merchant-plan-list">
+                    @forelse($purchasePlanRows as $row)
+                        <div class="merchant-plan-row">
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_product') }}</span><strong>{{ $row['name'] }}</strong><small>{{ $row['sku'] }}</small></div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_source') }}</span><strong>{{ $row['wholesale_name'] ?: '—' }}</strong><small>{{ $row['wholesale_sku'] }}</small></div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.full_need') }}</span><b>{{ number_format((float)$row['full_need_quantity'],2) }}</b></div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.live_executable') }}</span><b>{{ number_format((float)$row['availability_executable_quantity'],2) }}</b>@if($row['availability_limited'])<small class="merchant-plan-limit">{{ __('admin.b2c_dashboard.merchant_intelligence.plan.availability_limited') }}</small>@endif</div>
+                            <div class="merchant-plan-cell"><label><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.review_qty') }}</span><input class="merchant-plan-qty" name="quantities[{{ (int)$row['retail_product_id'] }}]" type="number" min="0" step="{{ number_format((float)$row['ordering_increment'],3,'.','') }}" max="{{ number_format((float)$row['availability_executable_quantity'],3,'.','') }}" value="{{ number_format((float)$row['budget_executable_quantity'],3,'.','') }}"></label>@if($row['credit_limited'])<small class="merchant-plan-limit">{{ __('admin.b2c_dashboard.merchant_intelligence.plan.credit_limited') }}</small>@endif</div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.unit_price') }}</span><b>{{ data_get($purchasePlan,'currency','KWD') }} {{ number_format((float)$row['unit_price'],3) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.moq_increment',['moq'=>number_format((float)$row['minimum_quantity'],2),'increment'=>number_format((float)$row['ordering_increment'],2)]) }}</small></div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ data_get($purchasePlan,'currency','KWD') }} {{ number_format((float)$row['budget_executable_cost'],3) }}</b><small>{{ number_format((float)$row['priority_score'],1) }}/100 {{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</small></div>
+                        </div>
+                    @empty
+                        <div class="foodex-viz-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.no_executable_plan') }}</div>
+                    @endforelse
+                </div>
+                @if($purchasePlanRows->isNotEmpty())
+                    <div class="merchant-plan-actions">
+                        <small>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.cart_safety_note') }}</small>
+                        <button class="foodex-action-primary" type="submit">{{ __('admin.b2c_dashboard.merchant_intelligence.plan.add_to_cart') }}</button>
+                    </div>
+                @endif
+            </form>
+        @else
+            <div class="merchant-plan-list">
+                @forelse($executablePlan as $row)
+                    <div class="merchant-plan-row">
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_product') }}</span><strong>{{ $row['name'] }}</strong><small>{{ $row['sku'] }}</small></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_source') }}</span><strong>{{ data_get($row,'mapping.source_name','—') }}</strong><small>{{ data_get($row,'mapping.source_sku','') }}</small></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_qty') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }}</b></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_equivalent') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_retail_equivalent',0),2) }}</b></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.case_equivalent') }}</span><b>{{ data_get($row,'commercial.recommended_case_equivalent')===null?'—':number_format((float)data_get($row,'commercial.recommended_case_equivalent'),2) }}</b></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</span><b>{{ number_format((float)($row['priority_score'] ?? 0),1) }}/100</b></div>
+                    </div>
+                @empty
+                    <div class="foodex-viz-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.no_executable_plan') }}</div>
+                @endforelse
+            </div>
+        @endif
     </article>
 
     <div class="merchant-secondary" id="merchant-blockers">
