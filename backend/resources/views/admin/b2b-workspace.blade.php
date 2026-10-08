@@ -502,8 +502,8 @@
         <p class="muted">{{ app()->getLocale()==='ar'?'اختر السائق وحدد كلمة مرور جديدة. سيتم إلغاء جلسات السائق الحالية فوراً.':'Choose a driver and set a new password. Existing driver sessions will be revoked immediately.' }}</p>
         <div style="display:grid;gap:8px">
           @foreach($moduleData['drivers'] as $driver)
-          <details style="border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px;background:#fbfcfd">
-            <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ app()->getLocale()==='ar'?'اسم المستخدم':'Username' }}: {{ $driver['username'] ?? '—' }} · {{ $driver['email'] }}</summary>
+          <details data-foodex-operational-modal style="border:1px solid var(--foodex-border);border-radius:12px;padding:10px 12px;background:#fbfcfd">
+                        <summary style="cursor:pointer;font-weight:700">{{ $driver['name'] }} · {{ app()->getLocale()==='ar'?'اسم المستخدم':'Username' }}: {{ $driver['username'] ?? '—' }} · {{ $driver['email'] }}</summary>
             <form method="post" action="{{ route('admin.b2b.drivers.password',['driver'=>$driver['id']]) }}" class="links workspace-inline-form" style="margin-top:10px">
               @csrf @method('patch')
               <input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور الجديدة':'New password' }}">
@@ -572,7 +572,7 @@
             </form>
           @endif
         @elseif($column==='actions' && $module==='products' && $user->hasPermission('catalog.edit'))
-          <details><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
+          <details data-foodex-operational-modal><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
           <form method="post" action="{{ route('admin.b2b.products.update',['product'=>$row['_id']]) }}" class="links workspace-inline-form">
             @csrf @method('patch')
             <input name="sku" value="{{ $row['sku'] }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required maxlength="120">
