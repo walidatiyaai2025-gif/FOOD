@@ -424,7 +424,7 @@ async function captureMobileSettingsParityEvidence(page, locale) {
 }
 
 
-async function exerciseCommercialRuntimeInteractions(page, locale) {
+async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = []) {
   await page.setViewportSize({ width: 1280, height: 900 });
 
   let response = await page.goto(`${baseUrl}/admin/b2c/commercial/sales-control`, {
@@ -529,7 +529,7 @@ async function exerciseCommercialRuntimeInteractions(page, locale) {
   const productBefore = await productRows.count();
   await flashForm.locator('[data-flash-product-add]').click();
   if (await productRows.count() !== productBefore + 1) {
-    throw new Error(`Flash Product Builder did not add a product row (${locale})`);
+    throw new Error(`Flash Product Builder did not add a product row (${locale}); page errors: ${pageErrors.join(' | ') || 'none'}`);
   }
 
   const addedProduct = productRows.last();
@@ -558,6 +558,8 @@ async function captureLocale(browser, locale) {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   const email = locale === 'ar' ? 'screenshots@foodex.test' : 'screenshots.en@foodex.test';
 
   await page.goto(`${baseUrl}/admin/b2b/login?locale=${locale}`, { waitUntil: 'networkidle' });
@@ -590,7 +592,7 @@ async function captureLocale(browser, locale) {
   if (!b2cContext || !b2cContext.ok() || page.url().includes('/login')) {
     throw new Error(`Unable to restore B2C runtime context before commercial evidence (${locale})`);
   }
-  await exerciseCommercialRuntimeInteractions(page, locale);
+  await exerciseCommercialRuntimeInteractions(page, locale, pageErrors);
 
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'dashboard', '/admin/b2c/dashboard');
   await captureResponsiveRoute(page, locale, 'B2C_Admin', 'products', '/admin/b2c/products');
