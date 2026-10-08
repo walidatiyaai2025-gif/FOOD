@@ -53,10 +53,10 @@ final class OrderTerritoryRoutingService
             'latitude' => $order->delivery_latitude,
             'longitude' => $order->delivery_longitude,
         ];
-        $scope = array_filter([
-            'store_id' => $order->store_id,
-            'channel' => $order->channel,
-        ], static fn ($value): bool => $value !== null && $value !== '');
+        $scope = [
+            'store_id' => (int) $order->store_id,
+            'channel' => (string) $order->channel,
+        ];
 
         $policyResolution = $this->effectivePolicy($moment);
         if ($policyResolution['ambiguous']) {
@@ -104,7 +104,8 @@ final class OrderTerritoryRoutingService
             );
         }
 
-        $result = is_array($trace->result) ? $trace->result : [];
+        $rawResult = $trace->getAttribute('result');
+        $result = is_array($rawResult) ? $rawResult : [];
         if (($result['manual_dispatch_required'] ?? false) === true || strtolower((string) ($result['action'] ?? '')) === 'manual') {
             return $this->persistPending(
                 $order,
@@ -288,11 +289,14 @@ final class OrderTerritoryRoutingService
         ?User $actor,
         Carbon $moment,
     ): OrderDispatchState {
+        $territoryId = $territory instanceof ServiceTerritory ? (int) $territory->getKey() : null;
+        $policyId = $policy instanceof RoutingPolicy ? (int) $policy->getKey() : null;
+        $traceId = $trace instanceof RoutingDecisionTrace ? (int) $trace->getKey() : null;
         $decisionKey = hash('sha256', implode('|', [
             $order->id,
-            $territory?->id ?? 'none',
-            $policy?->id ?? 'none',
-            $trace?->id ?? 'none',
+            $territoryId ?? 'none',
+            $policyId ?? 'none',
+            $traceId ?? 'none',
             $source,
             $reason,
         ]));
@@ -344,11 +348,12 @@ final class OrderTerritoryRoutingService
         ?User $actor,
         Carbon $moment,
     ): OrderDispatchState {
+        $policyId = $policy instanceof RoutingPolicy ? (int) $policy->getKey() : null;
         $decisionKey = hash('sha256', implode('|', [
             $order->id,
             $territory->id,
             $eligible->id,
-            $policy?->id ?? 'none',
+            $policyId ?? 'none',
             $source,
         ]));
 
@@ -398,7 +403,9 @@ final class OrderTerritoryRoutingService
                 'service_territory_id' => $territory->id,
                 'routing_policy_id' => $policy?->id,
                 'routing_decision_trace_id' => $trace?->id,
-                'routing_mode' => $trace?->routing_mode ?? 'AUTOMATIC',
+                'routing_mode' => $trace instanceof RoutingDecisionTrace
+                    ? (string) $trace->getAttribute('routing_mode')
+                    : 'AUTOMATIC',
                 'routing_source' => $source,
                 'routing_reason' => $reason,
                 'current_assignee_type' => 'van',
