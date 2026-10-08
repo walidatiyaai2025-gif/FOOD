@@ -245,24 +245,29 @@ final class CommercialDashboardController extends Controller
         $existingPromotions = DB::table('promotions')
             ->where('store_id', $storeId)
             ->orderByDesc('created_at')
-            ->limit(100)
-            ->get()
-            ->map(function (object $promotion): object {
-                $type = strtolower(trim((string) $promotion->type));
-                $typeKey = match ($type) {
-                    'percentage', 'percent' => 'percentage',
-                    'fixed', 'fixed_amount', 'amount' => 'fixed',
-                    'bundle', 'buy_x_get_y' => 'bundle',
-                    default => 'generic',
-                };
-                $promotion->localized_label = __('commercial.flash.promotion_types.'.$typeKey);
+            ->paginate(25, ['*'], 'promotion_page')
+            ->withQueryString();
+        $existingPromotions->setCollection($existingPromotions->getCollection()->map(function (object $promotion): object {
+            $type = strtolower(trim((string) $promotion->type));
+            $typeKey = match ($type) {
+                'percentage', 'percent' => 'percentage',
+                'fixed', 'fixed_amount', 'amount' => 'fixed',
+                'bundle', 'buy_x_get_y' => 'bundle',
+                default => 'generic',
+            };
+            $promotion->localized_label = __('commercial.flash.promotion_types.'.$typeKey);
 
-                return $promotion;
-            });
+            return $promotion;
+        }));
+        $flashOffers = DB::table('flash_offers')
+            ->where('store_id', $storeId)
+            ->orderByDesc('id')
+            ->paginate(25, ['*'], 'offer_page')
+            ->withQueryString();
 
         return $this->render($request, $user, $storeId, 'flash-offers', [
             'existingPromotions' => $existingPromotions,
-            'flashOffers' => DB::table('flash_offers')->where('store_id', $storeId)->orderByDesc('id')->limit(100)->get(),
+            'flashOffers' => $flashOffers,
             ...$lookups,
             'editingOffer' => $editingOffer,
             'editingProducts' => $editingProducts,
