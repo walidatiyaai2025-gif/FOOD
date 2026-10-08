@@ -881,8 +881,10 @@ final class OrderOperationsController extends Controller
                 ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
                 ->where('drivers.id', (int) $dispatch->current_assignee_id)
                 ->first(['users.name']);
-            $dispatchAssignee = trim((string) ($dispatchDriver?->name ?? ''))
-                ?: $this->msg('سائق بدون اسم', 'Unnamed driver');
+            $dispatchAssignee = $dispatchDriver === null
+                ? $this->msg('سائق بدون اسم', 'Unnamed driver')
+                : (trim((string) $dispatchDriver->name)
+                    ?: $this->msg('سائق بدون اسم', 'Unnamed driver'));
         } elseif ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'van') {
             $dispatchVan = DB::table('vans')
                 ->where('id', (int) $dispatch->current_assignee_id)
@@ -955,7 +957,7 @@ final class OrderOperationsController extends Controller
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
             'driver' => $driver?->name,
-            'dispatch_status' => $dispatch?->status ?? 'unrouted',
+            'dispatch_status' => $dispatch === null ? 'unrouted' : (string) $dispatch->status,
             'dispatch_source' => $dispatch?->routing_source,
             'dispatch_reason' => $dispatch?->routing_reason,
             'dispatch_assignee_type' => $dispatch?->current_assignee_type,
@@ -1053,7 +1055,8 @@ final class OrderOperationsController extends Controller
                 'users.name as actor_name',
             ])
             ->map(static function (AuditLog $entry): array {
-                $after = is_array($entry->after) ? $entry->after : [];
+                /** @var array<string,mixed> $after */
+                $after = $entry->getAttribute('after') ?? [];
 
                 return [
                     'event_key' => str_replace('.', '_', (string) $entry->event),
