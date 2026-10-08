@@ -567,7 +567,7 @@
           @else
             <form method="post" action="{{ route('admin.b2b.clients.status',['account'=>$row['_id']]) }}" class="links">
               @csrf @method('patch')
-              <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ $state }}</option>@endforeach</select>
+              <select name="status" required>@foreach(['pending','active','suspended','denied'] as $state)<option value="{{ $state }}" @selected($row['status']===$state)>{{ __('admin.b2b_workspace.account_statuses.'.$state) }}</option>@endforeach</select>
               <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
             </form>
           @endif
