@@ -523,13 +523,7 @@ class OrderOperationsIsolationTest extends TestCase
             'is_active' => true,
         ]);
         $adminRole = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
-        DB::table('user_store_roles')->insert([
-            'user_id' => $admin->id,
-            'store_id' => $store,
-            'role_id' => $adminRole->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $admin->roles()->attach($adminRole);
 
         $this->actingAs($admin)
             ->patch("/admin/operations/orders/{$order}/dispatch", [
