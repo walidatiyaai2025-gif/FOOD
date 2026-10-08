@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\OrderManualDispatchService;
 use App\Services\VanRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class OrderManualDispatchServiceTest extends TestCase
@@ -137,7 +138,7 @@ class OrderManualDispatchServiceTest extends TestCase
             'assigned_at' => now(),
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         app(OrderManualDispatchService::class)
             ->assignVan($order, $actor, $van->id, 'Unsafe dual assignment attempt');
     }
