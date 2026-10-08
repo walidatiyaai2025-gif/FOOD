@@ -542,11 +542,11 @@ final class SuggestedWholesalePurchasePlanService
 
         return round(min($desired, $minimum + (max(0, $steps) * $increment)), 3);
     }
+
     private function fail(string $field, string $key): never
     {
         throw ValidationException::withMessages([
             $field => [__('admin.b2c_dashboard.merchant_intelligence.plan.errors.'.$key)],
         ]);
     }
-
 }
