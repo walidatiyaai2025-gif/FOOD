@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_van_app/app.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
@@ -359,6 +360,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-dashboard-page')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('van-dashboard-cash-flow-chart')),
+      findsOneWidget,
+    );
+    expect(find.byType(FoodexBarChart), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('15.000 KWD'), findsOneWidget);
     expect(find.text('9.000 KWD'), findsOneWidget);
@@ -438,6 +444,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-routes-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-routes-status-chart')), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('ROUTE-A'), findsOneWidget);
     expect(find.text('2 assigned visits'), findsOneWidget);
   });
@@ -587,6 +595,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-catalog-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-catalog-stock-chart')), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('Water Case'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('van-catalog-add-301')));
     await tester.pumpAndSettle();
@@ -617,6 +627,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-orders-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-orders-status-chart')), findsOneWidget);
+    expect(find.byType(FoodexDonutChart), findsOneWidget);
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
     expect(find.text('12.000 KWD'), findsOneWidget);
     expect(orders.createdCount, 1);
