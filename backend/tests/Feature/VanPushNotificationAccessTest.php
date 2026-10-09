@@ -132,9 +132,7 @@ class VanPushNotificationAccessTest extends TestCase
 
         app(PushDeliveryService::class)->dispatchNotification($notification);
 
-        Http::assertSent(fn ($request): bool =>
-            data_get($request->data(), 'message.token') === $token
-        );
+        Http::assertSent(fn ($request): bool => data_get($request->data(), 'message.token') === $token);
 
         $this->assertDatabaseHas('push_delivery_logs', [
             'notification_id' => $notification->getKey(),
