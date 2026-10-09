@@ -42,6 +42,10 @@
         .search-results small{color:var(--foodex-muted)}
 
         .content{width:100%;max-width:none;margin:0;padding:var(--foodex-space-5) clamp(var(--foodex-space-4),1.8vw,var(--foodex-space-8)) var(--foodex-space-8)}
+        .dashboard-tabs{display:flex;align-items:center;gap:8px;margin:0 0 var(--foodex-space-4);padding:6px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);box-shadow:var(--foodex-shadow-sm);width:max-content;max-width:100%;overflow:auto}
+        .dashboard-tab{min-height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:calc(var(--foodex-radius-control) - 4px);font-weight:var(--foodex-font-weight-bold);font-size:var(--foodex-text-sm);color:var(--foodex-muted);white-space:nowrap}
+        .dashboard-tab:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+        .dashboard-tab.active{background:var(--foodex-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.16)}
         .headline{display:flex;justify-content:space-between;align-items:end;gap:var(--foodex-space-4);margin-bottom:var(--foodex-space-4)}
         .headline h1{margin:0 0 4px;font-size:clamp(1.55rem,2.2vw,1.9rem);font-weight:var(--foodex-font-weight-bold);line-height:var(--foodex-leading-tight)}
         .headline p{margin:0;color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
@@ -226,6 +230,7 @@
                 <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
                 <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
+                <input type="hidden" name="dashboard_tab" value="{{ $dashboardTab }}">
                 @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <input name="q" value="{{ request('q') }}" placeholder="{{ __('admin.b2c_dashboard.search_placeholder') }}" autocomplete="off">
                 <span class="search-icon">@include('admin._premium-icon',['name'=>'search'])</span>
@@ -249,6 +254,17 @@
         </header>
 
         <main class="content">
+            @php
+                $dashboardTab = request('dashboard_tab') === 'assistant' ? 'assistant' : 'overview';
+                $dashboardTabBase = [
+                    'store_id' => $storeId,
+                    'from' => $dashboard['selected_from'],
+                    'to' => $dashboard['selected_to'],
+                ];
+                if ($supportAccess) {
+                    $dashboardTabBase['support_access'] = 1;
+                }
+            @endphp
             @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
             <div class="headline">
@@ -264,12 +280,14 @@
                         </select>
                         <input type="hidden" name="from" value="{{ $dashboard['selected_from'] }}">
                         <input type="hidden" name="to" value="{{ $dashboard['selected_to'] }}">
+                        <input type="hidden" name="dashboard_tab" value="{{ $dashboardTab }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     </form>
                     @endif
                 </div>
                 <form class="date-control" method="get" action="{{ route('admin.b2c.dashboard') }}">
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    <input type="hidden" name="dashboard_tab" value="{{ $dashboardTab }}">
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <label>{{ app()->getLocale()==='ar'?'من':'From' }}<input type="date" name="from" value="{{ $dashboard['selected_from'] }}" required></label>
                     <label>{{ app()->getLocale()==='ar'?'إلى':'To' }}<input type="date" name="to" value="{{ $dashboard['selected_to'] }}" required></label>
@@ -277,6 +295,12 @@
                 </form>
             </div>
 
+            <nav class="dashboard-tabs" aria-label="{{ __('admin.b2c_dashboard.tabs.navigation') }}">
+                <a class="dashboard-tab {{ $dashboardTab==='overview'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'overview'])) }}">{{ __('admin.b2c_dashboard.tabs.overview') }}</a>
+                <a class="dashboard-tab {{ $dashboardTab==='assistant'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'assistant'])) }}">{{ __('admin.b2c_dashboard.tabs.assistant') }}</a>
+            </nav>
+
+            @if($dashboardTab === 'overview')
             @php
                 $kpis = [
                     ['key'=>'active_users','icon'=>'active-users','class'=>'green','label'=>'active_users'],
@@ -304,8 +328,6 @@
                     </article>
                 @endforeach
             </section>
-
-            @include('admin._merchant-intelligence-dashboard')
 
             <section class="middle" data-dashboard-primary-row style="--dashboard-primary-columns:{{ $canViewDriverTracking ? 3 : 2 }}">
                 <article class="panel" data-dashboard-primary-card="sales">
@@ -387,6 +409,9 @@
                 </article>
 
             </section>
+            @else
+                @include('admin._merchant-intelligence-dashboard')
+            @endif
         </main>
     </section>
 
