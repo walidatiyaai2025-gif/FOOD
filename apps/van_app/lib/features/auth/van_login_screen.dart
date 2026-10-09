@@ -481,18 +481,14 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                         _biometricAvailable && !_submitting
                                             ? _toggleBiometric
                                             : null,
-                                    icon: _checkingBiometrics
-                                        ? const SizedBox.square(
-                                            dimension: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : Image.asset(
-                                            'assets/branding/login_reference/fingerprint_icon.png',
-                                            width: 30,
-                                            height: 30,
-                                          ),
+                                    icon: Image.asset(
+                                      'assets/branding/login_reference/fingerprint_icon.png',
+                                      width: 30,
+                                      height: 30,
+                                      opacity: AlwaysStoppedAnimation<double>(
+                                        _checkingBiometrics ? 0.45 : 1,
+                                      ),
+                                    ),
                                     label: Text(
                                       _text('Biometric', 'البصمة'),
                                       maxLines: 1,
