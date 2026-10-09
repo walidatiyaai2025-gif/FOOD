@@ -147,6 +147,8 @@ Route::prefix('admin')
             Route::post('/vans/{van}/suspend', [FieldOperationsController::class, 'suspendVan'])->whereNumber('van')->name('vans.suspend');
             Route::get('/assignments', [FieldOperationsController::class, 'assignments'])->name('assignments');
             Route::post('/vans/{van}/assignments', [FieldOperationsController::class, 'storeAssignment'])->whereNumber('van')->name('assignments.store');
+            Route::patch('/assignments/{assignment}', [FieldOperationsController::class, 'updateAssignment'])->whereNumber('assignment')->name('assignments.update');
+            Route::delete('/assignments/{assignment}', [FieldOperationsController::class, 'destroyAssignment'])->whereNumber('assignment')->name('assignments.destroy');
             Route::get('/customers', [FieldOperationsController::class, 'customers'])->name('customers');
             Route::get('/visits', [FieldOperationsController::class, 'visits'])->name('visits');
             Route::post('/visits', [FieldOperationsController::class, 'storeVisit'])->name('visits.store');
