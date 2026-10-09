@@ -874,7 +874,8 @@ jobs:
           PY
           )"
 
-          EFFECTIVE_FROM="$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')"
+          # Avoid a boundary race where the just-created assignment can be a fraction of a second ahead of now().
+          EFFECTIVE_FROM="$(date -u -d '1 minute ago' '+%Y-%m-%dT%H:%M:%S+00:00')"
           test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"

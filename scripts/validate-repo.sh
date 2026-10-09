@@ -12,4 +12,15 @@ python3 scripts/validate-active-mission.py validate
 python3 -m unittest discover -s scripts/tests -p 'test_active_mission_registry.py'
 python3 scripts/validate_ui_route_convergence.py validate
 python3 -m unittest discover -s scripts/tests -p 'test_ui_route_convergence_registry.py'
+python3 - <<'PY'
+from pathlib import Path
+
+workflow = Path(".github/workflows/trial-distribution.yml").read_text(encoding="utf-8")
+forbidden = "EFFECTIVE_FROM=\"$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')\""
+if forbidden in workflow:
+    raise SystemExit(
+        "Release policy violation: active/effective fresh-install fixtures must not use the exact current-time boundary. "
+        "Use a deterministic past safety margin."
+    )
+PY
 echo "Repository foundation policy check passed."

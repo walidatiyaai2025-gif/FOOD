@@ -306,7 +306,14 @@ The following classes have already repeated in repository history and MUST be tr
 11. MySQL/MariaDB migration or rollback incompatibilities;
 12. Required CI appearing mostly green while a nested child job is red;
 13. PR branch drift after `main` advances;
-14. release/package artifacts being generated from a head other than the final validated SHA.
+14. release/package artifacts being generated from a head other than the final validated SHA;
+15. time-boundary acceptance fixtures that create an entity with an activation/effective timestamp equal to the current wall-clock second and immediately query it through a `now()`-based eligibility filter.
+
+### Temporal acceptance-fixture invariant
+
+Fresh-install, release, migration, scheduling, assignment, promotion, availability, or other acceptance tests that validate an entity as **already active/effective** MUST NOT place the fixture exactly on the current time boundary. Use a deterministic safety margin in the past for the start/effective timestamp (and, where relevant, a future margin for the end timestamp). The test must validate business behavior, not scheduler/clock granularity.
+
+Repository release workflows must fail policy validation if they reintroduce the known FOODEX fresh-install pattern of assigning `EFFECTIVE_FROM` from the exact current second immediately before querying an `effectiveAssignments(now())`-style filter. Do not weaken the application filter to accommodate a flaky fixture; fix the fixture boundary instead.
 
 A worker encountering one of these patterns should first apply the established prevention rule rather than rediscovering the failure through repeated CI pushes.
 
