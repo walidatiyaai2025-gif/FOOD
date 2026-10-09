@@ -95,7 +95,7 @@ final class VanRuntimeContextResolver
             return true;
         }
 
-        if (! ($user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER'))) {
+        if (!($user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER'))) {
             return false;
         }
 
