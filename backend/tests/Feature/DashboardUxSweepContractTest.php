@@ -14,7 +14,13 @@ class DashboardUxSweepContractTest extends TestCase
         $this->assertStringContainsString('foodex-operational-modal-runtime', $components);
         $this->assertStringContainsString('details[data-foodex-operational-modal]', $components);
         $this->assertStringContainsString('html[dir=rtl] .pagination svg', $components);
+        $this->assertStringContainsString('nav[role="navigation"] svg{width:18px!important', $components);
+        $this->assertStringContainsString('.foodex-pagination{display:flex', $components);
         $this->assertStringContainsString('.foodex-modal-backdrop[hidden]{display:none!important}', $components);
+
+        $provider = file_get_contents(app_path('Providers/AppServiceProvider.php'));
+        $this->assertStringContainsString("Paginator::defaultView('pagination.foodex')", $provider);
+        $this->assertStringContainsString("Paginator::defaultSimpleView('pagination.foodex-simple')", $provider);
     }
 
     public function test_dashboard_mutation_surfaces_use_shared_operational_modal_contract(): void
