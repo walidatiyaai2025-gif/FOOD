@@ -252,13 +252,54 @@
                 </form>
             </details>
             @endif
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.driver_operator') }}</th><th>{{ __('field_operations.warehouse') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.driver_operator') }}</th><th>{{ __('field_operations.warehouse') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th><th>{{ __('field_operations.actions') }}</th></tr></thead><tbody>
                 @forelse($assignments as $a)
                     @php($driverLabel=$drivers->firstWhere('id',$a->driver_id)?->name)
                     @php($representativeLabel=$representatives->firstWhere('id',$a->representative_user_id)?->name)
                     @php($warehouseLabel=$warehouses->firstWhere('id',$a->warehouse_id)?->name)
-                    <tr><td>{{ $a->van?->code ?: '—' }}</td><td>{{ trim(($driverLabel ?: '').' '.($representativeLabel ?: '')) ?: '—' }}</td><td>{{ $warehouseLabel ?: '—' }}</td><td>{{ $a->territory_key ?: '—' }}</td><td>{{ __('field_operations.assignment_types.'.$a->assignment_type) }}</td><td>{{ __('field_operations.statuses.'.$a->status) }}</td><td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td></tr>
-                @empty<tr><td colspan="7">{{ __('field_operations.no_assignments') }}</td></tr>@endforelse
+                    <tr>
+                        <td>{{ $a->van?->code ?: '—' }}</td>
+                        <td>{{ trim(($driverLabel ?: '').' '.($representativeLabel ?: '')) ?: '—' }}</td>
+                        <td>{{ $warehouseLabel ?: '—' }}</td>
+                        <td>{{ $a->territory_key ?: '—' }}</td>
+                        <td>{{ __('field_operations.assignment_types.'.$a->assignment_type) }}</td>
+                        <td>{{ __('field_operations.statuses.'.$a->status) }}</td>
+                        <td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td>
+                        <td>
+                            @if($canManageVan)
+                            <details class="foodex-ops-actions">
+                                <summary aria-label="{{ __('field_operations.actions') }}">⋮</summary>
+                                <div class="foodex-ops-menu" style="min-width:min(560px,88vw)">
+                                    <details>
+                                        <summary><strong>{{ __('field_operations.edit_assignment') }}</strong></summary>
+                                        <form method="post" action="{{ route('admin.field-operations.assignments.update',$a) }}" class="fieldops-form" style="margin-top:10px">
+                                            @csrf @method('PATCH')
+                                            <div class="fieldops-form-grid">
+                                                <label>{{ __('field_operations.driver') }}<select name="driver_id"><option value="">—</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((int)$a->driver_id===(int)$driver->id)>{{ $driver->name ?: ('Driver #'.$driver->id) }}</option>@endforeach</select></label>
+                                                <label>{{ __('field_operations.representative_operator') }}<select name="representative_user_id"><option value="">—</option>@foreach($representatives as $representative)<option value="{{ $representative->id }}" @selected((int)$a->representative_user_id===(int)$representative->id)>{{ $representative->name }}{{ $representative->email ? ' · '.$representative->email : '' }}</option>@endforeach</select></label>
+                                                <label>{{ __('field_operations.territory') }}<select name="territory_key"><option value="">—</option>@foreach($territories as $territory)<option value="{{ $territory->code }}" @selected($a->territory_key===$territory->code)>{{ $territory->localized_name }} · {{ $territory->code }}</option>@endforeach</select></label>
+                                                <label>{{ __('field_operations.warehouse') }}<select name="warehouse_id"><option value="">—</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((int)$a->warehouse_id===(int)$warehouse->id)>{{ $warehouse->name }} · {{ $warehouse->code }}</option>@endforeach</select></label>
+                                                <label>{{ __('field_operations.assignment_type') }}<select name="assignment_type"><option value="primary" @selected($a->assignment_type==='primary')>{{ __('field_operations.assignment_types.primary') }}</option><option value="backup" @selected($a->assignment_type==='backup')>{{ __('field_operations.assignment_types.backup') }}</option></select></label>
+                                                <label>{{ __('field_operations.status') }}<select name="status"><option value="active" @selected($a->status==='active')>{{ __('field_operations.statuses.active') }}</option><option value="ended" @selected($a->status==='ended')>{{ __('field_operations.statuses.ended') }}</option></select></label>
+                                                <label>{{ __('field_operations.effective_from') }}<input type="datetime-local" name="effective_from" value="{{ $a->effective_from?->format('Y-m-d\\TH:i') }}" required></label>
+                                                <label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until" value="{{ $a->effective_until?->format('Y-m-d\\TH:i') }}"></label>
+                                                <label>{{ __('field_operations.loaded_work') }}<input type="number" min="0" name="loaded_work_count" value="{{ (int)$a->loaded_work_count }}"></label>
+                                                <label>{{ __('field_operations.van_pool') }}<input name="van_pool_key" value="{{ $a->van_pool_key }}"></label>
+                                            </div>
+                                            <button class="foodex-primary" type="submit">{{ __('field_operations.save_changes') }}</button>
+                                        </form>
+                                    </details>
+                                    <form method="post" action="{{ route('admin.field-operations.assignments.destroy',$a) }}" onsubmit="return confirm(@js(__('field_operations.assignment_delete_confirm')))">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="foodex-danger">{{ __('field_operations.delete_assignment') }}</button>
+                                        <small class="fieldops-muted">{{ __('field_operations.assignment_delete_help') }}</small>
+                                    </form>
+                                </div>
+                            </details>
+                            @else—@endif
+                        </td>
+                    </tr>
+                @empty<tr><td colspan="8">{{ __('field_operations.no_assignments') }}</td></tr>@endforelse
             </tbody></table></div>{{ $assignments->links() }}
 
         @elseif($section === 'customers')
