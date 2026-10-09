@@ -301,7 +301,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                         'assets/branding/login_reference/header_complete.png',
                         key: const ValueKey('van-login-header'),
                         fit: BoxFit.contain,
-                        semanticLabel: 'FOODEX Economic Group',
+                        semanticLabel: _text('FOODEX Economic Group', 'مجموعة فودكس الاقتصادية'),
                       ),
                     ),
                     const SizedBox(height: 8),
