@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/auth/van_auth_persistence.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/auth/van_session_store.dart';
-import '../../core/theme/foodex_van_theme.dart';
 
 typedef VanAuthenticatedCallback = Future<void> Function(
   VanSession session,
   bool rememberMe,
   bool biometricEnabled,
 );
+
+abstract final class _LoginColors {
+  static const deepGreen = Color(0xFF00452F);
+  static const deepGreenSoft = Color(0xFF0A5B40);
+  static const mint = Color(0xFFEDF7F1);
+  static const white = Color(0xFFFFFFFF);
+  static const ink = Color(0xFF17231D);
+  static const muted = Color(0xFF68766E);
+  static const border = Color(0xFFDDE8E1);
+  static const danger = Color(0xFFE5484D);
+}
 
 class VanLoginScreen extends StatefulWidget {
   const VanLoginScreen({
@@ -34,8 +45,8 @@ class VanLoginScreen extends StatefulWidget {
 class _VanLoginScreenState extends State<VanLoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+
   bool _submitting = false;
-  bool _passwordVisible = false;
   late bool _rememberMe;
   late bool _enableBiometrics;
   bool _biometricAvailable = false;
@@ -45,8 +56,8 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   late final VanSessionStore _sessionStore;
   late final VanBiometricAuthenticator _biometricAuthenticator;
 
-  String _text(String en, String ar) =>
-      Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
+  bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
+  String _text(String en, String ar) => _arabic ? ar : en;
 
   @override
   void initState() {
@@ -100,12 +111,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       );
       if (!authenticated) {
         if (mounted) {
-          setState(
-            () => _error = _text(
-              'Biometric verification failed. Use your password to sign in.',
-              'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
-            ),
-          );
+          setState(() => _error = _text(
+                'Biometric verification failed. Use your password to sign in.',
+                'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
+              ));
         }
         return;
       }
@@ -113,12 +122,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       final stored = await _sessionStore.read();
       if (stored == null || !stored.canUseVan) {
         if (mounted) {
-          setState(
-            () => _error = _text(
-              'The saved session is no longer available. Sign in again.',
-              'جلسة الدخول المحفوظة لم تعد متاحة. سجّل الدخول مرة أخرى.',
-            ),
-          );
+          setState(() => _error = _text(
+                'The saved session is no longer available. Sign in again.',
+                'جلسة الدخول المحفوظة لم تعد متاحة. سجّل الدخول مرة أخرى.',
+              ));
         }
         return;
       }
@@ -126,12 +133,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       await widget.onAuthenticated(stored, true, true);
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error = _text(
-            'Biometric verification failed. Use your password to sign in.',
-            'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
-          ),
-        );
+        setState(() => _error = _text(
+              'Biometric verification failed. Use your password to sign in.',
+              'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
+            ));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -148,12 +153,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   Future<void> _submit() async {
     if (_submitting) return;
     if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      setState(
-        () => _error = _text(
-          'Email and password are required.',
-          'البريد الإلكتروني وكلمة المرور مطلوبان.',
-        ),
-      );
+      setState(() => _error = _text(
+            'Email and password are required.',
+            'البريد الإلكتروني وكلمة المرور مطلوبان.',
+          ));
       return;
     }
 
@@ -174,213 +177,492 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       );
     } on VanAuthenticationException {
       if (mounted) {
-        setState(
-          () => _error = _text(
-            'Invalid email or password.',
-            'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
-          ),
-        );
+        setState(() => _error = _text(
+              'Invalid email or password.',
+              'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+            ));
       }
     } on VanAccessDeniedException {
       if (mounted) {
-        setState(
-          () => _error = _text(
-            'This account is not authorized for the Van app.',
-            'هذا الحساب غير مصرح له باستخدام تطبيق الفان.',
-          ),
-        );
+        setState(() => _error = _text(
+              'This account is not authorized for the Van app.',
+              'هذا الحساب غير مصرح له باستخدام تطبيق الفان.',
+            ));
       }
     } on VanOfflineException {
       if (mounted) {
-        setState(
-          () => _error = _text(
-            'No network connection. Try again.',
-            'لا يوجد اتصال بالشبكة. حاول مرة أخرى.',
-          ),
-        );
+        setState(() => _error = _text(
+              'No network connection. Try again.',
+              'لا يوجد اتصال بالشبكة. حاول مرة أخرى.',
+            ));
       }
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error = _text(
-            'Unable to sign in right now.',
-            'تعذر تسجيل الدخول الآن.',
-          ),
-        );
+        setState(() => _error = _text(
+              'Unable to sign in right now.',
+              'تعذر تسجيل الدخول الآن.',
+            ));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
+  void _toggleRemember(bool value) {
+    if (_submitting) return;
+    setState(() {
+      _rememberMe = value;
+      if (!value) _enableBiometrics = false;
+    });
+  }
+
+  void _toggleBiometric() {
+    if (_submitting || !_biometricAvailable) return;
+    if (_savedBiometricLogin && _enableBiometrics) {
+      _loginWithBiometrics();
+      return;
+    }
+    setState(() {
+      _enableBiometrics = !_enableBiometrics;
+      if (_enableBiometrics) _rememberMe = true;
+    });
+  }
+
+  void _showInfo(String title, String body) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.alexandria(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: _LoginColors.deepGreen,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.alexandria(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: _LoginColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
+    final direction = _arabic ? TextDirection.rtl : TextDirection.ltr;
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(999),
+      borderSide: const BorderSide(color: _LoginColors.border),
+    );
+    final focusBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(999),
+      borderSide: const BorderSide(
+        color: _LoginColors.deepGreenSoft,
+        width: 1.5,
+      ),
+    );
+
+    return Directionality(
+      textDirection: direction,
+      child: Scaffold(
+        key: const ValueKey('van-customer-parity-login'),
+        backgroundColor: _LoginColors.white,
+        body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: Card(
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Icon(
-                        Icons.local_shipping_outlined,
-                        size: 48,
-                        color: FoodexVanTokens.green,
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 34),
+                      child: Image.asset(
+                        'assets/branding/login_reference/header_complete.png',
+                        key: const ValueKey('van-login-header'),
+                        fit: BoxFit.contain,
+                        semanticLabel: 'FOODEX Economic Group',
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _text('Van App', 'تطبيق الفان'),
-                        key: const Key('van-login-app-identity'),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _text(
-                          'FOODEX field operations',
-                          'عمليات فودكس الميدانية',
-                        ),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        key: const Key('van-login-email'),
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        decoration: InputDecoration(
-                          labelText: _text('Email', 'البريد الإلكتروني'),
-                          prefixIcon: const Icon(Icons.alternate_email),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRect(
+                      child: AspectRatio(
+                        aspectRatio: 941 / 496,
+                        child: Image.asset(
+                          'assets/branding/login_reference/foodex_truck_hero.png',
+                          key: const ValueKey('van-login-hero'),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        key: const Key('van-login-password'),
-                        controller: _password,
-                        obscureText: !_passwordVisible,
-                        textInputAction: TextInputAction.done,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        onSubmitted: (_) => _submit(),
-                        decoration: InputDecoration(
-                          labelText: _text('Password', 'كلمة المرور'),
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            onPressed: () => setState(
-                              () => _passwordVisible = !_passwordVisible,
-                            ),
-                            icon: Icon(
-                              _passwordVisible
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                            ),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(0, -24),
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(20, 30, 20, 18),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFCFEFD),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(34),
                           ),
                         ),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          _error!,
-                          key: const Key('van-login-error'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: FoodexVanTokens.danger),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        key: const Key('van-login-remember'),
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                        value: _rememberMe,
-                        onChanged: _submitting
-                            ? null
-                            : (value) => setState(() {
-                                  _rememberMe = value ?? false;
-                                  if (!_rememberMe) {
-                                    _enableBiometrics = false;
-                                  }
-                                }),
-                        title: Text(_text('Remember me', 'تذكرني')),
-                        subtitle: Text(
-                          _text(
-                            'Keep the authenticated session in secure device storage.',
-                            'احتفظ بجلسة الدخول في التخزين الآمن للجهاز.',
-                          ),
-                        ),
-                      ),
-                      if (!_checkingBiometrics && _biometricAvailable)
-                        CheckboxListTile(
-                          key: const Key('van-login-biometric-toggle'),
-                          contentPadding: EdgeInsets.zero,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          dense: true,
-                          value: _enableBiometrics,
-                          onChanged: _submitting
-                              ? null
-                              : (value) => setState(() {
-                                    _enableBiometrics = value ?? false;
-                                    if (_enableBiometrics) {
-                                      _rememberMe = true;
-                                    }
-                                  }),
-                          title: Text(
-                            _text(
-                              'Use biometric unlock',
-                              'استخدم فتح التطبيق بالبصمة',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              _text('Van App', 'تطبيق الفان'),
+                              key: const Key('van-login-app-identity'),
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.alexandria(
+                                color: _LoginColors.deepGreen,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                          ),
-                          subtitle: Text(
-                            _text(
-                              'Your password is never stored for biometric sign-in.',
-                              'لا يتم تخزين كلمة المرور لتسجيل الدخول بالبصمة.',
+                            const SizedBox(height: 4),
+                            Text(
+                              _text('Sign in', 'تسجيل الدخول'),
+                              key: const ValueKey('van-login-title'),
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.alexandria(
+                                color: _LoginColors.ink,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      FilledButton.icon(
-                        key: const Key('van-login-submit'),
-                        onPressed: _submitting ? null : _submit,
-                        icon: _submitting
-                            ? const SizedBox.square(
-                                dimension: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+                            const SizedBox(height: 4),
+                            Text(
+                              _text(
+                                'FOODEX field operations',
+                                'عمليات فودكس الميدانية',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.alexandria(
+                                color: _LoginColors.muted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              key: const Key('van-login-email'),
+                              controller: _email,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              style: GoogleFonts.alexandria(fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: _text('Email', 'البريد الإلكتروني'),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Image.asset(
+                                    'assets/branding/login_reference/email_icon.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
                                 ),
-                              )
-                            : const Icon(Icons.login),
-                        label: Text(_text('Sign in', 'تسجيل الدخول')),
+                                filled: true,
+                                fillColor: const Color(0xFFFCFDFC),
+                                border: fieldBorder,
+                                enabledBorder: fieldBorder,
+                                focusedBorder: focusBorder,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 18,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              key: const Key('van-login-password'),
+                              controller: _password,
+                              obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              onSubmitted: (_) => _submit(),
+                              style: GoogleFonts.alexandria(fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: _text('Password', 'كلمة المرور'),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Image.asset(
+                                    'assets/branding/login_reference/lock_icon.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFFCFDFC),
+                                border: fieldBorder,
+                                enabledBorder: fieldBorder,
+                                focusedBorder: focusBorder,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 18,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    key: const Key('van-login-remember'),
+                                    onTap: _submitting
+                                        ? null
+                                        : () => _toggleRemember(!_rememberMe),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 7,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Checkbox(
+                                            value: _rememberMe,
+                                            onChanged: _submitting
+                                                ? null
+                                                : (value) => _toggleRemember(
+                                                      value ?? false,
+                                                    ),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            activeColor:
+                                                _LoginColors.deepGreenSoft,
+                                          ),
+                                          Flexible(
+                                            child: Text(
+                                              _text(
+                                                'Remember me',
+                                                'تذكرني',
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.alexandria(
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    key: const Key('van-login-biometric'),
+                                    onPressed:
+                                        _biometricAvailable && !_submitting
+                                            ? _toggleBiometric
+                                            : null,
+                                    icon: _checkingBiometrics
+                                        ? const SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Image.asset(
+                                            'assets/branding/login_reference/fingerprint_icon.png',
+                                            width: 30,
+                                            height: 30,
+                                          ),
+                                    label: Text(
+                                      _text('Biometric', 'البصمة'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.alexandria(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size(0, 48),
+                                      foregroundColor: _LoginColors.deepGreen,
+                                      backgroundColor: _enableBiometrics
+                                          ? _LoginColors.mint
+                                          : _LoginColors.white,
+                                      side: BorderSide(
+                                        color: _enableBiometrics
+                                            ? _LoginColors.deepGreenSoft
+                                            : _LoginColors.border,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                _error!,
+                                key: const Key('van-login-error'),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.alexandria(
+                                  color: _LoginColors.danger,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 58,
+                              child: FilledButton(
+                                key: const Key('van-login-submit'),
+                                onPressed: _submitting ? null : _submit,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor:
+                                      _LoginColors.deepGreenSoft,
+                                  foregroundColor: _LoginColors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                child: _submitting
+                                    ? const SizedBox.square(
+                                        dimension: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: _LoginColors.white,
+                                        ),
+                                      )
+                                    : Text(
+                                        _text('Sign in', 'تسجيل الدخول'),
+                                        style: GoogleFonts.alexandria(
+                                          color: _LoginColors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              key: const ValueKey(
+                                'van-business-forgot-password',
+                              ),
+                              onPressed: _submitting
+                                  ? null
+                                  : () => _showInfo(
+                                        _text(
+                                          'Forgot password?',
+                                          'نسيت كلمة المرور؟',
+                                        ),
+                                        _text(
+                                          'Contact FOODEX administration to reset the password for your approved Van account.',
+                                          'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الفان المعتمد.',
+                                        ),
+                                      ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(52),
+                                foregroundColor:
+                                    _LoginColors.deepGreenSoft,
+                                backgroundColor: const Color(0xFFF9FCFA),
+                                side: const BorderSide(
+                                  color: Color(0xFFE2E9E5),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                              child: Text(
+                                _text(
+                                  'Forgot password?',
+                                  'نسيت كلمة المرور؟',
+                                ),
+                                style: GoogleFonts.alexandria(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton(
+                              key: const ValueKey('van-business-contact-us'),
+                              onPressed: _submitting
+                                  ? null
+                                  : () => _showInfo(
+                                        _text('Contact us', 'تواصل معنا'),
+                                        _text(
+                                          'Van accounts and assignments are managed from the FOODEX management dashboard. Contact your administrator for activation or sign-in help.',
+                                          'حسابات الفان والإسنادات تُدار من لوحة إدارة FOODEX. تواصل مع المسؤول لتفعيل الحساب أو المساعدة في الدخول.',
+                                        ),
+                                      ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(54),
+                                foregroundColor: _LoginColors.deepGreen,
+                                side: const BorderSide(
+                                  color: _LoginColors.deepGreenSoft,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                              child: Text(
+                                _text('Contact us', 'تواصل معنا'),
+                                style: GoogleFonts.alexandria(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      if (_savedBiometricLogin) ...[
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          key: const Key('van-login-biometric'),
-                          onPressed:
-                              _submitting ? null : _loginWithBiometrics,
-                          icon: const Icon(Icons.fingerprint_rounded),
-                          label: Text(
-                            _text(
-                              'Unlock with biometrics',
-                              'فتح التطبيق بالبصمة',
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(22, 0, 22, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Good Food   A Stronger Tomorrow',
+                              style: GoogleFonts.alexandria(
+                                color: _LoginColors.muted,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
+                          Text(
+                            _text('Version 1.0.65', 'الإصدار 1.0.65'),
+                            key: const ValueKey('van-business-login-version'),
+                            style: GoogleFonts.alexandria(
+                              color: _LoginColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
