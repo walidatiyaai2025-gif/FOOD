@@ -22,5 +22,20 @@ if forbidden in workflow:
         "Release policy violation: active/effective fresh-install fixtures must not use the exact current-time boundary. "
         "Use a deterministic past safety margin."
     )
+
+territory_create = workflow.find("/tmp/territory-post.html")
+assignment_create = workflow.find("/tmp/assignment-post.html")
+if territory_create < 0 or assignment_create < 0 or territory_create > assignment_create:
+    raise SystemExit(
+        "Release policy violation: fresh-install dependencies must be created before consumers "
+        "(Service Territory must exist before the Van Assignment references it)."
+    )
+
+side_effect_assertion = "Van assignment POST redirected but did not persist the expected FRESH-VAN-UI / FRESH-TERR assignment."
+if side_effect_assertion not in workflow:
+    raise SystemExit(
+        "Release policy violation: HTTP 302 alone is not mutation evidence; "
+        "the fresh-install Van Assignment POST must verify its persisted side effect."
+    )
 PY
 echo "Repository foundation policy check passed."
