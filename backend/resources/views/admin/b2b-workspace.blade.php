@@ -437,7 +437,7 @@
           </div>
         </div>
         <div class="links">
-          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance','finance_tab'=>'invoices'],$financeQuery,['export'=>'xlsx'])) }}">Excel</a>
+          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance','finance_tab'=>'invoices'],$financeQuery,['export'=>'xlsx'])) }}">Excel</a> {{-- localization-gate: allow — Excel is the technical export format name. --}}
           <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance','finance_tab'=>'invoices'],$financeQuery,['export'=>'pdf'])) }}">PDF</a>
         </div>
         <div class="muted" style="flex-basis:100%;font-size:12px">
