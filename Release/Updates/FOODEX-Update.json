@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.66",
+  "target_version": "1.0.67",
   "minimum_current_version": "1.0.65",
-  "sha256": "15a08399175a97e454a2078029bca844e35c7a8b3dafe87c1f5c908e31b89fae",
+  "sha256": "88fc289e44682354e9a3bebc225ae6f02ded4d577b3587a84369cc8dac7b667d",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release: FOODEX 1.0.66 dashboard and Van distribution",
+  "release_notes": "Release FOODEX 1.0.67 dashboard hotfix (#1171)",
   "dashboard_fields": {
-    "target_version": "1.0.66",
+    "target_version": "1.0.67",
     "minimum_current_version": "1.0.65",
-    "sha256": "15a08399175a97e454a2078029bca844e35c7a8b3dafe87c1f5c908e31b89fae",
+    "sha256": "88fc289e44682354e9a3bebc225ae6f02ded4d577b3587a84369cc8dac7b667d",
     "contains_migrations": true,
-    "release_notes": "release: FOODEX 1.0.66 dashboard and Van distribution"
+    "release_notes": "Release FOODEX 1.0.67 dashboard hotfix (#1171)"
   }
 }
