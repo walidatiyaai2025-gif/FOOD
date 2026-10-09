@@ -16,7 +16,7 @@ python3 - <<'PY'
 from pathlib import Path
 
 workflow = Path(".github/workflows/trial-distribution.yml").read_text(encoding="utf-8")
-forbidden = 'EFFECTIVE_FROM="$(date -u \' +%Y-%m-%dT%H:%M:%S+00:00\')"'.replace("\\' +", "'+")
+forbidden = "EFFECTIVE_FROM=\"$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')\""
 if forbidden in workflow:
     raise SystemExit(
         "Release policy violation: active/effective fresh-install fixtures must not use the exact current-time boundary. "
