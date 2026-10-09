@@ -56,22 +56,33 @@ class VanPushNotificationAccessTest extends TestCase
         ]);
     }
 
-    public function test_van_push_registration_rejects_non_van_token_ability(): void
+    public function test_unassigned_driver_cannot_register_van_push_device(): void
     {
-        $driverUser = $this->compatibilityDriverUser();
+        $driverUser = User::factory()->create(['is_active' => true]);
+        $driverUser->roles()->attach(
+            Role::query()->where('code', 'B2B_DRIVER')->firstOrFail(),
+        );
 
-        Sanctum::actingAs($driverUser, ['app:driver']);
+        Driver::query()->create([
+            'user_id' => $driverUser->getKey(),
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($driverUser, ['app:van']);
 
         $this->postJson('/api/v1/push/devices', [
             'app' => 'van',
             'platform' => 'android',
             'environment' => 'production',
-            'token' => 'wrong-ability-token',
-            'install_id' => 'wrong-ability-install',
+            'token' => 'unassigned-driver-token',
+            'install_id' => 'unassigned-driver-install',
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('push_device_tokens', [
-            'token_hash' => hash('sha256', 'wrong-ability-token'),
+            'token_hash' => hash('sha256', 'unassigned-driver-token'),
         ]);
     }
 
