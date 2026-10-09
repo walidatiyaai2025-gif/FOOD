@@ -703,6 +703,20 @@
                                             </form>
                                             <form method="post" action="{{ route('admin.business.banners.destroy',$row['_id']) }}" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'حذف البانر من المسودة؟':'Delete this banner from Draft?' }}')">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $row['_store_id'] }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
                                         </div>
+                                    @elseif($column==='actions' && $module==='incoming_orders')
+                                        <div class="module-links">
+                                            @foreach(($row[$column] ?? []) as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach
+                                            @if(!empty($row['_can_make_available']) && ($user->hasPermission('inventory.manage',$storeId) || $user->hasPermission('inventory.manage')))
+                                                <form method="post" action="{{ route('admin.b2c.wholesale-purchases.available-for-sale',['order'=>$row['_id']]) }}" style="display:inline">
+                                                    @csrf
+                                                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                                                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                                                    <button class="foodex-primary" type="submit">{{ __('admin.b2c_workspace.purchase_status.make_available') }}</button>
+                                                </form>
+                                            @elseif(!empty($row['_sale_available']))
+                                                <span class="state-dot">{{ __('admin.b2c_workspace.purchase_status.available') }}</span>
+                                            @endif
+                                        </div>
                                     @elseif($column==='actions' && is_array($row[$column] ?? null))
                                         <div class="module-links">
                                             @foreach($row[$column] as $action)<a href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach

@@ -192,6 +192,11 @@ class RetailWholesaleReplenishmentTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'delivered']);
         $this->assertSame(15.0, (float) DB::table('inventories')->where('id', $sourceInventory)->value('quantity'));
         $this->assertSame(0.0, (float) DB::table('inventories')->where('id', $sourceInventory)->value('reserved_quantity'));
+        $this->assertDatabaseMissing('retail_replenishments', ['source_order_id' => $order->id]);
+
+        $activation = app(RetailWholesaleReplenishmentService::class)
+            ->makeAvailableForSale($order->fresh(), $retailStore, $admin);
+        $this->assertSame(1, $activation['activated_products']);
 
         $retailProduct = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -243,6 +248,11 @@ class RetailWholesaleReplenishmentTest extends TestCase
             ->first(['inventories.id', 'inventories.quantity']);
         $this->assertNotNull($retailInventory);
         $this->assertSame(5.0, (float) $retailInventory->quantity);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'retail.wholesale_purchase_available_for_sale',
+            'auditable_id' => $retailStore,
+        ]);
 
         $replenishment = DB::table('retail_replenishments')->where('source_order_id', $order->id)->first();
         $this->assertNotNull($replenishment);
