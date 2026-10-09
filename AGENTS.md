@@ -315,6 +315,14 @@ Fresh-install, release, migration, scheduling, assignment, promotion, availabili
 
 Repository release workflows must fail policy validation if they reintroduce the known FOODEX fresh-install pattern of assigning `EFFECTIVE_FROM` from the exact current second immediately before querying an `effectiveAssignments(now())`-style filter. Do not weaken the application filter to accommodate a flaky fixture; fix the fixture boundary instead.
 
+### Acceptance dependency and redirect invariant
+
+Acceptance fixtures MUST be created in authoritative dependency order. A child record may not reference a Lookup/Master-Data key that the same acceptance flow creates only later. For Field Operations this means, at minimum, Geography/Service Territory must exist and be active before a Van Assignment references its territory key, and the Assignment must exist before a Visit references it.
+
+An HTTP `302` from a Dashboard form POST is transport evidence only; it is **not** proof that the mutation succeeded because Laravel validation failures also redirect. Every acceptance POST must verify the intended persisted side effect using the business-facing read surface, API, or an authoritative state query. Generic text that can also appear in a form dropdown is not sufficient evidence.
+
+Release CI must preserve these invariants with executable guards for known release-critical fixture chains.
+
 A worker encountering one of these patterns should first apply the established prevention rule rather than rediscovering the failure through repeated CI pushes.
 
 ### Recurring Failure Promotion Rule
