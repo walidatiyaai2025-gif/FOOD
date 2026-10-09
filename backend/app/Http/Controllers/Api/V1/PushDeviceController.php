@@ -62,23 +62,15 @@ final class PushDeviceController extends Controller
                 ->exists();
             abort_unless($allowed, 403);
         } elseif ($data['app'] === 'van') {
-            abort_unless(
-                $user->tokenCan('app:van'),
-                403,
-                'This token is not authorized for the Van App.',
-            );
-
-            $context = $this->vanRuntimeContexts->resolve($user);
-            abort_unless(
-                $context['selected'] !== null,
-                403,
-                'No effective Van assignment is available for this account.',
-            );
-            abort_unless(
-                $this->vanRuntimeContexts->canUseRuntime($user, $context['selected']),
-                403,
-                'Van App access is not enabled for this account.',
-            );
+            if (! $user->hasPermission('van.login')) {
+                $context = $this->vanRuntimeContexts->resolve($user);
+                abort_unless(
+                    $context['selected'] !== null
+                        && $this->vanRuntimeContexts->canUseRuntime($user, $context['selected']),
+                    403,
+                    'Van App access is not enabled for this account.',
+                );
+            }
         } else {
             $allowed = DB::table('platform_customers')->where('user_id', $user->id)->where('is_active', true)->exists()
                 || DB::table('customers')->where('user_id', $user->id)->exists()
