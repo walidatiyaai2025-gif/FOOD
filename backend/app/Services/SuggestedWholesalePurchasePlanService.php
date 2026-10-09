@@ -28,7 +28,7 @@ final class SuggestedWholesalePurchasePlanService
         array $recommendations,
         float $purchasingPower,
         ?float $requestedBudget = null,
-        string $currency = 'KWD',
+        string $currency = 'EGP',
         float $existingCartCost = 0.0,
     ): array {
         $creditLimit = max(0.0, $purchasingPower);
