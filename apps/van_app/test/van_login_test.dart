@@ -83,6 +83,32 @@ VanSession _savedSession() => const VanSession(
     );
 
 void main() {
+  testWidgets('Van login uses the approved Customer business entry composition',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        authRepository: _Auth(),
+        sessionStore: _MemoryStore(),
+        authPreferenceStore: _PreferenceStore(),
+        biometricAuthenticator: const _Biometric(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-customer-parity-login')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-login-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-login-hero')), findsOneWidget);
+    expect(find.byKey(const Key('van-login-email')), findsOneWidget);
+    expect(find.byKey(const Key('van-login-password')), findsOneWidget);
+    expect(find.byKey(const Key('van-login-remember')), findsOneWidget);
+    expect(find.byKey(const Key('van-login-biometric-toggle')), findsOneWidget);
+    expect(find.byKey(const Key('van-login-submit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-business-forgot-password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-business-contact-us')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-business-login-version')), findsOneWidget);
+  });
+
   testWidgets(
       'password login persists only after Remember Me is selected and can enable biometrics',
       (tester) async {
