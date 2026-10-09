@@ -219,6 +219,17 @@
 </head>
 <body>
 @if($module === 'dashboard' && $dashboard)
+@php
+    $dashboardTab = request('dashboard_tab') === 'assistant' ? 'assistant' : 'overview';
+    $dashboardTabBase = [
+        'store_id' => $storeId,
+        'from' => $dashboard['selected_from'],
+        'to' => $dashboard['selected_to'],
+    ];
+    if ($supportAccess) {
+        $dashboardTabBase['support_access'] = 1;
+    }
+@endphp
 <div class="dashboard-layout" data-golden-dashboard="ph06" data-dashboard-geometry="physical-ltr">
     <section class="dashboard-shell">
         <header class="topbar">
@@ -254,17 +265,6 @@
         </header>
 
         <main class="content">
-            @php
-                $dashboardTab = request('dashboard_tab') === 'assistant' ? 'assistant' : 'overview';
-                $dashboardTabBase = [
-                    'store_id' => $storeId,
-                    'from' => $dashboard['selected_from'],
-                    'to' => $dashboard['selected_to'],
-                ];
-                if ($supportAccess) {
-                    $dashboardTabBase['support_access'] = 1;
-                }
-            @endphp
             @if(session('status'))<div class="flash ok" role="status">{{ session('status') }}</div>@endif
             @if($errors->any())<div class="flash err" role="alert">{{ $errors->first() }}</div>@endif
             <div class="headline">
