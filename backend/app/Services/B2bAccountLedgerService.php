@@ -371,7 +371,7 @@ final class B2bAccountLedgerService
             ]);
     }
 
-    public function currencyFor(B2bCustomer $customer, ?int $storeId = null): ?string
+    public function currencyFor(B2bCustomer $customer, ?int $storeId = null): string
     {
         return 'EGP';
     }
