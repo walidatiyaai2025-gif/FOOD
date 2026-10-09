@@ -233,7 +233,7 @@ class RetailWholesaleReplenishmentTest extends TestCase
             'product_id' => $retailProduct->id,
             'price' => 7.250,
             'cost_price' => 7.250,
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         $retailInventory = DB::table('inventories')
@@ -243,6 +243,23 @@ class RetailWholesaleReplenishmentTest extends TestCase
             ->first(['inventories.id', 'inventories.quantity']);
         $this->assertNotNull($retailInventory);
         $this->assertSame(5.0, (float) $retailInventory->quantity);
+
+        $activation = app(RetailWholesaleReplenishmentService::class)
+            ->makeAvailableForSale($order->fresh(), $retailStore, $admin);
+        $this->assertSame(1, $activation['activated_products']);
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $retailStore,
+            'product_id' => $retailProduct->id,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'retail.wholesale_purchase_available_for_sale',
+            'auditable_id' => $retailStore,
+        ]);
+        $this->assertSame(
+            5.0,
+            (float) DB::table('inventories')->where('id', $retailInventory->id)->value('quantity'),
+        );
 
         $replenishment = DB::table('retail_replenishments')->where('source_order_id', $order->id)->first();
         $this->assertNotNull($replenishment);
