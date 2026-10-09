@@ -109,7 +109,7 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertSame($fixture['retail_product'], $result['recommendations'][0]['retail_product_id']);
 
         $this->actingAs($manager)
-            ->get('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->get('/admin/b2c/dashboard?dashboard_tab=assistant&store_id='.$fixture['retail_store'])
             ->assertOk()
             ->assertSee('data-merchant-intelligence', false)
             ->assertDontSee('data-owner-wholesale-account', false)
