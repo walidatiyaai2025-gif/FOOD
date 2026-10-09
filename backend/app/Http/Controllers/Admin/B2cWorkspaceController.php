@@ -800,7 +800,7 @@ class B2cWorkspaceController extends Controller
                         'orders.order_number',
                         'users.name as driver_name',
                     ])
-                    ->map(function ($row) use ($retailStoreId): array {
+                    ->map(function ($row): array {
                         $proof = DB::table('delivery_proofs')
                             ->where('driver_assignment_id', $row->id)
                             ->where(function ($query): void {
@@ -1082,7 +1082,7 @@ class B2cWorkspaceController extends Controller
                 'orders.created_at as created',
                 'wholesale_stores.name as store',
             ])
-            ->map(function ($row): array {
+            ->map(function ($row) use ($retailStoreId): array {
                 $invoice = DB::table('invoices')
                     ->where('order_id', $row->id)
                     ->where('channel', 'b2b')
