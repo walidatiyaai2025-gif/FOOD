@@ -72,7 +72,14 @@
     .pagination svg,.pager svg{width:18px;height:18px}
     html[dir=rtl] .pagination svg,html[dir=rtl] .pager svg{transform:scaleX(-1)}
     .pagination [aria-disabled="true"],.pager [aria-disabled="true"]{opacity:.48}
-    @media(max-width:767px){.pagination a,.pagination span,.pager a,.pager span{min-width:38px;min-height:38px;padding-inline:7px;font-size:.82rem}}
+    nav[role="navigation"] svg{width:18px!important;height:18px!important;max-width:18px!important;display:block}
+    .foodex-pagination{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);flex-wrap:wrap;margin-top:var(--foodex-space-5)}
+    .foodex-pagination-pages,.foodex-pagination-controls{display:flex;align-items:center;gap:var(--foodex-space-2);flex-wrap:wrap}
+    .foodex-pagination a,.foodex-pagination span{min-width:40px;min-height:40px;display:inline-grid;place-items:center;padding:0 10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink);text-decoration:none}
+    .foodex-pagination .foodex-pagination-current{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff;font-weight:var(--foodex-font-weight-bold)}
+    .foodex-pagination .foodex-pagination-disabled{opacity:.45;cursor:not-allowed}
+    .foodex-pagination-summary{color:var(--foodex-muted);font-size:var(--foodex-text-sm)}
+    @media(max-width:767px){.pagination a,.pagination span,.pager a,.pager span{min-width:38px;min-height:38px;padding-inline:7px;font-size:.82rem}.foodex-pagination{justify-content:center}.foodex-pagination-summary{width:100%;text-align:center}.foodex-pagination-pages{justify-content:center}}
     .badge{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-muted);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-medium)}
 
 

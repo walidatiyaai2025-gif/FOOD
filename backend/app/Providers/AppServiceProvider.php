@@ -19,6 +19,7 @@ use App\Support\StoreContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -45,6 +46,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Paginator::defaultView('pagination.foodex');
+        Paginator::defaultSimpleView('pagination.foodex-simple');
+
         Gate::policy(B2bCustomer::class, B2bCustomerPolicy::class);
         Gate::policy(B2cCustomer::class, B2cCustomerPolicy::class);
 

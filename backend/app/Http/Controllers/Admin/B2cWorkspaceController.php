@@ -85,10 +85,9 @@ class B2cWorkspaceController extends Controller
             'products' => DB::table('store_products')->whereIn('store_id', $storeIds)->count(),
             'orders' => DB::table('orders')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
             'incoming_orders' => DB::table('orders')
-                ->where('store_id', $storeId)
-                ->where('channel', 'b2c')
-                ->whereNotNull('b2c_customer_id')
-                ->whereNotIn('status', ['delivered', 'cancelled'])
+                ->join('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'orders.b2b_customer_id')
+                ->where('retail_wholesale_accounts.retail_store_id', $storeId)
+                ->where('orders.channel', 'b2b')
                 ->count(),
             'finance' => DB::table('invoices')->whereIn('store_id', $storeIds)->where('channel', 'b2c')->count(),
             'customers' => DB::table('b2c_customers')->whereIn('store_id', $storeIds)->count(),
@@ -669,7 +668,7 @@ class B2cWorkspaceController extends Controller
                 $storeIds,
                 $request->integer('focus_product') > 0 ? $request->integer('focus_product') : null,
             ),
-            'incoming_orders' => $this->orderModuleData($storeIds, true),
+            'incoming_orders' => $this->wholesalePurchaseModuleData($selectedStoreId),
             'orders' => $this->orderModuleData($storeIds),
             'finance' => $this->financeModuleData($storeIds),
             'customers' => $this->customerModuleData($storeIds),
@@ -1030,6 +1029,75 @@ class B2cWorkspaceController extends Controller
             'actions' => [],
             'targets' => $targets->values()->all(),
             'columns' => ['image', 'title', 'target', 'sort_order', 'status', 'actions'],
+            'rows' => $rows,
+        ];
+    }
+
+    private function wholesalePurchaseModuleData(int $retailStoreId): array
+    {
+        $rows = DB::table('orders')
+            ->join('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'orders.b2b_customer_id')
+            ->join('stores as wholesale_stores', 'wholesale_stores.id', '=', 'orders.store_id')
+            ->where('retail_wholesale_accounts.retail_store_id', $retailStoreId)
+            ->where('orders.channel', 'b2b')
+            ->orderByDesc('orders.created_at')
+            ->orderByDesc('orders.id')
+            ->limit(150)
+            ->get([
+                'orders.id',
+                'orders.order_number as number',
+                'orders.status',
+                'orders.currency',
+                'orders.grand_total',
+                'orders.created_at as created',
+                'wholesale_stores.name as store',
+            ])
+            ->map(function ($row): array {
+                $invoice = DB::table('invoices')
+                    ->where('order_id', $row->id)
+                    ->where('channel', 'b2b')
+                    ->orderByDesc('id')
+                    ->first(['id', 'invoice_number', 'total', 'currency']);
+
+                $paid = $invoice === null
+                    ? 0.0
+                    : (float) DB::table('payments')
+                        ->where('invoice_id', $invoice->id)
+                        ->where('status', 'paid')
+                        ->sum('amount');
+
+                $invoiceTotal = $invoice === null ? (float) $row->grand_total : (float) $invoice->total;
+                $currency = $invoice === null ? (string) $row->currency : (string) $invoice->currency;
+                $actions = [];
+
+                if ($invoice !== null) {
+                    $actions[] = [
+                        'label' => $this->msg('الفاتورة', 'Invoice'),
+                        'url' => route('admin.invoices.show', ['invoice' => $invoice->id]),
+                    ];
+                    $actions[] = [
+                        'label' => 'PDF',
+                        'url' => route('admin.invoices.download', ['invoice' => $invoice->id, 'locale' => app()->getLocale()]),
+                    ];
+                }
+
+                return [
+                    '_id' => (int) $row->id,
+                    'number' => $row->number,
+                    'store' => $row->store,
+                    'status' => $row->status,
+                    'amount' => $currency.' '.number_format((float) $row->grand_total, 3),
+                    'created' => (string) $row->created,
+                    'invoice' => $invoice?->invoice_number ?: '-',
+                    'paid' => $currency.' '.number_format($paid, 3),
+                    'balance' => $currency.' '.number_format(max(0, $invoiceTotal - $paid), 3),
+                    'actions' => $actions,
+                ];
+            })
+            ->all();
+
+        return [
+            'columns' => ['number', 'store', 'status', 'amount', 'invoice', 'paid', 'balance', 'created', 'actions'],
             'rows' => $rows,
         ];
     }
