@@ -15,6 +15,14 @@ final class PdfDocumentFactory
         int $fontSize = 10,
     ): TCPDF {
         if (! class_exists(TCPDF::class)) {
+            $bundledRuntime = app_path('ThirdParty/tcpdf/tcpdf.php');
+
+            if (is_file($bundledRuntime)) {
+                require_once $bundledRuntime;
+            }
+        }
+
+        if (! class_exists(TCPDF::class)) {
             throw new RuntimeException('PDF generation is temporarily unavailable.');
         }
 
