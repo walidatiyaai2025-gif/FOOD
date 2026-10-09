@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderQuote = (quote) => {
         quoteBox.innerHTML = '';
-        const currency = quote.currency || 'KWD';
+        const currency = quote.currency || 'EGP';
         const lines = document.createElement('div');
         (quote.items || []).forEach((line) => {
             const item = document.createElement('div');
