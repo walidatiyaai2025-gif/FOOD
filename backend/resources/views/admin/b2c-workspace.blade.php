@@ -295,9 +295,9 @@
                 </form>
             </div>
 
-            <nav class="dashboard-tabs" aria-label="{{ __('admin.b2c_dashboard.tabs.navigation') }}">
-                <a class="dashboard-tab {{ $dashboardTab==='overview'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'overview'])) }}">{{ __('admin.b2c_dashboard.tabs.overview') }}</a>
-                <a class="dashboard-tab {{ $dashboardTab==='assistant'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'assistant'])) }}">{{ __('admin.b2c_dashboard.tabs.assistant') }}</a>
+            <nav class="dashboard-tabs" aria-label="{{ __('admin.b2c_dashboard_tabs.navigation') }}">
+                <a class="dashboard-tab {{ $dashboardTab==='overview'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'overview'])) }}">{{ __('admin.b2c_dashboard_tabs.overview') }}</a>
+                <a class="dashboard-tab {{ $dashboardTab==='assistant'?'active':'' }}" href="{{ route('admin.b2c.dashboard',array_merge($dashboardTabBase,['dashboard_tab'=>'assistant'])) }}">{{ __('admin.b2c_dashboard_tabs.assistant') }}</a>
             </nav>
 
             @if($dashboardTab === 'overview')
