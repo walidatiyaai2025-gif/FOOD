@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.67 - 2026-10-09
+
+- Publish the Van push-notification compatibility hotfix from #1166 so Driver-compatible Van sessions can register and receive authorized operational notifications without weakening Van/session isolation.
+- Fix the Van B2B Product Catalog empty-state regression from #1168 by resolving catalog pricing through the canonical B2B price resolver: explicit tier pricing remains authoritative while eligible Platform Customers retain the active base Wholesale price fallback when a tier row is absent.
+- Preserve store/channel/customer scoping and add regression coverage proving base-price fallback plus explicit tier price/MOQ/increment override behavior.
+- Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.67 source commit with mobile identity `1.0.67+67`.
+
 ## 1.0.66 - 2026-10-09
 
 - Publish the #1163 Van production fix with the Customer-parity Van login composition while keeping the post-login Van business workflow unchanged.
