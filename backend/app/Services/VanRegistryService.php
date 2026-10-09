@@ -6,6 +6,7 @@ use App\Models\ServiceTerritory;
 use App\Models\User;
 use App\Models\Van;
 use App\Models\VanAssignment;
+use App\Models\VanVisit;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -145,6 +146,214 @@ final class VanRegistryService
             ]);
 
             return $assignment;
+        });
+    }
+
+    /** @param array<string,mixed> $attributes */
+    public function updateAssignment(User $actor, VanAssignment $assignment, array $attributes): VanAssignment
+    {
+        $from = Carbon::parse($attributes['effective_from']);
+        $until = filled($attributes['effective_until'] ?? null)
+            ? Carbon::parse((string) $attributes['effective_until'])
+            : null;
+
+        if ($until !== null && $until->lessThanOrEqualTo($from)) {
+            throw ValidationException::withMessages([
+                'effective_until' => ['Effective-until must be after effective-from.'],
+            ]);
+        }
+
+        $type = (string) ($attributes['assignment_type'] ?? $assignment->assignment_type);
+        if (! in_array($type, ['primary', 'backup'], true)) {
+            throw ValidationException::withMessages([
+                'assignment_type' => ['Assignment type must be primary or backup.'],
+            ]);
+        }
+
+        $status = (string) ($attributes['status'] ?? $assignment->status);
+        if (! in_array($status, ['active', 'ended'], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Assignment status must be active or ended.'],
+            ]);
+        }
+
+        $territoryKey = filled($attributes['territory_key'] ?? null)
+            ? trim((string) $attributes['territory_key'])
+            : null;
+
+        if ($territoryKey !== null) {
+            $territoryExists = ServiceTerritory::query()
+                ->where('code', $territoryKey)
+                ->where('status', 'active')
+                ->where(fn ($query) => $query->whereNull('effective_from')->orWhere('effective_from', '<=', $from))
+                ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
+                ->exists();
+
+            if (! $territoryExists) {
+                throw ValidationException::withMessages([
+                    'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
+                ]);
+            }
+        }
+
+        return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey): VanAssignment {
+            $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
+
+            if ($type === 'primary' && $status === 'active') {
+                $overlap = VanAssignment::query()
+                    ->whereKeyNot($locked->id)
+                    ->where('van_id', $locked->van_id)
+                    ->where('assignment_type', 'primary')
+                    ->where('status', 'active')
+                    ->where(function ($query) use ($until): void {
+                        if ($until === null) {
+                            $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
+                        } else {
+                            $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
+                        }
+                    })
+                    ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
+                    ->exists();
+
+                if ($overlap) {
+                    throw ValidationException::withMessages([
+                        'assignment' => ['Van already has an overlapping active primary assignment.'],
+                    ]);
+                }
+
+                if ($territoryKey !== null) {
+                    $territoryOverlap = VanAssignment::query()
+                        ->whereKeyNot($locked->id)
+                        ->where('territory_key', $territoryKey)
+                        ->where('assignment_type', 'primary')
+                        ->where('status', 'active')
+                        ->where('van_id', '!=', $locked->van_id)
+                        ->where(function ($query) use ($until): void {
+                            if ($until === null) {
+                                $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
+                            } else {
+                                $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
+                            }
+                        })
+                        ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
+                        ->exists();
+
+                    if ($territoryOverlap) {
+                        throw ValidationException::withMessages([
+                            'territory_key' => ['Territory already has an overlapping active primary Van assignment.'],
+                        ]);
+                    }
+                }
+            }
+
+            $before = $locked->only([
+                'driver_id',
+                'representative_user_id',
+                'warehouse_id',
+                'territory_key',
+                'van_pool_key',
+                'assignment_type',
+                'status',
+                'effective_from',
+                'effective_until',
+                'loaded_work_count',
+            ]);
+
+            $locked->forceFill([
+                'driver_id' => $attributes['driver_id'] ?? null,
+                'representative_user_id' => $attributes['representative_user_id'] ?? null,
+                'warehouse_id' => $attributes['warehouse_id'] ?? null,
+                'territory_key' => $territoryKey,
+                'van_pool_key' => filled($attributes['van_pool_key'] ?? null) ? trim((string) $attributes['van_pool_key']) : null,
+                'assignment_type' => $type,
+                'status' => $status,
+                'effective_from' => $from,
+                'effective_until' => $until,
+                'loaded_work_count' => (int) ($attributes['loaded_work_count'] ?? 0),
+            ])->save();
+
+            $this->audit->record('van.assignment.updated', $actor, $locked, $before, $locked->only(array_keys($before)));
+
+            return $locked->fresh();
+        });
+    }
+
+    /**
+     * Delete an assignment and only the operational records explicitly attributed to it
+     * inside its own effective window. Canonical orders, invoices and finance ledgers are
+     * preserved; dispatch state is reset instead of deleting the order itself.
+     *
+     * @return array{visits:int,dispatch_assignments:int,dispatch_states:int,fleet_locations:int}
+     */
+    public function deleteAssignmentWithOperations(User $actor, VanAssignment $assignment): array
+    {
+        return DB::transaction(function () use ($actor, $assignment): array {
+            $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
+            $from = Carbon::parse($locked->effective_from);
+            $until = $locked->effective_until === null
+                ? now()
+                : Carbon::parse($locked->effective_until);
+
+            $visits = VanVisit::query()
+                ->where('metadata->van_assignment_id', $locked->id)
+                ->whereBetween('created_at', [$from, $until])
+                ->delete();
+
+            $dispatchRows = DB::table('order_van_assignments')
+                ->where('van_assignment_id', $locked->id)
+                ->whereBetween('assigned_at', [$from, $until])
+                ->get(['id', 'order_id']);
+
+            $orderIds = $dispatchRows->pluck('order_id')->map(static fn ($id): int => (int) $id)->unique()->values();
+
+            $dispatchAssignments = DB::table('order_van_assignments')
+                ->whereIn('id', $dispatchRows->pluck('id'))
+                ->delete();
+
+            $dispatchStates = 0;
+            if ($orderIds->isNotEmpty()) {
+                $dispatchStates = DB::table('order_dispatch_states')
+                    ->whereIn('order_id', $orderIds)
+                    ->where('context->van_assignment_id', $locked->id)
+                    ->update([
+                        'status' => 'unrouted',
+                        'routing_mode' => null,
+                        'routing_source' => null,
+                        'routing_reason' => 'van_assignment_deleted',
+                        'current_assignee_type' => null,
+                        'current_assignee_id' => null,
+                        'decision_key' => null,
+                        'context' => null,
+                        'decided_at' => null,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            $fleetLocations = DB::table('fleet_current_locations')
+                ->where('actor_type', 'van')
+                ->where('actor_id', $locked->van_id)
+                ->where('assignment_id', $locked->id)
+                ->whereBetween('captured_at', [$from, $until])
+                ->delete();
+
+            $counts = [
+                'visits' => $visits,
+                'dispatch_assignments' => $dispatchAssignments,
+                'dispatch_states' => $dispatchStates,
+                'fleet_locations' => $fleetLocations,
+            ];
+
+            $this->audit->record('van.assignment.deleted', $actor, $locked, [
+                'van_id' => (int) $locked->van_id,
+                'effective_from' => (string) $locked->effective_from,
+                'effective_until' => $locked->effective_until === null ? null : (string) $locked->effective_until,
+            ], [
+                'purged_operations' => $counts,
+            ]);
+
+            $locked->delete();
+
+            return $counts;
         });
     }
 
