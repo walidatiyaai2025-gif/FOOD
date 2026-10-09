@@ -53,12 +53,11 @@ final class NotificationAudience
 
         $isCustomer = $customerChannels->isNotEmpty();
         $isDriver = $driverChannels->isNotEmpty();
-        $isVan = false;
+        $isVan = $user->hasPermission('van.login');
 
         if (
-            $user->hasPermission('van.login')
-            || $user->hasRole('B2B_DRIVER')
-            || $user->hasRole('B2C_DRIVER')
+            ! $isVan
+            && ($user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER'))
         ) {
             $vanContext = $this->vanRuntimeContexts->resolve($user)['selected'];
             $isVan = $vanContext !== null
