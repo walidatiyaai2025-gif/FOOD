@@ -277,6 +277,31 @@ final class FieldOperationsController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
+        $driverUserIds = $drivers->pluck('user_id', 'id');
+        $operatorIds = $assignments->getCollection()
+            ->map(fn (VanAssignment $assignment) => $assignment->driver_id !== null
+                ? $driverUserIds->get($assignment->driver_id)
+                : $assignment->representative_user_id)
+            ->filter()
+            ->unique()
+            ->values();
+        $vanAccessByUser = User::query()
+            ->whereIn('id', $operatorIds)
+            ->get()
+            ->mapWithKeys(fn (User $operator): array => [
+                (int) $operator->id => $operator->hasPermission('van.login'),
+            ]);
+
+        $assignments->getCollection()->each(function (VanAssignment $assignment) use ($driverUserIds, $vanAccessByUser): void {
+            $operatorUserId = $assignment->driver_id !== null
+                ? $driverUserIds->get($assignment->driver_id)
+                : $assignment->representative_user_id;
+            $assignment->setAttribute(
+                'van_app_allowed',
+                $operatorUserId !== null && (bool) $vanAccessByUser->get((int) $operatorUserId, false),
+            );
+        });
+
         return $this->render($request, 'assignments', compact(
             'assignments',
             'vans',
@@ -308,42 +333,61 @@ final class FieldOperationsController extends Controller
         $assignment = $this->registry->assign($user, $van, $data);
 
         if (array_key_exists('allow_van_app', $data)) {
-            $operatorUserId = null;
-            if ($assignment->driver_id !== null) {
-                $operatorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
-            }
-            $operatorUserId ??= $assignment->representative_user_id;
-
-            if ((bool) $data['allow_van_app'] && $operatorUserId === null) {
-                throw ValidationException::withMessages([
-                    'allow_van_app' => [__('field_operations.van_app_operator_required')],
-                ]);
-            }
-
-            if ($operatorUserId !== null) {
-                $operator = User::query()->findOrFail((int) $operatorUserId);
-                $vanRole = $this->ensureVanOperatorRole();
-                $beforeAccess = $operator->hasPermission('van.login');
-                if ((bool) $data['allow_van_app']) {
-                    $operator->roles()->syncWithoutDetaching([$vanRole->id]);
-                } else {
-                    $operator->roles()->detach($vanRole->id);
-                }
-                $operator->unsetRelation('roles');
-                $afterAccess = $operator->hasPermission('van.login');
-                $this->audit->record('van.runtime_access.updated', $user, $operator, [
-                    'van_login' => $beforeAccess,
-                    'van_id' => (int) $van->id,
-                    'assignment_id' => (int) $assignment->id,
-                ], [
-                    'van_login' => $afterAccess,
-                    'van_id' => (int) $van->id,
-                    'assignment_id' => (int) $assignment->id,
-                ]);
-            }
+            $this->applyAssignmentVanAccess($user, $assignment, (bool) $data['allow_van_app']);
         }
 
         return back()->with('status', __('admin.field_operations.saved'));
+    }
+
+
+    public function updateAssignment(Request $request, VanAssignment $assignment): RedirectResponse
+    {
+        $user = $this->actor($request);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
+
+        $data = $request->validate([
+            'van_id' => ['required', 'integer', 'exists:vans,id'],
+            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
+            'representative_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+            'territory_key' => ['nullable', 'string', 'max:150'],
+            'van_pool_key' => ['nullable', 'string', 'max:150'],
+            'assignment_type' => ['required', Rule::in(['primary', 'backup'])],
+            'effective_from' => ['required', 'date'],
+            'effective_until' => ['nullable', 'date', 'after:effective_from'],
+            'loaded_work_count' => ['nullable', 'integer', 'min:0'],
+            'allow_van_app' => ['nullable', 'boolean'],
+        ]);
+
+        $van = Van::query()
+            ->whereKey((int) $data['van_id'])
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        $updated = $this->registry->updateAssignment($user, $assignment, $van, $data);
+
+        if (array_key_exists('allow_van_app', $data)) {
+            $this->applyAssignmentVanAccess($user, $updated, (bool) $data['allow_van_app']);
+        }
+
+        return back()->with('status', __('field_operations.assignment_updated'));
+    }
+
+    public function destroyAssignment(Request $request, VanAssignment $assignment): RedirectResponse
+    {
+        $user = $this->actor($request);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
+
+        $request->validate([
+            'confirm_purge' => ['required', 'accepted'],
+        ]);
+
+        $summary = $this->registry->deleteAssignment($user, $assignment);
+
+        return back()->with('status', __('field_operations.assignment_deleted', [
+            'visits' => $summary['visits'],
+            'dispatches' => $summary['order_van_assignments'],
+        ]));
     }
 
     public function customers(Request $request): View
@@ -1044,6 +1088,49 @@ final class FieldOperationsController extends Controller
                 abort(403);
             }
         }
+    }
+
+
+    private function applyAssignmentVanAccess(User $actor, VanAssignment $assignment, bool $allow): void
+    {
+        $operatorUserId = null;
+        if ($assignment->driver_id !== null) {
+            $operatorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
+        }
+        $operatorUserId ??= $assignment->representative_user_id;
+
+        if ($allow && $operatorUserId === null) {
+            throw ValidationException::withMessages([
+                'allow_van_app' => [__('field_operations.van_app_operator_required')],
+            ]);
+        }
+
+        if ($operatorUserId === null) {
+            return;
+        }
+
+        $operator = User::query()->findOrFail((int) $operatorUserId);
+        $vanRole = $this->ensureVanOperatorRole();
+        $beforeAccess = $operator->hasPermission('van.login');
+
+        if ($allow) {
+            $operator->roles()->syncWithoutDetaching([$vanRole->id]);
+        } else {
+            $operator->roles()->detach($vanRole->id);
+        }
+
+        $operator->unsetRelation('roles');
+        $afterAccess = $operator->hasPermission('van.login');
+
+        $this->audit->record('van.runtime_access.updated', $actor, $operator, [
+            'van_login' => $beforeAccess,
+            'van_id' => (int) $assignment->van_id,
+            'assignment_id' => (int) $assignment->id,
+        ], [
+            'van_login' => $afterAccess,
+            'van_id' => (int) $assignment->van_id,
+            'assignment_id' => (int) $assignment->id,
+        ]);
     }
 
     private function ensureVanOperatorRole(): Role
