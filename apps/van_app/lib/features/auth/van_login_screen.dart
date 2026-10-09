@@ -474,7 +474,11 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    key: const Key('van-login-biometric'),
+                                    key: Key(
+                                      _savedBiometricLogin
+                                          ? 'van-login-biometric'
+                                          : 'van-login-biometric-toggle',
+                                    ),
                                     onPressed:
                                         _biometricAvailable && !_submitting
                                             ? _toggleBiometric
