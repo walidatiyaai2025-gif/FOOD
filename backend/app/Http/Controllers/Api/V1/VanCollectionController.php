@@ -8,7 +8,6 @@ use App\Models\CollectionTransaction;
 use App\Models\Invoice;
 use App\Models\Remittance;
 use App\Models\User;
-use App\Models\VanVisit;
 use App\Services\CollectionCustodyService;
 use App\Services\VanCustomerCollectionContextService;
 use App\Services\VanRuntimeVisitScope;
