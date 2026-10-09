@@ -15,6 +15,7 @@ use App\Services\B2cDashboardService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\RetailWholesaleReplenishmentService;
 use App\Services\StorefrontDraftEditorService;
 use App\Services\SuggestedWholesalePurchasePlanService;
 use App\Support\AdminNavigation;
@@ -234,6 +235,35 @@ class B2cWorkspaceController extends Controller
             'status',
             __('admin.b2c_dashboard.merchant_intelligence.plan.cart_updated'),
         )->with('merchant_purchase_plan_result', $result);
+    }
+
+    public function makeWholesalePurchaseAvailable(
+        Request $request,
+        int $order,
+        RetailWholesaleReplenishmentService $replenishments,
+    ): RedirectResponse {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $storeId = $this->workspaceStoreId($request, $user);
+        app(OperationalTenantScope::class)->assertStore($user, $storeId, 'inventory.manage', 'b2c');
+
+        $purchase = Order::query()->findOrFail($order);
+        $belongsToStore = DB::table('retail_wholesale_accounts')
+            ->where('retail_store_id', $storeId)
+            ->where('b2b_customer_id', $purchase->b2b_customer_id)
+            ->exists();
+
+        abort_unless($belongsToStore && strtolower((string) $purchase->channel) === 'b2b', 404);
+
+        $result = $replenishments->makeAvailableForSale($purchase, $storeId, $user);
+
+        return back()->with(
+            'status',
+            __('admin.b2c_workspace.purchase_status.activated', [
+                'count' => $result['activated_products'],
+            ]),
+        );
     }
 
     public function quoteOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
@@ -770,7 +800,7 @@ class B2cWorkspaceController extends Controller
                         'orders.order_number',
                         'users.name as driver_name',
                     ])
-                    ->map(function ($row): array {
+                    ->map(function ($row) use ($retailStoreId): array {
                         $proof = DB::table('delivery_proofs')
                             ->where('driver_assignment_id', $row->id)
                             ->where(function ($query): void {
@@ -1070,6 +1100,29 @@ class B2cWorkspaceController extends Controller
                 $currency = $invoice === null ? (string) $row->currency : (string) $invoice->currency;
                 $actions = [];
 
+                $replenishmentId = DB::table('retail_replenishments')
+                    ->where('source_order_id', $row->id)
+                    ->where('retail_store_id', $retailStoreId)
+                    ->value('id');
+
+                $receivedProductIds = $replenishmentId === null
+                    ? collect()
+                    : DB::table('retail_replenishment_items')
+                        ->where('replenishment_id', $replenishmentId)
+                        ->pluck('retail_product_id')
+                        ->map(fn ($id) => (int) $id)
+                        ->unique()
+                        ->values();
+
+                $saleAvailable = $receivedProductIds->isNotEmpty()
+                    && ! DB::table('store_products')
+                        ->where('store_id', $retailStoreId)
+                        ->whereIn('product_id', $receivedProductIds->all())
+                        ->where('is_active', false)
+                        ->exists();
+
+                $canMakeAvailable = (string) $row->status === 'delivered' && ! $saleAvailable;
+
                 if ($invoice !== null) {
                     $actions[] = [
                         'label' => $this->msg('الفاتورة', 'Invoice'),
@@ -1091,13 +1144,20 @@ class B2cWorkspaceController extends Controller
                     'invoice' => $invoice?->invoice_number ?: '-',
                     'paid' => $currency.' '.number_format($paid, 3),
                     'balance' => $currency.' '.number_format(max(0, $invoiceTotal - $paid), 3),
+                    'availability' => $saleAvailable
+                        ? __('admin.b2c_workspace.purchase_status.available')
+                        : ((string) $row->status === 'delivered'
+                            ? __('admin.b2c_workspace.purchase_status.ready')
+                            : __('admin.b2c_workspace.purchase_status.in_transit')),
+                    '_sale_available' => $saleAvailable,
+                    '_can_make_available' => $canMakeAvailable,
                     'actions' => $actions,
                 ];
             })
             ->all();
 
         return [
-            'columns' => ['number', 'store', 'status', 'amount', 'invoice', 'paid', 'balance', 'created', 'actions'],
+            'columns' => ['number', 'store', 'status', 'amount', 'invoice', 'paid', 'balance', 'availability', 'created', 'actions'],
             'rows' => $rows,
         ];
     }
