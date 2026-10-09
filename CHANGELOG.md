@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.66 - 2026-10-09
+
+- Publish the #1163 Van production fix with the Customer-parity Van login composition while keeping the post-login Van business workflow unchanged.
+- Fix authorized Driver-compatible Van finance/customer scope so collections and related financial actions resolve through the selected Van runtime context instead of actor ownership alone, while preserving tenant and Van isolation.
+- Surface actionable Van finance API validation states instead of collapsing non-2xx failures into a generic error, and include regression coverage for Van login composition and same-Van Driver finance access.
+- Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.66 source commit with mobile identity `1.0.66+66`.
+
 ## 1.0.65 - 2026-10-08
 
 - Promote every authoritative main change merged after FOODEX 1.0.64 into the synchronized FOODEX 1.0.65 production release.
