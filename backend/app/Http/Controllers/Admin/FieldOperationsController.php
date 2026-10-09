@@ -322,7 +322,7 @@ final class FieldOperationsController extends Controller
 
             if ($operatorUserId !== null) {
                 $operator = User::query()->findOrFail((int) $operatorUserId);
-                $vanRole = Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail();
+                $vanRole = $this->ensureVanOperatorRole();
                 $beforeAccess = $operator->hasPermission('van.login');
                 if ((bool) $data['allow_van_app']) {
                     $operator->roles()->syncWithoutDetaching([$vanRole->id]);
@@ -1044,6 +1044,46 @@ final class FieldOperationsController extends Controller
                 abort(403);
             }
         }
+    }
+
+    private function ensureVanOperatorRole(): Role
+    {
+        return DB::transaction(function (): Role {
+            $now = now();
+
+            DB::table('permissions')->updateOrInsert(
+                ['code' => 'van.login'],
+                [
+                    'name' => 'Use the Van application runtime',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+
+            DB::table('roles')->updateOrInsert(
+                ['code' => 'VAN_OPERATOR'],
+                [
+                    'name' => 'Van App Operator',
+                    'scope' => 'global',
+                    'is_system' => true,
+                    'is_active' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+
+            $role = Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail();
+            $permissionId = DB::table('permissions')->where('code', 'van.login')->value('id');
+
+            if ($permissionId !== null) {
+                DB::table('permission_role')->updateOrInsert([
+                    'permission_id' => (int) $permissionId,
+                    'role_id' => (int) $role->id,
+                ]);
+            }
+
+            return $role;
+        }, 3);
     }
 
     private function customerDisplay(string $type, int $id): string
