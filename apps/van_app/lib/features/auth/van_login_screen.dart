@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../../core/auth/van_auth_persistence.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/auth/van_session_store.dart';
@@ -242,7 +240,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.alexandria(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: _LoginColors.deepGreen,
@@ -252,7 +250,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
               Text(
                 body,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.alexandria(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
                   color: _LoginColors.muted,
@@ -333,7 +331,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               _text('Van App', 'تطبيق الفان'),
                               key: const Key('van-login-app-identity'),
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.alexandria(
+                              style: TextStyle(
                                 color: _LoginColors.deepGreen,
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
@@ -344,7 +342,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               _text('Sign in', 'تسجيل الدخول'),
                               key: const ValueKey('van-login-title'),
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.alexandria(
+                              style: TextStyle(
                                 color: _LoginColors.ink,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
@@ -357,7 +355,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 'عمليات فودكس الميدانية',
                               ),
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.alexandria(
+                              style: TextStyle(
                                 color: _LoginColors.muted,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -371,7 +369,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               textInputAction: TextInputAction.next,
                               autocorrect: false,
                               enableSuggestions: false,
-                              style: GoogleFonts.alexandria(fontSize: 14),
+                              style: TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: _text('Email', 'البريد الإلكتروني'),
                                 prefixIcon: Padding(
@@ -402,7 +400,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               autocorrect: false,
                               enableSuggestions: false,
                               onSubmitted: (_) => _submit(),
-                              style: GoogleFonts.alexandria(fontSize: 14),
+                              style: TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                 hintText: _text('Password', 'كلمة المرور'),
                                 prefixIcon: Padding(
@@ -461,7 +459,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.alexandria(
+                                              style: TextStyle(
                                                 fontSize: 12,
                                               ),
                                             ),
@@ -499,7 +497,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                       _text('Biometric', 'البصمة'),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.alexandria(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -530,7 +528,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 _error!,
                                 key: const Key('van-login-error'),
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.alexandria(
+                                style: TextStyle(
                                   color: _LoginColors.danger,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -561,7 +559,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                       )
                                     : Text(
                                         _text('Sign in', 'تسجيل الدخول'),
-                                        style: GoogleFonts.alexandria(
+                                        style: TextStyle(
                                           color: _LoginColors.white,
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
@@ -603,7 +601,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                   'Forgot password?',
                                   'نسيت كلمة المرور؟',
                                 ),
-                                style: GoogleFonts.alexandria(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -632,7 +630,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               ),
                               child: Text(
                                 _text('Contact us', 'تواصل معنا'),
-                                style: GoogleFonts.alexandria(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -648,7 +646,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                           Expanded(
                             child: Text(
                               'Good Food   A Stronger Tomorrow',
-                              style: GoogleFonts.alexandria(
+                              style: TextStyle(
                                 color: _LoginColors.muted,
                                 fontSize: 11,
                               ),
@@ -657,7 +655,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                           Text(
                             _text('Version 1.0.65', 'الإصدار 1.0.65'),
                             key: const ValueKey('van-business-login-version'),
-                            style: GoogleFonts.alexandria(
+                            style: TextStyle(
                               color: _LoginColors.muted,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
