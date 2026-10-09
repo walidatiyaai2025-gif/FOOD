@@ -78,7 +78,7 @@ final class B2cDashboardService
             'selected_to' => $rangeTo->toDateString(),
             'range_days' => $days,
             'timezone' => self::TIMEZONE,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
             'scope_store_ids' => $storeIds,
             'kpis' => [
                 'active_users' => [
