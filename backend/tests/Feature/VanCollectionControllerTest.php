@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\B2bAccount;
 use App\Models\Customer;
+use App\Models\Driver;
 use App\Models\Invoice;
 use App\Models\Role;
 use App\Models\User;
@@ -177,6 +178,98 @@ class VanCollectionControllerTest extends TestCase
                 'method' => 'bank_deposit',
             ])
             ->assertNotFound();
+    }
+
+    public function test_driver_compatibility_session_can_collect_for_visit_owned_by_same_van_representative(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $representative = User::factory()->create(['is_active' => true]);
+        $representative->roles()->attach(Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail());
+
+        $driverUser = User::factory()->create(['is_active' => true]);
+        $driverUser->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->getKey(),
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'DRIVER-FINANCE-VAN']);
+        $assignment = $registry->assign($representative, $van, [
+            'driver_id' => $driver->getKey(),
+            'representative_user_id' => $representative->getKey(),
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        $customerUser = User::factory()->create([
+            'name' => 'Driver Van Finance Customer',
+            'email' => 'driver-van-finance@example.test',
+            'is_active' => true,
+        ]);
+        $legacy = Customer::query()->create([
+            'user_id' => $customerUser->getKey(),
+            'type' => 'b2b',
+            'name' => 'Driver Van Finance Customer',
+            'email' => $customerUser->email,
+        ]);
+        B2bAccount::query()->create([
+            'customer_id' => $legacy->getKey(),
+            'company_name' => 'Driver Van Finance Co',
+            'status' => 'active',
+            'credit_limit' => 500,
+        ]);
+        $customer = app(CustomerDomainResolver::class)->b2b($customerUser);
+
+        VanVisit::query()->create([
+            'actor_user_id' => $representative->getKey(),
+            'customer_type' => 'b2b',
+            'customer_id' => $customer->getKey(),
+            'store_id' => $storeId,
+            'status' => 'started',
+            'started_at' => now(),
+            'metadata' => [
+                'van_id' => $van->getKey(),
+                'van_assignment_id' => $assignment->getKey(),
+            ],
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'store_id' => $storeId,
+            'customer_id' => $legacy->getKey(),
+            'b2b_customer_id' => $customer->getKey(),
+            'invoice_number' => 'VAN-DRIVER-FINANCE-1',
+            'status' => 'issued',
+            'channel' => 'b2b',
+            'currency' => 'EGP',
+            'total' => 100,
+            'issued_at' => now()->subDay(),
+            'due_at' => now()->addDay(),
+        ]);
+
+        Sanctum::actingAs($driverUser, ['app:van']);
+
+        $this->getJson(
+            "/api/v1/van/customers/b2b/{$customer->getKey()}/collection-context?store_id={$storeId}",
+        )
+            ->assertOk()
+            ->assertJsonPath('data.invoices.0.id', $invoice->getKey());
+
+        $this->withHeader('Idempotency-Key', 'driver-van-collect-1')
+            ->postJson("/api/v1/van/customers/b2b/{$customer->getKey()}/collect", [
+                'store_id' => $storeId,
+                'invoice_id' => $invoice->getKey(),
+                'amount' => 25,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.wallet.currency', 'EGP')
+            ->assertJsonPath('data.wallet.custody_balance', 25);
     }
 
     private function authorizeVan(User $actor): void
