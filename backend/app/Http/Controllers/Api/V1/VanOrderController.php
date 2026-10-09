@@ -40,7 +40,7 @@ final class VanOrderController extends Controller
 
         return response()->json([
             'data' => $rows,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
         ]);
     }
 

@@ -306,7 +306,7 @@ class GuestCatalogController extends Controller
             'brand_image_url' => $this->assetUrl($brand?->image_path),
             'is_active' => (bool) $product->is_active,
             'price' => $price === null ? null : (float) $price,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
             'image_url' => $this->assetUrl($primaryImage),
             ...$availability,
         ];

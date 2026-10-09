@@ -75,11 +75,21 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('مرحباً أحمد السعيد')
+            ->assertSee('نظرة عامة على المبيعات')
+            ->assertSee('المساعد الذكي')
             ->assertSee('إجمالي الطلبات')
             ->assertSee('EGP 20.000')
+            ->assertDontSee('KWD')
             ->assertSee('زيت زيتون عضوي')
             ->assertSee('#1245')
             ->assertSee('--foodex-green:#158A3A', false);
+
+        $this->actingAs($user)
+            ->get('/admin/b2c/dashboard?dashboard_tab=assistant')
+            ->assertOk()
+            ->assertSee('نظرة عامة على المبيعات')
+            ->assertSee('المساعد الذكي')
+            ->assertDontSee('إجمالي الطلبات');
 
         $this->assertNotNull($user->fresh()->last_seen_at);
     }

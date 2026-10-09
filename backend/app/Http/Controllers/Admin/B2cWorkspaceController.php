@@ -624,10 +624,14 @@ class B2cWorkspaceController extends Controller
             ->first(['id', 'is_secret']);
         abort_if($existing !== null && (bool) $existing->is_secret, 403);
 
+        $settingValue = in_array((string) $data['key'], ['currency', 'default_currency', 'store.currency', 'checkout.currency'], true)
+            ? 'EGP'
+            : ($data['value'] ?? null);
+
         DB::table('settings')->updateOrInsert(
             ['store_id' => $storeId, 'key' => $data['key']],
             [
-                'value' => json_encode($data['value'] ?? null, JSON_THROW_ON_ERROR),
+                'value' => json_encode($settingValue, JSON_THROW_ON_ERROR),
                 'is_secret' => false,
                 'created_at' => now(),
                 'updated_at' => now(),

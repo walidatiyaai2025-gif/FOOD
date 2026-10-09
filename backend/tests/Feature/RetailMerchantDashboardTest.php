@@ -54,7 +54,7 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertTrue($result['owner_context']['is_owner']);
         $this->assertTrue($result['owner_context']['wholesale_account_visible']);
         $this->assertSame('available', $result['wholesale_account']['finance_status']);
-        $this->assertSame('KWD', $result['wholesale_account']['finance']['currency']);
+        $this->assertSame('EGP', $result['wholesale_account']['finance']['currency']);
         $this->assertSame(100.0, $result['wholesale_account']['finance']['purchasing_power']);
         $this->assertSame(100.0, $result['purchase_plan']['effective_budget']);
         $this->assertSame(25.0, $result['purchase_plan']['allocated_cost']);
@@ -75,7 +75,7 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertArrayHasKey($fixture['retail_product'], $result['visualizations']['sales_sparklines']);
 
         $this->actingAs($owner)
-            ->get('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->get('/admin/b2c/dashboard?dashboard_tab=assistant&store_id='.$fixture['retail_store'])
             ->assertOk()
             ->assertSee('data-merchant-intelligence', false)
             ->assertSee('data-owner-wholesale-account', false)
@@ -109,7 +109,7 @@ class RetailMerchantDashboardTest extends TestCase
         $this->assertSame($fixture['retail_product'], $result['recommendations'][0]['retail_product_id']);
 
         $this->actingAs($manager)
-            ->get('/admin/b2c/dashboard?store_id='.$fixture['retail_store'])
+            ->get('/admin/b2c/dashboard?dashboard_tab=assistant&store_id='.$fixture['retail_store'])
             ->assertOk()
             ->assertSee('data-merchant-intelligence', false)
             ->assertDontSee('data-owner-wholesale-account', false)

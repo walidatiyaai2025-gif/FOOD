@@ -499,7 +499,7 @@ class GuestCartController extends Controller
             'b2c_customer_id' => $channel === 'b2c' ? (int) $customer->getKey() : null,
             'channel' => $channel,
             'guest_token' => null,
-            'currency' => 'KWD',
+            'currency' => 'EGP',
             'items' => [],
             'subtotal' => 0.0,
             'has_unavailable_items' => false,
