@@ -202,7 +202,7 @@ final class VanRegistryService
 
             if ($type === 'primary') {
                 $overlap = VanAssignment::query()
-                    ->whereKeyNot($locked->id)
+                    ->where('id', '!=', $locked->id)
                     ->where('van_id', $van->id)
                     ->where('assignment_type', 'primary')
                     ->where('status', 'active')
@@ -219,7 +219,7 @@ final class VanRegistryService
 
                 if ($territoryKey !== null) {
                     $territoryOverlap = VanAssignment::query()
-                        ->whereKeyNot($locked->id)
+                        ->where('id', '!=', $locked->id)
                         ->where('territory_key', $territoryKey)
                         ->where('assignment_type', 'primary')
                         ->where('status', 'active')
