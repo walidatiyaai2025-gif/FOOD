@@ -24,7 +24,6 @@ use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
 use App\Services\PlatformCustomerService;
-use App\Services\RetailWholesaleReplenishmentService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -298,7 +297,6 @@ class OrderController extends Controller
                     ->where('status', CommercialPolicyService::RESERVATION_RESERVED)
                     ->pluck('reservation_token')
                     ->each(fn (string $token) => app(CommercialPolicyService::class)->consumeReservation($token));
-                app(RetailWholesaleReplenishmentService::class)->receive($locked, $user);
             }
 
             $locked->status = $targetStatus;
