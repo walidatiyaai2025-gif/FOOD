@@ -757,10 +757,14 @@ class B2bWorkspaceController extends Controller
         $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'settings.manage', 'b2b');
 
+        $settingValue = in_array((string) $data['key'], ['currency', 'default_currency', 'store.currency', 'checkout.currency'], true)
+            ? 'EGP'
+            : ($data['value'] ?? null);
+
         DB::table('settings')->updateOrInsert(
             ['store_id' => $storeId, 'key' => $data['key']],
             [
-                'value' => json_encode($data['value'] ?? null, JSON_THROW_ON_ERROR),
+                'value' => json_encode($settingValue, JSON_THROW_ON_ERROR),
                 'is_secret' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
