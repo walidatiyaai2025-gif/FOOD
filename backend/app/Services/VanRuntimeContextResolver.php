@@ -78,4 +78,39 @@ final class VanRuntimeContextResolver
             'selection_reason' => $primary->isNotEmpty() ? 'deterministic_primary' : ($available->isNotEmpty() ? 'single_or_backup' : 'no_effective_assignment'),
         ];
     }
+
+    /**
+     * Compatibility bridge for Driver accounts assigned directly to a Van.
+     *
+     * Explicit van.login remains the primary authorization mechanism. Legacy
+     * production assignments can pre-date the VAN_OPERATOR role linkage, so an
+     * active B2B/B2C Driver may also use the Van runtime only when the selected
+     * effective assignment points back to that same active Driver record.
+     *
+     * @param  array{driver_id:?int}|null  $context
+     */
+    public function canUseRuntime(User $user, ?array $context = null): bool
+    {
+        if ($user->hasPermission('van.login')) {
+            return true;
+        }
+
+        $hasDriverRole = $user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER');
+        if ($hasDriverRole === false) {
+            return false;
+        }
+
+        $context ??= $this->resolve($user)['selected'];
+        $driverId = $context['driver_id'] ?? null;
+
+        if ($driverId === null) {
+            return false;
+        }
+
+        return DB::table('drivers')
+            ->where('id', (int) $driverId)
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+    }
 }

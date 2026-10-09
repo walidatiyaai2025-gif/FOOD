@@ -132,10 +132,9 @@ class AuthFoundationTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        $user->roles()->attach([
+        $user->roles()->attach(
             Role::query()->where('code', 'B2C_DRIVER')->firstOrFail()->id,
-            Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail()->id,
-        ]);
+        );
 
         $driver = Driver::query()->create([
             'user_id' => $user->id,
@@ -160,7 +159,7 @@ class AuthFoundationTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('user.driver_scope.driver_id', $driver->id);
 
-        $this->postJson('/api/v1/auth/login', [
+        $vanLogin = $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'correct-password',
             'app' => 'van',
@@ -168,6 +167,12 @@ class AuthFoundationTest extends TestCase
             ->assertJsonPath('user.van_scope.van_id', $van->id)
             ->assertJsonPath('user.van_scope.assignment_id', $assignment->id)
             ->assertJsonPath('user.van_context_selection_reason', 'deterministic_primary');
+
+        $this->assertContains('van.login', $vanLogin->json('user.permissions'));
+
+        $this->withToken($vanLogin->json('token'))
+            ->getJson('/api/v1/van/no-order-reasons')
+            ->assertOk();
     }
 
     public function test_driver_and_van_tokens_cannot_cross_app_runtime_boundaries(): void
@@ -249,6 +254,33 @@ class AuthFoundationTest extends TestCase
             'is_active' => true,
         ]);
         $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'app' => 'van',
+        ])->assertForbidden();
+    }
+
+    public function test_representative_assignment_without_van_permission_remains_forbidden(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $user = User::query()->create([
+            'name' => 'Representative Only',
+            'email' => 'representative-only@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'AUTH-REPRESENTATIVE-VAN']);
+        $registry->assign($user, $van, [
+            'representative_user_id' => $user->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
 
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
