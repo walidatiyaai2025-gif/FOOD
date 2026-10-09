@@ -245,6 +245,7 @@ Route::prefix('admin')
         Route::post('/b2c/orders', [B2cWorkspaceController::class, 'storeOrder'])->name('b2c.orders.store');
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
         Route::post('/b2c/orders/{order}/status', [B2cWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2c.orders.status');
+        Route::post('/b2c/wholesale-purchases/{order}/available-for-sale', [B2cWorkspaceController::class, 'makeWholesalePurchaseAvailable'])->whereNumber('order')->name('b2c.wholesale-purchases.available-for-sale');
         Route::post('/b2c/drivers/assign', [B2cWorkspaceController::class, 'assignDriver'])->name('b2c.drivers.assign');
         Route::patch('/b2c/orders/{order}/driver', [B2cWorkspaceController::class, 'reassignDriver'])->whereNumber('order')->name('b2c.orders.driver.reassign');
         Route::delete('/b2c/orders/{order}/driver', [B2cWorkspaceController::class, 'unassignDriver'])->whereNumber('order')->name('b2c.orders.driver.unassign');
