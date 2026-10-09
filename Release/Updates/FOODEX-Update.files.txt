@@ -380,6 +380,7 @@ backend/app/Services/TranslationCatalog.php
 backend/app/Services/VanCustomerCollectionContextService.php
 backend/app/Services/VanRegistryService.php
 backend/app/Services/VanRuntimeContextResolver.php
+backend/app/Services/VanRuntimeVisitScope.php
 backend/app/Services/VanVisitLifecycleService.php
 backend/app/Services/WholesalePrincipal.php
 backend/app/Support/
@@ -503,6 +504,8 @@ backend/database/migrations/2026_10_08_120000_create_sms_gateway_tables.php
 backend/database/migrations/2026_10_08_143500_create_order_dispatch_routing_core.php
 backend/database/migrations/2026_10_08_143600_add_order_dispatch_permission.php
 backend/database/migrations/2026_10_08_173800_snapshot_replenishment_conversion_factor.php
+backend/database/migrations/2026_10_09_134700_force_egp_business_currency.php
+backend/database/migrations/2026_10_09_174800_bootstrap_van_runtime_access_reference_data.php
 backend/database/seeders/
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
@@ -526,6 +529,7 @@ backend/lang/ar/live_ads.php
 backend/lang/ar/mobile_settings.php
 backend/lang/ar/notifications.php
 backend/lang/ar/order_operations.php
+backend/lang/ar/pagination.php
 backend/lang/ar/reports.php
 backend/lang/ar/sms.php
 backend/lang/ar/van_finance_support.php
@@ -541,6 +545,7 @@ backend/lang/en/live_ads.php
 backend/lang/en/mobile_settings.php
 backend/lang/en/notifications.php
 backend/lang/en/order_operations.php
+backend/lang/en/pagination.php
 backend/lang/en/reports.php
 backend/lang/en/sms.php
 backend/lang/en/van_finance_support.php
@@ -641,6 +646,9 @@ backend/resources/views/errors/
 backend/resources/views/errors/403.blade.php
 backend/resources/views/install/
 backend/resources/views/install/index.blade.php
+backend/resources/views/pagination/
+backend/resources/views/pagination/foodex-simple.blade.php
+backend/resources/views/pagination/foodex.blade.php
 backend/resources/views/public/
 backend/resources/views/public/legal.blade.php
 backend/routes/
