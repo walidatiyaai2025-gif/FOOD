@@ -128,6 +128,8 @@ void main() {
 
     expect(find.text('Van App'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-biometric-toggle')));
     await tester.pump();
     await tester.enterText(
@@ -138,6 +140,8 @@ void main() {
       find.byKey(const Key('van-login-password')),
       'password',
     );
+    await tester.ensureVisible(find.byKey(const Key('van-login-submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-submit')));
     await tester.pumpAndSettle();
 
@@ -171,6 +175,8 @@ void main() {
     expect(find.byKey(const Key('van-login-biometric')), findsOneWidget);
     expect(find.text('Remembered Van'), findsNothing);
 
+    await tester.ensureVisible(find.byKey(const Key('van-login-biometric')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-biometric')));
     await tester.pumpAndSettle();
 
@@ -197,6 +203,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('van-login-biometric')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-biometric')));
     await tester.pumpAndSettle();
 
@@ -227,6 +235,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-biometric-toggle')));
     await tester.enterText(
       find.byKey(const Key('van-login-email')),
@@ -236,6 +246,8 @@ void main() {
       find.byKey(const Key('van-login-password')),
       'password',
     );
+    await tester.ensureVisible(find.byKey(const Key('van-login-submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-submit')));
     await tester.pumpAndSettle();
 
