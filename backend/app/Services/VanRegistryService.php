@@ -151,14 +151,14 @@ final class VanRegistryService
         });
     }
 
-
     /** @param array<string,mixed> $attributes */
     public function updateAssignment(
         User $actor,
         VanAssignment $assignment,
         Van $van,
         array $attributes,
-    ): VanAssignment {
+    ): VanAssignment
+    {
         $from = Carbon::parse($attributes['effective_from'] ?? $assignment->effective_from);
         $until = array_key_exists('effective_until', $attributes) && $attributes['effective_until'] !== null && $attributes['effective_until'] !== ''
             ? Carbon::parse($attributes['effective_until'])
