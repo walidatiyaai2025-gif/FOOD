@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 final class NotificationAudience
 {
+    public function __construct(private readonly VanRuntimeContextResolver $vanRuntimeContexts) {}
+
     public function apply(Builder $query, User $user): Builder
     {
         $customerChannels = collect(
@@ -52,6 +54,15 @@ final class NotificationAudience
         $isCustomer = $customerChannels->isNotEmpty();
         $isDriver = $driverChannels->isNotEmpty();
         $isVan = $user->hasPermission('van.login');
+
+        if (
+            ! $isVan
+            && ($user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER'))
+        ) {
+            $vanContext = $this->vanRuntimeContexts->resolve($user)['selected'];
+            $isVan = $vanContext !== null
+                && $this->vanRuntimeContexts->canUseRuntime($user, $vanContext);
+        }
 
         if ($isCustomer) {
             $apps[] = 'customer';

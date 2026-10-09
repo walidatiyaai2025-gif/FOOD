@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\PushDeviceToken;
 use App\Models\User;
+use App\Services\VanRuntimeContextResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class PushDeviceController extends Controller
 {
+    public function __construct(private readonly VanRuntimeContextResolver $vanRuntimeContexts) {}
+
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -59,7 +62,15 @@ final class PushDeviceController extends Controller
                 ->exists();
             abort_unless($allowed, 403);
         } elseif ($data['app'] === 'van') {
-            abort_unless($user->hasPermission('van.login'), 403);
+            if (! $user->hasPermission('van.login')) {
+                $context = $this->vanRuntimeContexts->resolve($user);
+                abort_unless(
+                    $context['selected'] !== null
+                        && $this->vanRuntimeContexts->canUseRuntime($user, $context['selected']),
+                    403,
+                    'Van App access is not enabled for this account.',
+                );
+            }
         } else {
             $allowed = DB::table('platform_customers')->where('user_id', $user->id)->where('is_active', true)->exists()
                 || DB::table('customers')->where('user_id', $user->id)->exists()
