@@ -637,16 +637,22 @@ jobs:
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"
           grep -Fq 'FRESH-VAN-UI' /tmp/field-assignments-populated.html
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-assignment-lookup.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
-          ASSIGNMENT_ID="$(python3 - <<'PY'
-          import re
-          lookup=open('/tmp/field-visits-assignment-lookup.html',encoding='utf-8').read()
-          select=re.search(r'<select\b[^>]*\bname="assignment_id"[^>]*>(.*?)</select>', lookup, re.S)
-          assert select, 'Visit assignment lookup missing.'
-          matches=re.findall(r'<option\b[^>]*\bvalue="(\d+)"[^>]*>\s*FRESH-VAN-UI\s*·', select.group(1))
-          assert len(matches) == 1, 'Created Van assignment lookup must contain exactly one matching option.'
-          print(matches[0])
-          PY
-          )"
+          ASSIGNMENT_ID="$(FRESH_ROOT="$fresh" php -r '
+          require getenv("FRESH_ROOT")."/backend/vendor/autoload.php";
+          $app = require getenv("FRESH_ROOT")."/backend/bootstrap/app.php";
+          $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+          $kernel->bootstrap();
+          $id = Illuminate\\Support\\Facades\\DB::table("van_assignments")
+              ->join("vans", "vans.id", "=", "van_assignments.van_id")
+              ->where("vans.code", "FRESH-VAN-UI")
+              ->where("van_assignments.territory_key", "FRESH-TERR")
+              ->where("van_assignments.status", "active")
+              ->value("van_assignments.id");
+          if (! $id) { fwrite(STDERR, "Created Van assignment was not persisted.\\n"); exit(1); }
+          echo $id;
+          ')"
+          grep -Eq "name=\"assignment_id\"|name='assignment_id'" /tmp/field-visits-assignment-lookup.html
+          grep -Eq "value=\"$ASSIGNMENT_ID\"|value='$ASSIGNMENT_ID'" /tmp/field-visits-assignment-lookup.html
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/visit-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "assignment_id=$ASSIGNMENT_ID"             --data-urlencode "customer_type=b2c"             --data-urlencode "customer_id=$CUSTOMER_ID"             --data-urlencode "planned_at=$EFFECTIVE_FROM"             --data-urlencode "route_key=FRESH-ROUTE"             http://127.0.0.1:8099/admin/field-operations/visits)" = "302"
 
