@@ -162,4 +162,41 @@ void main() {
       ]),
     );
   });
+
+  test('Van finance HTTP errors retain sanitized status for actionable UI', () async {
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'message': 'The given data was invalid.',
+            'errors': {
+              'amount': ['Remittance exceeds available custody.'],
+            },
+          }),
+          422,
+        ));
+
+    final repository = HttpVanWalletRepository(
+      VanApiClient(
+        'https://foodex.example/',
+        'van-token',
+        client: client,
+      ),
+    );
+
+    await expectLater(
+      repository.remit(
+        collectionAccountId: 12,
+        amount: 20,
+        method: 'bank_transfer',
+        idempotencyKey: 'remit-invalid-1',
+      ),
+      throwsA(
+        isA<VanApiException>().having(
+          (error) => error.statusCode,
+          'statusCode',
+          422,
+        ),
+      ),
+    );
+  });
+
 }
