@@ -339,7 +339,6 @@ final class FieldOperationsController extends Controller
         return back()->with('status', __('admin.field_operations.saved'));
     }
 
-
     public function updateAssignment(Request $request, VanAssignment $assignment): RedirectResponse
     {
         $user = $this->actor($request);
@@ -1089,7 +1088,6 @@ final class FieldOperationsController extends Controller
             }
         }
     }
-
 
     private function applyAssignmentVanAccess(User $actor, VanAssignment $assignment, bool $allow): void
     {
