@@ -160,7 +160,10 @@ class VanApiClient {
       throw const VanAccessDeniedException();
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw VanApiException('Van API request failed (${response.statusCode}).');
+      throw VanApiException(
+        'Van API request failed (${response.statusCode}).',
+        response.statusCode,
+      );
     }
     if (response.body.trim().isEmpty) return null;
 
