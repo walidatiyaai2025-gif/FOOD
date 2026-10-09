@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
+use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\Order;
 use App\Models\User;
@@ -21,6 +23,7 @@ final class VanOrderController extends Controller
     public function __construct(
         private readonly AdminOrderManagementService $orders,
         private readonly ProductAvailabilityService $availability,
+        private readonly B2bPriceResolver $b2bPrices,
     ) {}
 
     public function catalog(Request $request, string $type, int $customer): JsonResponse
@@ -270,32 +273,19 @@ final class VanOrderController extends Controller
     /** @return list<array<string, mixed>> */
     private function b2bCatalog(int $customer, int $storeId, string $search): array
     {
-        $account = B2bAccount::query()
-            ->where('b2b_customer_id', $customer)
-            ->where('status', 'active')
-            ->first();
-        abort_unless(
-            $account instanceof B2bAccount && $account->price_tier_id !== null,
-            403,
-            'Approved B2B pricing account is required.',
-        );
+        $b2bCustomer = B2bCustomer::query()->find($customer);
+        abort_unless($b2bCustomer instanceof B2bCustomer, 404);
 
-        return DB::table('b2b_price_rules')
-            ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+        $rows = DB::table('store_products')
+            ->join('products', 'products.id', '=', 'store_products.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->join('store_products', function ($join): void {
-                $join->on('store_products.product_id', '=', 'products.id')
-                    ->on('store_products.store_id', '=', 'b2b_price_rules.store_id');
-            })
-            ->where('b2b_price_rules.price_tier_id', $account->price_tier_id)
-            ->where('b2b_price_rules.store_id', $storeId)
-            ->where('b2b_price_rules.is_active', true)
+            ->where('store_products.store_id', $storeId)
+            ->where('store_products.is_active', true)
             ->where('products.is_active', true)
             ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', 'b2b')
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
-            ->where('store_products.is_active', true)
             ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.$search.'%';
                 $query->where(function ($nested) use ($like): void {
@@ -311,20 +301,35 @@ final class VanOrderController extends Controller
                 'products.name',
                 'products.sku',
                 'products.barcode',
-                'b2b_price_rules.unit_price',
-                'b2b_price_rules.minimum_quantity',
-                'b2b_price_rules.ordering_increment',
-            ])
-            ->map(fn (object $row): array => [
-                'id' => (int) $row->id,
-                'name' => (string) $row->name,
-                'sku' => (string) $row->sku,
-                'barcode' => $row->barcode,
-                'unit_price' => (float) $row->unit_price,
-                'minimum_quantity' => (float) $row->minimum_quantity,
-                'ordering_increment' => (float) $row->ordering_increment,
-                ...$this->availability->forStoreProduct($storeId, (int) $row->id),
-            ])
+            ]);
+
+        $pricing = $this->b2bPrices->resolveMany(
+            $b2bCustomer,
+            $rows
+                ->map(static fn (object $row): array => [
+                    'store_id' => $storeId,
+                    'product_id' => (int) $row->id,
+                ])
+                ->values()
+                ->all(),
+        );
+
+        return $rows
+            ->filter(static fn (object $row): bool => isset($pricing[$storeId.':'.(int) $row->id]))
+            ->map(function (object $row) use ($pricing, $storeId): array {
+                $price = $pricing[$storeId.':'.(int) $row->id];
+
+                return [
+                    'id' => (int) $row->id,
+                    'name' => (string) $row->name,
+                    'sku' => (string) $row->sku,
+                    'barcode' => $row->barcode,
+                    'unit_price' => (float) $price['price'],
+                    'minimum_quantity' => (float) $price['minimum_quantity'],
+                    'ordering_increment' => (float) $price['ordering_increment'],
+                    ...$this->availability->forStoreProduct($storeId, (int) $row->id),
+                ];
+            })
             ->values()
             ->all();
     }
