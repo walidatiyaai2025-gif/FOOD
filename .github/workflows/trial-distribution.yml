@@ -874,12 +874,39 @@ jobs:
           PY
           )"
 
+          # Fresh-install fixtures must be created in dependency order: geography -> territory -> assignment -> visit.
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/geography-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "type=country"             --data-urlencode "code=KWFRESH"             --data-urlencode "country_code=KW"             --data-urlencode "name_ar=دولة قبول فودكس"             --data-urlencode "name_en=Fresh Acceptance Country"             http://127.0.0.1:8099/admin/field-operations/geography)" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-country.html http://127.0.0.1:8099/admin/field-operations/territories
+          COUNTRY_NODE_ID="$(python3 - <<'PY'
+          import re
+          text=open('/tmp/field-territories-country.html',encoding='utf-8').read()
+          match=re.search(r'<option value="(\d+)">Fresh Acceptance Country</option>',text)
+          assert match, 'Fresh geography country option missing.'
+          print(match.group(1))
+          PY
+          )"
+          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/territory-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "code=FRESH-TERR"             --data-urlencode "name_ar=منطقة قبول فودكس"             --data-urlencode "name_en=Fresh Acceptance Territory"             --data-urlencode "country_node_id=$COUNTRY_NODE_ID"             --data-urlencode "status=active"             --data-urlencode "priority=100"             http://127.0.0.1:8099/admin/field-operations/territories)" = "302"
+          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-populated.html http://127.0.0.1:8099/admin/field-operations/territories
+          TERRITORY_ID="$(python3 - <<'PY'
+          import re
+          text=open('/tmp/field-territories-populated.html',encoding='utf-8').read()
+          match=re.search(r'<option value="(\d+)">Fresh Acceptance Territory · FRESH-TERR</option>',text)
+          assert match, 'Fresh service territory option missing.'
+          print(match.group(1))
+          PY
+          )"
+
           # Avoid a boundary race where the just-created assignment can be a fraction of a second ahead of now().
           EFFECTIVE_FROM="$(date -u -d '1 minute ago' '+%Y-%m-%dT%H:%M:%S+00:00')"
           test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
 
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"
-          grep -Fq 'FRESH-VAN-UI' /tmp/field-assignments-populated.html
+          python3 - <<'PY'
+          import re
+          text=open('/tmp/field-assignments-populated.html',encoding='utf-8').read()
+          row=re.search(r'<tr><td>\s*FRESH-VAN-UI\s*</td>.*?<td>\s*FRESH-TERR\s*</td>.*?</tr>', text, re.S)
+          assert row, 'Van assignment POST redirected but did not persist the expected FRESH-VAN-UI / FRESH-TERR assignment.'
+          PY
           # The recovered assignment grid shows business labels, not internal IDs.
           # Read the ID from the actual visit form lookup after verifying the row.
           test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-assignment-lookup.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
@@ -918,26 +945,6 @@ jobs:
           assert row['assignment']['operator_name'] == 'FOODEX Acceptance Owner', row
           PY
 
-          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/geography-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "type=country"             --data-urlencode "code=KWFRESH"             --data-urlencode "country_code=KW"             --data-urlencode "name_ar=دولة قبول فودكس"             --data-urlencode "name_en=Fresh Acceptance Country"             http://127.0.0.1:8099/admin/field-operations/geography)" = "302"
-          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-country.html http://127.0.0.1:8099/admin/field-operations/territories
-          COUNTRY_NODE_ID="$(python3 - <<'PY'
-          import re
-          text=open('/tmp/field-territories-country.html',encoding='utf-8').read()
-          match=re.search(r'<option value="(\d+)">Fresh Acceptance Country</option>',text)
-          assert match, 'Fresh geography country option missing.'
-          print(match.group(1))
-          PY
-          )"
-          test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/territory-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "code=FRESH-TERR"             --data-urlencode "name_ar=منطقة قبول فودكس"             --data-urlencode "name_en=Fresh Acceptance Territory"             --data-urlencode "country_node_id=$COUNTRY_NODE_ID"             --data-urlencode "status=active"             --data-urlencode "priority=100"             http://127.0.0.1:8099/admin/field-operations/territories)" = "302"
-          curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-populated.html http://127.0.0.1:8099/admin/field-operations/territories
-          TERRITORY_ID="$(python3 - <<'PY'
-          import re
-          text=open('/tmp/field-territories-populated.html',encoding='utf-8').read()
-          match=re.search(r'<option value="(\d+)">Fresh Acceptance Territory · FRESH-TERR</option>',text)
-          assert match, 'Fresh service territory option missing.'
-          print(match.group(1))
-          PY
-          )"
           test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/geometry-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode 'geojson={"type":"Polygon","coordinates":[[[47.90,29.30],[48.05,29.30],[48.05,29.45],[47.90,29.45],[47.90,29.30]]]}'             "http://127.0.0.1:8099/admin/field-operations/territories/$TERRITORY_ID/geometry")" = "302"
           curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-territories-geometry.html http://127.0.0.1:8099/admin/field-operations/territories
           grep -Fq 'Fresh Acceptance Territory' /tmp/field-territories-geometry.html
