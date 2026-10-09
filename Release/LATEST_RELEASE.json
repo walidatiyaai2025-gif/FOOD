@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "1.0.64",
-  "build_number": 64,
-  "source_commit": "8897bf3a22d5ee88e9ab493fd44959815d67a40a",
+  "version": "1.0.65",
+  "build_number": 65,
+  "source_commit": "6138a2b3e17083a865f02fcd6b29d806179b44ab",
   "dashboard_update": {
     "directory": "Updates",
     "package": "FOODEX-Update.zip",
@@ -11,30 +11,30 @@
   "android_apps": [
     {
       "app": "customer",
-      "version": "1.0.64",
-      "build_number": 64,
-      "file": "FOODEX-Customer-1.0.64.apk",
+      "version": "1.0.65",
+      "build_number": 65,
+      "file": "FOODEX-Customer-1.0.65.apk",
       "latest_alias": "FOODEX-Customer.apk",
-      "bytes": 79492571,
-      "sha256": "d837ca6e222b166df69b79a74d1b9e1e86678f859e06d8c4213c610f4825eddb"
+      "bytes": 79115507,
+      "sha256": "87747af1a1685c238714e8fa416aff513de728298df8a91b6db9168563ebfcfc"
     },
     {
       "app": "driver",
-      "version": "1.0.64",
-      "build_number": 64,
-      "file": "FOODEX-Driver-1.0.64.apk",
+      "version": "1.0.65",
+      "build_number": 65,
+      "file": "FOODEX-Driver-1.0.65.apk",
       "latest_alias": "FOODEX-Driver.apk",
-      "bytes": 58703644,
-      "sha256": "3aae1457041d7771e01e1c2855e03d43a77fe83e8a287bb02212662d713d0ef4"
+      "bytes": 58851276,
+      "sha256": "0e770eea5f022665502f69149fe870c7d0f3590be4aa548cd8dfd687018ce76c"
     },
     {
       "app": "van",
-      "version": "1.0.64",
-      "build_number": 64,
-      "file": "FOODEX-Van-1.0.64.apk",
+      "version": "1.0.65",
+      "build_number": 65,
+      "file": "FOODEX-Van-1.0.65.apk",
       "latest_alias": "FOODEX-Van.apk",
-      "bytes": 55470907,
-      "sha256": "1a6e2fd8bddafb71869e2b42060ccb11ef88d3fb900ee7116e64857f17b8d447"
+      "bytes": 55700323,
+      "sha256": "fb4d5c06174a3d557db9c215eac22de2180abe4d46b3910a79ba6569b6ac0848"
     }
   ]
 }

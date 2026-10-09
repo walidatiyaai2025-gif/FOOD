@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.64",
-  "minimum_current_version": "1.0.61",
-  "sha256": "92246a478a22f78557c02f83dbeb768b2dd280ae249aa4c28227d40cd20813c8",
-  "contains_migrations": false,
+  "target_version": "1.0.65",
+  "minimum_current_version": "1.0.64",
+  "sha256": "fb9972d969f3d3392d1410f06ec138117b077f7b4b0db54c56d3cab70a28152e",
+  "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release(#1093): FOODEX 1.0.64 from clean main (#1094)",
+  "release_notes": "fix(#1143): enforce fresh-install dependency order",
   "dashboard_fields": {
-    "target_version": "1.0.64",
-    "minimum_current_version": "1.0.61",
-    "sha256": "92246a478a22f78557c02f83dbeb768b2dd280ae249aa4c28227d40cd20813c8",
-    "contains_migrations": false,
-    "release_notes": "release(#1093): FOODEX 1.0.64 from clean main (#1094)"
+    "target_version": "1.0.65",
+    "minimum_current_version": "1.0.64",
+    "sha256": "fb9972d969f3d3392d1410f06ec138117b077f7b4b0db54c56d3cab70a28152e",
+    "contains_migrations": true,
+    "release_notes": "fix(#1143): enforce fresh-install dependency order"
   }
 }
