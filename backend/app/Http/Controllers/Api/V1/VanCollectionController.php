@@ -8,9 +8,9 @@ use App\Models\CollectionTransaction;
 use App\Models\Invoice;
 use App\Models\Remittance;
 use App\Models\User;
-use App\Models\VanVisit;
 use App\Services\CollectionCustodyService;
 use App\Services\VanCustomerCollectionContextService;
+use App\Services\VanRuntimeVisitScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -271,8 +271,8 @@ final class VanCollectionController extends Controller
     ): int {
         $context->customerColumn($type);
 
-        $storeIds = VanVisit::query()
-            ->where('actor_user_id', $actor->getKey())
+        $storeIds = app(VanRuntimeVisitScope::class)
+            ->query($request, $actor)
             ->where('customer_type', $type)
             ->where('customer_id', $customer)
             ->whereNotNull('store_id')

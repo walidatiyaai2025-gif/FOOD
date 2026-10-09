@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_van_app/core/api/http_van_api.dart';
+import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/wallet/http_van_wallet_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -162,4 +163,41 @@ void main() {
       ]),
     );
   });
+
+  test('Van finance HTTP errors retain sanitized status for actionable UI', () async {
+    final client = MockClient((request) async => http.Response(
+          jsonEncode({
+            'message': 'The given data was invalid.',
+            'errors': {
+              'amount': ['Remittance exceeds available custody.'],
+            },
+          }),
+          422,
+        ));
+
+    final repository = HttpVanWalletRepository(
+      VanApiClient(
+        'https://foodex.example/',
+        'van-token',
+        client: client,
+      ),
+    );
+
+    await expectLater(
+      repository.remit(
+        collectionAccountId: 12,
+        amount: 20,
+        method: 'bank_transfer',
+        idempotencyKey: 'remit-invalid-1',
+      ),
+      throwsA(
+        isA<VanApiException>().having(
+          (error) => error.statusCode,
+          'statusCode',
+          422,
+        ),
+      ),
+    );
+  });
+
 }

@@ -8,6 +8,7 @@ use App\Models\B2cCustomer;
 use App\Models\User;
 use App\Models\VanNoOrderReason;
 use App\Models\VanVisit;
+use App\Services\VanRuntimeVisitScope;
 use App\Services\VanVisitLifecycleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,8 +22,8 @@ final class VanVisitController extends Controller
     {
         $actor = $this->actor($request);
 
-        $visits = VanVisit::query()
-            ->where('actor_user_id', $actor->getKey())
+        $visits = app(VanRuntimeVisitScope::class)
+            ->query($request, $actor)
             ->select(['customer_type', 'customer_id', 'store_id'])
             ->distinct()
             ->orderBy('customer_type')
@@ -43,10 +44,10 @@ final class VanVisitController extends Controller
     public function customer(Request $request, string $type, int $customer): JsonResponse
     {
         $actor = $this->actor($request);
-        $this->assertCustomerInActorScope($actor, $type, $customer);
+        $this->assertCustomerInActorScope($request, $actor, $type, $customer);
 
-        $storeId = VanVisit::query()
-            ->where('actor_user_id', $actor->getKey())
+        $storeId = app(VanRuntimeVisitScope::class)
+            ->query($request, $actor)
             ->where('customer_type', $type)
             ->where('customer_id', $customer)
             ->latest('id')
@@ -74,8 +75,8 @@ final class VanVisitController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $paginator = VanVisit::query()
-            ->where('actor_user_id', $actor->getKey())
+        $paginator = app(VanRuntimeVisitScope::class)
+            ->query($request, $actor)
             ->when(
                 isset($validated['status']),
                 fn ($query) => $query->where('status', $validated['status']),
@@ -111,7 +112,7 @@ final class VanVisitController extends Controller
         $customerId = (int) $validated['customer_id'];
         $this->assertCustomerExists($type, $customerId);
 
-        $visit = DB::transaction(function () use ($validated, $actor, $type, $customerId): VanVisit {
+        $visit = DB::transaction(function () use ($request, $validated, $actor, $type, $customerId): VanVisit {
             $existing = VanVisit::query()
                 ->where('idempotency_key', $validated['idempotency_key'])
                 ->lockForUpdate()
@@ -123,6 +124,13 @@ final class VanVisitController extends Controller
                 return $existing;
             }
 
+            $runtimeContext = app(VanRuntimeVisitScope::class)->context($request);
+            $metadata = is_array($validated['metadata'] ?? null) ? $validated['metadata'] : [];
+            if ($runtimeContext !== null) {
+                $metadata['van_id'] = $runtimeContext['van_id'];
+                $metadata['van_assignment_id'] = $runtimeContext['assignment_id'];
+            }
+
             return VanVisit::query()->create([
                 'actor_user_id' => $actor->getKey(),
                 'customer_type' => $type,
@@ -131,7 +139,7 @@ final class VanVisitController extends Controller
                 'status' => 'planned',
                 'planned_at' => $validated['planned_at'] ?? null,
                 'idempotency_key' => $validated['idempotency_key'],
-                'metadata' => $validated['metadata'] ?? null,
+                'metadata' => $metadata === [] ? null : $metadata,
             ]);
         }, 3);
 
@@ -144,7 +152,7 @@ final class VanVisitController extends Controller
         VanVisitLifecycleService $service,
     ): JsonResponse {
         $actor = $this->actor($request);
-        abort_unless((int) $visit->actor_user_id === (int) $actor->getKey(), 404);
+        abort_unless(app(VanRuntimeVisitScope::class)->contains($request, $actor, $visit), 404);
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in([
@@ -191,13 +199,17 @@ final class VanVisitController extends Controller
         return $actor;
     }
 
-    private function assertCustomerInActorScope(User $actor, string $type, int $customerId): void
-    {
+    private function assertCustomerInActorScope(
+        Request $request,
+        User $actor,
+        string $type,
+        int $customerId,
+    ): void {
         abort_unless(in_array($type, ['b2b', 'b2c'], true), 404);
 
         abort_unless(
-            VanVisit::query()
-                ->where('actor_user_id', $actor->getKey())
+            app(VanRuntimeVisitScope::class)
+                ->query($request, $actor)
                 ->where('customer_type', $type)
                 ->where('customer_id', $customerId)
                 ->exists(),
