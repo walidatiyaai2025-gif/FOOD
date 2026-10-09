@@ -87,7 +87,7 @@ final class VanRuntimeContextResolver
      * active B2B/B2C Driver may also use the Van runtime only when the selected
      * effective assignment points back to that same active Driver record.
      *
-     * @param array{driver_id:?int}|null $context
+     * @param  array{driver_id:?int}|null  $context
      */
     public function canUseRuntime(User $user, ?array $context = null): bool
     {
