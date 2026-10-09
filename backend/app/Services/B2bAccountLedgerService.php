@@ -168,18 +168,9 @@ final class B2bAccountLedgerService
             throw ValidationException::withMessages(['amount' => ['This entry type must be recorded as a debit.']]);
         }
 
-        $currency = strtoupper(trim((string) ($data['currency'] ?? '')));
-        if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
-            throw ValidationException::withMessages(['currency' => ['A valid three-letter currency is required.']]);
-        }
+        $currency = 'EGP';
 
         $storeId = isset($data['store_id']) && (int) $data['store_id'] > 0 ? (int) $data['store_id'] : null;
-        $expectedCurrency = $this->currencyFor($customer, $storeId);
-        if ($expectedCurrency !== null && $currency !== $expectedCurrency) {
-            throw ValidationException::withMessages([
-                'currency' => ["Currency must match the account currency {$expectedCurrency}."],
-            ]);
-        }
 
         $invoiceId = isset($data['invoice_id']) ? (int) $data['invoice_id'] : null;
         if ($invoiceId !== null && $invoiceId > 0) {
@@ -382,37 +373,7 @@ final class B2bAccountLedgerService
 
     public function currencyFor(B2bCustomer $customer, ?int $storeId = null): ?string
     {
-        $invoiceCurrency = DB::table('invoices')
-            ->where('b2b_customer_id', $customer->getKey())
-            ->when($storeId, fn ($q, int $id) => $q->where('store_id', $id))
-            ->whereNotNull('currency')
-            ->orderByDesc('issued_at')
-            ->orderByDesc('id')
-            ->value('currency');
-
-        $normalized = $this->normalizeCurrency($invoiceCurrency);
-        if ($normalized !== null) {
-            return $normalized;
-        }
-
-        foreach ([$storeId, null] as $scopeStoreId) {
-            foreach (['checkout.currency', 'currency', 'default_currency', 'store.currency'] as $key) {
-                $query = DB::table('settings')->where('key', $key);
-                $scopeStoreId === null ? $query->whereNull('store_id') : $query->where('store_id', $scopeStoreId);
-                $raw = $query->orderByDesc('id')->value('value');
-                if ($raw === null) {
-                    continue;
-                }
-                $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
-                $value = is_string($raw) && json_last_error() !== JSON_ERROR_NONE ? $raw : $decoded;
-                $normalized = $this->normalizeCurrency($value);
-                if ($normalized !== null) {
-                    return $normalized;
-                }
-            }
-        }
-
-        return null;
+        return 'EGP';
     }
 
     /** @return Collection<int,array<string,mixed>> */
