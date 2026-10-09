@@ -252,7 +252,7 @@
                 </form>
             </details>
             @endif
-            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.driver_operator') }}</th><th>{{ __('field_operations.warehouse') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th><th>{{ __('field_operations.actions') }}</th></tr></thead><tbody>
+            <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr><th>{{ __('field_operations.van') }}</th><th>{{ __('field_operations.driver_operator') }}</th><th>{{ __('field_operations.warehouse') }}</th><th>{{ __('field_operations.territory') }}</th><th>{{ __('field_operations.type') }}</th><th>{{ __('field_operations.status') }}</th><th>{{ __('field_operations.window') }}</th><th>{{ __('field_operations.actions_label') }}</th></tr></thead><tbody>
                 @forelse($assignments as $a)
                     @php($driverLabel=$drivers->firstWhere('id',$a->driver_id)?->name)
                     @php($representativeLabel=$representatives->firstWhere('id',$a->representative_user_id)?->name)
@@ -268,7 +268,7 @@
                         <td>
                             @if($canManageVan)
                             <details class="foodex-ops-actions">
-                                <summary aria-label="{{ __('field_operations.actions') }}">⋮</summary>
+                                <summary aria-label="{{ __('field_operations.actions_label') }}">⋮</summary>
                                 <div class="foodex-ops-menu" style="min-width:min(560px,88vw)">
                                     <details>
                                         <summary><strong>{{ __('field_operations.edit_assignment') }}</strong></summary>
