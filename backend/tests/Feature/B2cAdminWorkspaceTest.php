@@ -123,7 +123,7 @@ class B2cAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.000')->assertDontSee('Other Customer');
     }
 
-    public function test_retail_incoming_orders_contains_only_open_b2c_orders_and_never_wholesale_orders(): void
+    public function test_retail_wholesale_purchases_shows_linked_b2b_orders_and_keeps_customer_orders_separate(): void
     {
         $this->seed(CoreReferenceSeeder::class);
 
@@ -211,8 +211,9 @@ class B2cAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/b2c/incoming_orders')
             ->assertOk()
-            ->assertSee('RETAIL-INCOMING-1001')
-            ->assertDontSee('WHOLESALE-MERCHANT-2001');
+            ->assertSee('Wholesale Purchases')
+            ->assertSee('WHOLESALE-MERCHANT-2001')
+            ->assertDontSee('RETAIL-INCOMING-1001');
 
         $this->actingAs($admin)
             ->get('/admin/b2c/orders')
