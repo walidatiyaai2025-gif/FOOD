@@ -18,6 +18,86 @@ final class RetailWholesaleReplenishmentService
         private readonly AuditLogger $audit,
     ) {}
 
+    /**
+     * @return array{replenishment_id:int,activated_products:int}
+     */
+    public function makeAvailableForSale(Order $order, int $retailStoreId, User $actor): array
+    {
+        abort_unless(strtolower((string) $order->channel) === 'b2b', 404);
+        abort_unless((string) $order->status === 'delivered', 409, 'Wholesale purchase must be delivered before it can be made available for sale.');
+
+        $linkedStoreId = DB::table('retail_wholesale_accounts')
+            ->where('b2b_customer_id', $order->b2b_customer_id)
+            ->value('retail_store_id');
+
+        abort_unless($linkedStoreId !== null && (int) $linkedStoreId === $retailStoreId, 404);
+
+        $replenishmentId = $this->receive($order, $actor);
+        abort_unless($replenishmentId !== null, 409, 'Wholesale purchase is not linked to a Retail store.');
+
+        return DB::transaction(function () use ($order, $retailStoreId, $actor, $replenishmentId): array {
+            $productIds = DB::table('retail_replenishment_items')
+                ->join('retail_replenishments', 'retail_replenishments.id', '=', 'retail_replenishment_items.replenishment_id')
+                ->where('retail_replenishments.id', $replenishmentId)
+                ->where('retail_replenishments.retail_store_id', $retailStoreId)
+                ->where('retail_replenishments.source_order_id', $order->getKey())
+                ->pluck('retail_replenishment_items.retail_product_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            abort_if($productIds->isEmpty(), 409, 'Wholesale purchase has no received Retail products.');
+
+            $ownedProductIds = DB::table('products')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->where('catalogs.store_id', $retailStoreId)
+                ->where('catalogs.channel', 'b2c')
+                ->whereIn('products.id', $productIds->all())
+                ->pluck('products.id')
+                ->map(fn ($id) => (int) $id)
+                ->values();
+
+            abort_unless($ownedProductIds->count() === $productIds->count(), 409, 'Received product scope is inconsistent.');
+
+            DB::table('products')
+                ->whereIn('id', $ownedProductIds->all())
+                ->update([
+                    'is_active' => true,
+                    'updated_at' => now(),
+                ]);
+
+            $activatedProducts = DB::table('store_products')
+                ->where('store_id', $retailStoreId)
+                ->whereIn('product_id', $ownedProductIds->all())
+                ->where('is_active', false)
+                ->update([
+                    'is_active' => true,
+                    'updated_at' => now(),
+                ]);
+
+            $this->audit->record(
+                'retail.wholesale_purchase_available_for_sale',
+                $actor,
+                Store::query()->findOrFail($retailStoreId),
+                null,
+                [
+                    'store_id' => $retailStoreId,
+                    'retail_store_id' => $retailStoreId,
+                    'source_order_id' => (int) $order->getKey(),
+                    'source_order_number' => (string) $order->order_number,
+                    'replenishment_id' => $replenishmentId,
+                    'product_ids' => $ownedProductIds->all(),
+                    'activated_products' => $activatedProducts,
+                ],
+            );
+
+            return [
+                'replenishment_id' => $replenishmentId,
+                'activated_products' => $activatedProducts,
+            ];
+        }, 3);
+    }
+
     public function receive(Order $order, User $actor): ?int
     {
         if (strtolower((string) $order->channel) !== 'b2b' || $order->b2b_customer_id === null) {
@@ -488,7 +568,7 @@ final class RetailWholesaleReplenishmentService
                 'product_id' => $productId,
                 'price' => round($unitCost, 3),
                 'cost_price' => round($unitCost, 3),
-                'is_active' => true,
+                'is_active' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
