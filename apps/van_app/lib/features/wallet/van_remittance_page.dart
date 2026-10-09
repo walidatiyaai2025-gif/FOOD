@@ -199,6 +199,26 @@ class _VanRemittancePageState extends State<VanRemittancePage>
     if (error is VanAccessDeniedException) {
       return _text('Access denied.', 'غير مصرح بهذه العملية.');
     }
+    if (error is VanApiException) {
+      return switch (error.statusCode) {
+        404 => _text(
+            'This customer or financial account is no longer in the current Van scope. Refresh and try again.',
+            'العميل أو الحساب المالي لم يعد ضمن نطاق الفان الحالي. حدّث البيانات وحاول مرة أخرى.',
+          ),
+        409 => _text(
+            'The financial state changed. Refresh the balance and retry the operation.',
+            'تغيّرت حالة العملية المالية. حدّث الرصيد ثم أعد المحاولة.',
+          ),
+        422 => _text(
+            'Check the amount and operation details, then try again.',
+            'راجع المبلغ وبيانات العملية ثم حاول مرة أخرى.',
+          ),
+        _ => _text(
+            'The server could not save this financial operation. Try again.',
+            'تعذر على الخادم حفظ العملية المالية. حاول مرة أخرى.',
+          ),
+      };
+    }
     return _text(
       'Unable to submit the remittance.',
       'تعذر إرسال عملية التوريد.',
