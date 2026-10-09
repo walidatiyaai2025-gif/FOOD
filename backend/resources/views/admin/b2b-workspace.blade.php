@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{{ asset('assets/admin/driver-live-map.css') }}">
 @endif
 <style>
-*{box-sizing:border-box}body{margin:0;overflow-x:hidden}.layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}.sidebar{grid-column:2;grid-row:1;direction:rtl;padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}.main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none!important;padding:var(--foodex-space-8)}html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}html[dir=ltr] .sidebar{grid-column:1;direction:ltr}html[dir=ltr] .main{grid-column:2;direction:ltr}.headline{margin-bottom:var(--foodex-space-6)}.headline h1{margin:var(--foodex-space-1) 0 0}.headline .muted{max-width:760px}.muted{color:var(--foodex-muted)}.cards{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:12px;margin-bottom:var(--foodex-space-5)}.metric-card{position:relative;overflow:hidden;padding:14px!important;min-height:112px;display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:10px;align-items:center;background:linear-gradient(145deg,#fff,#fbfcfd)!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.metric-card:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)!important;border-color:#cfe5d6!important}.metric-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}.metric-card:nth-child(2n):before{background:var(--foodex-orange)}.metric-card-copy{min-width:0}.metric-card strong{display:block;font-size:11px;color:var(--foodex-muted);font-weight:var(--foodex-font-weight-bold);line-height:1.3;min-height:29px}.metric-card p{font-family:var(--foodex-font-en);font-size:clamp(1.25rem,1.55vw,1.7rem);font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:8px 0 0;color:var(--foodex-ink);white-space:nowrap}.metric-card-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.metric-card:nth-child(2n) .metric-card-icon{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.metric-card-icon .foodex-svg-icon{width:21px;height:21px}.panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)}.workspace-panel{box-shadow:var(--foodex-shadow)}.toolbar{display:flex;justify-content:space-between;gap:var(--foodex-space-4);align-items:flex-start;margin-bottom:var(--foodex-space-4)}.toolbar>div:first-child{max-width:520px}.links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}.links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;padding:0 var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);text-decoration:none;background:var(--foodex-surface);color:var(--foodex-ink)}.links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:#c9e7d3}.links a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 20px rgba(21,138,58,.14)}.table-wrap{overflow:auto;border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-sm)}.data{min-width:760px}.data th,.data td{vertical-align:middle}.state{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state.off:before{background:#98a2b3}.badge{display:inline-flex;align-items:center;min-height:26px;border-radius:999px;padding:3px 9px;background:var(--foodex-orange-soft);color:var(--foodex-orange);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.badge.active,.badge.delivered{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.suspended,.badge.denied,.badge.cancelled{background:#fff0f0;color:var(--foodex-red)}.workspace-inline-form{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.workspace-inline-form input,.workspace-inline-form select{min-width:150px}.empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}@media(max-width:1279px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}.toolbar{flex-direction:column}}@media(max-width:1023px){.layout,html[dir=ltr] .layout{grid-template-columns:1fr}.sidebar,html[dir=ltr] .sidebar{grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto}.main,html[dir=ltr] .main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)!important}}@media(max-width:767px){.main,html[dir=ltr] .main{padding:var(--foodex-space-4)!important}.cards{grid-template-columns:1fr}.toolbar{align-items:stretch}.links a{flex:1 1 auto;justify-content:center}.workspace-inline-form{align-items:stretch}.workspace-inline-form input,.workspace-inline-form select,.workspace-inline-form button{width:100%}.data{min-width:680px}}
+*{box-sizing:border-box}body{margin:0;overflow-x:hidden}.layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) var(--foodex-sidebar-width);min-height:100vh;background:var(--foodex-background)}.sidebar{grid-column:2;grid-row:1;direction:rtl;padding:var(--foodex-space-5);position:sticky;inset-block-start:0;height:100vh}.main{grid-column:1;grid-row:1;direction:rtl;min-width:0;width:100%;max-width:none!important;padding:var(--foodex-space-8)}html[dir=ltr] .layout{grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr)}html[dir=ltr] .sidebar{grid-column:1;direction:ltr}html[dir=ltr] .main{grid-column:2;direction:ltr}.headline{margin-bottom:var(--foodex-space-6)}.headline h1{margin:var(--foodex-space-1) 0 0}.headline .muted{max-width:760px}.muted{color:var(--foodex-muted)}.cards{display:grid;grid-template-columns:repeat(var(--foodex-card-columns,4),minmax(0,1fr));gap:12px;margin-bottom:var(--foodex-space-5)}.metric-card{position:relative;overflow:hidden;padding:14px!important;min-height:112px;display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:10px;align-items:center;background:linear-gradient(145deg,#fff,#fbfcfd)!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.metric-card:hover{transform:translateY(-2px);box-shadow:var(--foodex-shadow)!important;border-color:#cfe5d6!important}.metric-card:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--foodex-green)}.metric-card:nth-child(2n):before{background:var(--foodex-orange)}.metric-card-copy{min-width:0}.metric-card strong{display:block;font-size:11px;color:var(--foodex-muted);font-weight:var(--foodex-font-weight-bold);line-height:1.3;min-height:29px}.metric-card p{font-family:var(--foodex-font-en);font-size:clamp(1.25rem,1.55vw,1.7rem);font-weight:var(--foodex-font-weight-bold);line-height:1.1;margin:8px 0 0;color:var(--foodex-ink);white-space:nowrap}.metric-card-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.metric-card:nth-child(2n) .metric-card-icon{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.metric-card-icon .foodex-svg-icon{width:21px;height:21px}.panel{margin-top:var(--foodex-space-4);padding:var(--foodex-space-5)}.workspace-panel{box-shadow:var(--foodex-shadow)}.toolbar{display:flex;justify-content:space-between;gap:var(--foodex-space-4);align-items:flex-start;margin-bottom:var(--foodex-space-4)}.toolbar>div:first-child{max-width:520px}.links{display:flex;flex-wrap:wrap;gap:var(--foodex-space-2);align-items:center}.links a{min-height:var(--foodex-control-height);display:inline-flex;align-items:center;padding:0 var(--foodex-space-3);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold);text-decoration:none;background:var(--foodex-surface);color:var(--foodex-ink)}.links a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:#c9e7d3}.links a.active{background:var(--foodex-green);color:#fff;border-color:var(--foodex-green);box-shadow:0 8px 20px rgba(21,138,58,.14)}.table-wrap{overflow:auto;border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-sm)}.data{min-width:760px}.data th,.data td{vertical-align:middle}.state{display:inline-flex;align-items:center;gap:6px;font-weight:var(--foodex-font-weight-medium)}.state:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--foodex-green)}.state.off:before{background:#98a2b3}.badge{display:inline-flex;align-items:center;min-height:26px;border-radius:999px;padding:3px 9px;background:var(--foodex-orange-soft);color:var(--foodex-orange);font-size:var(--foodex-text-xs);font-weight:var(--foodex-font-weight-bold)}.badge.active,.badge.delivered,.badge.paid{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.badge.partial{background:#e6f4ff;color:#1f7ac6}.badge.suspended,.badge.denied,.badge.cancelled,.badge.overdue{background:#fff0f0;color:var(--foodex-red)}.badge.unpaid{background:#f2f4f7;color:#475467}.workspace-inline-form{padding:var(--foodex-space-4);margin-bottom:var(--foodex-space-4);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd}.workspace-inline-form input,.workspace-inline-form select{min-width:150px}.empty-state{display:grid;place-items:center;min-height:160px;text-align:center;border:1px dashed var(--foodex-border);border-radius:var(--foodex-radius-md);background:#fbfcfd;padding:var(--foodex-space-6);color:var(--foodex-muted)}@media(max-width:1279px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}.toolbar{flex-direction:column}}@media(max-width:1023px){.layout,html[dir=ltr] .layout{grid-template-columns:1fr}.sidebar,html[dir=ltr] .sidebar{grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto}.main,html[dir=ltr] .main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)!important}}@media(max-width:767px){.main,html[dir=ltr] .main{padding:var(--foodex-space-4)!important}.cards{grid-template-columns:1fr}.toolbar{align-items:stretch}.links a{flex:1 1 auto;justify-content:center}.workspace-inline-form{align-items:stretch}.workspace-inline-form input,.workspace-inline-form select,.workspace-inline-form button{width:100%}.data{min-width:680px}}
 
 /* B2B dashboard reference: 841x564 source ratio translated to live responsive admin geometry. */
 .b2b-reference-dashboard{direction:ltr;display:grid;gap:12px;width:100%}.b2b-ref-header-tools{direction:rtl;display:flex;justify-content:flex-end}
@@ -359,6 +359,10 @@
         'active'=>__('admin.b2b_workspace.account_statuses.active'),
         'suspended'=>__('admin.b2b_workspace.account_statuses.suspended'),
         'denied'=>__('admin.b2b_workspace.account_statuses.denied'),
+        'paid'=>app()->getLocale()==='ar'?'مدفوعة بالكامل':'Paid in full',
+        'partial'=>app()->getLocale()==='ar'?'مدفوعة جزئياً':'Partially paid',
+        'unpaid'=>app()->getLocale()==='ar'?'غير مدفوعة':'Unpaid',
+        'overdue'=>app()->getLocale()==='ar'?'متأخرة':'Overdue',
       ];
     @endphp
     @if(session('status'))<div class="panel" style="border-color:#b7dfc4;background:var(--foodex-green-soft);color:var(--foodex-green-dark)">{{ session('status') }}</div>@endif
@@ -375,6 +379,7 @@
 
       @if($module==='finance')
       @php
+        $financeTab = request('finance_tab') === 'operations' ? 'operations' : 'invoices';
         $financeFilters = $moduleData['filters'] ?? ['from'=>null,'to'=>null,'customer_id'=>null];
         $financeQuery = array_filter([
             'from'=>$financeFilters['from'] ?? null,
@@ -382,7 +387,18 @@
             'customer_id'=>$financeFilters['customer_id'] ?? null,
         ], fn($value) => $value !== null && $value !== '');
       @endphp
+      <nav class="links workspace-inline-form" aria-label="{{ app()->getLocale()==='ar'?'أقسام المالية':'Finance sections' }}">
+        <a @class(['active'=>$financeTab==='invoices']) href="{{ route('admin.b2b.module',array_merge(['module'=>'finance','finance_tab'=>'invoices'],$financeQuery)) }}">
+          {{ app()->getLocale()==='ar'?'الفواتير والتحصيل':'Invoices & settlement' }}
+        </a>
+        <a @class(['active'=>$financeTab==='operations']) href="{{ route('admin.b2b.module',['module'=>'finance','finance_tab'=>'operations','ops_tab'=>request('ops_tab','wallets')]) }}">
+          {{ app()->getLocale()==='ar'?'العهدة والتحصيل والتوريد':'Custody, collections & remittance' }}
+        </a>
+      </nav>
+
+      @if($financeTab==='invoices')
       <form method="get" action="{{ route('admin.b2b.module',['module'=>'finance']) }}" class="links workspace-inline-form" aria-label="{{ app()->getLocale()==='ar'?'فلاتر الفواتير':'Invoice filters' }}">
+        <input type="hidden" name="finance_tab" value="invoices">
         <label style="display:grid;gap:5px;font-size:12px;font-weight:700">
           <span>{{ app()->getLocale()==='ar'?'من':'From' }}</span>
           <input name="from" type="date" value="{{ $financeFilters['from'] ?? '' }}">
@@ -401,7 +417,7 @@
           </select>
         </label>
         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تطبيق الفلاتر':'Apply filters' }}</button>
-        <a href="{{ route('admin.b2b.module',['module'=>'finance']) }}">{{ app()->getLocale()==='ar'?'إعادة ضبط':'Reset' }}</a>
+        <a href="{{ route('admin.b2b.module',['module'=>'finance','finance_tab'=>'invoices']) }}">{{ app()->getLocale()==='ar'?'إعادة ضبط':'Reset' }}</a>
       </form>
 
       <div class="workspace-inline-form" style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
@@ -421,16 +437,18 @@
           </div>
         </div>
         <div class="links">
-          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance'],$financeQuery,['export'=>'xlsx'])) }}">Excel</a>
-          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance'],$financeQuery,['export'=>'pdf'])) }}">PDF</a>
+          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance','finance_tab'=>'invoices'],$financeQuery,['export'=>'xlsx'])) }}">Excel</a> {{-- localization-gate: allow — Excel is the technical export format name. --}}
+          <a class="foodex-primary" href="{{ route('admin.b2b.module',array_merge(['module'=>'finance','finance_tab'=>'invoices'],$financeQuery,['export'=>'pdf'])) }}">PDF</a>
         </div>
         <div class="muted" style="flex-basis:100%;font-size:12px">
           {{ app()->getLocale()==='ar'
-              ? 'التصدير يستخدم نفس الفلاتر والنتيجة الظاهرة. عند عدم وجود نتائج يتم إنشاء ملف صالح يحتوي سياق الفلاتر والعناوين بدون صفوف بيانات.'
-              : 'Exports use the same filters and visible result set. With no matches, a valid file is generated with filter context and headers but no data rows.' }}
+              ? 'حالة الفاتورة هنا تعكس التسوية الفعلية: تحصيلات الفان الموزعة على الفاتورة، والمدفوعات المباشرة، وحركات حساب العميل.'
+              : 'Invoice status reflects the actual settlement: Van allocations, direct payments, and customer-account ledger entries.' }}
         </div>
       </div>
-      @include('admin._field-operations-finance', ['fieldFinance' => $moduleData['field_operations'] ?? []])
+      @else
+        @include('admin._field-operations-finance', ['fieldFinance' => $moduleData['field_operations'] ?? []])
+      @endif
       @endif
 
       @if($module==='storefront')
@@ -556,7 +574,7 @@
       @if($module==='orders' && $user->hasPermission('orders.manage'))
       @include('admin._dashboard-order-create',['channel'=>'b2b'])
       @endif
-      @if($module!=='storefront' && count($moduleData['rows']))
+      @if($module!=='storefront' && count($moduleData['rows']) && ($module!=='finance' || ($financeTab ?? 'invoices')==='invoices'))
       <div class="table-wrap"><table class="data foodex-table" data-pagination-required><thead><tr>@foreach($moduleData['columns'] as $column)<th>{{ $labels[$column]??$column }}</th>@endforeach</tr></thead><tbody>
       @foreach($moduleData['rows'] as $row)<tr>@foreach($moduleData['columns'] as $column)<td>
         @if(in_array($column,['status','availability','active'],true) && is_bool($row[$column]))<span class="state {{ $row[$column]?'':'off' }}">{{ $row[$column]?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</span>
