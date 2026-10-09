@@ -632,15 +632,6 @@ final class CommerceQuoteService
 
     private function currency(int $storeId): string
     {
-        $value = $this->settingValue($storeId, ['checkout.currency', 'currency']);
-
-        if (is_string($value)) {
-            $currency = strtoupper(trim($value));
-            if (preg_match('/^[A-Z]{3}$/', $currency) === 1) {
-                return $currency;
-            }
-        }
-
         return 'EGP';
     }
 
