@@ -48,9 +48,13 @@ class VanOfflineException implements Exception {
 }
 
 class VanApiException implements Exception {
-  const VanApiException([this.message = 'Van API request failed.']);
+  const VanApiException([
+    this.message = 'Van API request failed.',
+    this.statusCode,
+  ]);
 
   final String message;
+  final int? statusCode;
 
   @override
   String toString() => message;
