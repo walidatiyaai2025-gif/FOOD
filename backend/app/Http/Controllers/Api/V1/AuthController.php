@@ -53,9 +53,13 @@ class AuthController extends Controller
         }
 
         if ($app === 'van') {
-            abort_unless($user->hasPermission('van.login'), 403, 'This account is not authorized for the Van app.');
             $context = $this->vanContexts->resolve($user, isset($credentials['van_id']) ? (int) $credentials['van_id'] : null);
             abort_unless($context['selected'] !== null, 403, 'No effective Van assignment is available for this account.');
+            abort_unless(
+                $this->vanContexts->canUseRuntime($user, $context['selected']),
+                403,
+                'This account is not authorized for the Van app.',
+            );
         }
 
         $tokenAbilities = $app === null ? ['*'] : ['app:'.$app];
@@ -192,9 +196,18 @@ class AuthController extends Controller
             'store_id' => $driver->store_id === null ? null : (int) $driver->store_id,
         ] : null;
 
-        $vanScope = $user->hasPermission('van.login')
-            ? $this->vanContexts->resolve($user, $preferredVanId)
+        $resolvedVanScope = $this->vanContexts->resolve($user, $preferredVanId);
+        $canUseVan = $resolvedVanScope['selected'] !== null
+            && $this->vanContexts->canUseRuntime($user, $resolvedVanScope['selected']);
+        $vanScope = $canUseVan
+            ? $resolvedVanScope
             : ['selected' => null, 'available' => [], 'selection_reason' => 'van_login_not_granted'];
+
+        $effectivePermissions = $user->effectivePermissionCodes();
+        if ($canUseVan && ! in_array('van.login', $effectivePermissions, true)) {
+            $effectivePermissions[] = 'van.login';
+            sort($effectivePermissions);
+        }
 
         return [
             'id' => (int) $user->getKey(),
@@ -203,7 +216,7 @@ class AuthController extends Controller
             'email' => (string) $user->email,
             'locale' => (string) $user->locale,
             'roles' => $roles,
-            'permissions' => $user->effectivePermissionCodes(),
+            'permissions' => $effectivePermissions,
             'store_ids' => $storeIds,
             'driver_scope' => $driverScope,
             'van_scope' => $vanScope['selected'],
