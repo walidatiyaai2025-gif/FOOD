@@ -198,7 +198,7 @@ class B2cAdminWorkspaceTest extends TestCase
             'b2b_customer_id' => (int) $wholesaleCustomer->getKey(),
             'order_number' => 'WHOLESALE-MERCHANT-2001',
             'channel' => 'b2b',
-            'status' => 'pending',
+            'status' => 'delivered',
             'currency' => 'EGP',
             'subtotal' => 25,
             'discount_total' => 0,
@@ -213,6 +213,8 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('Wholesale Purchases')
             ->assertSee('WHOLESALE-MERCHANT-2001')
+            ->assertSee('Make available for sale')
+            ->assertSee('Received in Retail inventory')
             ->assertDontSee('RETAIL-INCOMING-1001');
 
         $this->actingAs($admin)
