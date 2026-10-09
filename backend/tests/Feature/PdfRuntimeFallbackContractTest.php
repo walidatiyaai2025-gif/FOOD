@@ -10,7 +10,7 @@ class PdfRuntimeFallbackContractTest extends TestCase
     {
         $factory = file_get_contents(app_path('Services/PdfDocumentFactory.php'));
 
-        $this->assertStringContainsString("app_path('ThirdParty/tcpdf/tcpdf.php')", $factory);
+        $this->assertStringContainsString('app_path(\'ThirdParty/tcpdf/tcpdf.php\')', $factory);
         $this->assertStringContainsString('require_once $bundledRuntime;', $factory);
         $this->assertStringContainsString("class_exists(TCPDF::class)", $factory);
     }
