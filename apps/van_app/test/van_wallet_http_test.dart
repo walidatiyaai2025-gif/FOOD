@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_van_app/core/api/http_van_api.dart';
+import 'package:foodex_van_app/core/auth/van_session.dart';
 import 'package:foodex_van_app/features/wallet/http_van_wallet_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
