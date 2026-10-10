@@ -103,6 +103,8 @@ class FieldOperationsAdminExposureTest extends TestCase
         $this->assertStringContainsString("@include('admin._field-operations-finance'", $view);
         $this->assertStringContainsString("@elseif(\$section === 'van-detail')", $view);
         $this->assertStringContainsString("__('field_operations.assignment_history')", $view);
+        $this->assertStringContainsString('data-van-b2b-orders', $view);
+        $this->assertStringContainsString('data-van-b2b-order=', $view);
         $this->assertStringContainsString("__('field_operations.details_history')", $view);
         $this->assertStringContainsString('fieldops-coverage-map', $view);
         $this->assertStringContainsString("type:'Polygon'", $view);

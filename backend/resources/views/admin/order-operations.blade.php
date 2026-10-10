@@ -36,6 +36,7 @@ $businessLabel = static function ($value): string {
 @include('admin._order-new-wizard')
 
 @php($tabQuery=request()->except(['status','page','order']))
+@php($dispatchQueueQuery=request()->except(['status','dispatch_status','channel','page','order']))
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
 <a class="status-tab" data-order-status-tab="all" href="{{ route('admin.operations.orders.index',$tabQuery) }}" @if($selectedStatus===null) aria-current="page" @endif>
 <span>{{ __('order_operations.all') }}</span><span class="status-tab-count">{{ $statusTotal }}</span>
@@ -45,6 +46,7 @@ $businessLabel = static function ($value): string {
 <span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
+<a class="status-tab" data-order-dispatch-workspace href="{{ route('admin.operations.orders.index',array_merge($dispatchQueueQuery,['channel'=>'b2b','dispatch_status'=>'awaiting_dispatch'])) }}" @if(request('channel')==='b2b' && request('dispatch_status')==='awaiting_dispatch') aria-current="page" @endif><span>{{ __('order_operations.dispatch.awaiting_queue') }}</span></a>
 </nav>
 
 <form method="get" class="filters foodex-card">
@@ -61,14 +63,21 @@ $businessLabel = static function ($value): string {
 
 <section class="foodex-card panel table-wrap">
 <table class="foodex-table ops-table"><thead><tr>
-<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.store') }}</th><th>{{ __('order_operations.columns.channel') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_driver') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
+<th>{{ __('order_operations.columns.order') }}</th><th>{{ __('order_operations.columns.store') }}</th><th>{{ __('order_operations.columns.channel') }}</th><th>{{ __('order_operations.columns.source') }}</th><th>{{ __('order_operations.columns.customer') }}</th><th>{{ __('order_operations.columns.status') }}</th><th>{{ __('order_operations.columns.current_executor') }}</th><th>{{ __('order_operations.columns.dispatch') }}</th><th>{{ __('order_operations.columns.payment') }}</th><th>{{ __('order_operations.columns.total') }}</th><th>{{ __('order_operations.columns.created') }}</th><th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
 <tr>
 <td><a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}"><strong>{{ $row['number'] }}</strong></a></td>
 <td>{{ $row['store'] }}</td><td>{{ $businessLabel($row['channel']) }}</td><td>{{ $businessLabel($row['source']) }}</td><td>{{ $row['customer'] }}</td> {{-- localization-gate: allow channel/source resolved through localized businessLabel --}}
 <td><span class="badge {{ $row['status'] }}" data-status-code="{{ $row['status'] }}">{{ $row['status_label'] }}</span></td>
-<td>{{ $row['driver'] ?? __('order_operations.unassigned') }} @if($row['assignment_status'])<small>· {{ $businessLabel($row['assignment_status']) }}</small>@endif</td>
+<td>
+@if($row['channel']==='b2b')
+{{ $row['dispatch_assignee_type']==='van' && $row['dispatch_assignee'] ? $row['dispatch_assignee'] : __('order_operations.unassigned') }}
+@else
+{{ $row['driver'] ?? __('order_operations.unassigned') }}
+@if($row['assignment_status'])<small>· {{ $businessLabel($row['assignment_status']) }}</small>@endif
+@endif
+</td>
 <td><div class="dispatch-cell" data-order-dispatch-status="{{ $row['dispatch_status'] }}">
 @if($row['dispatch_status']==='awaiting_dispatch')<div class="dispatch-warning">{{ __('order_operations.dispatch.warning') }}</div>@else<span class="badge {{ $row['dispatch_status'] }}">{{ $businessLabel($row['dispatch_status']) }}</span>@endif
 @if($row['dispatch_assignee'])<strong>{{ $businessLabel($row['dispatch_assignee_type']) }} · {{ $row['dispatch_assignee'] }}</strong>@endif
@@ -85,6 +94,7 @@ $businessLabel = static function ($value): string {
 <div class="row-action-menu">
 <a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}">{{ __('order_operations.view_order') }}</a>
 @if($row['can_dispatch'])
+@if($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="driver">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
@@ -98,6 +108,8 @@ $businessLabel = static function ($value): string {
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
 </form>
+@endif
+@if($row['channel']==='b2b')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-van>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="van">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_van') }}">
@@ -107,6 +119,7 @@ $businessLabel = static function ($value): string {
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.van') }}</button>
 </form>
+@endif
 @if($row['dispatch_status']==='assigned')
 <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" data-order-dispatch-clear>@csrf @method('DELETE')
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
@@ -202,6 +215,37 @@ $businessLabel = static function ($value): string {
 @empty<div class="foodex-empty-state">{{ __('order_operations.dispatch.audit_empty') }}</div>@endforelse
 </div>
 </div>
+@if($detail['channel']==='b2b')
+<div class="foodex-card panel" data-b2b-van-operations>
+<h2>{{ __('order_operations.detail.van_execution_timeline') }}</h2>
+@if($detail['van_execution'])
+<div class="timeline-item" data-van-execution-state>
+<strong>{{ $businessLabel($detail['van_execution']->status) }}</strong> {{-- localization-gate: allow execution status is resolved through localized businessLabel --}}
+@if($detail['van_execution']->failure_reason_code)<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($detail['van_execution']->failure_reason_code) }}</div>@endif
+@if($detail['van_execution']->failure_note)<div>{{ __('order_operations.detail.van_note') }}: {{ $detail['van_execution']->failure_note }}</div>@endif
+<small>{{ $detail['van_execution']->last_transition_at ? \Carbon\Carbon::parse($detail['van_execution']->last_transition_at)->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+</div>
+@endif
+<div class="timeline" style="margin-top:10px">
+@forelse($detail['van_events'] as $event)
+<div class="timeline-item" data-van-execution-event="{{ $event['id'] }}">
+<strong>{{ $businessLabel($event['action']) }} · {{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
+@if($event['actor']!=='')<div>{{ $event['actor'] }}</div>@endif
+@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
+@if($event['note'])<div>{{ __('order_operations.detail.van_note') }}: {{ $event['note'] }}</div>@endif
+@if($event['proof_path'])<div><a class="foodex-primary" href="{{ asset('storage/'.ltrim((string)$event['proof_path'],'/')) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a></div>@endif
+<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+</div>
+@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_van_events') }}</div>@endforelse
+</div>
+<h3>{{ __('order_operations.detail.collection_timeline') }}</h3>
+<div class="timeline" data-van-collection-timeline>
+@forelse($detail['collections'] as $collection)
+<div class="timeline-item"><strong>{{ number_format($collection['amount'],3) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
+@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_collections') }}</div>@endforelse
+</div>
+</div>
+@endif
 <div class="foodex-card panel"><h2>{{ __('order_operations.detail.status_timeline') }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $businessLabel($entry['from']) }} → {{ $businessLabel($entry['to']) }}</strong><div>{{ $businessLabel($entry['note']) }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_history') }}</div>@endforelse</div></div>
 <div class="foodex-card panel"><h2>{{ __('order_operations.detail.driver_history') }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ str_starts_with((string)$entry['driver'],'#') ? __('order_operations.detail.unnamed_driver') : $entry['driver'] }}</strong><div>{{ $businessLabel($entry['status']) }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_assignments') }}</div>@endforelse</div></div>
 <div class="foodex-card panel" data-delivery-evidence>
