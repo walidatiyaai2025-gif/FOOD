@@ -175,3 +175,25 @@ Remember Me + biometric secure-session behavior must remain intact.
 - standard and compact phone widths verified;
 - screenshot/widget evidence updated when required;
 - Dashboard parity evaluated for business capability changes.
+
+## 14. Van production composition lock
+
+`VanFoundationScreen` is the navigation/shell authority.
+
+A new Van page must plug into the current foundation model:
+- primary navigation remains Dashboard / Routes / Customers / Orders / Wallet;
+- secondary production surfaces remain reachable through the existing drawer/workflows;
+- Arabic drawer direction follows the existing end-drawer behavior;
+- `FoodexVanTheme` / `FoodexVanTokens` own visual tokens;
+- `VanActionButton` and `VanIconAction` own standard actions.
+
+Do not add a second Scaffold/navigation architecture merely to implement one screen.
+
+For page-level records, follow the v4.2 compact field-operations pattern:
+- compact header;
+- real record identity and status;
+- dense scannable cards/list;
+- one overflow action pattern when several actions exist;
+- explicit loading/empty/error/stale/offline;
+- authoritative mutation then refresh/reconcile.
+
