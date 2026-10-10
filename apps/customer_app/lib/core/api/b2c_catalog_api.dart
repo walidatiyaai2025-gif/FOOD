@@ -55,6 +55,7 @@ class B2cProduct {
     this.brandName,
     this.brandImageUrl,
     this.imageUrl,
+    this.thumbnailUrl,
     this.images = const [],
     this.availableQuantity,
     this.isAvailable = true,
@@ -72,13 +73,13 @@ class B2cProduct {
   final String? brandName;
   final String? brandImageUrl;
   final String? imageUrl;
+  final String? thumbnailUrl;
   final List<String> images;
   final double? availableQuantity;
   final bool isAvailable;
   final String availabilityState;
 
-  bool get isOutOfStock =>
-      availabilityState == 'OUT_OF_STOCK' || !isAvailable;
+  bool get isOutOfStock => availabilityState == 'OUT_OF_STOCK' || !isAvailable;
 
   factory B2cProduct.fromJson(Map<String, dynamic> json) => B2cProduct(
         id: (json['id'] as num).toInt(),
@@ -92,6 +93,7 @@ class B2cProduct {
         brandName: json['brand_name'] as String?,
         brandImageUrl: json['brand_image_url'] as String?,
         imageUrl: json['image_url'] as String?,
+        thumbnailUrl: json['thumbnail_url'] as String?,
         images: (json['images'] as List?)
                 ?.whereType<String>()
                 .toList(growable: false) ??
@@ -314,6 +316,5 @@ class B2cCatalogException implements Exception {
 
   final String code;
 
-  bool get isSelfStorePurchaseNotAllowed =>
-      code == selfStorePurchaseNotAllowed;
+  bool get isSelfStorePurchaseNotAllowed => code == selfStorePurchaseNotAllowed;
 }

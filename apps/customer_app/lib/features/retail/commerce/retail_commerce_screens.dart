@@ -7,11 +7,11 @@ import 'retail_commerce_api.dart';
 
 enum RetailAuthIntent { login, register }
 
-typedef RetailAuthHandoff =
-    Future<RetailCommerceApi?> Function(RetailAuthIntent intent, int storeId);
+typedef RetailAuthHandoff = Future<RetailCommerceApi?> Function(
+    RetailAuthIntent intent, int storeId);
 typedef RetailAddressHandoff = Future<void> Function(int storeId);
-typedef RetailAddressEditHandoff =
-    Future<void> Function(int storeId, int addressId);
+typedef RetailAddressEditHandoff = Future<void> Function(
+    int storeId, int addressId);
 typedef RetailOrderCreated = void Function(int orderId, int storeId);
 
 class RetailCartScreen extends StatefulWidget {
@@ -132,8 +132,7 @@ class _RetailCartScreenState extends State<RetailCartScreen>
     final handoff = widget.onAuthenticate;
     if (handoff == null) {
       setState(
-        () => _error =
-            const RetailCommerceException('authentication_required'),
+        () => _error = const RetailCommerceException('authentication_required'),
       );
       return;
     }
@@ -273,6 +272,47 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            if (cart.syncState !=
+                                RetailCartSyncState.synced) ...[
+                              Container(
+                                key: const ValueKey('retail-cart-sync-state'),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF7E6),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.cloud_upload_outlined,
+                                      size: 18,
+                                      color: Color(0xFF8A5A00),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        Localizations.localeOf(context)
+                                                    .languageCode ==
+                                                'ar'
+                                            ? 'تم حفظ التغييرات محلياً · في انتظار مزامنة الإنترنت'
+                                            : 'Saved locally · waiting for network sync',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: const Color(0xFF6B4A00),
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: CustomerUiSpacing.sm),
+                            ],
                             Row(
                               children: [
                                 Expanded(
@@ -288,8 +328,7 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                                       .textTheme
                                       .titleLarge
                                       ?.copyWith(
-                                        color:
-                                            CustomerUiColors.deepGreenStrong,
+                                        color: CustomerUiColors.deepGreenStrong,
                                       ),
                                 ),
                               ],
@@ -309,7 +348,10 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                             const SizedBox(height: CustomerUiSpacing.lg),
                             FilledButton.icon(
                               key: const ValueKey('retail-cart-checkout'),
-                              onPressed: _busy || cart.hasUnavailableItems
+                              onPressed: _busy ||
+                                      cart.hasUnavailableItems ||
+                                      cart.syncState !=
+                                          RetailCartSyncState.synced
                                   ? null
                                   : _checkout,
                               icon: const Icon(Icons.lock_outline_rounded),
@@ -609,11 +651,10 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                           initialValue: _paymentMethod,
                           decoration: InputDecoration(
                             labelText: strings.paymentMethod,
-                            prefixIcon:
-                                const Icon(Icons.account_balance_wallet_outlined),
+                            prefixIcon: const Icon(
+                                Icons.account_balance_wallet_outlined),
                           ),
-                          items: (options?.paymentMethods ??
-                                  const <String>[])
+                          items: (options?.paymentMethods ?? const <String>[])
                               .map(
                                 (method) => DropdownMenuItem<String>(
                                   value: method,
@@ -632,12 +673,10 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                         TextField(
                           key: const ValueKey('retail-checkout-coupon'),
                           controller: _coupon,
-                          textCapitalization:
-                              TextCapitalization.characters,
+                          textCapitalization: TextCapitalization.characters,
                           decoration: InputDecoration(
                             labelText: strings.coupon,
-                            prefixIcon:
-                                const Icon(Icons.local_offer_outlined),
+                            prefixIcon: const Icon(Icons.local_offer_outlined),
                           ),
                         ),
                       ],
@@ -823,8 +862,10 @@ class _CartItemCard extends StatelessWidget {
 
 bool _isOwnStoreBlocked(Object? error) {
   return switch (error) {
-    RetailCommerceException(:final code) => code == 'SELF_STORE_PURCHASE_NOT_ALLOWED',
-    B2cAccountException(:final code) => code == 'SELF_STORE_PURCHASE_NOT_ALLOWED',
+    RetailCommerceException(:final code) =>
+      code == 'SELF_STORE_PURCHASE_NOT_ALLOWED',
+    B2cAccountException(:final code) =>
+      code == 'SELF_STORE_PURCHASE_NOT_ALLOWED',
     _ => false,
   };
 }
@@ -947,7 +988,8 @@ String _commerceErrorText(_RetailCommerceStrings strings, Object error) {
       'authentication_required' => strings.authRequired,
       'checkout_fields_required' => strings.completeCheckoutFields,
       'checkout_in_progress' => strings.checkoutInProgress,
-      'cart_store_mismatch' || 'checkout_store_mismatch' =>
+      'cart_store_mismatch' ||
+      'checkout_store_mismatch' =>
         strings.storeContextError,
       _ => '${strings.requestFailed}: ${error.code}',
     };
@@ -955,13 +997,13 @@ String _commerceErrorText(_RetailCommerceStrings strings, Object error) {
   return strings.requestFailed;
 }
 
-String _paymentLabel(_RetailCommerceStrings strings, String method) => switch (
-      method) {
-    'cash_on_delivery' => strings.cashOnDelivery,
-    'knet' => 'KNET',
-    'card' || 'card_online' => strings.card,
-    _ => method,
-  };
+String _paymentLabel(_RetailCommerceStrings strings, String method) =>
+    switch (method) {
+      'cash_on_delivery' => strings.cashOnDelivery,
+      'knet' => 'KNET',
+      'card' || 'card_online' => strings.card,
+      _ => method,
+    };
 
 class _RetailCommerceStrings {
   const _RetailCommerceStrings({
@@ -1054,7 +1096,8 @@ class _RetailCommerceStrings {
     emptyCart: 'Your cart is empty',
     checkout: 'Checkout',
     total: 'Total',
-    unavailableItems: 'An item is unavailable. Review the cart before continuing.',
+    unavailableItems:
+        'An item is unavailable. Review the cart before continuing.',
     authRequired: 'Sign in or create an account to continue checkout.',
     login: 'Sign in',
     register: 'Create account',
@@ -1067,7 +1110,8 @@ class _RetailCommerceStrings {
     placeOrder: 'Place order',
     completeCheckoutFields: 'Choose a delivery address and payment method.',
     checkoutInProgress: 'This order is already being submitted.',
-    storeContextError: 'Store context was lost. Reopen the cart from the store.',
+    storeContextError:
+        'Store context was lost. Reopen the cart from the store.',
     requestFailed: 'Request failed',
     cashOnDelivery: 'Cash on delivery',
     card: 'Card',

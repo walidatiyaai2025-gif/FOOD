@@ -173,8 +173,7 @@ class _RetailCatalogHomeScreenState extends State<RetailCatalogHomeScreen>
                       query: value.trim().isEmpty ? null : value.trim(),
                     ),
                   ),
-                if (navigation.openProducts != null)
-                  const SizedBox(height: 20),
+                if (navigation.openProducts != null) const SizedBox(height: 20),
                 if (data.banners.isNotEmpty) ...[
                   _CatalogBanner(banner: data.banners.first),
                   const SizedBox(height: 22),
@@ -267,8 +266,7 @@ class RetailCatalogCategoriesScreen extends StatefulWidget {
 }
 
 class _RetailCatalogCategoriesScreenState
-    extends State<RetailCatalogCategoriesScreen>
-    with WidgetsBindingObserver {
+    extends State<RetailCatalogCategoriesScreen> with WidgetsBindingObserver {
   late Future<List<B2cCategory>> _future = _load();
 
   @override
@@ -630,8 +628,7 @@ class RetailCatalogProductsScreen extends StatefulWidget {
 }
 
 class _RetailCatalogProductsScreenState
-    extends State<RetailCatalogProductsScreen>
-    with WidgetsBindingObserver {
+    extends State<RetailCatalogProductsScreen> with WidgetsBindingObserver {
   late final TextEditingController _search =
       TextEditingController(text: widget.initialQuery ?? '');
   late String? _query = _normalized(widget.initialQuery);
@@ -748,8 +745,7 @@ class _RetailCatalogProductsScreenState
                           CustomerUiSpacing.page,
                           CustomerUiSpacing.xxl,
                         ),
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columns,
                           crossAxisSpacing: CustomerUiSpacing.sm,
                           mainAxisSpacing: CustomerUiSpacing.sm,
@@ -771,7 +767,6 @@ class _RetailCatalogProductsScreenState
           ],
         ),
       );
-
 
   static String? _normalized(String? value) {
     final normalized = value?.trim();
@@ -801,8 +796,7 @@ class RetailCatalogProductScreen extends StatefulWidget {
       _RetailCatalogProductScreenState();
 }
 
-class _RetailCatalogProductScreenState
-    extends State<RetailCatalogProductScreen>
+class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
     with WidgetsBindingObserver {
   late Future<B2cProduct> _future = _load();
   double _quantity = 1;
@@ -944,9 +938,10 @@ class _RetailCatalogProductScreenState
                         const SizedBox(height: CustomerUiSpacing.xs),
                         Text(
                           product.sku,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: CustomerUiColors.muted,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: CustomerUiColors.muted,
+                                  ),
                         ),
                         if (product.price != null) ...[
                           const SizedBox(height: CustomerUiSpacing.md),
@@ -971,20 +966,23 @@ class _RetailCatalogProductScreenState
                                 ? 'retail-product-available'
                                 : 'retail-product-out-of-stock',
                           ),
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: product.isAvailable
-                                    ? CustomerUiColors.deepGreenStrong
-                                    : CustomerUiColors.muted,
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: product.isAvailable
+                                        ? CustomerUiColors.deepGreenStrong
+                                        : CustomerUiColors.muted,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                         ),
                         if (product.availableQuantity != null)
                           Text(
                             product.availableQuantity!.toStringAsFixed(3),
-                            key: const ValueKey('retail-product-available-quantity'),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: CustomerUiColors.muted,
-                                ),
+                            key: const ValueKey(
+                                'retail-product-available-quantity'),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: CustomerUiColors.muted,
+                                    ),
                           ),
                         if (product.description?.trim().isNotEmpty == true) ...[
                           const SizedBox(height: CustomerUiSpacing.lg),
@@ -1011,10 +1009,10 @@ class _RetailCatalogProductScreenState
                                 children: [
                                   IconButton(
                                     key: const ValueKey('retail-product-minus'),
-                                    onPressed: !product.isAvailable || _quantity <= 1
+                                    onPressed: !product.isAvailable ||
+                                            _quantity <= 1
                                         ? null
-                                        : () =>
-                                            setState(() => _quantity -= 1),
+                                        : () => setState(() => _quantity -= 1),
                                     icon: const Icon(Icons.remove_rounded),
                                   ),
                                   ConstrainedBox(
@@ -1026,8 +1024,9 @@ class _RetailCatalogProductScreenState
                                         'retail-product-quantity',
                                       ),
                                       textAlign: TextAlign.center,
-                                      style:
-                                          Theme.of(context).textTheme.titleMedium,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
                                     ),
                                   ),
                                   IconButton(
@@ -1045,13 +1044,11 @@ class _RetailCatalogProductScreenState
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(
-                              key:
-                                  const ValueKey('retail-product-add-cart'),
+                              key: const ValueKey('retail-product-add-cart'),
                               onPressed: _submitting || !product.isAvailable
                                   ? null
                                   : () => _add(product),
-                              icon:
-                                  const Icon(Icons.add_shopping_cart_rounded),
+                              icon: const Icon(Icons.add_shopping_cart_rounded),
                               label:
                                   Text(context.tr('customer.action.add_cart')),
                             ),
@@ -1066,7 +1063,6 @@ class _RetailCatalogProductScreenState
           },
         ),
       );
-
 }
 
 class _BrowseProductCard extends StatelessWidget {
@@ -1085,8 +1081,9 @@ class _BrowseProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final openProduct = navigation.openProduct;
-    final image =
-        product.images.isNotEmpty ? product.images.first : product.imageUrl;
+    final image = product.thumbnailUrl?.trim().isNotEmpty == true
+        ? product.thumbnailUrl
+        : product.imageUrl;
     final priceLabel = product.price == null
         ? '—'
         : '${product.price!.toStringAsFixed(3)} ${product.currency}';
@@ -1409,8 +1406,7 @@ class _CatalogErrorState extends StatelessWidget {
           kind: CustomerStateKind.error,
           title: context.tr('customer.store.own_purchase_blocked.title'),
           message: context.tr('customer.store.own_purchase_blocked.body'),
-          actionLabel:
-              context.tr('customer.store.own_purchase_blocked.action'),
+          actionLabel: context.tr('customer.store.own_purchase_blocked.action'),
           onAction: () => Navigator.of(context).pushNamedAndRemoveUntil(
             CustomerRoutePaths.marketplace,
             (route) => false,

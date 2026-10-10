@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Models\Concerns\ScopesStoreAccess;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
 class Order extends Model
@@ -47,6 +49,18 @@ class Order extends Model
         'delivery_latitude' => 'float',
         'delivery_longitude' => 'float',
     ];
+
+    /** @return HasMany<OrderItem, $this> */
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
+    }
+
+    /** @return BelongsTo<Store, $this> */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class, 'store_id');
+    }
 
     protected static function booted(): void
     {

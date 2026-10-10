@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/customer_action_api.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/network/customer_data_mode.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_order_models.dart';
 import 'customer_orders_api.dart';
@@ -34,6 +35,8 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
 
   late final TabController _tabController;
   Timer? _refreshTimer;
+  final CustomerDataModeController _dataMode =
+      CustomerDataModeController.instance;
   final Set<int> _reordering = <int>{};
   final Map<String, _OrdersTabState> _tabs = <String, _OrdersTabState>{
     'b2b': _OrdersTabState(),
@@ -52,13 +55,9 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
       vsync: this,
       initialIndex: initialIndex < 0 ? 0 : initialIndex,
     )..addListener(_onTabChanged);
-    for (final channel in _channels) {
-      unawaited(_loadChannel(channel));
-    }
-    _refreshTimer = Timer.periodic(
-      CustomerOrderRefreshPolicy.openOrderPollInterval,
-      (_) => _refreshActiveOpenOrders(),
-    );
+    _dataMode.addListener(_onDataModeChanged);
+    unawaited(_loadChannel(_activeChannel));
+    _scheduleRefresh();
   }
 
   @override
@@ -76,6 +75,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _dataMode.removeListener(_onDataModeChanged);
     _refreshTimer?.cancel();
     _tabController
       ..removeListener(_onTabChanged)
@@ -85,29 +85,63 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) {
+    final resumed = state == AppLifecycleState.resumed;
+    _dataMode.setBackgrounded(!resumed);
+    if (resumed && mounted) {
       unawaited(_loadChannel(_activeChannel));
+      _scheduleRefresh();
+    } else {
+      _refreshTimer?.cancel();
     }
   }
 
-  void _refreshActiveOpenOrders() {
+  Future<void> _refreshActiveOpenOrders() async {
     if (!mounted) return;
     final tab = _tabs[_activeChannel]!;
     if (tab.loading || tab.loadingMore || tab.orders.isEmpty) return;
     if (tab.orders.every((order) => order.isTerminal)) return;
-    unawaited(_loadChannel(_activeChannel));
+    await _loadChannel(_activeChannel);
+  }
+
+  void _onDataModeChanged() {
+    if (mounted) _scheduleRefresh();
+  }
+
+  Duration? _activeRefreshInterval({bool pushAvailable = false}) {
+    if (!_dataMode.allowsBackgroundRefresh) return null;
+    final lite = _dataMode.effectiveMode == CustomerDataMode.lite;
+    if (pushAvailable) {
+      return lite
+          ? CustomerOrderRefreshPolicy.litePushBackstopPollInterval
+          : CustomerOrderRefreshPolicy.pushBackstopPollInterval;
+    }
+    return lite
+        ? CustomerOrderRefreshPolicy.liteOpenOrderPollInterval
+        : CustomerOrderRefreshPolicy.openOrderPollInterval;
+  }
+
+  void _scheduleRefresh() {
+    _refreshTimer?.cancel();
+    final interval = _activeRefreshInterval();
+    if (interval == null) return;
+    _refreshTimer = Timer(interval, () async {
+      await _refreshActiveOpenOrders();
+      if (mounted) _scheduleRefresh();
+    });
   }
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging && mounted) {
+      final tab = _tabs[_activeChannel]!;
+      if (tab.orders.isEmpty && !tab.loading) {
+        unawaited(_loadChannel(_activeChannel));
+      }
+      _scheduleRefresh();
       setState(() {});
     }
   }
 
-  Future<void> _loadChannel(
-    String channel, {
-    bool reset = true,
-  }) async {
+  Future<void> _loadChannel(String channel, {bool reset = true}) async {
     final tab = _tabs[channel]!;
     if ((reset && tab.loading) || (!reset && tab.loadingMore)) return;
 
@@ -317,9 +351,8 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     label,
                     maxLines: 1,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: selected
-                              ? Colors.white
-                              : const Color(0xFF303A36),
+                          color:
+                              selected ? Colors.white : const Color(0xFF303A36),
                           fontSize: 13,
                           fontWeight:
                               selected ? FontWeight.w800 : FontWeight.w600,
@@ -373,17 +406,33 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
 
   Future<void> _reorder(CustomerOrderSummary order) async {
     final actionApi = widget.actionApi;
-    if (actionApi == null ||
-        order.reorderItems.isEmpty ||
-        _reordering.contains(order.id)) {
+    if (actionApi == null || _reordering.contains(order.id)) {
       return;
     }
 
     setState(() => _reordering.add(order.id));
+    var reorderItems = order.reorderItems;
+    if (reorderItems.isEmpty) {
+      try {
+        final details = await widget.api.order(
+          orderId: order.id,
+          context: order.context,
+        );
+        reorderItems = details.items;
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _reordering.remove(order.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('customer.orders.reorder_failed'))),
+        );
+        return;
+      }
+    }
+
     final failed = <String>[];
     var added = 0;
 
-    for (final item in order.reorderItems) {
+    for (final item in reorderItems) {
       try {
         await actionApi.addCartItem(
           storeId: order.storeId,
@@ -496,9 +545,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                 key: ValueKey('customer-orders-retry-$channel'),
                 onPressed: tab.loadingMore
                     ? null
-                    : () => unawaited(
-                          _loadChannel(channel, reset: false),
-                        ),
+                    : () => unawaited(_loadChannel(channel, reset: false)),
                 child: Text(context.tr('customer.action.retry')),
               ),
             ),
@@ -512,9 +559,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
               key: ValueKey('customer-orders-load-more-$channel'),
               onPressed: tab.loadingMore
                   ? null
-                  : () => unawaited(
-                        _loadChannel(channel, reset: false),
-                      ),
+                  : () => unawaited(_loadChannel(channel, reset: false)),
               icon: const Icon(Icons.expand_more_rounded),
               label: Text(context.tr('customer.orders.load_more')),
             ),
@@ -642,18 +687,22 @@ class CustomerOrderTrackingScreen extends StatelessWidget {
       );
 }
 
-class _CustomerOrderDetailsScreenState
-    extends State<CustomerOrderDetailsScreen> {
+class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
+    with WidgetsBindingObserver {
   CustomerOrderDetails? _order;
   Object? _error;
   bool _loading = true;
   DateTime? _lastUpdatedAt;
   Timer? _pollTimer;
+  final CustomerDataModeController _dataMode =
+      CustomerDataModeController.instance;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _dataMode.addListener(_onDataModeChanged);
     _listenForLifecycleNotifications();
     unawaited(_load());
   }
@@ -679,9 +728,31 @@ class _CustomerOrderDetailsScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dataMode.removeListener(_onDataModeChanged);
     _pollTimer?.cancel();
     unawaited(_notificationSubscription?.cancel());
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final resumed = state == AppLifecycleState.resumed;
+    _dataMode.setBackgrounded(!resumed);
+    if (!resumed) {
+      _pollTimer?.cancel();
+      return;
+    }
+    if (_order != null) {
+      unawaited(_load(silent: true));
+    }
+  }
+
+  void _onDataModeChanged() {
+    final order = _order;
+    if (mounted && order != null) {
+      _schedulePolling(order.summary.status);
+    }
   }
 
   void _listenForLifecycleNotifications() {
@@ -738,12 +809,21 @@ class _CustomerOrderDetailsScreenState
 
   void _schedulePolling(String status) {
     _pollTimer?.cancel();
-    if (!CustomerOrderRefreshPolicy.shouldPoll(status)) return;
+    if (!CustomerOrderRefreshPolicy.shouldPoll(status) ||
+        !_dataMode.allowsBackgroundRefresh) {
+      return;
+    }
 
-    _pollTimer = Timer(
-      CustomerOrderRefreshPolicy.openOrderPollInterval,
-      () => _load(silent: true),
-    );
+    final lite = _dataMode.effectiveMode == CustomerDataMode.lite;
+    final pushAvailable = widget.lifecycleNotifications != null;
+    final interval = pushAvailable
+        ? (lite
+            ? CustomerOrderRefreshPolicy.litePushBackstopPollInterval
+            : CustomerOrderRefreshPolicy.pushBackstopPollInterval)
+        : (lite
+            ? CustomerOrderRefreshPolicy.liteOpenOrderPollInterval
+            : CustomerOrderRefreshPolicy.openOrderPollInterval);
+    _pollTimer = Timer(interval, () => _load(silent: true));
   }
 
   @override
@@ -770,10 +850,7 @@ class _CustomerOrderDetailsScreenState
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _body(context),
-      ),
+      body: RefreshIndicator(onRefresh: _load, child: _body(context)),
     );
   }
 
@@ -896,7 +973,9 @@ class _OrderCard extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Text(
-                  order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber,
+                  order.orderNumber.isEmpty
+                      ? '#${order.id}'
+                      : order.orderNumber,
                   maxLines: 1,
                   softWrap: false,
                   style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
@@ -966,7 +1045,8 @@ class _OrderCard extends StatelessWidget {
         ? context.tr('customer.orders.channel.wholesale')
         : context.tr('customer.orders.channel.retail');
     final store = order.storeName?.trim();
-    final title = order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber;
+    final title =
+        order.orderNumber.isEmpty ? '#${order.id}' : order.orderNumber;
 
     return Material(
       key: ValueKey('customer-order-${order.id}'),
@@ -1030,7 +1110,10 @@ class _OrderCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.left,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   color: const Color(0xFF151B1A),
                                   fontWeight: FontWeight.w900,
                                   fontSize: 15.5,
@@ -1047,11 +1130,12 @@ class _OrderCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.left,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: const Color(0xFF69736F),
-                                fontSize: 13.5,
-                                height: 1.1,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFF69736F),
+                                    fontSize: 13.5,
+                                    height: 1.1,
+                                  ),
                         ),
                       ),
                       if (order.createdAt != null) ...[
@@ -1065,7 +1149,10 @@ class _OrderCard extends StatelessWidget {
                                   _formatDateTime(order.createdAt!),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
                                         color: const Color(0xFF69736F),
                                         fontSize: 11.5,
                                       ),
@@ -1088,12 +1175,13 @@ class _OrderCard extends StatelessWidget {
                           '${order.currency} ${order.grandTotal.toStringAsFixed(3)}',
                           textAlign: TextAlign.left,
                           maxLines: 1,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF087A56),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15.5,
-                                height: 1.05,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: const Color(0xFF087A56),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 15.5,
+                                    height: 1.05,
+                                  ),
                         ),
                       ),
                     ],
@@ -1155,10 +1243,7 @@ class _CompactOrderStatusChip extends StatelessWidget {
           background: Color(0xFFE7F8F1),
           foreground: Color(0xFF07925D),
         ),
-      _ => const (
-          background: Color(0xFFEDF8EF),
-          foreground: Color(0xFF178A2A),
-        ),
+      _ => const (background: Color(0xFFEDF8EF), foreground: Color(0xFF178A2A)),
     };
 
     return Container(
@@ -1274,10 +1359,7 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final tone = _statusTone(status);
     if (!inverted) {
-      return CustomerBadge(
-        label: _statusText(context, status),
-        tone: tone,
-      );
+      return CustomerBadge(label: _statusText(context, status), tone: tone);
     }
 
     return DecoratedBox(
@@ -1318,10 +1400,7 @@ class _OrderTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = details.history;
     if (entries.isEmpty) {
-      return _TimelineRow(
-        status: details.summary.status,
-        isLast: true,
-      );
+      return _TimelineRow(status: details.summary.status, isLast: true);
     }
 
     return Column(
@@ -1405,9 +1484,10 @@ class _TimelineRow extends StatelessWidget {
                       if (createdAt != null)
                         Text(
                           _formatDateTime(createdAt!),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: CustomerUiColors.muted,
-                              ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: CustomerUiColors.muted),
                         ),
                     ],
                   ),
@@ -1505,14 +1585,15 @@ class _PaymentSummary extends StatelessWidget {
     final payment = details.payment;
     final receipts = details.collectionReceipts;
     final outstanding = details.summary.invoiceOutstandingAmount;
-    final paymentMethodLabel =
-        _paymentMethodLabel(context, details.paymentMethod);
+    final paymentMethodLabel = _paymentMethodLabel(
+      context,
+      details.paymentMethod,
+    );
     final paymentProviderLabel = payment == null
         ? null
         : _paymentProviderLabel(context, payment.provider);
-    final paymentStatusLabel = payment == null
-        ? null
-        : _paymentStatusLabel(context, payment.status);
+    final paymentStatusLabel =
+        payment == null ? null : _paymentStatusLabel(context, payment.status);
 
     if (payment == null && receipts.isEmpty && outstanding == null) {
       return Text(paymentMethodLabel);
@@ -1547,9 +1628,9 @@ class _PaymentSummary extends StatelessWidget {
           const SizedBox(height: CustomerUiSpacing.xs),
           Text(
             context.tr('customer.order.payment.collection_receipts'),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: CustomerUiSpacing.xxs),
           for (final receipt in receipts)
@@ -1584,7 +1665,10 @@ String _paymentMethodLabel(BuildContext context, String? value) {
   final normalized = value?.trim().toLowerCase() ?? '';
   final ar = Localizations.localeOf(context).languageCode == 'ar';
   return switch (normalized) {
-    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'cash' ||
+    'cod' ||
+    'cash_on_delivery' =>
+      ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
     'card' || 'credit_card' || 'debit_card' => ar ? 'بطاقة' : 'Card',
     'knet' => 'KNET',
     'wallet' => ar ? 'المحفظة' : 'Wallet',
@@ -1599,7 +1683,10 @@ String _paymentProviderLabel(BuildContext context, String value) {
   final ar = Localizations.localeOf(context).languageCode == 'ar';
   return switch (normalized) {
     'knet' => 'KNET',
-    'cash' || 'cod' || 'cash_on_delivery' => ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
+    'cash' ||
+    'cod' ||
+    'cash_on_delivery' =>
+      ar ? 'الدفع عند الاستلام' : 'Cash on delivery',
     'stripe' => 'Stripe',
     'apple_pay' => 'Apple Pay',
     'google_pay' => 'Google Pay',
@@ -1762,8 +1849,6 @@ class _ScrollableState extends StatelessWidget {
       );
 }
 
-
-
 CustomerBadgeTone _statusTone(String status) {
   switch (status.toLowerCase()) {
     case 'delivered':
@@ -1828,15 +1913,13 @@ IconData _statusIcon(String status) {
   }
 }
 
-bool _canReorder(CustomerOrderSummary order) =>
-    order.reorderItems.isNotEmpty &&
-    const <String>{'delivered', 'failed', 'cancelled'}
-        .contains(order.status.toLowerCase());
+bool _canReorder(CustomerOrderSummary order) => const <String>{
+      'delivered',
+      'failed',
+      'cancelled',
+    }.contains(order.status.toLowerCase());
 
-String _approvalText(
-  BuildContext context,
-  CustomerOrderSummary order,
-) {
+String _approvalText(BuildContext context, CustomerOrderSummary order) {
   final explicit = order.approvalStatus?.trim().toLowerCase();
   switch (explicit) {
     case 'pending':
@@ -1874,10 +1957,7 @@ String _approvalText(
   }
 }
 
-String _financialText(
-  BuildContext context,
-  CustomerOrderSummary order,
-) {
+String _financialText(BuildContext context, CustomerOrderSummary order) {
   final outstanding = order.invoiceOutstandingAmount;
   if (order.fullySettled == true ||
       (outstanding != null && outstanding <= 0.0000001)) {

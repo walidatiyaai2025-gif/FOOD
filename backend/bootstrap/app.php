@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CorrelationId;
+use App\Http\Middleware\CustomerConditionalGet;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureFreshDriverLocation;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
@@ -26,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(RunSchedulerHeartbeat::class);
-        $middleware->api(prepend: [CorrelationId::class]);
+        $middleware->api(prepend: [CorrelationId::class, CustomerConditionalGet::class]);
 
         $middleware->alias([
             'active.user' => EnsureActiveUser::class,

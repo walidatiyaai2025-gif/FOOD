@@ -20,6 +20,8 @@ import 'core/engagement/notification_campaign_popup_service.dart';
 import 'core/localization/app_translations.dart';
 import 'core/location/customer_location_service.dart';
 import 'core/location/customer_map_pin_selector.dart';
+import 'core/network/customer_data_mode.dart';
+import 'core/network/customer_low_data_http_client.dart';
 import 'core/push/firebase_push_service.dart';
 import 'core/preview/customer_preview_bootstrap.dart';
 import 'core/preview/customer_preview_context.dart';
@@ -102,13 +104,10 @@ class FoodexCustomerApp extends StatefulWidget {
       storefrontApi: PreviewStorefrontApi(storefrontApi, previewContext),
       wholesaleCommerceApi: wholesaleCommerceApi == null
           ? null
-          : PreviewWholesaleCommerceApi(
-              wholesaleCommerceApi,
-              previewContext,
-            ),
+          : PreviewWholesaleCommerceApi(wholesaleCommerceApi, previewContext),
       customerOrdersApi: customerOrdersApi,
-      locale: locale ??
-          Locale(previewContext.targetLocale == 'en' ? 'en' : 'ar'),
+      locale:
+          locale ?? Locale(previewContext.targetLocale == 'en' ? 'en' : 'ar'),
       translationOverrides: translationOverrides,
       translationFetcher: translationFetcher,
       theme: theme,
@@ -147,14 +146,16 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerPreviewBootstrap? previewBootstrap;
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
-  final CustomerNotificationCampaignPopupService? notificationCampaignPopupService;
+  final CustomerNotificationCampaignPopupService?
+      notificationCampaignPopupService;
   final bool showPersistentFooter;
 
   @override
   State<FoodexCustomerApp> createState() => _FoodexCustomerAppState();
 }
 
-class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
+class _FoodexCustomerAppState extends State<FoodexCustomerApp>
+    with WidgetsBindingObserver {
   late Map<String, String> _translations;
   late CustomerSession _session;
   late CustomerAuthPreferences _authPreferences;
@@ -165,7 +166,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   final CustomerGuestCartTokenStore _guestCartTokenStore =
       SecureCustomerGuestCartTokenStore();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
   CustomerAppRouter? _activeRouter;
   StreamSubscription<String>? _pushRouteSubscription;
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
@@ -182,13 +184,16 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    CustomerDataModeController.instance.setBackgrounded(false);
     _translations = Map<String, String>.from(widget.translationOverrides);
     _launchCampaignPopups = widget.notificationCampaignPopupService ??
         CustomerNotificationCampaignPopupService();
     _session = widget.session;
     _authPreferences = widget.authPreferences;
-    _activeCommerceContext =
-        CustomerCommerceContext.tryParseLocation(widget.initialRoute);
+    _activeCommerceContext = CustomerCommerceContext.tryParseLocation(
+      widget.initialRoute,
+    );
     _pendingActionStore =
         widget.pendingActionStore ?? SecureCustomerPendingActionStore();
     _locale = widget.locale;
@@ -196,8 +201,13 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       http.Client(),
       diagnostics: _diagnostics,
     );
-    _sessionHttpClient = CustomerSessionHttpClient(
+    final lowDataHttpClient = CustomerLowDataHttpClient(
       _diagnosticsHttpClient,
+      diagnostics: _diagnostics,
+      dataMode: CustomerDataModeController.instance,
+    );
+    _sessionHttpClient = CustomerSessionHttpClient(
+      lowDataHttpClient,
       onUnauthorized: _onSessionExpired,
     );
     _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
@@ -354,7 +364,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   void _showPushAlert(FoodexPushAlert alert) {
-    final message = alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
+    final message =
+        alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
     _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
   }
 
@@ -420,19 +431,13 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
 
   void _onAuthenticated(CustomerChannel channel, String token) {
     unawaited(
-      _completeUnifiedAuthentication(
-        token,
-        const CustomerAuthPreferences(),
-      ),
+      _completeUnifiedAuthentication(token, const CustomerAuthPreferences()),
     );
   }
 
   void _onPlatformRegistered(String token) {
     unawaited(
-      _completeUnifiedAuthentication(
-        token,
-        const CustomerAuthPreferences(),
-      ),
+      _completeUnifiedAuthentication(token, const CustomerAuthPreferences()),
     );
   }
 
@@ -509,7 +514,15 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    CustomerDataModeController.instance.setBackgrounded(
+      state != AppLifecycleState.resumed,
+    );
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sessionHttpClient.close();
     _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
@@ -717,8 +730,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       storefrontApi: storefrontApi,
       wholesaleApi: wholesaleCommerceApi,
       retailCommerceApi: retailCommerceApi,
-      retailCommerceForToken: (newToken) =>
-          retailCommerceForToken(newToken),
+      retailCommerceForToken: (newToken) => retailCommerceForToken(newToken),
       customerOrdersApi: customerOrdersApi,
       favoritesApi: favoritesApi,
       wholesaleFavoritesApi: wholesaleFavoritesApi,
@@ -738,8 +750,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
       pendingActionExecutor:
           widget.previewContext == null ? executePendingAction : null,
       onLocaleChanged: _changeLocale,
-      locationService: widget.locationService ??
-          const GeolocatorCustomerLocationService(),
+      locationService:
+          widget.locationService ?? const GeolocatorCustomerLocationService(),
       mapPinPicker: widget.mapPinPicker ?? showCustomerMapPinSelector,
       marketplaceClient: widget.marketplaceClient,
       marketplaceBarcodeScanner: widget.marketplaceBarcodeScanner,
@@ -754,9 +766,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _messengerKey,
-      navigatorObservers: [
-        CustomerDiagnosticsNavigatorObserver(_diagnostics),
-      ],
+      navigatorObservers: [CustomerDiagnosticsNavigatorObserver(_diagnostics)],
       debugShowCheckedModeBanner: false,
       title: 'FOODEX Customer',
       theme: widget.theme ?? FoodexTheme.light(),
@@ -767,47 +777,53 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => _withPreviewViewport(AppTranslations(
-        locale: _locale,
-        overrides: _translations,
-        child: Builder(
-          builder: (translatedContext) => Stack(
-            fit: StackFit.expand,
-            children: [
-              child ?? const SizedBox.shrink(),
-              if (_showVersionFooter && widget.showPersistentFooter) ...[
-                PositionedDirectional(
-                  start: 0,
-                  end: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF8FAFC),
-                        border: Border(
-                          top: BorderSide(color: Color(0xFFE3E8EF)),
+      builder: (context, child) => _withPreviewViewport(
+        AppTranslations(
+          locale: _locale,
+          overrides: _translations,
+          child: Builder(
+            builder: (translatedContext) => Stack(
+              fit: StackFit.expand,
+              children: [
+                child ?? const SizedBox.shrink(),
+                if (_showVersionFooter && widget.showPersistentFooter) ...[
+                  PositionedDirectional(
+                    start: 0,
+                    end: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF8FAFC),
+                          border: Border(
+                            top: BorderSide(color: Color(0xFFE3E8EF)),
+                          ),
                         ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: SizedBox(
-                          height: 34,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: Text(
-                                '${translatedContext.tr('customer.version')} $_appVersion',
-                                key: const ValueKey('customer-app-version-footer'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(translatedContext)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: FoodexBrand.muted,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                        child: SafeArea(
+                          top: false,
+                          child: SizedBox(
+                            height: 34,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text(
+                                  '${translatedContext.tr('customer.version')} $_appVersion',
+                                  key: const ValueKey(
+                                    'customer-app-version-footer',
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(translatedContext)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: FoodexBrand.muted,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
                               ),
                             ),
                           ),
@@ -815,33 +831,33 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp> {
                       ),
                     ),
                   ),
-                ),
-                if (_session.isAuthenticated)
-                  PositionedDirectional(
-                    end: 6,
-                    bottom: 0,
-                    child: SafeArea(
-                      top: false,
-                      child: SizedBox(
-                        height: 34,
-                        child: TextButton.icon(
-                          key: const ValueKey('customer-logout'),
-                          onPressed: () => _logout(actionApi),
-                          icon: const Icon(Icons.logout_rounded, size: 16),
-                          label: Text(
-                            translatedContext.tr('customer.logout'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                  if (_session.isAuthenticated)
+                    PositionedDirectional(
+                      end: 6,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: SizedBox(
+                          height: 34,
+                          child: TextButton.icon(
+                            key: const ValueKey('customer-logout'),
+                            onPressed: () => _logout(actionApi),
+                            icon: const Icon(Icons.logout_rounded, size: 16),
+                            label: Text(
+                              translatedContext.tr('customer.logout'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
-      )),
+      ),
       initialRoute: widget.initialRoute,
       onGenerateInitialRoutes: (routeName) => [
         router.onGenerateRoute(RouteSettings(name: routeName)),

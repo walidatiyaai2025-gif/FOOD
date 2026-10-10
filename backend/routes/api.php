@@ -99,6 +99,9 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/offers', [GuestCatalogController::class, 'offers']);
     Route::get('/stores/{store}/banners', [GuestCatalogController::class, 'banners']);
     Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
+    Route::get('/catalog/images/{image}/thumbnail', [CustomerCatalogImageController::class, 'thumbnail'])
+        ->whereNumber('image')
+        ->name('api.customer.catalog-image.thumbnail');
     Route::get('/products/{product}', [GuestCatalogController::class, 'product']);
     Route::get('/live-ads', [LiveAdController::class, 'index']);
     Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index'])
