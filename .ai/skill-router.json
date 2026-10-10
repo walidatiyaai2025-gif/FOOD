@@ -22,6 +22,7 @@
         "ui-route-authority.md",
         "ui-accessibility.md",
         "uiux-audit.md",
+        "uiux-evidence.md",
         "ui-pr-evidence-plan.md"
       ],
       "gates": [
@@ -34,7 +35,9 @@
     },
     {
       "id": "customer-ui",
-      "paths": ["apps/customer_app/lib/**"],
+      "paths": [
+        "apps/customer_app/lib/**"
+      ],
       "skills": [
         "ui-screen.md",
         "foodex-uiux.md",
@@ -42,6 +45,7 @@
         "ui-route-authority.md",
         "ui-accessibility.md",
         "uiux-audit.md",
+        "uiux-evidence.md",
         "ui-pr-evidence-plan.md"
       ],
       "gates": [
@@ -54,7 +58,9 @@
     },
     {
       "id": "driver-ui",
-      "paths": ["apps/driver_app/lib/**"],
+      "paths": [
+        "apps/driver_app/lib/**"
+      ],
       "skills": [
         "ui-screen.md",
         "foodex-uiux.md",
@@ -62,6 +68,7 @@
         "ui-route-authority.md",
         "ui-accessibility.md",
         "uiux-audit.md",
+        "uiux-evidence.md",
         "ui-pr-evidence-plan.md"
       ],
       "gates": [
@@ -74,7 +81,9 @@
     },
     {
       "id": "van-ui",
-      "paths": ["apps/van_app/lib/**"],
+      "paths": [
+        "apps/van_app/lib/**"
+      ],
       "skills": [
         "ui-screen.md",
         "foodex-uiux.md",
@@ -82,6 +91,7 @@
         "ui-route-authority.md",
         "ui-accessibility.md",
         "uiux-audit.md",
+        "uiux-evidence.md",
         "ui-pr-evidence-plan.md"
       ],
       "gates": [
@@ -98,8 +108,12 @@
         "backend/database/migrations/**",
         "backend/database/seeders/**"
       ],
-      "skills": ["database-change.md"],
-      "gates": ["backend-validation"]
+      "skills": [
+        "database-change.md"
+      ],
+      "gates": [
+        "backend-validation"
+      ]
     },
     {
       "id": "api",
@@ -108,8 +122,12 @@
         "backend/routes/**",
         "docs/api/openapi.yaml"
       ],
-      "skills": ["api-endpoint.md"],
-      "gates": ["backend-validation"]
+      "skills": [
+        "api-endpoint.md"
+      ],
+      "gates": [
+        "backend-validation"
+      ]
     },
     {
       "id": "release",
@@ -120,8 +138,12 @@
         "scripts/package-mobile-artifact.py",
         "scripts/validate_release_artifact_contract.py"
       ],
-      "skills": ["release.md"],
-      "gates": ["release-validation"]
+      "skills": [
+        "release.md"
+      ],
+      "gates": [
+        "release-validation"
+      ]
     },
     {
       "id": "ci",
@@ -130,8 +152,12 @@
         ".github/scripts/**",
         "scripts/validate-*.sh"
       ],
-      "skills": ["ci-repair.md"],
-      "gates": ["repository-policy"]
+      "skills": [
+        "ci-repair.md"
+      ],
+      "gates": [
+        "repository-policy"
+      ]
     },
     {
       "id": "security",
@@ -141,8 +167,12 @@
         "backend/app/Providers/AuthServiceProvider.php",
         "docs/security/**"
       ],
-      "skills": ["security-review.md"],
-      "gates": ["security-review"]
+      "skills": [
+        "security-review.md"
+      ],
+      "gates": [
+        "security-review"
+      ]
     },
     {
       "id": "skill-system",
@@ -153,24 +183,46 @@
         "scripts/tests/test_foodex_skill_router.py",
         "AGENTS.md"
       ],
-      "skills": ["uiux-skill-maintenance.md"],
-      "gates": ["skill-router"]
+      "skills": [
+        "uiux-skill-maintenance.md"
+      ],
+      "gates": [
+        "skill-router"
+      ]
     }
   ],
   "conditional_rules": [
     {
       "id": "state-changing-ui",
-      "route_ids": ["dashboard-ui", "customer-ui", "driver-ui", "van-ui"],
+      "route_ids": [
+        "dashboard-ui",
+        "customer-ui",
+        "driver-ui",
+        "van-ui"
+      ],
       "added_regex": "(?i)(\\b(?:post|put|patch|delete)\\s*\\(|method\\s*[:=]\\s*['\\\"](?:POST|PUT|PATCH|DELETE)|\\b(?:checkout|payment|remittance|collection|dispatch|assignment|submit|approve|reject|cancel|refund)\\b)",
-      "skills": ["ui-interaction-safety.md"],
-      "gates": ["mutation-safety"]
+      "skills": [
+        "ui-interaction-safety.md"
+      ],
+      "gates": [
+        "mutation-safety"
+      ]
     },
     {
       "id": "high-growth-live-ui",
-      "route_ids": ["dashboard-ui", "customer-ui", "driver-ui", "van-ui"],
+      "route_ids": [
+        "dashboard-ui",
+        "customer-ui",
+        "driver-ui",
+        "van-ui"
+      ],
       "added_regex": "(?i)(<table\\b|\\bDataTable\\s*\\(|\\bListView(?:\\.|\\s*\\()|\\bGridView(?:\\.|\\s*\\()|\\bpaginate\\s*\\(|\\bpagination\\b|\\bsearch\\b|\\bTimer\\.periodic\\b|\\bpoll(?:ing)?\\b|\\bStreamBuilder\\s*<)",
-      "skills": ["ui-performance.md"],
-      "gates": ["performance"]
+      "skills": [
+        "ui-performance.md"
+      ],
+      "gates": [
+        "performance"
+      ]
     }
   ]
 }
