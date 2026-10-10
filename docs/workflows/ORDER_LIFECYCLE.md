@@ -37,7 +37,7 @@ This boundary is locked:
 | B2B / Wholesale | Van only | None |
 | B2C / Retail | Driver only | None |
 
-For B2B, Smart Routing may assign an eligible Van. If no Van can be selected, the order remains `awaiting_dispatch`. A Driver must never be invented or used as a B2B fallback.
+For B2B, Smart Routing may assign an eligible Van. If no Van can be selected, the order remains `awaiting_dispatch`. There is no Driver fallback for B2B; a Driver must never be invented or used as fallback behavior.
 
 For B2C, Driver assignment and execution remain authoritative and must not regress while B2B is removed from Driver runtime.
 
