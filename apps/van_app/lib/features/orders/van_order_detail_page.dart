@@ -6,6 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
+import '../wallet/van_collection_page.dart';
+import '../wallet/van_receipts_page.dart';
+import '../wallet/van_wallet_contract.dart';
 import 'van_delivery_evidence_sheet.dart';
 import 'van_order_contract.dart';
 import 'van_order_proof_picker.dart';
@@ -21,6 +24,7 @@ class VanOrderDetailPage extends StatefulWidget {
     required this.orderId,
     required this.repository,
     required this.onSessionExpired,
+    this.walletRepository,
     this.navigationLauncher,
     this.proofPicker,
   });
@@ -28,6 +32,7 @@ class VanOrderDetailPage extends StatefulWidget {
   final int orderId;
   final VanOrderRepository repository;
   final Future<void> Function() onSessionExpired;
+  final VanWalletRepository? walletRepository;
   final VanOrderNavigationLauncher? navigationLauncher;
   final VanOrderProofPicker? proofPicker;
 
@@ -44,6 +49,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   Object? _error;
   VanOrderDetail? _detail;
   VanOrderExecutionState? _execution;
+  VanCollectionResult? _lastCollectionResult;
   late final VanOrderProofPicker _proofPicker;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
@@ -275,6 +281,107 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     );
   }
 
+  String get _paymentMethod =>
+      (_detail?.paymentMethod ?? '').trim().toLowerCase();
+
+  bool get _hasCashOutstanding {
+    final detail = _detail;
+    final invoice = detail?.invoice;
+    if (widget.walletRepository == null || detail == null || invoice == null) {
+      return false;
+    }
+
+    return detail.summary.customerType == 'b2b' &&
+        invoice.outstandingAmount > 0.0001 &&
+        const {'cash_on_delivery', 'cod'}.contains(_paymentMethod);
+  }
+
+  bool get _hasAccountCreditOutstanding {
+    final detail = _detail;
+    final invoice = detail?.invoice;
+    if (detail == null || invoice == null || invoice.outstandingAmount <= 0.0001) {
+      return false;
+    }
+
+    return const {'account_credit', 'account_debt', 'account'}
+        .contains(_paymentMethod);
+  }
+
+  Future<void> _openReceipt(int receiptId) async {
+    final walletRepository = widget.walletRepository;
+    if (walletRepository == null || !mounted) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(
+            title: Text(_text('Receipt', 'الإيصال')),
+          ),
+          body: VanReceiptsPage(
+            repository: walletRepository,
+            onSessionExpired: widget.onSessionExpired,
+            highlightReceiptId: receiptId,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openCollectionFlow() async {
+    final detail = _detail;
+    final invoice = detail?.invoice;
+    final walletRepository = widget.walletRepository;
+    if (detail == null || invoice == null || walletRepository == null) return;
+
+    final customer = VanCustomerScope(
+      type: detail.summary.customerType,
+      id: detail.summary.customerId,
+      name: detail.customer?.name ?? detail.summary.orderNumber,
+      storeId: detail.summary.storeId,
+    );
+
+    final result = await Navigator.of(context).push<VanCollectionResult>(
+      MaterialPageRoute(
+        builder: (routeContext) => Scaffold(
+          appBar: AppBar(
+            title: Text(_text('Collect outstanding', 'تحصيل المبلغ المستحق')),
+          ),
+          body: VanCollectionPage(
+            repository: walletRepository,
+            onSessionExpired: widget.onSessionExpired,
+            initialCustomer: customer,
+            initialInvoiceId: invoice.id,
+            onOpenReceipt: (receiptId) {
+              unawaited(
+                Navigator.of(routeContext).push<void>(
+                  MaterialPageRoute(
+                    builder: (_) => Scaffold(
+                      appBar: AppBar(
+                        title: Text(_text('Receipt', 'الإيصال')),
+                      ),
+                      body: VanReceiptsPage(
+                        repository: walletRepository,
+                        onSessionExpired: widget.onSessionExpired,
+                        highlightReceiptId: receiptId,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+            onReturnToOrder: (collectionResult) {
+              Navigator.of(routeContext).pop(collectionResult);
+            },
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted || result == null) return;
+    setState(() => _lastCollectionResult = result);
+    await _load(background: true);
+  }
+
   Future<void> _openMap(VanOrderDeliveryAddress address) async {
     final latitude = address.latitude;
     final longitude = address.longitude;
@@ -378,6 +485,9 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       if (action == 'delivered' &&
           execution?.proofRequiredForDelivered == true &&
           execution?.deliveryProofReady != true) {
+        return false;
+      }
+      if (action == 'delivered' && _hasCashOutstanding) {
         return false;
       }
       return true;
@@ -682,6 +792,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                     ),
             ),
             _section(
+              key: const ValueKey('van-order-finance'),
               title: _text('Invoice & collection', 'الفاتورة والتحصيل'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -696,6 +807,46 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       '${invoice.outstandingAmount.toStringAsFixed(3)} '
                       '${invoice.currency}',
                     ),
+                    if (_hasCashOutstanding) ...[
+                      const SizedBox(height: 10),
+                      VanActionButton.secondaryIcon(
+                        key: const ValueKey('van-order-collect-action'),
+                        onPressed:
+                            _submitting || _stale ? null : _openCollectionFlow,
+                        icon: const Icon(Icons.payments_outlined),
+                        label: Text(
+                          _text(
+                            'Collect outstanding',
+                            'تحصيل المبلغ المستحق',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _text(
+                          'Delivered stays unavailable until the authoritative COD outstanding is cleared.',
+                          'تظل حالة تم التسليم غير متاحة حتى تتم تسوية المبلغ النقدي المستحق بشكل معتمد.',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexVanTokens.muted,
+                            ),
+                      ),
+                    ],
+                    if (_hasAccountCreditOutstanding) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _text(
+                          'Account credit is authoritative. No cash collection is required from the Van for this outstanding balance.',
+                          'الائتمان على الحساب هو المرجع المعتمد. لا يلزم تحصيل نقدي من الفان لهذا الرصيد المستحق.',
+                        ),
+                        key: const ValueKey(
+                          'van-order-account-credit-settlement',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexVanTokens.muted,
+                            ),
+                      ),
+                    ],
                   ] else
                     Text(_text('No invoice yet.', 'لا توجد فاتورة بعد.')),
                   const SizedBox(height: 8),
@@ -710,6 +861,47 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       '${collection.amount.toStringAsFixed(3)} '
                       '${collection.currency} · ${collection.status}',
                     ),
+                  if (_lastCollectionResult != null) ...[
+                    const SizedBox(height: 10),
+                    Card(
+                      key: const ValueKey('van-order-last-receipt'),
+                      elevation: 0,
+                      color: FoodexVanTokens.mint,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.receipt_long_outlined,
+                              color: FoodexVanTokens.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _text(
+                                  'Receipt #${_lastCollectionResult!.receipt.id} posted · remaining ${_lastCollectionResult!.remainingOutstanding.toStringAsFixed(3)} ${_lastCollectionResult!.receipt.currency}',
+                                  'تم تسجيل الإيصال #${_lastCollectionResult!.receipt.id} · المتبقي ${_lastCollectionResult!.remainingOutstanding.toStringAsFixed(3)} ${_lastCollectionResult!.receipt.currency}',
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              key: const ValueKey(
+                                'van-order-view-last-receipt',
+                              ),
+                              tooltip: _text('View receipt', 'عرض الإيصال'),
+                              onPressed: () => _openReceipt(
+                                _lastCollectionResult!.receipt.id,
+                              ),
+                              icon: const Icon(Icons.open_in_new),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

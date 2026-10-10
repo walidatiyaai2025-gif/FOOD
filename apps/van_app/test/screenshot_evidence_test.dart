@@ -182,9 +182,83 @@ void main() {
             '03_Van_Order_Detail/order_detail__${code}__${evidence.suffix}.png',
           );
 
-          await tester.tap(
-            find.byKey(const ValueKey('van-order-proof-action')),
+          final finance =
+              find.byKey(const ValueKey('van-order-finance'));
+          final orderDetailPage =
+              find.byKey(const ValueKey('van-order-detail-page'));
+          await tester.scrollUntilVisible(
+            finance,
+            180,
+            scrollable: find.descendant(
+              of: orderDetailPage,
+              matching: find.byType(Scrollable),
+            ).first,
           );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-order-collect-action')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_finance__${code}__${evidence.suffix}.png',
+          );
+
+          await tester.tap(
+            find.byKey(const ValueKey('van-order-collect-action')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-collection-page')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_collection__${code}__${evidence.suffix}.png',
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('van-collection-amount')),
+            '8.000',
+          );
+          await tester.tap(
+            find.byKey(const ValueKey('van-collection-submit')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-collection-receipt')),
+            findsOneWidget,
+          );
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('van-collection-receipt')),
+          );
+          await tester.pumpAndSettle();
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_receipt__${code}__${evidence.suffix}.png',
+          );
+          Navigator.of(
+            tester.element(
+              find.byKey(const ValueKey('van-collection-page')),
+            ),
+          ).pop();
+          await tester.pumpAndSettle();
+
+          final orderDetailList =
+              find.byKey(const ValueKey('van-order-detail-page'));
+          await tester.fling(
+            orderDetailList,
+            const Offset(0, 1800),
+            2400,
+          );
+          await tester.pumpAndSettle();
+          final proofAction =
+              find.byKey(const ValueKey('van-order-proof-action'));
+          await tester.ensureVisible(proofAction);
+          await tester.pumpAndSettle();
+          await tester.tap(proofAction);
           await tester.pumpAndSettle();
           expect(
             find.byKey(const ValueKey('van-proof-evidence-sheet')),
@@ -410,11 +484,11 @@ class _Wallet implements VanWalletRepository {
         storeId: customer.storeId,
         invoices: const [
           VanInvoiceBalance(
-            id: 42,
-            number: 'INV-2048',
+            id: 7001,
+            number: 'INV-7001',
             currency: 'KWD',
-            total: 40,
-            outstandingAmount: 24.75,
+            total: 12,
+            outstandingAmount: 8,
           ),
         ],
       );
@@ -731,6 +805,7 @@ class _Orders implements VanOrderRepository {
           ),
         ],
         invoice: VanOrderInvoiceRecord(
+          id: 7001,
           number: 'INV-7001',
           status: 'issued',
           currency: 'KWD',

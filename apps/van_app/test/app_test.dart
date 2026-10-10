@@ -542,16 +542,72 @@ void main() {
   });
 
 
-  testWidgets('Van push tap opens canonical B2B Order Detail',
+  testWidgets('canonical Van Orders preserves collection settlement context',
+      (tester) async {
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery';
+    final wallet = _OrderFlowWalletRepository(orders);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: wallet,
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final target = find.byKey(const ValueKey('van-screen-orders'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('van-order-7001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+
+    final detailList = find.byKey(const ValueKey('van-order-detail-page'));
+    final collectAction =
+        find.byKey(const ValueKey('van-order-collect-action'));
+    await _scrollUntilBuilt(tester, detailList, collectAction);
+    await tester.ensureVisible(collectAction);
+    expect(collectAction, findsOneWidget);
+  });
+
+
+  testWidgets('Van push tap opens finance-aware canonical B2B Order Detail',
       (tester) async {
     final alerts = StreamController<VanPushAlert>.broadcast();
-    final orders = _OrderRepository()..createdCount = 1;
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery';
+    final wallet = _OrderFlowWalletRepository(orders);
     addTearDown(alerts.close);
 
     await tester.pumpWidget(
       FoodexVanApp(
         locale: const Locale('en'),
-        walletRepository: const _EmptyWalletRepository(),
+        walletRepository: wallet,
         orderRepository: orders,
         pushAlerts: alerts.stream,
         initialSession: const VanSession(
@@ -582,6 +638,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
     expect(find.text('Acme Grocery'), findsOneWidget);
+
+    final detailList = find.byKey(const ValueKey('van-order-detail-page'));
+    final collectAction =
+        find.byKey(const ValueKey('van-order-collect-action'));
+    await _scrollUntilBuilt(tester, detailList, collectAction);
+    await tester.ensureVisible(collectAction);
+    expect(collectAction, findsOneWidget);
   });
 
   testWidgets('Van foreground push requires explicit Open action',
@@ -1105,6 +1168,135 @@ void main() {
     );
   });
 
+  testWidgets('Van Order Detail completes collection receipt return flow',
+      (tester) async {
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery'
+      ..deliveryProofReady = true;
+    final wallet = _OrderFlowWalletRepository(orders);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: VanOrderDetailPage(
+          orderId: 7001,
+          repository: orders,
+          walletRepository: wallet,
+          onSessionExpired: () async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final detailList = find.byKey(const ValueKey('van-order-detail-page'));
+    final collectAction =
+        find.byKey(const ValueKey('van-order-collect-action'));
+    await _scrollUntilBuilt(tester, detailList, collectAction);
+    expect(collectAction, findsOneWidget);
+    await tester.ensureVisible(collectAction);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-order-action-delivered')),
+      findsNothing,
+    );
+
+    await tester.tap(collectAction);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-collection-page')), findsOneWidget);
+    expect(find.textContaining('INV-7001'), findsWidgets);
+    await tester.enterText(
+      find.byKey(const ValueKey('van-collection-amount')),
+      '12.000',
+    );
+    await tester.tap(find.byKey(const ValueKey('van-collection-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-collection-receipt')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('van-collection-view-receipt')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('van-collection-return-order')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('van-collection-view-receipt')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-receipt-focus-77')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('van-receipt-77')), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('van-collection-return-order')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(orders.invoiceOutstanding, 0);
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+
+    final lastReceipt = find.byKey(const ValueKey('van-order-last-receipt'));
+    await _scrollUntilBuilt(tester, detailList, lastReceipt);
+    expect(lastReceipt, findsOneWidget);
+    expect(collectAction, findsNothing);
+
+    await tester.drag(detailList, const Offset(0, 1600));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-order-action-delivered')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Van Order Detail keeps account credit out of cash collection',
+      (tester) async {
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery'
+      ..deliveryProofReady = true
+      ..paymentMethod = 'account_credit';
+    final wallet = _OrderFlowWalletRepository(orders);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: VanOrderDetailPage(
+          orderId: 7001,
+          repository: orders,
+          walletRepository: wallet,
+          onSessionExpired: () async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final detailList = find.byKey(const ValueKey('van-order-detail-page'));
+    final creditNotice = find.byKey(
+      const ValueKey('van-order-account-credit-settlement'),
+    );
+    await _scrollUntilBuilt(tester, detailList, creditNotice);
+    expect(creditNotice, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('van-order-collect-action')),
+      findsNothing,
+    );
+
+    await tester.drag(detailList, const Offset(0, 1600));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-order-action-delivered')),
+      findsOneWidget,
+    );
+  });
+
 }
 
 
@@ -1264,6 +1456,118 @@ class _CollectionWalletRepository implements VanWalletRepository {
           remittances: [],
         ),
       );
+
+  @override
+  Future<VanWalletAccount> remit({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    required String idempotencyKey,
+    String? reference,
+    String? note,
+  }) {
+    throw UnimplementedError();
+  }
+}
+
+
+class _OrderFlowWalletRepository implements VanWalletRepository {
+  _OrderFlowWalletRepository(this.orders);
+
+  final _OrderRepository orders;
+  VanReceipt? _receipt;
+
+  @override
+  Future<List<VanWalletAccount>> wallet() async {
+    final receipt = _receipt;
+    return [
+      VanWalletAccount(
+        id: 5,
+        storeId: 7,
+        currency: 'KWD',
+        status: 'active',
+        custodyBalance: receipt?.amount ?? 0,
+        availableToRemit: receipt?.amount ?? 0,
+        receipts: receipt == null ? const [] : [receipt],
+        remittances: const [],
+      ),
+    ];
+  }
+
+  @override
+  Future<List<VanCustomerScope>> customers() async => const [
+        VanCustomerScope(
+          type: 'b2b',
+          id: 42,
+          name: 'Acme Grocery',
+          storeId: 7,
+        ),
+      ];
+
+  @override
+  Future<VanCollectionContext> collectionContext(
+    VanCustomerScope customer,
+  ) async =>
+      VanCollectionContext(
+        storeId: 7,
+        invoices: orders.invoiceOutstanding <= 0.0001
+            ? const []
+            : [
+                VanInvoiceBalance(
+                  id: 7001,
+                  number: 'INV-7001',
+                  currency: 'KWD',
+                  total: 12,
+                  outstandingAmount: orders.invoiceOutstanding,
+                ),
+              ],
+      );
+
+  @override
+  Future<VanCollectionResult> collect({
+    required VanCustomerScope customer,
+    required int invoiceId,
+    required double amount,
+    required String idempotencyKey,
+  }) async {
+    if (invoiceId != 7001 || amount > orders.invoiceOutstanding + 0.0001) {
+      throw const VanApiException('Invalid order collection.');
+    }
+
+    final remaining = orders.invoiceOutstanding - amount;
+    orders.invoiceOutstanding = remaining <= 0.0001 ? 0 : remaining;
+    orders.collectionRecords.add(
+      VanOrderCollectionRecord(
+        status: 'posted',
+        source: 'van_app',
+        amount: amount,
+        currency: 'KWD',
+      ),
+    );
+    final receipt = VanReceipt(
+      id: 77,
+      amount: amount,
+      currency: 'KWD',
+      status: 'posted',
+      createdAt: '2026-10-10T13:00:00+03:00',
+    );
+    _receipt = receipt;
+
+    return VanCollectionResult(
+      receipt: receipt,
+      remainingOutstanding: orders.invoiceOutstanding,
+      wallet: VanWalletAccount(
+        id: 5,
+        storeId: 7,
+        currency: 'KWD',
+        status: 'active',
+        custodyBalance: amount,
+        availableToRemit: amount,
+        receipts: [receipt],
+        remittances: const [],
+      ),
+    );
+  }
 
   @override
   Future<VanWalletAccount> remit({
@@ -1661,6 +1965,9 @@ class _OrderRepository implements VanOrderRepository {
   bool deliveryProofReady = false;
   String? failureReasonCode;
   String? failureNote;
+  String paymentMethod = 'cash_on_delivery';
+  double invoiceOutstanding = 12;
+  final List<VanOrderCollectionRecord> collectionRecords = [];
   final List<String> transitions = [];
 
   VanOrderRecord _record() => VanOrderRecord(
@@ -1761,7 +2068,7 @@ class _OrderRepository implements VanOrderRepository {
   @override
   Future<VanOrderDetail> order(int orderId) async => VanOrderDetail(
         summary: _record(),
-        paymentMethod: 'cash_on_delivery',
+        paymentMethod: paymentMethod,
         customer: const VanOrderCustomer(
           name: 'Acme Grocery',
           phone: '+96550000077',
@@ -1781,16 +2088,19 @@ class _OrderRepository implements VanOrderRepository {
             lineTotal: 12,
           ),
         ],
-        invoice: const VanOrderInvoiceRecord(
+        invoice: VanOrderInvoiceRecord(
+          id: 7001,
           number: 'INV-7001',
           status: 'issued',
           currency: 'KWD',
           total: 12,
-          paidAmount: 0,
-          outstandingAmount: 12,
+          paidAmount: 12 - invoiceOutstanding,
+          outstandingAmount: invoiceOutstanding,
         ),
         payments: const [],
-        collections: const [],
+        collections: List<VanOrderCollectionRecord>.unmodifiable(
+          collectionRecords,
+        ),
         timeline: const [
           VanOrderTimelineRecord(
             stage: 'assigned',

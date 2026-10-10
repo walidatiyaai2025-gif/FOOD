@@ -167,6 +167,7 @@ class VanOrderItemRecord {
 
 class VanOrderInvoiceRecord {
   const VanOrderInvoiceRecord({
+    required this.id,
     required this.number,
     required this.status,
     required this.currency,
@@ -175,6 +176,7 @@ class VanOrderInvoiceRecord {
     required this.outstandingAmount,
   });
 
+  final int id;
   final String number;
   final String status;
   final String currency;

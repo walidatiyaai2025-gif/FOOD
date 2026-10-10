@@ -209,6 +209,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
       invoice: invoice == null
           ? null
           : VanOrderInvoiceRecord(
+              id: _requiredInt(invoice['id']),
               number: _string(invoice['invoice_number']),
               status: _string(invoice['status']),
               currency: _string(invoice['currency']),

@@ -129,6 +129,41 @@ class VanDeliveryExecutionTest extends TestCase
         ]);
     }
 
+    public function test_account_credit_outstanding_does_not_require_van_cash_collection_before_delivered(): void
+    {
+        Storage::fake('public');
+        $actor = $this->vanActor();
+        [$order] = $this->assignedB2bOrder($actor, 'ACCOUNT-CREDIT');
+
+        $order->forceFill(['payment_method' => 'account_credit'])->save();
+
+        $this->transition($order->id, 'accepted', 'credit-accept-01')->assertOk();
+        $this->transition($order->id, 'picked_up', 'credit-pickup-01')->assertOk();
+        $this->transition($order->id, 'out_for_delivery', 'credit-ofd-0001')->assertOk();
+
+        $this->withHeader('Idempotency-Key', 'credit-proof-01')
+            ->post('/api/v1/van/orders/'.$order->id.'/execution/proof', [
+                'proof_image' => UploadedFile::fake()->image('credit-proof.jpg', 640, 480),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.delivery_proof_ready', true);
+
+        $this->transition($order->id, 'delivered', 'credit-deliver1')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'delivered')
+            ->assertJsonPath('data.order_status', 'delivered');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'delivered',
+            'payment_method' => 'account_credit',
+        ]);
+        $this->assertDatabaseMissing('payments', [
+            'order_id' => $order->id,
+            'provider' => 'field_collection',
+        ]);
+    }
+
     public function test_failed_delivery_is_idempotent_and_retry_returns_order_to_out_for_delivery(): void
     {
         $actor = $this->vanActor();

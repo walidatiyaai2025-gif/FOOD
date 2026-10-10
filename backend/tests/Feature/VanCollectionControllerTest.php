@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\B2bAccount;
+use App\Models\CollectionAccount;
 use App\Models\Customer;
 use App\Models\Driver;
 use App\Models\Invoice;
+use App\Models\Remittance;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\VanVisit;
+use App\Services\CollectionCustodyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\VanRegistryService;
 use App\Services\WholesalePrincipal;
@@ -158,6 +161,20 @@ class VanCollectionControllerTest extends TestCase
 
         $this->assertDatabaseCount('remittances', 1);
         $this->assertDatabaseCount('custody_ledger_entries', 1);
+
+        $custody = app(CollectionCustodyService::class);
+        $account = CollectionAccount::query()->findOrFail($accountId);
+        $pending = Remittance::query()->findOrFail($remittanceId);
+        $approved = $custody->approveRemittance($pending, $actor);
+        $balanceAfterApproval = $custody->custodyBalance($account);
+        $reconciled = $custody->reconcileRemittance($approved, $actor);
+        $reconciledAgain = $custody->reconcileRemittance($reconciled, $actor);
+
+        $this->assertSame('reconciled', $reconciled->status);
+        $this->assertSame($reconciled->id, $reconciledAgain->id);
+        $this->assertSame(10.0, $balanceAfterApproval);
+        $this->assertSame($balanceAfterApproval, $custody->custodyBalance($account));
+        $this->assertDatabaseCount('custody_ledger_entries', 2);
 
         $otherActor = User::factory()->create(['is_active' => true]);
         $this->authorizeVan($otherActor);
