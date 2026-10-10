@@ -256,3 +256,23 @@ It validates the machine-readable policy under `.ai/uiux/` and rejects measurabl
 
 The report's score is **static compliance only**. Runtime visual/interaction acceptance is still governed by `uiux-evidence.md`.
 
+## 12. Context authority gate
+
+PASS only if the implementation contract resolves:
+- canonical route/renderer and normal navigation;
+- actor + permission;
+- channel + Store/tenant scope;
+- authoritative data/service;
+- currency source/precision for money-bearing UI;
+- brand/asset policy;
+- lifecycle/pagination classification;
+- required surface tests/evidence.
+
+Use:
+
+```bash
+python3 scripts/foodex-ui-contract-plan.py --surface <surface> --archetype <archetype> [--function-id <id>] [--route <route>]
+```
+
+The generated contract is planning evidence, not a replacement for source/runtime proof.
+

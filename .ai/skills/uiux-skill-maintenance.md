@@ -33,6 +33,7 @@ Keep these aligned with production:
 - `.ai/uiux/golden-pages.json`
 - `.ai/uiux/forbidden-patterns.json`
 - `.ai/uiux/quality-gates.json`
+- `.ai/uiux/context-contract.json`
 - `.ai/uiux/uiux-scorecard.json`
 - `.ai/uiux/ui-lessons.json`
 

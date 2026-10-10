@@ -181,6 +181,10 @@ jobs:
       - name: Test FOODEX UIUX policy gate
         run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_uiux_audit.py'
 
+      - name: Test FOODEX UI contract planner
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_contract_plan.py'
+
+
       - name: Enforce FOODEX changed-surface UIUX policy
         shell: bash
         run: |

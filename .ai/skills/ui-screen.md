@@ -18,6 +18,14 @@ Read:
 7. `.ai/skills/ui-interaction-safety.md` when the page mutates state; `.ai/skills/ui-performance.md` for lists/search/live/high-growth surfaces.
 8. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
 
+Before markup/widget code, also run the **UI Contract Planner** when the page/archetype is known:
+
+```bash
+python3 scripts/foodex-ui-contract-plan.py --surface <surface> --archetype <archetype> [--function-id <id>] [--route <route>]
+```
+
+Read `.ai/skills/ui-context-authority.md` and resolve Store/channel/tenant context, currency/precision authority and asset policy from the generated plan.
+
 Do not start markup/widget code before this pass.
 
 ## Execution sequence

@@ -313,3 +313,17 @@ python3 scripts/foodex-uiux-audit.py --base <base-sha> --head <head-sha> --repor
 
 A static score below the configured threshold or any critical violation is a FAIL. Passing this script still does **not** replace the runtime evidence gate.
 
+## 15. Context authority and contract planner
+
+Before Golden Page selection, read `.ai/skills/ui-context-authority.md`.
+
+Generate a concrete UI contract when starting a page:
+
+```bash
+python3 scripts/foodex-ui-contract-plan.py --surface <surface> --archetype <archetype> [--function-id <id>] [--route <route>]
+```
+
+The output binds visual composition to route authority, Store/channel/tenant context, currency/precision authority, asset policy, lifecycle expectations, Golden Page candidates and the exact tests/evidence for that surface.
+
+Do not start page code while those inputs are materially unknown.
+
