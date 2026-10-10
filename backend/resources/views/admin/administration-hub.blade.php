@@ -172,6 +172,7 @@ html[dir=ltr] .main{grid-column:2}
         driver: @json(__('admin.administration_hub.driver')),
         van: @json(__('admin.administration_hub.van')),
     };
+    const mobileReleaseVersions = @json($mobileReleaseVersions);
     let artifacts = @json($mobileReleaseArtifacts->values()->all());
     let selectedApp = null;
     let refreshing = false;
@@ -189,7 +190,7 @@ html[dir=ltr] .main{grid-column:2}
     function artifactFor(app) {
         return artifacts.find((row) => row.app === app) || {
             app,
-            version: @json($mobileReleaseVersion),
+            version: mobileReleaseVersions[app] || @json($mobileReleaseVersion),
             status: 'pending',
             progress_percent: 0,
             download_url: null,
@@ -211,7 +212,7 @@ html[dir=ltr] .main{grid-column:2}
         const row = artifactFor(selectedApp);
         const progress = Math.max(0, Math.min(100, Number(row.progress_percent || 0)));
         modalApp.textContent = appLabels[selectedApp] || selectedApp;
-        modalVersion.textContent = row.version || @json($mobileReleaseVersion);
+        modalVersion.textContent = row.version || mobileReleaseVersions[selectedApp] || @json($mobileReleaseVersion);
         modalStatus.textContent = labels[row.status] || row.status;
         modalProgress.style.width = progress + '%';
         modalPercent.textContent = progress + '%';
@@ -232,17 +233,32 @@ html[dir=ltr] .main{grid-column:2}
         renderModal();
     }
 
+    function mergeArtifacts(rows) {
+        if (!Array.isArray(rows)) return;
+        rows.forEach((row) => {
+            const index = artifacts.findIndex((candidate) => candidate.app === row.app);
+            if (index >= 0) {
+                artifacts[index] = row;
+            } else {
+                artifacts.push(row);
+            }
+        });
+    }
+
     async function refresh() {
         if (refreshing) return;
         refreshing = true;
         try {
-            const response = await fetch(statusUrl, {
+            const endpoint = selectedApp
+                ? statusUrl + '?app=' + encodeURIComponent(selectedApp)
+                : statusUrl;
+            const response = await fetch(endpoint, {
                 credentials: 'same-origin',
                 headers: {'Accept': 'application/json'},
             });
             if (!response.ok) return;
             const payload = await response.json();
-            artifacts = Array.isArray(payload.artifacts) ? payload.artifacts : artifacts;
+            mergeArtifacts(payload.artifacts);
             renderAll();
         } finally {
             refreshing = false;
@@ -259,7 +275,7 @@ html[dir=ltr] .main{grid-column:2}
                     'X-CSRF-TOKEN': csrf,
                     'Content-Type': 'application/json',
                 },
-                body: '{}',
+                body: JSON.stringify(selectedApp ? {app: selectedApp} : {}),
             });
             if (response.ok) {
                 const payload = await response.json();
@@ -302,7 +318,7 @@ html[dir=ltr] .main{grid-column:2}
                     'X-CSRF-TOKEN': csrf,
                     'Content-Type': 'application/json',
                 },
-                body: '{}',
+                body: JSON.stringify(selectedApp ? {app: selectedApp} : {}),
             });
             if (response.ok) {
                 const payload = await response.json();
