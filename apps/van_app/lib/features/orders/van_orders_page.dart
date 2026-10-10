@@ -7,6 +7,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
+import 'van_order_detail_page.dart';
 
 class VanOrdersPage extends StatefulWidget {
   const VanOrdersPage({
@@ -32,6 +33,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
   Object? _error;
   List<VanOrderRecord> _orders = const [];
   Map<String, String> _customerNames = const {};
+  String _filter = 'all';
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
@@ -98,6 +100,68 @@ class _VanOrdersPageState extends State<VanOrdersPage>
           _error = error;
         }
       });
+    }
+  }
+
+  String _effectiveStatus(VanOrderRecord order) =>
+      order.vanExecutionStatus?.trim().isNotEmpty == true
+          ? order.vanExecutionStatus!
+          : order.status;
+
+  bool _matchesFilter(VanOrderRecord order) {
+    final status = _effectiveStatus(order);
+    switch (_filter) {
+      case 'new':
+        return {'assigned', 'pending', 'confirmed'}.contains(status);
+      case 'active':
+        return {'accepted', 'picked_up'}.contains(status);
+      case 'ready':
+        return status == 'ready';
+      case 'ofd':
+        return status == 'out_for_delivery';
+      case 'failed':
+        return status == 'failed';
+      case 'completed':
+        return {'delivered', 'completed'}.contains(status);
+      default:
+        return true;
+    }
+  }
+
+  List<VanOrderRecord> get _filteredOrders =>
+      _orders.where(_matchesFilter).toList(growable: false);
+
+  String _filterLabel(String value) {
+    switch (value) {
+      case 'new':
+        return _text('New', 'جديد');
+      case 'active':
+        return _text('Active', 'نشط');
+      case 'ready':
+        return _text('Ready', 'جاهز');
+      case 'ofd':
+        return _text('OFD', 'للتسليم');
+      case 'failed':
+        return _text('Failed', 'متعذر');
+      case 'completed':
+        return _text('Completed', 'مكتمل');
+      default:
+        return _text('All', 'الكل');
+    }
+  }
+
+  Future<void> _openDetail(VanOrderRecord order) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => VanOrderDetailPage(
+          orderId: order.id,
+          repository: widget.repository,
+          onSessionExpired: widget.onSessionExpired,
+        ),
+      ),
+    );
+    if (mounted) {
+      unawaited(_load(background: true));
     }
   }
 
@@ -191,18 +255,30 @@ class _VanOrdersPageState extends State<VanOrdersPage>
 
   String _statusLabel(String value) {
     switch (value) {
+      case 'assigned':
+        return _text('Assigned', 'مسند');
       case 'pending':
         return _text('Pending', 'قيد المراجعة');
       case 'confirmed':
         return _text('Confirmed', 'مؤكد');
       case 'ready':
         return _text('Ready', 'جاهز');
+      case 'accepted':
+        return _text('Accepted', 'مقبول');
+      case 'picked_up':
+        return _text('Picked up', 'تم الاستلام');
+      case 'out_for_delivery':
+        return _text('Out for delivery', 'خرج للتسليم');
+      case 'failed':
+        return _text('Failed', 'تعذر التسليم');
       case 'delivered':
         return _text('Delivered', 'تم التسليم');
+      case 'completed':
+        return _text('Completed', 'مكتمل');
       case 'cancelled':
         return _text('Cancelled', 'ملغي');
       default:
-        return _text('Order status', 'حالة الطلب');
+        return value.replaceAll('_', ' ');
     }
   }
 
@@ -244,12 +320,47 @@ class _VanOrdersPageState extends State<VanOrdersPage>
           else ...[
             _analytics(context),
             const SizedBox(height: 10),
-            for (final order in _orders)
+            SingleChildScrollView(
+              key: const ValueKey('van-orders-filters'),
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final value in const [
+                    'all',
+                    'new',
+                    'active',
+                    'ready',
+                    'ofd',
+                    'failed',
+                    'completed',
+                  ]) ...[
+                    ChoiceChip(
+                      key: ValueKey('van-orders-filter-$value'),
+                      label: Text(_filterLabel(value)),
+                      selected: _filter == value,
+                      onSelected: (_) => setState(() => _filter = value),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (_filteredOrders.isEmpty)
+              _state(
+                _text(
+                  'No orders match this filter.',
+                  'لا توجد طلبات مطابقة لهذا الفلتر.',
+                ),
+              )
+            else
+              for (final order in _filteredOrders)
               Card(
                 key: ValueKey('van-order-${order.id}'),
                 elevation: 0,
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
+                  onTap: () => _openDetail(order),
                   leading: const CircleAvatar(
                     backgroundColor: FoodexVanTokens.mint,
                     child: Icon(
@@ -285,7 +396,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                               const TextStyle(fontWeight: FontWeight.w900),
                         ),
                         Text(
-                          _statusLabel(order.status),
+                          _statusLabel(_effectiveStatus(order)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
