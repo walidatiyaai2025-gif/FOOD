@@ -17,52 +17,78 @@ class CustomerAccountHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (canPop) ...[
-          CustomerOutlineIconButton(
-            icon: Icons.arrow_back_rounded,
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-          const SizedBox(width: CustomerUiSpacing.sm),
-        ],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: CustomerUiColors.white,
-                      fontSize: 18,
-                      height: 1.05,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: CustomerUiColors.white.withValues(alpha: 0.82),
-                      fontSize: 12,
-                      height: 1.1,
-                    ),
-              ),
+    Widget titleBlock(bool compact) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: compact ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: CustomerUiColors.white,
+                    fontSize: 18,
+                    height: 1.05,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: compact ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: CustomerUiColors.white.withValues(alpha: 0.82),
+                    fontSize: 12,
+                    height: 1.1,
+                  ),
+            ),
+          ],
+        );
+
+    Widget leadingButton() => CustomerOutlineIconButton(
+          icon: Directionality.of(context) == TextDirection.rtl
+              ? Icons.arrow_forward_rounded
+              : Icons.arrow_back_rounded,
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).maybePop(),
+        );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360 || textScale > 1.2;
+        final mainRow = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (canPop) ...[
+              leadingButton(),
+              const SizedBox(width: CustomerUiSpacing.sm),
             ],
-          ),
-        ),
-        if (trailing != null) ...[
-          const SizedBox(width: CustomerUiSpacing.sm),
-          trailing!,
-        ],
-      ],
+            Expanded(child: titleBlock(compact)),
+            if (!compact && trailing != null) ...[
+              const SizedBox(width: CustomerUiSpacing.sm),
+              Flexible(child: trailing!),
+            ],
+          ],
+        );
+
+        if (!compact || trailing == null) {
+          return mainRow;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            mainRow,
+            const SizedBox(height: CustomerUiSpacing.xs),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: trailing!,
+            ),
+          ],
+        );
+      },
     );
   }
 }
