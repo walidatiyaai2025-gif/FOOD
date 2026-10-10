@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\GeographyNode;
 use App\Models\Order;
+use App\Models\OrderVanAssignment;
+use App\Models\OrderVanExecutionState;
 use App\Models\ServiceTerritory;
 use App\Models\Store;
 use App\Models\StoreType;
@@ -118,6 +120,116 @@ class OrderTerritoryRoutingServiceTest extends TestCase
         $this->assertSame('awaiting_dispatch', $state->status);
         $this->assertSame('ambiguous_primary_vans', $state->routing_reason);
         $this->assertDatabaseCount('order_van_assignments', 0);
+    }
+
+    public function test_automatic_reroute_reassigns_van_and_preserves_assignment_history(): void
+    {
+        [$order, $territory, $actor] = $this->orderInsideTerritory('REASSIGN');
+        $registry = app(VanRegistryService::class);
+
+        $firstVan = $registry->createVan(['code' => 'VAN-REASSIGN-A']);
+        $firstRegistryAssignment = $registry->assign($actor, $firstVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-01T00:00:00Z',
+        ]);
+
+        $service = app(OrderTerritoryRoutingService::class);
+        $firstState = $service->route($order, $actor, '2026-10-08T12:00:00Z', 'dashboard');
+        $firstOrderAssignment = OrderVanAssignment::query()
+            ->where('order_id', $order->id)
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        $firstRegistryAssignment->forceFill([
+            'status' => 'ended',
+            'effective_until' => '2026-10-08 12:05:00',
+        ])->save();
+
+        $secondVan = $registry->createVan(['code' => 'VAN-REASSIGN-B']);
+        $registry->assign($actor, $secondVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-08T12:05:00Z',
+        ]);
+
+        $secondState = $service->route($order, $actor, '2026-10-08T12:10:00Z', 'dashboard');
+
+        $this->assertSame($firstVan->id, $firstState->current_assignee_id);
+        $this->assertSame($secondVan->id, $secondState->current_assignee_id);
+        $this->assertDatabaseCount('order_van_assignments', 2);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'id' => $firstOrderAssignment->id,
+            'order_id' => $order->id,
+            'van_id' => $firstVan->id,
+            'status' => 'reassigned',
+        ]);
+        $this->assertNotNull($firstOrderAssignment->fresh()->ended_at);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'order_id' => $order->id,
+            'van_id' => $secondVan->id,
+            'status' => 'active',
+        ]);
+        $this->assertSame('dashboard', $secondState->context['order_source'] ?? null);
+    }
+
+    public function test_in_progress_van_execution_blocks_silent_automatic_reroute(): void
+    {
+        [$order, $territory, $actor] = $this->orderInsideTerritory('LOCKED');
+        $registry = app(VanRegistryService::class);
+
+        $firstVan = $registry->createVan(['code' => 'VAN-LOCKED-A']);
+        $firstRegistryAssignment = $registry->assign($actor, $firstVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-01T00:00:00Z',
+        ]);
+
+        $service = app(OrderTerritoryRoutingService::class);
+        $firstState = $service->route($order, $actor, '2026-10-08T12:00:00Z', 'customer_checkout');
+        $orderAssignment = OrderVanAssignment::query()
+            ->where('order_id', $order->id)
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        OrderVanExecutionState::query()
+            ->where('order_van_assignment_id', $orderAssignment->id)
+            ->firstOrFail()
+            ->forceFill([
+                'status' => 'picked_up',
+                'last_transition_at' => '2026-10-08 12:04:00',
+            ])->save();
+
+        $firstRegistryAssignment->forceFill([
+            'status' => 'ended',
+            'effective_until' => '2026-10-08 12:05:00',
+        ])->save();
+
+        $secondVan = $registry->createVan(['code' => 'VAN-LOCKED-B']);
+        $registry->assign($actor, $secondVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-08T12:05:00Z',
+        ]);
+
+        $secondState = $service->route($order, $actor, '2026-10-08T12:10:00Z', 'customer_checkout');
+
+        $this->assertSame($firstState->decision_key, $secondState->decision_key);
+        $this->assertSame($firstVan->id, $secondState->current_assignee_id);
+        $this->assertSame('assigned', $secondState->status);
+        $this->assertSame('in_progress_execution_locked', $secondState->context['reroute_guard']['reason'] ?? null);
+        $this->assertSame('picked_up', $secondState->context['reroute_guard']['execution_status'] ?? null);
+        $this->assertSame('customer_checkout', $secondState->context['reroute_guard']['order_source'] ?? null);
+        $this->assertDatabaseCount('order_van_assignments', 1);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'id' => $orderAssignment->id,
+            'van_id' => $firstVan->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseMissing('order_van_assignments', [
+            'van_id' => $secondVan->id,
+            'status' => 'active',
+        ]);
     }
 
     public function test_b2c_order_cannot_enter_van_routing_runtime(): void

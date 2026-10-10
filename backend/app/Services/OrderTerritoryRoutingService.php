@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderDispatchState;
 use App\Models\OrderVanAssignment;
+use App\Models\OrderVanExecutionState;
 use App\Models\RoutingDecisionTrace;
 use App\Models\RoutingPolicy;
 use App\Models\ServiceTerritory;
@@ -23,8 +24,12 @@ final class OrderTerritoryRoutingService
         private readonly VanExecutionStateService $executionStates,
     ) {}
 
-    public function route(Order $order, ?User $actor = null, Carbon|string|null $at = null): OrderDispatchState
-    {
+    public function route(
+        Order $order,
+        ?User $actor = null,
+        Carbon|string|null $at = null,
+        ?string $orderSource = null,
+    ): OrderDispatchState {
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
         $order->refresh();
         $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
@@ -32,6 +37,11 @@ final class OrderTerritoryRoutingService
         $existing = OrderDispatchState::query()->where('order_id', $order->id)->first();
         if ($existing !== null && in_array($existing->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
             return $existing;
+        }
+
+        $locked = $this->activeExecutionLock($order);
+        if ($locked !== null) {
+            return $this->persistRerouteBlocked($order, $locked, $actor, $moment, $orderSource);
         }
 
         $resolution = $this->territories->resolveAddress(
@@ -55,6 +65,7 @@ final class OrderTerritoryRoutingService
             'territory_code' => $territory?->code,
             'latitude' => $order->delivery_latitude,
             'longitude' => $order->delivery_longitude,
+            'order_source' => $orderSource,
         ];
         $scope = [
             'store_id' => (int) $order->store_id,
@@ -73,6 +84,7 @@ final class OrderTerritoryRoutingService
                 $resolution,
                 $actor,
                 $moment,
+                $orderSource,
             );
         }
 
@@ -80,7 +92,7 @@ final class OrderTerritoryRoutingService
         $policy = $policyResolution['policy'];
 
         if ($policy === null) {
-            return $this->routeWithoutPolicy($order, $territory, $resolution, $actor, $moment);
+            return $this->routeWithoutPolicy($order, $territory, $resolution, $actor, $moment, $orderSource);
         }
 
         $trace = $this->routingPolicies->route(
@@ -104,6 +116,7 @@ final class OrderTerritoryRoutingService
                 $resolution,
                 $actor,
                 $moment,
+                $orderSource,
             );
         }
 
@@ -120,6 +133,7 @@ final class OrderTerritoryRoutingService
                 $resolution,
                 $actor,
                 $moment,
+                $orderSource,
             );
         }
 
@@ -135,6 +149,7 @@ final class OrderTerritoryRoutingService
                 $resolution,
                 $actor,
                 $moment,
+                $orderSource,
             );
         }
 
@@ -149,6 +164,7 @@ final class OrderTerritoryRoutingService
                 $resolution,
                 $actor,
                 $moment,
+                $orderSource,
             );
         }
 
@@ -166,6 +182,7 @@ final class OrderTerritoryRoutingService
                 $resolution,
                 $actor,
                 $moment,
+                $orderSource,
             );
         }
 
@@ -180,6 +197,36 @@ final class OrderTerritoryRoutingService
             $resolution,
             $actor,
             $moment,
+            $orderSource,
+        );
+    }
+
+    /**
+     * Persist a safe post-create exception state without invalidating the commercial order.
+     *
+     * @param  array<string,mixed>  $context
+     */
+    public function markPostCreateFailure(
+        Order $order,
+        ?User $actor,
+        string $orderSource,
+        string $reason,
+        array $context = [],
+        Carbon|string|null $at = null,
+    ): OrderDispatchState {
+        $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
+        $order->refresh();
+        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
+
+        $existing = OrderDispatchState::query()->where('order_id', $order->id)->first();
+        if ($existing instanceof OrderDispatchState && (in_array((string) $existing->routing_source, ['manual_customer_service', 'reassignment_override'], true) || ((string) $existing->status === 'assigned' && (string) $existing->current_assignee_type === 'van' && $existing->current_assignee_id !== null))) {
+            return $existing;
+        }
+
+        return $this->persistPending(
+            $order, null, null, null, 'post_create_routing', $reason,
+            ['routing_failure' => true, 'post_create_context' => $context],
+            $actor, $moment, $orderSource,
         );
     }
 
@@ -189,23 +236,24 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
+        ?string $orderSource,
     ): OrderDispatchState {
         if ($order->delivery_latitude === null || $order->delivery_longitude === null) {
-            return $this->persistPending($order, null, null, null, 'auto_territory_fallback', 'missing_delivery_coordinates', $resolution, $actor, $moment);
+            return $this->persistPending($order, null, null, null, 'auto_territory_fallback', 'missing_delivery_coordinates', $resolution, $actor, $moment, $orderSource);
         }
 
         if ($territory === null) {
-            return $this->persistPending($order, null, null, null, 'auto_territory_fallback', 'unmapped_delivery_address', $resolution, $actor, $moment);
+            return $this->persistPending($order, null, null, null, 'auto_territory_fallback', 'unmapped_delivery_address', $resolution, $actor, $moment, $orderSource);
         }
 
         $eligible = $this->eligiblePrimaryAssignments($territory, $moment);
 
         if ($eligible->count() === 0) {
-            return $this->persistPending($order, $territory, null, null, 'auto_territory_fallback', 'no_eligible_primary_van', $resolution, $actor, $moment);
+            return $this->persistPending($order, $territory, null, null, 'auto_territory_fallback', 'no_eligible_primary_van', $resolution, $actor, $moment, $orderSource);
         }
 
         if ($eligible->count() > 1) {
-            return $this->persistPending($order, $territory, null, null, 'auto_territory_fallback', 'ambiguous_primary_vans', $resolution, $actor, $moment);
+            return $this->persistPending($order, $territory, null, null, 'auto_territory_fallback', 'ambiguous_primary_vans', $resolution, $actor, $moment, $orderSource);
         }
 
         /** @var VanAssignment $assignment */
@@ -222,6 +270,7 @@ final class OrderTerritoryRoutingService
             $resolution,
             $actor,
             $moment,
+            $orderSource,
         );
     }
 
@@ -281,6 +330,41 @@ final class OrderTerritoryRoutingService
         return null;
     }
 
+    /** @return array{assignment:OrderVanAssignment,execution_status:string,order_status:string}|null */
+    private function activeExecutionLock(Order $order): ?array
+    {
+        $assignment = OrderVanAssignment::query()->where('order_id', $order->id)->where('status', 'active')->latest('id')->first();
+        if (! $assignment instanceof OrderVanAssignment) {
+            return null;
+        }
+        $executionStatus = strtolower((string) OrderVanExecutionState::query()->where('order_van_assignment_id', $assignment->id)->value('status'));
+        $orderStatus = strtolower((string) $order->status);
+        if (! in_array($executionStatus, ['picked_up', 'out_for_delivery'], true) && $orderStatus !== 'out_for_delivery') {
+            return null;
+        }
+
+        return ['assignment' => $assignment, 'execution_status' => $executionStatus, 'order_status' => $orderStatus];
+    }
+
+    /** @param array{assignment:OrderVanAssignment,execution_status:string,order_status:string} $locked */
+    private function persistRerouteBlocked(Order $order, array $locked, ?User $actor, Carbon $moment, ?string $orderSource): OrderDispatchState
+    {
+        /** @var OrderVanAssignment $assignment */
+        $assignment = $locked['assignment'];
+
+        return DB::transaction(function () use ($order, $assignment, $locked, $actor, $moment, $orderSource): OrderDispatchState {
+            $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
+            $before = $state->exists ? $state->toArray() : null;
+            $rawContext = $state->getAttribute('context');
+            $context = is_array($rawContext) ? $rawContext : [];
+            $context['reroute_guard'] = ['reason' => 'in_progress_execution_locked', 'order_source' => $orderSource, 'order_van_assignment_id' => (int) $assignment->id, 'execution_status' => $locked['execution_status'], 'order_status' => $locked['order_status'], 'blocked_at' => $moment->toAtomString()];
+            $state->fill(['status' => 'assigned', 'routing_source' => $state->routing_source ?: $assignment->source, 'routing_reason' => $state->routing_reason ?: $assignment->reason, 'current_assignee_type' => 'van', 'current_assignee_id' => (int) $assignment->van_id, 'decision_key' => $state->decision_key ?: $assignment->decision_key, 'context' => $context, 'decided_at' => $state->decided_at ?: $assignment->assigned_at ?: $moment])->save();
+            $this->audit->record('order.dispatch.reroute_blocked', $actor, $order, $before, $state->fresh()->toArray());
+
+            return $state->fresh();
+        });
+    }
+
     private function persistPending(
         Order $order,
         ?ServiceTerritory $territory,
@@ -291,6 +375,7 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
+        ?string $orderSource,
     ): OrderDispatchState {
         $territoryId = $territory instanceof ServiceTerritory ? (int) $territory->getKey() : null;
         $policyId = $policy instanceof RoutingPolicy ? (int) $policy->getKey() : null;
@@ -304,7 +389,7 @@ final class OrderTerritoryRoutingService
             $reason,
         ]));
 
-        return DB::transaction(function () use ($order, $territory, $policy, $trace, $source, $reason, $resolution, $actor, $moment, $decisionKey): OrderDispatchState {
+        return DB::transaction(function () use ($order, $territory, $policy, $trace, $source, $reason, $resolution, $actor, $moment, $decisionKey, $orderSource): OrderDispatchState {
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
 
             if ($state->exists && in_array($state->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
@@ -329,7 +414,7 @@ final class OrderTerritoryRoutingService
                 'current_assignee_type' => null,
                 'current_assignee_id' => null,
                 'decision_key' => $decisionKey,
-                'context' => ['territory_resolution' => $resolution],
+                'context' => ['order_source' => $orderSource, 'territory_resolution' => $resolution],
                 'decided_at' => $moment,
             ])->save();
 
@@ -350,6 +435,7 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
+        ?string $orderSource,
     ): OrderDispatchState {
         $policyId = $policy instanceof RoutingPolicy ? (int) $policy->getKey() : null;
         $decisionKey = hash('sha256', implode('|', [
@@ -360,7 +446,7 @@ final class OrderTerritoryRoutingService
             $source,
         ]));
 
-        return DB::transaction(function () use ($order, $territory, $eligible, $policy, $trace, $source, $reason, $resolution, $actor, $moment, $decisionKey): OrderDispatchState {
+        return DB::transaction(function () use ($order, $territory, $eligible, $policy, $trace, $source, $reason, $resolution, $actor, $moment, $decisionKey, $orderSource): OrderDispatchState {
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
 
             if ($state->exists && in_array($state->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
@@ -392,6 +478,7 @@ final class OrderTerritoryRoutingService
                         'assigned_by' => $actor?->id,
                         'assigned_at' => $moment,
                         'routing_context' => [
+                            'order_source' => $orderSource,
                             'routing_policy_id' => $policy?->id,
                             'routing_decision_trace_id' => $trace?->id,
                             'territory_resolution' => $resolution,
@@ -417,6 +504,7 @@ final class OrderTerritoryRoutingService
                 'current_assignee_id' => $eligible->van_id,
                 'decision_key' => $decisionKey,
                 'context' => [
+                    'order_source' => $orderSource,
                     'van_assignment_id' => $eligible->id,
                     'territory_resolution' => $resolution,
                 ],

@@ -23,6 +23,7 @@ use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
+use App\Services\OrderCreatedRoutingService;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class CheckoutController extends Controller
         CommerceQuoteService $quotes,
         CommercialPolicyService $commercialPolicy,
         InvoiceService $invoices,
+        OrderCreatedRoutingService $postCreateRouting,
     ): JsonResponse {
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
@@ -385,6 +387,8 @@ class CheckoutController extends Controller
         }, 3);
 
         [$order, $created] = $result;
+        $order = $order->fresh();
+        $postCreateRouting->route($order, $user, 'customer_checkout');
 
         if ($created) {
             $dashboardNotifier->orderCreated($order->fresh());
