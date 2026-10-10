@@ -203,3 +203,44 @@ Remember Me + biometric flows must preserve secure-session semantics; never stor
 - fake prototype data absent;
 - AR/RTL + EN/LTR verified;
 - representative narrow/wide runtime evidence/tests updated.
+
+## 15. Customer production composition recipes
+
+When creating a Customer page, compose from the current V3 system instead of raw Material widgets.
+
+### Shell/navigation
+- `FoodexTheme` / current Customer theme
+- `CustomerPersistentFooterShell`
+- `CustomerPersistentFooterDock`
+- `CustomerPersistentFooter`
+
+### Header/search/content
+- `CustomerCurvedHeaderSurface`
+- `CustomerSearchPill`
+- `CustomerBadge`
+- `CustomerOutlineIconButton`
+
+### Catalog/commerce
+- `CustomerCategoryTile`
+- `CustomerProductImage`
+- `CustomerProductCard`
+
+### Loading/state
+- `CustomerSkeletonBox`
+- `CustomerCategorySkeleton`
+- `CustomerProductCardSkeleton`
+- `CustomerStateView`
+
+Do not create a second persistent footer, independent customer color palette, or page-local loading/error component.
+
+## 16. Customer archetype rule
+
+- home/dashboard -> compact header + real account/commerce context + persistent footer;
+- catalog/list -> search/filter + compact product/category primitives;
+- order/invoice list -> compact scannable rows/cards, no-wrap reference, one overflow action when multiple actions exist;
+- order/invoice detail -> exact record identity/status/timeline/action, no fabricated tracking;
+- cart/checkout -> preserve current real commerce/session/payment journey;
+- profile/account -> current persistent navigation and real settings/auth semantics.
+
+Use `SCREEN_MANIFEST.json` B2B/B2C Customer entries as visual/reference coverage, but use current Flutter implementation for behavior.
+
