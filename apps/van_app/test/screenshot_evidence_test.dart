@@ -610,6 +610,23 @@ class _Orders implements VanOrderRepository {
           grandTotal: 12,
         ),
       ];
+
+  @override
+  Future<VanOrderDetail> order(int orderId) =>
+      throw UnimplementedError('Order detail is not used by this fixture.');
+
+  @override
+  Future<VanOrderExecutionState> execution(int orderId) =>
+      throw UnimplementedError('Order execution is not used by this fixture.');
+
+  @override
+  Future<VanOrderExecutionState> transitionOrder({
+    required int orderId,
+    required String status,
+    required String idempotencyKey,
+  }) =>
+      throw UnimplementedError('Order transition is not used by this fixture.');
+
 }
 
 class _Notifications implements VanNotificationRepository {
