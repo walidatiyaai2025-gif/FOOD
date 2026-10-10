@@ -292,6 +292,7 @@ html[dir=ltr] .main{grid-column:2}
     });
 
     renderAll();
+    void refresh();
     const requestedApp = @json(request('download_app'));
     if (requestedApp && appLabels[requestedApp]) {
         openModal(requestedApp);
