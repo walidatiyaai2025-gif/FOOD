@@ -1221,6 +1221,80 @@ void main() {
   });
 
   testWidgets(
+      'B2B cart coalesces rapid plus taps while the first quantity update is slow',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final commerce = _DelayedQuantityWholesaleCommerceApi(
+      cartValue: {
+        'store_id': 7,
+        'currency': 'EGP',
+        'subtotal': 20.0,
+        'has_unavailable_items': false,
+        'quote': {'grand_total': 20.0},
+        'items': [
+          {
+            'id': 11,
+            'product': {
+              'id': 101,
+              'name': 'Slow Bulk Water',
+              'sku': 'SLOW-101',
+              'image_url': null,
+            },
+            'quantity': 2.0,
+            'unit_price_snapshot': 10.0,
+            'line_total': 20.0,
+            'is_available': true,
+            'available_quantity': 10.0,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/cart?store_id=7',
+        wholesaleCommerceApi: commerce,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final plus = find.byKey(const ValueKey('b2b-cart-plus-11'));
+    expect(plus, findsOneWidget);
+    expect(commerce.cartCalls, 1);
+
+    await tester.tap(plus);
+    await tester.pump();
+    await tester.tap(plus);
+    await tester.pump();
+    await tester.tap(plus);
+    await tester.pump();
+
+    // The UI reaches the latest target immediately, but only the first PATCH
+    // is in flight. Later taps are coalesced while that request is unresolved.
+    expect(find.text('5'), findsOneWidget);
+    expect(commerce.updateQuantities, <double>[3.0]);
+    expect(commerce.cartCalls, 1);
+
+    commerce.releaseFirstUpdate();
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(commerce.updateQuantities, <double>[3.0, 5.0]);
+    expect(commerce.cartCalls, 1);
+    expect(find.text('5'), findsOneWidget);
+  });
+
+  testWidgets(
       'C13 checkout exposes financial position and blocks insufficient account credit',
       (tester) async {
     tester.view.physicalSize = const Size(900, 1900);
@@ -2845,6 +2919,85 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-error-retry')), findsOneWidget);
     }
   });
+}
+
+class _DelayedQuantityWholesaleCommerceApi
+    implements WholesaleCommerceApi {
+  _DelayedQuantityWholesaleCommerceApi({required this.cartValue});
+
+  final Map<String, dynamic> cartValue;
+  final Completer<void> _firstUpdate = Completer<void>();
+  final List<double> updateQuantities = <double>[];
+  int cartCalls = 0;
+
+  void releaseFirstUpdate() {
+    if (!_firstUpdate.isCompleted) {
+      _firstUpdate.complete();
+    }
+  }
+
+  Map<String, dynamic> _snapshot() {
+    final snapshot = Map<String, dynamic>.from(cartValue);
+    final items = cartValue['items'];
+    if (items is List) {
+      snapshot['items'] = items
+          .map(
+            (raw) => raw is Map
+                ? Map<String, dynamic>.from(raw)
+                : raw,
+          )
+          .toList(growable: false);
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<Object?> cart(int storeId) async {
+    cartCalls += 1;
+    return _snapshot();
+  }
+
+  @override
+  Future<Object?> addItem(int storeId, int productId, double quantity) async =>
+      null;
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async {
+    updateQuantities.add(quantity);
+    if (updateQuantities.length == 1) {
+      await _firstUpdate.future;
+    }
+
+    final items = cartValue['items'];
+    if (items is List) {
+      for (final raw in items) {
+        if (raw is Map && raw['id'] == itemId) {
+          raw['quantity'] = quantity;
+          final unitPrice = raw['unit_price_snapshot'];
+          if (unitPrice is num) {
+            raw['line_total'] = unitPrice.toDouble() * quantity;
+          }
+        }
+      }
+    }
+
+    return _snapshot();
+  }
+
+  @override
+  Future<void> removeItem(int itemId) async {}
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      <String, Object?>{};
 }
 
 class _C13CheckoutStorefrontApi implements StorefrontApi {
