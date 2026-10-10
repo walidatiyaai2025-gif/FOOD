@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\VanVisit;
 use App\Services\AdminOrderManagementService;
 use App\Services\ProductAvailabilityService;
+use App\Services\VanOrderReadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ final class VanOrderController extends Controller
         private readonly AdminOrderManagementService $orders,
         private readonly ProductAvailabilityService $availability,
         private readonly B2bPriceResolver $b2bPrices,
+        private readonly VanOrderReadService $read,
     ) {}
 
     public function catalog(Request $request, string $type, int $customer): JsonResponse
@@ -178,68 +180,63 @@ final class VanOrderController extends Controller
         $actor = $this->actor($request);
         $validated = $request->validate([
             'status' => ['nullable', 'string', 'max:80'],
-            'customer_type' => ['nullable', Rule::in(['b2b', 'b2c'])],
+            'customer_type' => ['nullable', Rule::in(['b2b'])],
             'customer_id' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $scopes = VanVisit::query()
-            ->where('actor_user_id', $actor->getKey())
-            ->get(['customer_type', 'customer_id'])
-            ->map(static fn (VanVisit $visit): string => $visit->customer_type.':'.$visit->customer_id)
-            ->unique()
-            ->values();
-
-        $b2bIds = $scopes
-            ->filter(static fn (string $value): bool => str_starts_with($value, 'b2b:'))
-            ->map(static fn (string $value): int => (int) substr($value, 4))
-            ->values();
-        $b2cIds = $scopes
-            ->filter(static fn (string $value): bool => str_starts_with($value, 'b2c:'))
-            ->map(static fn (string $value): int => (int) substr($value, 4))
-            ->values();
-
-        $query = Order::query()
-            ->where(function ($scope) use ($b2bIds, $b2cIds): void {
-                if ($b2bIds->isNotEmpty()) {
-                    $scope->whereIn('b2b_customer_id', $b2bIds);
-                }
-                if ($b2cIds->isNotEmpty()) {
-                    if ($b2bIds->isNotEmpty()) {
-                        $scope->orWhereIn('b2c_customer_id', $b2cIds);
-                    } else {
-                        $scope->whereIn('b2c_customer_id', $b2cIds);
-                    }
-                }
-                if ($b2bIds->isEmpty() && $b2cIds->isEmpty()) {
-                    $scope->whereRaw('1 = 0');
-                }
-            })
+        $query = $this->read->queryForActor($actor)
             ->when(
                 isset($validated['status']),
-                fn ($orderQuery) => $orderQuery->where('status', $validated['status']),
+                fn ($orderQuery) => $orderQuery->where('orders.status', $validated['status']),
+            )
+            ->when(
+                isset($validated['customer_id']),
+                fn ($orderQuery) => $orderQuery->where(
+                    'orders.b2b_customer_id',
+                    (int) $validated['customer_id'],
+                ),
             );
 
-        if (isset($validated['customer_type'], $validated['customer_id'])) {
-            $type = (string) $validated['customer_type'];
-            $id = (int) $validated['customer_id'];
-            abort_unless($scopes->contains($type.':'.$id), 404);
-            $query->where($type === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id', $id);
-        }
-
         $page = $query
-            ->latest('id')
+            ->latest('orders.id')
             ->paginate((int) ($validated['per_page'] ?? 50));
 
         return response()->json([
             'data' => $page->getCollection()
-                ->map(fn (Order $order): array => $this->orderPayload($order))
+                ->map(fn (Order $order): array => $this->read->summary($order))
                 ->values(),
             'meta' => [
                 'current_page' => $page->currentPage(),
                 'per_page' => $page->perPage(),
                 'total' => $page->total(),
+                'scope' => 'active_van_assignment',
             ],
+        ]);
+    }
+
+    public function show(Request $request, int $order): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $validated = $request->validate([
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'channel' => ['nullable', 'string', 'max:16'],
+        ]);
+        $model = $this->read->findOwned($actor, $order);
+
+        if (isset($validated['store_id'])) {
+            abort_unless((int) $validated['store_id'] === (int) $model->store_id, 404);
+        }
+
+        if (isset($validated['channel'])) {
+            abort_unless(
+                strtolower(trim((string) $validated['channel'])) === 'b2b',
+                404,
+            );
+        }
+
+        return response()->json([
+            'data' => $this->read->detail($model),
         ]);
     }
 
