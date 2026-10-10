@@ -398,6 +398,7 @@ final class VanDeliveryExecutionService
         $assignmentQuery = OrderVanAssignment::query()
             ->where('order_id', $orderId)
             ->where('van_id', $vanId)
+            ->where('van_assignment_id', $runtimeAssignmentId)
             ->where('status', 'active');
 
         if ($lock) {
