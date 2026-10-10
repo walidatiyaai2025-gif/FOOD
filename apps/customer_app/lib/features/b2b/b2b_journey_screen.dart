@@ -6140,12 +6140,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     ),
                   ),
                   Text(
-                    '${ar ? 'الاستحقاق' : 'Due'} · ${_displayDate(data['due_at'])}',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  Text(
                     '${ar ? 'العملة' : 'Currency'} · $currency',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -7045,7 +7039,6 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                         ],
                       ),
                       Text('${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}'),
-                      Text('${ar ? 'الاستحقاق' : 'Due'}: ${_displayDate(row['due_at'])}'),
                       const SizedBox(height: 6),
                       Text('${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}'),
                       Text('${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}'),
