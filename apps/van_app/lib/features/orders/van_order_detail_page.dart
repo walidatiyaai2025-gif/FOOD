@@ -229,18 +229,26 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     }
   }
 
+  bool _isPrimaryAction(String value) {
+    if (value == 'out_for_delivery' && _execution?.status == 'failed') {
+      return false;
+    }
+    return const {
+      'accepted',
+      'picked_up',
+      'out_for_delivery',
+      'delivered',
+    }.contains(value);
+  }
+
   List<String> get _deliveryActions {
     final allowed = _execution?.allowedActions ?? const <String>[];
-    return allowed
-        .where(
-          (value) => const {
-            'accepted',
-            'picked_up',
-            'out_for_delivery',
-            'delivered',
-          }.contains(value),
-        )
-        .toList(growable: false);
+    return allowed.where(_isPrimaryAction).toList(growable: false);
+  }
+
+  List<String> get _additionalActions {
+    final allowed = _execution?.allowedActions ?? const <String>[];
+    return allowed.where((value) => !_isPrimaryAction(value)).toList(growable: false);
   }
 
   Widget _section({
@@ -384,6 +392,38 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       onPressed: _submitting ? null : () => _transition(action),
                       icon: Icon(_actionIcon(action)),
                       label: Text(_actionLabel(action)),
+                    ),
+                  ],
+                  if (_additionalActions.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _text(
+                        'Additional server actions',
+                        'إجراءات إضافية من الخادم',
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final action in _additionalActions)
+                          Chip(
+                            key: ValueKey('van-order-server-action-$action'),
+                            label: Text(_statusLabel(action)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _text(
+                        'Failure reasons, retry handling and proof capture continue in the dedicated exception/proof workflow.',
+                        'تستمر أسباب التعذر وإعادة المحاولة والتقاط الإثبات في مسار الاستثناء/الإثبات المخصص.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: FoodexVanTokens.muted,
+                          ),
                     ),
                   ],
                 ],
