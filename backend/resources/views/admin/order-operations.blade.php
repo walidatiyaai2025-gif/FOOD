@@ -220,7 +220,7 @@ $businessLabel = static function ($value): string {
 <h2>{{ __('order_operations.detail.van_execution_timeline') }}</h2>
 @if($detail['van_execution'])
 <div class="timeline-item" data-van-execution-state>
-<strong>{{ $businessLabel($detail['van_execution']->status) }}</strong>
+<strong>{{ $businessLabel($detail['van_execution']->status) }}</strong> {{-- localization-gate: allow execution status is resolved through localized businessLabel --}}
 @if($detail['van_execution']->failure_reason_code)<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($detail['van_execution']->failure_reason_code) }}</div>@endif
 @if($detail['van_execution']->failure_note)<div>{{ __('order_operations.detail.van_note') }}: {{ $detail['van_execution']->failure_note }}</div>@endif
 <small>{{ $detail['van_execution']->last_transition_at ? \Carbon\Carbon::parse($detail['van_execution']->last_transition_at)->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
@@ -241,7 +241,7 @@ $businessLabel = static function ($value): string {
 <h3>{{ __('order_operations.detail.collection_timeline') }}</h3>
 <div class="timeline" data-van-collection-timeline>
 @forelse($detail['collections'] as $collection)
-<div class="timeline-item"><strong>{{ number_format($collection['amount'],3) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div>
+<div class="timeline-item"><strong>{{ number_format($collection['amount'],3) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
 @empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_collections') }}</div>@endforelse
 </div>
 </div>
