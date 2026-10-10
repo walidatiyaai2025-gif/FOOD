@@ -308,6 +308,7 @@ class _FooterButton extends StatelessWidget {
             vertical: 5,
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedContainer(
