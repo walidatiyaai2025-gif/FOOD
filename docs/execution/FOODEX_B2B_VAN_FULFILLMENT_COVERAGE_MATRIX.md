@@ -63,13 +63,13 @@ Status vocabulary:
 | BF-046 | Critical | Tracking | B2B order resolves Van live location | fleet foundation exists | Dashboard/Customer tracking E2E | PLANNED |
 | BF-047 | Critical | Tracking | B2C continues Driver location | Driver live tracking exists | regression E2E | PLANNED |
 | BF-048 | High | Tracking | stale/offline Van explicit | fleet stale model exists | runtime evidence | PLANNED |
-| BF-049 | Critical | Dashboard | B2B Orders shows assigned Van/routing/execution | mixed controls exist | Dashboard feature + visual tests | PLANNED |
-| BF-050 | Critical | Dashboard | B2B has no Assign Driver | generic manual dispatch exists | auth/UI test | PLANNED |
-| BF-051 | Critical | Dashboard | B2C has no Assign Van | generic manual dispatch exists | auth/UI test | PLANNED |
-| BF-052 | Critical | Dashboard | Awaiting Dispatch queue reachable normally | dispatch state exists | route/nav + screenshot | PLANNED |
-| BF-053 | High | Dashboard | Routing decision/reason explainable | trace exists | detail UI + test | PLANNED |
-| BF-054 | High | Dashboard | Van detail lists B2B assigned/active/completed orders | Van management exists | runtime screenshot | PLANNED |
-| BF-055 | High | Dashboard | Customer 360 timeline shows Van actor | order timeline exists | feature test | PLANNED |
+| BF-049 | Critical | Dashboard | B2B Orders shows assigned Van/routing/execution | Order Operations now shows Van assignee, routing state/reason, execution events, collection and proof for B2B | `OrderOperationsIsolationTest::test_pending_wholesale_dispatch_never_allows_driver_even_with_customer_service_override` + Dashboard UI contract; runtime evidence pending exact-head CI | IMPLEMENTED |
+| BF-050 | Critical | Dashboard | B2B has no Assign Driver | B2B row actions render Van dispatch only and backend actor policy still rejects Driver | `OrderOperationsIsolationTest::test_pending_wholesale_dispatch_never_allows_driver_even_with_customer_service_override` | IMPLEMENTED |
+| BF-051 | Critical | Dashboard | B2C has no Assign Van | B2C row actions render Driver dispatch only | `OrderOperationsIsolationTest::test_dashboard_dispatch_assigns_driver_and_clear_returns_order_to_pending_queue` | IMPLEMENTED |
+| BF-052 | Critical | Dashboard | Awaiting Dispatch queue reachable normally | Order Operations status tabs expose a normal B2B Awaiting Dispatch workspace with routing reason | `data-order-dispatch-workspace` + Order Operations feature coverage; runtime evidence pending exact-head CI | IMPLEMENTED |
+| BF-053 | High | Dashboard | Routing decision/reason explainable | Order detail exposes dispatch source/reason, assignment history and audit events | `data-order-dispatch-detail` / `data-order-dispatch-audit` + Dashboard UI contract | IMPLEMENTED |
+| BF-054 | High | Dashboard | Van detail lists B2B assigned/active/completed orders | Van detail lists assignment and Van execution state for B2B orders with exact Order Operations link | `data-van-b2b-orders` / `data-van-b2b-order` + `FieldOperationsAdminExposureTest`; runtime evidence pending exact-head CI | IMPLEMENTED |
+| BF-055 | High | Dashboard | Customer 360 timeline shows Van actor | Customer 360 B2B orders show Van identity, execution state/failure and recent Van execution timeline | `data-c360-fulfillment` / `data-c360-van-timeline` + `DashboardUiComplianceTest` | IMPLEMENTED |
 | BF-056 | Critical | Driver | Driver APIs reject B2B execution after cutover | Driver supports both historically | negative API tests | PLANNED |
 | BF-057 | Critical | Driver | Driver App hides/removes B2B operational paths | wholesale behavior exists historically | navigation/widget tests | PLANNED |
 | BF-058 | Critical | Driver | B2C lifecycle remains intact | `DriverOrderService` is a thin adapter over shared delivery rules with legacy payload/proof persistence preserved | `DriverAssignmentLifecycleTest` + `DriverJourneyE2EAcceptanceTest` + required CI on W04 | IMPLEMENTED |
@@ -93,7 +93,7 @@ Status vocabulary:
 | BF-076 | High | Docs | ORDER/DRIVER/VAN workflows synchronized | old mixed assumptions exist | docs diff review | PLANNED |
 | BF-077 | Critical | Route authority | all new screens/actions have canonical normal entry | route authority exists | route-authority tests | PLANNED |
 | BF-078 | Critical | Evidence | Mobile Screenshot QA watches every changed Van UI path | harness exists | workflow trigger audit | PLANNED |
-| BF-079 | Critical | Evidence | Dashboard visual QA covers new B2B/dispatch pages | harness exists | runtime screenshot artifacts | PLANNED |
+| BF-079 | Critical | Evidence | Dashboard visual QA covers new B2B/dispatch pages | W11 changes are registered on Dashboard-owned production surfaces; exact-head runtime visual gate pending | Required Dashboard visual evidence workflow on PR #1227 exact head | IMPLEMENTED |
 | BF-080 | Critical | Release | update bundle/apps share final lineage | release contract exists | release gate | PLANNED |
 | BF-081 | Critical | E2E | Customer-created B2B -> Van delivered | not proven | integrated test | PLANNED |
 | BF-082 | Critical | E2E | Dashboard-created B2B -> Van delivered | not proven | integrated test | PLANNED |
