@@ -15,6 +15,7 @@ void main() {
       client: MockClient((request) async {
         attempts++;
         expect(request.headers['X-FOODEX-Retail-Store-ID'], '17');
+        expect(request.headers['X-FOODEX-Customer-Domain'], 'b2b');
         if (attempts == 1) {
           throw http.ClientException('temporary disconnect', request.url);
         }
