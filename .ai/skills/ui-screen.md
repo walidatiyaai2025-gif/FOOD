@@ -6,12 +6,13 @@ This is the default entry skill whenever the request is to build, redesign, spli
 
 Read:
 1. `.ai/skills/foodex-uiux.md`
-2. exactly one or more surface skills:
+2. `.ai/skills/ui-pattern-library.md`
+3. exactly one or more surface skills:
    - `.ai/skills/dashboard-uiux.md`
    - `.ai/skills/customer-uiux.md`
    - `.ai/skills/driver-uiux.md`
    - `.ai/skills/van-uiux.md`
-3. the authoritative contract/files named by that skill.
+4. the authoritative contract/files named by that skill.
 
 Do not start markup/widget code before this pass.
 
@@ -27,7 +28,7 @@ Do not start markup/widget code before this pass.
 - owning Issue/mission requirement.
 
 ### 2. Compose from existing primitives
-Reuse the surface's production shell, tokens, components, state views, buttons, grids/lists and navigation.
+Reuse the surface's production shell, tokens, components, state views, buttons, grids/lists and navigation. The worker must inspect the exact shared source named in `ui-pattern-library.md` before creating a replacement primitive.
 
 A new page should look like it has always belonged to FOODEX.
 
