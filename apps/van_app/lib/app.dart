@@ -21,6 +21,7 @@ import 'features/notifications/http_van_notification_repository.dart';
 import 'features/notifications/van_notification_contract.dart';
 import 'features/orders/http_van_order_repository.dart';
 import 'features/orders/van_order_contract.dart';
+import 'features/orders/van_order_detail_page.dart';
 
 class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
@@ -38,6 +39,7 @@ class FoodexVanApp extends StatefulWidget {
     this.notificationRepository,
     this.orderRepository,
     this.pushService,
+    this.pushAlerts,
   });
 
   final Locale locale;
@@ -53,12 +55,16 @@ class FoodexVanApp extends StatefulWidget {
   final VanNotificationRepository? notificationRepository;
   final VanOrderRepository? orderRepository;
   final VanFirebasePushService? pushService;
+  final Stream<VanPushAlert>? pushAlerts;
 
   @override
   State<FoodexVanApp> createState() => _FoodexVanAppState();
 }
 
 class _FoodexVanAppState extends State<FoodexVanApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
   late final VanAuthRepository _authRepository;
   late final VanSessionStore _sessionStore;
   late final VanAuthPreferenceStore _authPreferenceStore;
@@ -87,9 +93,9 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
       _restoreAuthState();
     }
 
-    final pushService = widget.pushService;
-    if (pushService != null) {
-      _pushAlertSubscription = pushService.alerts.listen(_showPushAlert);
+    final pushAlerts = widget.pushAlerts ?? widget.pushService?.alerts;
+    if (pushAlerts != null) {
+      _pushAlertSubscription = pushAlerts.listen(_showPushAlert);
     }
   }
 
@@ -194,9 +200,64 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
 
   void _showPushAlert(VanPushAlert alert) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${alert.title}: ${alert.body}')),
-    );
+
+    if (alert.openRequested) {
+      _openPushOrder(alert);
+      return;
+    }
+
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${alert.title}: ${alert.body}'), // localization-gate: allow — server-localized notification copy.
+          action: alert.canOpenB2bOrder
+              ? SnackBarAction(
+                  label: widget.locale.languageCode == 'ar' ? 'فتح' : 'Open',
+                  onPressed: () => _openPushOrder(alert),
+                )
+              : null,
+        ),
+      );
+  }
+
+  void _openPushOrder(VanPushAlert alert) {
+    if (!alert.canOpenB2bOrder) return;
+    final orderId = alert.orderId;
+    final session = _session;
+    if (orderId == null || session == null || !session.canUseVan) return;
+
+    void open() {
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      final repository = widget.orderRepository ??
+          HttpVanOrderRepository(
+            VanApiClient(
+              FoodexEnvironment.apiBaseUrl,
+              session.token,
+            ),
+          );
+      navigator.push<void>(
+        MaterialPageRoute(
+          builder: (_) => VanOrderDetailPage(
+            orderId: orderId,
+            repository: repository,
+            onSessionExpired: _logout,
+          ),
+        ),
+      );
+    }
+
+    if (_navigatorKey.currentState == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) open();
+      });
+      return;
+    }
+
+    open();
   }
 
   @override
@@ -209,6 +270,8 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
+      scaffoldMessengerKey: _messengerKey,
       debugShowCheckedModeBanner: false,
       title: widget.locale.languageCode == 'ar' ? 'فودكس للفان' : 'FOODEX Van',
       theme: widget.theme ?? FoodexVanTheme.light(),

@@ -20,6 +20,7 @@ final class OrderManualDispatchService
         private readonly AuditLogger $audit,
         private readonly FulfillmentActorPolicy $actors,
         private readonly VanExecutionStateService $executionStates,
+        private readonly OrderLifecycleNotificationService $notifications,
     ) {}
 
     public function assignDriver(
@@ -163,8 +164,10 @@ final class OrderManualDispatchService
                         'status' => 'reassigned',
                         'ended_at' => $moment,
                     ])->save();
+                    $this->notifications->vanAssignmentRevoked($order, $assignment, 'reassigned');
                 }
 
+                $reassigned = $active->isNotEmpty();
                 $decisionKey = hash('sha256', implode('|', [
                     'manual-van',
                     $order->id,
@@ -193,6 +196,9 @@ final class OrderManualDispatchService
             }
 
             $this->executionStates->initialize($same, $moment);
+            if ($same->wasRecentlyCreated) {
+                $this->notifications->vanAssigned($order, $same, $reassigned ?? false);
+            }
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([
@@ -246,10 +252,13 @@ final class OrderManualDispatchService
                 ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
-                ->each(fn (OrderVanAssignment $assignment) => $assignment->forceFill([
-                    'status' => 'ended',
-                    'ended_at' => now(),
-                ])->save());
+                ->each(function (OrderVanAssignment $assignment) use ($order): void {
+                    $assignment->forceFill([
+                        'status' => 'ended',
+                        'ended_at' => now(),
+                    ])->save();
+                    $this->notifications->vanAssignmentRevoked($order, $assignment, 'manual_unassigned');
+                });
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([

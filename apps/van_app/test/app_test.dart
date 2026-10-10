@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_van_app/app.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
+import 'package:foodex_van_app/core/push/firebase_push_service.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
@@ -538,6 +541,132 @@ void main() {
     expect(find.text('Acme Grocery'), findsOneWidget);
   });
 
+
+  testWidgets('Van push tap opens canonical B2B Order Detail',
+      (tester) async {
+    final alerts = StreamController<VanPushAlert>.broadcast();
+    final orders = _OrderRepository()..createdCount = 1;
+    addTearDown(alerts.close);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        orderRepository: orders,
+        pushAlerts: alerts.stream,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    alerts.add(
+      const VanPushAlert(
+        title: 'New Van delivery',
+        body: 'Open the order',
+        openRequested: true,
+        orderId: 7001,
+        storeId: 7,
+        channel: 'b2b',
+        deepLink: '/van/orders/7001?channel=b2b&store_id=7',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.text('Acme Grocery'), findsOneWidget);
+  });
+
+  testWidgets('Van foreground push requires explicit Open action',
+      (tester) async {
+    final alerts = StreamController<VanPushAlert>.broadcast();
+    final orders = _OrderRepository()..createdCount = 1;
+    addTearDown(alerts.close);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        orderRepository: orders,
+        pushAlerts: alerts.stream,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    alerts.add(
+      const VanPushAlert(
+        title: 'Order update',
+        body: 'Tap Open',
+        openRequested: false,
+        orderId: 7001,
+        storeId: 7,
+        channel: 'b2b',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsNothing);
+    expect(find.text('Open'), findsOneWidget);
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+  });
+
+  testWidgets('Van push refuses non-B2B navigation intents', (tester) async {
+    final alerts = StreamController<VanPushAlert>.broadcast();
+    final orders = _OrderRepository()..createdCount = 1;
+    addTearDown(alerts.close);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        orderRepository: orders,
+        pushAlerts: alerts.stream,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    alerts.add(
+      const VanPushAlert(
+        title: 'Wrong channel',
+        body: 'Must not open',
+        openRequested: true,
+        orderId: 7001,
+        storeId: 7,
+        channel: 'b2c',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsNothing);
+  });
 
   testWidgets('Van Notifications renders canonical feed and marks read',
       (tester) async {
