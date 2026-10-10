@@ -198,6 +198,28 @@ jobs:
       - name: Test FOODEX UI contract planner
         run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_contract_plan.py'
 
+      - name: Test FOODEX UI business intent planner
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_intent_plan.py'
+
+      - name: Validate FOODEX business UI casebook
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-ui-intent-plan.py \
+            --validate-only \
+            --output artifacts/foodex-ui-business-casebook-audit.json
+
+      - name: Upload FOODEX business UI casebook audit
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-ui-business-casebook-${{ github.event.pull_request.head.sha }}
+          path: artifacts/foodex-ui-business-casebook-audit.json
+          if-no-files-found: warn
+          retention-days: 30
+
+
       - name: Test FOODEX UI structural parity
         run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_structure_audit.py'
 

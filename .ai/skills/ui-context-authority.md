@@ -122,3 +122,10 @@ PASS only if the worker can state:
 - which production assets/components are reused;
 - which lifecycle/pagination rules apply;
 - which exact tests/evidence prove it.
+
+## Business casebook inference
+
+When a short prompt is used, `foodex-ui-intent-plan.py` may identify a production-backed business case before this context pass.
+
+That inference is only a starting point. Explicit Issue scope, route authority, Store/channel/tenant context and current source remain higher authority. Never widen access or invent a mutation because a keyword matched a casebook entry.
+

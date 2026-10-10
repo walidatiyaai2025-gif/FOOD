@@ -1,0 +1,488 @@
+{
+  "schema_version": 1,
+  "purpose": "Reusable FOODEX business interaction recipes learned from current production journeys. Current source and domain tests remain authoritative.",
+  "recipes": [
+    {
+      "id": "operations-management",
+      "required_context": [
+        "actor_permission",
+        "store_or_channel_scope",
+        "record_identity",
+        "authoritative_status",
+        "available_transitions"
+      ],
+      "state_machine": [
+        "request_or_filter",
+        "render_ready_or_empty",
+        "action_pending",
+        "backend_authoritative_result",
+        "reconciled_or_error"
+      ],
+      "mandatory_states": [
+        "ready",
+        "empty",
+        "validation_error",
+        "authorization_error",
+        "mutation_pending",
+        "reconciled"
+      ],
+      "primary_interactions": [
+        "compact_filters",
+        "exact_record_view",
+        "overflow_row_actions",
+        "authoritative_transition"
+      ],
+      "post_success": [
+        "refresh_exact_record",
+        "preserve_filter_context",
+        "show_truthful_status"
+      ],
+      "never": [
+        "typed_raw_ids_for_business_users",
+        "client_invented_status_transition",
+        "multiple_competing_row_buttons"
+      ]
+    },
+    {
+      "id": "record-360",
+      "required_context": [
+        "actor_permission",
+        "exact_business_record",
+        "related_domains",
+        "mutation_permissions",
+        "currency_if_financial"
+      ],
+      "state_machine": [
+        "record_load",
+        "workspace_ready",
+        "focused_domain_action",
+        "backend_result",
+        "related_domain_reconcile"
+      ],
+      "mandatory_states": [
+        "record_ready",
+        "no_related_data",
+        "validation_error",
+        "authorization_error"
+      ],
+      "primary_interactions": [
+        "tabs_by_business_domain",
+        "exact_record_actions",
+        "focused_modal_or_inline_editor"
+      ],
+      "post_success": [
+        "reconcile_changed_domain",
+        "retain_exact_record_context"
+      ],
+      "never": [
+        "generic_list_redirect_for_manage",
+        "raw_internal_ids",
+        "unscoped_related_records"
+      ]
+    },
+    {
+      "id": "live-monitoring",
+      "required_context": [
+        "authorized_actor_scope",
+        "authoritative_coordinates",
+        "last_update_time",
+        "entity_type",
+        "polling_lifecycle"
+      ],
+      "state_machine": [
+        "initial_load",
+        "live_ready",
+        "polling_refresh",
+        "stale_or_error",
+        "recovered"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "empty",
+        "stale",
+        "error"
+      ],
+      "primary_interactions": [
+        "map_first",
+        "compact_filters",
+        "exact_entity_focus",
+        "manual_refresh_if_supported"
+      ],
+      "post_success": [
+        "replace_with_new_authoritative_snapshot",
+        "retain_last_confirmed_only_when_marked_stale"
+      ],
+      "never": [
+        "fabricated_coordinates",
+        "silent_stale_data",
+        "stacked_pollers"
+      ]
+    },
+    {
+      "id": "transaction-list",
+      "required_context": [
+        "actor_scope",
+        "channel",
+        "transaction_identity",
+        "authoritative_status",
+        "pagination_or_bounded_contract"
+      ],
+      "state_machine": [
+        "loading",
+        "ready_or_empty",
+        "refresh_or_load_more",
+        "detail_open",
+        "reconciled"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "empty",
+        "error",
+        "refreshing"
+      ],
+      "primary_interactions": [
+        "status_filter_or_tabs",
+        "exact_transaction_detail",
+        "single_next_action_when_applicable"
+      ],
+      "post_success": [
+        "return_to_same_context",
+        "refresh_authoritative_status"
+      ],
+      "never": [
+        "wrapped_reference_identity",
+        "client_generated_status_truth",
+        "unbounded_history"
+      ]
+    },
+    {
+      "id": "commerce-checkout",
+      "required_context": [
+        "authenticated_buyer",
+        "store_context",
+        "cart_lines",
+        "authoritative_price",
+        "availability",
+        "payment_options",
+        "delivery_context"
+      ],
+      "state_machine": [
+        "cart_review",
+        "server_quote_or_validation",
+        "checkout_submitting",
+        "confirmed_or_recoverable_error"
+      ],
+      "mandatory_states": [
+        "cart_ready",
+        "empty_cart",
+        "repricing_or_validation_error",
+        "submitting",
+        "confirmed"
+      ],
+      "primary_interactions": [
+        "edit_quantity",
+        "review_totals",
+        "choose_authoritative_options",
+        "submit_once"
+      ],
+      "post_success": [
+        "open_authoritative_order",
+        "clear_or_reconcile_cart"
+      ],
+      "never": [
+        "client_only_pricing",
+        "double_submit",
+        "auto_submit_without_review"
+      ]
+    },
+    {
+      "id": "active-field-delivery",
+      "required_context": [
+        "driver_channel",
+        "assignment_scope",
+        "assignment_identity",
+        "current_status",
+        "allowed_actions",
+        "last_confirmed_update"
+      ],
+      "state_machine": [
+        "loading",
+        "ready_or_empty",
+        "active_refresh",
+        "action_pending",
+        "reconciled",
+        "stale_or_offline"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "empty",
+        "error",
+        "offline",
+        "stale",
+        "action_pending"
+      ],
+      "primary_interactions": [
+        "compact_filters",
+        "exact_assignment_action",
+        "navigation",
+        "deliver_or_fail_with_reason"
+      ],
+      "post_success": [
+        "reload_assignment",
+        "remove_or_update_terminal_assignment"
+      ],
+      "never": [
+        "action_on_revoked_assignment",
+        "duplicate_transition",
+        "silent_polling_failure"
+      ]
+    },
+    {
+      "id": "custody-wallet",
+      "required_context": [
+        "actor_scope",
+        "currency",
+        "custody_balance",
+        "available_to_remit",
+        "recent_transactions"
+      ],
+      "state_machine": [
+        "loading",
+        "ready_or_empty",
+        "remittance_input",
+        "submitting",
+        "reconciled",
+        "stale_or_error"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "empty",
+        "error",
+        "stale",
+        "submitting"
+      ],
+      "primary_interactions": [
+        "refresh",
+        "review_balances",
+        "submit_remittance_when_available"
+      ],
+      "post_success": [
+        "reload_wallet",
+        "show_authoritative_transaction_status"
+      ],
+      "never": [
+        "remit_above_available",
+        "fake_success",
+        "hide_stale_balance"
+      ]
+    },
+    {
+      "id": "route-visits",
+      "required_context": [
+        "van_scope",
+        "visit_assignments",
+        "route_identity",
+        "visit_status",
+        "location_if_available"
+      ],
+      "state_machine": [
+        "loading",
+        "ready_or_empty",
+        "background_refresh",
+        "stale_or_error",
+        "exact_route_or_visit_open"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "empty",
+        "error",
+        "stale"
+      ],
+      "primary_interactions": [
+        "route_grouping",
+        "exact_route_open",
+        "visit_workspace"
+      ],
+      "post_success": [
+        "refresh_route_counts",
+        "retain_current_scope"
+      ],
+      "never": [
+        "fabricated_route_assignment",
+        "cross_scope_customer",
+        "silent_stale_visits"
+      ]
+    },
+    {
+      "id": "authoritative-order-builder",
+      "required_context": [
+        "customer_scope",
+        "product_lines",
+        "ordering_increment",
+        "payment_method",
+        "address_or_warehouse",
+        "currency"
+      ],
+      "state_machine": [
+        "draft",
+        "editing_lines",
+        "authoritative_quote_pending",
+        "review_ready",
+        "submit_owned_by_review_step"
+      ],
+      "mandatory_states": [
+        "empty_draft",
+        "draft_ready",
+        "quote_pending",
+        "quote_error",
+        "review_ready"
+      ],
+      "primary_interactions": [
+        "change_quantity_by_increment",
+        "remove_line",
+        "request_authoritative_quote",
+        "open_review"
+      ],
+      "post_success": [
+        "carry_exact_quote_to_review"
+      ],
+      "never": [
+        "client_calculated_final_quote",
+        "review_without_customer",
+        "review_without_lines"
+      ]
+    },
+    {
+      "id": "invoice-collection",
+      "required_context": [
+        "van_scope",
+        "customer_scope",
+        "invoice",
+        "outstanding_balance",
+        "currency_precision",
+        "collection_account"
+      ],
+      "state_machine": [
+        "load_customers",
+        "load_collection_context",
+        "ready",
+        "submitting",
+        "reconciled_or_recoverable_error"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "no_customers",
+        "no_invoices",
+        "validation_error",
+        "submitting",
+        "stale",
+        "offline_or_error",
+        "success"
+      ],
+      "primary_interactions": [
+        "select_customer",
+        "select_invoice",
+        "enter_amount",
+        "collect_once"
+      ],
+      "post_success": [
+        "clear_completed_input",
+        "reload_collection_context",
+        "show_authoritative_result"
+      ],
+      "never": [
+        "amount_above_outstanding",
+        "duplicate_same_payload",
+        "infer_payment_success_locally"
+      ]
+    },
+    {
+      "id": "custody-remittance",
+      "required_context": [
+        "van_or_driver_scope",
+        "collection_account",
+        "available_to_remit",
+        "currency_precision",
+        "method",
+        "reference_if_needed"
+      ],
+      "state_machine": [
+        "load_wallet",
+        "ready",
+        "submitting",
+        "reconciled_or_recoverable_error"
+      ],
+      "mandatory_states": [
+        "loading",
+        "ready",
+        "empty",
+        "validation_error",
+        "submitting",
+        "stale",
+        "offline_or_error",
+        "success"
+      ],
+      "primary_interactions": [
+        "select_account",
+        "enter_amount",
+        "choose_method",
+        "submit_once"
+      ],
+      "post_success": [
+        "clear_completed_input",
+        "reload_wallet",
+        "show_authoritative_balance"
+      ],
+      "never": [
+        "amount_above_available",
+        "new_idempotency_key_for_same_retry",
+        "fake_success_after_timeout"
+      ]
+    },
+    {
+      "id": "finance-reconciliation",
+      "required_context": [
+        "authorized_admin",
+        "actor_or_van_scope",
+        "store_scope",
+        "currency",
+        "finance_tab",
+        "status_filter",
+        "pagination"
+      ],
+      "state_machine": [
+        "request_filters",
+        "render_tab",
+        "inspect_exception_or_history",
+        "reconciled_view"
+      ],
+      "mandatory_states": [
+        "ready",
+        "empty",
+        "filter_no_results",
+        "authorization_error"
+      ],
+      "primary_interactions": [
+        "switch_finance_tab",
+        "search",
+        "status_filter",
+        "paginate",
+        "open_operational_link"
+      ],
+      "post_success": [
+        "preserve_tab_and_filter_context"
+      ],
+      "never": [
+        "raw_ledger_ids_as_primary_labels",
+        "unbounded_finance_history",
+        "mixed_currency_without_label"
+      ]
+    }
+  ]
+}

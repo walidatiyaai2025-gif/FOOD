@@ -23,6 +23,9 @@ Cross-cutting quality skills:
 - `.ai/skills/uiux-skill-maintenance.md` — use when durable UI architecture/contracts change.
 - `.ai/skills/ui-structural-parity.md` — hard minimum signature for new screens + Golden structural similarity.
 - `.ai/skills/ui-pr-evidence-plan.md` — exact-diff runtime evidence plan and inventory enforcement.
+- `.ai/skills/ui-business-journeys.md` — production-backed business flows, states and invariants.
+- `.ai/skills/ui-intent-routing.md` — resolve short AR/EN owner prompts into bounded FOODEX journeys.
+- `.ai/skills/ui-casebook-learning.md` — promote only source+test-backed reusable business lessons.
 
 ## 0. Authority order
 
@@ -344,4 +347,20 @@ Read:
 - `.ai/uiux/visual-evidence-matrix.json`
 
 New screens must satisfy the surface structural signature and be added to the owning runtime screenshot inventory. Applicable Web/Mobile visual evidence jobs are part of Required CI.
+
+## 17. Business journey learning and short-prompt routing
+
+For short owner prompts, run the production-backed intent router before visual design:
+
+```bash
+python3 scripts/foodex-ui-intent-plan.py --intent "<owner request>" [--surface <surface>] [--strict]
+```
+
+Read:
+- `.ai/skills/ui-business-journeys.md`
+- `.ai/skills/ui-intent-routing.md`
+- `.ai/uiux/business-casebook.json`
+- `.ai/uiux/business-recipes.json`
+
+The selected business case supplies real production sources, tests, state/action invariants and a reusable recipe. Explicit Issue/route authority always wins. A weak prompt must remain unresolved rather than creating invented business behavior.
 

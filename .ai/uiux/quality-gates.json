@@ -109,9 +109,13 @@
       "scripts/validate_ui_route_convergence.py",
       "scripts/foodex-ui-contract-plan.py",
       "scripts/foodex-ui-structure-audit.py",
-      "scripts/foodex-ui-pr-plan.py"
+      "scripts/foodex-ui-pr-plan.py",
+      "scripts/foodex-ui-intent-plan.py"
     ],
     "visual_evidence_matrix": ".ai/uiux/visual-evidence-matrix.json",
-    "structural_signatures": ".ai/uiux/structural-signatures.json"
+    "structural_signatures": ".ai/uiux/structural-signatures.json",
+    "business_casebook": ".ai/uiux/business-casebook.json",
+    "business_recipes": ".ai/uiux/business-recipes.json",
+    "intent_planner": "scripts/foodex-ui-intent-plan.py"
   }
 }
