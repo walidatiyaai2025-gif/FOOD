@@ -61,3 +61,36 @@ A page is not complete merely because:
 - a screenshot exists.
 
 It is complete when it follows the current FOODEX surface design system, is normally reachable, binds authoritative data, handles its real states, works in AR/EN and responsive targets, and passes the relevant interaction/runtime evidence gate.
+
+## Mandatory reference lock before implementation
+
+Before writing any Blade/Flutter UI, name the exact reference pattern being reused.
+
+Minimum internal decision:
+- **Surface:** Dashboard / Customer / Driver / Van
+- **Archetype:** list-management / detail-manage / create-edit / dashboard-KPI / commerce / active-journey / field-operation
+- **Production source:** exact theme/component/shell file
+- **Nearest reference:** current route/screen or `SCREEN_MANIFEST.json` entry
+- **Shared primitives:** exact existing classes/widgets that will compose the page
+
+Then read `.ai/skills/page-patterns.md`.
+
+If the task does not provide design details, this reference lock is the design specification. Do not ask the owner to restate FOODEX spacing/colors/table/action rules.
+
+## Default page construction rule
+
+For an ordinary page request, build in this order:
+
+1. existing application shell/navigation;
+2. compact page header/title;
+3. sibling tabs only when the domain already uses them;
+4. compact filters/search;
+5. main data surface;
+6. exact-record action pattern;
+7. pagination/continuation when applicable;
+8. loading/empty/error/stale/offline states;
+9. focused modal/drawer/detail sheet for record actions;
+10. AR/EN + RTL/LTR + narrow/wide verification.
+
+Do not start by creating a new Card/Scaffold/Table/Button style.
+
