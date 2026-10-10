@@ -18,21 +18,22 @@ def build_name(issue:int, kind:str, slug:str)->str:
     if kind not in KINDS: raise ValueError("invalid branch kind")
     return f"{kind}/{issue}-{normalize_slug(slug)}"
 
-def is_valid(branch:str, base:str|None=None)->bool:
+def is_valid(branch:str, base:str|None=None, allow_main:bool=False)->bool:
     if branch in SPECIAL: return True
-    if branch=="main": return bool(base and RELEASE_RE.fullmatch(base))
+    if branch=="main":
+        return allow_main or bool(base and RELEASE_RE.fullmatch(base))
     return bool(STANDARD_RE.fullmatch(branch) or RELEASE_RE.fullmatch(branch))
 
 def main()->int:
     p=argparse.ArgumentParser()
     sub=p.add_subparsers(dest="command",required=True)
     n=sub.add_parser("name"); n.add_argument("issue",type=int); n.add_argument("kind",choices=KINDS); n.add_argument("slug")
-    v=sub.add_parser("validate"); v.add_argument("branch"); v.add_argument("--base")
+    v=sub.add_parser("validate"); v.add_argument("branch"); v.add_argument("--base"); v.add_argument("--allow-main",action="store_true")
     a=p.parse_args()
     if a.command=="name":
         try: print(build_name(a.issue,a.kind,a.slug)); return 0
         except ValueError as exc: print(str(exc),file=sys.stderr); return 2
-    if is_valid(a.branch,a.base): return 0
+    if is_valid(a.branch,a.base,a.allow_main): return 0
     print(f"Invalid issue branch name: {a.branch}",file=sys.stderr); return 1
 
 if __name__=="__main__": raise SystemExit(main())
