@@ -582,6 +582,34 @@ void main() {
   });
 
 
+  testWidgets('Van Dashboard opens exact active B2B order', (tester) async {
+    final orders = _OrderRepository()..createdCount = 1;
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _CustomerWalletRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final orderLink = find.byKey(const ValueKey('van-dashboard-order-7001'));
+    expect(orderLink, findsOneWidget);
+    await tester.tap(orderLink);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.text('Acme Grocery'), findsOneWidget);
+  });
+
+
   testWidgets('Van sales flow reaches Catalog Builder Review and Orders',
       (tester) async {
     final orders = _OrderRepository();
@@ -675,6 +703,24 @@ void main() {
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
     expect(find.text('12.000 KWD'), findsWidgets);
     expect(orders.createdCount, 1);
+    expect(find.byKey(const ValueKey('van-orders-filter-new')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-orders-filter-new')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-7001')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-order-7001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.textContaining('Warehouse gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-detail-timeline')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-action-accepted')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-order-action-accepted')));
+    await tester.pumpAndSettle();
+    expect(orders.transitions, contains('accepted'));
+    expect(find.byKey(const ValueKey('van-order-action-picked_up')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-server-action-failed')), findsOneWidget);
   });
 
 
@@ -712,6 +758,14 @@ void main() {
       ).first,
     );
     await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    final exactOrder = find.byKey(const ValueKey('van-visit-open-order-801'));
+    await tester.ensureVisible(exactOrder);
+    await tester.tap(exactOrder);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    Navigator.of(tester.element(find.byKey(const ValueKey('van-order-detail-page')))).pop();
     await tester.pumpAndSettle();
 
     final visitOrder = find.byKey(const ValueKey('van-visit-order-801'));
@@ -1285,6 +1339,27 @@ class _RouteCustomersRepository implements VanWalletRepository {
 
 class _OrderRepository implements VanOrderRepository {
   int createdCount = 0;
+  String executionStatus = 'assigned';
+  final List<String> transitions = [];
+
+  VanOrderRecord _record() => VanOrderRecord(
+        id: 7001,
+        orderNumber: 'FDX-B2B-TEST-001',
+        customerType: 'b2b',
+        customerId: 42,
+        storeId: 7,
+        status: executionStatus == 'out_for_delivery'
+            ? 'out_for_delivery'
+            : executionStatus == 'delivered'
+                ? 'delivered'
+                : executionStatus == 'failed'
+                    ? 'failed'
+                    : 'pending',
+        currency: 'KWD',
+        grandTotal: 12,
+        createdAt: '2026-10-07T10:00:00+03:00',
+        vanExecutionStatus: executionStatus,
+      );
 
   @override
   Future<List<VanCatalogProduct>> catalog(
@@ -1353,55 +1428,87 @@ class _OrderRepository implements VanOrderRepository {
     String? customerNote,
   }) async {
     createdCount += 1;
-    return const VanOrderRecord(
-      id: 7001,
-      orderNumber: 'FDX-B2B-TEST-001',
-      customerType: 'b2b',
-      customerId: 42,
-      storeId: 7,
-      status: 'pending',
-      currency: 'KWD',
-      grandTotal: 12,
-      createdAt: '2026-10-07T10:00:00+03:00',
-    );
+    return _record();
   }
 
   @override
   Future<List<VanOrderRecord>> orders({
     VanCustomerScope? customer,
     String? status,
-  }) async =>
-      createdCount == 0
-          ? const []
-          : const [
-              VanOrderRecord(
-                id: 7001,
-                orderNumber: 'FDX-B2B-TEST-001',
-                customerType: 'b2b',
-                customerId: 42,
-                storeId: 7,
-                status: 'pending',
-                currency: 'KWD',
-                grandTotal: 12,
-                createdAt: '2026-10-07T10:00:00+03:00',
-              ),
-            ];
+  }) async => createdCount == 0 ? const [] : [_record()];
 
   @override
-  Future<VanOrderDetail> order(int orderId) =>
-      throw UnimplementedError('Order detail is not used by this fixture.');
+  Future<VanOrderDetail> order(int orderId) async => VanOrderDetail(
+        summary: _record(),
+        paymentMethod: 'cash_on_delivery',
+        customer: const VanOrderCustomer(
+          name: 'Acme Grocery',
+          phone: '+96550000077',
+          email: 'acme@example.test',
+        ),
+        deliveryAddress: const VanOrderDeliveryAddress(
+          formatted: 'Warehouse gate, Street 17, Shuwaikh, Kuwait City, KW',
+          hasCoordinates: true,
+          latitude: 29.3375,
+          longitude: 47.6581,
+        ),
+        items: const [
+          VanOrderItemRecord(
+            name: 'Water Case',
+            sku: 'WATER-CASE',
+            quantity: 1,
+            lineTotal: 12,
+          ),
+        ],
+        invoice: const VanOrderInvoiceRecord(
+          number: 'INV-7001',
+          status: 'issued',
+          currency: 'KWD',
+          total: 12,
+          paidAmount: 0,
+          outstandingAmount: 12,
+        ),
+        payments: const [],
+        collections: const [],
+        timeline: const [
+          VanOrderTimelineRecord(
+            stage: 'assigned',
+            status: 'assigned',
+            source: 'van_assignment',
+            occurredAt: '2026-10-07T10:00:00+03:00',
+          ),
+        ],
+      );
 
   @override
-  Future<VanOrderExecutionState> execution(int orderId) =>
-      throw UnimplementedError('Order execution is not used by this fixture.');
+  Future<VanOrderExecutionState> execution(int orderId) async {
+    final allowed = switch (executionStatus) {
+      'assigned' => const ['accepted'],
+      'accepted' => const ['picked_up', 'failed'],
+      'picked_up' => const ['out_for_delivery', 'failed'],
+      'out_for_delivery' => const ['delivered', 'failed'],
+      'failed' => const ['out_for_delivery'],
+      _ => const <String>[],
+    };
+    return VanOrderExecutionState(
+      orderId: orderId,
+      orderStatus: _record().status,
+      status: executionStatus,
+      allowedActions: allowed,
+      proofRequiredForDelivered: true,
+    );
+  }
 
   @override
   Future<VanOrderExecutionState> transitionOrder({
     required int orderId,
     required String status,
     required String idempotencyKey,
-  }) =>
-      throw UnimplementedError('Order transition is not used by this fixture.');
+  }) async {
+    transitions.add(status);
+    executionStatus = status;
+    return execution(orderId);
+  }
 
 }
 
@@ -1418,6 +1525,7 @@ class _StartedVisitRepository implements VanVisitRepository {
           customerId: 42,
           storeId: 7,
           status: 'started',
+          orderId: 7001,
           allowedTransitions: [
             'completed_with_order',
             'completed_no_order',
