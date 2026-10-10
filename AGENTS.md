@@ -22,7 +22,7 @@ After the mandatory live GitHub preflight in Section 2, and before substantial i
 4. `.ai/CURRENT_STATE.md` as orientation only;
 5. the one relevant playbook under `.ai/skills/`.
 
-For **any page/screen/UI request**, including short owner commands such as `اعمل صفحة`, `صمم شاشة`, `قسم الصفحة`, or equivalent, the worker MUST also read `.ai/skills/foodex-uiux.md` and the matching surface skill (`dashboard-uiux.md`, `customer-uiux.md`, `driver-uiux.md`, or `van-uiux.md`) before implementation. Those playbooks are repository-native summaries of the current production design tokens/components and v4.2 acceptance rules; current source/authoritative docs still outrank the summary when they differ.
+For **any page/screen/UI request**, including short owner commands such as `اعمل صفحة`, `صمم شاشة`, `قسم الصفحة`, or equivalent, the worker MUST route through `.ai/skills/ui-screen.md`, then read `.ai/skills/foodex-uiux.md`, `.ai/skills/ui-pattern-library.md`, `.ai/skills/page-patterns.md`, and the matching surface skill (`dashboard-uiux.md`, `customer-uiux.md`, `driver-uiux.md`, or `van-uiux.md`) before implementation. These playbooks are repository-native maps of the current production design tokens, classes/widgets, page recipes and v4.2 acceptance rules. The worker MUST inspect the exact shared source referenced by the skills before introducing a new UI primitive; current source/authoritative docs still outrank the summaries when they differ.
 
 Precedence is strict:
 
