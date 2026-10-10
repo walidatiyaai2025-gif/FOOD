@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "skill_root": ".ai/skills",
+  "controlled_roots": [
+    "backend/resources/views/admin/",
+    "backend/public/assets/admin/",
+    "apps/customer_app/lib/",
+    "apps/driver_app/lib/",
+    "apps/van_app/lib/"
+  ],
+  "routes": [
+    {
+      "id": "dashboard-ui",
+      "paths": [
+        "backend/resources/views/admin/**",
+        "backend/public/assets/admin/**"
+      ],
+      "skills": [
+        "ui-screen.md",
+        "foodex-uiux.md",
+        "dashboard-uiux.md",
+        "ui-route-authority.md",
+        "ui-accessibility.md",
+        "uiux-audit.md",
+        "uiux-evidence.md",
+        "ui-pr-evidence-plan.md"
+      ],
+      "gates": [
+        "uiux-policy",
+        "ui-structural-parity",
+        "ui-pr-evidence",
+        "dashboard-visual-evidence",
+        "localization"
+      ]
+    },
+    {
+      "id": "customer-ui",
+      "paths": [
+        "apps/customer_app/lib/**"
+      ],
+      "skills": [
+        "ui-screen.md",
+        "foodex-uiux.md",
+        "customer-uiux.md",
+        "ui-route-authority.md",
+        "ui-accessibility.md",
+        "uiux-audit.md",
+        "uiux-evidence.md",
+        "ui-pr-evidence-plan.md"
+      ],
+      "gates": [
+        "uiux-policy",
+        "ui-structural-parity",
+        "ui-pr-evidence",
+        "mobile-visual-evidence",
+        "localization"
+      ]
+    },
+    {
+      "id": "driver-ui",
+      "paths": [
+        "apps/driver_app/lib/**"
+      ],
+      "skills": [
+        "ui-screen.md",
+        "foodex-uiux.md",
+        "driver-uiux.md",
+        "ui-route-authority.md",
+        "ui-accessibility.md",
+        "uiux-audit.md",
+        "uiux-evidence.md",
+        "ui-pr-evidence-plan.md"
+      ],
+      "gates": [
+        "uiux-policy",
+        "ui-structural-parity",
+        "ui-pr-evidence",
+        "mobile-visual-evidence",
+        "localization"
+      ]
+    },
+    {
+      "id": "van-ui",
+      "paths": [
+        "apps/van_app/lib/**"
+      ],
+      "skills": [
+        "ui-screen.md",
+        "foodex-uiux.md",
+        "van-uiux.md",
+        "ui-route-authority.md",
+        "ui-accessibility.md",
+        "uiux-audit.md",
+        "uiux-evidence.md",
+        "ui-pr-evidence-plan.md"
+      ],
+      "gates": [
+        "uiux-policy",
+        "ui-structural-parity",
+        "ui-pr-evidence",
+        "mobile-visual-evidence",
+        "localization"
+      ]
+    },
+    {
+      "id": "database",
+      "paths": [
+        "backend/database/migrations/**",
+        "backend/database/seeders/**"
+      ],
+      "skills": [
+        "database-change.md"
+      ],
+      "gates": [
+        "backend-validation"
+      ]
+    },
+    {
+      "id": "api",
+      "paths": [
+        "backend/app/Http/**",
+        "backend/routes/**",
+        "docs/api/openapi.yaml"
+      ],
+      "skills": [
+        "api-endpoint.md"
+      ],
+      "gates": [
+        "backend-validation"
+      ]
+    },
+    {
+      "id": "release",
+      "paths": [
+        "VERSION",
+        "docs/release/**",
+        ".github/workflows/release-*.yml",
+        "scripts/package-mobile-artifact.py",
+        "scripts/validate_release_artifact_contract.py"
+      ],
+      "skills": [
+        "release.md"
+      ],
+      "gates": [
+        "release-validation"
+      ]
+    },
+    {
+      "id": "ci",
+      "paths": [
+        ".github/workflows/**",
+        ".github/scripts/**",
+        "scripts/validate-*.sh"
+      ],
+      "skills": [
+        "ci-repair.md"
+      ],
+      "gates": [
+        "repository-policy"
+      ]
+    },
+    {
+      "id": "security",
+      "paths": [
+        "backend/app/Http/Middleware/**",
+        "backend/app/Policies/**",
+        "backend/app/Providers/AuthServiceProvider.php",
+        "docs/security/**"
+      ],
+      "skills": [
+        "security-review.md"
+      ],
+      "gates": [
+        "security-review"
+      ]
+    },
+    {
+      "id": "skill-system",
+      "paths": [
+        ".ai/skill-router.json",
+        ".ai/skills/**",
+        "scripts/foodex-skill-router.py",
+        "scripts/tests/test_foodex_skill_router.py",
+        "AGENTS.md"
+      ],
+      "skills": [
+        "uiux-skill-maintenance.md"
+      ],
+      "gates": [
+        "skill-router"
+      ]
+    }
+  ],
+  "conditional_rules": [
+    {
+      "id": "state-changing-ui",
+      "route_ids": [
+        "dashboard-ui",
+        "customer-ui",
+        "driver-ui",
+        "van-ui"
+      ],
+      "added_regex": "(?i)(\\b(?:post|put|patch|delete)\\s*\\(|method\\s*[:=]\\s*['\\\"](?:POST|PUT|PATCH|DELETE)|\\b(?:checkout|payment|remittance|collection|dispatch|assignment|submit|approve|reject|cancel|refund)\\b)",
+      "skills": [
+        "ui-interaction-safety.md"
+      ],
+      "gates": [
+        "mutation-safety"
+      ]
+    },
+    {
+      "id": "high-growth-live-ui",
+      "route_ids": [
+        "dashboard-ui",
+        "customer-ui",
+        "driver-ui",
+        "van-ui"
+      ],
+      "added_regex": "(?i)(<table\\b|\\bDataTable\\s*\\(|\\bListView(?:\\.|\\s*\\()|\\bGridView(?:\\.|\\s*\\()|\\bpaginate\\s*\\(|\\bpagination\\b|\\bsearch\\b|\\bTimer\\.periodic\\b|\\bpoll(?:ing)?\\b|\\bStreamBuilder\\s*<)",
+      "skills": [
+        "ui-performance.md"
+      ],
+      "gates": [
+        "performance"
+      ]
+    }
+  ]
+}
