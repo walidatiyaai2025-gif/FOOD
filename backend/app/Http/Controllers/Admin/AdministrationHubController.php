@@ -28,7 +28,10 @@ final class AdministrationHubController extends Controller
 
         App::setLocale($locale);
 
-        $mobileReleaseVersion = $this->mobileArtifacts->currentVersion();
+        $mobileReleaseVersions = $this->mobileArtifacts->currentAppVersions();
+        $mobileReleaseArtifacts = collect(array_keys($mobileReleaseVersions))
+            ->map(fn (string $app): array => $this->mobileArtifacts->statusPayloadForApp($app))
+            ->keyBy('app');
 
         return view('admin.administration-hub', [
             'user' => $user,
@@ -50,8 +53,9 @@ final class AdministrationHubController extends Controller
                 || $user->hasPermission('settings.view')
                 || $user->hasPermission('settings.manage'),
             'canSystemUpdate' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('system.update'),
-            'mobileReleaseVersion' => $mobileReleaseVersion,
-            'mobileReleaseArtifacts' => collect($this->mobileArtifacts->statusPayload($mobileReleaseVersion))->keyBy('app'),
+            'mobileReleaseVersion' => $mobileReleaseVersions['customer'] ?? null,
+            'mobileReleaseVersions' => $mobileReleaseVersions,
+            'mobileReleaseArtifacts' => $mobileReleaseArtifacts,
         ]);
     }
 }
