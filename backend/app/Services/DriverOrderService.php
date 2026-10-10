@@ -7,48 +7,28 @@ use App\Models\Driver;
 use App\Models\DriverAssignment;
 use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\OrderStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 final class DriverOrderService
 {
     public function __construct(
-        private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
-        private readonly OrderInventoryReservationService $reservations,
-        private readonly OperationalLookupService $lookups,
+        private readonly DeliveryExecutionService $execution,
+        private readonly DeliverySettlementService $settlements,
     ) {}
 
     /** @return list<string> */
     public function availableStatuses(DriverAssignment $assignment, Order $order): array
     {
-        $assignmentStatus = (string) $assignment->status;
-        $orderStatus = (string) $order->status;
-
-        if (
-            $assignment->completed_at !== null
-            || in_array(
-                $assignmentStatus,
-                ['delivered', 'failed', 'cancelled', 'unassigned', 'reassigned'],
-                true,
-            )
-            || in_array($orderStatus, ['cancelled', 'delivered'], true)
-        ) {
-            return [];
-        }
-
-        return match ($assignmentStatus) {
-            'assigned' => ['accepted'],
-            'accepted' => ['picked_up', 'failed'],
-            'picked_up' => ['out_for_delivery', 'failed'],
-            'out_for_delivery' => $orderStatus === 'out_for_delivery' ? ['delivered', 'failed'] : [],
-            default => [],
-        };
+        return $this->execution->availableStatuses(
+            (string) $assignment->status,
+            $order,
+            $assignment->completed_at !== null,
+        );
     }
 
     /** @return array<string, mixed> */
@@ -213,7 +193,7 @@ final class DriverOrderService
                 ->all();
 
         $invoiceModel = $invoice === null ? null : Invoice::query()->find((int) $invoice->id);
-        $settlement = $this->settlement($order, $invoiceModel, $payment);
+        $settlement = $this->settlements->summarize($order, $invoiceModel, $payment);
 
         $driverHistory = DB::table('delivery_proofs')
             ->leftJoin('users', 'users.id', '=', 'delivery_proofs.user_id')
@@ -316,102 +296,6 @@ final class DriverOrderService
     }
 
     /** @return array<string, mixed> */
-    private function settlement(Order $order, ?Invoice $invoice, ?object $payment): array
-    {
-        $metadataRaw = $payment?->metadata;
-        $metadata = is_array($metadataRaw)
-            ? $metadataRaw
-            : (is_string($metadataRaw) ? json_decode($metadataRaw, true) : []);
-        if (! is_array($metadata)) {
-            $metadata = [];
-        }
-
-        $balanceApplied = 0.0;
-        foreach (['customer_balance_applied', 'balance_applied', 'applied_balance_amount'] as $key) {
-            if (isset($metadata[$key]) && is_numeric($metadata[$key])) {
-                $balanceApplied = round(max(0, (float) $metadata[$key]), 3);
-                break;
-            }
-        }
-
-        $contractRemaining = null;
-        foreach (['remaining_amount', 'remainder_amount', 'amount_after_balance'] as $key) {
-            if (isset($metadata[$key]) && is_numeric($metadata[$key])) {
-                $contractRemaining = round(max(0, (float) $metadata[$key]), 3);
-                break;
-            }
-        }
-        if ($contractRemaining === null && $balanceApplied > 0.0001) {
-            $afterBalance = round(max((float) $order->grand_total - $balanceApplied, 0), 3);
-            $paymentAmount = $payment === null ? $afterBalance : round(max(0, (float) $payment->amount), 3);
-            $contractRemaining = min($afterBalance, $paymentAmount);
-        }
-
-        $paidAmount = 0.0;
-        $outstanding = round(max(0, (float) $order->grand_total), 3);
-        if ($invoice instanceof Invoice) {
-            if (strtolower((string) $invoice->channel) === 'b2b') {
-                $amounts = app(B2bAccountLedgerService::class)->invoiceAmounts($invoice);
-                $paidAmount = round((float) $amounts['paid_amount'], 3);
-                $outstanding = round((float) $amounts['outstanding_amount'], 3);
-            } else {
-                $paidAmount = round((float) DB::table('payments')
-                    ->where('invoice_id', $invoice->getKey())
-                    ->where('status', 'paid')
-                    ->sum('amount'), 3);
-                $outstanding = round(max((float) $invoice->total - $paidAmount, 0), 3);
-            }
-        } elseif ($payment !== null && (string) $payment->status === 'paid') {
-            $paidAmount = round((float) $payment->amount, 3);
-            $outstanding = round(max((float) $order->grand_total - $paidAmount, 0), 3);
-        }
-
-        if ($contractRemaining !== null) {
-            $outstanding = min($outstanding, $contractRemaining);
-            if (
-                $payment !== null
-                && (string) $payment->status === 'paid'
-                && (float) $payment->amount + 0.0001 >= $contractRemaining
-            ) {
-                $outstanding = 0.0;
-            }
-        }
-
-        $paymentProvider = $payment === null ? '' : (string) $payment->provider;
-        $rawRemainderMethod = strtolower(trim((string) (
-            $metadata['remainder_method']
-            ?? ($paymentProvider !== '' ? $paymentProvider : $order->payment_method)
-            ?? ''
-        )));
-        $remainderMethod = match ($rawRemainderMethod) {
-            'cash_on_delivery', 'cod' => 'cash_on_delivery',
-            'account_debt', 'account_credit', 'account' => 'account_debt',
-            default => $rawRemainderMethod,
-        };
-
-        $paymentState = $outstanding <= 0.0001
-            ? 'fully_settled'
-            : (($paidAmount > 0.0001 || $balanceApplied > 0.0001)
-                ? 'partially_settled'
-                : 'unpaid');
-        $collectNow = $paymentState !== 'fully_settled' && $remainderMethod === 'cash_on_delivery'
-            ? $outstanding
-            : 0.0;
-
-        return [
-            'currency' => (string) ($invoice instanceof Invoice ? $invoice->currency : $order->currency),
-            'order_total' => round((float) $order->grand_total, 3),
-            'balance_applied' => $balanceApplied,
-            'paid_amount' => $paidAmount,
-            'remaining_amount' => $outstanding,
-            'remainder_method' => $remainderMethod,
-            'payment_state' => $paymentState,
-            'amount_to_collect_now' => round($collectNow, 3),
-            'invoice_outstanding_amount' => $outstanding,
-        ];
-    }
-
-    /** @return array<string, mixed> */
     public function historyPayload(DriverAssignment $assignment): array
     {
         $order = Order::query()->findOrFail($assignment->order_id);
@@ -453,16 +337,12 @@ final class DriverOrderService
         $beforeAssignment = (string) $assignment->status;
         $beforeOrder = null;
         $afterOrder = null;
-        $normalizedNote = trim((string) $note);
-        $normalizedNote = $normalizedNote === '' ? null : $normalizedNote;
-        $normalizedFailureReason = $targetStatus === 'failed'
-            ? trim((string) $failureReason)
-            : null;
-        $idempotencyKey = trim((string) $idempotencyKey);
-        $idempotencyKey = $idempotencyKey === '' ? null : $idempotencyKey;
+        $normalizedNote = $this->execution->normalizeNote($note);
+        $normalizedFailureReason = $this->execution->normalizeFailureReason($targetStatus, $failureReason);
+        $idempotencyKey = $this->execution->normalizeIdempotencyKey($idempotencyKey);
         $requestFingerprint = $idempotencyKey === null
             ? null
-            : $this->transitionFingerprint(
+            : $this->execution->transitionFingerprint(
                 $targetStatus,
                 $normalizedNote,
                 $normalizedFailureReason,
@@ -517,13 +397,11 @@ final class DriverOrderService
                         ->first();
 
                     if ($prior instanceof DeliveryProof) {
-                        abort_unless(
-                            (string) $prior->to_status === $targetStatus
-                                && is_string($prior->request_fingerprint)
-                                && is_string($requestFingerprint)
-                                && hash_equals($prior->request_fingerprint, $requestFingerprint),
-                            409,
-                            'Idempotency-Key was already used for a different delivery transition request.',
+                        $this->execution->assertReplayMatches(
+                            (string) $prior->to_status,
+                            $prior->request_fingerprint,
+                            $targetStatus,
+                            $requestFingerprint,
                         );
 
                         $replayed = true;
@@ -532,112 +410,33 @@ final class DriverOrderService
                     }
                 }
 
-                $allowed = $this->availableStatuses($locked, $order);
-                abort_unless(
-                    in_array($targetStatus, $allowed, true),
-                    409,
-                    'The delivery action is not available for the current order state.',
+                $this->execution->assertTransitionAllowed(
+                    (string) $locked->status,
+                    $order,
+                    $targetStatus,
+                    $locked->completed_at !== null,
                 );
 
-                if ($targetStatus === 'delivered') {
-                    $deliveryInvoice = Invoice::query()
-                        ->where('order_id', $order->getKey())
-                        ->whereIn('status', ['issued', 'reissued'])
-                        ->orderByDesc('revision')
-                        ->orderByDesc('id')
-                        ->first();
-                    $latestPayment = DB::table('payments')
-                        ->where('order_id', $order->getKey())
-                        ->orderByDesc('id')
-                        ->first(['provider', 'status', 'amount', 'currency', 'metadata']);
-                    $deliverySettlement = $this->settlement($order, $deliveryInvoice, $latestPayment);
-                    abort_if(
-                        (float) $deliverySettlement['amount_to_collect_now'] > 0.0001,
-                        409,
-                        'Required collection must be completed before delivery can be finalized.',
-                    );
+                $this->execution->assertTransitionRequirements(
+                    $order,
+                    $targetStatus,
+                    $normalizedNote,
+                    $normalizedFailureReason,
+                    $proofImage,
+                );
 
-                    if (! $proofImage instanceof UploadedFile || ! $proofImage->isValid()) {
-                        throw ValidationException::withMessages([
-                            'proof_image' => ['A valid delivery proof image is required before completing delivery.'],
-                        ]);
-                    }
-                }
-
-                if ($targetStatus === 'failed') {
-                    if (
-                        $normalizedFailureReason === null
-                        || ! in_array(
-                            $normalizedFailureReason,
-                            $this->lookups->activeCodes(OperationalLookupService::FAILED_DELIVERY_REASON),
-                            true,
-                        )
-                    ) {
-                        throw ValidationException::withMessages([
-                            'failure_reason' => ['A valid failure reason is required for failed delivery.'],
-                        ]);
-                    }
-
-                    if ($normalizedFailureReason === 'other' && $normalizedNote === null) {
-                        throw ValidationException::withMessages([
-                            'note' => ['A note is required when the failure reason is other.'],
-                        ]);
-                    }
-                }
-
-                if ($proofImage !== null && ! $proofImage->isValid()) {
-                    throw ValidationException::withMessages([
-                        'proof_image' => ['The delivery proof image could not be read.'],
-                    ]);
-                }
-
-                $beforeOrder = (string) $order->status;
-
-                if ($targetStatus === 'out_for_delivery') {
-                    abort_unless(
-                        ! in_array((string) $order->status, ['cancelled', 'delivered', 'failed'], true),
-                        409,
-                    );
-                    $this->updateOrderStatus(
-                        $order,
-                        $actor,
-                        'out_for_delivery',
-                        $normalizedNote,
-                        $request,
-                    );
-                    $afterOrder = 'out_for_delivery';
-                } elseif ($targetStatus === 'delivered') {
-                    abort_unless((string) $order->status === 'out_for_delivery', 409);
-                    $this->reservations->consume($order, $actor);
-                    $this->updateOrderStatus(
-                        $order,
-                        $actor,
-                        'delivered',
-                        $normalizedNote,
-                        $request,
-                    );
-                    $afterOrder = 'delivered';
-                } elseif ($targetStatus === 'failed') {
-                    abort_unless(
-                        ! in_array((string) $order->status, ['cancelled', 'delivered', 'failed'], true),
-                        409,
-                    );
-                    $failureAuditNote = $normalizedFailureReason
-                        .($normalizedNote !== null ? ': '.$normalizedNote : '');
-                    $this->updateOrderStatus(
-                        $order,
-                        $actor,
-                        'failed',
-                        $failureAuditNote,
-                        $request,
-                    );
-                    $afterOrder = 'failed';
-                } elseif ($targetStatus === 'picked_up') {
-                    abort_unless(
-                        ! in_array((string) $order->status, ['cancelled', 'delivered', 'failed'], true),
-                        409,
-                    );
-                }
+                $orderSync = $this->execution->synchronizeOrder(
+                    $order,
+                    $actor,
+                    $beforeAssignment,
+                    $targetStatus,
+                    $normalizedNote,
+                    $normalizedFailureReason,
+                    $request,
+                    'driver',
+                );
+                $beforeOrder = $orderSync['before'];
+                $afterOrder = $orderSync['after'];
 
                 $locked->status = $targetStatus;
                 $locked->completed_at = in_array($targetStatus, ['delivered', 'failed'], true)
@@ -680,17 +479,14 @@ final class DriverOrderService
                     'captured_at' => now(),
                 ]);
 
-                $this->audit->record(
-                    'delivery.assignment.status_changed',
-                    $actor,
+                $this->execution->recordTransitionAudit(
                     $locked,
-                    ['status' => $beforeAssignment],
-                    [
-                        'status' => $targetStatus,
-                        'failure_reason' => $normalizedFailureReason,
-                        'note' => $normalizedNote,
-                        'idempotency_key' => $idempotencyKey,
-                    ],
+                    $actor,
+                    $beforeAssignment,
+                    $targetStatus,
+                    $normalizedFailureReason,
+                    $normalizedNote,
+                    $idempotencyKey,
                     $request,
                 );
 
@@ -725,56 +521,4 @@ final class DriverOrderService
         return $fresh;
     }
 
-    private function transitionFingerprint(
-        string $targetStatus,
-        ?string $note,
-        ?string $failureReason,
-        ?UploadedFile $proofImage,
-    ): string {
-        $proofHash = null;
-        if ($proofImage instanceof UploadedFile && $proofImage->isValid()) {
-            $realPath = $proofImage->getRealPath();
-            if (is_string($realPath) && $realPath !== '') {
-                $hash = hash_file('sha256', $realPath);
-                $proofHash = $hash === false ? null : $hash;
-            }
-        }
-
-        return hash('sha256', json_encode([
-            'status' => $targetStatus,
-            'failure_reason' => $failureReason,
-            'note' => $note,
-            'proof_sha256' => $proofHash,
-        ], JSON_THROW_ON_ERROR));
-    }
-
-    private function updateOrderStatus(
-        Order $order,
-        User $actor,
-        string $status,
-        ?string $note,
-        Request $request,
-    ): void {
-        $from = (string) $order->status;
-        $order->status = $status;
-        $order->save();
-
-        OrderStatusHistory::query()->create([
-            'order_id' => $order->getKey(),
-            'store_id' => (int) $order->store_id,
-            'user_id' => $actor->getKey(),
-            'from_status' => $from,
-            'to_status' => $status,
-            'note' => $note,
-        ]);
-
-        $this->audit->record(
-            'order.status_changed',
-            $actor,
-            $order,
-            ['status' => $from],
-            ['status' => $status, 'source' => 'driver', 'note' => $note],
-            $request,
-        );
-    }
 }
