@@ -219,6 +219,8 @@ Future<void> _openScreen(WidgetTester tester, VanScreenId screen) async {
     180,
     scrollable: menuScrollable.first,
   );
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
   await tester.tap(target);
   await tester.pumpAndSettle();
 }
