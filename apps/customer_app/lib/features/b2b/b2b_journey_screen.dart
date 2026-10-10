@@ -4026,11 +4026,18 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
   Future<Object?>? cart;
   Future<Object?>? notifications;
+  String? _badgeLocale;
 
   @override
-  void initState() {
-    super.initState();
-    _loadBadges();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context).languageCode == 'en'
+        ? 'en'
+        : 'ar';
+    if (_badgeLocale != locale) {
+      _badgeLocale = locale;
+      _loadBadges(locale);
+    }
   }
 
   @override
@@ -4042,11 +4049,11 @@ class _B2bMorePageState extends State<_B2bMorePage> {
     }
     if (oldWidget.accountApi != widget.accountApi ||
         oldWidget.storeId != widget.storeId) {
-      _loadBadges();
+      _loadBadges(_badgeLocale ?? 'ar');
     }
   }
 
-  void _loadBadges() {
+  void _loadBadges(String locale) {
     final a = widget.accountApi;
     if (a == null) {
       cart = null;
@@ -4054,11 +4061,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       return;
     }
     cart = a.cart(storeId: widget.storeId);
-    notifications = a.notifications(
-      locale: WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'en'
-          ? 'en'
-          : 'ar',
-    );
+    notifications = a.notifications(locale: locale == 'en' ? 'en' : 'ar');
   }
 
   int? _cartCount(Object? raw) {

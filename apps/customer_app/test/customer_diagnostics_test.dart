@@ -249,4 +249,52 @@ void main() {
     expect(diagnostics.events.single['remote_submitted_at'], isNotNull);
   });
 
+
+  test('cache and offline responses do not fake a successful API timestamp', () {
+    final diagnostics = CustomerDiagnostics(maxEvents: 10);
+    final uri = Uri.parse('https://foodex.example/api/v1/b2b/dashboard');
+
+    diagnostics.recordNetworkTransfer(
+      method: 'GET',
+      uri: uri,
+      statusCode: 200,
+      downloadedBytes: 120,
+      uploadedBytes: 0,
+      elapsed: const Duration(milliseconds: 80),
+      cacheState: 'network',
+    );
+    final networkSuccess = diagnostics.lastSuccessfulApiAt;
+    expect(networkSuccess, isNotNull);
+    expect(diagnostics.networkState, 'reachable');
+
+    diagnostics.recordNetworkTransfer(
+      method: 'GET',
+      uri: uri,
+      statusCode: null,
+      downloadedBytes: 0,
+      uploadedBytes: 0,
+      elapsed: const Duration(milliseconds: 15),
+      cacheState: 'revalidation_error',
+      errorType: 'ClientException',
+    );
+    expect(diagnostics.networkState, 'unreachable');
+
+    diagnostics.recordNetworkTransfer(
+      method: 'GET',
+      uri: uri,
+      statusCode: 200,
+      downloadedBytes: 0,
+      uploadedBytes: 0,
+      elapsed: Duration.zero,
+      cacheState: 'offline',
+    );
+
+    expect(diagnostics.lastSuccessfulApiAt, networkSuccess);
+    expect(diagnostics.networkState, 'unreachable');
+
+    final usage =
+        Map<String, Object?>.from(diagnostics.exportPayload()['data_usage'] as Map);
+    expect(usage['physical_network_requests'], 2);
+  });
+
 }

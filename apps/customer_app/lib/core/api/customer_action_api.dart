@@ -99,6 +99,10 @@ class HttpCustomerActionApi implements CustomerActionApi {
   final int? b2bRetailStoreId;
   final http.Client _client;
 
+  static final Set<String> _loggedOutTokens = <String>{};
+  static final Map<String, Future<void>> _logoutInFlight =
+      <String, Future<void>>{};
+
   Map<String, String> get _headers => _headersForStore(null);
 
   Map<String, String> _headersForStore(int? storeId) {
@@ -207,10 +211,30 @@ class HttpCustomerActionApi implements CustomerActionApi {
 
   @override
   Future<void> logout() async {
-    if (token == null || token!.isEmpty) return;
+    final accessToken = token;
+    if (accessToken == null || accessToken.isEmpty) return;
+    if (_loggedOutTokens.contains(accessToken)) return;
+
+    final pending = _logoutInFlight[accessToken];
+    if (pending != null) return pending;
+
+    final future = _performLogout(accessToken);
+    _logoutInFlight[accessToken] = future;
+    try {
+      await future;
+      _loggedOutTokens.add(accessToken);
+    } finally {
+      _logoutInFlight.remove(accessToken);
+    }
+  }
+
+  Future<void> _performLogout(String accessToken) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/auth/logout'),
-      headers: _headers,
+      headers: {
+        ..._headers,
+        'Authorization': 'Bearer $accessToken',
+      },
     );
     if (response.statusCode == 401 || response.statusCode == 204) return;
     _decode(response);

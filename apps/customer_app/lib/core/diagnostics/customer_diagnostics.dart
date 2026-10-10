@@ -38,6 +38,9 @@ class CustomerDiagnostics {
   int _cacheHits = 0;
   int _fallbackCacheHits = 0;
   int _retryCount = 0;
+  int _physicalNetworkRequests = 0;
+  int _dedupedRequests = 0;
+  int _circuitBreakerHits = 0;
   int _totalLatencyMs = 0;
   int? _startupUsableMs;
 
@@ -57,8 +60,14 @@ class CustomerDiagnostics {
         'cache_hit_ratio':
             _requestCount == 0 ? 0.0 : _cacheHits / _requestCount,
         'retry_count': _retryCount,
+        'physical_network_requests': _physicalNetworkRequests,
+        'deduped_requests': _dedupedRequests,
+        'circuit_breaker_hits': _circuitBreakerHits,
         'average_latency_ms':
             _requestCount == 0 ? 0.0 : _totalLatencyMs / _requestCount,
+        'average_network_latency_ms': _physicalNetworkRequests == 0
+            ? 0.0
+            : _totalLatencyMs / _physicalNetworkRequests,
         'startup_usable_ms': _startupUsableMs,
       };
 
@@ -196,19 +205,47 @@ class CustomerDiagnostics {
     _downloadedBytes += downloadedBytes < 0 ? 0 : downloadedBytes;
     _uploadedBytes += uploadedBytes < 0 ? 0 : uploadedBytes;
     _totalLatencyMs += elapsed.inMilliseconds;
-    if (const <String>{'hit', 'stale', 'offline', 'validated', 'fallback'}
-        .contains(cacheState)) {
+    if (const <String>{
+      'hit',
+      'stale',
+      'offline',
+      'validated',
+      'fallback',
+      'coalesced',
+    }.contains(cacheState)) {
       _cacheHits++;
     }
     if (cacheState == 'fallback') _fallbackCacheHits++;
     if (cacheState.contains('retry')) _retryCount++;
+    if (cacheState == 'coalesced') _dedupedRequests++;
+    if (cacheState == 'circuit_open') _circuitBreakerHits++;
 
-    if (statusCode != null) {
+    const physicalStates = <String>{
+      'network',
+      'validated',
+      'revalidated',
+      'timeout',
+      'error',
+      'revalidation_timeout',
+      'revalidation_error',
+    };
+    if (physicalStates.contains(cacheState)) {
+      _physicalNetworkRequests++;
+    }
+
+    const networkSuccessStates = <String>{
+      'network',
+      'validated',
+      'revalidated',
+    };
+    if (networkSuccessStates.contains(cacheState) && statusCode != null) {
       _networkState = 'reachable';
       if (statusCode >= 200 && statusCode < 400) {
         _lastSuccessfulApiAt = DateTime.now().toUtc().toIso8601String();
       }
-    } else {
+    } else if (statusCode == null &&
+        (physicalStates.contains(cacheState) ||
+            cacheState == 'circuit_open')) {
       _networkState = 'unreachable';
     }
 
