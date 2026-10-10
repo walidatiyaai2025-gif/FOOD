@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 final class DriverOrderService
 {
@@ -520,5 +521,4 @@ final class DriverOrderService
 
         return $fresh;
     }
-
 }
