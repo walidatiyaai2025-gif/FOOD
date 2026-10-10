@@ -1194,6 +1194,8 @@ void main() {
         find.byKey(const ValueKey('van-order-collect-action'));
     await _scrollUntilBuilt(tester, detailList, collectAction);
     expect(collectAction, findsOneWidget);
+    await tester.ensureVisible(collectAction);
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('van-order-action-delivered')),
       findsNothing,
