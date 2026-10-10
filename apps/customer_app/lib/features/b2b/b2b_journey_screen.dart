@@ -4430,7 +4430,7 @@ class _MoreHeader extends StatelessWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDDF4B9),
+                                color: CustomerUiColors.limeSoft,
                                 borderRadius: BorderRadius.circular(99),
                               ),
                               child: const Text(
