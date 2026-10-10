@@ -184,6 +184,63 @@ class MobileSystemInspectorEventTest extends TestCase
         $this->assertStringNotContainsString('van-secret', $encoded);
     }
 
+    public function test_b2b_van_fulfillment_failure_is_actionable_in_system_inspector(): void
+    {
+        $admin = $this->superAdmin('inspector-van-b2b-failure@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/runtime-inspector/events', [
+            'app' => 'van',
+            'category' => 'van_fulfillment_failure',
+            'severity' => 'error',
+            'message' => 'Van delivery transition rejected by authoritative state',
+            'app_version' => '1.0.67',
+            'platform' => 'android',
+            'current_route' => '/orders/1206',
+            'channel' => 'b2b',
+            'order_id' => 1206,
+            'assignment_id' => 88,
+            'method' => 'POST',
+            'path' => '/api/v1/van/orders/1206/execution/transition?token=hidden',
+            'status' => 409,
+            'correlation_id' => 'cid-van-b2b-1206',
+            'retry' => true,
+            'attempt' => 2,
+            'metadata' => [
+                'failure_reason' => 'state_conflict',
+                'access_token' => 'do-not-persist',
+            ],
+        ])->assertAccepted();
+
+        $event = SystemInspectorEvent::query()
+            ->where('source', 'van_app')
+            ->where('correlation_id', 'cid-van-b2b-1206')
+            ->firstOrFail();
+
+        $this->assertSame('van_fulfillment_failure', $event->category);
+        $this->assertSame(409, $event->status_code);
+        $this->assertSame('/api/v1/van/orders/1206/execution/transition', $event->url);
+        $this->assertSame('b2b', $event->context['channel']);
+        $this->assertSame(1206, $event->context['order_id']);
+        $this->assertSame(88, $event->context['assignment_id']);
+        $this->assertSame(true, $event->context['retry']);
+        $this->assertSame(2, $event->context['attempt']);
+
+        $encoded = json_encode($event->context, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('do-not-persist', $encoded);
+        $this->assertStringNotContainsString('hidden', $encoded);
+
+        $this->actingAs($admin)
+            ->get(route('admin.inspector.index', [
+                'source' => 'van_app',
+                'channel' => 'b2b',
+                'q' => 'cid-van-b2b-1206',
+            ]))
+            ->assertOk()
+            ->assertSee('cid-van-b2b-1206')
+            ->assertSee('van_fulfillment_failure');
+    }
+
     public function test_customer_cannot_submit_van_runtime_events(): void
     {
         [$customer] = $this->retailCustomer('inspector-not-van@example.test');

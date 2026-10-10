@@ -26,7 +26,9 @@ tags:
   - name: B2B
     description: Wholesale customer operations. Platform Customer registration may provision consumer Wholesale eligibility; managed corporate/credit account approval remains administrative.
   - name: Drivers
-    description: Driver-role-scoped assignment operations.
+    description: Retail B2C Driver-role-scoped assignment operations. B2B fulfillment is Van-only.
+  - name: Van Fulfillment
+    description: Van-authenticated B2B fulfillment, delivery execution, collection, wallet and remittance operations.
   - name: Notifications
     description: Authenticated notification access.
   - name: Localization
@@ -2089,6 +2091,387 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /van/orders:
+    get:
+      tags: [Van Fulfillment]
+      summary: List B2B orders assigned to the authenticated Van
+      operationId: listVanAssignedOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, maxLength: 80 }
+        - in: query
+          name: customer_type
+          schema: { type: string, enum: [b2b] }
+        - in: query
+          name: customer_id
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        "200":
+          description: Assigned B2B order summaries
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/orders/{order}:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get one B2B order assigned to the authenticated Van
+      operationId: getVanAssignedOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - in: query
+          name: store_id
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: channel
+          schema: { type: string, enum: [b2b] }
+      responses:
+        "200":
+          description: Authoritative B2B order detail including invoice, collection and fulfillment context
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/orders/{order}/execution:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get authoritative Van delivery execution state and allowed actions
+      operationId: getVanOrderExecution
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Current immutable-backed execution snapshot
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /van/orders/{order}/execution/allowed-actions:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get server-authorized Van delivery actions
+      operationId: getVanOrderAllowedActions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Current execution snapshot including allowed actions
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /van/orders/{order}/execution/transition:
+    post:
+      tags: [Van Fulfillment]
+      summary: Apply a server-authorized Van delivery transition
+      operationId: transitionVanOrderExecution
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+                failure_reason:
+                  type: [string, "null"]
+                  maxLength: 80
+                note:
+                  type: [string, "null"]
+                  maxLength: 1000
+      responses:
+        "200":
+          description: Updated Van execution state
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Transition conflicts with authoritative execution or settlement state }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/orders/{order}/execution/proof:
+    post:
+      tags: [Van Fulfillment]
+      summary: Upload idempotent delivery proof for a Van order
+      operationId: uploadVanOrderDeliveryProof
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [proof_image]
+              properties:
+                proof_image:
+                  type: string
+                  format: binary
+                note:
+                  type: [string, "null"]
+                  maxLength: 1000
+      responses:
+        "200":
+          description: Updated execution state with proof readiness
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Proof conflicts with authoritative execution state }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/orders/{order}/execution/fail:
+    post:
+      tags: [Van Fulfillment]
+      summary: Record an idempotent failed-delivery outcome
+      operationId: failVanOrderDelivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [failure_reason]
+              properties:
+                failure_reason:
+                  type: string
+                  maxLength: 80
+                note:
+                  type: [string, "null"]
+                  maxLength: 1000
+                proof_image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Failed execution state and immutable event
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Failure conflicts with authoritative execution state }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/orders/{order}/execution/retry:
+    post:
+      tags: [Van Fulfillment]
+      summary: Retry a failed Van delivery and return it to out_for_delivery
+      operationId: retryVanOrderDelivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note:
+                  type: [string, "null"]
+                  maxLength: 1000
+      responses:
+        "200":
+          description: Retried execution state
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Retry is not allowed from the current execution state }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/customers/{type}/{customer}/collection-context:
+    get:
+      tags: [Van Fulfillment]
+      summary: Resolve authoritative invoice balances for Van collection
+      operationId: getVanCollectionContext
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b, b2c] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: store_id
+          required: false
+          description: Required when the customer is in more than one assigned Van store scope.
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Customer collection context and invoice balances
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/customers/{type}/{customer}/collect:
+    post:
+      tags: [Van Fulfillment]
+      summary: Post an idempotent Van collection and receipt
+      operationId: collectVanCustomerInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b, b2c] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: "#/components/parameters/VanFinanceIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [invoice_id, amount]
+              properties:
+                invoice_id: { type: integer, minimum: 1 }
+                amount: { type: number, exclusiveMinimum: 0 }
+                store_id:
+                  type: [integer, "null"]
+                  minimum: 1
+                  description: Required when the customer is in more than one assigned Van store scope.
+      responses:
+        "200":
+          description: Idempotent replay of an already-posted collection
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "201":
+          description: Collection posted with receipt and remaining outstanding balance
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Authoritative balance or custody-account conflict }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/wallet:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get authenticated Van custody wallet and receipt ledger
+      operationId: getVanWallet
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Van custody wallet accounts and receipt/remittance history
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /van/remittances:
+    post:
+      tags: [Van Fulfillment]
+      summary: Submit an idempotent Van custody remittance
+      operationId: createVanRemittance
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VanFinanceIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [collection_account_id, amount, method]
+              properties:
+                collection_account_id: { type: integer, minimum: 1 }
+                amount: { type: number, exclusiveMinimum: 0 }
+                method: { type: string, maxLength: 64 }
+                reference: { type: [string, "null"], maxLength: 255 }
+                note: { type: [string, "null"], maxLength: 1000 }
+      responses:
+        "200":
+          description: Idempotent replay of an already-submitted remittance
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "201":
+          description: Remittance submitted and wallet state updated
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Custody balance conflict }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2186,6 +2569,27 @@ components:
         type: string
         minLength: 16
         maxLength: 100
+
+    VanExecutionIdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Van delivery-execution idempotency key.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]+$'
+    VanFinanceIdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Van collection/remittance idempotency key.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 72
+        pattern: '^[A-Za-z0-9._:-]+$'
 
   schemas:
     ApiVersion:

@@ -35,12 +35,10 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
     for surface in surfaces.values():
         if not isinstance(surface, dict):
             continue
-        for item in surface.get("functions", []):
-            if isinstance(item, dict) and isinstance(item.get("id"), str):
-                ids.append(item["id"])
-        for item in surface.get("compatibility", []):
-            if isinstance(item, dict) and isinstance(item.get("id"), str):
-                ids.append(item["id"])
+        for collection in ("functions", "compatibility", "fulfillment_actions"):
+            for item in surface.get(collection, []):
+                if isinstance(item, dict) and isinstance(item.get("id"), str):
+                    ids.append(item["id"])
     duplicates = sorted({item for item in ids if ids.count(item) > 1})
     if duplicates:
         errors.append(f"Duplicate UI function ids: {', '.join(duplicates)}")
@@ -114,6 +112,15 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
 
     driver = surfaces.get("driver", {})
     if isinstance(driver, dict):
+        for function in driver.get("functions", []):
+            if not isinstance(function, dict):
+                continue
+            function_id = str(function.get("id", ""))
+            route = str(function.get("route", ""))
+            if function_id.startswith("driver.b2b") or "/driver/b2b/" in route:
+                errors.append(
+                    f"Driver route registry still exposes forbidden B2B function: {function_id or route}"
+                )
         source = driver.get("authority_source")
         if isinstance(source, str) and (root / source).is_file():
             navigation = _read(root, source)
@@ -154,6 +161,47 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
                     marker = f"case VanScreenId.{screen}:"
                 if marker not in foundation:
                     errors.append(f"Van production router is missing {screen}.")
+
+    if isinstance(van, dict):
+        actions = van.get("fulfillment_actions", [])
+        required_action_ids = {
+            "van.b2b.order.accept",
+            "van.b2b.order.pickup",
+            "van.b2b.order.out_for_delivery",
+            "van.b2b.order.proof",
+            "van.b2b.order.delivered",
+            "van.b2b.order.fail",
+            "van.b2b.order.retry",
+            "van.b2b.order.collect",
+            "van.b2b.order.receipt",
+            "van.b2b.finance.collect",
+            "van.b2b.finance.remit",
+        }
+        action_ids = {
+            item.get("id")
+            for item in actions
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        for action_id in sorted(required_action_ids - action_ids):
+            errors.append(f"Van fulfillment action registry is missing {action_id}.")
+        for action in actions:
+            if not isinstance(action, dict):
+                errors.append("Malformed Van fulfillment action entry.")
+                continue
+            action_id = action.get("id")
+            source_path = action.get("source")
+            marker = action.get("marker")
+            if not all(isinstance(value, str) and value for value in (action_id, source_path, marker)):
+                errors.append("Malformed Van fulfillment action contract.")
+                continue
+            path = root / source_path
+            if not path.is_file():
+                errors.append(f"Van fulfillment action source is missing: {source_path}")
+                continue
+            if marker not in _read(root, source_path):
+                errors.append(
+                    f"Van fulfillment action {action_id} is missing source marker: {marker}"
+                )
 
     evidence_expectations = (
         ("customer", "FoodexCustomerApp("),
