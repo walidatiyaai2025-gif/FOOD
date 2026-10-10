@@ -731,6 +731,7 @@ class _Orders implements VanOrderRepository {
           ),
         ],
         invoice: VanOrderInvoiceRecord(
+          id: 7001,
           number: 'INV-7001',
           status: 'issued',
           currency: 'KWD',
