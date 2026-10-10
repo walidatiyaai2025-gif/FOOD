@@ -13,6 +13,8 @@ Examples:
 
 This skill is a router. It does not replace the surface-specific skill.
 
+Also read `.ai/skills/ui-pattern-library.md`. It maps the real production classes/widgets and source files that must be inspected before inventing UI.
+
 ## 0. Authority order
 
 Before UI code, read current files from the branch you are editing. Current source wins over snapshots in this skill.
