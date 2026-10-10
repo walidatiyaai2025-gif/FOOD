@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/network/customer_data_mode.dart';
 import 'package:foodex_customer_app/core/network/customer_low_data_http_client.dart';
@@ -113,4 +115,48 @@ void main() {
 
     client.close();
   });
+
+  test('identical concurrent GET cache misses share one network request',
+      () async {
+    var networkCalls = 0;
+    final responseGate = Completer<http.Response>();
+    final metrics = CustomerNetworkMetrics();
+    final client = CustomerLowDataHttpClient(
+      MockClient((request) {
+        networkCalls += 1;
+        return responseGate.future;
+      }),
+      dataMode: CustomerDataModeController.instance,
+      metrics: metrics,
+      cache: CustomerHttpResponseCache(maxEntries: 8),
+    );
+
+    final uri =
+        Uri.parse('https://foodex.example/api/v1/b2b/products?store_id=4');
+    final first = client.get(uri);
+    final second = client.get(uri);
+
+    await Future<void>.delayed(Duration.zero);
+    expect(networkCalls, 1);
+
+    responseGate.complete(
+      http.Response(
+        '{"data":[{"id":1}]}',
+        200,
+        headers: const {'content-type': 'application/json'},
+      ),
+    );
+
+    final responses = await Future.wait([first, second]);
+    expect(responses.every((response) => response.statusCode == 200), isTrue);
+    expect(networkCalls, 1);
+    expect(
+      responses.where((response) => response.headers['x-foodex-cache'] == 'coalesced'),
+      hasLength(1),
+    );
+    expect(metrics.snapshot.dedupedRequests, 1);
+
+    client.close();
+  });
+
 }
