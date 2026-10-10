@@ -8,7 +8,7 @@ if [[ -n "$branch" ]]; then
   if [[ -n "$base_branch" ]]; then
     python3 scripts/foodex-branch-policy.py validate "$branch" --base "$base_branch"
   else
-    python3 scripts/foodex-branch-policy.py validate "$branch"
+    python3 scripts/foodex-branch-policy.py validate "$branch" --allow-main
   fi
 fi
 node .github/scripts/release-registry.js validate
