@@ -15,6 +15,7 @@ final class VanOrderReadService
 {
     public function __construct(
         private readonly B2bAccountLedgerService $ledger,
+        private readonly OrderDeliveryAddressSnapshotService $deliveryAddresses,
     ) {}
 
     public function activeVanId(User $actor): int
@@ -212,6 +213,8 @@ final class VanOrderReadService
         return [
             ...$summary,
             'payment_method' => $order->payment_method,
+            'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'delivery_address' => $this->deliveryAddresses->payload($order),
             'customer' => $customer === null ? null : [
                 'id' => $customer->id === null ? null : (int) $customer->id,
                 'legacy_customer_id' => $customer->legacy_customer_id === null
