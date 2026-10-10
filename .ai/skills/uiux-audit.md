@@ -195,3 +195,19 @@ Use exactly one internal verdict:
 Only **PASS** permits "UI complete".
 
 Do not convert UNKNOWN to PASS because the page looks reasonable or generic CI is green.
+
+## 11. Executable changed-surface policy gate
+
+The mandatory static gate is:
+
+```bash
+python3 scripts/foodex-uiux-audit.py \
+  --base <base-sha> \
+  --head <head-sha> \
+  --report artifacts/foodex-uiux-audit.json
+```
+
+It validates the machine-readable policy under `.ai/uiux/` and rejects measurable regressions such as page-local Dashboard colors, default Bootstrap primary styling, visible raw `*_id` inputs, feature-local mobile color systems, feature-local themes, and parallel mobile navigation shells.
+
+The report's score is **static compliance only**. Runtime visual/interaction acceptance is still governed by `uiux-evidence.md`.
+

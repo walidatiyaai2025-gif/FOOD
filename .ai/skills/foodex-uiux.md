@@ -274,3 +274,23 @@ For any page/screen task, the worker may say "complete", "done", "جاهز", or 
 5. no required interaction is still UNKNOWN.
 
 Generic green CI alone is not a substitute for this UI acceptance gate.
+
+## 14. Machine-readable UI/UX policy
+
+The prose skills are paired with executable policy under `.ai/uiux/`:
+
+- `component-registry.json` — exact current shared production sources/primitives;
+- `page-archetypes.json` — page archetype requirements;
+- `golden-pages.json` — production pages/screens to inspect before creating a composition;
+- `forbidden-patterns.json` — machine-verifiable anti-patterns;
+- `uiux-scorecard.json` — static compliance threshold;
+- `ui-lessons.json` — evidence-backed reusable UI lessons.
+
+Before claiming a UI task complete run:
+
+```bash
+python3 scripts/foodex-uiux-audit.py --base <base-sha> --head <head-sha> --report artifacts/foodex-uiux-audit.json
+```
+
+A static score below the configured threshold or any critical violation is a FAIL. Passing this script still does **not** replace the runtime evidence gate.
+
