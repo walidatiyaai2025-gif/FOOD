@@ -8,23 +8,41 @@ use App\Http\Controllers\Controller;
 use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
 use App\Models\User;
+use App\Services\MobileReleaseArtifactMirror;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
+use Throwable;
 use ZipArchive;
 
 final class SystemUpdateController extends Controller
 {
-    public function __construct(private readonly UpdateManager $manager) {}
+    public function __construct(
+        private readonly UpdateManager $manager,
+        private readonly MobileReleaseArtifactMirror $mobileArtifacts,
+    ) {}
 
     public function index(Request $request): View
     {
         Gate::authorize('system.update');
 
+        $currentVersion = $this->currentVersion();
+
+        // The feature's own first patch is executed by the old PHP request.
+        // Its redirect is the first request using the new code, so the existing
+        // success flash is the bootstrap signal for the new local APK mirror.
+        if ($request->session()->has('status')) {
+            try {
+                $this->mobileArtifacts->ensureScheduled($currentVersion);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
         return view('admin.system-update', [
-            'currentVersion' => $this->currentVersion(),
+            'currentVersion' => $currentVersion,
             'historyRows' => UpdateHistory::query()->latest('id')->paginate(20)->withQueryString(),
         ]);
     }
@@ -72,6 +90,12 @@ final class SystemUpdateController extends Controller
                 $packagePath,
                 $user,
             );
+
+            try {
+                $this->mobileArtifacts->ensureScheduled($history->to_version);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
 
             return redirect()
                 ->route('admin.system-update.index')
