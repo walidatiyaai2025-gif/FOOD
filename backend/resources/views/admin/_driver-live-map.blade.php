@@ -103,8 +103,8 @@
                     <label>{{ $trackingI18n['route'] }}<input data-live-map="route-key" type="text"></label>
                 @elseif($trackingActor === 'driver')
                     <label>{{ __('admin.driver_live_tracking.driver_id') }}<input data-live-map="driver-id" type="number" min="1" inputmode="numeric"></label>
-                    <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
                 @endif
+                <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
             </div>
             <div class="tracking-actions">
                 <button class="btn btn-primary" type="button" data-live-map="apply">{{ __('admin.driver_live_tracking.apply') }}</button>

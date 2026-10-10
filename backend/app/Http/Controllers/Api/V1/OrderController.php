@@ -23,6 +23,7 @@ use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
+use App\Services\OrderLiveTrackingService;
 use App\Services\PlatformCustomerService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -649,7 +650,7 @@ class OrderController extends Controller
                 ->all()
             : [];
 
-        $tracking = $includeTimeline ? $this->customerTracking($order) : null;
+        $tracking = $includeTimeline ? app(OrderLiveTrackingService::class)->forOrder($order) : null;
 
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
@@ -727,93 +728,6 @@ class OrderController extends Controller
             ],
             'is_terminal' => in_array((string) $order->status, ['delivered', 'failed', 'cancelled'], true),
             'created_at' => $order->created_at?->toAtomString(),
-        ];
-    }
-
-    /** @return array<string, mixed>|null */
-    private function customerTracking(Order $order): ?array
-    {
-        if ((string) $order->channel === 'b2b') {
-            $dispatch = DB::table('order_dispatch_states')
-                ->where('order_id', $order->getKey())
-                ->first(['status', 'decided_at', 'updated_at']);
-
-            $assignment = DB::table('order_van_assignments')
-                ->join('vans', 'vans.id', '=', 'order_van_assignments.van_id')
-                ->leftJoin(
-                    'order_van_execution_states',
-                    'order_van_execution_states.order_van_assignment_id',
-                    '=',
-                    'order_van_assignments.id',
-                )
-                ->where('order_van_assignments.order_id', $order->getKey())
-                ->where('order_van_assignments.status', 'active')
-                ->orderByDesc('order_van_assignments.id')
-                ->first([
-                    'order_van_assignments.id',
-                    'order_van_assignments.van_id',
-                    'order_van_assignments.assigned_at',
-                    'order_van_assignments.ended_at',
-                    'vans.code as van_code',
-                    'order_van_execution_states.status as execution_status',
-                    'order_van_execution_states.last_transition_at',
-                ]);
-
-            if ($assignment === null && $dispatch === null) {
-                return null;
-            }
-
-            $status = $assignment?->execution_status !== null
-                ? (string) $assignment->execution_status
-                : ($dispatch?->status !== null ? (string) $dispatch->status : 'assigned');
-
-            return [
-                'actor_type' => 'van',
-                'assignment_id' => $assignment === null ? null : (int) $assignment->id,
-                'van_id' => $assignment === null ? null : (int) $assignment->van_id,
-                'van_code' => $assignment?->van_code === null ? null : (string) $assignment->van_code,
-                'status' => $status,
-                'dispatch_status' => $dispatch?->status === null ? null : (string) $dispatch->status,
-                'assigned_at' => $assignment?->assigned_at,
-                'completed_at' => $status === 'delivered'
-                    ? ($assignment->last_transition_at ?? $assignment?->ended_at)
-                    : null,
-            ];
-        }
-
-        $tracking = DB::table('driver_assignments')
-            ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
-            ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-            ->where('driver_assignments.order_id', $order->getKey())
-            ->where('driver_assignments.store_id', $order->store_id)
-            ->where('driver_assignments.assignment_type', $order->channel)
-            ->whereNotIn('driver_assignments.status', [
-                'cancelled',
-                'unassigned',
-                'reassigned',
-            ])
-            ->orderByDesc('driver_assignments.id')
-            ->first([
-                'driver_assignments.id',
-                'driver_assignments.driver_id',
-                'driver_assignments.status',
-                'driver_assignments.assigned_at',
-                'driver_assignments.completed_at',
-                'users.name as driver_name',
-            ]);
-
-        if ($tracking === null) {
-            return null;
-        }
-
-        return [
-            'actor_type' => 'driver',
-            'assignment_id' => (int) $tracking->id,
-            'driver_id' => (int) $tracking->driver_id,
-            'driver_name' => $tracking->driver_name === null ? null : (string) $tracking->driver_name,
-            'status' => (string) $tracking->status,
-            'assigned_at' => $tracking->assigned_at,
-            'completed_at' => $tracking->completed_at,
         ];
     }
 }

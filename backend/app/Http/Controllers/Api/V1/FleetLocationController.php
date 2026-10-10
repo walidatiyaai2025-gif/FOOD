@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\FleetCurrentLocation;
+use App\Models\Order;
 use App\Models\User;
 use App\Models\Van;
 use App\Models\VanAssignment;
 use App\Services\FleetLocationService;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderLiveTrackingService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,8 +59,13 @@ class FleetLocationController extends Controller
         return response()->json(['data' => $this->serialize($location, $service)]);
     }
 
-    public function feed(Request $request, FleetLocationService $service, OperationalTenantScope $tenantScope): JsonResponse
-    {
+    public function feed(
+        Request $request,
+        FleetLocationService $service,
+        OperationalTenantScope $tenantScope,
+        OrderLiveTrackingService $orderTracking,
+    ): JsonResponse {
+
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
@@ -66,6 +73,7 @@ class FleetLocationController extends Controller
             'actor_type' => ['nullable', Rule::in(['driver', 'van'])],
             'actor_id' => ['nullable', 'integer', 'min:1'],
             'route_key' => ['nullable', 'string', 'max:128'],
+            'order_id' => ['nullable', 'integer', 'min:1'],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', Rule::in(['b2b', 'b2c'])],
             'status' => ['nullable', Rule::in(['online', 'stale', 'offline'])],
@@ -99,14 +107,53 @@ class FleetLocationController extends Controller
             abort_if($allowedStoresByChannel === [], 404);
         }
 
-        $rows = FleetCurrentLocation::query()
-            ->where(function ($query) use ($allowedStoresByChannel): void {
+        $trackedOrder = null;
+        $trackedOrderPayload = null;
+        $trackedVanId = null;
+
+        if (isset($data['order_id'])) {
+            $trackedOrder = Order::query()->find((int) $data['order_id']);
+            abort_unless($trackedOrder instanceof Order, 404);
+
+            $orderChannel = strtolower((string) $trackedOrder->channel);
+            $orderStoreId = (int) $trackedOrder->store_id;
+            abort_unless(
+                isset($allowedStoresByChannel[$orderChannel])
+                && in_array($orderStoreId, $allowedStoresByChannel[$orderChannel], true),
+                404,
+            );
+
+            $trackedOrderPayload = $orderTracking->forOrder($trackedOrder);
+            if (
+                $orderChannel === 'b2b'
+                && ($trackedOrderPayload['actor_type'] ?? null) === 'van'
+                && ($trackedOrderPayload['van_id'] ?? null) !== null
+            ) {
+                $trackedVanId = (int) $trackedOrderPayload['van_id'];
+            }
+        }
+
+        $query = FleetCurrentLocation::query();
+
+        if ($trackedOrder instanceof Order) {
+            if ($trackedVanId === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query
+                    ->where('actor_type', 'van')
+                    ->where('actor_id', $trackedVanId);
+            }
+        } else {
+            $query->where(function ($query) use ($allowedStoresByChannel): void {
                 foreach ($allowedStoresByChannel as $channel => $storeIds) {
                     $query->orWhere(function ($scope) use ($channel, $storeIds): void {
                         $scope->where('channel', $channel)->whereIn('store_id', $storeIds);
                     });
                 }
-            })
+            });
+        }
+
+        $rows = $query
             ->when(isset($data['actor_type']), fn ($query) => $query->where('actor_type', $data['actor_type']))
             ->when(isset($data['actor_id']), fn ($query) => $query->where('actor_id', (int) $data['actor_id']))
             ->when(isset($data['route_key']), fn ($query) => $query->where('route_key', $data['route_key']))
@@ -129,6 +176,7 @@ class FleetLocationController extends Controller
                 'total' => $rows->count(),
                 'generated_at' => CarbonImmutable::now()->toISOString(),
                 'freshness' => ['online_seconds' => 45, 'stale_seconds' => 180],
+                'order_tracking' => $trackedOrder instanceof Order ? $trackedOrderPayload : null,
             ],
         ]);
     }
