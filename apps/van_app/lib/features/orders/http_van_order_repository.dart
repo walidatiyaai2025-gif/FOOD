@@ -319,31 +319,47 @@ class HttpVanOrderRepository implements VanOrderRepository {
       );
 
   Map<String, dynamic> _map(Object? value) {
-    if (value is Map<String, dynamic>) return value;
-    if (value is Map) return Map<String, dynamic>.from(value);
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
     throw const VanApiException('Invalid Van order response.');
   }
 
   List<Object?> _list(Object? value) {
-    if (value is List) return List<Object?>.from(value);
+    if (value is List) {
+      return List<Object?>.from(value);
+    }
     throw const VanApiException('Invalid Van order list response.');
   }
 
   int _requiredInt(Object? value) {
-    if (value is int) return value;
+    if (value is int) {
+      return value;
+    }
     final parsed = int.tryParse(value?.toString() ?? '');
-    if (parsed == null) throw const VanApiException('Invalid order identifier.');
+    if (parsed == null) {
+      throw const VanApiException('Invalid order identifier.');
+    }
     return parsed;
   }
 
   double _double(Object? value, {double fallback = 0}) {
-    if (value is num) return value.toDouble();
+    if (value is num) {
+      return value.toDouble();
+    }
     return double.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
   double? _nullableDouble(Object? value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
     return double.tryParse(value.toString());
   }
 
