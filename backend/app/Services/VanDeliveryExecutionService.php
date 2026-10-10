@@ -168,7 +168,8 @@ final class VanDeliveryExecutionService
                     'captured_at' => now(),
                 ]);
 
-                $context = is_array($state->context) ? $state->context : [];
+                $contextValue = $state->getAttribute('context');
+                $context = is_array($contextValue) ? $contextValue : [];
                 $state->forceFill([
                     'status' => $targetStatus,
                     'failure_reason_code' => $targetStatus === 'failed' ? $normalizedFailureReason : null,
@@ -317,7 +318,8 @@ final class VanDeliveryExecutionService
                     'captured_at' => now(),
                 ]);
 
-                $context = is_array($state->context) ? $state->context : [];
+                $contextValue = $state->getAttribute('context');
+                $context = is_array($contextValue) ? $contextValue : [];
                 $state->forceFill([
                     'version' => ((int) $state->version) + 1,
                     'context' => [
@@ -488,8 +490,17 @@ final class VanDeliveryExecutionService
             'latest_proof' => $latestProof instanceof OrderVanExecutionEvent
                 ? $this->proofPayload($latestProof)
                 : null,
-            'last_transition_at' => $state->last_transition_at?->toAtomString(),
+            'last_transition_at' => $this->atomTimestamp($state->getAttribute('last_transition_at')),
         ];
+    }
+
+    private function atomTimestamp(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format(DATE_ATOM);
+        }
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /** @return array<string,mixed> */
@@ -499,7 +510,7 @@ final class VanDeliveryExecutionService
             'id' => (int) $event->getKey(),
             'type' => (string) $event->proof_type,
             'available' => $event->proof_path !== null,
-            'captured_at' => $event->captured_at?->toAtomString(),
+            'captured_at' => $this->atomTimestamp($event->getAttribute('captured_at')),
         ];
     }
 }
