@@ -2102,16 +2102,16 @@ paths:
       parameters:
         - in: query
           name: status
-          schema: { type: string }
+          schema: { type: string, maxLength: 80 }
         - in: query
-          name: store_id
-          schema: { type: integer, minimum: 1 }
+          name: customer_type
+          schema: { type: string, enum: [b2b] }
         - in: query
           name: customer_id
           schema: { type: integer, minimum: 1 }
         - in: query
-          name: search
-          schema: { type: string, maxLength: 120 }
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
       responses:
         "200":
           description: Assigned B2B order summaries
@@ -2120,6 +2120,7 @@ paths:
               schema: { type: object, additionalProperties: true }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /van/orders/{order}:
     get:
@@ -2145,6 +2146,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /van/orders/{order}/execution:
     get:
@@ -2193,7 +2195,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/OrderId"
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
       requestBody:
         required: true
         content:
@@ -2206,9 +2208,12 @@ paths:
                 status:
                   type: string
                   enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+                failure_reason:
+                  type: [string, "null"]
+                  maxLength: 80
                 note:
                   type: [string, "null"]
-                  maxLength: 2000
+                  maxLength: 1000
       responses:
         "200":
           description: Updated Van execution state
@@ -2230,21 +2235,22 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/OrderId"
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [proof]
+              additionalProperties: false
+              required: [proof_image]
               properties:
-                proof:
+                proof_image:
                   type: string
                   format: binary
                 note:
                   type: [string, "null"]
-                  maxLength: 2000
+                  maxLength: 1000
       responses:
         "200":
           description: Updated execution state with proof readiness
@@ -2266,7 +2272,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/OrderId"
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
       requestBody:
         required: true
         content:
@@ -2278,11 +2284,12 @@ paths:
               properties:
                 failure_reason:
                   type: string
+                  maxLength: 80
                 note:
                   type: [string, "null"]
-                  maxLength: 2000
-                proof:
-                  type: [string, "null"]
+                  maxLength: 1000
+                proof_image:
+                  type: string
                   format: binary
       responses:
         "200":
@@ -2299,13 +2306,24 @@ paths:
   /van/orders/{order}/execution/retry:
     post:
       tags: [Van Fulfillment]
-      summary: Retry a failed Van delivery and return it to the authorized delivery state
+      summary: Retry a failed Van delivery and return it to out_for_delivery
       operationId: retryVanOrderDelivery
       security:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/OrderId"
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/VanExecutionIdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note:
+                  type: [string, "null"]
+                  maxLength: 1000
       responses:
         "200":
           description: Retried execution state
@@ -2316,6 +2334,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: Retry is not allowed from the current execution state }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /van/customers/{type}/{customer}/collection-context:
     get:
@@ -2333,6 +2352,11 @@ paths:
           name: customer
           required: true
           schema: { type: integer, minimum: 1 }
+        - in: query
+          name: store_id
+          required: false
+          description: Required when the customer is in more than one assigned Van store scope.
+          schema: { type: integer, minimum: 1 }
       responses:
         "200":
           description: Customer collection context and invoice balances
@@ -2342,6 +2366,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /van/customers/{type}/{customer}/collect:
     post:
@@ -2359,7 +2384,7 @@ paths:
           name: customer
           required: true
           schema: { type: integer, minimum: 1 }
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/VanFinanceIdempotencyKey"
       requestBody:
         required: true
         content:
@@ -2371,7 +2396,16 @@ paths:
               properties:
                 invoice_id: { type: integer, minimum: 1 }
                 amount: { type: number, exclusiveMinimum: 0 }
+                store_id:
+                  type: [integer, "null"]
+                  minimum: 1
+                  description: Required when the customer is in more than one assigned Van store scope.
       responses:
+        "200":
+          description: Idempotent replay of an already-posted collection
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
         "201":
           description: Collection posted with receipt and remaining outstanding balance
           content:
@@ -2379,7 +2413,8 @@ paths:
               schema: { type: object, additionalProperties: true }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "409": { description: Duplicate/conflicting collection or authoritative balance conflict }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Authoritative balance or custody-account conflict }
         "422": { $ref: "#/components/responses/ValidationError" }
 
   /van/wallet:
@@ -2406,7 +2441,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/VanFinanceIdempotencyKey"
       requestBody:
         required: true
         content:
@@ -2418,10 +2453,15 @@ paths:
               properties:
                 collection_account_id: { type: integer, minimum: 1 }
                 amount: { type: number, exclusiveMinimum: 0 }
-                method: { type: string }
+                method: { type: string, maxLength: 64 }
                 reference: { type: [string, "null"], maxLength: 255 }
-                note: { type: [string, "null"], maxLength: 2000 }
+                note: { type: [string, "null"], maxLength: 1000 }
       responses:
+        "200":
+          description: Idempotent replay of an already-submitted remittance
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
         "201":
           description: Remittance submitted and wallet state updated
           content:
@@ -2429,9 +2469,9 @@ paths:
               schema: { type: object, additionalProperties: true }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "409": { description: Duplicate/conflicting remittance or insufficient custody balance }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Custody balance conflict }
         "422": { $ref: "#/components/responses/ValidationError" }
-
 
 components:
   securitySchemes:
@@ -2530,6 +2570,3900 @@ components:
         type: string
         minLength: 16
         maxLength: 100
+    VanExecutionIdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Van delivery-execution idempotency key.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]+
+  schemas:
+    ApiVersion:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+
+    PushDeviceRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [app, platform, environment, token]
+      properties:
+        app:
+          type: string
+          enum: [customer, driver]
+        platform:
+          type: string
+          enum: [android, ios]
+        environment:
+          type: string
+          enum: [development, staging, production]
+        token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Push-provider device token.
+        install_id:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Stable per-installation identifier used to reconcile provider token refresh without revoking other devices.
+        store_id:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        target_channel:
+          type: string
+          enum: [all, b2b, b2c]
+          default: all
+        locale:
+          type: string
+          enum: [ar, en]
+
+    GuestPushDeviceRegistrationRequest:
+      allOf:
+        - $ref: "#/components/schemas/PushDeviceRegistrationRequest"
+        - type: object
+          required: [install_id]
+          properties:
+            app:
+              type: string
+              enum: [customer]
+
+    PlatformCustomerRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, phone, password, password_confirmation]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 40
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+        locale:
+          type: string
+          enum: [ar, en]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Exact active storefront where registration originated. Retail creates that store's B2C profile immediately. Omit for the main Wholesale storefront.
+
+    PlatformCustomerRegistrationResponse:
+      type: object
+      required: [token, token_type, platform_customer, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        platform_customer:
+          type: boolean
+          const: true
+        user:
+          $ref: "#/components/schemas/UserIdentity"
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        user:
+          $ref: "#/components/schemas/UserIdentity"
+
+    UserIdentity:
+      type: object
+      required: [id, name, email, roles, store_ids, driver_scope, platform_customer, retail_merchant, b2b_customer_ids, owned_retail_store_ids, managed_retail_store_ids, retail_store_ids, retail_wholesale_accounts]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        username:
+          type: [string, "null"]
+        email:
+          type: string
+          format: email
+        locale:
+          type: string
+          enum: [ar, en]
+        roles:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        store_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+        driver_scope:
+          description: Persisted authoritative Driver runtime scope. Null for non-Driver identities; never inferred from assignment history.
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required: [driver_id, channel, store_id]
+              properties:
+                driver_id:
+                  type: integer
+                  minimum: 1
+                channel:
+                  type: string
+                  enum: [b2c, b2b]
+                store_id:
+                  type: [integer, "null"]
+                  minimum: 1
+        platform_customer:
+          type: boolean
+        retail_merchant:
+          type: boolean
+          description: True when the authenticated Dashboard account owns or manages at least one active Retail Store.
+        b2b_customer_ids:
+          type: array
+          uniqueItems: true
+          description: B2B customer identities directly owned by the account or authoritatively linked through its Retail Stores.
+          items:
+            type: integer
+        owned_retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Active Retail Stores explicitly owned by this account.
+          items:
+            type: integer
+        managed_retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Active Retail Stores this account manages through B2C_STORE_ADMIN.
+          items:
+            type: integer
+        retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Union of owned and managed Retail Stores. Every ID in this set is a forbidden B2C purchase target for the same account.
+          items:
+            type: integer
+        retail_wholesale_accounts:
+          type: array
+          description: Authoritative Retail Store to Wholesale B2B customer identities available to this merchant account.
+          items:
+            type: object
+            required: [retail_store_id, b2b_customer_id]
+            properties:
+              retail_store_id:
+                type: integer
+              b2b_customer_id:
+                type: integer
+
+    Store:
+      type: object
+      required: [id, code, name, store_type, is_active]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        store_type:
+          type: string
+        is_active:
+          type: boolean
+
+    Category:
+      type: object
+      required: [id, name, slug, is_active]
+      properties:
+        id:
+          type: integer
+        parent_id:
+          type: [integer, "null"]
+        name:
+          type: string
+        slug:
+          type: string
+        is_active:
+          type: boolean
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+
+    ProductSummary:
+      type: object
+      required: [id, sku, name, is_active]
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        category_id:
+          type: [integer, "null"]
+        brand_id:
+          type: [integer, "null"]
+        is_active:
+          type: boolean
+        price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+
+    Product:
+      allOf:
+        - $ref: "#/components/schemas/ProductSummary"
+        - type: object
+          properties:
+            description:
+              type: [string, "null"]
+            images:
+              type: array
+              items:
+                type: string
+                format: uri-reference
+
+    Offer:
+      type: object
+      required: [id, name, type, is_active]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: [number, "null"]
+          multipleOf: 0.001
+        starts_at:
+          type: [string, "null"]
+          format: date-time
+        ends_at:
+          type: [string, "null"]
+          format: date-time
+        is_active:
+          type: boolean
+
+    Banner:
+      type: object
+      required: [id, title, sort_order]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+        target_url:
+          type: [string, "null"]
+          format: uri-reference
+        sort_order:
+          type: integer
+
+    CartItem:
+      type: object
+      required: [id, product, quantity]
+      properties:
+        id:
+          type: integer
+        product:
+          $ref: "#/components/schemas/ProductSummary"
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        unit_price_snapshot:
+          type: [number, "null"]
+          multipleOf: 0.001
+        line_total:
+          type: [number, "null"]
+          multipleOf: 0.001
+
+    Cart:
+      type: object
+      required: [id, store_id, channel, items]
+      properties:
+        id:
+          type: integer
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2c, b2b]
+        guest_token:
+          type: [string, "null"]
+        currency:
+          type: string
+          enum: [EGP]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        subtotal:
+          type: number
+          multipleOf: 0.001
+
+    AddCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id, product_id, quantity]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+
+    UpdateCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [quantity]
+      properties:
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+
+    QuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        coupon_code:
+          type: [string, "null"]
+          maxLength: 80
+        payment_method:
+          type: [string, "null"]
+          maxLength: 50
+
+    QuoteLine:
+      type: object
+      required:
+        [product_id, quantity, unit_price, line_total, is_available]
+      properties:
+        product_id:
+          type: integer
+        sku:
+          type: [string, "null"]
+        name:
+          type: [string, "null"]
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        base_unit_price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        unit_price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        line_total:
+          type: [number, "null"]
+          multipleOf: 0.001
+        is_available:
+          type: boolean
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+        availability_state:
+          type: string
+        commercial_status:
+          type: string
+          description: Server-authoritative OPEN / RESTRICTED / CLOSED policy state when the product is resolvable.
+        commercial_reason_codes:
+          type: array
+          items:
+            type: string
+        commercial_limits:
+          type: object
+          additionalProperties:
+            type: [number, "null"]
+        selling_units:
+          type: array
+          items:
+            type: object
+            required: [code, name, conversion_factor, is_base]
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+              conversion_factor:
+                type: number
+                exclusiveMinimum: 0
+              price:
+                type: [number, "null"]
+              sku:
+                type: [string, "null"]
+              barcode:
+                type: [string, "null"]
+              is_base:
+                type: boolean
+        minimum_order_quantity:
+          type: [number, "null"]
+        ordering_increment:
+          type: [number, "null"]
+        pack_size:
+          type: [number, "null"]
+        case_size:
+          type: [number, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+
+    CommerceQuote:
+      type: object
+      required:
+        [quote_id, quoted_at, store_id, channel, currency, items, subtotal, discount_total, delivery_total, tax_total, grand_total, pricing_source]
+      properties:
+        quote_id:
+          type: string
+          format: uuid
+        quoted_at:
+          type: string
+          format: date-time
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        currency:
+          type: string
+          enum: [EGP]
+        customer_context:
+          type: object
+          properties:
+            customer_id:
+              type: [integer, "null"]
+            b2b_account_id:
+              type: [integer, "null"]
+            price_tier_id:
+              type: [integer, "null"]
+            price_tier_code:
+              type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteLine"
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        promotion_discount_total:
+          type: number
+          multipleOf: 0.001
+        coupon_discount_total:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_rate:
+          type: number
+          minimum: 0
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        has_unavailable_items:
+          type: boolean
+        pricing_source:
+          type: string
+          enum: [backend_authoritative_quote_v1]
+
+    QuoteResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/CommerceQuote"
+
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id, address_id]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        address_id:
+          type: integer
+          minimum: 1
+        payment_method:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+
+    OrderItem:
+      type: object
+      required: [id, product_id, sku, name, quantity, unit_price, line_total]
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        selling_unit_code:
+          type: [string, "null"]
+          description: Selling unit code captured when the order line was confirmed.
+        selling_unit_name:
+          type: [string, "null"]
+          description: Selling unit display name captured when the order line was confirmed.
+        selling_unit_quantity:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        base_quantity:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+          description: Authoritative inventory/quota quantity in the product base unit.
+        conversion_factor:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+          description: Immutable selling-unit to base-unit conversion captured at confirmation.
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+
+    Order:
+      type: object
+      required:
+        [id, order_number, store_id, store, channel, status, currency, subtotal, grand_total, items, created_at]
+      properties:
+        id:
+          type: integer
+        order_number:
+          type: string
+        store_id:
+          type: integer
+        store:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            name:
+              type: string
+            logo_url:
+              type: [string, "null"]
+        channel:
+          type: string
+          enum: [b2c, b2b]
+        status:
+          type: string
+        currency:
+          type: string
+          enum: [EGP]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        quote_id:
+          type: [string, "null"]
+          format: uuid
+        quoted_at:
+          type: [string, "null"]
+          format: date-time
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        invoice:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            invoice_number:
+              type: string
+            status:
+              type: string
+        created_at:
+          type: string
+          format: date-time
+
+    B2bProduct:
+      allOf:
+        - $ref: "#/components/schemas/ProductSummary"
+        - type: object
+          required: [account_price]
+          properties:
+            account_price:
+              type: number
+              multipleOf: 0.001
+            minimum_order_quantity:
+              type: number
+              minimum: 0
+              multipleOf: 0.001
+            price_tier:
+              type: [string, "null"]
+
+    B2bProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/B2bProduct"
+        - type: object
+          required:
+            [store_id, minimum_order_quantity, price_tier, available_quantity, is_available, currency]
+          properties:
+            store_id:
+              type: integer
+            available_quantity:
+              type: [number, "null"]
+              minimum: 0
+              multipleOf: 0.001
+            is_available:
+              type: boolean
+            currency:
+              type: string
+              enum: [EGP]
+
+    B2bTopProduct:
+      type: object
+      required:
+        [rank, product_id, sku, name, quantity, total, currency, availability_state, can_repurchase]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+        total:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+        currency:
+          type: string
+          description: Historical order-line spend currency.
+        last_purchased_at:
+          type: [string, "null"]
+          format: date-time
+        image_url:
+          type: [string, "null"]
+          format: uri
+        account_price:
+          type: [number, "null"]
+          minimum: 0
+          multipleOf: 0.001
+          description: Current account-tier price; never derived from the historical order-line price.
+        current_price_currency:
+          type: [string, "null"]
+        minimum_order_quantity:
+          type: [number, "null"]
+          minimum: 0
+        ordering_increment:
+          type: [number, "null"]
+          minimum: 0
+        pack_size:
+          type: [number, "null"]
+          minimum: 0
+        case_size:
+          type: [number, "null"]
+          minimum: 0
+        pack_label:
+          type: [string, "null"]
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+        availability_state:
+          type: string
+          enum: [AVAILABLE, OUT_OF_STOCK, UNAVAILABLE_FOR_ACCOUNT]
+        can_repurchase:
+          type: boolean
+        unavailable_reason:
+          type: [string, "null"]
+          enum: [OUT_OF_STOCK, BELOW_MINIMUM_ORDER, UNAVAILABLE_FOR_ACCOUNT, null]
+
+    B2bTopProductCollection:
+      type: object
+      required: [data, period, sort, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/B2bTopProduct"
+        period:
+          type: object
+          required: [from, to]
+          properties:
+            from:
+              type: [string, "null"]
+              format: date
+            to:
+              type: [string, "null"]
+              format: date
+        sort:
+          type: string
+          enum: [quantity, value]
+        meta:
+          type: object
+          required: [page, per_page, total, has_more]
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            per_page:
+              type: integer
+              minimum: 1
+              maximum: 50
+            total:
+              type: integer
+              minimum: 0
+            has_more:
+              type: boolean
+
+    B2bDashboard:
+      type: object
+      required: [open_orders, outstanding_balance, currency]
+      properties:
+        open_orders:
+          type: integer
+          minimum: 0
+        outstanding_balance:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+
+    CustomerInvoiceItem:
+      type: object
+      required: [name, quantity, unit_price, discount_total, tax_total, line_total, currency]
+      properties:
+        product_id:
+          type: [integer, "null"]
+        sku:
+          type: [string, "null"]
+        name:
+          type: string
+        quantity:
+          type: number
+          multipleOf: 0.001
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+        price_tier_code:
+          type: [string, "null"]
+
+    CustomerInvoiceDocument:
+      type: object
+      required: [id, invoice_number, revision, status, order_id, store_id, channel, customer, currency, subtotal, discount_total, delivery_total, tax_total, grand_total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [issued, reissued, voided]
+        order_id:
+          type: [integer, "null"]
+        order_number:
+          type: [string, "null"]
+        store_id:
+          type: [integer, "null"]
+        store_name:
+          type: [string, "null"]
+        channel:
+          type: [string, "null"]
+          enum: [b2b, b2c, null]
+        customer:
+          type: object
+          properties:
+            name:
+              type: [string, "null"]
+            email:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+        currency:
+          type: string
+          enum: [EGP]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        payment_method:
+          type: [string, "null"]
+        payment_status:
+          type: [string, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        voided_at:
+          type: [string, "null"]
+          format: date-time
+        void_reason:
+          type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceItem"
+
+    Invoice:
+      type: object
+      required: [id, invoice_number, status, currency, total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        order_id:
+          type: [integer, "null"]
+        status:
+          type: string
+        currency:
+          type: string
+          enum: [EGP]
+        total:
+          type: number
+          multipleOf: 0.001
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        due_at:
+          type: [string, "null"]
+          format: date-time
+
+    B2bAccountStatement:
+      type: object
+      required: [currency, balance, entries]
+      properties:
+        currency:
+          type: string
+          enum: [EGP]
+        balance:
+          type: number
+          multipleOf: 0.001
+        entries:
+          type: array
+          items:
+            type: object
+            required: [date, type, amount]
+            properties:
+              date:
+                type: string
+                format: date
+              type:
+                type: string
+              reference:
+                type: [string, "null"]
+              amount:
+                type: number
+                multipleOf: 0.001
+
+    CustomerAddress:
+      type: object
+      required:
+        [id, line1, city, country_code, location_source, is_default]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        recipient_name:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_phone:
+          type: [string, "null"]
+          maxLength: 50
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: Uppercase ISO-style two-letter code after normalization.
+        country:
+          type: [string, "null"]
+          maxLength: 120
+        governorate:
+          type: [string, "null"]
+          maxLength: 120
+        block:
+          type: [string, "null"]
+          maxLength: 120
+        street:
+          type: [string, "null"]
+          maxLength: 255
+        avenue:
+          type: [string, "null"]
+          maxLength: 120
+        building:
+          type: [string, "null"]
+          maxLength: 120
+        floor:
+          type: [string, "null"]
+          maxLength: 120
+        apartment:
+          type: [string, "null"]
+          maxLength: 120
+        landmark:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_notes:
+          type: [string, "null"]
+          maxLength: 1000
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        location_accuracy_meters:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000
+        location_source:
+          type: string
+          enum: [manual, current_location, map_pin]
+        is_default:
+          type: boolean
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+
+    CustomerAddressCreate:
+      allOf:
+        - $ref: "#/components/schemas/CustomerAddressWrite"
+        - type: object
+          required: [line1, city, country_code]
+
+    CustomerAddressWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        recipient_name:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_phone:
+          type: [string, "null"]
+          maxLength: 50
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        country:
+          type: [string, "null"]
+          maxLength: 120
+        governorate:
+          type: [string, "null"]
+          maxLength: 120
+        block:
+          type: [string, "null"]
+          maxLength: 120
+        street:
+          type: [string, "null"]
+          maxLength: 255
+        avenue:
+          type: [string, "null"]
+          maxLength: 120
+        building:
+          type: [string, "null"]
+          maxLength: 120
+        floor:
+          type: [string, "null"]
+          maxLength: 120
+        apartment:
+          type: [string, "null"]
+          maxLength: 120
+        landmark:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_notes:
+          type: [string, "null"]
+          maxLength: 1000
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        location_accuracy_meters:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000
+        location_source:
+          type: string
+          enum: [manual, current_location, map_pin]
+        is_default:
+          type: boolean
+
+    DriverAssignment:
+      type: object
+      required: [id, order_id, store_id, assignment_type, status, available_statuses, order]
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        assignment_type:
+          type: string
+          enum: [b2c, b2b]
+        status:
+          type: string
+        assigned_at:
+          type: [string, "null"]
+          format: date-time
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+        store_id:
+          type: integer
+        available_statuses:
+          type: array
+          description: Backend-authorized next states after validating both assignment state and authoritative order state.
+          items:
+            type: string
+            enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+        order:
+          type: object
+          required: [number, status, currency, grand_total, store, customer, items]
+          properties:
+            number:
+              type: string
+            status:
+              type: string
+              enum: [pending, confirmed, preparing, ready, out_for_delivery, delivered, failed, cancelled]
+            currency:
+              type: string
+              enum: [EGP]
+            subtotal:
+              type: number
+            discount_total:
+              type: number
+            delivery_total:
+              type: number
+            grand_total:
+              type: number
+            payment_method:
+              type: string
+            customer_note:
+              type: [string, "null"]
+            store:
+              type: object
+              additionalProperties: true
+            customer:
+              type: object
+              additionalProperties: true
+            address:
+              type: [object, "null"]
+              additionalProperties: true
+            payment:
+              type: [object, "null"]
+              additionalProperties: true
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+
+    DriverAssignmentStatusWrite:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+
+    Notification:
+      type: object
+      required: [id, channel, target_channel, type, title, body, locale, created_at]
+      properties:
+        id:
+          type: integer
+        channel:
+          type: string
+          enum: [in_app, push, both]
+        target_channel:
+          type: string
+          enum: [all, b2c, b2b]
+        type:
+          type: string
+        title:
+          type: string
+          description: Localized title selected for the requested/user locale.
+        body:
+          type: string
+          description: Localized body selected for the requested/user locale.
+        locale:
+          type: string
+          enum: [ar, en]
+        data:
+          type: [object, "null"]
+          additionalProperties: true
+        read_at:
+          type: [string, "null"]
+          format: date-time
+        published_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    AppVersionPolicy:
+      type: object
+      required: [latest_version, minimum_supported_version, force_update, update_required, status]
+      properties:
+        latest_version:
+          type: string
+        minimum_supported_version:
+          type: string
+        force_update:
+          type: boolean
+        update_required:
+          type: boolean
+        status:
+          type: string
+          enum: [current, optional, forced, unsupported]
+        store_url:
+          type: [string, "null"]
+          format: uri
+        release_notes:
+          type: [string, "null"]
+
+
+    AppPreviewResolveRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        preview_token:
+          type: string
+          minLength: 1
+          description: Opaque short-lived preview token when the header form is not used.
+
+    AppPreviewSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [target_user_id, target_type, channel]
+      properties:
+        target_user_id:
+          type: integer
+          minimum: 1
+        target_type:
+          type: string
+          enum: [customer, driver]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Required for Retail; Wholesale always resolves to the canonical principal store.
+        support_access:
+          type: boolean
+          default: false
+          description: Must be explicitly true for SUPER_ADMIN Retail support preview.
+        ttl_minutes:
+          type: integer
+          minimum: 5
+          maximum: 30
+          default: 15
+
+    AppPreviewTarget:
+      type: object
+      required: [user_id, name, locale]
+      properties:
+        user_id:
+          type: integer
+        name:
+          type: string
+        locale:
+          type: string
+          enum: [ar, en]
+        driver_id:
+          type: [integer, "null"]
+
+    AppPreviewInvalidationEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, event, channel, store_id, occurred_at]
+      properties:
+        event_id:
+          type: integer
+          minimum: 1
+        event:
+          type: string
+          enum: [storefront.preview.updated, app.preview.configuration.updated]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: integer
+          minimum: 1
+        revision_id:
+          type: [string, "null"]
+          format: uuid
+        revision_status:
+          type: [string, "null"]
+          enum: [draft, published, archived, null]
+        checksum:
+          type: [string, "null"]
+          pattern: "^[a-f0-9]{64}$"
+        schema_version:
+          type: [integer, "null"]
+          minimum: 1
+        occurred_at:
+          type: string
+          format: date-time
+
+    AppPreviewContext:
+      type: object
+      required: [session_id, target_type, channel, store_id, mode, read_only, support_access, expires_at, audit_correlation_id, target]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        target_type:
+          type: string
+          enum: [customer, driver]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: integer
+          minimum: 1
+        mode:
+          type: string
+          const: read_only
+        read_only:
+          type: boolean
+          const: true
+        support_access:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        audit_correlation_id:
+          type: string
+          format: uuid
+        target:
+          $ref: "#/components/schemas/AppPreviewTarget"
+
+    AppPreviewContextResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/AppPreviewContext"
+
+    AppPreviewSessionCreateResponse:
+      type: object
+      required: [data, preview_token, token_type]
+      properties:
+        data:
+          $ref: "#/components/schemas/AppPreviewContext"
+        preview_token:
+          type: string
+          description: Plaintext token returned only at creation; persistence stores only its SHA-256 hash.
+        token_type:
+          type: string
+          const: Preview
+
+    StorefrontRevisionScopeRequest:
+      type: object
+      additionalProperties: false
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Required for Retail; Wholesale resolves to the canonical principal store.
+        support_access:
+          type: boolean
+          default: false
+
+    StorefrontRevisionUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [payload]
+      properties:
+        payload:
+          $ref: "#/components/schemas/StorefrontRevisionPayload"
+
+    StorefrontRevisionPayload:
+      type: object
+      required: [schema_version, channel, store, settings, sections, banners, service_zones]
+      properties:
+        schema_version:
+          type: integer
+          const: 1
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store:
+          type: object
+          required: [id, code, name, logo_path, is_active]
+          additionalProperties: true
+        settings:
+          type: object
+          required: [theme_code, branding]
+          additionalProperties: true
+        sections:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        banners:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        service_zones:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    StorefrontRevision:
+      type: object
+      required: [id, revision_id, store_id, channel, status, schema_version, checksum, payload]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        revision_id:
+          type: string
+          format: uuid
+        store_id:
+          type: integer
+          minimum: 1
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        status:
+          type: string
+          enum: [draft, published, archived]
+        schema_version:
+          type: integer
+          const: 1
+        checksum:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        parent_revision_id:
+          type: [integer, "null"]
+        source_revision_id:
+          type: [integer, "null"]
+        created_by:
+          type: [integer, "null"]
+        published_by:
+          type: [integer, "null"]
+        published_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+        payload:
+          $ref: "#/components/schemas/StorefrontRevisionPayload"
+
+    StorefrontRevisionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/StorefrontRevision"
+
+    StorefrontRevisionPreview:
+      allOf:
+        - $ref: "#/components/schemas/StorefrontRevision"
+        - type: object
+          required: [preview_session_id, read_only]
+          properties:
+            preview_session_id:
+              type: string
+              format: uuid
+            read_only:
+              type: boolean
+              const: true
+            mode:
+              type: string
+              enum: [draft, published]
+
+    StorefrontRevisionPreviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/StorefrontRevisionPreview"
+
+    StorefrontRevisionCollection:
+      type: object
+      required: [data, schema_version]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        schema_version:
+          type: integer
+          const: 1
+
+    SecurityPermission:
+      type: object
+      required: [id, code, name, module, action]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        module:
+          type: string
+        action:
+          type: string
+
+    SecurityPermissionCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityPermission"
+
+    SecurityRole:
+      type: object
+      required: [id, code, name, scope, is_system, is_active, permissions]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        scope:
+          type: string
+          enum: [global, store, both]
+        is_system:
+          type: boolean
+        is_active:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityPermission"
+
+    SecurityRoleCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityRole"
+
+    SecurityRoleWrite:
+      type: object
+      required: [name, scope, is_active, permission_ids]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]{2,49}$"
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        scope:
+          type: string
+          enum: [global, store, both]
+        is_active:
+          type: boolean
+        permission_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+
+    SecurityUser:
+      type: object
+      required: [id, name, email, is_active, global_roles, store_roles, effective_permissions]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        locale:
+          type: string
+          enum: [ar, en]
+        is_active:
+          type: boolean
+        deactivated_at:
+          type: [string, "null"]
+          format: date-time
+        deactivation_reason:
+          type: [string, "null"]
+        global_roles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        store_roles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        effective_permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+
+    SecurityUserCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityUser"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    SecurityUserRolesWrite:
+      type: object
+      required: [global_role_ids, store_roles]
+      properties:
+        global_role_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+        store_roles:
+          type: array
+          items:
+            type: object
+            required: [store_id, role_id]
+            properties:
+              store_id:
+                type: integer
+              role_id:
+                type: integer
+
+    SecurityUserStatusWrite:
+      type: object
+      required: [is_active]
+      properties:
+        is_active:
+          type: boolean
+        reason:
+          type: [string, "null"]
+          maxLength: 500
+
+    PaginationMeta:
+      type: object
+      required: [current_page, per_page, total]
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+
+    StoreCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Store"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CategoryCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    ProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductSummary"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    OfferCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Offer"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    BannerCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Banner"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    OrderCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    B2bProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/B2bProduct"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CustomerInvoiceDocumentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceDocument"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    InvoiceCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    DriverAssignmentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DriverAssignment"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    NotificationCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        code:
+          type: [string, "null"]
+        errors:
+          type: [object, "null"]
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthenticated:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but not authorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found or not visible in authorized scope
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with current resource state or idempotency key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+
+    VanFinanceIdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Van collection/remittance idempotency key.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 72
+        pattern: '^[A-Za-z0-9._:-]+
+  schemas:
+    ApiVersion:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+
+    PushDeviceRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [app, platform, environment, token]
+      properties:
+        app:
+          type: string
+          enum: [customer, driver]
+        platform:
+          type: string
+          enum: [android, ios]
+        environment:
+          type: string
+          enum: [development, staging, production]
+        token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Push-provider device token.
+        install_id:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Stable per-installation identifier used to reconcile provider token refresh without revoking other devices.
+        store_id:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        target_channel:
+          type: string
+          enum: [all, b2b, b2c]
+          default: all
+        locale:
+          type: string
+          enum: [ar, en]
+
+    GuestPushDeviceRegistrationRequest:
+      allOf:
+        - $ref: "#/components/schemas/PushDeviceRegistrationRequest"
+        - type: object
+          required: [install_id]
+          properties:
+            app:
+              type: string
+              enum: [customer]
+
+    PlatformCustomerRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, phone, password, password_confirmation]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 40
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+        locale:
+          type: string
+          enum: [ar, en]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Exact active storefront where registration originated. Retail creates that store's B2C profile immediately. Omit for the main Wholesale storefront.
+
+    PlatformCustomerRegistrationResponse:
+      type: object
+      required: [token, token_type, platform_customer, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        platform_customer:
+          type: boolean
+          const: true
+        user:
+          $ref: "#/components/schemas/UserIdentity"
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        user:
+          $ref: "#/components/schemas/UserIdentity"
+
+    UserIdentity:
+      type: object
+      required: [id, name, email, roles, store_ids, driver_scope, platform_customer, retail_merchant, b2b_customer_ids, owned_retail_store_ids, managed_retail_store_ids, retail_store_ids, retail_wholesale_accounts]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        username:
+          type: [string, "null"]
+        email:
+          type: string
+          format: email
+        locale:
+          type: string
+          enum: [ar, en]
+        roles:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        store_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+        driver_scope:
+          description: Persisted authoritative Driver runtime scope. Null for non-Driver identities; never inferred from assignment history.
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required: [driver_id, channel, store_id]
+              properties:
+                driver_id:
+                  type: integer
+                  minimum: 1
+                channel:
+                  type: string
+                  enum: [b2c, b2b]
+                store_id:
+                  type: [integer, "null"]
+                  minimum: 1
+        platform_customer:
+          type: boolean
+        retail_merchant:
+          type: boolean
+          description: True when the authenticated Dashboard account owns or manages at least one active Retail Store.
+        b2b_customer_ids:
+          type: array
+          uniqueItems: true
+          description: B2B customer identities directly owned by the account or authoritatively linked through its Retail Stores.
+          items:
+            type: integer
+        owned_retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Active Retail Stores explicitly owned by this account.
+          items:
+            type: integer
+        managed_retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Active Retail Stores this account manages through B2C_STORE_ADMIN.
+          items:
+            type: integer
+        retail_store_ids:
+          type: array
+          uniqueItems: true
+          description: Union of owned and managed Retail Stores. Every ID in this set is a forbidden B2C purchase target for the same account.
+          items:
+            type: integer
+        retail_wholesale_accounts:
+          type: array
+          description: Authoritative Retail Store to Wholesale B2B customer identities available to this merchant account.
+          items:
+            type: object
+            required: [retail_store_id, b2b_customer_id]
+            properties:
+              retail_store_id:
+                type: integer
+              b2b_customer_id:
+                type: integer
+
+    Store:
+      type: object
+      required: [id, code, name, store_type, is_active]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        store_type:
+          type: string
+        is_active:
+          type: boolean
+
+    Category:
+      type: object
+      required: [id, name, slug, is_active]
+      properties:
+        id:
+          type: integer
+        parent_id:
+          type: [integer, "null"]
+        name:
+          type: string
+        slug:
+          type: string
+        is_active:
+          type: boolean
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+
+    ProductSummary:
+      type: object
+      required: [id, sku, name, is_active]
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        category_id:
+          type: [integer, "null"]
+        brand_id:
+          type: [integer, "null"]
+        is_active:
+          type: boolean
+        price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+
+    Product:
+      allOf:
+        - $ref: "#/components/schemas/ProductSummary"
+        - type: object
+          properties:
+            description:
+              type: [string, "null"]
+            images:
+              type: array
+              items:
+                type: string
+                format: uri-reference
+
+    Offer:
+      type: object
+      required: [id, name, type, is_active]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: [number, "null"]
+          multipleOf: 0.001
+        starts_at:
+          type: [string, "null"]
+          format: date-time
+        ends_at:
+          type: [string, "null"]
+          format: date-time
+        is_active:
+          type: boolean
+
+    Banner:
+      type: object
+      required: [id, title, sort_order]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        image_url:
+          type: [string, "null"]
+          format: uri-reference
+        target_url:
+          type: [string, "null"]
+          format: uri-reference
+        sort_order:
+          type: integer
+
+    CartItem:
+      type: object
+      required: [id, product, quantity]
+      properties:
+        id:
+          type: integer
+        product:
+          $ref: "#/components/schemas/ProductSummary"
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        unit_price_snapshot:
+          type: [number, "null"]
+          multipleOf: 0.001
+        line_total:
+          type: [number, "null"]
+          multipleOf: 0.001
+
+    Cart:
+      type: object
+      required: [id, store_id, channel, items]
+      properties:
+        id:
+          type: integer
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2c, b2b]
+        guest_token:
+          type: [string, "null"]
+        currency:
+          type: string
+          enum: [EGP]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        subtotal:
+          type: number
+          multipleOf: 0.001
+
+    AddCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id, product_id, quantity]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+          minimum: 1
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+
+    UpdateCartItemRequest:
+      type: object
+      additionalProperties: false
+      required: [quantity]
+      properties:
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+
+    QuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        coupon_code:
+          type: [string, "null"]
+          maxLength: 80
+        payment_method:
+          type: [string, "null"]
+          maxLength: 50
+
+    QuoteLine:
+      type: object
+      required:
+        [product_id, quantity, unit_price, line_total, is_available]
+      properties:
+        product_id:
+          type: integer
+        sku:
+          type: [string, "null"]
+        name:
+          type: [string, "null"]
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        base_unit_price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        unit_price:
+          type: [number, "null"]
+          multipleOf: 0.001
+        line_total:
+          type: [number, "null"]
+          multipleOf: 0.001
+        is_available:
+          type: boolean
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+        availability_state:
+          type: string
+        commercial_status:
+          type: string
+          description: Server-authoritative OPEN / RESTRICTED / CLOSED policy state when the product is resolvable.
+        commercial_reason_codes:
+          type: array
+          items:
+            type: string
+        commercial_limits:
+          type: object
+          additionalProperties:
+            type: [number, "null"]
+        selling_units:
+          type: array
+          items:
+            type: object
+            required: [code, name, conversion_factor, is_base]
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+              conversion_factor:
+                type: number
+                exclusiveMinimum: 0
+              price:
+                type: [number, "null"]
+              sku:
+                type: [string, "null"]
+              barcode:
+                type: [string, "null"]
+              is_base:
+                type: boolean
+        minimum_order_quantity:
+          type: [number, "null"]
+        ordering_increment:
+          type: [number, "null"]
+        pack_size:
+          type: [number, "null"]
+        case_size:
+          type: [number, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+
+    CommerceQuote:
+      type: object
+      required:
+        [quote_id, quoted_at, store_id, channel, currency, items, subtotal, discount_total, delivery_total, tax_total, grand_total, pricing_source]
+      properties:
+        quote_id:
+          type: string
+          format: uuid
+        quoted_at:
+          type: string
+          format: date-time
+        store_id:
+          type: integer
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        currency:
+          type: string
+          enum: [EGP]
+        customer_context:
+          type: object
+          properties:
+            customer_id:
+              type: [integer, "null"]
+            b2b_account_id:
+              type: [integer, "null"]
+            price_tier_id:
+              type: [integer, "null"]
+            price_tier_code:
+              type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteLine"
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        promotion_discount_total:
+          type: number
+          multipleOf: 0.001
+        coupon_discount_total:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_rate:
+          type: number
+          minimum: 0
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        has_unavailable_items:
+          type: boolean
+        pricing_source:
+          type: string
+          enum: [backend_authoritative_quote_v1]
+
+    QuoteResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/CommerceQuote"
+
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      required: [store_id, address_id]
+      properties:
+        store_id:
+          type: integer
+          minimum: 1
+        address_id:
+          type: integer
+          minimum: 1
+        payment_method:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+
+    OrderItem:
+      type: object
+      required: [id, product_id, sku, name, quantity, unit_price, line_total]
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        selling_unit_code:
+          type: [string, "null"]
+          description: Selling unit code captured when the order line was confirmed.
+        selling_unit_name:
+          type: [string, "null"]
+          description: Selling unit display name captured when the order line was confirmed.
+        selling_unit_quantity:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+        base_quantity:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+          description: Authoritative inventory/quota quantity in the product base unit.
+        conversion_factor:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          multipleOf: 0.001
+          description: Immutable selling-unit to base-unit conversion captured at confirmation.
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+
+    Order:
+      type: object
+      required:
+        [id, order_number, store_id, store, channel, status, currency, subtotal, grand_total, items, created_at]
+      properties:
+        id:
+          type: integer
+        order_number:
+          type: string
+        store_id:
+          type: integer
+        store:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            code:
+              type: string
+            name:
+              type: string
+            logo_url:
+              type: [string, "null"]
+        channel:
+          type: string
+          enum: [b2c, b2b]
+        status:
+          type: string
+        currency:
+          type: string
+          enum: [EGP]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        quote_id:
+          type: [string, "null"]
+          format: uuid
+        quoted_at:
+          type: [string, "null"]
+          format: date-time
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        invoice:
+          type: [object, "null"]
+          properties:
+            id:
+              type: integer
+            invoice_number:
+              type: string
+            status:
+              type: string
+        created_at:
+          type: string
+          format: date-time
+
+    B2bProduct:
+      allOf:
+        - $ref: "#/components/schemas/ProductSummary"
+        - type: object
+          required: [account_price]
+          properties:
+            account_price:
+              type: number
+              multipleOf: 0.001
+            minimum_order_quantity:
+              type: number
+              minimum: 0
+              multipleOf: 0.001
+            price_tier:
+              type: [string, "null"]
+
+    B2bProductDetail:
+      allOf:
+        - $ref: "#/components/schemas/B2bProduct"
+        - type: object
+          required:
+            [store_id, minimum_order_quantity, price_tier, available_quantity, is_available, currency]
+          properties:
+            store_id:
+              type: integer
+            available_quantity:
+              type: [number, "null"]
+              minimum: 0
+              multipleOf: 0.001
+            is_available:
+              type: boolean
+            currency:
+              type: string
+              enum: [EGP]
+
+    B2bTopProduct:
+      type: object
+      required:
+        [rank, product_id, sku, name, quantity, total, currency, availability_state, can_repurchase]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+        total:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+        currency:
+          type: string
+          description: Historical order-line spend currency.
+        last_purchased_at:
+          type: [string, "null"]
+          format: date-time
+        image_url:
+          type: [string, "null"]
+          format: uri
+        account_price:
+          type: [number, "null"]
+          minimum: 0
+          multipleOf: 0.001
+          description: Current account-tier price; never derived from the historical order-line price.
+        current_price_currency:
+          type: [string, "null"]
+        minimum_order_quantity:
+          type: [number, "null"]
+          minimum: 0
+        ordering_increment:
+          type: [number, "null"]
+          minimum: 0
+        pack_size:
+          type: [number, "null"]
+          minimum: 0
+        case_size:
+          type: [number, "null"]
+          minimum: 0
+        pack_label:
+          type: [string, "null"]
+        available_quantity:
+          type: [number, "null"]
+          minimum: 0
+        availability_state:
+          type: string
+          enum: [AVAILABLE, OUT_OF_STOCK, UNAVAILABLE_FOR_ACCOUNT]
+        can_repurchase:
+          type: boolean
+        unavailable_reason:
+          type: [string, "null"]
+          enum: [OUT_OF_STOCK, BELOW_MINIMUM_ORDER, UNAVAILABLE_FOR_ACCOUNT, null]
+
+    B2bTopProductCollection:
+      type: object
+      required: [data, period, sort, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/B2bTopProduct"
+        period:
+          type: object
+          required: [from, to]
+          properties:
+            from:
+              type: [string, "null"]
+              format: date
+            to:
+              type: [string, "null"]
+              format: date
+        sort:
+          type: string
+          enum: [quantity, value]
+        meta:
+          type: object
+          required: [page, per_page, total, has_more]
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            per_page:
+              type: integer
+              minimum: 1
+              maximum: 50
+            total:
+              type: integer
+              minimum: 0
+            has_more:
+              type: boolean
+
+    B2bDashboard:
+      type: object
+      required: [open_orders, outstanding_balance, currency]
+      properties:
+        open_orders:
+          type: integer
+          minimum: 0
+        outstanding_balance:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+
+    CustomerInvoiceItem:
+      type: object
+      required: [name, quantity, unit_price, discount_total, tax_total, line_total, currency]
+      properties:
+        product_id:
+          type: [integer, "null"]
+        sku:
+          type: [string, "null"]
+        name:
+          type: string
+        quantity:
+          type: number
+          multipleOf: 0.001
+        unit_price:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        line_total:
+          type: number
+          multipleOf: 0.001
+        currency:
+          type: string
+          enum: [EGP]
+        price_tier_code:
+          type: [string, "null"]
+
+    CustomerInvoiceDocument:
+      type: object
+      required: [id, invoice_number, revision, status, order_id, store_id, channel, customer, currency, subtotal, discount_total, delivery_total, tax_total, grand_total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [issued, reissued, voided]
+        order_id:
+          type: [integer, "null"]
+        order_number:
+          type: [string, "null"]
+        store_id:
+          type: [integer, "null"]
+        store_name:
+          type: [string, "null"]
+        channel:
+          type: [string, "null"]
+          enum: [b2b, b2c, null]
+        customer:
+          type: object
+          properties:
+            name:
+              type: [string, "null"]
+            email:
+              type: [string, "null"]
+            phone:
+              type: [string, "null"]
+        currency:
+          type: string
+          enum: [EGP]
+        subtotal:
+          type: number
+          multipleOf: 0.001
+        discount_total:
+          type: number
+          multipleOf: 0.001
+        delivery_total:
+          type: number
+          multipleOf: 0.001
+        tax_total:
+          type: number
+          multipleOf: 0.001
+        grand_total:
+          type: number
+          multipleOf: 0.001
+        payment_method:
+          type: [string, "null"]
+        payment_status:
+          type: [string, "null"]
+        price_tier_id:
+          type: [integer, "null"]
+        price_tier_code:
+          type: [string, "null"]
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        voided_at:
+          type: [string, "null"]
+          format: date-time
+        void_reason:
+          type: [string, "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceItem"
+
+    Invoice:
+      type: object
+      required: [id, invoice_number, status, currency, total]
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        order_id:
+          type: [integer, "null"]
+        status:
+          type: string
+        currency:
+          type: string
+          enum: [EGP]
+        total:
+          type: number
+          multipleOf: 0.001
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+        due_at:
+          type: [string, "null"]
+          format: date-time
+
+    B2bAccountStatement:
+      type: object
+      required: [currency, balance, entries]
+      properties:
+        currency:
+          type: string
+          enum: [EGP]
+        balance:
+          type: number
+          multipleOf: 0.001
+        entries:
+          type: array
+          items:
+            type: object
+            required: [date, type, amount]
+            properties:
+              date:
+                type: string
+                format: date
+              type:
+                type: string
+              reference:
+                type: [string, "null"]
+              amount:
+                type: number
+                multipleOf: 0.001
+
+    CustomerAddress:
+      type: object
+      required:
+        [id, line1, city, country_code, location_source, is_default]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        recipient_name:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_phone:
+          type: [string, "null"]
+          maxLength: 50
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: Uppercase ISO-style two-letter code after normalization.
+        country:
+          type: [string, "null"]
+          maxLength: 120
+        governorate:
+          type: [string, "null"]
+          maxLength: 120
+        block:
+          type: [string, "null"]
+          maxLength: 120
+        street:
+          type: [string, "null"]
+          maxLength: 255
+        avenue:
+          type: [string, "null"]
+          maxLength: 120
+        building:
+          type: [string, "null"]
+          maxLength: 120
+        floor:
+          type: [string, "null"]
+          maxLength: 120
+        apartment:
+          type: [string, "null"]
+          maxLength: 120
+        landmark:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_notes:
+          type: [string, "null"]
+          maxLength: 1000
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        location_accuracy_meters:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000
+        location_source:
+          type: string
+          enum: [manual, current_location, map_pin]
+        is_default:
+          type: boolean
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+
+    CustomerAddressCreate:
+      allOf:
+        - $ref: "#/components/schemas/CustomerAddressWrite"
+        - type: object
+          required: [line1, city, country_code]
+
+    CustomerAddressWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: [string, "null"]
+          maxLength: 100
+        recipient_name:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_phone:
+          type: [string, "null"]
+          maxLength: 50
+        line1:
+          type: string
+          maxLength: 255
+        line2:
+          type: [string, "null"]
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: [string, "null"]
+          maxLength: 120
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        country:
+          type: [string, "null"]
+          maxLength: 120
+        governorate:
+          type: [string, "null"]
+          maxLength: 120
+        block:
+          type: [string, "null"]
+          maxLength: 120
+        street:
+          type: [string, "null"]
+          maxLength: 255
+        avenue:
+          type: [string, "null"]
+          maxLength: 120
+        building:
+          type: [string, "null"]
+          maxLength: 120
+        floor:
+          type: [string, "null"]
+          maxLength: 120
+        apartment:
+          type: [string, "null"]
+          maxLength: 120
+        landmark:
+          type: [string, "null"]
+          maxLength: 255
+        delivery_notes:
+          type: [string, "null"]
+          maxLength: 1000
+        latitude:
+          type: [number, "null"]
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: [number, "null"]
+          minimum: -180
+          maximum: 180
+        location_accuracy_meters:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100000
+        location_source:
+          type: string
+          enum: [manual, current_location, map_pin]
+        is_default:
+          type: boolean
+
+    DriverAssignment:
+      type: object
+      required: [id, order_id, store_id, assignment_type, status, available_statuses, order]
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        assignment_type:
+          type: string
+          enum: [b2c, b2b]
+        status:
+          type: string
+        assigned_at:
+          type: [string, "null"]
+          format: date-time
+        completed_at:
+          type: [string, "null"]
+          format: date-time
+        store_id:
+          type: integer
+        available_statuses:
+          type: array
+          description: Backend-authorized next states after validating both assignment state and authoritative order state.
+          items:
+            type: string
+            enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+        order:
+          type: object
+          required: [number, status, currency, grand_total, store, customer, items]
+          properties:
+            number:
+              type: string
+            status:
+              type: string
+              enum: [pending, confirmed, preparing, ready, out_for_delivery, delivered, failed, cancelled]
+            currency:
+              type: string
+              enum: [EGP]
+            subtotal:
+              type: number
+            discount_total:
+              type: number
+            delivery_total:
+              type: number
+            grand_total:
+              type: number
+            payment_method:
+              type: string
+            customer_note:
+              type: [string, "null"]
+            store:
+              type: object
+              additionalProperties: true
+            customer:
+              type: object
+              additionalProperties: true
+            address:
+              type: [object, "null"]
+              additionalProperties: true
+            payment:
+              type: [object, "null"]
+              additionalProperties: true
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+
+    DriverAssignmentStatusWrite:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, picked_up, out_for_delivery, delivered, failed]
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+
+    Notification:
+      type: object
+      required: [id, channel, target_channel, type, title, body, locale, created_at]
+      properties:
+        id:
+          type: integer
+        channel:
+          type: string
+          enum: [in_app, push, both]
+        target_channel:
+          type: string
+          enum: [all, b2c, b2b]
+        type:
+          type: string
+        title:
+          type: string
+          description: Localized title selected for the requested/user locale.
+        body:
+          type: string
+          description: Localized body selected for the requested/user locale.
+        locale:
+          type: string
+          enum: [ar, en]
+        data:
+          type: [object, "null"]
+          additionalProperties: true
+        read_at:
+          type: [string, "null"]
+          format: date-time
+        published_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    AppVersionPolicy:
+      type: object
+      required: [latest_version, minimum_supported_version, force_update, update_required, status]
+      properties:
+        latest_version:
+          type: string
+        minimum_supported_version:
+          type: string
+        force_update:
+          type: boolean
+        update_required:
+          type: boolean
+        status:
+          type: string
+          enum: [current, optional, forced, unsupported]
+        store_url:
+          type: [string, "null"]
+          format: uri
+        release_notes:
+          type: [string, "null"]
+
+
+    AppPreviewResolveRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        preview_token:
+          type: string
+          minLength: 1
+          description: Opaque short-lived preview token when the header form is not used.
+
+    AppPreviewSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [target_user_id, target_type, channel]
+      properties:
+        target_user_id:
+          type: integer
+          minimum: 1
+        target_type:
+          type: string
+          enum: [customer, driver]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Required for Retail; Wholesale always resolves to the canonical principal store.
+        support_access:
+          type: boolean
+          default: false
+          description: Must be explicitly true for SUPER_ADMIN Retail support preview.
+        ttl_minutes:
+          type: integer
+          minimum: 5
+          maximum: 30
+          default: 15
+
+    AppPreviewTarget:
+      type: object
+      required: [user_id, name, locale]
+      properties:
+        user_id:
+          type: integer
+        name:
+          type: string
+        locale:
+          type: string
+          enum: [ar, en]
+        driver_id:
+          type: [integer, "null"]
+
+    AppPreviewInvalidationEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, event, channel, store_id, occurred_at]
+      properties:
+        event_id:
+          type: integer
+          minimum: 1
+        event:
+          type: string
+          enum: [storefront.preview.updated, app.preview.configuration.updated]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: integer
+          minimum: 1
+        revision_id:
+          type: [string, "null"]
+          format: uuid
+        revision_status:
+          type: [string, "null"]
+          enum: [draft, published, archived, null]
+        checksum:
+          type: [string, "null"]
+          pattern: "^[a-f0-9]{64}$"
+        schema_version:
+          type: [integer, "null"]
+          minimum: 1
+        occurred_at:
+          type: string
+          format: date-time
+
+    AppPreviewContext:
+      type: object
+      required: [session_id, target_type, channel, store_id, mode, read_only, support_access, expires_at, audit_correlation_id, target]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        target_type:
+          type: string
+          enum: [customer, driver]
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: integer
+          minimum: 1
+        mode:
+          type: string
+          const: read_only
+        read_only:
+          type: boolean
+          const: true
+        support_access:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        audit_correlation_id:
+          type: string
+          format: uuid
+        target:
+          $ref: "#/components/schemas/AppPreviewTarget"
+
+    AppPreviewContextResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/AppPreviewContext"
+
+    AppPreviewSessionCreateResponse:
+      type: object
+      required: [data, preview_token, token_type]
+      properties:
+        data:
+          $ref: "#/components/schemas/AppPreviewContext"
+        preview_token:
+          type: string
+          description: Plaintext token returned only at creation; persistence stores only its SHA-256 hash.
+        token_type:
+          type: string
+          const: Preview
+
+    StorefrontRevisionScopeRequest:
+      type: object
+      additionalProperties: false
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store_id:
+          type: [integer, "null"]
+          minimum: 1
+          description: Required for Retail; Wholesale resolves to the canonical principal store.
+        support_access:
+          type: boolean
+          default: false
+
+    StorefrontRevisionUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [payload]
+      properties:
+        payload:
+          $ref: "#/components/schemas/StorefrontRevisionPayload"
+
+    StorefrontRevisionPayload:
+      type: object
+      required: [schema_version, channel, store, settings, sections, banners, service_zones]
+      properties:
+        schema_version:
+          type: integer
+          const: 1
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        store:
+          type: object
+          required: [id, code, name, logo_path, is_active]
+          additionalProperties: true
+        settings:
+          type: object
+          required: [theme_code, branding]
+          additionalProperties: true
+        sections:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        banners:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        service_zones:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    StorefrontRevision:
+      type: object
+      required: [id, revision_id, store_id, channel, status, schema_version, checksum, payload]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        revision_id:
+          type: string
+          format: uuid
+        store_id:
+          type: integer
+          minimum: 1
+        channel:
+          type: string
+          enum: [b2b, b2c]
+        status:
+          type: string
+          enum: [draft, published, archived]
+        schema_version:
+          type: integer
+          const: 1
+        checksum:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        parent_revision_id:
+          type: [integer, "null"]
+        source_revision_id:
+          type: [integer, "null"]
+        created_by:
+          type: [integer, "null"]
+        published_by:
+          type: [integer, "null"]
+        published_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: [string, "null"]
+          format: date-time
+        updated_at:
+          type: [string, "null"]
+          format: date-time
+        payload:
+          $ref: "#/components/schemas/StorefrontRevisionPayload"
+
+    StorefrontRevisionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/StorefrontRevision"
+
+    StorefrontRevisionPreview:
+      allOf:
+        - $ref: "#/components/schemas/StorefrontRevision"
+        - type: object
+          required: [preview_session_id, read_only]
+          properties:
+            preview_session_id:
+              type: string
+              format: uuid
+            read_only:
+              type: boolean
+              const: true
+            mode:
+              type: string
+              enum: [draft, published]
+
+    StorefrontRevisionPreviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/StorefrontRevisionPreview"
+
+    StorefrontRevisionCollection:
+      type: object
+      required: [data, schema_version]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        schema_version:
+          type: integer
+          const: 1
+
+    SecurityPermission:
+      type: object
+      required: [id, code, name, module, action]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        module:
+          type: string
+        action:
+          type: string
+
+    SecurityPermissionCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityPermission"
+
+    SecurityRole:
+      type: object
+      required: [id, code, name, scope, is_system, is_active, permissions]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        scope:
+          type: string
+          enum: [global, store, both]
+        is_system:
+          type: boolean
+        is_active:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityPermission"
+
+    SecurityRoleCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityRole"
+
+    SecurityRoleWrite:
+      type: object
+      required: [name, scope, is_active, permission_ids]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]{2,49}$"
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        scope:
+          type: string
+          enum: [global, store, both]
+        is_active:
+          type: boolean
+        permission_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+
+    SecurityUser:
+      type: object
+      required: [id, name, email, is_active, global_roles, store_roles, effective_permissions]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        locale:
+          type: string
+          enum: [ar, en]
+        is_active:
+          type: boolean
+        deactivated_at:
+          type: [string, "null"]
+          format: date-time
+        deactivation_reason:
+          type: [string, "null"]
+        global_roles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        store_roles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        effective_permissions:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+
+    SecurityUserCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SecurityUser"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    SecurityUserRolesWrite:
+      type: object
+      required: [global_role_ids, store_roles]
+      properties:
+        global_role_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+        store_roles:
+          type: array
+          items:
+            type: object
+            required: [store_id, role_id]
+            properties:
+              store_id:
+                type: integer
+              role_id:
+                type: integer
+
+    SecurityUserStatusWrite:
+      type: object
+      required: [is_active]
+      properties:
+        is_active:
+          type: boolean
+        reason:
+          type: [string, "null"]
+          maxLength: 500
+
+    PaginationMeta:
+      type: object
+      required: [current_page, per_page, total]
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+
+    StoreCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Store"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CategoryCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    ProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductSummary"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    OfferCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Offer"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    BannerCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Banner"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    OrderCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    B2bProductCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/B2bProduct"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CustomerInvoiceDocumentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerInvoiceDocument"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    InvoiceCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    DriverAssignmentCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DriverAssignment"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    NotificationCollection:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        code:
+          type: [string, "null"]
+        errors:
+          type: [object, "null"]
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthenticated:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but not authorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found or not visible in authorized scope
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with current resource state or idempotency key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+
 
   schemas:
     ApiVersion:
