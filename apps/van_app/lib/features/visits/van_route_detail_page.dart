@@ -11,10 +11,12 @@ class VanRouteDetailPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onSessionExpired,
+    required this.onOpenOrder,
   });
 
   final VanVisitRepository repository;
   final Future<void> Function() onSessionExpired;
+  final ValueChanged<int> onOpenOrder;
 
   @override
   State<VanRouteDetailPage> createState() => _VanRouteDetailPageState();
@@ -276,6 +278,9 @@ class _VanRouteDetailPageState extends State<VanRouteDetailPage>
                 elevation: 0,
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
+                  onTap: visit.orderId == null
+                      ? null
+                      : () => widget.onOpenOrder(visit.orderId!),
                   leading: const CircleAvatar(
                     backgroundColor: FoodexVanTokens.mint,
                     child: Icon(
@@ -295,7 +300,9 @@ class _VanRouteDetailPageState extends State<VanRouteDetailPage>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: visit.orderId == null
+                      ? null
+                      : const Icon(Icons.chevron_right),
                 ),
               ),
           ],
