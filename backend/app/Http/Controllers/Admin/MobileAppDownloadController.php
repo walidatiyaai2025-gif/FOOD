@@ -3,47 +3,66 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SystemVersion;
+use App\Models\MobileReleaseArtifact;
+use App\Services\MobileReleaseArtifactMirror;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class MobileAppDownloadController extends Controller
 {
-    private const RELEASE_BASE_URL = 'https://github.com/walidatiyaai2025-gif/FOOD/releases/download';
-
     private const APPS = [
         'customer' => 'Customer',
         'driver' => 'Driver',
         'van' => 'Van',
     ];
 
+    public function __construct(private readonly MobileReleaseArtifactMirror $mirror) {}
+
     public function customer(): RedirectResponse
     {
-        Gate::authorize('platform.manage');
-
-        return redirect()->route('public.mobile-apps.latest', ['app' => 'customer']);
+        return $this->adminDownload('customer');
     }
 
     public function driver(): RedirectResponse
     {
-        Gate::authorize('platform.manage');
-
-        return redirect()->route('public.mobile-apps.latest', ['app' => 'driver']);
+        return $this->adminDownload('driver');
     }
 
     public function van(): RedirectResponse
     {
+        return $this->adminDownload('van');
+    }
+
+    public function status(): JsonResponse
+    {
         Gate::authorize('platform.manage');
 
-        return redirect()->route('public.mobile-apps.latest', ['app' => 'van']);
+        $version = $this->mirror->ensureScheduled();
+
+        return response()->json([
+            'version' => $version,
+            'artifacts' => $this->mirror->statusPayload($version),
+        ]);
+    }
+
+    public function retry(): JsonResponse
+    {
+        Gate::authorize('platform.manage');
+
+        $version = $this->mirror->retryVersion();
+
+        return response()->json([
+            'version' => $version,
+            'artifacts' => $this->mirror->statusPayload($version),
+        ], 202);
     }
 
     public function latest(string $app): BinaryFileResponse
     {
-        return $this->download($app, $this->currentVersion());
+        return $this->download($app, $this->mirror->currentVersion());
     }
 
     public function versioned(string $app, string $version): BinaryFileResponse
@@ -55,6 +74,28 @@ final class MobileAppDownloadController extends Controller
         return $this->download($app, $version);
     }
 
+    private function adminDownload(string $app): RedirectResponse
+    {
+        Gate::authorize('platform.manage');
+
+        $version = $this->mirror->ensureScheduled();
+        $artifact = MobileReleaseArtifact::query()
+            ->where('app', $app)
+            ->where('version', $version)
+            ->first();
+
+        if ($artifact instanceof MobileReleaseArtifact && $this->isLocallyReady($artifact)) {
+            return redirect()->route('public.mobile-apps.versioned', [
+                'app' => $app,
+                'version' => $version,
+            ]);
+        }
+
+        return redirect()->route('admin.administration.index', [
+            'download_app' => $app,
+        ])->with('status', __('admin.mobile_apps.preparing'));
+    }
+
     private function download(string $app, string $version): BinaryFileResponse
     {
         $label = self::APPS[$app] ?? null;
@@ -62,106 +103,59 @@ final class MobileAppDownloadController extends Controller
             abort(404);
         }
 
-        $manifestResponse = Http::acceptJson()
-            ->timeout(30)
-            ->retry(2, 250)
-            ->get(self::RELEASE_BASE_URL.'/v'.$version.'/LATEST_RELEASE.json');
+        $artifact = MobileReleaseArtifact::query()
+            ->where('app', $app)
+            ->where('version', $version)
+            ->first();
 
-        if (! $manifestResponse->successful()) {
-            abort(502, 'FOODEX release manifest is unavailable.');
+        if (! $artifact instanceof MobileReleaseArtifact || ! $this->isLocallyReady($artifact)) {
+            if ($version === $this->mirror->currentVersion()) {
+                $this->mirror->ensureScheduled($version);
+            }
+
+            abort(503, 'FOODEX APK is still being prepared on this server.');
         }
 
-        $manifest = $manifestResponse->json();
-        if (! is_array($manifest) || ($manifest['version'] ?? null) !== $version) {
-            abort(502, 'FOODEX release manifest does not match the requested release.');
+        $path = storage_path('app/private/'.$artifact->local_path);
+        $expectedBytes = (int) ($artifact->expected_bytes ?? 0);
+
+        if (! is_file($path) || $expectedBytes <= 0 || filesize($path) !== $expectedBytes) {
+            $artifact->forceFill([
+                'status' => 'failed',
+                'local_path' => null,
+                'last_error' => 'Local APK file is missing or has the wrong size.',
+            ])->save();
+
+            if ($version === $this->mirror->currentVersion()) {
+                $this->mirror->retryVersion($version);
+            }
+
+            abort(503, 'FOODEX APK local mirror requires repair.');
         }
 
-        $androidApps = $manifest['android_apps'] ?? null;
-        if (! is_array($androidApps)) {
-            abort(502, 'FOODEX release manifest does not contain Android artifacts.');
-        }
-
-        $entry = collect($androidApps)->first(
-            static fn (mixed $candidate): bool => is_array($candidate) && ($candidate['app'] ?? null) === $app,
-        );
         $filename = 'FOODEX-'.$label.'-'.$version.'.apk';
-
-        if (
-            ! is_array($entry)
-            || ($entry['version'] ?? null) !== $version
-            || ($entry['file'] ?? null) !== $filename
-            || ! is_string($entry['sha256'] ?? null)
-            || preg_match('/^[a-f0-9]{64}$/', $entry['sha256']) !== 1
-        ) {
-            abort(502, 'FOODEX release manifest does not match the requested APK.');
+        if ($artifact->filename !== $filename) {
+            throw new RuntimeException('Local FOODEX APK metadata does not match the requested release.');
         }
 
-        $temporaryPath = tempnam(sys_get_temp_dir(), 'foodex-apk-');
-        if ($temporaryPath === false) {
-            throw new RuntimeException('Could not allocate temporary APK download storage.');
-        }
-
-        try {
-            $artifactResponse = Http::timeout(180)
-                ->retry(2, 500)
-                ->withOptions(['sink' => $temporaryPath])
-                ->get(self::RELEASE_BASE_URL.'/v'.$version.'/'.$filename);
-
-            if (! $artifactResponse->successful()) {
-                @unlink($temporaryPath);
-                abort(502, 'FOODEX APK artifact is unavailable.');
-            }
-
-            if (filesize($temporaryPath) === 0 && $artifactResponse->body() !== '') {
-                if (file_put_contents($temporaryPath, $artifactResponse->body()) === false) {
-                    @unlink($temporaryPath);
-                    throw new RuntimeException('Could not persist downloaded FOODEX APK bytes.');
-                }
-
-                clearstatcache(true, $temporaryPath);
-            }
-
-            $actualSha256 = hash_file('sha256', $temporaryPath);
-            if (! is_string($actualSha256) || ! hash_equals($entry['sha256'], $actualSha256)) {
-                @unlink($temporaryPath);
-                abort(502, 'FOODEX APK checksum verification failed.');
-            }
-
-            if (isset($entry['bytes']) && is_numeric($entry['bytes']) && filesize($temporaryPath) !== (int) $entry['bytes']) {
-                @unlink($temporaryPath);
-                abort(502, 'FOODEX APK size verification failed.');
-            }
-
-            return response()
-                ->download($temporaryPath, $filename, [
-                    'Content-Type' => 'application/vnd.android.package-archive',
-                    'X-Content-Type-Options' => 'nosniff',
-                    'X-FOODEX-Release-Version' => $version,
-                    'X-FOODEX-Artifact-SHA256' => $actualSha256,
-                    'Cache-Control' => 'public, max-age=300',
-                ])
-                ->deleteFileAfterSend(true);
-        } catch (\Throwable $exception) {
-            @unlink($temporaryPath);
-            throw $exception;
-        }
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.android.package-archive',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-FOODEX-Release-Version' => $version,
+            'X-FOODEX-Artifact-SHA256' => (string) $artifact->sha256,
+            'X-FOODEX-Artifact-Source' => 'local-mirror',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
     }
 
-    private function currentVersion(): string
+    private function isLocallyReady(MobileReleaseArtifact $artifact): bool
     {
-        $version = SystemVersion::query()
-            ->orderByDesc('installed_at')
-            ->orderByDesc('id')
-            ->value('version');
-
-        if (! is_string($version) || $version === '') {
-            $version = trim((string) @file_get_contents(base_path('../VERSION')));
+        if (! $artifact->isReady()) {
+            return false;
         }
 
-        if ($version === '' || preg_match('/^\d+\.\d+\.\d+$/', $version) !== 1) {
-            throw new RuntimeException('Current FOODEX version could not be determined for APK download.');
-        }
+        $path = storage_path('app/private/'.$artifact->local_path);
 
-        return $version;
+        return is_file($path);
     }
 }
