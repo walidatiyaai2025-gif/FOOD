@@ -5036,8 +5036,8 @@ class _WholesaleOrderDetailsDesignScreenState
                                     event['stage']?.toString() ?? 'unknown';
                                 final occurredAt =
                                     event['occurred_at']?.toString() ?? '';
-                                final driverName =
-                                    event['driver_name']?.toString() ?? '';
+                                final vanCode =
+                                    event['van_code']?.toString() ?? '';
                                 final reasonCode =
                                     event['reason_code']?.toString() ?? '';
 
@@ -5059,8 +5059,8 @@ class _WholesaleOrderDetailsDesignScreenState
                                     children: [
                                       if (occurredAt.isNotEmpty)
                                         Text(_friendlyOrderDate(occurredAt)),
-                                      if (driverName.isNotEmpty)
-                                        Text(driverName),
+                                      if (vanCode.isNotEmpty)
+                                        Text(vanCode),
                                       if (reasonCode.isNotEmpty)
                                         Text(
                                           _failureReasonText(
@@ -5077,12 +5077,14 @@ class _WholesaleOrderDetailsDesignScreenState
                           if (tracking != null) ...[
                             const SizedBox(height: 12),
                             _OrderDetailCard(
-                              title: context.tr('b2b.order.driver_tracking'),
+                              title: context.tr('b2b.order.van_tracking'),
                               rows: [
-                                (
-                                  context.tr('b2b.order.driver'),
-                                  tracking['driver_name']?.toString() ?? '-',
-                                ),
+                                if ((tracking['van_code']?.toString() ?? '')
+                                    .isNotEmpty)
+                                  (
+                                    context.tr('b2b.order.van'),
+                                    tracking['van_code'].toString(),
+                                  ),
                                 (
                                   context.tr('b2b.order.tracking_status'),
                                   _orderStatusText(
@@ -5298,9 +5300,11 @@ String _orderStatusText(BuildContext context, String status) {
   switch (status) {
     case 'placed':
       return context.tr('b2b.order.stage.placed');
-    case 'driver_assigned':
+    case 'van_assigned':
     case 'assigned':
-      return context.tr('b2b.order.stage.driver_assigned');
+      return context.tr('b2b.order.stage.van_assigned');
+    case 'awaiting_dispatch':
+      return context.tr('b2b.order.status.awaiting_dispatch');
     case 'accepted':
       return context.tr('b2b.order.stage.accepted');
     case 'picked_up':
