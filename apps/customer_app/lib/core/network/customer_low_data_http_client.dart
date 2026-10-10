@@ -754,7 +754,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
 
   void _recordTransfer({
     required http.BaseRequest request,
-    required int statusCode,
+    required int? statusCode,
     required int downloadedBytes,
     required int uploadedBytes,
     required Duration elapsed,
