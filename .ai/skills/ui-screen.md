@@ -1,34 +1,63 @@
-# Skill: UI Screen
+# Skill: Build or Change a FOODEX Page/Screen
 
-## Mandatory reading
-For Dashboard work:
-- `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
-- `docs/quality/LOCALIZATION_CONTRACT.md`
+This is the default entry skill whenever the request is to build, redesign, split, or materially change a UI page.
 
-Inspect nearby production screens/components before designing new primitives.
+## Mandatory first step
 
-## Screen contract
-Define route/navigation entry, actor/permission, business task, authoritative data source, filters/search, actions, loaded/empty/error/stale states, AR/EN copy, RTL/LTR, responsive targets and required runtime evidence.
+Read:
+1. `.ai/skills/foodex-uiux.md`
+2. exactly one or more surface skills:
+   - `.ai/skills/dashboard-uiux.md`
+   - `.ai/skills/customer-uiux.md`
+   - `.ai/skills/driver-uiux.md`
+   - `.ai/skills/van-uiux.md`
+3. the authoritative contract/files named by that skill.
 
-## Dashboard rules
-- Sidebar = business domain.
-- Tabs = related function inside domain.
-- Add/Create = clear FOODEX primary action.
-- Create/Edit usually Modal/Drawer/Wizard when event-based.
-- Manage/View opens exact record, not a generic list.
-- Grid rows show useful business data.
-- Row actions use one compact FOODEX-green ellipsis menu.
-- No raw database IDs/keys/JSON.
-- Lookup values come from authoritative Master Data.
-- Geography is map-first.
-- No default Bootstrap-looking action treatment.
+Do not start markup/widget code before this pass.
 
-## Mobile rules
-- Data-first compact layout.
-- Preserve available viewport.
-- Explicit loading/empty/error/offline states.
-- Deep link/push resolves an authorized live record.
-- Biometric flows never store plaintext password.
+## Execution sequence
 
-## Evidence
-Static markup alone does not prove an interaction. Exercise the real route/screen with representative data and capture evidence required by the owning Issue/mission.
+### 1. Find the real page context
+- canonical route;
+- normal navigation owner;
+- nearby production page;
+- shared shell/theme/components;
+- backend/API/data source;
+- permissions;
+- owning Issue/mission requirement.
+
+### 2. Compose from existing primitives
+Reuse the surface's production shell, tokens, components, state views, buttons, grids/lists and navigation.
+
+A new page should look like it has always belonged to FOODEX.
+
+### 3. Apply business UX
+- business labels, never routine raw IDs/keys/JSON;
+- Lookup/Enum/Builder where appropriate;
+- one clear primary action;
+- exact-record View/Edit/Manage;
+- ellipsis overflow for multiple row actions;
+- compact filters;
+- explicit loading/empty/error/stale/offline states;
+- no fake-live/fake-data fallback.
+
+### 4. Apply localization and direction
+Build AR/RTL and EN/LTR together. Localize raw status/state/channel/role/payment/unit values.
+
+### 5. Apply responsive contract
+Use the current surface's real width targets and density rules. Do not make desktop a stretched mobile card stack or mobile a squeezed desktop table.
+
+### 6. Verify real behavior
+Test the actual route/screen, not only static source.
+
+For visual/interaction requirements, provide the runtime evidence required by the owning Issue/matrix.
+
+## Completion rule
+
+A page is not complete merely because:
+- it renders;
+- a route exists;
+- CI is green;
+- a screenshot exists.
+
+It is complete when it follows the current FOODEX surface design system, is normally reachable, binds authoritative data, handles its real states, works in AR/EN and responsive targets, and passes the relevant interaction/runtime evidence gate.

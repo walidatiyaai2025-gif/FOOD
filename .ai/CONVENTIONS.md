@@ -46,6 +46,10 @@ vendor/bin/pint --test app routes tests
 - Test migration-sensitive features with realistic existing data.
 - Preserve audit/ledger history unless an explicit safe requirement says otherwise.
 
+## UI/UX skill routing
+
+For every page/screen change, first read `.ai/skills/foodex-uiux.md`, then the matching Dashboard/Customer/Driver/Van UIUX skill. The surface skill points to the current production token/component files that must be reused.
+
 ## Dashboard UI
 
 Before changing Dashboard UI read:

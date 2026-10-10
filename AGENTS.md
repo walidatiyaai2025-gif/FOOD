@@ -22,6 +22,8 @@ After the mandatory live GitHub preflight in Section 2, and before substantial i
 4. `.ai/CURRENT_STATE.md` as orientation only;
 5. the one relevant playbook under `.ai/skills/`.
 
+For **any page/screen/UI request**, including short owner commands such as `اعمل صفحة`, `صمم شاشة`, `قسم الصفحة`, or equivalent, the worker MUST also read `.ai/skills/foodex-uiux.md` and the matching surface skill (`dashboard-uiux.md`, `customer-uiux.md`, `driver-uiux.md`, or `van-uiux.md`) before implementation. Those playbooks are repository-native summaries of the current production design tokens/components and v4.2 acceptance rules; current source/authoritative docs still outrank the summary when they differ.
+
 Precedence is strict:
 
 1. live GitHub Issue / branch / PR / exact-head CI state;
