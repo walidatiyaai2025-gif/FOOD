@@ -5,13 +5,16 @@ import 'package:foodex_visualization/foodex_visualization.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
+import '../orders/van_order_contract.dart';
 import '../wallet/van_wallet_contract.dart';
 
 class VanDashboardPage extends StatefulWidget {
   const VanDashboardPage({
     super.key,
     required this.repository,
+    required this.orderRepository,
     required this.onSessionExpired,
+    required this.onOpenOrder,
     required this.onOpenCustomers,
     required this.onOpenWallet,
     required this.onOpenReceipts,
@@ -19,7 +22,9 @@ class VanDashboardPage extends StatefulWidget {
   });
 
   final VanWalletRepository repository;
+  final VanOrderRepository orderRepository;
   final Future<void> Function() onSessionExpired;
+  final ValueChanged<int> onOpenOrder;
   final VoidCallback onOpenCustomers;
   final VoidCallback onOpenWallet;
   final VoidCallback onOpenReceipts;
@@ -37,6 +42,7 @@ class _VanDashboardPageState extends State<VanDashboardPage>
   Object? _error;
   List<VanWalletAccount> _accounts = const [];
   List<VanCustomerScope> _customers = const [];
+  List<VanOrderRecord> _orders = const [];
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -65,7 +71,8 @@ class _VanDashboardPageState extends State<VanDashboardPage>
   Future<void> _load({bool background = false}) async {
     if (mounted) {
       setState(() {
-        if (background && (_accounts.isNotEmpty || _customers.isNotEmpty)) {
+        if (background &&
+            (_accounts.isNotEmpty || _customers.isNotEmpty || _orders.isNotEmpty)) {
           _refreshing = true;
         } else {
           _loading = true;
@@ -78,11 +85,13 @@ class _VanDashboardPageState extends State<VanDashboardPage>
       final results = await Future.wait<Object>([
         widget.repository.wallet(),
         widget.repository.customers(),
+        widget.orderRepository.orders(),
       ]);
       if (!mounted) return;
       setState(() {
         _accounts = results[0] as List<VanWalletAccount>;
         _customers = results[1] as List<VanCustomerScope>;
+        _orders = results[2] as List<VanOrderRecord>;
         _loading = false;
         _refreshing = false;
         _stale = false;
@@ -94,12 +103,43 @@ class _VanDashboardPageState extends State<VanDashboardPage>
       setState(() {
         _loading = false;
         _refreshing = false;
-        if (background && (_accounts.isNotEmpty || _customers.isNotEmpty)) {
+        if (background &&
+            (_accounts.isNotEmpty || _customers.isNotEmpty || _orders.isNotEmpty)) {
           _stale = true;
         } else {
           _error = error;
         }
       });
+    }
+  }
+
+  List<VanOrderRecord> get _attentionOrders => _orders
+      .where(
+        (order) => !{
+          'delivered',
+          'completed',
+          'cancelled',
+          'refunded',
+        }.contains(order.vanExecutionStatus ?? order.status),
+      )
+      .take(3)
+      .toList(growable: false);
+
+  String _orderStatus(VanOrderRecord order) {
+    final status = order.vanExecutionStatus ?? order.status;
+    switch (status) {
+      case 'assigned':
+        return _text('Assigned', 'مسند');
+      case 'accepted':
+        return _text('Accepted', 'مقبول');
+      case 'picked_up':
+        return _text('Picked up', 'تم الاستلام');
+      case 'out_for_delivery':
+        return _text('Out for delivery', 'خرج للتسليم');
+      case 'failed':
+        return _text('Failed', 'متعذر');
+      default:
+        return status.replaceAll('_', ' ');
     }
   }
 
@@ -147,11 +187,14 @@ class _VanDashboardPageState extends State<VanDashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading && _accounts.isEmpty && _customers.isEmpty) {
+    if (_loading && _accounts.isEmpty && _customers.isEmpty && _orders.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null && _accounts.isEmpty && _customers.isEmpty) {
+    if (_error != null &&
+        _accounts.isEmpty &&
+        _customers.isEmpty &&
+        _orders.isEmpty) {
       return _StateCard(
         title: _text('Unable to load Van dashboard', 'تعذر تحميل لوحة الفان'),
         body: _text(
@@ -234,6 +277,56 @@ class _VanDashboardPageState extends State<VanDashboardPage>
                 onTap: widget.onOpenReceipts,
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Card(
+            key: const ValueKey('van-dashboard-orders'),
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _text('Orders needing attention', 'طلبات تحتاج متابعة'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _text(
+                      'Open the exact server-owned order and continue delivery.',
+                      'افتح الطلب الفعلي من الخادم وأكمل دورة التسليم.',
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  if (_attentionOrders.isEmpty)
+                    Text(_text('No active orders.', 'لا توجد طلبات نشطة.'))
+                  else
+                    for (final order in _attentionOrders)
+                      ListTile(
+                        key: ValueKey('van-dashboard-order-${order.id}'),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        onTap: () => widget.onOpenOrder(order.id),
+                        leading: const Icon(
+                          Icons.receipt_long_outlined,
+                          color: FoodexVanTokens.green,
+                        ),
+                        title: Text(
+                          order.orderNumber,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(_orderStatus(order)),
+                        trailing: const Icon(Icons.chevron_right),
+                      ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           Card(
