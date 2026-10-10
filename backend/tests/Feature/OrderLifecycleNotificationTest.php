@@ -6,7 +6,9 @@ use App\Jobs\DispatchPushNotification;
 use App\Models\Customer;
 use App\Models\Driver;
 use App\Models\DriverAssignment;
+use App\Models\Notification;
 use App\Models\Order;
+use App\Models\OrderVanAssignment;
 use App\Models\User;
 use App\Services\OrderLifecycleNotificationService;
 use Database\Seeders\CoreReferenceSeeder;
@@ -152,6 +154,153 @@ class OrderLifecycleNotificationTest extends TestCase
             'app' => 'customer',
             'type' => 'order.status_changed',
         ]);
+    }
+
+    public function test_b2b_notifications_target_active_van_and_never_driver_app(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        Queue::fake();
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'LIFECYCLE-WHOLESALE',
+            'name' => 'Lifecycle Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $order = Order::query()->create([
+            'store_id' => $storeId,
+            'order_number' => 'FDX-B2B-VAN-PUSH-1',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 10,
+        ]);
+
+        $vanUser = User::query()->create([
+            'name' => 'Van Runtime User',
+            'email' => 'van-runtime-push@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000001200',
+            'code' => 'VAN-PUSH-1200',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $runtimeAssignmentId = (int) DB::table('van_assignments')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000001201',
+            'van_id' => $vanId,
+            'representative_user_id' => $vanUser->id,
+            'assignment_type' => 'primary',
+            'status' => 'active',
+            'effective_from' => now()->subMinute(),
+            'loaded_work_count' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $orderVanId = (int) DB::table('order_van_assignments')->insertGetId([
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'van_assignment_id' => $runtimeAssignmentId,
+            'status' => 'active',
+            'source' => 'smart_routing',
+            'reason' => 'territory_match',
+            'decision_key' => hash('sha256', 'push-'.$order->id),
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $orderVan = OrderVanAssignment::query()->findOrFail($orderVanId);
+
+        $historicalDriverUser = User::query()->create([
+            'name' => 'Historical B2B Driver',
+            'email' => 'historical-b2b-driver-push@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $historicalDriver = Driver::query()->create([
+            'user_id' => $historicalDriverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $historicalAssignment = DriverAssignment::query()->create([
+            'driver_id' => $historicalDriver->id,
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'assignment_type' => 'b2b',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+
+        $service = app(OrderLifecycleNotificationService::class);
+        $service->driverAssigned($order, $historicalAssignment);
+        $service->vanAssigned($order, $orderVan);
+
+        $assigned = Notification::query()
+            ->where('user_id', $vanUser->id)
+            ->where('app', 'van')
+            ->where('type', 'van.delivery.assigned')
+            ->firstOrFail();
+
+        $this->assertSame('b2b', $assigned->target_channel);
+        $this->assertSame($storeId, (int) $assigned->store_id);
+        $this->assertSame('order_detail', $assigned->data['route'] ?? null);
+        $this->assertSame(
+            '/van/orders/'.$order->id.'?'.http_build_query([
+                'channel' => 'b2b',
+                'store_id' => $storeId,
+                'order_van_assignment_id' => $orderVan->id,
+            ]),
+            $assigned->data['deep_link'] ?? null,
+        );
+        $this->assertSame($order->id, (int) ($assigned->data['order_id'] ?? 0));
+
+        DB::table('order_status_history')->insert([
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'user_id' => null,
+            'from_status' => 'out_for_delivery',
+            'to_status' => 'failed',
+            'note' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $order->forceFill(['status' => 'failed'])->save();
+        $service->orderStatusChanged($order->fresh(), 'out_for_delivery', 'failed');
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $vanUser->id,
+            'app' => 'van',
+            'target_channel' => 'b2b',
+            'type' => 'van.action_required',
+        ]);
+        $this->assertDatabaseMissing('notifications', [
+            'user_id' => $historicalDriverUser->id,
+            'app' => 'driver',
+        ]);
+
+        $orderVan->forceFill(['status' => 'reassigned', 'ended_at' => now()])->save();
+        $service->vanAssignmentRevoked($order, $orderVan->fresh(), 'reassigned');
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $vanUser->id,
+            'app' => 'van',
+            'type' => 'van.delivery.reassigned_away',
+        ]);
+
+        Queue::assertPushed(DispatchPushNotification::class, 3);
     }
 
     /** @return array{0:Order,1:User} */
