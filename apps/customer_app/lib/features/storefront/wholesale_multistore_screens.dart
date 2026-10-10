@@ -5670,6 +5670,7 @@ class _WholesaleOrdersHeader extends StatelessWidget {
           0,
         ),
         child: SizedBox(
+          width: double.infinity,
           height: 58,
           child: Stack(
             alignment: Alignment.center,

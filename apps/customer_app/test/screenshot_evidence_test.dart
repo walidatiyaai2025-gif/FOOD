@@ -44,7 +44,7 @@ void main() {
     const _CaptureCase('02_MultiStore/06_wholesale_product_details__ar.png', '/b2b/products/42?store_id=70', session: _b2cWholesale),
     const _CaptureCase('02_MultiStore/07_wholesale_cart__ar.png', '/b2b/cart?store=70', session: _b2cWholesale),
     const _CaptureCase('02_MultiStore/08_wholesale_checkout__ar.png', '/b2b/checkout?store_id=70', session: _b2cWholesale),
-    const _CaptureCase('02_MultiStore/09_wholesale_orders__ar.png', '/b2b/orders', session: _b2cWholesale),
+    const _CaptureCase('02_MultiStore/09_wholesale_orders__ar.png', '/b2b/orders?channel=wholesale&store_id=70', session: _b2cWholesale),
     // C13 #873 final integrated exact-head matrix: capture Screens 1-13 in the existing AR/EN locale loop.
     const _CaptureCase('01_Mobile/B2B_Customer/01_شاشة_الدخول__default__ar.png', '/entry'),
     const _CaptureCase('01_Mobile/B2B_Customer/02_الصفحة_الرئيسية_Dashboard__populated__ar.png', '/b2b/dashboard', session: _b2b),
@@ -52,7 +52,7 @@ void main() {
     const _CaptureCase('01_Mobile/B2B_Customer/04_أكثر_المنتجات_طلبا__populated__ar.png', '/b2b/products/top?from=2026-09-01&to=2026-09-30', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/05_آخر_الفواتير__populated__ar.png', '/b2b/invoices', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/06_كشف_الحساب_والمعاملات__populated__ar.png', '/b2b/account-statement', session: _b2b),
-    const _CaptureCase('01_Mobile/B2B_Customer/07_طلباتي__populated__ar.png', '/b2b/orders', session: _b2b),
+    const _CaptureCase('01_Mobile/B2B_Customer/07_طلباتي__populated__ar.png', '/b2b/orders?channel=wholesale&store_id=7', session: _b2b),
     const _CaptureCase('01_Mobile/B2B_Customer/08_تفاصيل_الطلب_وتتبع_الحالة__populated__ar.png', '/b2b/orders/77', session: _b2b),
     // C13 #868 exact-head evidence: Screen 9 is captured in both AR/RTL and EN/LTR by the locale loop.
     const _CaptureCase('01_Mobile/B2B_Customer/09_تفاصيل_الفاتورة__populated__ar.png', '/b2b/invoices/31', session: _b2b),
