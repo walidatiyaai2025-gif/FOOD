@@ -737,6 +737,11 @@ class _RetailCatalogProductsScreenState
                   return LayoutBuilder(
                     builder: (context, constraints) {
                       final columns = constraints.maxWidth >= 720 ? 3 : 2;
+                      final textScale =
+                          MediaQuery.textScalerOf(context).scale(1);
+                      final scaledDelta =
+                          (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+                      final cardExtent = 324.0 + (scaledDelta * 210.0);
                       return GridView.builder(
                         key: const ValueKey('retail-products-grid'),
                         padding: const EdgeInsets.fromLTRB(
@@ -749,7 +754,7 @@ class _RetailCatalogProductsScreenState
                           crossAxisCount: columns,
                           crossAxisSpacing: CustomerUiSpacing.sm,
                           mainAxisSpacing: CustomerUiSpacing.sm,
-                          mainAxisExtent: 324,
+                          mainAxisExtent: cardExtent,
                         ),
                         itemCount: products.length,
                         itemBuilder: (context, index) => _BrowseProductCard(
@@ -1123,6 +1128,10 @@ class _BrowseProductsSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final columns = constraints.maxWidth >= 720 ? 3 : 2;
+          final textScale = MediaQuery.textScalerOf(context).scale(1);
+          final scaledDelta =
+              (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+          final cardExtent = 324.0 + (scaledDelta * 210.0);
           return GridView.builder(
             key: const ValueKey('retail-products-loading'),
             padding: const EdgeInsets.fromLTRB(
@@ -1135,7 +1144,7 @@ class _BrowseProductsSkeleton extends StatelessWidget {
               crossAxisCount: columns,
               crossAxisSpacing: CustomerUiSpacing.sm,
               mainAxisSpacing: CustomerUiSpacing.sm,
-              mainAxisExtent: 324,
+              mainAxisExtent: cardExtent,
             ),
             itemCount: 6,
             itemBuilder: (_, __) => const CustomerProductCardSkeleton(),
