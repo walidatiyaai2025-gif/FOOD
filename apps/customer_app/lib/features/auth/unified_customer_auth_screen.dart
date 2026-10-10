@@ -1065,8 +1065,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                               ),
                               Text(
                                 isArabic
-                                    ? 'الإصدار 1.0.54'
-                                    : 'Version 1.0.54',
+                                    ? 'الإصدار 1.0.68'
+                                    : 'Version 1.0.68',
                                 key: const ValueKey(
                                   'c13-business-login-version',
                                 ),

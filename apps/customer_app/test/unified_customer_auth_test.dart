@@ -301,7 +301,7 @@ void main() {
     );
     expect(find.text('نسيت كلمة المرور؟'), findsOneWidget);
     expect(find.text('تواصل معنا'), findsOneWidget);
-    expect(find.text('الإصدار 1.0.54'), findsOneWidget);
+    expect(find.text('الإصدار 1.0.68'), findsOneWidget);
 
     final rememberMe =
         find.byKey(const ValueKey('customer-auth-remember-me'));

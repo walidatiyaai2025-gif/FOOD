@@ -649,7 +649,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                             ),
                           ),
                           Text(
-                            _text('Version 1.0.65', 'الإصدار 1.0.65'),
+                            _text('Version 1.0.68', 'الإصدار 1.0.68'),
                             key: const ValueKey('van-business-login-version'),
                             style: TextStyle(
                               color: _LoginColors.muted,
