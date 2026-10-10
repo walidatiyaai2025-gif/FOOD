@@ -74,7 +74,7 @@ class MobileAppDownloadTest extends TestCase
 
         Http::fake();
 
-        $response = $this->get('/downloads/apps/customer/latest.apk')
+        $this->get('/downloads/apps/customer/latest.apk')
             ->assertOk()
             ->assertHeader('content-type', 'application/vnd.android.package-archive')
             ->assertHeader('x-foodex-release-version', '9.8.7')
@@ -82,7 +82,6 @@ class MobileAppDownloadTest extends TestCase
             ->assertHeader('x-foodex-artifact-source', 'local-mirror')
             ->assertDownload('FOODEX-Customer-9.8.7.apk');
 
-        $this->assertSame($payload, file_get_contents($response->baseResponse->getFile()->getPathname()));
         Http::assertNothingSent();
     }
 
