@@ -38,6 +38,38 @@ class UiRouteConvergenceRegistryTest(unittest.TestCase):
             errors,
         )
 
+    def test_driver_b2b_function_is_rejected(self) -> None:
+        registry = copy.deepcopy(self.registry)
+        registry["surfaces"]["driver"]["functions"].append(
+            {
+                "id": "driver.b2b.deliveries",
+                "route": "/driver/b2b/deliveries",
+                "authority": "LegacyDriverPage",
+            }
+        )
+
+        errors = convergence.validate(ROOT, registry)
+
+        self.assertTrue(
+            any("forbidden B2B function" in error for error in errors),
+            errors,
+        )
+
+    def test_missing_required_van_fulfillment_action_is_rejected(self) -> None:
+        registry = copy.deepcopy(self.registry)
+        registry["surfaces"]["van"]["fulfillment_actions"] = [
+            item
+            for item in registry["surfaces"]["van"]["fulfillment_actions"]
+            if item["id"] != "van.b2b.order.retry"
+        ]
+
+        errors = convergence.validate(ROOT, registry)
+
+        self.assertTrue(
+            any("van.b2b.order.retry" in error for error in errors),
+            errors,
+        )
+
     def test_missing_authority_source_is_rejected(self) -> None:
         registry = copy.deepcopy(self.registry)
         registry["surfaces"]["customer"]["authority_source"] = (
