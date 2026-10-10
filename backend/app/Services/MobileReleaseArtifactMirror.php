@@ -63,7 +63,25 @@ final class MobileReleaseArtifactMirror
         $versions = [];
 
         foreach (array_keys(self::APPS) as $app) {
-            $versions[$app] = $this->currentVersionForApp($app);
+            $version = AppVersion::query()
+                ->where('app', $app)
+                ->where('platform', 'android')
+                ->value('latest_version');
+
+            if (! is_string($version) || $version === '') {
+                continue;
+            }
+
+            $this->assertVersion($version);
+            $versions[$app] = $version;
+        }
+
+        if ($versions === []) {
+            $fallback = $this->currentVersion();
+
+            foreach (array_keys(self::APPS) as $app) {
+                $versions[$app] = $fallback;
+            }
         }
 
         return $versions;
