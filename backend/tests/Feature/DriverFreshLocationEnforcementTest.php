@@ -42,7 +42,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
         $this->assertFalse(app(DriverLocationEnforcementPolicy::class)->enabled());
 
-        [$user] = $this->b2bDriver('location-env-bypass@example.test');
+        [$user] = $this->b2cDriver('location-env-bypass@example.test');
         Sanctum::actingAs($user, ['app:driver']);
 
         $this->getJson('/api/v1/driver/assignments')
@@ -52,7 +52,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_enforcement_off_preserves_existing_driver_operational_access(): void
     {
-        [$user] = $this->b2bDriver('location-off@example.test');
+        [$user] = $this->b2cDriver('location-off@example.test');
         Sanctum::actingAs($user, ['app:driver']);
 
         $this->getJson('/api/v1/driver/assignments')
@@ -62,7 +62,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_missing_and_stale_locations_are_blocked_with_stable_recovery_contract(): void
     {
-        [$user, $driver, $storeId] = $this->b2bDriver('location-required@example.test');
+        [$user, $driver, $storeId] = $this->b2cDriver('location-required@example.test');
         $this->enablePolicy();
         Sanctum::actingAs($user, ['app:driver']);
 
@@ -78,7 +78,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
         $this->location(
             $driver,
             $storeId,
-            'b2b',
+            'b2c',
             receivedAt: now()->subSeconds(91),
         );
 
@@ -93,14 +93,14 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_server_received_at_controls_freshness_boundary_not_device_capture_time(): void
     {
-        [$user, $driver, $storeId] = $this->b2bDriver('location-boundary@example.test');
+        [$user, $driver, $storeId] = $this->b2cDriver('location-boundary@example.test');
         $this->enablePolicy();
         Sanctum::actingAs($user, ['app:driver']);
 
         $location = $this->location(
             $driver,
             $storeId,
-            'b2b',
+            'b2c',
             capturedAt: now()->subHours(4),
             receivedAt: now()->subSeconds(90),
         );
@@ -119,13 +119,13 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_scope_mismatch_cannot_satisfy_enforcement(): void
     {
-        [$user, $driver] = $this->b2bDriver('location-scope@example.test');
+        [$user, $driver] = $this->b2cDriver('location-scope@example.test');
         $this->enablePolicy();
         Sanctum::actingAs($user, ['app:driver']);
 
-        $b2bTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $otherStore = (int) DB::table('stores')->insertGetId([
-            'store_type_id' => $b2bTypeId,
+            'store_type_id' => $b2cTypeId,
             'code' => 'LOCATION-OTHER',
             'name' => 'Location Other',
             'is_active' => true,
@@ -133,7 +133,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $this->location($driver, $otherStore, 'b2b');
+        $this->location($driver, $otherStore, 'b2c');
 
         $this->getJson('/api/v1/driver/assignments')
             ->assertStatus(428)
@@ -143,11 +143,11 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_another_drivers_fresh_location_cannot_satisfy_enforcement(): void
     {
-        [$targetUser] = $this->b2bDriver('location-target@example.test');
-        [, $otherDriver, $storeId] = $this->b2bDriver('location-other@example.test');
+        [$targetUser] = $this->b2cDriver('location-target@example.test');
+        [, $otherDriver, $storeId] = $this->b2cDriver('location-other@example.test');
         $this->enablePolicy();
 
-        $this->location($otherDriver, $storeId, 'b2b');
+        $this->location($otherDriver, $storeId, 'b2c');
 
         Sanctum::actingAs($targetUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
@@ -170,7 +170,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_heartbeat_remains_reachable_and_recovers_blocked_driver(): void
     {
-        [$user, $driver, $storeId] = $this->b2bDriver('location-recovery@example.test');
+        [$user, $driver, $storeId] = $this->b2cDriver('location-recovery@example.test');
         $this->enablePolicy();
         Sanctum::actingAs($user, ['app:driver']);
 
@@ -212,7 +212,7 @@ class DriverFreshLocationEnforcementTest extends TestCase
 
     public function test_mobile_settings_toggle_is_audited_and_rollback_is_immediate(): void
     {
-        [$driverUser] = $this->b2bDriver('location-rollback-driver@example.test');
+        [$driverUser] = $this->b2cDriver('location-rollback-driver@example.test');
         $admin = $this->globalUser('SUPER_ADMIN', 'location-policy-admin@example.test');
         $this->makeDriverRolloutReady();
 
@@ -256,23 +256,6 @@ class DriverFreshLocationEnforcementTest extends TestCase
                 ->where('event', 'driver.location_enforcement.policy_updated')
                 ->count(),
         );
-    }
-
-    /** @return array{0: User, 1: Driver, 2: int} */
-    private function b2bDriver(string $email): array
-    {
-        $user = $this->globalUser('B2B_DRIVER', $email);
-        $storeId = app(WholesalePrincipal::class)->storeId();
-
-        $driver = Driver::query()->create([
-            'user_id' => $user->id,
-            'store_id' => $storeId,
-            'driver_type' => 'b2b',
-            'is_available' => true,
-            'is_active' => true,
-        ]);
-
-        return [$user, $driver, $storeId];
     }
 
     /** @return array{0: User, 1: Driver, 2: int} */

@@ -17,7 +17,7 @@ class _Auth implements DriverAuthRepository {
         name: 'Driver',
         email: 'driver@example.test',
         locale: 'ar',
-        channel: DriverChannel.b2b,
+        channel: DriverChannel.b2c,
         storeId: 7,
       );
 
@@ -82,7 +82,8 @@ Widget _host({
     );
 
 void main() {
-  testWidgets('Driver App identity is visible in Arabic and English', (tester) async {
+  testWidgets('Driver App identity is visible in Arabic and English',
+      (tester) async {
     for (final entry in const <(Locale, String)>[
       (Locale('ar'), 'تطبيق السائق'),
       (Locale('en'), 'Driver App'),
@@ -104,7 +105,8 @@ void main() {
     }
   });
 
-  testWidgets('remember me and biometric flags are returned after password login',
+  testWidgets(
+      'remember me and biometric flags are returned after password login',
       (tester) async {
     final store = _Store();
     DriverSession? session;
@@ -142,7 +144,7 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(session?.channel, DriverChannel.b2b);
+    expect(session?.channel, DriverChannel.b2c);
     expect(remember, isTrue);
     expect(biometric, isTrue);
   });
@@ -156,7 +158,7 @@ void main() {
           name: 'Remembered Driver',
           email: 'remembered@example.test',
           locale: 'ar',
-          channel: DriverChannel.b2b,
+          channel: DriverChannel.b2c,
           storeId: 7,
         ),
         biometricEnabled: true,
@@ -174,8 +176,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final biometricButton =
-        find.byKey(const Key('driver-login-biometric'));
+    final biometricButton = find.byKey(const Key('driver-login-biometric'));
     expect(biometricButton, findsOneWidget);
     await tester.ensureVisible(biometricButton);
     await tester.tap(biometricButton);

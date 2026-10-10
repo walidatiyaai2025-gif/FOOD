@@ -38,7 +38,8 @@ class FakeAssignments implements DriverAssignmentRepository {
       ];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status,
+      {String? note, String? failureReason}) async {}
 }
 
 void main() {
@@ -81,7 +82,8 @@ void main() {
     expect(result.token, 'abc');
   });
 
-  test('HTTP assignment repository uses canonical list and transition endpoints',
+  test(
+      'HTTP assignment repository uses canonical list and transition endpoints',
       () async {
     final requests = <String>[];
     final client = MockClient((request) async {
@@ -95,11 +97,11 @@ void main() {
               {
                 'id': 9,
                 'order_id': 55,
-                'assignment_type': 'b2b',
+                'assignment_type': 'b2c',
                 'status': 'assigned',
                 'available_statuses': ['accepted'],
                 'order': {
-                  'number': 'B2B-55',
+                  'number': 'RET-55',
                   'currency': 'EGP',
                   'address': {
                     'line1': 'Warehouse Street',
@@ -125,7 +127,7 @@ void main() {
                   ],
                   'invoice': {
                     'id': 77,
-                    'number': 'INV-B2B-55',
+                    'number': 'INV-RET-55',
                     'revision': 1,
                     'status': 'issued',
                     'currency': 'EGP',
@@ -139,7 +141,7 @@ void main() {
                     'items': [
                       {
                         'sku': 'CASE-1',
-                        'name': 'Wholesale case',
+                        'name': 'Retail case',
                         'quantity': 5,
                         'line_total': 50,
                       }
@@ -172,9 +174,9 @@ void main() {
       client: client,
     );
 
-    final rows = await repo.list(DriverChannel.b2b);
+    final rows = await repo.list(DriverChannel.b2c);
     expect(rows.single.availableStatuses, ['accepted']);
-    expect(rows.single.invoice?.number, 'INV-B2B-55');
+    expect(rows.single.invoice?.number, 'INV-RET-55');
     expect(rows.single.invoice?.grandTotal, 50);
     expect(rows.single.address, contains('Warehouse Street'));
     expect(rows.single.hasNavigation, isTrue);
@@ -188,11 +190,34 @@ void main() {
     expect(rows.single.items.single.note, 'Keep upright');
     expect(rows.single.items.single.unitPrice, 10);
     expect(rows.single.invoice?.items.single.sku, 'CASE-1');
-    await repo.transition(9, DriverChannel.b2b, 'accepted');
+    await repo.transition(9, DriverChannel.b2c, 'accepted');
     expect(requests, [
       'GET /api/v1/driver/assignments?scope=all',
       'POST /api/v1/driver/assignments/9/status',
     ]);
+  });
+
+  test('HTTP assignment repository rejects B2B runtime before network access',
+      () async {
+    var requests = 0;
+    final repo = HttpDriverAssignmentRepository(
+      'https://foodex.example/',
+      'token',
+      client: MockClient((request) async {
+        requests++;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      repo.list(DriverChannel.b2b),
+      throwsA(isA<DriverAccessDeniedException>()),
+    );
+    await expectLater(
+      repo.transition(9, DriverChannel.b2b, 'accepted'),
+      throwsA(isA<DriverAccessDeniedException>()),
+    );
+    expect(requests, 0);
   });
 
   test('HTTP assignment repository loads central failed-delivery reasons',
@@ -228,8 +253,8 @@ void main() {
     );
     final reasons = await repo.failedDeliveryReasons();
 
-    expect(reasons.map((reason) => reason.code),
-        ['customer_no_answer', 'other']);
+    expect(
+        reasons.map((reason) => reason.code), ['customer_no_answer', 'other']);
     expect(reasons.first.labelFor('ar'), 'العميل لا يرد');
     expect(reasons.first.labelFor('en'), 'Customer did not answer');
   });

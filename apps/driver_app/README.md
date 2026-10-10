@@ -1,12 +1,12 @@
 # FOODEX Driver App
 
-The Driver App uses one Flutter codebase for Android and iOS. The authenticated backend identity determines whether the runtime is B2C_DRIVER or B2B_DRIVER; callers cannot select a production channel locally.
+The Driver App uses one Flutter codebase for Android and iOS. After the B2B Van fulfillment cutover, production Driver runtime is Retail (B2C) only; Wholesale (B2B) fulfillment is owned by the Van App.
 
 ## Runtime journey
 
 1. The app requires `FOODEX_API_BASE_URL` (or an injected repository in tests).
 2. Login uses `POST /api/v1/auth/login`.
-3. Exactly one backend driver role (`B2C_DRIVER` or `B2B_DRIVER`) selects the route partition.
+3. Driver login requires the authoritative `B2C_DRIVER` role plus an active B2C driver profile; legacy B2B driver identities are rejected.
 4. Assignments load from `GET /api/v1/driver/assignments`.
 5. The backend returns `available_statuses`; Flutter renders only those server-authorized actions.
 6. Status changes use `POST /api/v1/driver/assignments/{assignment}/status` and reload persisted state.
@@ -14,9 +14,9 @@ The Driver App uses one Flutter codebase for Android and iOS. The authenticated 
 
 ## Navigation architecture
 
-- `DriverChannel.b2c` is restricted to `/driver/b2c/**`.
-- `DriverChannel.b2b` is restricted to `/driver/b2b/**`.
-- Cross-channel navigation is rejected before a product screen is rendered.
+- Production navigation is restricted to `/driver/b2c/**`.
+- Legacy `/driver/b2b/**` routes are not registered and B2B sessions are rejected before a product screen is rendered.
+- B2B assignment, preview, push registration and delivery execution belong to Van runtime after cutover.
 - Backend authorization remains authoritative; client route separation is an additional UX boundary, not a security substitute.
 - Loading, empty, error, offline and expired-session outcomes are explicit.
 - Arabic RTL and English LTR use the shared FOODEX theme and translation catalog.

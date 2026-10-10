@@ -262,6 +262,12 @@ final class AppPreviewSessionService
         int $storeId,
     ): void {
         if ($targetType === 'driver') {
+            abort_unless(
+                $channel === 'b2c',
+                404,
+                'Driver preview is available only for Retail (B2C) drivers.',
+            );
+
             $driver = Driver::query()
                 ->where('user_id', $target->getKey())
                 ->where('is_active', true)

@@ -305,6 +305,9 @@ final class OrderLifecycleNotificationService
         }
 
         $channel = strtolower((string) $order->channel);
+        if ($channel !== 'b2c') {
+            return;
+        }
         if (strtolower((string) $driver->driver_type) !== $channel) {
             return;
         }

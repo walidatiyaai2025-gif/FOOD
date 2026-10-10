@@ -120,14 +120,19 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
             for marker in (
                 "DriverRoutes.b2cHome",
                 "DriverRoutes.b2cDeliveries",
-                "DriverRoutes.b2bHome",
-                "DriverRoutes.b2bDeliveries",
+                "DriverRoutes.b2cNotifications",
+                "DriverRoutes.b2cWallet",
                 "DriverJourneyRuntimePage(",
                 "DriverNotificationPage(",
                 "DriverWalletPage(",
             ):
                 if marker not in navigation:
                     errors.append(f"Driver authority is missing production marker: {marker}")
+            for marker in ("DriverRoutes.b2b", "/driver/b2b/"):
+                if marker in navigation:
+                    errors.append(
+                        f"Driver authority still exposes forbidden B2B runtime marker: {marker}"
+                    )
 
     van = surfaces.get("van", {})
     if isinstance(van, dict):

@@ -999,7 +999,9 @@ class DriverAssignmentLifecycleTest extends TestCase
         $this->assertNull($driver->fresh()->store_id);
 
         Sanctum::actingAs($driverUser, ['app:driver']);
-        $this->getJson('/api/v1/driver/assignments')->assertConflict();
+        $this->getJson('/api/v1/driver/assignments')
+            ->assertForbidden()
+            ->assertSee('Retail (B2C) drivers');
         $this->assertNull($driver->fresh()->store_id);
     }
 
@@ -1047,12 +1049,12 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
     }
 
-    public function test_pending_b2b_order_cannot_be_assigned_before_customer_service_approval(): void
+    public function test_b2b_order_cannot_be_assigned_to_driver_after_van_cutover(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2b');
-        $admin = $this->roleUser('B2B_ADMIN', 'pending-approval-admin@example.test');
-        $driverUser = $this->roleUser('B2B_DRIVER', 'pending-approval-driver@example.test');
+        $admin = $this->roleUser('B2B_ADMIN', 'van-cutover-admin@example.test');
+        $driverUser = $this->roleUser('B2B_DRIVER', 'legacy-b2b-driver@example.test');
         $driver = Driver::query()->create([
             'user_id' => $driverUser->id,
             'store_id' => $storeId,
@@ -1062,29 +1064,20 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
 
         Sanctum::actingAs($admin);
-        $this->postJson('/api/v1/admin/deliveries/assign', [
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-        ])->assertConflict()
-            ->assertSee('Customer Service approval');
+        foreach (['pending', 'confirmed'] as $status) {
+            $order->forceFill(['status' => $status])->save();
 
-        $this->assertDatabaseMissing('driver_assignments', [
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-        ]);
+            $this->postJson('/api/v1/admin/deliveries/assign', [
+                'driver_id' => $driver->id,
+                'order_id' => $order->id,
+            ])->assertConflict()
+                ->assertSee('B2B orders are fulfilled by Van runtime.');
 
-        $order->update(['status' => 'confirmed']);
-
-        $this->postJson('/api/v1/admin/deliveries/assign', [
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-        ])->assertCreated();
-
-        $this->assertDatabaseHas('driver_assignments', [
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-            'status' => 'assigned',
-        ]);
+            $this->assertDatabaseMissing('driver_assignments', [
+                'driver_id' => $driver->id,
+                'order_id' => $order->id,
+            ]);
+        }
     }
 
     public function test_b2b_driver_runtime_rejects_non_principal_wholesale_store(): void
@@ -1112,7 +1105,9 @@ class DriverAssignmentLifecycleTest extends TestCase
         ]);
 
         Sanctum::actingAs($driverUser, ['app:driver']);
-        $this->getJson('/api/v1/driver/assignments')->assertConflict();
+        $this->getJson('/api/v1/driver/assignments')
+            ->assertForbidden()
+            ->assertSee('Retail (B2C) drivers');
     }
 
     public function test_cross_channel_assignment_and_execution_are_denied(): void

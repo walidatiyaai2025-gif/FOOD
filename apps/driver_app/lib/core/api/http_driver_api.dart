@@ -17,8 +17,8 @@ Uri _driverApiBase(String raw) {
 
 class HttpDriverAuthRepository implements DriverAuthRepository {
   HttpDriverAuthRepository(String baseUrl, {http.Client? client})
-      : _base = _driverApiBase(baseUrl),
-        _client = DriverDiagnosticHttpClient(client ?? http.Client());
+    : _base = _driverApiBase(baseUrl),
+      _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final Uri _base;
   final http.Client _client;
@@ -38,7 +38,11 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'email': email, 'password': password, 'app': 'driver'}),
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'app': 'driver',
+        }),
       );
     } on SocketException {
       throw const DriverOfflineException();
@@ -66,12 +70,11 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
         .where((role) => role == 'B2C_DRIVER' || role == 'B2B_DRIVER')
         .toSet();
 
-    if (roles.length != 1) {
+    if (roles.length != 1 || roles.single != 'B2C_DRIVER') {
       throw const DriverRoleDeniedException();
     }
 
-    final channel =
-        roles.single == 'B2C_DRIVER' ? DriverChannel.b2c : DriverChannel.b2b;
+    const channel = DriverChannel.b2c;
 
     final scopeRaw = user['driver_scope'];
     if (scopeRaw is! Map) {
@@ -80,8 +83,7 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
     final scope = Map<String, dynamic>.from(scopeRaw);
     final scopeChannel = (scope['channel'] ?? '').toString().toLowerCase();
     final storeId = (scope['store_id'] as num?)?.toInt() ?? 0;
-    final expectedChannel =
-        channel == DriverChannel.b2c ? 'b2c' : 'b2b';
+    const expectedChannel = 'b2c';
     if (scopeChannel != expectedChannel || storeId <= 0) {
       throw const DriverRoleDeniedException();
     }
@@ -116,7 +118,6 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
       throw const DriverOfflineException();
     }
   }
-
 }
 
 class HttpDriverAssignmentRepository
@@ -129,8 +130,8 @@ class HttpDriverAssignmentRepository
     String baseUrl,
     this.token, {
     http.Client? client,
-  })  : _base = _driverApiBase(baseUrl),
-        _client = DriverDiagnosticHttpClient(client ?? http.Client());
+  }) : _base = _driverApiBase(baseUrl),
+       _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final Uri _base;
   final String token;
@@ -139,16 +140,22 @@ class HttpDriverAssignmentRepository
   Uri _endpoint(String path) => _base.resolve('api/v1/$path');
 
   Map<String, String> get _headers => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $token',
+  };
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
+    if (channel != DriverChannel.b2c) {
+      throw const DriverAccessDeniedException();
+    }
+
     final response = await _request(
       () => _client.get(
-        _endpoint('driver/assignments').replace(queryParameters: const {'scope': 'all'}),
+        _endpoint(
+          'driver/assignments',
+        ).replace(queryParameters: const {'scope': 'all'}),
         headers: _headers,
       ),
     );
@@ -169,10 +176,11 @@ class HttpDriverAssignmentRepository
   }
 
   DriverAssignment _assignment(Map<String, dynamic> map) {
-    final assignmentChannel = switch (
-        (map['assignment_type'] ?? '').toString().toLowerCase()) {
+    final assignmentChannel = switch ((map['assignment_type'] ?? '')
+        .toString()
+        .toLowerCase()) {
       'b2c' => DriverChannel.b2c,
-      'b2b' => DriverChannel.b2b,
+      'b2b' => throw const DriverAccessDeniedException(),
       _ => throw const DriverApiException('Invalid assignment channel.'),
     };
 
@@ -195,25 +203,28 @@ class HttpDriverAssignmentRepository
         ? Map<String, dynamic>.from(order['navigation'] as Map)
         : <String, dynamic>{};
 
-    final addressParts = [
-      address['label'],
-      address['line1'],
-      address['line2'],
-      address['block'],
-      address['street'],
-      address['avenue'],
-      address['building'],
-      address['floor'],
-      address['apartment'],
-      address['area'],
-      address['city'],
-      address['governorate'],
-      address['country'],
-      address['landmark'],
-    ]
-        .where((value) => value != null && value.toString().trim().isNotEmpty)
-        .map((value) => value.toString().trim())
-        .toList(growable: false);
+    final addressParts =
+        [
+              address['label'],
+              address['line1'],
+              address['line2'],
+              address['block'],
+              address['street'],
+              address['avenue'],
+              address['building'],
+              address['floor'],
+              address['apartment'],
+              address['area'],
+              address['city'],
+              address['governorate'],
+              address['country'],
+              address['landmark'],
+            ]
+            .where(
+              (value) => value != null && value.toString().trim().isNotEmpty,
+            )
+            .map((value) => value.toString().trim())
+            .toList(growable: false);
 
     final items = (order['items'] as List? ?? const [])
         .whereType<Map>()
@@ -264,7 +275,8 @@ class HttpDriverAssignmentRepository
             number: (invoiceMap['number'] ?? '').toString(),
             revision: (invoiceMap['revision'] as num?)?.toInt() ?? 1,
             status: (invoiceMap['status'] ?? '').toString(),
-            currency: (invoiceMap['currency'] ?? order['currency'] ?? 'KWD').toString(),
+            currency: (invoiceMap['currency'] ?? order['currency'] ?? 'KWD')
+                .toString(),
             subtotal: (invoiceMap['subtotal'] as num?)?.toDouble() ?? 0,
             discountTotal:
                 (invoiceMap['discount_total'] as num?)?.toDouble() ?? 0,
@@ -287,26 +299,24 @@ class HttpDriverAssignmentRepository
     final settlement = settlementMap == null
         ? null
         : DriverSettlement(
-            currency:
-                (settlementMap['currency'] ?? order['currency'] ?? 'KWD').toString(),
-            orderTotal:
-                (settlementMap['order_total'] as num?)?.toDouble() ?? 0,
+            currency: (settlementMap['currency'] ?? order['currency'] ?? 'KWD')
+                .toString(),
+            orderTotal: (settlementMap['order_total'] as num?)?.toDouble() ?? 0,
             balanceApplied:
                 (settlementMap['balance_applied'] as num?)?.toDouble() ?? 0,
-            paidAmount:
-                (settlementMap['paid_amount'] as num?)?.toDouble() ?? 0,
+            paidAmount: (settlementMap['paid_amount'] as num?)?.toDouble() ?? 0,
             remainingAmount:
                 (settlementMap['remaining_amount'] as num?)?.toDouble() ?? 0,
-            remainderMethod:
-                (settlementMap['remainder_method'] ?? '').toString(),
-            paymentState:
-                (settlementMap['payment_state'] ?? '').toString(),
+            remainderMethod: (settlementMap['remainder_method'] ?? '')
+                .toString(),
+            paymentState: (settlementMap['payment_state'] ?? '').toString(),
             amountToCollectNow:
-                (settlementMap['amount_to_collect_now'] as num?)?.toDouble() ?? 0,
+                (settlementMap['amount_to_collect_now'] as num?)?.toDouble() ??
+                0,
             invoiceOutstandingAmount:
                 (settlementMap['invoice_outstanding_amount'] as num?)
-                        ?.toDouble() ??
-                    0,
+                    ?.toDouble() ??
+                0,
           );
 
     return DriverAssignment(
@@ -314,7 +324,9 @@ class HttpDriverAssignmentRepository
       orderId: (map['order_id'] as num?)?.toInt() ?? 0,
       storeId: (map['store_id'] as num?)?.toInt() ?? 0,
       channel: assignmentChannel,
-      reference: (order['number'] ?? '#${(map['order_id'] as num?)?.toInt() ?? 0}').toString(),
+      reference:
+          (order['number'] ?? '#${(map['order_id'] as num?)?.toInt() ?? 0}')
+              .toString(),
       status: (map['status'] ?? '').toString(),
       storeName: (store['name'] ?? '').toString(),
       orderStatus: (order['status'] ?? '').toString(),
@@ -354,7 +366,9 @@ class HttpDriverAssignmentRepository
     );
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
-      throw const DriverApiException('Invalid failed-delivery lookup response.');
+      throw const DriverApiException(
+        'Invalid failed-delivery lookup response.',
+      );
     }
 
     return (decoded['data'] as List)
@@ -367,10 +381,12 @@ class HttpDriverAssignmentRepository
             labelEn: (item['label_en'] ?? '').toString(),
           );
         })
-        .where((option) =>
-            option.code.trim().isNotEmpty &&
-            option.labelAr.trim().isNotEmpty &&
-            option.labelEn.trim().isNotEmpty)
+        .where(
+          (option) =>
+              option.code.trim().isNotEmpty &&
+              option.labelAr.trim().isNotEmpty &&
+              option.labelEn.trim().isNotEmpty,
+        )
         .toList(growable: false);
   }
 
@@ -381,14 +397,15 @@ class HttpDriverAssignmentRepository
   }) async {
     final response = await _request(
       () => _client.get(
-        _endpoint('driver/assignments/$assignmentId/invoice/download').replace(
-          queryParameters: {'locale': locale == 'ar' ? 'ar' : 'en'},
-        ),
+        _endpoint(
+          'driver/assignments/$assignmentId/invoice/download',
+        ).replace(queryParameters: {'locale': locale == 'ar' ? 'ar' : 'en'}),
         headers: _headers,
       ),
     );
     final contentType = response.headers['content-type']?.toLowerCase() ?? '';
-    if (!contentType.contains('application/pdf') || response.bodyBytes.isEmpty) {
+    if (!contentType.contains('application/pdf') ||
+        response.bodyBytes.isEmpty) {
       throw const DriverApiException('Invalid invoice PDF response.');
     }
     return response.bodyBytes;
@@ -402,6 +419,10 @@ class HttpDriverAssignmentRepository
     String? note,
     String? failureReason,
   }) async {
+    if (channel != DriverChannel.b2c) {
+      throw const DriverAccessDeniedException();
+    }
+
     await _request(
       () => _client.post(
         _endpoint('driver/assignments/$id/status'),
@@ -425,6 +446,10 @@ class HttpDriverAssignmentRepository
     String? note,
     String? failureReason,
   }) async {
+    if (channel != DriverChannel.b2c) {
+      throw const DriverAccessDeniedException();
+    }
+
     final request = http.MultipartRequest(
       'POST',
       _endpoint('driver/assignments/$id/status'),
@@ -465,10 +490,7 @@ class HttpDriverAssignmentRepository
     final response = await _request(
       () => _client.post(
         _endpoint('driver/assignments/$assignmentId/collections'),
-        headers: {
-          ..._headers,
-          'Idempotency-Key': idempotencyKey,
-        },
+        headers: {..._headers, 'Idempotency-Key': idempotencyKey},
         body: jsonEncode({'amount': amount}),
       ),
     );
@@ -496,10 +518,7 @@ class HttpDriverAssignmentRepository
   @override
   Future<List<DriverWalletAccount>> wallet() async {
     final response = await _request(
-      () => _client.get(
-        _endpoint('driver/wallet'),
-        headers: _headers,
-      ),
+      () => _client.get(_endpoint('driver/wallet'), headers: _headers),
     );
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
@@ -508,9 +527,7 @@ class HttpDriverAssignmentRepository
     return (decoded['data'] as List)
         .whereType<Map>()
         .map(
-          (row) => DriverWalletAccount.fromJson(
-            Map<String, dynamic>.from(row),
-          ),
+          (row) => DriverWalletAccount.fromJson(Map<String, dynamic>.from(row)),
         )
         .toList(growable: false);
   }
@@ -527,10 +544,7 @@ class HttpDriverAssignmentRepository
     final response = await _request(
       () => _client.post(
         _endpoint('driver/wallet/remittances'),
-        headers: {
-          ..._headers,
-          'Idempotency-Key': idempotencyKey,
-        },
+        headers: {..._headers, 'Idempotency-Key': idempotencyKey},
         body: jsonEncode({
           'collection_account_id': collectionAccountId,
           'amount': amount,
@@ -568,6 +582,7 @@ class HttpDriverAssignmentRepository
     _ensureSuccess(response);
     return response;
   }
+
   void _ensureSuccess(http.Response response) {
     if (response.statusCode == 401) {
       throw const DriverSessionExpiredException();
@@ -579,5 +594,4 @@ class HttpDriverAssignmentRepository
       throw const DriverApiException();
     }
   }
-
 }

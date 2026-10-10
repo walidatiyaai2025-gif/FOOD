@@ -110,28 +110,28 @@
           "authority": "DriverJourneyRuntimePage"
         },
         {
-          "id": "driver.b2b.home",
-          "route": "/driver/b2b/home",
-          "authority": "DriverNavigator._homeFor"
-        },
-        {
-          "id": "driver.b2b.deliveries",
-          "route": "/driver/b2b/deliveries",
-          "authority": "DriverJourneyRuntimePage"
-        },
-        {
-          "id": "driver.notifications",
-          "route": "/driver/{channel}/notifications",
+          "id": "driver.b2c.notifications",
+          "route": "/driver/b2c/notifications",
           "authority": "DriverNotificationPage"
         },
         {
-          "id": "driver.wallet",
-          "route": "/driver/{channel}/wallet",
+          "id": "driver.b2c.wallet",
+          "route": "/driver/b2c/wallet",
           "authority": "DriverWalletPage"
         }
       ],
       "forbidden_files": [
         "apps/driver_app/lib/features/tasks/driver_journey.dart"
+      ],
+      "forbidden_markers": [
+        {
+          "file": "apps/driver_app/lib/navigation.dart",
+          "marker": "/driver/b2b/"
+        },
+        {
+          "file": "apps/driver_app/lib/navigation.dart",
+          "marker": "DriverRoutes.b2b"
+        }
       ]
     },
     "van": {
