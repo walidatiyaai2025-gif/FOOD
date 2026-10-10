@@ -149,6 +149,46 @@ final class Customer360Controller extends Controller
                 }
             }
 
+            $vanAssignment = null;
+            $vanExecution = null;
+            $vanTimeline = [];
+            if ($channel === 'b2b') {
+                $vanAssignment = DB::table('order_van_assignments')
+                    ->leftJoin('vans', 'vans.id', '=', 'order_van_assignments.van_id')
+                    ->where('order_van_assignments.order_id', (int) $row->id)
+                    ->orderByRaw("CASE WHEN order_van_assignments.status = 'active' THEN 0 ELSE 1 END")
+                    ->orderByDesc('order_van_assignments.id')
+                    ->first([
+                        'order_van_assignments.id',
+                        'order_van_assignments.status',
+                        'order_van_assignments.assigned_at',
+                        'vans.code as van_code',
+                    ]);
+
+                $vanExecution = DB::table('order_van_execution_states')
+                    ->where('order_id', (int) $row->id)
+                    ->orderByDesc('id')
+                    ->first(['status', 'failure_reason_code', 'last_transition_at']);
+
+                $vanTimeline = DB::table('order_van_execution_events')
+                    ->where('order_id', (int) $row->id)
+                    ->orderByDesc('captured_at')
+                    ->orderByDesc('id')
+                    ->limit(8)
+                    ->get(['id', 'action', 'from_status', 'to_status', 'reason_code', 'captured_at'])
+                    ->map(fn (object $event): array => [
+                        'id' => (int) $event->id,
+                        'action' => $this->businessLabel((string) $event->action),
+                        'from' => $this->businessLabel((string) $event->from_status),
+                        'to' => $this->businessLabel((string) $event->to_status),
+                        'reason' => $event->reason_code === null
+                            ? null
+                            : $this->businessLabel((string) $event->reason_code),
+                        'captured_at' => $event->captured_at,
+                    ])
+                    ->all();
+            }
+
             return [
                 'id' => (int) $row->id,
                 'number' => (string) $row->order_number,
@@ -161,6 +201,12 @@ final class Customer360Controller extends Controller
                 'total' => (float) $row->grand_total,
                 'created_at' => $row->created_at,
                 'url' => route("admin.{$channel}.module", $params),
+                'van_code' => $vanAssignment?->van_code,
+                'van_assignment_status' => $vanAssignment?->status,
+                'van_execution_status' => $vanExecution?->status,
+                'van_failure_reason' => $vanExecution?->failure_reason_code,
+                'van_last_transition_at' => $vanExecution?->last_transition_at,
+                'van_timeline' => $vanTimeline,
             ];
         }));
 

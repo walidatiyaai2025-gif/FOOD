@@ -447,7 +447,9 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=assigned')
             ->assertOk()
             ->assertSee('OPS-DISPATCH-1001')
-            ->assertSee('Dispatch Driver');
+            ->assertSee('Dispatch Driver')
+            ->assertSee('data-order-dispatch-driver', false)
+            ->assertDontSee('data-order-dispatch-van', false);
 
         $this->actingAs($admin)
             ->delete("/admin/operations/orders/{$order}/dispatch", [
@@ -547,6 +549,22 @@ class OrderOperationsIsolationTest extends TestCase
             'is_active' => true,
         ]);
         $super->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b')
+            ->assertOk()
+            ->assertSee('OPS-B2B-PENDING-DISPATCH')
+            ->assertSee('data-order-dispatch-workspace', false)
+            ->assertSee('data-order-dispatch-van', false)
+            ->assertDontSee('data-order-dispatch-driver', false);
+
+        $this->actingAs($super)
+            ->get('/admin/operations/orders?channel=b2b&order='.$order)
+            ->assertOk()
+            ->assertSee('data-b2b-van-operations', false)
+            ->assertSee('data-van-collection-timeline', false)
+            ->assertSee('No Van execution events are recorded for this order.')
+            ->assertSee('No Van collection is recorded for this order.');
 
         $this->actingAs($super)
             ->patch("/admin/operations/orders/{$order}/dispatch", [

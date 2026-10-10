@@ -1,15 +1,15 @@
-# B2B Van Fulfillment — No-Gap Coverage Matrix
+# B2B Van Fulfillment ΓÇö No-Gap Coverage Matrix
 
 Umbrella: **#1190**
 Target: **B2B/Wholesale = Van fulfillment only; B2C/Retail = Driver fulfillment only**
 
 Status vocabulary:
 
-- `PLANNED` — required, not yet proven complete;
-- `IMPLEMENTED` — source exists but final integrated proof is pending;
-- `EVIDENCED` — final required runtime/test evidence exists;
-- `BLOCKED` — explicit blocker;
-- `N/A` — only with documented reason.
+- `PLANNED` ΓÇö required, not yet proven complete;
+- `IMPLEMENTED` ΓÇö source exists but final integrated proof is pending;
+- `EVIDENCED` ΓÇö final required runtime/test evidence exists;
+- `BLOCKED` ΓÇö explicit blocker;
+- `N/A` ΓÇö only with documented reason.
 
 **Closure rule:** #1190 cannot close while any Critical/High row is not `EVIDENCED`.
 
@@ -63,20 +63,20 @@ Status vocabulary:
 | BF-046 | Critical | Tracking | B2B order resolves Van live location | fleet foundation exists | Dashboard/Customer tracking E2E | PLANNED |
 | BF-047 | Critical | Tracking | B2C continues Driver location | Driver live tracking exists | regression E2E | PLANNED |
 | BF-048 | High | Tracking | stale/offline Van explicit | fleet stale model exists | runtime evidence | PLANNED |
-| BF-049 | Critical | Dashboard | B2B Orders shows assigned Van/routing/execution | mixed controls exist | Dashboard feature + visual tests | PLANNED |
-| BF-050 | Critical | Dashboard | B2B has no Assign Driver | generic manual dispatch exists | auth/UI test | PLANNED |
-| BF-051 | Critical | Dashboard | B2C has no Assign Van | generic manual dispatch exists | auth/UI test | PLANNED |
-| BF-052 | Critical | Dashboard | Awaiting Dispatch queue reachable normally | dispatch state exists | route/nav + screenshot | PLANNED |
-| BF-053 | High | Dashboard | Routing decision/reason explainable | trace exists | detail UI + test | PLANNED |
-| BF-054 | High | Dashboard | Van detail lists B2B assigned/active/completed orders | Van management exists | runtime screenshot | PLANNED |
-| BF-055 | High | Dashboard | Customer 360 timeline shows Van actor | order timeline exists | feature test | PLANNED |
-| BF-056 | Critical | Driver | Driver APIs reject B2B execution after cutover | Driver login/runtime, assignment API, push-device registration, lifecycle notifications and preview now enforce B2C-only Driver ownership; B2B returns explicit Van-only/forbidden outcomes | `DriverB2BCutoverTest`; `DriverAssignmentLifecycleTest::test_b2b_order_cannot_be_assigned_to_driver_after_van_cutover`; Driver Journey negative cutover regression; exact-head Required CI pending | IMPLEMENTED |
-| BF-057 | Critical | Driver | Driver App hides/removes B2B operational paths | Driver auth/session/API/preview/push/navigation are B2C-only; `/driver/b2b/**` routes and B2B runtime screenshot evidence are removed; route convergence forbids reintroduction | Driver Flutter full suite (151 tests PASS locally); B2B pre-network rejection/navigation/preview tests; `UI_ROUTE_AUTHORITY.json` + convergence guard; exact-head Required CI pending | IMPLEMENTED |
-| BF-058 | Critical | Driver | B2C lifecycle remains intact | Shared Driver delivery rules remain unchanged for B2C; location, login, preview, push, navigation and lifecycle surfaces continue on the B2C Driver runtime | W04 Driver lifecycle evidence + W12 Driver Flutter full suite (151 PASS) + W12 backend focused regression (41 tests / 248 assertions PASS); exact-head Required CI pending | IMPLEMENTED |
-| BF-059 | Critical | Customer | B2B My Orders uses same canonical order truth | exists | E2E | PLANNED |
-| BF-060 | Critical | Customer | B2B Order Detail/Tracking resolves Van actor | current tracking historically Driver-centric | widget/backend E2E | PLANNED |
-| BF-061 | High | Customer | awaiting_dispatch shown truthfully | dispatch state exists backend | runtime evidence | PLANNED |
-| BF-062 | High | Customer | failed/retry/delivered timeline accurate | timeline service exists | contract test | PLANNED |
+| BF-049 | Critical | Dashboard | B2B Orders shows assigned Van/routing/execution | Order Operations shows Van assignee, routing state/reason, execution events, collection and proof for B2B | `OrderOperationsIsolationTest::test_pending_wholesale_dispatch_never_allows_driver_even_with_customer_service_override`; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+| BF-050 | Critical | Dashboard | B2B has no Assign Driver | B2B row actions render Van dispatch only and backend actor policy rejects Driver | `OrderOperationsIsolationTest::test_pending_wholesale_dispatch_never_allows_driver_even_with_customer_service_override`; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+| BF-051 | Critical | Dashboard | B2C has no Assign Van | B2C row actions render Driver dispatch only | `OrderOperationsIsolationTest::test_dashboard_dispatch_assigns_driver_and_clear_returns_order_to_pending_queue`; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+| BF-052 | Critical | Dashboard | Awaiting Dispatch queue reachable normally | Order Operations status tabs expose a normal B2B Awaiting Dispatch workspace with routing reason | `data-order-dispatch-workspace` + Order Operations feature coverage; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+| BF-053 | High | Dashboard | Routing decision/reason explainable | Order detail exposes dispatch source/reason, assignment history and audit events | `data-order-dispatch-detail` / `data-order-dispatch-audit`; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+| BF-054 | High | Dashboard | Van detail lists B2B assigned/active/completed orders | Van detail lists assignment and Van execution state for B2B orders with exact Order Operations link | `data-van-b2b-orders` / `data-van-b2b-order` + `FieldOperationsAdminExposureTest`; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+| BF-055 | High | Dashboard | Customer 360 timeline shows Van actor | Customer 360 B2B orders show Van identity, execution state/failure and recent Van execution timeline | `data-c360-fulfillment` / `data-c360-van-timeline` + `DashboardUiComplianceTest`; PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
+|
+|
+|
+| BF-059 | Critical | Customer | B2B My Orders uses same canonical order truth | B2B list/detail share the canonical Order payload and list navigation opens the exact B2B detail route | `b2b_journey_test.dart`: `B2B wholesale orders list renders seller state and opens exact detail`; `OrderDomainTest::test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline`; PR #1222 / Required CI Gate #3990 on exact implementation head `a50d4bb374e05de89aa98da880c9f4ef37150f60` (Customer Flutter tests + AR/EN localization + mobile visual evidence + backend full tests + MySQL/Redis acceptance PASS) | EVIDENCED |
+| BF-060 | Critical | Customer | B2B Order Detail/Tracking resolves Van actor | B2B tracking reads active `order_van_assignments` + Van execution state; Driver tracking remains only for non-B2B | `OrderDomainTest::test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline`; Customer widget tests for Van timeline/detail with no Driver identity; PR #1222 / Required CI Gate #3990 on exact implementation head `a50d4bb374e05de89aa98da880c9f4ef37150f60` (Customer Flutter tests + AR/EN localization + mobile visual evidence + backend full tests + MySQL/Redis acceptance PASS) | EVIDENCED |
+| BF-061 | High | Customer | awaiting_dispatch shown truthfully | unresolved B2B dispatch returns `actor_type=van`, `status=awaiting_dispatch`, null Van identity, and no Driver fallback | `OrderDomainTest::test_b2b_awaiting_dispatch_is_exposed_without_driver_fallback`; `b2b_journey_test.dart`: `B2B awaiting dispatch is explicit and never invents a Driver`; PR #1222 / Required CI Gate #3990 on exact implementation head `a50d4bb374e05de89aa98da880c9f4ef37150f60` (Customer Flutter tests + AR/EN localization + mobile visual evidence + backend full tests + MySQL/Redis acceptance PASS) | EVIDENCED |
+| BF-062 | High | Customer | failed/retry/delivered timeline accurate | B2B Customer timeline reads immutable Van execution events, preserves safe failure reason, retry back to `out_for_delivery`, and delivered truth without private notes/proof paths | `OrderDomainTest::test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline`; `test_b2b_failed_delivery_exposes_reason_code_without_driver_note`; `test_b2b_retry_timeline_preserves_failed_reason_then_returns_to_out_for_delivery`; Customer timeline widget refresh/delivered coverage; PR #1222 / Required CI Gate #3990 on exact implementation head `a50d4bb374e05de89aa98da880c9f4ef37150f60` (Customer Flutter tests + AR/EN localization + mobile visual evidence + backend full tests + MySQL/Redis acceptance PASS) | EVIDENCED |
 | BF-063 | Critical | Warehouse | ready/pickup workflow does not skip order state | wholesale prep exists | backend E2E | PLANNED |
 | BF-064 | High | Warehouse | loaded work protected from silent reroute | routing controls exist | integration test | PLANNED |
 | BF-065 | Critical | Migration | Inventory all open B2B Driver/Van contradictions | not yet cutover-audited | `foodex:audit-b2b-van-cutover`; `B2BVanFulfillmentMigrationAudit`; deterministic no-write test; `FOODEX_B2B_VAN_W01_MIGRATION_DRY_RUN.md`; PR #1209 | EVIDENCED |
@@ -93,7 +93,7 @@ Status vocabulary:
 | BF-076 | High | Docs | ORDER/DRIVER/VAN workflows synchronized | old mixed assumptions exist | docs diff review | PLANNED |
 | BF-077 | Critical | Route authority | all new screens/actions have canonical normal entry | route authority exists | route-authority tests | PLANNED |
 | BF-078 | Critical | Evidence | Mobile Screenshot QA watches every changed Van UI path | harness exists | workflow trigger audit | PLANNED |
-| BF-079 | Critical | Evidence | Dashboard visual QA covers new B2B/dispatch pages | harness exists | runtime screenshot artifacts | PLANNED |
+| BF-079 | Critical | Evidence | Dashboard visual QA covers new B2B/dispatch pages | W11 Dashboard-owned production surfaces passed exact-head AR/EN runtime visual evidence | PR #1229 / implementation head `fab85a054537bffb57443622370448188757673d`; Required CI Gate #38043570737 PASS; Dashboard visual evidence PASS; Field Operations runtime evidence #38043570674 PASS | EVIDENCED |
 | BF-080 | Critical | Release | update bundle/apps share final lineage | release contract exists | release gate | PLANNED |
 | BF-081 | Critical | E2E | Customer-created B2B -> Van delivered | not proven | integrated test | PLANNED |
 | BF-082 | Critical | E2E | Dashboard-created B2B -> Van delivered | not proven | integrated test | PLANNED |

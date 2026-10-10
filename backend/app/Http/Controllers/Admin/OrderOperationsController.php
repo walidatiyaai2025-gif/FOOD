@@ -1095,6 +1095,84 @@ final class OrderOperationsController extends Controller
             })
             ->all();
 
+        $vanExecution = null;
+        $vanEvents = [];
+        $collections = [];
+
+        if (strtolower((string) $order->channel) === 'b2b') {
+            $vanExecution = DB::table('order_van_execution_states')
+                ->where('order_id', $order->getKey())
+                ->orderByDesc('id')
+                ->first([
+                    'order_van_assignment_id',
+                    'van_id',
+                    'status',
+                    'failure_reason_code',
+                    'failure_note',
+                    'last_transition_at',
+                ]);
+
+            $vanEvents = DB::table('order_van_execution_events')
+                ->leftJoin('users', 'users.id', '=', 'order_van_execution_events.user_id')
+                ->where('order_van_execution_events.order_id', $order->getKey())
+                ->orderByDesc('order_van_execution_events.captured_at')
+                ->orderByDesc('order_van_execution_events.id')
+                ->get([
+                    'order_van_execution_events.id',
+                    'order_van_execution_events.action',
+                    'order_van_execution_events.from_status',
+                    'order_van_execution_events.to_status',
+                    'order_van_execution_events.proof_type',
+                    'order_van_execution_events.proof_path',
+                    'order_van_execution_events.reason_code',
+                    'order_van_execution_events.note',
+                    'order_van_execution_events.captured_at',
+                    'users.name as actor_name',
+                ])
+                ->map(static fn (object $event): array => [
+                    'id' => (int) $event->id,
+                    'action' => (string) $event->action,
+                    'from_status' => (string) $event->from_status,
+                    'to_status' => (string) $event->to_status,
+                    'proof_type' => $event->proof_type,
+                    'proof_path' => $event->proof_path,
+                    'reason_code' => $event->reason_code,
+                    'note' => $event->note,
+                    'captured_at' => $event->captured_at,
+                    'actor' => trim((string) ($event->actor_name ?? '')),
+                ])
+                ->all();
+
+            $collections = DB::table('collection_allocations')
+                ->join(
+                    'collection_transactions',
+                    'collection_transactions.id',
+                    '=',
+                    'collection_allocations.collection_transaction_id',
+                )
+                ->join('invoices', 'invoices.id', '=', 'collection_allocations.invoice_id')
+                ->where('invoices.order_id', $order->getKey())
+                ->where('collection_transactions.type', 'collection')
+                ->orderByDesc('collection_transactions.id')
+                ->get([
+                    'collection_transactions.id',
+                    'collection_transactions.status',
+                    'collection_transactions.source',
+                    'collection_transactions.created_at',
+                    'collection_allocations.amount',
+                    'collection_allocations.currency',
+                ])
+                ->map(static fn (object $collection): array => [
+                    'id' => (int) $collection->id,
+                    'status' => (string) $collection->status,
+                    'source' => (string) $collection->source,
+                    'amount' => (float) $collection->amount,
+                    'currency' => (string) $collection->currency,
+                    'created_at' => $collection->created_at,
+                ])
+                ->all();
+        }
+
         return [
             ...$row,
             'delivery_address' => $deliveryAddress,
@@ -1102,6 +1180,9 @@ final class OrderOperationsController extends Controller
             'assignments' => $assignments,
             'van_assignments' => $vanAssignments,
             'dispatch_audit' => $dispatchAudit,
+            'van_execution' => $vanExecution,
+            'van_events' => $vanEvents,
+            'collections' => $collections,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
             'van_delivery_evidence' => strtolower((string) $order->channel) === 'b2b'
                 ? $this->vanDeliveryEvidence->order($actor, $order)
