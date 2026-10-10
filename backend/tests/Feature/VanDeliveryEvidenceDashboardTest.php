@@ -147,6 +147,6 @@ class VanDeliveryEvidenceDashboardTest extends TestCase
         $foreign = User::factory()->create(['is_active' => true]);
         $this->actingAs($foreign)
             ->get('/admin/operations/orders/van-assignments/'.$orderVanAssignmentId.'/proofs/'.$proofEventId)
-            ->assertStatus(404);
+            ->assertForbidden();
     }
 }
