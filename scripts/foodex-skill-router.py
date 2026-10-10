@@ -109,8 +109,15 @@ def validate_router(config: dict, root: Path = ROOT) -> list[str]:
 
 
 def diff_rows(base: str, head: str, root: Path = ROOT) -> list[ChangedFile]:
-    output = git(root, "diff", "--name-status", "--find-renames", base, head)
+    if head == "WORKTREE":
+        output = git(root, "diff", "--name-status", "--find-renames", base)
+        untracked = git(root, "ls-files", "--others", "--exclude-standard").splitlines()
+    else:
+        output = git(root, "diff", "--name-status", "--find-renames", base, head)
+        untracked = []
+
     rows: list[ChangedFile] = []
+    seen: set[str] = set()
 
     for raw in output.splitlines():
         parts = raw.split("\t")
@@ -126,14 +133,25 @@ def diff_rows(base: str, head: str, root: Path = ROOT) -> list[ChangedFile]:
         else:
             continue
 
+        seen.add(path)
         added = "" if status == "D" else added_text(base, head, path, root)
         rows.append(ChangedFile(status=status, path=path, added_text=added))
+
+    if head == "WORKTREE":
+        for path in sorted(set(untracked) - seen):
+            target = root / path
+            text = target.read_text(encoding="utf-8", errors="replace") if target.is_file() else ""
+            rows.append(ChangedFile(status="A", path=path, added_text=text))
 
     return rows
 
 
 def added_text(base: str, head: str, path: str, root: Path = ROOT) -> str:
-    output = git(root, "diff", "--unified=0", base, head, "--", path)
+    args = ["diff", "--unified=0", base]
+    if head != "WORKTREE":
+        args.append(head)
+    args.extend(["--", path])
+    output = git(root, *args)
     lines: list[str] = []
     for line in output.splitlines():
         if line.startswith("+++") or not line.startswith("+"):
