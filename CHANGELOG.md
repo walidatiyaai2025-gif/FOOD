@@ -1,3 +1,7 @@
+## 1.0.68 - 2026-10-10
+- Publish synchronized Customer, Driver and Van Android APKs 1.0.68+68 from latest main.
+- Includes B2B Van-only fulfillment rollout, Driver cutover, tracking, settlement and latest Customer invoice UI updates.
+
 # Changelog
 
 ## 1.0.67 - 2026-10-09
