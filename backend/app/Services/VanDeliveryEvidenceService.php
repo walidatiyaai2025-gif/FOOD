@@ -7,6 +7,7 @@ use App\Models\OrderVanAssignment;
 use App\Models\OrderVanExecutionEvent;
 use App\Models\OrderVanExecutionState;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 final class VanDeliveryEvidenceService
@@ -127,6 +128,6 @@ final class VanDeliveryEvidenceService
             return null;
         }
 
-        return now()->parse($value)->toISOString();
+        return Carbon::parse((string) $value)->toISOString();
     }
 }
