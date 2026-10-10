@@ -90,7 +90,15 @@ final class B2BVanFulfillmentMigrationAudit
                         if (count($activeVanIds) > 1) {
                             $issues[] = 'b2b_multiple_active_vans';
                         }
-                        if ($activeVanIds === [] && $dispatch?->current_assignee_type !== FulfillmentActorPolicy::VAN) {
+                        $explicitAwaitingDispatch = $dispatch?->status === 'awaiting_dispatch'
+                            && $dispatch->current_assignee_type === null
+                            && $dispatch->current_assignee_id === null;
+
+                        if (
+                            $activeVanIds === []
+                            && $dispatch?->current_assignee_type !== FulfillmentActorPolicy::VAN
+                            && ! $explicitAwaitingDispatch
+                        ) {
                             $issues[] = 'b2b_requires_van_routing';
                         }
                     } else {
