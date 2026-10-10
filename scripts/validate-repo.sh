@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-required=(README.md VERSION CHANGELOG.md backend/composer.json apps/customer_app/pubspec.yaml apps/driver_app/pubspec.yaml docs/api/openapi.yaml docs/design-reference/INDEX.md docs/worker-rules/WORKER_GOVERNANCE.md docs/release/RELEASE_REGISTRY.json .github/scripts/release-registry.js docs/execution/ACTIVE_FOOD_MISSION.json docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md scripts/validate-active-mission.py docs/execution/UI_ROUTE_AUTHORITY.json scripts/validate_ui_route_convergence.py scripts/validate_b2b_van_contract_sync.py)
+required=(README.md VERSION CHANGELOG.md backend/composer.json apps/customer_app/pubspec.yaml apps/driver_app/pubspec.yaml docs/api/openapi.yaml docs/design-reference/INDEX.md docs/worker-rules/WORKER_GOVERNANCE.md docs/release/RELEASE_REGISTRY.json .github/scripts/release-registry.js docs/execution/ACTIVE_FOOD_MISSION.json docs/execution/UIUX_V42_AUTONOMOUS_MISSION_PLAN.md scripts/validate-active-mission.py docs/execution/UI_ROUTE_AUTHORITY.json scripts/validate_ui_route_convergence.py scripts/validate_b2b_van_contract_sync.py .ci/ci-map.json .ci/failure-patterns.json scripts/ci-plan.py scripts/ci-failure-registry.py scripts/foodex-branch-policy.py scripts/flutter-test-hermeticity.py)
 for f in "${required[@]}"; do test -f "$f" || { echo "Missing required file: $f"; exit 1; }; done
 branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 base_branch="${GITHUB_BASE_REF:-}"
