@@ -171,8 +171,15 @@ class OrderLifecycleNotificationTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $legacyCustomer = Customer::query()->create([
+            'type' => 'b2b',
+            'name' => 'Lifecycle B2B Customer',
+            'email' => 'lifecycle-b2b-customer@example.test',
+        ]);
+
         $order = Order::query()->create([
             'store_id' => $storeId,
+            'customer_id' => $legacyCustomer->id,
             'order_number' => 'FDX-B2B-VAN-PUSH-1',
             'channel' => 'b2b',
             'status' => 'pending',
