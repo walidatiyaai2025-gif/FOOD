@@ -131,7 +131,46 @@ PASS only if relevant:
 - authoritative commercial/finance state;
 - Dashboard capability parity evaluated.
 
-## 8. Automated regression gate
+## 8. Route authority hard gate
+
+Follow `.ai/skills/ui-route-authority.md`.
+
+PASS only if:
+- the function resolves to one canonical route/renderer;
+- no duplicate production screen/route was introduced;
+- normal navigation reaches it when routine access is required;
+- role/store/channel boundaries are enforced by current authority/navigation logic;
+- deep links land on the canonical authorized record/surface;
+- route/navigation tests and authority metadata are updated when the canonical contract changes.
+
+## 9. Mutation safety hard gate
+
+For any create/edit/delete/submit/transition/finance action, follow `.ai/skills/ui-interaction-safety.md`.
+
+PASS only if:
+- simultaneous duplicate submit is prevented;
+- the action has a clear busy/error/success state;
+- server authority remains decisive;
+- retry/idempotency semantics are correct for the operation;
+- meaningful destructive actions confirm scope/impact;
+- successful mutation refreshes/reconciles the visible authoritative record;
+- offline/stale state cannot silently execute unsafe business mutations.
+
+## 10. Performance / scalability hard gate
+
+Follow `.ai/skills/ui-performance.md`.
+
+PASS only if applicable:
+- Dashboard tables satisfy the repository pagination contract;
+- growing data is server-paginated or intentionally bounded;
+- mobile long lists render incrementally;
+- server-backed search does not create uncontrolled request storms;
+- older async results cannot overwrite newer criteria;
+- polling/subscriptions stop when the page no longer needs them;
+- resume/timer/manual refresh do not stack duplicate refresh loops;
+- the UI data shape does not introduce a known N+1.
+
+## 11. Automated regression gate
 
 Run the relevant existing guards; do not rely only on visual inspection.
 
@@ -144,6 +183,8 @@ python scripts/uiux-v42-recovery-audit.py --report uiux-v42-recovery-static-audi
 Dashboard changed area, from `backend/`:
 
 ```bash
+php artisan test tests/Feature/AdminNavigationAuthorizationAuditTest.php
+php artisan test tests/Feature/DashboardPaginationContractTest.php
 php artisan test tests/Feature/DashboardUiComplianceTest.php
 php artisan test tests/Feature/AdminFilterActionVisualContractTest.php
 ```
@@ -157,6 +198,8 @@ php artisan test tests/Feature/PremiumDashboardAcceptanceTest.php
 Customer examples, from `apps/customer_app/`:
 
 ```bash
+flutter test test/customer_route_authority_test.dart
+flutter test test/customer_navigation_test.dart
 flutter test test/customer_ui_v3_design_system_test.dart
 flutter test test/customer_orders_ui_v3_test.dart
 flutter test test/screenshot_evidence_test.dart
@@ -165,6 +208,7 @@ flutter test test/screenshot_evidence_test.dart
 Driver operational examples, from `apps/driver_app/`:
 
 ```bash
+flutter test test/navigation_test.dart
 flutter test test/driver_active_journey_test.dart
 flutter test test/screenshot_evidence_test.dart
 ```
@@ -172,18 +216,19 @@ flutter test test/screenshot_evidence_test.dart
 Van visual/runtime evidence, from `apps/van_app/`:
 
 ```bash
+flutter test test/app_test.dart
 flutter test test/screenshot_evidence_test.dart
 ```
 
 Choose additional feature-specific tests based on changed code.
 
-## 9. Evidence gate
+## 12. Evidence gate
 
 After static/widget tests, follow `.ai/skills/uiux-evidence.md`.
 
 A screenshot proves only the state shown. It does not prove authorization, mutation correctness, stale handling or hidden interactions. Pair visual evidence with functional tests.
 
-## 10. Completion verdict
+## 13. Completion verdict
 
 Use exactly one internal verdict:
 
@@ -196,7 +241,7 @@ Only **PASS** permits "UI complete".
 
 Do not convert UNKNOWN to PASS because the page looks reasonable or generic CI is green.
 
-## 11. Executable changed-surface policy gate
+## 14. Executable changed-surface policy gate
 
 The mandatory static gate is:
 

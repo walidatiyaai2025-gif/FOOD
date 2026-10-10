@@ -15,6 +15,13 @@ This skill is a router. It does not replace the surface-specific skill.
 
 Also read `.ai/skills/ui-pattern-library.md`. It maps the real production classes/widgets and source files that must be inspected before inventing UI.
 
+Cross-cutting quality skills:
+- `.ai/skills/ui-route-authority.md` — mandatory for every page/route/navigation change;
+- `.ai/skills/ui-accessibility.md` — mandatory for every user-facing UI;
+- `.ai/skills/ui-interaction-safety.md` — mandatory when the UI mutates business state;
+- `.ai/skills/ui-performance.md` — mandatory for lists/grids/search/live/polling/high-growth data;
+- `.ai/skills/uiux-skill-maintenance.md` — use when durable UI architecture/contracts change.
+
 ## 0. Authority order
 
 Before UI code, read current files from the branch you are editing. Current source wins over snapshots in this skill.
@@ -227,14 +234,19 @@ After this router, read `.ai/skills/page-patterns.md`. It contains the canonical
 
 Every UI task follows this sequence. Skipping a stage is not a shortcut.
 
-### Stage A — Reference Lock
-Identify:
+### Stage A — Route + Reference Lock
+Read `.ai/skills/ui-route-authority.md` and identify:
 - surface;
+- function;
 - role/permission;
-- canonical route/navigation;
+- canonical route/renderer;
+- normal navigation entry;
+- existing authority test;
 - page archetype;
 - nearest production screen/reference;
 - exact production token/theme/component sources.
+
+A second renderer/route for an already-owned function is a regression unless the task explicitly replaces the canonical authority.
 
 ### Stage B — Component Map
 Read `.ai/skills/ui-pattern-library.md` and list the exact existing primitives used for:
@@ -250,15 +262,21 @@ Read `.ai/skills/ui-pattern-library.md` and list the exact existing primitives u
 
 If the design requires many new primitives, re-check the nearest production pattern before coding.
 
-### Stage C — Production Build
+### Stage C — Interaction / Scale Contract
+Before coding mutations or high-growth/live data:
+- read `.ai/skills/ui-interaction-safety.md` for create/edit/delete/submit/transition/finance operations;
+- read `.ai/skills/ui-performance.md` for lists, grids, search, pagination, maps, analytics or polling;
+- read `.ai/skills/ui-accessibility.md` for input modality/semantics.
+
+### Stage D — Production Build
 Implement with authoritative data/permissions/business transitions. Do not style a generic CRUD screen first and retrofit FOODEX later.
 
-### Stage D — Mandatory Self-Audit
+### Stage E — Mandatory Self-Audit
 Run `.ai/skills/uiux-audit.md`.
 
 Any applicable FAIL / UNKNOWN / NOT CHECKED means the page is not complete.
 
-### Stage E — Evidence Gate
+### Stage F — Evidence Gate
 Run `.ai/skills/uiux-evidence.md` for visual/interaction work.
 
 Evidence must belong to the current exact source lineage. Old screenshots from a previous relevant SHA are stale.
@@ -283,6 +301,7 @@ The prose skills are paired with executable policy under `.ai/uiux/`:
 - `page-archetypes.json` — page archetype requirements;
 - `golden-pages.json` — production pages/screens to inspect before creating a composition;
 - `forbidden-patterns.json` — machine-verifiable anti-patterns;
+- `quality-gates.json` — current route/interaction/pagination/evidence tests required per surface;
 - `uiux-scorecard.json` — static compliance threshold;
 - `ui-lessons.json` — evidence-backed reusable UI lessons.
 
