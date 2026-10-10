@@ -1001,7 +1001,7 @@ class DriverAssignmentLifecycleTest extends TestCase
         Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
             ->assertConflict()
-            ->assertSee('Retail (B2C) drivers');
+            ->assertSee('Driver store scope must be assigned explicitly.');
         $this->assertNull($driver->fresh()->store_id);
     }
 
