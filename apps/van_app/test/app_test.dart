@@ -542,16 +542,72 @@ void main() {
   });
 
 
-  testWidgets('Van push tap opens canonical B2B Order Detail',
+  testWidgets('canonical Van Orders preserves collection settlement context',
+      (tester) async {
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery';
+    final wallet = _OrderFlowWalletRepository(orders);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: wallet,
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final target = find.byKey(const ValueKey('van-screen-orders'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('van-order-7001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+
+    final detailList = find.byKey(const ValueKey('van-order-detail-page'));
+    final collectAction =
+        find.byKey(const ValueKey('van-order-collect-action'));
+    await _scrollUntilBuilt(tester, detailList, collectAction);
+    await tester.ensureVisible(collectAction);
+    expect(collectAction, findsOneWidget);
+  });
+
+
+  testWidgets('Van push tap opens finance-aware canonical B2B Order Detail',
       (tester) async {
     final alerts = StreamController<VanPushAlert>.broadcast();
-    final orders = _OrderRepository()..createdCount = 1;
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery';
+    final wallet = _OrderFlowWalletRepository(orders);
     addTearDown(alerts.close);
 
     await tester.pumpWidget(
       FoodexVanApp(
         locale: const Locale('en'),
-        walletRepository: const _EmptyWalletRepository(),
+        walletRepository: wallet,
         orderRepository: orders,
         pushAlerts: alerts.stream,
         initialSession: const VanSession(
@@ -582,6 +638,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
     expect(find.text('Acme Grocery'), findsOneWidget);
+
+    final detailList = find.byKey(const ValueKey('van-order-detail-page'));
+    final collectAction =
+        find.byKey(const ValueKey('van-order-collect-action'));
+    await _scrollUntilBuilt(tester, detailList, collectAction);
+    await tester.ensureVisible(collectAction);
+    expect(collectAction, findsOneWidget);
   });
 
   testWidgets('Van foreground push requires explicit Open action',
