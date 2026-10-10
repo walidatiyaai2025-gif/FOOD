@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\B2bFinanceController;
 use App\Http\Controllers\Api\V1\B2bPricingController;
 use App\Http\Controllers\Api\V1\B2bReportController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\CustomerCatalogImageController;
 use App\Http\Controllers\Api\V1\CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
@@ -99,6 +100,9 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/offers', [GuestCatalogController::class, 'offers']);
     Route::get('/stores/{store}/banners', [GuestCatalogController::class, 'banners']);
     Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
+    Route::get('/catalog/images/{image}/thumbnail', [CustomerCatalogImageController::class, 'thumbnail'])
+        ->whereNumber('image')
+        ->name('api.customer.catalog-image.thumbnail');
     Route::get('/products/{product}', [GuestCatalogController::class, 'product']);
     Route::get('/live-ads', [LiveAdController::class, 'index']);
     Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index'])

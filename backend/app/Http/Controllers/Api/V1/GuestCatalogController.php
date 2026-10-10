@@ -286,7 +286,8 @@ class GuestCatalogController extends Controller
             ->where('product_id', $product->id)
             ->orderByDesc('is_primary')
             ->orderBy('sort_order')
-            ->value('path');
+            ->orderBy('id')
+            ->first(['id', 'path']);
 
         $brand = $product->brand_id === null
             ? null
@@ -307,7 +308,10 @@ class GuestCatalogController extends Controller
             'is_active' => (bool) $product->is_active,
             'price' => $price === null ? null : (float) $price,
             'currency' => 'EGP',
-            'image_url' => $this->assetUrl($primaryImage),
+            'image_url' => $this->assetUrl($primaryImage?->path),
+            'thumbnail_url' => $primaryImage === null
+                ? null
+                : route('api.customer.catalog-image.thumbnail', ['image' => (int) $primaryImage->id]),
             ...$availability,
         ];
     }

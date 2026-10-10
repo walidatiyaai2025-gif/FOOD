@@ -1,8 +1,6 @@
 class CustomerOrderContext {
-  const CustomerOrderContext({
-    required this.storeId,
-    required this.channel,
-  }) : assert(storeId > 0);
+  const CustomerOrderContext({required this.storeId, required this.channel})
+      : assert(storeId > 0);
 
   final int storeId;
   final String channel;
@@ -43,9 +41,11 @@ class CustomerOrderPage {
     final orders = raw is List
         ? raw
             .whereType<Map>()
-            .map((item) => CustomerOrderSummary.fromJson(
-                  Map<String, dynamic>.from(item),
-                ))
+            .map(
+              (item) => CustomerOrderSummary.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
             .toList(growable: false)
         : const <CustomerOrderSummary>[];
 
@@ -145,9 +145,7 @@ class CustomerOrderSummary {
     final store = json['store'] is Map
         ? Map<String, dynamic>.from(json['store'] as Map)
         : const <String, dynamic>{};
-    final settlement = _map(
-      json['settlement'] ?? json['financial_settlement'],
-    );
+    final settlement = _map(json['settlement'] ?? json['financial_settlement']);
     final invoice = _map(json['invoice']);
 
     final invoiceOutstandingAmount = _firstNullableDouble(<Object?>[
@@ -188,9 +186,10 @@ class CustomerOrderSummary {
     final reorderItems = json['items'] is List
         ? (json['items'] as List)
             .whereType<Map>()
-            .map((item) => CustomerOrderItem.fromJson(
-                  Map<String, dynamic>.from(item),
-                ))
+            .map(
+              (item) =>
+                  CustomerOrderItem.fromJson(Map<String, dynamic>.from(item)),
+            )
             .where((item) => item.productId > 0 && item.quantity > 0)
             .toList(growable: false)
         : const <CustomerOrderItem>[];
@@ -258,27 +257,32 @@ class CustomerOrderDetails {
     final items = json['items'] is List
         ? (json['items'] as List)
             .whereType<Map>()
-            .map((item) => CustomerOrderItem.fromJson(
-                  Map<String, dynamic>.from(item),
-                ))
+            .map(
+              (item) =>
+                  CustomerOrderItem.fromJson(Map<String, dynamic>.from(item)),
+            )
             .toList(growable: false)
         : const <CustomerOrderItem>[];
 
     final history = json['status_history'] is List
         ? (json['status_history'] as List)
             .whereType<Map>()
-            .map((entry) => CustomerOrderHistoryEntry.fromJson(
-                  Map<String, dynamic>.from(entry),
-                ))
+            .map(
+              (entry) => CustomerOrderHistoryEntry.fromJson(
+                Map<String, dynamic>.from(entry),
+              ),
+            )
             .toList(growable: false)
         : const <CustomerOrderHistoryEntry>[];
 
     final collectionReceipts = json['collection_receipts'] is List
         ? (json['collection_receipts'] as List)
             .whereType<Map>()
-            .map((receipt) => CustomerCollectionReceipt.fromJson(
-                  Map<String, dynamic>.from(receipt),
-                ))
+            .map(
+              (receipt) => CustomerCollectionReceipt.fromJson(
+                Map<String, dynamic>.from(receipt),
+              ),
+            )
             .toList(growable: false)
         : const <CustomerCollectionReceipt>[];
 
@@ -417,17 +421,12 @@ class CustomerCollectionReceipt {
 }
 
 class CustomerOrderNotificationIntent {
-  const CustomerOrderNotificationIntent({
-    required this.orderId,
-    this.context,
-  });
+  const CustomerOrderNotificationIntent({required this.orderId, this.context});
 
   final int orderId;
   final CustomerOrderContext? context;
 
-  static CustomerOrderNotificationIntent? fromData(
-    Map<String, dynamic> data,
-  ) {
+  static CustomerOrderNotificationIntent? fromData(Map<String, dynamic> data) {
     final orderId = _int(data['order_id']);
     if (orderId <= 0) return null;
 
@@ -448,7 +447,10 @@ class CustomerOrderNotificationIntent {
 class CustomerOrderRefreshPolicy {
   const CustomerOrderRefreshPolicy._();
 
-  static const Duration openOrderPollInterval = Duration(seconds: 20);
+  static const Duration openOrderPollInterval = Duration(minutes: 1);
+  static const Duration liteOpenOrderPollInterval = Duration(minutes: 3);
+  static const Duration pushBackstopPollInterval = Duration(minutes: 5);
+  static const Duration litePushBackstopPollInterval = Duration(minutes: 10);
 
   static const Set<String> terminalStatuses = <String>{
     'delivered',

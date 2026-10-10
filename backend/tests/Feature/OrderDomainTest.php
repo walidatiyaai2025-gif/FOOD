@@ -139,7 +139,9 @@ class OrderDomainTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $ownB2c->id)
-            ->assertJsonPath('data.0.status_history.0.to_status', 'pending');
+            ->assertJsonMissingPath('data.0.status_history')
+            ->assertJsonMissingPath('data.0.items')
+            ->assertJsonPath('data.0.item_count', 1);
 
         $this->getJson("/api/v1/orders/{$ownB2c->id}")
             ->assertOk()

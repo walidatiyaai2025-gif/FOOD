@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_account_api.dart';
+import '../../core/diagnostics/customer_diagnostics.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/network/customer_data_mode.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
 import 'customer_account_v3_widgets.dart';
@@ -39,11 +41,14 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
   late Future<Object?> _favorites;
   Future<Object?>? _notifications;
   String _locale = 'ar';
+  final CustomerDataModeController _dataMode =
+      CustomerDataModeController.instance;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _dataMode.addListener(_onDataModeChanged);
     _profile = widget.api.profile();
     _addresses = widget.api.addresses();
     _favorites = widget.favoritesApi.favoritesForStore(widget.retailStoreId);
@@ -59,11 +64,15 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     }
   }
 
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _dataMode.removeListener(_onDataModeChanged);
     super.dispose();
+  }
+
+  void _onDataModeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -163,9 +172,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
       final message = error.fieldErrors['password']?.first ??
           error.serverMessage ??
           error.code;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       password.dispose();
     }
@@ -173,8 +182,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
 
   Future<void> _editProfile(Map<String, dynamic> profile) async {
     final name = TextEditingController(text: profile['name']?.toString() ?? '');
-    final email =
-        TextEditingController(text: profile['email']?.toString() ?? '');
+    final email = TextEditingController(
+      text: profile['email']?.toString() ?? '',
+    );
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -253,8 +263,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
               _profile.catchError((_) => null),
               _addresses.catchError((_) => null),
               _favorites.catchError((_) => null),
-              (_notifications ?? Future<Object?>.value(null))
-                  .catchError((_) => null),
+              (_notifications ?? Future<Object?>.value(null)).catchError(
+                (_) => null,
+              ),
             ]);
           },
           child: ListView(
@@ -267,6 +278,8 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
             ),
             children: [
               _profileCard(),
+              const SizedBox(height: CustomerUiSpacing.sm),
+              _dataModeCard(),
               const SizedBox(height: CustomerUiSpacing.sm),
               _countCard(
                 key: const ValueKey('customer-account-addresses-section'),
@@ -285,8 +298,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                 icon: Icons.favorite_border_rounded,
                 onTap: widget.onOpenFavorites,
                 onRetry: () => setState(
-                  () => _favorites = widget.favoritesApi
-                      .favoritesForStore(widget.retailStoreId),
+                  () => _favorites = widget.favoritesApi.favoritesForStore(
+                    widget.retailStoreId,
+                  ),
                 ),
               ),
               const SizedBox(height: CustomerUiSpacing.sm),
@@ -297,8 +311,9 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                 icon: Icons.notifications_none_rounded,
                 onTap: widget.onOpenNotifications,
                 onRetry: () => setState(
-                  () =>
-                      _notifications = widget.api.notifications(locale: _locale),
+                  () => _notifications = widget.api.notifications(
+                    locale: _locale,
+                  ),
                 ),
               ),
               if (widget.onOpenOrders != null) ...[
@@ -330,6 +345,102 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     );
   }
 
+  Widget _dataModeCard() {
+    final usage = CustomerDiagnostics.instance.dataUsageSnapshot;
+    final downloaded = (usage['downloaded_bytes'] as num?)?.toInt() ?? 0;
+    final hitRatio = (usage['cache_hit_ratio'] as num?)?.toDouble() ?? 0;
+    final effective = _dataMode.effectiveMode;
+    final selected = _dataMode.preference.name;
+
+    String label(String value) {
+      if (_locale == 'ar') {
+        return switch (value) {
+          'automatic' => 'تلقائي',
+          'normal' => 'عادي',
+          'lite' => 'توفير البيانات',
+          'offline' => 'بدون إنترنت',
+          _ => value,
+        };
+      }
+      return switch (value) {
+        'auto' => 'Auto',
+        'normal' => 'Normal',
+        'lite' => 'Lite / Low Data',
+        'offline' => 'Offline',
+        _ => value,
+      };
+    }
+
+    return CustomerAccountSurfaceCard(
+      key: const ValueKey('customer-data-mode'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.data_saver_on_outlined),
+              const SizedBox(width: CustomerUiSpacing.sm),
+              Expanded(
+                child: Text(
+                  _locale == 'ar' ? 'استهلاك الإنترنت' : 'Data usage',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              Text(
+                label(effective.name),
+                key: const ValueKey('customer-data-mode-effective'),
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: CustomerUiSpacing.sm),
+          DropdownButtonFormField<String>(
+            key: const ValueKey('customer-data-mode-selector'),
+            initialValue: selected,
+            decoration: InputDecoration(
+              labelText: _locale == 'ar' ? 'وضع البيانات' : 'Data mode',
+            ),
+            items: const ['automatic', 'lite']
+                .map(
+                  (value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(label(value)),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              _dataMode.setPreference(
+                value == 'lite'
+                    ? CustomerDataPreference.lite
+                    : CustomerDataPreference.automatic,
+              );
+            },
+          ),
+          const SizedBox(height: CustomerUiSpacing.sm),
+          Text(
+            _locale == 'ar'
+                ? 'تم تنزيل ${(downloaded / 1024).toStringAsFixed(1)} ك.ب · نسبة استخدام الكاش ${(hitRatio * 100).toStringAsFixed(0)}%'
+                : 'Downloaded ${(downloaded / 1024).toStringAsFixed(1)} KB · cache hit ${(hitRatio * 100).toStringAsFixed(0)}%',
+            key: const ValueKey('customer-data-usage-summary'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: CustomerUiColors.muted),
+          ),
+          if (_dataMode.isAutoManaged && _dataMode.autoLite) ...[
+            const SizedBox(height: CustomerUiSpacing.xs),
+            Text(
+              _locale == 'ar'
+                  ? 'تم تفعيل التوفير تلقائياً بسبب اتصال ضعيف أو غير مستقر.'
+                  : 'Lite mode was enabled automatically for a weak or unstable connection.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _profileCard() {
     const key = ValueKey('customer-account-profile-section');
     return CustomerAccountSurfaceCard(
@@ -348,11 +459,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                     children: [
                       CustomerSkeletonBox(height: 18, radius: 9),
                       SizedBox(height: CustomerUiSpacing.xs),
-                      CustomerSkeletonBox(
-                        height: 14,
-                        width: 180,
-                        radius: 7,
-                      ),
+                      CustomerSkeletonBox(height: 14, width: 180, radius: 7),
                       SizedBox(height: CustomerUiSpacing.md),
                       CustomerSkeletonBox(
                         height: 44,
@@ -407,8 +514,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                       key: const ValueKey('customer-account-edit-profile'),
                       onPressed: () => _editProfile(profile),
                       icon: const Icon(Icons.edit_outlined),
-                      label:
-                          Text(context.tr('customer.settings.edit_profile')),
+                      label: Text(context.tr('customer.settings.edit_profile')),
                     ),
                   ],
                 ),
@@ -438,9 +544,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
               children: [
                 CustomerSkeletonBox(height: 48, width: 48, radius: 24),
                 SizedBox(width: CustomerUiSpacing.sm),
-                Expanded(
-                  child: CustomerSkeletonBox(height: 18, radius: 9),
-                ),
+                Expanded(child: CustomerSkeletonBox(height: 18, radius: 9)),
                 SizedBox(width: CustomerUiSpacing.sm),
                 CustomerSkeletonBox(height: 28, width: 42, radius: 14),
               ],

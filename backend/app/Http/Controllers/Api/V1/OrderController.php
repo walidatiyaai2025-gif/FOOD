@@ -76,6 +76,8 @@ class OrderController extends Controller
             && app(PlatformCustomerService::class)->isPlatformCustomer($user)
         ) {
             $query = $this->platformCustomerOrders($user)
+                ->with(['store:id,code,name,logo_path'])
+                ->withCount('items')
                 ->when(
                     isset($validated['store_id']),
                     fn ($query) => $query->where('store_id', (int) $validated['store_id']),
@@ -96,7 +98,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'data' => collect($paginator->items())
-                    ->map(fn (Order $order): array => $this->orderPayload($order))
+                    ->map(fn (Order $order): array => $this->orderSummaryPayload($order))
                     ->values()
                     ->all(),
                 'meta' => [
@@ -124,12 +126,14 @@ class OrderController extends Controller
                 isset($validated['status']),
                 fn ($query) => $query->where('status', $validated['status']),
             )
+            ->with(['store:id,code,name,logo_path'])
+            ->withCount('items')
             ->latest('id')
             ->paginate((int) ($validated['per_page'] ?? 20));
 
         return response()->json([
             'data' => collect($paginator->items())
-                ->map(fn (Order $order): array => $this->orderPayload($order))
+                ->map(fn (Order $order): array => $this->orderSummaryPayload($order))
                 ->values()
                 ->all(),
             'meta' => [
@@ -535,6 +539,37 @@ class OrderController extends Controller
         }
 
         return $result;
+    }
+
+    private function orderSummaryPayload(Order $order): array
+    {
+        $store = $order->relationLoaded('store') ? $order->store : null;
+
+        return [
+            'id' => (int) $order->getKey(),
+            'order_number' => (string) $order->order_number,
+            'store_id' => (int) $order->store_id,
+            'store' => $store === null ? null : [
+                'id' => (int) $store->getKey(),
+                'code' => (string) $store->code,
+                'name' => (string) $store->name,
+                'logo_url' => $store->logo_path === null
+                    ? null
+                    : url('/'.ltrim((string) $store->logo_path, '/')),
+            ],
+            'channel' => (string) $order->channel,
+            'status' => (string) $order->status,
+            'currency' => (string) $order->currency,
+            'grand_total' => (float) $order->grand_total,
+            'item_count' => (int) ($order->items_count ?? 0),
+            'next_statuses' => self::allowedTransitions((string) $order->status),
+            'is_terminal' => in_array(
+                (string) $order->status,
+                ['delivered', 'cancelled'],
+                true,
+            ),
+            'created_at' => $order->created_at?->toAtomString(),
+        ];
     }
 
     private function orderPayload(Order $order, bool $includeTimeline = false): array

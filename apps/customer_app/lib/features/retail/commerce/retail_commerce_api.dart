@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/b2c_account_api.dart';
@@ -23,6 +25,8 @@ class RetailCommerceException implements Exception {
         fieldErrors: error.fieldErrors,
       );
 }
+
+enum RetailCartSyncState { synced, savedLocally, waitingForNetwork, syncing }
 
 class RetailCartItem {
   const RetailCartItem({
@@ -62,6 +66,7 @@ class RetailCartSnapshot {
     required this.subtotal,
     required this.grandTotal,
     required this.hasUnavailableItems,
+    this.syncState = RetailCartSyncState.synced,
   });
 
   final int storeId;
@@ -70,6 +75,57 @@ class RetailCartSnapshot {
   final double subtotal;
   final double grandTotal;
   final bool hasUnavailableItems;
+  final RetailCartSyncState syncState;
+
+  RetailCartSnapshot withSyncState(RetailCartSyncState value) =>
+      RetailCartSnapshot(
+        storeId: storeId,
+        currency: currency,
+        items: items,
+        subtotal: subtotal,
+        grandTotal: grandTotal,
+        hasUnavailableItems: hasUnavailableItems,
+        syncState: value,
+      );
+
+  RetailCartSnapshot applyPending(List<RetailCartMutation> mutations) {
+    var nextItems = items.toList(growable: true);
+    for (final mutation in mutations) {
+      final index = nextItems.indexWhere((item) => item.id == mutation.itemId);
+      if (mutation.operation == RetailCartMutationOperation.remove) {
+        if (index >= 0) nextItems.removeAt(index);
+        continue;
+      }
+      if (index < 0 || mutation.quantity == null) continue;
+      final current = nextItems[index];
+      final unitPrice =
+          current.quantity <= 0 ? 0.0 : current.lineTotal / current.quantity;
+      nextItems[index] = RetailCartItem(
+        id: current.id,
+        productId: current.productId,
+        name: current.name,
+        quantity: mutation.quantity!,
+        lineTotal: unitPrice * mutation.quantity!,
+        isAvailable: current.isAvailable,
+      );
+    }
+    final nextSubtotal = nextItems.fold<double>(
+      0,
+      (sum, item) => sum + item.lineTotal,
+    );
+    final delta = nextSubtotal - subtotal;
+    return RetailCartSnapshot(
+      storeId: storeId,
+      currency: currency,
+      items: List<RetailCartItem>.unmodifiable(nextItems),
+      subtotal: nextSubtotal,
+      grandTotal: (grandTotal + delta).clamp(0, double.infinity).toDouble(),
+      hasUnavailableItems: nextItems.any((item) => !item.isAvailable),
+      syncState: mutations.isEmpty
+          ? RetailCartSyncState.synced
+          : RetailCartSyncState.waitingForNetwork,
+    );
+  }
 
   factory RetailCartSnapshot.fromPayload(
     Object? value, {
@@ -254,6 +310,116 @@ abstract interface class RetailCommerceApi {
   });
 }
 
+enum RetailCartMutationOperation { update, remove }
+
+class RetailCartMutation {
+  const RetailCartMutation({
+    required this.operation,
+    required this.itemId,
+    this.quantity,
+  });
+
+  final RetailCartMutationOperation operation;
+  final int itemId;
+  final double? quantity;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'operation': operation.name,
+        'item_id': itemId,
+        if (quantity != null) 'quantity': quantity,
+      };
+
+  static RetailCartMutation? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final itemId = _asInt(value['item_id']);
+    if (itemId <= 0) return null;
+    final operation = value['operation']?.toString() == 'remove'
+        ? RetailCartMutationOperation.remove
+        : RetailCartMutationOperation.update;
+    return RetailCartMutation(
+      operation: operation,
+      itemId: itemId,
+      quantity: operation == RetailCartMutationOperation.update
+          ? _asDouble(value['quantity'])
+          : null,
+    );
+  }
+}
+
+abstract interface class RetailCartMutationQueue {
+  Future<List<RetailCartMutation>> read(int storeId);
+  Future<void> upsert(int storeId, RetailCartMutation mutation);
+  Future<void> remove(int storeId, int itemId);
+  Future<void> clear(int storeId);
+}
+
+class SecureRetailCartMutationQueue implements RetailCartMutationQueue {
+  SecureRetailCartMutationQueue({FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage();
+
+  final FlutterSecureStorage _storage;
+  final Map<int, List<RetailCartMutation>> _fallback =
+      <int, List<RetailCartMutation>>{};
+
+  String _key(int storeId) => 'foodex.retail.cart.queue.v1.$storeId';
+
+  @override
+  Future<List<RetailCartMutation>> read(int storeId) async {
+    try {
+      final raw = await _storage.read(key: _key(storeId));
+      if (raw == null || raw.isEmpty) return _fallback[storeId] ?? const [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .map(RetailCartMutation.fromJson)
+          .whereType<RetailCartMutation>()
+          .toList(growable: false);
+    } catch (_) {
+      return List<RetailCartMutation>.unmodifiable(
+        _fallback[storeId] ?? const <RetailCartMutation>[],
+      );
+    }
+  }
+
+  @override
+  Future<void> upsert(int storeId, RetailCartMutation mutation) async {
+    final rows = (await read(storeId)).toList(growable: true)
+      ..removeWhere((row) => row.itemId == mutation.itemId)
+      ..add(mutation);
+    _fallback[storeId] = rows;
+    await _persist(storeId, rows);
+  }
+
+  @override
+  Future<void> remove(int storeId, int itemId) async {
+    final rows = (await read(storeId)).toList(growable: true)
+      ..removeWhere((row) => row.itemId == itemId);
+    _fallback[storeId] = rows;
+    await _persist(storeId, rows);
+  }
+
+  @override
+  Future<void> clear(int storeId) async {
+    _fallback.remove(storeId);
+    try {
+      await _storage.delete(key: _key(storeId));
+    } catch (_) {}
+  }
+
+  Future<void> _persist(int storeId, List<RetailCartMutation> rows) async {
+    try {
+      if (rows.isEmpty) {
+        await _storage.delete(key: _key(storeId));
+      } else {
+        await _storage.write(
+          key: _key(storeId),
+          value: jsonEncode(rows.map((row) => row.toJson()).toList()),
+        );
+      }
+    } catch (_) {}
+  }
+}
+
 class DefaultRetailCommerceApi implements RetailCommerceApi {
   DefaultRetailCommerceApi({
     required this.accountApi,
@@ -261,22 +427,27 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     required this.checkoutOptionsApi,
     required this.guestSession,
     required this.guestCartTokenStore,
-  });
+    RetailCartMutationQueue? mutationQueue,
+  }) : mutationQueue = mutationQueue ?? SecureRetailCartMutationQueue();
 
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
   final RetailCheckoutOptionsApi checkoutOptionsApi;
   final CustomerGuestSession guestSession;
   final CustomerGuestCartTokenStore guestCartTokenStore;
+  final RetailCartMutationQueue mutationQueue;
 
   @override
   Future<RetailCartSnapshot> loadCart({required int storeId}) async {
     _requireStore(storeId);
     await _hydrateGuestToken(storeId);
     guestSession.activateStore(storeId);
+    await _flushPendingMutations(storeId);
     final value = await accountApi.cart(storeId: storeId);
     await _persistGuestToken(storeId);
-    return RetailCartSnapshot.fromPayload(value, expectedStoreId: storeId);
+    final snapshot =
+        RetailCartSnapshot.fromPayload(value, expectedStoreId: storeId);
+    return snapshot.applyPending(await mutationQueue.read(storeId));
   }
 
   @override
@@ -309,9 +480,33 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     }
     await _hydrateGuestToken(storeId);
     guestSession.activateStore(storeId);
-    final value = await accountApi.updateCartItem(itemId, quantity);
-    await _persistGuestToken(storeId);
-    return RetailCartSnapshot.fromPayload(value, expectedStoreId: storeId);
+    try {
+      final value = await accountApi.updateCartItem(itemId, quantity);
+      await mutationQueue.remove(storeId, itemId);
+      await _persistGuestToken(storeId);
+      final snapshot =
+          RetailCartSnapshot.fromPayload(value, expectedStoreId: storeId);
+      return snapshot.applyPending(await mutationQueue.read(storeId));
+    } catch (error, stack) {
+      if (!_isTransientCartError(error)) rethrow;
+      await mutationQueue.upsert(
+        storeId,
+        RetailCartMutation(
+          operation: RetailCartMutationOperation.update,
+          itemId: itemId,
+          quantity: quantity,
+        ),
+      );
+      try {
+        final cached = await accountApi.cart(storeId: storeId);
+        return RetailCartSnapshot.fromPayload(
+          cached,
+          expectedStoreId: storeId,
+        ).applyPending(await mutationQueue.read(storeId));
+      } catch (_) {
+        Error.throwWithStackTrace(error, stack);
+      }
+    }
   }
 
   @override
@@ -322,9 +517,30 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     _requireStore(storeId);
     await _hydrateGuestToken(storeId);
     guestSession.activateStore(storeId);
-    await accountApi.removeCartItem(itemId);
-    await _persistGuestToken(storeId);
-    return loadCart(storeId: storeId);
+    try {
+      await accountApi.removeCartItem(itemId);
+      await mutationQueue.remove(storeId, itemId);
+      await _persistGuestToken(storeId);
+      return await loadCart(storeId: storeId);
+    } catch (error, stack) {
+      if (!_isTransientCartError(error)) rethrow;
+      await mutationQueue.upsert(
+        storeId,
+        RetailCartMutation(
+          operation: RetailCartMutationOperation.remove,
+          itemId: itemId,
+        ),
+      );
+      try {
+        final cached = await accountApi.cart(storeId: storeId);
+        return RetailCartSnapshot.fromPayload(
+          cached,
+          expectedStoreId: storeId,
+        ).applyPending(await mutationQueue.read(storeId));
+      } catch (_) {
+        Error.throwWithStackTrace(error, stack);
+      }
+    }
   }
 
   @override
@@ -363,6 +579,42 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
     }
   }
 
+  Future<void> _flushPendingMutations(int storeId) async {
+    final pending = await mutationQueue.read(storeId);
+    if (pending.isEmpty) return;
+
+    for (final mutation in pending) {
+      try {
+        if (mutation.operation == RetailCartMutationOperation.remove) {
+          await accountApi.removeCartItem(mutation.itemId);
+        } else {
+          final quantity = mutation.quantity;
+          if (quantity == null || quantity <= 0) {
+            await mutationQueue.remove(storeId, mutation.itemId);
+            continue;
+          }
+          await accountApi.updateCartItem(mutation.itemId, quantity);
+        }
+        await mutationQueue.remove(storeId, mutation.itemId);
+      } catch (_) {
+        // Preserve the remaining durable queue. A later foreground refresh will
+        // retry it with the same final-per-item mutation order.
+        return;
+      }
+    }
+    await _persistGuestToken(storeId);
+  }
+
+  bool _isTransientCartError(Object error) {
+    if (error is TimeoutException || error is http.ClientException) return true;
+    return error is B2cAccountException &&
+        const <String>{
+          'network_unavailable',
+          'request_timeout',
+          'service_unavailable',
+        }.contains(error.code);
+  }
+
   Future<void> _hydrateGuestToken(int storeId) async {
     if (guestSession.tokenForStore(storeId) != null) {
       return;
@@ -390,17 +642,85 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
 
 typedef RetailIdempotencyKeyFactory = String Function(int storeId);
 
+abstract interface class RetailCheckoutAttemptStore {
+  Future<String?> read(String fingerprint);
+  Future<void> write(String fingerprint, String idempotencyKey);
+  Future<void> remove(String fingerprint);
+}
+
+class SecureRetailCheckoutAttemptStore implements RetailCheckoutAttemptStore {
+  SecureRetailCheckoutAttemptStore({FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage();
+
+  static const _key = 'foodex.retail.checkout.attempts.v1';
+  static const _ioTimeout = Duration(milliseconds: 250);
+  final FlutterSecureStorage _storage;
+  final Map<String, String> _fallback = <String, String>{};
+
+  Future<Map<String, String>> _readAll() async {
+    try {
+      final raw = await _storage.read(key: _key).timeout(_ioTimeout);
+      if (raw == null || raw.isEmpty) {
+        return Map<String, String>.from(_fallback);
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return Map<String, String>.from(_fallback);
+      return <String, String>{
+        for (final entry in decoded.entries)
+          entry.key.toString(): entry.value.toString(),
+      };
+    } catch (_) {
+      return Map<String, String>.from(_fallback);
+    }
+  }
+
+  Future<void> _persist(Map<String, String> values) async {
+    _fallback
+      ..clear()
+      ..addAll(values);
+    try {
+      if (values.isEmpty) {
+        await _storage.delete(key: _key).timeout(_ioTimeout);
+      } else {
+        await _storage
+            .write(key: _key, value: jsonEncode(values))
+            .timeout(_ioTimeout);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Future<String?> read(String fingerprint) async =>
+      (await _readAll())[fingerprint];
+
+  @override
+  Future<void> write(String fingerprint, String idempotencyKey) async {
+    final values = await _readAll();
+    values[fingerprint] = idempotencyKey;
+    await _persist(values);
+  }
+
+  @override
+  Future<void> remove(String fingerprint) async {
+    final values = await _readAll();
+    values.remove(fingerprint);
+    await _persist(values);
+  }
+}
+
 class RetailCheckoutSubmissionGuard {
   RetailCheckoutSubmissionGuard(
     this.api, {
     RetailIdempotencyKeyFactory? idempotencyKeyFactory,
-  }) : _idempotencyKeyFactory =
-           idempotencyKeyFactory ??
-           ((storeId) =>
-               'retail-$storeId-${DateTime.now().microsecondsSinceEpoch}');
+    RetailCheckoutAttemptStore? attemptStore,
+  })  : _idempotencyKeyFactory = idempotencyKeyFactory ??
+            ((storeId) =>
+                'retail-$storeId-${DateTime.now().microsecondsSinceEpoch}'),
+        _attemptStore = attemptStore ?? SecureRetailCheckoutAttemptStore();
 
   final RetailCommerceApi api;
   final RetailIdempotencyKeyFactory _idempotencyKeyFactory;
+  final RetailCheckoutAttemptStore _attemptStore;
 
   bool _inFlight = false;
   String? _fingerprint;
@@ -418,21 +738,23 @@ class RetailCheckoutSubmissionGuard {
       throw const RetailCommerceException('checkout_in_progress');
     }
 
-    final normalizedCoupon = couponCode?.trim().toUpperCase();
-    final fingerprint = [
-      storeId,
-      addressId,
-      paymentMethod.trim(),
-      normalizedCoupon ?? '',
-    ].join('|');
-
-    if (_fingerprint != fingerprint || _idempotencyKey == null) {
-      _fingerprint = fingerprint;
-      _idempotencyKey = _idempotencyKeyFactory(storeId);
-    }
-
     _inFlight = true;
     try {
+      final normalizedCoupon = couponCode?.trim().toUpperCase();
+      final fingerprint = [
+        storeId,
+        addressId,
+        paymentMethod.trim(),
+        normalizedCoupon ?? '',
+      ].join('|');
+
+      if (_fingerprint != fingerprint || _idempotencyKey == null) {
+        _fingerprint = fingerprint;
+        _idempotencyKey = await _attemptStore.read(fingerprint) ??
+            _idempotencyKeyFactory(storeId);
+        await _attemptStore.write(fingerprint, _idempotencyKey!);
+      }
+
       final order = await api.submitCheckout(
         storeId: storeId,
         addressId: addressId,
@@ -440,6 +762,7 @@ class RetailCheckoutSubmissionGuard {
         couponCode: normalizedCoupon,
         idempotencyKey: _idempotencyKey!,
       );
+      await _attemptStore.remove(fingerprint);
       _fingerprint = null;
       _idempotencyKey = null;
       return order;
@@ -503,7 +826,6 @@ List<Object?> _asList(Object? value) =>
 int _asInt(Object? value, {int fallback = 0}) =>
     value is int ? value : int.tryParse(value?.toString() ?? '') ?? fallback;
 
-double _asDouble(Object? value, {double fallback = 0}) =>
-    value is num
+double _asDouble(Object? value, {double fallback = 0}) => value is num
     ? value.toDouble()
     : double.tryParse(value?.toString() ?? '') ?? fallback;

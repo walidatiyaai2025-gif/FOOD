@@ -32,6 +32,14 @@ class CustomerDiagnostics {
   bool _flushRequested = false;
   String? _uploadBaseUrl;
   String? _uploadToken;
+  int _requestCount = 0;
+  int _downloadedBytes = 0;
+  int _uploadedBytes = 0;
+  int _cacheHits = 0;
+  int _fallbackCacheHits = 0;
+  int _retryCount = 0;
+  int _totalLatencyMs = 0;
+  int? _startupUsableMs;
 
   List<Map<String, dynamic>> get events =>
       List<Map<String, dynamic>>.unmodifiable(_events);
@@ -39,6 +47,24 @@ class CustomerDiagnostics {
   String? get currentRoute => _currentRoute;
   String? get lastSuccessfulApiAt => _lastSuccessfulApiAt;
   String get networkState => _networkState;
+
+  Map<String, Object?> get dataUsageSnapshot => <String, Object?>{
+        'request_count': _requestCount,
+        'downloaded_bytes': _downloadedBytes,
+        'uploaded_bytes': _uploadedBytes,
+        'cache_hits': _cacheHits,
+        'fallback_cache_hits': _fallbackCacheHits,
+        'cache_hit_ratio':
+            _requestCount == 0 ? 0.0 : _cacheHits / _requestCount,
+        'retry_count': _retryCount,
+        'average_latency_ms':
+            _requestCount == 0 ? 0.0 : _totalLatencyMs / _requestCount,
+        'startup_usable_ms': _startupUsableMs,
+      };
+
+  void markStartupUsable(Duration elapsed) {
+    _startupUsableMs ??= elapsed.inMilliseconds;
+  }
 
   Future<void> initialize() async {
     _preferences ??= await SharedPreferences.getInstance();
@@ -86,11 +112,7 @@ class CustomerDiagnostics {
     record('navigation', {'route': safe});
   }
 
-  void record(
-    String type,
-    Map<String, Object?> details, {
-    DateTime? at,
-  }) {
+  void record(String type, Map<String, Object?> details, {DateTime? at}) {
     final event = <String, dynamic>{
       'timestamp': (at ?? DateTime.now()).toUtc().toIso8601String(),
       'type': type,
@@ -157,6 +179,48 @@ class CustomerDiagnostics {
       'path': _sanitizeUri(uri),
       'error': error.toString(),
       'elapsed_ms': elapsed.inMilliseconds,
+    });
+  }
+
+  void recordNetworkTransfer({
+    required String method,
+    required Uri uri,
+    required int? statusCode,
+    required int downloadedBytes,
+    required int uploadedBytes,
+    required Duration elapsed,
+    required String cacheState,
+    String? errorType,
+  }) {
+    _requestCount++;
+    _downloadedBytes += downloadedBytes < 0 ? 0 : downloadedBytes;
+    _uploadedBytes += uploadedBytes < 0 ? 0 : uploadedBytes;
+    _totalLatencyMs += elapsed.inMilliseconds;
+    if (const <String>{'hit', 'stale', 'offline', 'validated', 'fallback'}
+        .contains(cacheState)) {
+      _cacheHits++;
+    }
+    if (cacheState == 'fallback') _fallbackCacheHits++;
+    if (cacheState.contains('retry')) _retryCount++;
+
+    if (statusCode != null) {
+      _networkState = 'reachable';
+      if (statusCode >= 200 && statusCode < 400) {
+        _lastSuccessfulApiAt = DateTime.now().toUtc().toIso8601String();
+      }
+    } else {
+      _networkState = 'unreachable';
+    }
+
+    record('network_transfer', {
+      'method': method,
+      'path': _sanitizeUri(uri),
+      if (statusCode != null) 'status_code': statusCode,
+      'downloaded_bytes': downloadedBytes,
+      'uploaded_bytes': uploadedBytes,
+      'elapsed_ms': elapsed.inMilliseconds,
+      'cache_state': cacheState,
+      if (errorType != null) 'error_type': errorType,
     });
   }
 
@@ -239,9 +303,11 @@ class CustomerDiagnostics {
     }
 
     final pending = _events
-        .where((event) =>
-            event['remote_submitted_at'] == null &&
-            _isRemoteEligible(event['type']?.toString()))
+        .where(
+          (event) =>
+              event['remote_submitted_at'] == null &&
+              _isRemoteEligible(event['type']?.toString()),
+        )
         .take(limit)
         .toList(growable: false);
     if (pending.isEmpty) return 0;
@@ -316,11 +382,10 @@ class CustomerDiagnostics {
       'api_failure' => 'Customer API request failed',
       'api_error' =>
         (details['error'] ?? 'Customer API network failure').toString(),
-      'runtime_failure' =>
-        (details['operation'] ??
-                details['category'] ??
-                'Customer runtime failure')
-            .toString(),
+      'runtime_failure' => (details['operation'] ??
+              details['category'] ??
+              'Customer runtime failure')
+          .toString(),
       _ => 'Customer runtime failure',
     };
 
@@ -347,13 +412,13 @@ class CustomerDiagnostics {
       'metadata': redact({
         if (details['library'] != null) 'library': details['library'],
         if (details['context'] != null) 'context': details['context'],
-        if (details['elapsed_ms'] != null)
-          'elapsed_ms': details['elapsed_ms'],
+        if (details['elapsed_ms'] != null) 'elapsed_ms': details['elapsed_ms'],
         if (details['category'] != null)
           'failure_category': details['category'],
       }),
     };
   }
+
   Future<void> clear() async {
     _events.clear();
     await _preferences?.remove(_storageKey);
@@ -382,9 +447,8 @@ class CustomerDiagnostics {
         'platform_wide': _platformWide,
         'retail_store_context_id': _retailStoreContextId,
       },
-      'navigation': {
-        'current_route': _currentRoute,
-      },
+      'navigation': {'current_route': _currentRoute},
+      'data_usage': dataUsageSnapshot,
       if (note != null && note.trim().isNotEmpty)
         'user_note': redact(note.trim()),
       'event_count': _events.length,
@@ -403,6 +467,9 @@ class CustomerDiagnostics {
       'Platform: ${payload['app']['platform']}',
       'Route: ${payload['navigation']['current_route'] ?? '-'}',
       'Network: ${payload['environment']['network_state']}',
+      'Requests: ${payload['data_usage']['request_count']}',
+      'Downloaded: ${payload['data_usage']['downloaded_bytes']} bytes',
+      'Cache hit ratio: ${payload['data_usage']['cache_hit_ratio']}',
       'Events: ${payload['event_count']}',
       if (note != null && note.trim().isNotEmpty)
         'Note: ${redact(note.trim())}',
@@ -505,9 +572,7 @@ class CustomerDiagnostics {
     // value such as "coordinates=29.375859,47.977405" can be partially
     // consumed at the comma and leak the second coordinate.
     value = value.replaceAll(
-      RegExp(
-        r'(?<!\d)-?\d{1,3}\.\d{4,}\s*[,/]\s*-?\d{1,3}\.\d{4,}(?!\d)',
-      ),
+      RegExp(r'(?<!\d)-?\d{1,3}\.\d{4,}\s*[,/]\s*-?\d{1,3}\.\d{4,}(?!\d)'),
       '[REDACTED_COORDINATES]',
     );
     value = value.replaceAllMapped(
@@ -553,9 +618,8 @@ class CustomerDiagnostics {
   static String _sanitizeUri(Uri uri) {
     final safeQuery = <String, String>{};
     uri.queryParameters.forEach((key, value) {
-      safeQuery[key] = _isSensitiveKey(key)
-          ? '[REDACTED]'
-          : _redactString(value);
+      safeQuery[key] =
+          _isSensitiveKey(key) ? '[REDACTED]' : _redactString(value);
     });
     return uri
         .replace(
@@ -600,17 +664,13 @@ class CustomerDiagnostics {
     final preferences = _preferences;
     if (preferences == null) return;
     final payload = jsonEncode(_events);
-    unawaited(
-      preferences.setString(_storageKey, payload).then<void>((_) {}),
-    );
+    unawaited(preferences.setString(_storageKey, payload).then<void>((_) {}));
   }
 }
 
 class CustomerDiagnosticsHttpClient extends http.BaseClient {
-  CustomerDiagnosticsHttpClient(
-    this._inner, {
-    CustomerDiagnostics? diagnostics,
-  }) : diagnostics = diagnostics ?? CustomerDiagnostics.instance;
+  CustomerDiagnosticsHttpClient(this._inner, {CustomerDiagnostics? diagnostics})
+      : diagnostics = diagnostics ?? CustomerDiagnostics.instance;
 
   final http.Client _inner;
   final CustomerDiagnostics diagnostics;
