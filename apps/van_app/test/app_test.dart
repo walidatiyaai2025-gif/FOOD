@@ -526,7 +526,9 @@ void main() {
         matching: find.byType(Scrollable),
       ).first,
     );
-    final tile = tester.widget<ListTile>(linkedVisit);
+    final tile = tester.widget<ListTile>(
+      find.descendant(of: linkedVisit, matching: find.byType(ListTile)),
+    );
     expect(tile.onTap, isNotNull);
     tile.onTap?.call();
     await tester.pumpAndSettle();
