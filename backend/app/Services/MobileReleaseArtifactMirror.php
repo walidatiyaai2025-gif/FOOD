@@ -49,7 +49,7 @@ final class MobileReleaseArtifactMirror
             ->value('latest_version');
 
         if (! is_string($version) || $version === '') {
-            throw new RuntimeException('FOODEX Android app version policy is missing for '.$app.'.');
+            return $this->currentVersion();
         }
 
         $this->assertVersion($version);
