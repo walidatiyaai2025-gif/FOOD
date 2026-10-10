@@ -491,7 +491,6 @@ class _EvidenceB2bApi implements B2bApi {
           'store_id': 7,
           'order_id': 77,
           'issued_at': '2026-10-01T10:00:00Z',
-          'due_at': '2026-10-20T10:00:00Z',
           'seller': {
             'store_id': 7,
             'name': 'FOODEX Wholesale',

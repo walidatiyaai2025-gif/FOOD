@@ -2526,7 +2526,6 @@ void main() {
           'credit_amount': 0.0,
           'store_id': 7,
           'issued_at': '2026-10-01T10:00:00Z',
-          'due_at': '2026-10-20T10:00:00Z',
           'pdf_path':
               '/api/v1/invoices/31/download?channel=b2b&store_id=7',
         },
@@ -2602,7 +2601,6 @@ void main() {
         'store_id': 7,
         'order_id': 77,
         'issued_at': '2026-10-01T10:00:00Z',
-        'due_at': '2026-10-20T10:00:00Z',
         'seller': {
           'store_id': 7,
           'name': 'FOODEX Wholesale',
