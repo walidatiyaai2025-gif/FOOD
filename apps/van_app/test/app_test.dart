@@ -601,7 +601,16 @@ void main() {
     await tester.pumpAndSettle();
 
     final orderLink = find.byKey(const ValueKey('van-dashboard-order-7001'));
+    await tester.scrollUntilVisible(
+      orderLink,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-dashboard-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
     expect(orderLink, findsOneWidget);
+    await tester.ensureVisible(orderLink);
     await tester.tap(orderLink);
     await tester.pumpAndSettle();
 
@@ -713,8 +722,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
     expect(find.textContaining('Warehouse gate'), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-order-detail-timeline')), findsOneWidget);
     expect(find.byKey(const ValueKey('van-order-action-accepted')), findsOneWidget);
+
+    final timeline = find.byKey(const ValueKey('van-order-detail-timeline'));
+    await tester.scrollUntilVisible(
+      timeline,
+      220,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(timeline, findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-order-action-accepted')),
+      -220,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
 
     await tester.tap(find.byKey(const ValueKey('van-order-action-accepted')));
     await tester.pumpAndSettle();
