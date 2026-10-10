@@ -23,6 +23,7 @@ use App\Services\CommercialFeatureFlags;
 use App\Services\FieldOperationsFinanceService;
 use App\Services\FleetLocationService;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderLiveTrackingService;
 use App\Services\RoutingPolicyService;
 use App\Services\TerritoryService;
 use App\Services\VanCustomerCollectionContextService;
@@ -136,12 +137,13 @@ final class FieldOperationsController extends Controller
         FleetLocationController $fleet,
         FleetLocationService $service,
         OperationalTenantScope $scope,
+        OrderLiveTrackingService $orderTracking,
     ): JsonResponse {
         $user = $this->actor($request);
         $this->authorizeAny($user, ['drivers.tracking.view']);
         $request->merge(['actor_type' => 'van']);
 
-        return $fleet->feed($request, $service, $scope);
+        return $fleet->feed($request, $service, $scope, $orderTracking);
     }
 
     public function vans(Request $request): View
