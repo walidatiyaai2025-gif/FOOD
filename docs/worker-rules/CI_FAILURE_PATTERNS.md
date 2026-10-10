@@ -45,4 +45,11 @@ This registry records reusable failure classes. It is prevention guidance, not a
 
 | Worker Watchdog API-rate-limit storm from broad event scans / duplicate workflow_run triggers | Watchdog event-target unit tests + GitHub rate-limit classification | Reconcile only the event-owned Issue/PR outside scheduled sweeps; listen to the aggregate Required CI Gate once; suppress watchdog-authored comment recursion; treat exhausted installation quota as deferred infrastructure pressure, never branch CI red. |
 
+
+| Local preflight and Required CI classify the same diff differently | `python3 scripts/tests/test_ci_plan.py` + `test_one_push_green_contract.py` | Keep every path/branch expansion in `.ci/ci-map.json`; workflows and shell wrappers call `ci-plan.py` instead of owning regex copies. |
+| Van code reaches GitHub before local analyzer/tests | `bash scripts/worker-preflight.sh --ci-parity` | Van is a first-class changed area and must run format/analyze/focused+full tests before first push. |
+| Flutter unit/widget test depends on direct socket/DNS/HttpClient | `python3 scripts/flutter-test-hermeticity.py` | Inject fake transports/clients; direct external network is forbidden unless an explicitly reviewed test carries the allow marker. |
+| Mutable CI tool selector changes behavior without repository diff | One-Push Green contract test | Pin CLI/action generations explicitly; never use `@latest` in required CI. |
+| GitHub action still runs Node 20 and is force-upgraded by the platform | workflow contract test | Use Node-24 action generations on hosted runners (checkout/setup-node/cache) and upgrade deliberately. |
+
 When a new pattern qualifies under the Recurring Failure Promotion Rule, add it here with its cheapest reliable early detector.
