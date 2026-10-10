@@ -26,6 +26,10 @@ final class OrderLiveTrackingService
     /** @return array<string,mixed>|null */
     private function vanTracking(Order $order): ?array
     {
+        $dispatch = DB::table('order_dispatch_states')
+            ->where('order_id', $order->getKey())
+            ->first(['status', 'decided_at', 'updated_at']);
+
         $assignment = OrderVanAssignment::query()
             ->where('order_id', $order->getKey())
             ->where('status', 'active')
@@ -34,29 +38,51 @@ final class OrderLiveTrackingService
             ->first();
 
         if (! $assignment instanceof OrderVanAssignment) {
-            return null;
+            if ($dispatch === null) {
+                return null;
+            }
+
+            return [
+                'actor_type' => 'van',
+                'assignment_id' => null,
+                'van_id' => null,
+                'van_code' => null,
+                'status' => (string) $dispatch->status,
+                'dispatch_status' => (string) $dispatch->status,
+                'assigned_at' => null,
+                'completed_at' => null,
+                'live_status' => 'offline',
+                'location' => null,
+            ];
         }
 
         $van = Van::query()->find((int) $assignment->van_id);
         $execution = DB::table('order_van_execution_states')
             ->where('order_van_assignment_id', $assignment->getKey())
-            ->first(['status']);
+            ->first(['status', 'last_transition_at']);
 
         $location = FleetCurrentLocation::query()
             ->where('actor_type', 'van')
             ->where('actor_id', (int) $assignment->van_id)
             ->first();
 
+        $status = $execution?->status === null
+            ? (string) $assignment->status
+            : (string) $execution->status;
+
         return [
             'actor_type' => 'van',
             'assignment_id' => (int) $assignment->getKey(),
             'van_id' => (int) $assignment->van_id,
             'van_code' => $van?->code,
-            'status' => $execution?->status === null
-                ? (string) $assignment->status
-                : (string) $execution->status,
+            'status' => $status,
+            'dispatch_status' => $dispatch?->status === null ? null : (string) $dispatch->status,
             'assigned_at' => $assignment->assigned_at?->toAtomString(),
-            'completed_at' => $assignment->ended_at?->toAtomString(),
+            'completed_at' => $status === 'delivered'
+                ? ($execution?->last_transition_at === null
+                    ? $assignment->ended_at?->toAtomString()
+                    : CarbonImmutable::parse((string) $execution->last_transition_at)->toAtomString())
+                : null,
             'live_status' => $location instanceof FleetCurrentLocation
                 ? $this->fleetLocations->status($location)
                 : 'offline',

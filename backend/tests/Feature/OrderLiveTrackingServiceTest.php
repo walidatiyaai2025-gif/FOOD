@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\FleetCurrentLocation;
 use App\Models\Order;
+use App\Models\OrderDispatchState;
 use App\Models\OrderVanAssignment;
 use App\Models\User;
 use App\Models\Van;
@@ -103,6 +104,33 @@ class OrderLiveTrackingServiceTest extends TestCase
         $offline = app(OrderLiveTrackingService::class)->forOrder($order);
         $this->assertSame('offline', $offline['live_status']);
         $this->assertNull($offline['location']);
+    }
+
+    public function test_b2b_awaiting_dispatch_is_explicit_without_fabricating_van_or_location(): void
+    {
+        [$order] = $this->order('b2b', 'TRACK-AWAITING');
+
+        OrderDispatchState::query()->create([
+            'order_id' => $order->id,
+            'status' => 'awaiting_dispatch',
+            'routing_source' => 'smart_routing',
+            'routing_reason' => 'no_eligible_primary_van',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
+            'decision_key' => hash('sha256', 'tracking-awaiting-'.$order->id),
+            'decided_at' => now(),
+        ]);
+
+        $tracking = app(OrderLiveTrackingService::class)->forOrder($order);
+
+        $this->assertSame('van', $tracking['actor_type']);
+        $this->assertSame('awaiting_dispatch', $tracking['status']);
+        $this->assertSame('awaiting_dispatch', $tracking['dispatch_status']);
+        $this->assertSame('offline', $tracking['live_status']);
+        $this->assertNull($tracking['assignment_id']);
+        $this->assertNull($tracking['van_id']);
+        $this->assertNull($tracking['location']);
+        $this->assertArrayNotHasKey('driver_id', $tracking);
     }
 
     public function test_b2c_tracking_stays_driver_even_if_van_assignment_exists(): void

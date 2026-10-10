@@ -96,6 +96,7 @@
             channel: inputValue('channel'),
             store_id: inputValue('store'),
             status: inputValue('status-filter'),
+            order_id: inputValue('order-id'),
         });
 
         const values = kind => ({
@@ -106,7 +107,6 @@
                 route_key: actorKind === 'van' ? inputValue('route-key') : '',
             } : {
                 driver_id: actorKind === 'driver' ? inputValue('driver-id') : '',
-                order_id: actorKind === 'driver' ? inputValue('order-id') : '',
             }),
         });
 
