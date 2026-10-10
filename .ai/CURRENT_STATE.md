@@ -35,3 +35,15 @@ Good: current release line as a dated snapshot; current major mission pointer; a
 Bad: per-worker heartbeat; unqualified "CI is green"; every open bug; chat-only assumptions; credentials or secrets.
 
 Task execution state belongs in Issue/PR handoffs.
+
+
+## Major migration under execution — B2B Van fulfillment
+
+Owner-approved target tracked by **#1190**:
+
+- Wholesale/B2B fulfillment -> Van only.
+- Retail/B2C fulfillment -> Driver only.
+- Order source does not choose fulfillment actor.
+- Existing mixed Driver/Van Wholesale runtime remains migration work until #1190's final E2E gate closes.
+
+Use `docs/execution/FOODEX_B2B_VAN_FULFILLMENT_EXECUTION_PLAN.md` plus live #1190 state. Do not treat the target as already deployed merely because it is recorded here.
