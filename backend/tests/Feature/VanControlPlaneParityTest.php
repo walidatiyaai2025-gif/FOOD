@@ -123,6 +123,7 @@ class VanControlPlaneParityTest extends TestCase
 
     public function test_van_download_uses_current_release_authority(): void
     {
+        Queue::fake();
         $admin = $this->admin();
 
         SystemVersion::query()->create([
@@ -132,7 +133,12 @@ class VanControlPlaneParityTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('admin.mobile-apps.van.download'))
-            ->assertRedirect(route('public.mobile-apps.latest', ['app' => 'van']));
+            ->assertRedirect(route('admin.administration.index', ['download_app' => 'van']));
+
+        Queue::assertPushed(
+            MirrorMobileReleaseArtifacts::class,
+            fn (MirrorMobileReleaseArtifacts $job): bool => $job->version === '9.8.7',
+        );
     }
 
     public function test_preview_center_exposes_real_van_runtime_contract_without_fake_impersonation(): void
