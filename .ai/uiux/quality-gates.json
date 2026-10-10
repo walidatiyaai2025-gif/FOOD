@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "purpose": "Surface-specific authority, interaction, scalability and evidence gates that complement static UI pattern scanning.",
+  "surfaces": {
+    "dashboard": {
+      "authority_sources": [
+        "backend/routes/web.php"
+      ],
+      "required_tests": [
+        "backend/tests/Feature/AdminNavigationAuthorizationAuditTest.php",
+        "backend/tests/Feature/DashboardPaginationContractTest.php",
+        "backend/tests/Feature/DashboardUiComplianceTest.php",
+        "backend/tests/Feature/AdminFilterActionVisualContractTest.php"
+      ],
+      "conditional_tests": {
+        "premium_dashboard": [
+          "backend/tests/Feature/PremiumDashboardAcceptanceTest.php"
+        ]
+      },
+      "evidence_workflows": [
+        ".github/workflows/ui-visual-qa.yml"
+      ],
+      "context_tests": [
+        "backend/tests/Feature/TenantContextTest.php",
+        "backend/tests/Feature/AdminResponsiveLayoutTest.php",
+        "backend/tests/Feature/TypographyContractTest.php"
+      ]
+    },
+    "customer": {
+      "authority_sources": [
+        "apps/customer_app/lib/core/routing/customer_route_authority.dart",
+        "apps/customer_app/lib/core/routing/customer_router.dart"
+      ],
+      "required_tests": [
+        "apps/customer_app/test/customer_route_authority_test.dart",
+        "apps/customer_app/test/customer_navigation_test.dart"
+      ],
+      "interaction_tests": [
+        "apps/customer_app/test/retail_commerce_test.dart",
+        "apps/customer_app/test/customer_orders_ui_v3_test.dart"
+      ],
+      "evidence_tests": [
+        "apps/customer_app/test/screenshot_evidence_test.dart"
+      ],
+      "evidence_workflows": [
+        ".github/workflows/mobile-screenshot-capture.yml"
+      ],
+      "context_tests": [
+        "apps/customer_app/test/customer_route_authority_test.dart"
+      ]
+    },
+    "driver": {
+      "authority_sources": [
+        "apps/driver_app/lib/navigation.dart"
+      ],
+      "required_tests": [
+        "apps/driver_app/test/navigation_test.dart",
+        "apps/driver_app/test/driver_active_journey_test.dart"
+      ],
+      "interaction_tests": [
+        "apps/driver_app/test/driver_wallet_page_test.dart"
+      ],
+      "evidence_tests": [
+        "apps/driver_app/test/screenshot_evidence_test.dart"
+      ],
+      "evidence_workflows": [
+        ".github/workflows/mobile-screenshot-capture.yml"
+      ],
+      "context_tests": [
+        "apps/driver_app/test/navigation_test.dart"
+      ]
+    },
+    "van": {
+      "authority_sources": [
+        "apps/van_app/lib/features/foundation/van_screen_inventory.dart",
+        "apps/van_app/lib/features/foundation/van_foundation_screen.dart"
+      ],
+      "required_tests": [
+        "apps/van_app/test/app_test.dart"
+      ],
+      "interaction_tests": [
+        "apps/van_app/test/van_wallet_page_test.dart"
+      ],
+      "evidence_tests": [
+        "apps/van_app/test/screenshot_evidence_test.dart"
+      ],
+      "evidence_workflows": [
+        ".github/workflows/mobile-screenshot-capture.yml"
+      ],
+      "context_tests": [
+        "apps/van_app/test/app_test.dart"
+      ]
+    }
+  },
+  "cross_surface": {
+    "contracts": [
+      "docs/execution/UI_ROUTE_AUTHORITY.json",
+      "docs/execution/FOODEX_FUNCTION_SCREEN_COVERAGE_MATRIX.md",
+      "docs/quality/LOCALIZATION_CONTRACT.md",
+      "docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md",
+      "docs/architecture/FOODEX_BRAND_SYSTEM.md",
+      "docs/design-reference/ASSET_USAGE.md",
+      "backend/app/Support/StoreContext.php",
+      "backend/tests/Feature/TenantContextTest.php"
+    ],
+    "static_gates": [
+      "scripts/foodex-uiux-audit.py",
+      "scripts/uiux-v42-recovery-audit.py",
+      "scripts/validate_ui_route_convergence.py",
+      "scripts/foodex-ui-contract-plan.py",
+      "scripts/foodex-ui-structure-audit.py",
+      "scripts/foodex-ui-pr-plan.py",
+      "scripts/foodex-ui-intent-plan.py"
+    ],
+    "visual_evidence_matrix": ".ai/uiux/visual-evidence-matrix.json",
+    "structural_signatures": ".ai/uiux/structural-signatures.json",
+    "business_casebook": ".ai/uiux/business-casebook.json",
+    "business_recipes": ".ai/uiux/business-recipes.json",
+    "intent_planner": "scripts/foodex-ui-intent-plan.py"
+  }
+}

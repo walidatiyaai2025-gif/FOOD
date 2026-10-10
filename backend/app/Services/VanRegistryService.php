@@ -157,10 +157,15 @@ final class VanRegistryService
     public function updateAssignment(
         User $actor,
         VanAssignment $assignment,
-        Van $van,
-        array $attributes,
+        Van|array $van,
+        array $attributes = [],
     ): VanAssignment
     {
+        if (is_array($van)) {
+            $attributes = $van;
+            $van = Van::query()->findOrFail((int) ($attributes['van_id'] ?? $assignment->van_id));
+        }
+
         $from = Carbon::parse($attributes['effective_from'] ?? $assignment->effective_from);
         $until = array_key_exists('effective_until', $attributes) && $attributes['effective_until'] !== null && $attributes['effective_until'] !== ''
             ? Carbon::parse($attributes['effective_until'])
@@ -176,6 +181,13 @@ final class VanRegistryService
         if (in_array($type, ['primary', 'backup'], true) === false) {
             throw ValidationException::withMessages([
                 'assignment_type' => ['Assignment type must be primary or backup.'],
+            ]);
+        }
+
+        $status = (string) ($attributes['status'] ?? $assignment->status);
+        if (in_array($status, ['active', 'ended'], true) === false) {
+            throw ValidationException::withMessages([
+                'status' => ['Assignment status must be active or ended.'],
             ]);
         }
 
@@ -199,10 +211,10 @@ final class VanRegistryService
             }
         }
 
-        return DB::transaction(function () use ($actor, $assignment, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
+        return DB::transaction(function () use ($actor, $assignment, $van, $attributes, $from, $until, $type, $status, $territoryKey): VanAssignment {
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
-            if ($type === 'primary') {
+            if ($type === 'primary' && $status === 'active') {
                 $overlap = VanAssignment::query()
                     ->where('id', '!=', $locked->id)
                     ->where('van_id', $van->id)
@@ -370,12 +382,20 @@ final class VanRegistryService
                 OrderVanAssignment::query()->whereIn('id', $orderLinks->pluck('id'))->delete();
             }
 
+            $fleetLocations = DB::table('fleet_current_locations')
+                ->where('actor_type', 'van')
+                ->where('actor_id', $locked->van_id)
+                ->where('assignment_id', $locked->id)
+                ->whereBetween('captured_at', [$from, $until])
+                ->delete();
+
             $locked->delete();
 
             $summary = [
                 'visits' => $visitCount,
                 'order_van_assignments' => $orderLinkCount,
                 'dispatch_states_reset' => $dispatchStatesReset,
+                'fleet_locations' => $fleetLocations,
             ];
 
             $this->audit->record(
@@ -388,6 +408,19 @@ final class VanRegistryService
 
             return $summary;
         });
+    }
+
+    /** @return array{visits:int,dispatch_assignments:int,dispatch_states:int,fleet_locations:int} */
+    public function deleteAssignmentWithOperations(User $actor, VanAssignment $assignment): array
+    {
+        $summary = $this->deleteAssignment($actor, $assignment);
+
+        return [
+            'visits' => $summary['visits'],
+            'dispatch_assignments' => $summary['order_van_assignments'],
+            'dispatch_states' => $summary['dispatch_states_reset'],
+            'fleet_locations' => $summary['fleet_locations'],
+        ];
     }
 
     public function suspend(Van $van, ?Van $transferTarget = null, ?string $reason = null): Van

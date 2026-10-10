@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "archetypes": {
+    "management-list": {
+      "surfaces": [
+        "dashboard"
+      ],
+      "required_capabilities": [
+        "page_header",
+        "filters",
+        "data_surface",
+        "exact_record_actions",
+        "states",
+        "pagination_if_needed"
+      ],
+      "preferred_primitives": [
+        "foodex-page-header",
+        "foodex-ops-toolbar",
+        "foodex-ops-grid",
+        "foodex-ops-actions",
+        "foodex-ops-menu",
+        "foodex-ops-state"
+      ]
+    },
+    "detail-manage": {
+      "surfaces": [
+        "dashboard",
+        "customer",
+        "driver",
+        "van"
+      ],
+      "required_capabilities": [
+        "exact_record_identity",
+        "authoritative_status",
+        "focused_actions",
+        "error_state"
+      ],
+      "preferred_primitives": [
+        "foodex-operational-dialog-host",
+        "foodex-modal",
+        "foodex-ops-detail-grid"
+      ]
+    },
+    "create-edit": {
+      "surfaces": [
+        "dashboard"
+      ],
+      "required_capabilities": [
+        "authoritative_lookups",
+        "validation",
+        "primary_save_action",
+        "error_feedback",
+        "context_return"
+      ],
+      "preferred_primitives": [
+        "foodex-form",
+        "foodex-premium-auto-form",
+        "foodex-control"
+      ]
+    },
+    "dashboard-kpi": {
+      "surfaces": [
+        "dashboard"
+      ],
+      "required_capabilities": [
+        "authoritative_metrics",
+        "loading_empty_error",
+        "responsive_visualization",
+        "business_text_context"
+      ],
+      "contract": "docs/design-reference/FOODEX_VISUALIZATION_CONTRACT.md"
+    },
+    "customer-commerce": {
+      "surfaces": [
+        "customer"
+      ],
+      "required_capabilities": [
+        "persistent_navigation",
+        "compact_header",
+        "search_filter",
+        "shared_states",
+        "real_pricing_availability"
+      ]
+    },
+    "customer-transaction": {
+      "surfaces": [
+        "customer"
+      ],
+      "required_capabilities": [
+        "reference_nowrap",
+        "authoritative_status",
+        "timeline_if_owned",
+        "refresh_last_updated",
+        "single_next_action"
+      ]
+    },
+    "driver-operational": {
+      "surfaces": [
+        "driver"
+      ],
+      "required_capabilities": [
+        "assignment_identity",
+        "one_line_filters",
+        "overflow_actions",
+        "focused_transition_ui",
+        "stale_offline_truthfulness"
+      ]
+    },
+    "van-field-operation": {
+      "surfaces": [
+        "van"
+      ],
+      "required_capabilities": [
+        "foundation_shell",
+        "record_identity",
+        "compact_data_surface",
+        "shared_actions",
+        "stale_offline_truthfulness"
+      ]
+    },
+    "map-geography": {
+      "surfaces": [
+        "dashboard",
+        "driver",
+        "van"
+      ],
+      "required_capabilities": [
+        "authoritative_coordinates",
+        "missing_location_state",
+        "map_first_interaction",
+        "no_fabricated_pins"
+      ]
+    }
+  }
+}

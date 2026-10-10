@@ -19,6 +19,8 @@ class FieldOperationsAdminExposureTest extends TestCase
             'admin.field-operations.vans.suspend',
             'admin.field-operations.assignments',
             'admin.field-operations.assignments.store',
+            'admin.field-operations.assignments.update',
+            'admin.field-operations.assignments.destroy',
             'admin.field-operations.customers',
             'admin.field-operations.visits',
             'admin.field-operations.visits.store',

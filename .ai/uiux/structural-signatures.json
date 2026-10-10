@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "purpose": "Hard minimum structural signatures for newly added FOODEX user-facing screens plus advisory Golden-page similarity for changed screens.",
+  "advisory_similarity_threshold": 0.18,
+  "surfaces": {
+    "dashboard": {
+      "screen_regex": "^backend/resources/views/admin/(?!_)[^/]+\\.blade\\.php$",
+      "required_groups": [
+        {
+          "id": "brand-shell",
+          "any": [
+            "admin._brand-components",
+            "@extends('admin.shell')",
+            "@extends(\"admin.shell\")"
+          ]
+        },
+        {
+          "id": "admin-layout",
+          "all": [
+            "foodex-admin-layout",
+            "foodex-admin-main"
+          ]
+        },
+        {
+          "id": "page-header",
+          "any": [
+            "foodex-page-header"
+          ]
+        },
+        {
+          "id": "localized-copy",
+          "any": [
+            "__(",
+            "@lang("
+          ]
+        }
+      ],
+      "similarity_tokens": [
+        "foodex-admin-layout",
+        "foodex-admin-main",
+        "foodex-admin-page",
+        "foodex-page-header",
+        "foodex-card",
+        "foodex-tabs",
+        "foodex-table",
+        "foodex-ops-grid",
+        "foodex-ops-toolbar",
+        "foodex-ops-actions",
+        "foodex-ops-menu",
+        "foodex-state",
+        "foodex-empty-state",
+        "foodex-modal",
+        "foodex-form",
+        "foodex-filter-action",
+        "aria-label",
+        "role="
+      ]
+    },
+    "customer": {
+      "screen_regex": "^apps/customer_app/lib/(?:features|shared)/.*(?:_screen|_page)\\.dart$",
+      "required_groups": [
+        {
+          "id": "flutter-screen",
+          "any": [
+            "package:flutter/material.dart"
+          ]
+        },
+        {
+          "id": "foodex-style",
+          "any": [
+            "shared/customer_ui_v3",
+            "customer_ui_v3.dart",
+            "foodex_theme.dart",
+            "storefront_design_system.dart",
+            "CustomerPersistentFooter",
+            "CustomerUi"
+          ]
+        },
+        {
+          "id": "localized-copy",
+          "any": [
+            "app_translations.dart",
+            "AppTranslations",
+            "context.tr",
+            "Localizations.localeOf"
+          ]
+        }
+      ],
+      "similarity_tokens": [
+        "CustomerPersistentFooter",
+        "CustomerStateView",
+        "CustomerProductCard",
+        "CustomerSearchPill",
+        "CustomerBadge",
+        "RefreshIndicator",
+        "WidgetsBindingObserver",
+        "Localizations.localeOf",
+        "TextOverflow.ellipsis",
+        "Semantics",
+        "PopupMenuButton",
+        "FutureBuilder",
+        "ListView"
+      ]
+    },
+    "driver": {
+      "screen_regex": "^apps/driver_app/lib/features/.*(?:_screen|_page|_journey)\\.dart$",
+      "required_groups": [
+        {
+          "id": "flutter-screen",
+          "any": [
+            "package:flutter/material.dart"
+          ]
+        },
+        {
+          "id": "foodex-style",
+          "any": [
+            "foodex_theme.dart",
+            "FoodexTheme",
+            "Theme.of(context)"
+          ]
+        },
+        {
+          "id": "localized-copy",
+          "any": [
+            "driver_translations.dart",
+            "DriverTranslations",
+            "Localizations.localeOf"
+          ]
+        }
+      ],
+      "similarity_tokens": [
+        "FoodexTheme",
+        "Theme.of(context)",
+        "WidgetsBindingObserver",
+        "Timer.periodic",
+        "Localizations.localeOf",
+        "TextOverflow.ellipsis",
+        "PopupMenuButton",
+        "Semantics",
+        "_stale",
+        "_loading",
+        "_error",
+        "RefreshIndicator",
+        "ListView"
+      ]
+    },
+    "van": {
+      "screen_regex": "^apps/van_app/lib/features/.*(?:_screen|_page)\\.dart$",
+      "required_groups": [
+        {
+          "id": "flutter-screen",
+          "any": [
+            "package:flutter/material.dart"
+          ]
+        },
+        {
+          "id": "foodex-style",
+          "any": [
+            "foodex_van_theme.dart",
+            "FoodexVanTokens",
+            "FoodexVanTheme",
+            "Theme.of(context)"
+          ]
+        },
+        {
+          "id": "localized-copy",
+          "any": [
+            "Localizations.localeOf",
+            "van_translations.dart",
+            "_text("
+          ]
+        }
+      ],
+      "similarity_tokens": [
+        "FoodexVanTokens",
+        "FoodexVanTheme",
+        "VanActionButton",
+        "VanIconAction",
+        "WidgetsBindingObserver",
+        "Localizations.localeOf",
+        "TextOverflow.ellipsis",
+        "Semantics",
+        "_stale",
+        "_loading",
+        "_error",
+        "RefreshIndicator",
+        "ListView"
+      ]
+    }
+  },
+  "drift_sources": {
+    "dashboard": {
+      "backend/resources/views/admin/_brand-components.blade.php": [
+        "foodex-page-header",
+        "foodex-ops-actions",
+        "foodex-modal",
+        "foodex-form",
+        "foodex-filter-action"
+      ],
+      "backend/resources/views/admin/_brand.blade.php": [
+        "--foodex-green",
+        "--foodex-background",
+        "--foodex-border",
+        "--foodex-font-family"
+      ]
+    },
+    "customer": {
+      "apps/customer_app/lib/shared/customer_ui_v3/customer_components.dart": [
+        "CustomerProductCard",
+        "CustomerSearchPill",
+        "CustomerBadge"
+      ],
+      "apps/customer_app/lib/shared/customer_ui_v3/customer_states.dart": [
+        "CustomerStateView"
+      ],
+      "apps/customer_app/lib/shared/customer_persistent_footer.dart": [
+        "CustomerPersistentFooter"
+      ]
+    },
+    "driver": {
+      "apps/driver_app/lib/core/theme/foodex_theme.dart": [
+        "FoodexTheme"
+      ],
+      "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart": [
+        "DriverActiveJourneyPage",
+        "WidgetsBindingObserver"
+      ]
+    },
+    "van": {
+      "apps/van_app/lib/core/theme/foodex_van_theme.dart": [
+        "FoodexVanTokens"
+      ],
+      "apps/van_app/lib/shared/van_action_button.dart": [
+        "VanActionButton",
+        "VanIconAction"
+      ],
+      "apps/van_app/lib/features/foundation/van_foundation_screen.dart": [
+        "VanFoundationScreen"
+      ]
+    }
+  }
+}

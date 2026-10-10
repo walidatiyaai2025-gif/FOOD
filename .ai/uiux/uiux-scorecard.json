@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "name": "FOODEX UI/UX static compliance scorecard",
+  "threshold": 90,
+  "critical_violation_blocks": true,
+  "note": "Static score complements mandatory route, interaction, performance and runtime evidence gates; it is not visual/product acceptance by itself.",
+  "categories": [
+    {
+      "id": "architecture-reuse",
+      "weight": 12
+    },
+    {
+      "id": "design-tokens-components",
+      "weight": 10
+    },
+    {
+      "id": "route-authority-navigation",
+      "weight": 13
+    },
+    {
+      "id": "business-ux",
+      "weight": 13
+    },
+    {
+      "id": "interaction-mutation-safety",
+      "weight": 12
+    },
+    {
+      "id": "states-truthfulness",
+      "weight": 10
+    },
+    {
+      "id": "localization-direction",
+      "weight": 10
+    },
+    {
+      "id": "responsive-density",
+      "weight": 7
+    },
+    {
+      "id": "accessibility-input-modality",
+      "weight": 6
+    },
+    {
+      "id": "performance-scalability",
+      "weight": 4
+    },
+    {
+      "id": "runtime-evidence",
+      "weight": 3
+    }
+  ]
+}

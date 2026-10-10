@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "id": "dashboard-local-hex-color",
+      "severity": "error",
+      "deduction": 20,
+      "scope_regex": "^backend/resources/views/admin/(?!_brand\\.blade\\.php$|_brand-components\\.blade\\.php$).*\\.blade\\.php$",
+      "added_regex": "#[0-9A-Fa-f]{6}\\b",
+      "message": "Dashboard page adds a hard-coded hex color instead of a FOODEX token/shared primitive."
+    },
+    {
+      "id": "dashboard-bootstrap-primary",
+      "severity": "error",
+      "deduction": 20,
+      "scope_regex": "^backend/resources/views/admin/.*\\.blade\\.php$",
+      "added_regex": "\\bbtn-primary\\b",
+      "message": "Default Bootstrap primary styling is not the FOODEX action system."
+    },
+    {
+      "id": "dashboard-visible-raw-id-input",
+      "severity": "error",
+      "deduction": 25,
+      "scope_regex": "^backend/resources/views/admin/.*\\.blade\\.php$",
+      "added_regex": "<input\\b(?=[^>]*(?:name|id)=[\"'][^\"']*_id[\"'])(?=[^>]*type=[\"'](?:text|number)[\"'])[^>]*>",
+      "message": "Visible raw *_id input detected; use an authoritative lookup/select/builder."
+    },
+    {
+      "id": "mobile-local-color",
+      "severity": "error",
+      "deduction": 20,
+      "scope_regex": "^apps/(customer|driver|van)_app/lib/(?!core/theme/|shared/).*\\.dart$",
+      "added_regex": "\\bColor\\(\\s*0x[0-9A-Fa-f]{8}\\s*\\)",
+      "message": "Feature screen adds a hard-coded Color(0x...) instead of the surface theme/tokens."
+    },
+    {
+      "id": "mobile-local-theme-system",
+      "severity": "error",
+      "deduction": 30,
+      "scope_regex": "^apps/(customer|driver|van)_app/lib/features/.*\\.dart$",
+      "added_regex": "\\b(?:ThemeData|ColorScheme(?:\\.fromSeed)?)\\s*\\(",
+      "message": "Feature screen creates a parallel theme/color system."
+    },
+    {
+      "id": "mobile-parallel-navigation",
+      "severity": "error",
+      "deduction": 30,
+      "scope_regex": "^apps/(customer|driver|van)_app/lib/features/.*\\.dart$",
+      "added_regex": "\\b(?:BottomNavigationBar|NavigationBar)\\s*\\(",
+      "exclude_paths": [
+        "apps/customer_app/lib/features/retail/customer_ui_v3/customer_retail_shell.dart",
+        "apps/customer_app/lib/features/b2b/b2b_journey_screen.dart",
+        "apps/van_app/lib/features/foundation/van_foundation_screen.dart"
+      ],
+      "message": "Feature screen creates a second navigation shell instead of using the canonical surface navigation."
+    }
+  ]
+}

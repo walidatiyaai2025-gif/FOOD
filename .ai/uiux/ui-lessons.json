@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "promotion_rule": "Add only verified reusable lessons with Issue/PR/SHA/test evidence. Promote repeated execution lessons into the relevant skill or automated rule.",
+  "lessons": [
+    {
+      "id": "UI-LESSON-001",
+      "rule": "Business UI must not expose visible raw internal IDs/JSON when an authoritative lookup/enum/builder exists.",
+      "evidence": [
+        "docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md",
+        "scripts/uiux-v42-recovery-audit.py"
+      ]
+    },
+    {
+      "id": "UI-LESSON-002",
+      "rule": "Multiple row actions collapse into the canonical ellipsis/overflow pattern.",
+      "evidence": [
+        "backend/resources/views/admin/_brand-components.blade.php",
+        "scripts/mobile-ux-contract-guard.py"
+      ]
+    },
+    {
+      "id": "UI-LESSON-003",
+      "rule": "Retained dynamic data must be visibly stale/offline instead of appearing live.",
+      "evidence": [
+        "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart",
+        "apps/van_app/lib/features/orders/van_orders_page.dart"
+      ]
+    },
+    {
+      "id": "UI-LESSON-004",
+      "rule": "Short owner prompts such as 'اعمل صفحة' inherit the full FOODEX UI/UX contract and do not authorize a new design language.",
+      "evidence": [
+        ".ai/skills/foodex-uiux.md",
+        "AGENTS.md"
+      ]
+    }
+  ]
+}
