@@ -45,7 +45,7 @@ python3 scripts/ci-plan.py --base "$base" --head WORKTREE --branch "$branch"
 
 echo
 echo "Resolved skill pack:"
-python3 scripts/foodex-skill-router.py --base "$base" --head WORKTREE --strict || true
+python3 scripts/foodex-skill-router.py --base "$base" --head WORKTREE --strict
 
 echo
 echo "Recent commits:"
