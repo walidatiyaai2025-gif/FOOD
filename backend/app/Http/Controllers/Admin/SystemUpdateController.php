@@ -7,13 +7,14 @@ use App\Domain\Updater\UpdatePackageManifest;
 use App\Http\Controllers\Controller;
 use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
-use App\Services\MobileReleaseArtifactMirror;
 use App\Models\User;
+use App\Services\MobileReleaseArtifactMirror;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
+use Throwable;
 use ZipArchive;
 
 final class SystemUpdateController extends Controller
@@ -33,7 +34,11 @@ final class SystemUpdateController extends Controller
         // Its redirect is the first request using the new code, so the existing
         // success flash is the bootstrap signal for the new local APK mirror.
         if ($request->session()->has('status')) {
-            $this->mobileArtifacts->ensureScheduled($currentVersion);
+            try {
+                $this->mobileArtifacts->ensureScheduled($currentVersion);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
 
         return view('admin.system-update', [
@@ -86,7 +91,11 @@ final class SystemUpdateController extends Controller
                 $user,
             );
 
-            $this->mobileArtifacts->ensureScheduled($history->to_version);
+            try {
+                $this->mobileArtifacts->ensureScheduled($history->to_version);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
 
             return redirect()
                 ->route('admin.system-update.index')
