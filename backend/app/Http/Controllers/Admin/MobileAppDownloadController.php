@@ -40,12 +40,24 @@ final class MobileAppDownloadController extends Controller
     {
         Gate::authorize('platform.manage');
 
-        $version = $this->mirror->ensureScheduled();
+        $version = $this->mirror->currentVersion();
 
         return response()->json([
             'version' => $version,
             'artifacts' => $this->mirror->statusPayload($version),
         ]);
+    }
+
+    public function prepare(): JsonResponse
+    {
+        Gate::authorize('platform.manage');
+
+        $version = $this->mirror->ensureScheduled();
+
+        return response()->json([
+            'version' => $version,
+            'artifacts' => $this->mirror->statusPayload($version),
+        ], 202);
     }
 
     public function retry(): JsonResponse
