@@ -10,6 +10,7 @@ import 'package:foodex_van_app/features/notifications/van_notification_contract.
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
 import 'package:foodex_van_app/features/orders/van_order_detail_page.dart';
+import 'package:foodex_van_app/features/orders/van_order_proof_picker.dart';
 import 'package:foodex_van_app/shared/van_action_button.dart';
 
 Future<void> _scrollUntilBuilt(
@@ -883,6 +884,98 @@ void main() {
     expect(find.text('Completed with order'), findsOneWidget);
   });
 
+  testWidgets('Van Order Detail completes proof failure and retry UX',
+      (tester) async {
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: VanOrderDetailPage(
+          orderId: 7001,
+          repository: orders,
+          proofPicker: const _ProofPicker(),
+          onSessionExpired: () async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final proofAction = find.byKey(const ValueKey('van-order-proof-action'));
+    expect(proofAction, findsOneWidget);
+    await tester.tap(proofAction);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-proof-evidence-sheet')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-proof-camera')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-proof-attached')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('van-proof-submit')));
+    await tester.pumpAndSettle();
+
+    expect(orders.transitions, contains('proof_upload'));
+    expect(find.byKey(const ValueKey('van-order-proof-ready')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('van-order-action-delivered')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-order-fail-action')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-failure-evidence-sheet')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-failure-reason')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Other').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('van-failure-submit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-evidence-validation')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('van-evidence-note')),
+      'Entrance blocked',
+    );
+    await tester.tap(find.byKey(const ValueKey('van-failure-submit')));
+    await tester.pumpAndSettle();
+
+    expect(orders.executionStatus, 'failed');
+    expect(orders.failureReasonCode, 'other');
+    expect(
+      find.byKey(const ValueKey('van-order-retry-action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('van-order-failure-note')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-order-retry-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('van-retry-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(orders.transitions, contains('retry'));
+    expect(orders.executionStatus, 'out_for_delivery');
+    expect(orders.deliveryProofReady, isFalse);
+    expect(
+      find.byKey(const ValueKey('van-order-proof-action')),
+      findsOneWidget,
+    );
+  });
+
 }
 
 
@@ -1436,6 +1529,9 @@ class _RouteCustomersRepository implements VanWalletRepository {
 class _OrderRepository implements VanOrderRepository {
   int createdCount = 0;
   String executionStatus = 'assigned';
+  bool deliveryProofReady = false;
+  String? failureReasonCode;
+  String? failureNote;
   final List<String> transitions = [];
 
   VanOrderRecord _record() => VanOrderRecord(
@@ -1592,6 +1688,17 @@ class _OrderRepository implements VanOrderRepository {
       status: executionStatus,
       allowedActions: allowed,
       proofRequiredForDelivered: true,
+      deliveryProofReady: deliveryProofReady,
+      failureReasonCode: failureReasonCode,
+      failureNote: failureNote,
+      latestProof: deliveryProofReady
+          ? const VanOrderProofRecord(
+              id: 91,
+              type: 'delivery_image',
+              available: true,
+              capturedAt: '2026-10-07T11:15:00+03:00',
+            )
+          : null,
     );
   }
 
@@ -1603,9 +1710,80 @@ class _OrderRepository implements VanOrderRepository {
   }) async {
     transitions.add(status);
     executionStatus = status;
+    if (status != 'out_for_delivery') deliveryProofReady = false;
     return execution(orderId);
   }
 
+  @override
+  Future<List<VanFailureReasonOption>> failedDeliveryReasons() async => const [
+        VanFailureReasonOption(
+          code: 'customer_no_answer',
+          labelAr: 'العميل لا يجيب',
+          labelEn: 'Customer did not answer',
+        ),
+        VanFailureReasonOption(
+          code: 'other',
+          labelAr: 'أخرى',
+          labelEn: 'Other',
+        ),
+      ];
+
+  @override
+  Future<VanOrderExecutionState> uploadProof({
+    required int orderId,
+    required VanProofAttachment proof,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    transitions.add('proof_upload');
+    deliveryProofReady = true;
+    return execution(orderId);
+  }
+
+  @override
+  Future<VanOrderExecutionState> failOrder({
+    required int orderId,
+    required String failureReason,
+    required String idempotencyKey,
+    String? note,
+    VanProofAttachment? proof,
+  }) async {
+    transitions.add('failed');
+    executionStatus = 'failed';
+    failureReasonCode = failureReason;
+    failureNote = note;
+    deliveryProofReady = false;
+    return execution(orderId);
+  }
+
+  @override
+  Future<VanOrderExecutionState> retryOrder({
+    required int orderId,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    transitions.add('retry');
+    executionStatus = 'out_for_delivery';
+    failureReasonCode = null;
+    failureNote = null;
+    deliveryProofReady = false;
+    return execution(orderId);
+  }
+}
+
+class _ProofPicker implements VanOrderProofPicker {
+  const _ProofPicker();
+
+  @override
+  Future<VanProofAttachment?> pickCamera() async => const VanProofAttachment(
+        path: '/tmp/van-proof.jpg',
+        fileName: 'van-proof.jpg',
+        byteLength: 1024,
+        mimeType: 'image/jpeg',
+      );
+
+  @override
+  Future<VanProofAttachment?> pickGallery() => pickCamera();
 }
 
 
