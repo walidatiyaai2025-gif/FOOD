@@ -184,7 +184,13 @@ void main() {
 
           final finance =
               find.byKey(const ValueKey('van-order-finance'));
-          await tester.ensureVisible(finance);
+          await tester.scrollUntilVisible(
+            finance,
+            180,
+            scrollable: find.byKey(
+              const ValueKey('van-order-detail-page'),
+            ),
+          );
           await tester.pumpAndSettle();
           expect(
             find.byKey(const ValueKey('van-order-collect-action')),
