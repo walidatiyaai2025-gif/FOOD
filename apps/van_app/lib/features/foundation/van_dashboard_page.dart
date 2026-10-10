@@ -43,6 +43,7 @@ class _VanDashboardPageState extends State<VanDashboardPage>
   List<VanWalletAccount> _accounts = const [];
   List<VanCustomerScope> _customers = const [];
   List<VanOrderRecord> _orders = const [];
+  bool _ordersUnavailable = false;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -85,13 +86,24 @@ class _VanDashboardPageState extends State<VanDashboardPage>
       final results = await Future.wait<Object>([
         widget.repository.wallet(),
         widget.repository.customers(),
-        widget.orderRepository.orders(),
       ]);
+
+      var orders = _orders;
+      var ordersUnavailable = false;
+      try {
+        orders = await widget.orderRepository.orders();
+      } on VanSessionExpiredException {
+        rethrow;
+      } catch (_) {
+        ordersUnavailable = true;
+      }
+
       if (!mounted) return;
       setState(() {
         _accounts = results[0] as List<VanWalletAccount>;
         _customers = results[1] as List<VanCustomerScope>;
-        _orders = results[2] as List<VanOrderRecord>;
+        _orders = orders;
+        _ordersUnavailable = ordersUnavailable;
         _loading = false;
         _refreshing = false;
         _stale = false;
@@ -302,7 +314,17 @@ class _VanDashboardPageState extends State<VanDashboardPage>
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
-                  if (_attentionOrders.isEmpty)
+                  if (_ordersUnavailable)
+                    Text(
+                      _text(
+                        'Order feed is temporarily unavailable. Financial totals remain current.',
+                        'قائمة الطلبات غير متاحة مؤقتًا. تظل الإجماليات المالية محدثة.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: FoodexVanTokens.muted,
+                          ),
+                    )
+                  else if (_attentionOrders.isEmpty)
                     Text(_text('No active orders.', 'لا توجد طلبات نشطة.'))
                   else
                     for (final order in _attentionOrders)
