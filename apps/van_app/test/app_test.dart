@@ -1386,6 +1386,23 @@ class _OrderRepository implements VanOrderRepository {
                 createdAt: '2026-10-07T10:00:00+03:00',
               ),
             ];
+
+  @override
+  Future<VanOrderDetail> order(int orderId) =>
+      throw UnimplementedError('Order detail is not used by this fixture.');
+
+  @override
+  Future<VanOrderExecutionState> execution(int orderId) =>
+      throw UnimplementedError('Order execution is not used by this fixture.');
+
+  @override
+  Future<VanOrderExecutionState> transitionOrder({
+    required int orderId,
+    required String status,
+    required String idempotencyKey,
+  }) =>
+      throw UnimplementedError('Order transition is not used by this fixture.');
+
 }
 
 
