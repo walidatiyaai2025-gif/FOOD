@@ -7,12 +7,13 @@ This is the default entry skill whenever the request is to build, redesign, spli
 Read:
 1. `.ai/skills/foodex-uiux.md`
 2. `.ai/skills/ui-pattern-library.md`
-3. exactly one or more surface skills:
+3. `.ai/skills/page-patterns.md`
+4. exactly one or more surface skills:
    - `.ai/skills/dashboard-uiux.md`
    - `.ai/skills/customer-uiux.md`
    - `.ai/skills/driver-uiux.md`
    - `.ai/skills/van-uiux.md`
-4. the authoritative contract/files named by that skill.
+5. the authoritative contract/files named by that skill.
 
 Do not start markup/widget code before this pass.
 
