@@ -84,6 +84,7 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         builder: (_) => VanOrderDetailPage(
           orderId: orderId,
           repository: widget.orderRepository,
+          walletRepository: widget.walletRepository,
           onSessionExpired: widget.onLogout,
         ),
       ),
