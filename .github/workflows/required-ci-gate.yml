@@ -28,7 +28,7 @@ jobs:
       dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}
       mobile_ui: ${{ steps.filter.outputs.mobile_ui }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -279,7 +279,7 @@ jobs:
     if: ${{ needs.changes.outputs.operational_completion_e2e == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate B2B/B2C/store isolation contracts
         run: bash ./scripts/commerce-isolation-acceptance.sh
       - name: Validate synchronized release readiness
@@ -291,7 +291,7 @@ jobs:
     if: ${{ needs.changes.outputs.c13_integrated_e2e == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
