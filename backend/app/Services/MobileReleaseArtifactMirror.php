@@ -42,6 +42,33 @@ final class MobileReleaseArtifactMirror
         $this->assertVersion($version);
         $this->ensureRecords($version);
 
+        MobileReleaseArtifact::query()
+            ->where('version', $version)
+            ->whereIn('status', ['downloading', 'verifying'])
+            ->whereNotNull('started_at')
+            ->where('started_at', '<', now()->subMinutes(20))
+            ->update([
+                'status' => 'failed',
+                'last_error' => 'Previous APK mirror attempt became stale and will be retried.',
+                'updated_at' => now(),
+            ]);
+
+        MobileReleaseArtifact::query()
+            ->where('version', $version)
+            ->where('status', 'ready')
+            ->get()
+            ->each(function (MobileReleaseArtifact $artifact): void {
+                if (! is_string($artifact->local_path)
+                    || $artifact->local_path === ''
+                    || ! is_file(storage_path('app/private/'.$artifact->local_path))) {
+                    $artifact->forceFill([
+                        'status' => 'failed',
+                        'local_path' => null,
+                        'last_error' => 'Verified local APK is missing and will be mirrored again.',
+                    ])->save();
+                }
+            });
+
         $needsSync = MobileReleaseArtifact::query()
             ->where('version', $version)
             ->whereIn('status', ['pending', 'failed'])
