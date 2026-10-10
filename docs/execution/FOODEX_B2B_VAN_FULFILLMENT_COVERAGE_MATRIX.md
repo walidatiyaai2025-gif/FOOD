@@ -15,14 +15,14 @@ Status vocabulary:
 
 | ID | Priority | Area | Required capability | Current baseline | Target evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| BF-001 | Critical | Policy | Channel determines fulfillment actor | Mixed historical Driver/Van assumptions | Backend contract tests: B2B Van-only, B2C Driver-only | PLANNED |
+| BF-001 | Critical | Policy | Channel determines fulfillment actor | Mixed historical Driver/Van assumptions | `FulfillmentActorPolicy`; `B2BVanFulfillmentMigrationAuditTest::test_channel_actor_contract_is_explicit`; PR #1209 | EVIDENCED |
 | BF-002 | Critical | Routing | Customer App B2B order invokes Smart Routing | Routing service exists; order-create integration incomplete | E2E Customer checkout -> OrderVanAssignment | PLANNED |
 | BF-003 | Critical | Routing | Dashboard-created B2B invokes same routing | Order engine exists | E2E Dashboard order -> Van assignment | PLANNED |
 | BF-004 | Critical | Routing | Van-created B2B invokes same routing | Van order capture exists | E2E visit order -> policy-selected Van | PLANNED |
 | BF-005 | Critical | Routing | No Driver fallback for unresolved B2B | Manual Driver dispatch currently exists generically | awaiting_dispatch + explicit Van-only manual queue | PLANNED |
-| BF-006 | Critical | Routing | B2C never auto-assigns Van | Van routing service accepts generic Order | B2C routing guard test | PLANNED |
+| BF-006 | Critical | Routing | B2C never auto-assigns Van | Van routing service accepts generic Order | `OrderTerritoryRoutingService` actor guard; `OrderTerritoryRoutingServiceTest::test_b2c_order_cannot_enter_van_routing_runtime`; PR #1209 | EVIDENCED |
 | BF-007 | Critical | Dispatch | Manual B2B dispatch offers/accepts Van only | assignDriver + assignVan both exist | UI/API authorization tests | PLANNED |
-| BF-008 | Critical | Dispatch | Manual B2C dispatch offers/accepts Driver only | mixed dispatch capability exists | UI/API authorization tests | PLANNED |
+| BF-008 | Critical | Dispatch | Manual B2C dispatch offers/accepts Driver only | mixed dispatch capability exists | `OrderManualDispatchService` actor guards; `OrderManualDispatchServiceTest::test_manual_dispatch_rejects_cross_channel_actor_assignment`; PR #1209 | EVIDENCED |
 | BF-009 | High | Routing | Reassignment preserves history | OrderVanAssignment history foundation exists | reassignment + audit test | PLANNED |
 | BF-010 | High | Routing | Physically loaded/out-for-delivery work not silently rerouted | policy concept exists | lock/override acceptance test | PLANNED |
 | BF-011 | Critical | Backend | Van assigned-order query includes Customer/Dashboard-created orders | Van order list is visit/customer scoped | active OrderVanAssignment read-model test | PLANNED |
@@ -79,10 +79,10 @@ Status vocabulary:
 | BF-062 | High | Customer | failed/retry/delivered timeline accurate | timeline service exists | contract test | PLANNED |
 | BF-063 | Critical | Warehouse | ready/pickup workflow does not skip order state | wholesale prep exists | backend E2E | PLANNED |
 | BF-064 | High | Warehouse | loaded work protected from silent reroute | routing controls exist | integration test | PLANNED |
-| BF-065 | Critical | Migration | Inventory all open B2B Driver/Van contradictions | not yet cutover-audited | dry-run report | PLANNED |
+| BF-065 | Critical | Migration | Inventory all open B2B Driver/Van contradictions | not yet cutover-audited | `foodex:audit-b2b-van-cutover`; `B2BVanFulfillmentMigrationAudit`; deterministic no-write test; `FOODEX_B2B_VAN_W01_MIGRATION_DRY_RUN.md`; PR #1209 | EVIDENCED |
 | BF-066 | Critical | Migration | Active B2B Driver assignments ended with audit | not migrated | migration test | PLANNED |
 | BF-067 | Critical | Migration | Open B2B re-routed to Van or awaiting_dispatch | not migrated | production-like backfill test | PLANNED |
-| BF-068 | Critical | Migration | B2C active Van contradictions cleaned | not audited | migration report/test | PLANNED |
+| BF-068 | Critical | Migration | B2C active Van contradictions cleaned | not audited | W01 inventory evidence: `b2c_active_van` + `b2c_dispatch_van` in dry-run/test; destructive cleanup intentionally deferred to W14 #1205; PR #1209 | EVIDENCED (W01 AUDIT) |
 | BF-069 | High | Migration | historical Driver B2B remains readable | historical data exists | audit/read regression | PLANNED |
 | BF-070 | Critical | Security | Van A cannot act on Van B order | scope partial | authorization test | PLANNED |
 | BF-071 | Critical | Security | store/channel ID tampering fails safely | platform guards exist | 403/404 tests | PLANNED |

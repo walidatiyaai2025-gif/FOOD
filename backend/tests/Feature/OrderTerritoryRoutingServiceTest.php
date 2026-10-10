@@ -16,6 +16,7 @@ use App\Services\TerritoryService;
 use App\Services\VanRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class OrderTerritoryRoutingServiceTest extends TestCase
@@ -119,13 +120,30 @@ class OrderTerritoryRoutingServiceTest extends TestCase
         $this->assertDatabaseCount('order_van_assignments', 0);
     }
 
+    public function test_b2c_order_cannot_enter_van_routing_runtime(): void
+    {
+        [$order, $territory, $actor] = $this->orderInsideTerritory('B2C-GUARD');
+        $order->forceFill(['channel' => 'b2c'])->save();
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'VAN-B2C-GUARD']);
+        $registry->assign($actor, $van, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-01T00:00:00Z',
+        ]);
+
+        $this->expectException(ValidationException::class);
+        app(OrderTerritoryRoutingService::class)->route($order, $actor, '2026-10-08T12:00:00Z');
+    }
+
     /** @return array{0:Order,1:ServiceTerritory,2:User} */
     private function orderInsideTerritory(string $suffix): array
     {
         $actor = User::factory()->create();
         $type = StoreType::query()->create(['code' => 'type-'.strtolower($suffix), 'name' => 'Type '.$suffix]);
         $store = Store::query()->create(['store_type_id' => $type->id, 'code' => 'STORE-'.$suffix, 'name' => 'Store '.$suffix]);
-        $customer = Customer::query()->create(['name' => 'Customer '.$suffix, 'type' => 'b2c']);
+        $customer = Customer::query()->create(['name' => 'Customer '.$suffix, 'type' => 'b2b']);
 
         $country = GeographyNode::query()->create([
             'type' => 'country',
@@ -154,7 +172,7 @@ class OrderTerritoryRoutingServiceTest extends TestCase
             'store_id' => $store->id,
             'customer_id' => $customer->id,
             'order_number' => 'ROUTE-'.$suffix,
-            'channel' => 'b2c',
+            'channel' => 'b2b',
             'status' => 'pending',
             'currency' => 'KWD',
             'subtotal' => 1,

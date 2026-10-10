@@ -476,7 +476,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('This order requires a Customer Service dispatch decision.');
     }
 
-    public function test_pending_wholesale_dispatch_requires_customer_service_override(): void
+    public function test_pending_wholesale_dispatch_never_allows_driver_even_with_customer_service_override(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
         $customer = app(B2bCustomerService::class)->create([
@@ -554,17 +554,17 @@ class OrderOperationsIsolationTest extends TestCase
                 'assignee_id' => $driver,
                 'reason' => 'Approved by Customer Service',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasErrors('assignee_type');
 
-        $this->assertDatabaseHas('driver_assignments', [
+        $this->assertDatabaseMissing('driver_assignments', [
             'order_id' => $order,
             'driver_id' => $driver,
             'status' => 'assigned',
         ]);
-        $this->assertDatabaseHas('order_dispatch_states', [
+        $this->assertDatabaseMissing('order_dispatch_states', [
             'order_id' => $order,
             'status' => 'assigned',
-            'routing_source' => 'manual_customer_service',
             'current_assignee_type' => 'driver',
             'current_assignee_id' => $driver,
         ]);
