@@ -232,18 +232,20 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     void open() {
       final navigator = _navigatorKey.currentState;
       if (navigator == null) return;
-      final repository = widget.orderRepository ??
-          HttpVanOrderRepository(
-            VanApiClient(
-              FoodexEnvironment.apiBaseUrl,
-              session.token,
-            ),
-          );
+      final api = VanApiClient(
+        FoodexEnvironment.apiBaseUrl,
+        session.token,
+      );
+      final repository =
+          widget.orderRepository ?? HttpVanOrderRepository(api);
+      final walletRepository =
+          widget.walletRepository ?? HttpVanWalletRepository(api);
       navigator.push<void>(
         MaterialPageRoute(
           builder: (_) => VanOrderDetailPage(
             orderId: orderId,
             repository: repository,
+            walletRepository: walletRepository,
             onSessionExpired: _logout,
           ),
         ),
