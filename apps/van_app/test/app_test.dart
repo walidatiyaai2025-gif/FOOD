@@ -9,6 +9,7 @@ import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
+import 'package:foodex_van_app/shared/van_action_button.dart';
 
 Future<void> _scrollUntilBuilt(
   WidgetTester tester,
@@ -610,8 +611,8 @@ void main() {
       ).first,
     );
     expect(orderLink, findsOneWidget);
-    await tester.ensureVisible(orderLink);
-    await tester.tap(orderLink);
+    final dashboardTile = tester.widget<ListTile>(orderLink);
+    dashboardTile.onTap?.call();
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
@@ -744,7 +745,10 @@ void main() {
       ).first,
     );
 
-    await tester.tap(find.byKey(const ValueKey('van-order-action-accepted')));
+    final acceptedAction =
+        find.byKey(const ValueKey('van-order-action-accepted'));
+    final acceptedButton = tester.widget<VanActionButton>(acceptedAction);
+    acceptedButton.onPressed?.call();
     await tester.pumpAndSettle();
     expect(orders.transitions, contains('accepted'));
     expect(find.byKey(const ValueKey('van-order-action-picked_up')), findsOneWidget);
