@@ -28,7 +28,13 @@ final class SystemUpdateController extends Controller
         Gate::authorize('system.update');
 
         $currentVersion = $this->currentVersion();
-        $this->mobileArtifacts->ensureScheduled($currentVersion);
+
+        // The feature's own first patch is executed by the old PHP request.
+        // Its redirect is the first request using the new code, so the existing
+        // success flash is the bootstrap signal for the new local APK mirror.
+        if ($request->session()->has('status')) {
+            $this->mobileArtifacts->ensureScheduled($currentVersion);
+        }
 
         return view('admin.system-update', [
             'currentVersion' => $currentVersion,
