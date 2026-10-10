@@ -89,11 +89,6 @@ final class CustomerCatalogImageController extends Controller
 
         $width = imagesx($sourceImage);
         $height = imagesy($sourceImage);
-        if ($width <= 0 || $height <= 0) {
-            imagedestroy($sourceImage);
-
-            return false;
-        }
 
         $scale = min(1.0, self::MAX_EDGE / max($width, $height));
         $targetWidth = max(1, (int) round($width * $scale));
@@ -125,15 +120,13 @@ final class CustomerCatalogImageController extends Controller
         );
 
         $temporary = tempnam(sys_get_temp_dir(), 'foodex-thumb-');
-        $written = $temporary !== false && imagewebp($targetImage, $temporary, 72);
+        $written = imagewebp($targetImage, $temporary, 72);
 
         imagedestroy($sourceImage);
         imagedestroy($targetImage);
 
-        if (! $written || $temporary === false) {
-            if (is_string($temporary)) {
-                @unlink($temporary);
-            }
+        if (! $written) {
+            @unlink($temporary);
 
             return false;
         }
