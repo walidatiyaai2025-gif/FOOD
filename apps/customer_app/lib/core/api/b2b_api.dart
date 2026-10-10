@@ -95,6 +95,7 @@ class HttpB2bApi implements B2bApi, B2bDocumentApi, B2bDownloadApi {
               headers: {
                 'Accept': accept,
                 'Authorization': 'Bearer $token',
+                'X-FOODEX-Customer-Domain': 'b2b',
                 if (retailStoreContextId != null)
                   'X-FOODEX-Retail-Store-ID': retailStoreContextId.toString(),
               },
