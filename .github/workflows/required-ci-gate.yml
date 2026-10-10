@@ -178,6 +178,28 @@ jobs:
       - name: Test UIUX v4.2 recovery independent audit
         run: python3 -m unittest discover -s scripts/tests -p 'test_uiux_v42_recovery_audit.py'
 
+      - name: Test FOODEX UIUX policy gate
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_uiux_audit.py'
+
+      - name: Enforce FOODEX changed-surface UIUX policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-uiux-audit.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --report artifacts/foodex-uiux-audit.json
+
+      - name: Upload FOODEX UIUX policy report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-uiux-audit-${{ github.event.pull_request.head.sha }}
+          path: artifacts/foodex-uiux-audit.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Run UIUX v4.2 recovery independent whole-tree audit
         if: ${{ github.head_ref == 'test/1041-uiux-requirement-coverage-audit' }}
         run: |

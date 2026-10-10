@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "name": "FOODEX UI/UX static compliance scorecard",
+  "threshold": 90,
+  "critical_violation_blocks": true,
+  "note": "This is a static compliance score, not visual acceptance. Runtime evidence remains mandatory where the UI/UX evidence skill requires it.",
+  "categories": [
+    {
+      "id": "architecture-reuse",
+      "weight": 20
+    },
+    {
+      "id": "design-tokens-components",
+      "weight": 15
+    },
+    {
+      "id": "business-ux",
+      "weight": 20
+    },
+    {
+      "id": "states-truthfulness",
+      "weight": 15
+    },
+    {
+      "id": "localization-direction",
+      "weight": 10
+    },
+    {
+      "id": "responsive-density",
+      "weight": 10
+    },
+    {
+      "id": "accessibility-interaction",
+      "weight": 5
+    },
+    {
+      "id": "runtime-evidence",
+      "weight": 5
+    }
+  ]
+}

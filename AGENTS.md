@@ -10,6 +10,36 @@ The objective is simple:
 
 GitHub is the source of truth. Chat history is not.
 
+## Repository-native AI context and skills
+
+FOODEX keeps a repository-native orientation and execution layer under `.ai/`. It exists to make a new or resumed coding agent productive quickly; it does **not** replace this file, live GitHub state, or authoritative contracts under `docs/`.
+
+After the mandatory live GitHub preflight in Section 2, and before substantial implementation, workers should read:
+
+1. `.ai/PROJECT.md`;
+2. `.ai/ARCHITECTURE.md`;
+3. `.ai/CONVENTIONS.md`;
+4. `.ai/CURRENT_STATE.md` as orientation only;
+5. the one relevant playbook under `.ai/skills/`.
+
+For **any page/screen/UI request**, including short owner commands such as `اعمل صفحة`, `صمم شاشة`, `قسم الصفحة`, or equivalent, the worker MUST route through `.ai/skills/ui-screen.md`, then read `.ai/skills/foodex-uiux.md`, `.ai/skills/ui-pattern-library.md`, `.ai/skills/page-patterns.md`, and the matching surface skill (`dashboard-uiux.md`, `customer-uiux.md`, `driver-uiux.md`, or `van-uiux.md`) before implementation. These playbooks are repository-native maps of the current production design tokens, classes/widgets, page recipes and v4.2 acceptance rules. The worker MUST inspect the exact shared source referenced by the skills before introducing a new UI primitive; current source/authoritative docs still outrank the summaries when they differ. After implementation, `.ai/skills/uiux-audit.md` is a mandatory self-review gate and `.ai/skills/uiux-evidence.md` is mandatory wherever visual/interaction evidence is required. A UI task may not be reported complete while an applicable audit item is FAIL/UNKNOWN or while the changed screen is not actually covered by its required visual/screenshot workflow.
+
+Precedence is strict:
+
+1. live GitHub Issue / branch / PR / exact-head CI state;
+2. this `AGENTS.md`;
+3. authoritative repository contracts and plans under `docs/`;
+4. source code and tests;
+5. `.ai/` orientation, summaries and playbooks.
+
+If `.ai/` disagrees with a higher-precedence source, the higher-precedence source wins and the stale `.ai/` file should be corrected when in scope.
+
+When a change creates a durable architectural decision, convention, project invariant, or reusable failure lesson, update the corresponding `.ai/` file in the same PR. Do **not** copy transient Issue/CI state into durable files except as a clearly dated snapshot.
+
+Normal task claims, leases and handoffs still belong in the Issue/PR through the required `foodex-worker-state:v1` / handoff protocol. `.ai/handoffs/latest.md` is a repository-level orientation/template and must never be treated as the live lease or task authority.
+
+---
+
 ## Mandatory Dashboard UI/UX and Master-Data contract
 
 Before implementing or modifying any Dashboard page, Admin navigation, business-facing form, or application-management feature, every worker **MUST** read and follow:
