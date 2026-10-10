@@ -22,6 +22,7 @@ final class OrderTerritoryRoutingService
         private readonly AuditLogger $audit,
         private readonly FulfillmentActorPolicy $actors,
         private readonly VanExecutionStateService $executionStates,
+        private readonly OrderLifecycleNotificationService $notifications,
     ) {}
 
     public function route(Order $order, ?User $actor = null, Carbon|string|null $at = null): OrderDispatchState
@@ -483,6 +484,7 @@ final class OrderTerritoryRoutingService
                 foreach ($active as $assignment) {
                     $assignmentBefore = $assignment->toArray();
                     $assignment->forceFill(['status' => 'reassigned', 'ended_at' => $moment])->save();
+                    $this->notifications->vanAssignmentRevoked($order, $assignment, 'reassigned');
                     $this->audit->record(
                         'order.dispatch.reassigned',
                         $actor,
@@ -492,6 +494,7 @@ final class OrderTerritoryRoutingService
                     );
                 }
 
+                $reassigned = $active->isNotEmpty();
                 $same = OrderVanAssignment::query()->firstOrCreate(
                     ['decision_key' => $decisionKey],
                     [
@@ -514,6 +517,9 @@ final class OrderTerritoryRoutingService
             }
 
             $this->executionStates->initialize($same, $moment);
+            if ($same->wasRecentlyCreated) {
+                $this->notifications->vanAssigned($order, $same, $reassigned ?? false);
+            }
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([
