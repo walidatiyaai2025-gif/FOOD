@@ -208,6 +208,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/orders', [VanOrderController::class, 'index']);
             Route::get('/orders/{order}', [VanOrderController::class, 'show'])->whereNumber('order');
             Route::get('/orders/{order}/execution', [VanDeliveryExecutionController::class, 'show'])->whereNumber('order');
+            Route::get('/orders/{order}/execution/allowed-actions', [VanDeliveryExecutionController::class, 'show'])->whereNumber('order');
             Route::post('/orders/{order}/execution/transition', [VanDeliveryExecutionController::class, 'transition'])->whereNumber('order');
             Route::post('/orders/{order}/execution/proof', [VanDeliveryExecutionController::class, 'proof'])->whereNumber('order');
             Route::post('/orders/{order}/execution/fail', [VanDeliveryExecutionController::class, 'fail'])->whereNumber('order');

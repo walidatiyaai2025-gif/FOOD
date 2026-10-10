@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -204,6 +205,134 @@ class VanDeliveryExecutionTest extends TestCase
         $this->assertDatabaseCount('order_van_execution_events', 0);
     }
 
+    public function test_allowed_actions_endpoint_exposes_current_van_execution_actions(): void
+    {
+        $actor = $this->vanActor();
+        [$order] = $this->assignedB2bOrder($actor, 'ACTIONS');
+
+        $this->getJson('/api/v1/van/orders/'.$order->id.'/execution/allowed-actions')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'assigned')
+            ->assertJsonPath('data.allowed_actions.0', 'accepted');
+    }
+
+    public function test_delivered_requires_proof_even_after_required_collection_is_settled(): void
+    {
+        Storage::fake('public');
+        $actor = $this->vanActor();
+        [$order] = $this->assignedB2bOrder($actor, 'PROOF-GATE');
+
+        $this->transition($order->id, 'accepted', 'proofgate-accept')->assertOk();
+        $this->transition($order->id, 'picked_up', 'proofgate-pickup')->assertOk();
+        $this->transition($order->id, 'out_for_delivery', 'proofgate-ofd')->assertOk();
+
+        DB::table('payments')->insert([
+            'order_id' => $order->id,
+            'invoice_id' => null,
+            'provider' => 'cash_on_delivery',
+            'provider_reference' => 'PROOF-GATE-'.$order->id,
+            'status' => 'paid',
+            'amount' => 20,
+            'currency' => 'EGP',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->transition($order->id, 'delivered', 'proofgate-deliver')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['proof_image']);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'out_for_delivery',
+        ]);
+        $this->assertDatabaseHas('order_van_execution_states', [
+            'order_id' => $order->id,
+            'status' => 'out_for_delivery',
+        ]);
+        $this->assertDatabaseMissing('order_van_execution_events', [
+            'order_id' => $order->id,
+            'to_status' => 'delivered',
+        ]);
+    }
+
+    public function test_failed_delivery_uses_configured_reason_lookup_and_other_requires_note(): void
+    {
+        $actor = $this->vanActor();
+        [$order] = $this->assignedB2bOrder($actor, 'FAILURE-RULES');
+
+        $this->transition($order->id, 'accepted', 'failure-rules-accept')->assertOk();
+
+        $this->withHeader('Idempotency-Key', 'failure-invalid-reason')
+            ->postJson('/api/v1/van/orders/'.$order->id.'/execution/fail', [
+                'failure_reason' => 'not_configured',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['failure_reason']);
+
+        $this->withHeader('Idempotency-Key', 'failure-other-note')
+            ->postJson('/api/v1/van/orders/'.$order->id.'/execution/fail', [
+                'failure_reason' => 'other',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['note']);
+
+        $this->assertDatabaseHas('order_van_execution_states', [
+            'order_id' => $order->id,
+            'status' => 'accepted',
+        ]);
+    }
+
+    public function test_same_van_runtime_reassignment_cannot_mutate_order_owned_by_stale_van_assignment(): void
+    {
+        $actor = $this->vanActor();
+        [$order, $orderVanAssignmentId, $vanId] = $this->assignedB2bOrder($actor, 'RUNTIME-STALE');
+
+        $oldRuntimeAssignment = DB::table('van_assignments')
+            ->where('representative_user_id', $actor->id)
+            ->where('van_id', $vanId)
+            ->where('status', 'active')
+            ->first(['id']);
+        $this->assertNotNull($oldRuntimeAssignment);
+
+        DB::table('van_assignments')
+            ->where('id', $oldRuntimeAssignment->id)
+            ->update([
+                'status' => 'ended',
+                'effective_until' => now()->subSecond(),
+                'updated_at' => now(),
+            ]);
+
+        $newRuntimeAssignmentId = (int) DB::table('van_assignments')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'van_id' => $vanId,
+            'representative_user_id' => $actor->id,
+            'assignment_type' => 'primary',
+            'status' => 'active',
+            'effective_from' => now()->subSecond(),
+            'loaded_work_count' => 0,
+            'created_by' => $actor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertNotSame((int) $oldRuntimeAssignment->id, $newRuntimeAssignmentId);
+
+        Sanctum::actingAs($actor, ['app:van']);
+
+        $this->transition($order->id, 'accepted', 'runtime-stale-01')
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('order_van_assignments', [
+            'id' => $orderVanAssignmentId,
+            'van_assignment_id' => (int) $oldRuntimeAssignment->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('order_van_execution_states', [
+            'order_van_assignment_id' => $orderVanAssignmentId,
+            'status' => 'assigned',
+        ]);
+        $this->assertDatabaseCount('order_van_execution_events', 0);
+    }
     private function transition(int $orderId, string $status, string $key)
     {
         return $this->withHeader('Idempotency-Key', $key)
