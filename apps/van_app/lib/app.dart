@@ -212,8 +212,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          // localization-gate: allow — title/body are already localized by the server for the registered Van user.
-          content: Text('${alert.title}: ${alert.body}'),
+          content: Text('${alert.title}: ${alert.body}'), // localization-gate: allow — server-localized notification copy.
           action: alert.canOpenB2bOrder
               ? SnackBarAction(
                   label: widget.locale.languageCode == 'ar' ? 'فتح' : 'Open',
