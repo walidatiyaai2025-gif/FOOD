@@ -233,6 +233,35 @@ $businessLabel = static function ($value): string {
 @endforelse
 </div>
 </div>
+<div class="foodex-card panel" data-van-delivery-evidence>
+<h2>{{ __('order_operations.detail.van_delivery_timeline') }}</h2>
+<div class="timeline">
+@forelse($detail['van_delivery_evidence'] as $assignment)
+<div class="timeline-item" data-van-delivery-evidence-assignment="{{ $assignment['id'] }}">
+<strong>{{ $assignment['van_name'] }} · {{ $businessLabel($assignment['execution_status'] ?? $assignment['assignment_status']) }}</strong>
+@if(empty($assignment['timeline']))
+<small>{{ __('order_operations.detail.no_assignment_events') }}</small>
+@else
+<div class="timeline" style="margin-top:10px">
+@foreach($assignment['timeline'] as $event)
+<div class="timeline-item" data-van-delivery-evidence-event="{{ $event['id'] }}">
+<strong>{{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
+@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
+@if($event['note'])<div>{{ __('order_operations.detail.van_note') }}: {{ $event['note'] }}</div>@endif
+@if($event['proof'])
+<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-van-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a></div>
+@endif
+<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+</div>
+@endforeach
+</div>
+@endif
+</div>
+@empty
+<div class="foodex-empty-state">{{ __('order_operations.detail.no_van_delivery_evidence') }}</div>
+@endforelse
+</div>
+</div>
 </section>
 </div>
 </dialog>
