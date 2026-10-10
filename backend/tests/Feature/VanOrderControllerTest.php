@@ -156,11 +156,26 @@ class VanOrderControllerTest extends TestCase
         [$order, $b2bCustomerId, $storeId, $assignmentId, $vanId] = $this->assignedB2bOrder($actor, 'DETAIL');
         $productId = $this->product($storeId, 'W03-DETAIL-PRODUCT', 10.000);
 
+        $addressId = (int) DB::table('addresses')->insertGetId([
+            'customer_id' => (int) $order->customer_id,
+            'b2b_customer_id' => $b2bCustomerId,
+            'label' => 'Warehouse gate',
+            'line1' => 'Block 3',
+            'city' => 'Kuwait City',
+            'area' => 'Shuwaikh',
+            'country_code' => 'KW',
+            'latitude' => 29.3375,
+            'longitude' => 47.6581,
+            'is_default' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         DB::table('orders')->where('id', $order->id)->update([
-            'address_id' => 77,
+            'address_id' => $addressId,
             'delivery_address_snapshot' => json_encode([
                 'version' => 1,
-                'address_id' => 77,
+                'address_id' => $addressId,
                 'label' => 'Warehouse gate',
                 'recipient_name' => 'W03 Customer DETAIL',
                 'delivery_phone' => '+96550000077',
@@ -253,7 +268,7 @@ class VanOrderControllerTest extends TestCase
             ->assertJsonPath('data.id', $order->id)
             ->assertJsonPath('data.customer.id', $b2bCustomerId)
             ->assertJsonPath('data.customer.name', 'W03 Customer DETAIL')
-            ->assertJsonPath('data.address_id', 77)
+            ->assertJsonPath('data.address_id', $addressId)
             ->assertJsonPath(
                 'data.delivery_address.formatted',
                 'Warehouse gate, Street 17, Shuwaikh, Kuwait City, KW',
