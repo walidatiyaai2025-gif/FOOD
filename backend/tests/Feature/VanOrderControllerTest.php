@@ -156,6 +156,29 @@ class VanOrderControllerTest extends TestCase
         [$order, $b2bCustomerId, $storeId, $assignmentId, $vanId] = $this->assignedB2bOrder($actor, 'DETAIL');
         $productId = $this->product($storeId, 'W03-DETAIL-PRODUCT', 10.000);
 
+        DB::table('orders')->where('id', $order->id)->update([
+            'address_id' => 77,
+            'delivery_address_snapshot' => json_encode([
+                'version' => 1,
+                'address_id' => 77,
+                'label' => 'Warehouse gate',
+                'recipient_name' => 'W03 Customer DETAIL',
+                'delivery_phone' => '+96550000077',
+                'line1' => 'Block 3',
+                'street' => 'Street 17',
+                'area' => 'Shuwaikh',
+                'city' => 'Kuwait City',
+                'country_code' => 'KW',
+                'latitude' => 29.3375,
+                'longitude' => 47.6581,
+            ], JSON_THROW_ON_ERROR),
+            'delivery_latitude' => 29.3375,
+            'delivery_longitude' => 47.6581,
+            'updated_at' => now(),
+        ]);
+
+        $order->refresh();
+
         DB::table('order_items')->insert([
             'order_id' => $order->id,
             'product_id' => $productId,
@@ -230,6 +253,14 @@ class VanOrderControllerTest extends TestCase
             ->assertJsonPath('data.id', $order->id)
             ->assertJsonPath('data.customer.id', $b2bCustomerId)
             ->assertJsonPath('data.customer.name', 'W03 Customer DETAIL')
+            ->assertJsonPath('data.address_id', 77)
+            ->assertJsonPath(
+                'data.delivery_address.formatted',
+                'Warehouse gate, Street 17, Shuwaikh, Kuwait City, KW',
+            )
+            ->assertJsonPath('data.delivery_address.latitude', 29.3375)
+            ->assertJsonPath('data.delivery_address.longitude', 47.6581)
+            ->assertJsonPath('data.delivery_address.has_coordinates', true)
             ->assertJsonPath('data.items.0.sku', 'W03-DETAIL-PRODUCT')
             ->assertJsonPath('data.invoice.id', $invoice->id)
             ->assertJsonPath('data.payments.0.id', $paymentId)
