@@ -1,63 +1,169 @@
 {
   "schema_version": 1,
   "areas": {
-    "backend": {"path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$)"},
-    "customer": {"path_regex": "^(apps/customer_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/customer-app-ci\\.yml$)"},
-    "driver": {"path_regex": "^(apps/driver_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/driver-app-ci\\.yml$)"},
-    "van": {"path_regex": "^(apps/van_app/|packages/(design_tokens|foodex_visualization)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/van-app-ci\\.yml$)"},
-    "dashboard_ui": {"path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/)"},
-    "mobile_ui": {"path_regex": "^(apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$|packages/(design_tokens|foodex_visualization)/)"},
-    "app_preview_visual": {"path_regex": "^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\\.php|resources/views/admin/app-preview\\.blade\\.php)|scripts/app_preview_visual_parity\\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\\.md|\\.github/workflows/app-preview-(acceptance-ci|visual-parity)\\.yml|\\.github/workflows/required-ci-gate\\.yml$)"},
-    "preview_runtime_distribution": {"path_regex": "^(VERSION$|apps/(customer_app|driver_app)/(pubspec\\.yaml|lib/preview_main\\.dart|lib/core/preview/|web/)|backend/\\.env\\.production\\.example$|scripts/package-preview-runtimes\\.py$|scripts/tests/test_preview_runtime_distribution\\.py$|docs/release/PREVIEW_RUNTIME_DISTRIBUTION\\.md$|\\.github/workflows/preview-runtime-distribution\\.yml$)"},
-    "mobile_prod_ux_acceptance": {"path_regex": "a^"},
-    "operational_completion_e2e": {"path_regex": "a^"},
-    "c13_integrated_e2e": {"path_regex": "a^"},
-    "policy": {"path_regex": "^(AGENTS\\.md|\\.ci/|docs/worker-rules/|scripts/(worker-start|worker-preflight|detect-changed-areas|ci-plan|ci-failure-registry|foodex-branch-policy)\\.(sh|py)$|scripts/tests/test_(ci_plan|ci_failure_registry|foodex_branch_policy|one_push_green_contract)\\.py$|\\.github/workflows/(repository-policy|required-ci-gate)\\.yml$)"}
+    "backend": {
+      "path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$)"
+    },
+    "customer": {
+      "path_regex": "^(apps/customer_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/customer-app-ci\\.yml$)"
+    },
+    "driver": {
+      "path_regex": "^(apps/driver_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/driver-app-ci\\.yml$)"
+    },
+    "van": {
+      "path_regex": "^(apps/van_app/|packages/(design_tokens|foodex_visualization)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/van-app-ci\\.yml$)"
+    },
+    "dashboard_ui": {
+      "path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/)"
+    },
+    "mobile_ui": {
+      "path_regex": "^(apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$|packages/(design_tokens|foodex_visualization)/)"
+    },
+    "app_preview_visual": {
+      "path_regex": "^(apps/(customer_app|driver_app)/(lib/core/preview/|lib/preview_main\\.dart|test/(customer|driver)_preview)|backend/(config/app_preview\\.php|resources/views/admin/app-preview\\.blade\\.php)|scripts/app_preview_visual_parity\\.mjs|docs/quality/APP_PREVIEW_VISUAL_PARITY\\.md|\\.github/workflows/app-preview-(acceptance-ci|visual-parity)\\.yml|\\.github/workflows/required-ci-gate\\.yml$)"
+    },
+    "preview_runtime_distribution": {
+      "path_regex": "^(VERSION$|apps/(customer_app|driver_app)/(pubspec\\.yaml|lib/preview_main\\.dart|lib/core/preview/|web/)|backend/\\.env\\.production\\.example$|scripts/package-preview-runtimes\\.py$|scripts/tests/test_preview_runtime_distribution\\.py$|docs/release/PREVIEW_RUNTIME_DISTRIBUTION\\.md$|\\.github/workflows/preview-runtime-distribution\\.yml$)"
+    },
+    "mobile_prod_ux_acceptance": {
+      "path_regex": "a^"
+    },
+    "operational_completion_e2e": {
+      "path_regex": "a^"
+    },
+    "c13_integrated_e2e": {
+      "path_regex": "a^"
+    },
+    "policy": {
+      "path_regex": "^(AGENTS\\\\.md|\\\\.ai/(KNOWN_ISSUES\\\\.md|skill-router\\\\.json)|\\\\.ci/|docs/worker-rules/|scripts/(worker-start|worker-preflight|detect-changed-areas|ci-plan|ci-failure-registry|foodex-branch-policy|flutter-test-hermeticity|foodex-skill-router|validate-repo)\\\\.(sh|py)$|scripts/tests/test_(ci_plan|ci_failure_registry|foodex_branch_policy|flutter_test_hermeticity|one_push_green_contract|foodex_skill_router)\\\\.py$|\\\\.github/workflows/(repository-policy|required-ci-gate)\\\\.yml$)"
+    }
   },
   "expansions": [
     {
       "id": "release-contract",
       "path_regex": "^(\\.github/workflows/(release-validation|trial-distribution)\\.yml|\\.github/workflows/app-preview-acceptance-ci\\.yml|scripts/(release-readiness\\.sh|write-trial-bundle-manifest\\.py|validate_release_artifact_contract\\.py)|scripts/tests/test_release_artifact_contract\\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\\.md$)",
-      "enable": ["backend", "customer", "driver", "van"]
+      "enable": [
+        "backend",
+        "customer",
+        "driver",
+        "van"
+      ]
     }
   ],
   "branch_rules": [
-    {"id": "mobile-prod-ux", "branch_regex": "^test/[0-9]+-mobile-prod-ux-final-acceptance$", "enable": ["mobile_prod_ux_acceptance", "backend", "customer", "driver", "van"]},
-    {"id": "cross-app-regression", "branch_regex": "^test/1011-v42-cross-app-regression$", "enable": ["mobile_prod_ux_acceptance", "backend", "customer", "driver", "van"]},
-    {"id": "uiux-coverage", "branch_regex": "^test/1041-uiux-requirement-coverage-audit$", "enable": ["backend", "customer", "driver", "van"]},
-    {"id": "operational-e2e", "branch_regex": "^test/[0-9]+-operational-completion-e2e$", "enable": ["operational_completion_e2e", "backend", "customer", "driver", "van", "app_preview_visual", "preview_runtime_distribution"]},
-    {"id": "c13-e2e", "branch_regex": "^test/873-c13-(integrated-e2e|visual-operational-e2e-v2)$", "enable": ["mobile_prod_ux_acceptance", "operational_completion_e2e", "c13_integrated_e2e", "backend", "customer", "driver", "van", "app_preview_visual", "preview_runtime_distribution"]}
+    {
+      "id": "mobile-prod-ux",
+      "branch_regex": "^test/[0-9]+-mobile-prod-ux-final-acceptance$",
+      "enable": [
+        "mobile_prod_ux_acceptance",
+        "backend",
+        "customer",
+        "driver",
+        "van"
+      ]
+    },
+    {
+      "id": "cross-app-regression",
+      "branch_regex": "^test/1011-v42-cross-app-regression$",
+      "enable": [
+        "mobile_prod_ux_acceptance",
+        "backend",
+        "customer",
+        "driver",
+        "van"
+      ]
+    },
+    {
+      "id": "uiux-coverage",
+      "branch_regex": "^test/1041-uiux-requirement-coverage-audit$",
+      "enable": [
+        "backend",
+        "customer",
+        "driver",
+        "van"
+      ]
+    },
+    {
+      "id": "operational-e2e",
+      "branch_regex": "^test/[0-9]+-operational-completion-e2e$",
+      "enable": [
+        "operational_completion_e2e",
+        "backend",
+        "customer",
+        "driver",
+        "van",
+        "app_preview_visual",
+        "preview_runtime_distribution"
+      ]
+    },
+    {
+      "id": "c13-e2e",
+      "branch_regex": "^test/873-c13-(integrated-e2e|visual-operational-e2e-v2)$",
+      "enable": [
+        "mobile_prod_ux_acceptance",
+        "operational_completion_e2e",
+        "c13_integrated_e2e",
+        "backend",
+        "customer",
+        "driver",
+        "van",
+        "app_preview_visual",
+        "preview_runtime_distribution"
+      ]
+    }
   ],
   "focused_tests": [
     {
       "id": "backend-van-execution",
       "area": "backend",
       "path_regex": "^backend/.*(Van|van|OrderVanExecution|SystemInspector|system_inspector|DeliveryExecution)",
-      "tests": ["tests/Feature/MobileSystemInspectorEventTest.php", "tests/Feature/VanDeliveryEvidenceDashboardTest.php", "tests/Feature/VanDeliveryExecutionTest.php", "tests/Feature/B2BVanFulfillmentCutoverTest.php"]
+      "tests": [
+        "tests/Feature/MobileSystemInspectorEventTest.php",
+        "tests/Feature/VanDeliveryEvidenceDashboardTest.php",
+        "tests/Feature/VanDeliveryExecutionTest.php",
+        "tests/Feature/B2BVanFulfillmentCutoverTest.php"
+      ]
     },
     {
       "id": "backend-order-domain",
       "area": "backend",
       "path_regex": "^backend/(app|routes)/.*Order",
-      "tests": ["tests/Feature/OrderDomainTest.php", "tests/Feature/DashboardOrderManagementTest.php", "tests/Feature/OrderOperationsIsolationTest.php"]
+      "tests": [
+        "tests/Feature/OrderDomainTest.php",
+        "tests/Feature/DashboardOrderManagementTest.php",
+        "tests/Feature/OrderOperationsIsolationTest.php"
+      ]
     },
     {
       "id": "customer-orders-commerce",
       "area": "customer",
       "path_regex": "^apps/customer_app/lib/.*(order|orders|commerce|checkout|retail)",
-      "tests": ["test/customer_orders_api_test.dart", "test/customer_orders_ui_v3_test.dart", "test/retail_commerce_test.dart"]
+      "tests": [
+        "test/customer_orders_api_test.dart",
+        "test/customer_orders_ui_v3_test.dart",
+        "test/retail_commerce_test.dart"
+      ]
     },
     {
       "id": "driver-navigation-wallet",
       "area": "driver",
       "path_regex": "^apps/driver_app/lib/.*(navigation|wallet|delivery)",
-      "tests": ["test/navigation_test.dart", "test/driver_navigation_target_test.dart", "test/driver_wallet_page_test.dart"]
+      "tests": [
+        "test/navigation_test.dart",
+        "test/driver_navigation_target_test.dart",
+        "test/driver_wallet_page_test.dart"
+      ]
     },
     {
       "id": "van-order-delivery-wallet",
       "area": "van",
       "path_regex": "^apps/van_app/lib/.*(order|delivery|wallet|navigation)",
-      "tests": ["test/van_order_delivery_http_test.dart", "test/van_wallet_http_test.dart", "test/van_wallet_page_test.dart", "test/van_v42_live_refresh_test.dart"]
+      "tests": [
+        "test/van_order_delivery_http_test.dart",
+        "test/van_wallet_http_test.dart",
+        "test/van_wallet_page_test.dart",
+        "test/van_v42_live_refresh_test.dart"
+      ]
     }
   ]
 }
