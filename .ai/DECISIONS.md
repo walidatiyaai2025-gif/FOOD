@@ -31,3 +31,9 @@ This is a concise decision log for choices that should survive individual chats/
 
 ## Adding a decision
 Append decision, Issue/PR/date when relevant, reason, consequences and authoritative contract. Do not add trivial implementation notes.
+
+
+## D-009 — Wholesale fulfillment belongs to Van; Retail fulfillment belongs to Driver
+**Decision (owner-approved target, migration #1190):** Fulfillment actor is determined by order channel, not order source. All `b2b`/Wholesale orders are routed, delivered, collected/proved and operationally owned by Van. All `b2c`/Retail orders remain Driver-owned. Customer App, Dashboard and Van-created B2B orders all enter the same Smart-Routing -> Van fulfillment path. Unresolved B2B routing enters an explicit Van dispatch exception and must never fall back to Driver.
+**Current-runtime caution:** this is the target under execution; existing source still contains historical mixed Driver/Van B2B behavior until #1190 closes.
+**Authority:** `docs/execution/FOODEX_B2B_VAN_FULFILLMENT_EXECUTION_PLAN.md` and umbrella #1190.
