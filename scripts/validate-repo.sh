@@ -5,7 +5,11 @@ for f in "${required[@]}"; do test -f "$f" || { echo "Missing required file: $f"
 branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 base_branch="${GITHUB_BASE_REF:-}"
 if [[ -n "$branch" ]]; then
-  python3 scripts/foodex-branch-policy.py validate "$branch" ${base_branch:+--base "$base_branch"}
+  if [[ -n "$base_branch" ]]; then
+    python3 scripts/foodex-branch-policy.py validate "$branch" --base "$base_branch"
+  else
+    python3 scripts/foodex-branch-policy.py validate "$branch"
+  fi
 fi
 node .github/scripts/release-registry.js validate
 node --test .github/scripts/release-registry.test.js
