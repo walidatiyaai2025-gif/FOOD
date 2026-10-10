@@ -650,9 +650,7 @@ class OrderController extends Controller
                 ->all()
             : [];
 
-        $tracking = $includeTimeline
-            ? app(OrderLiveTrackingService::class)->forOrder($order)
-            : null;
+        $tracking = $includeTimeline ? app(OrderLiveTrackingService::class)->forOrder($order) : null;
 
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
