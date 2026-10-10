@@ -4029,11 +4029,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   String? _badgeLocale;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final locale = Localizations.localeOf(context).languageCode == 'en'
