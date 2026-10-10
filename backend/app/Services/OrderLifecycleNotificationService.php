@@ -6,6 +6,7 @@ use App\Jobs\DispatchPushNotification;
 use App\Models\DriverAssignment;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\OrderVanAssignment;
 use Illuminate\Support\Facades\DB;
 
 final class OrderLifecycleNotificationService
@@ -53,6 +54,58 @@ final class OrderLifecycleNotificationService
             ],
         );
 
+        $channel = strtolower((string) $order->channel);
+        if ($channel === 'b2b') {
+            $assignment = $to === 'cancelled'
+                ? $this->latestVanAssignment($order)
+                : $this->activeVanAssignment($order);
+
+            if ($assignment instanceof OrderVanAssignment) {
+                $actionRequired = $to === 'failed';
+                $this->notifyVanUsers(
+                    $order,
+                    $assignment,
+                    $actionRequired ? 'van.action_required' : 'order.status_changed',
+                    'van-'.$eventKey,
+                    $actionRequired
+                        ? 'إجراء مطلوب للطلب '.$order->order_number
+                        : ($to === 'cancelled'
+                            ? 'تم إلغاء الطلب '.$order->order_number
+                            : 'تحديث الطلب '.$order->order_number),
+                    $actionRequired
+                        ? 'Action required '.$order->order_number
+                        : ($to === 'cancelled'
+                            ? 'Order cancelled '.$order->order_number
+                            : 'Order update '.$order->order_number),
+                    $actionRequired
+                        ? 'تعذر إتمام التوصيل. افتح الطلب لمراجعة السبب والإجراء التالي.'
+                        : ($to === 'cancelled'
+                            ? 'تم إلغاء الطلب ولم يعد متاحاً للتنفيذ.'
+                            : 'حالة الطلب الآن: '.$to),
+                    $actionRequired
+                        ? 'Delivery could not be completed. Open the order to review the reason and next action.'
+                        : ($to === 'cancelled'
+                            ? 'The order was cancelled and is no longer actionable.'
+                            : 'Order status is now: '.$to),
+                    [
+                        'order_van_assignment_id' => (int) $assignment->getKey(),
+                        'van_id' => (int) $assignment->van_id,
+                        'from_status' => $from,
+                        'status' => $to,
+                        'to_status' => $to,
+                        'action_required' => $actionRequired,
+                        'access_revoked' => $to === 'cancelled',
+                    ],
+                );
+            }
+
+            return;
+        }
+
+        if ($channel !== 'b2c') {
+            return;
+        }
+
         $assignment = $to === 'cancelled'
             ? $this->latestAssignment($order)
             : $this->activeAssignment($order);
@@ -90,6 +143,10 @@ final class OrderLifecycleNotificationService
         DriverAssignment $assignment,
         ?int $previousDriverId = null,
     ): void {
+        if (strtolower((string) $order->channel) !== 'b2c') {
+            return;
+        }
+
         $this->notifyDriverUser(
             $order,
             (int) $assignment->driver_id,
@@ -149,6 +206,10 @@ final class OrderLifecycleNotificationService
         DriverAssignment $assignment,
         ?string $reason = null,
     ): void {
+        if (strtolower((string) $order->channel) !== 'b2c') {
+            return;
+        }
+
         $eventKey = 'driver-unassigned:'.$assignment->getKey().':'.(string) $assignment->updated_at;
 
         $this->notifyDriverUser(
@@ -191,6 +252,10 @@ final class OrderLifecycleNotificationService
         string $to,
         ?string $note = null,
     ): void {
+        if (strtolower((string) $order->channel) !== 'b2c') {
+            return;
+        }
+
         // These assignment transitions also change the authoritative order status.
         // orderStatusChanged() emits the customer-visible push for them, so avoid
         // showing the customer two notifications for one logical state change.
@@ -256,6 +321,66 @@ final class OrderLifecycleNotificationService
         );
     }
 
+    public function vanAssigned(
+        Order $order,
+        OrderVanAssignment $assignment,
+        bool $reassigned = false,
+    ): void {
+        if (strtolower((string) $order->channel) !== 'b2b'
+            || (int) $assignment->order_id !== (int) $order->getKey()) {
+            return;
+        }
+
+        $this->notifyVanUsers(
+            $order,
+            $assignment,
+            $reassigned ? 'van.delivery.reassigned' : 'van.delivery.assigned',
+            ($reassigned ? 'van-reassigned:' : 'van-assigned:').$assignment->getKey(),
+            $reassigned
+                ? 'تم نقل الطلب إلى المركبة الحالية '.$order->order_number
+                : 'طلب جديد للمركبة '.$order->order_number,
+            $reassigned
+                ? 'Order reassigned to this Van '.$order->order_number
+                : 'New Van delivery '.$order->order_number,
+            'افتح الطلب لمراجعة تفاصيل العميل والتنفيذ.',
+            'Open the order to review customer and execution details.',
+            [
+                'order_van_assignment_id' => (int) $assignment->getKey(),
+                'van_id' => (int) $assignment->van_id,
+                'delivery_status' => 'assigned',
+            ],
+        );
+    }
+
+    public function vanAssignmentRevoked(
+        Order $order,
+        OrderVanAssignment $assignment,
+        string $reason = 'reassigned',
+    ): void {
+        if (strtolower((string) $order->channel) !== 'b2b'
+            || (int) $assignment->order_id !== (int) $order->getKey()) {
+            return;
+        }
+
+        $this->notifyVanUsers(
+            $order,
+            $assignment,
+            'van.delivery.reassigned_away',
+            'van-revoked:'.$assignment->getKey().':'.(string) $assignment->updated_at,
+            'تم سحب الطلب '.$order->order_number,
+            'Order removed '.$order->order_number,
+            'لم يعد هذا الطلب تابعاً للمركبة الحالية.',
+            'This order is no longer assigned to the current Van.',
+            [
+                'order_van_assignment_id' => (int) $assignment->getKey(),
+                'van_id' => (int) $assignment->van_id,
+                'delivery_status' => (string) $assignment->status,
+                'reason' => $reason,
+                'access_revoked' => true,
+            ],
+        );
+    }
+
     private function notifyCustomer(
         Order $order,
         string $type,
@@ -296,6 +421,10 @@ final class OrderLifecycleNotificationService
         string $bodyEn,
         array $extraData = [],
     ): void {
+        if (strtolower((string) $order->channel) !== 'b2c') {
+            return;
+        }
+
         $driver = DB::table('drivers')
             ->where('id', $driverId)
             ->where('is_active', true)
@@ -334,6 +463,64 @@ final class OrderLifecycleNotificationService
             $bodyEn,
             $extraData,
         );
+    }
+
+    private function notifyVanUsers(
+        Order $order,
+        OrderVanAssignment $assignment,
+        string $type,
+        string $eventKey,
+        string $titleAr,
+        string $titleEn,
+        string $bodyAr,
+        string $bodyEn,
+        array $extraData = [],
+    ): void {
+        foreach ($this->vanRecipientUserIds($assignment) as $userId) {
+            $this->publish(
+                $order,
+                $userId,
+                'van',
+                $type,
+                $eventKey,
+                $titleAr,
+                $titleEn,
+                $bodyAr,
+                $bodyEn,
+                $extraData,
+            );
+        }
+    }
+
+    /** @return list<int> */
+    private function vanRecipientUserIds(OrderVanAssignment $assignment): array
+    {
+        if ($assignment->van_assignment_id === null) {
+            return [];
+        }
+
+        $runtime = DB::table('van_assignments')
+            ->leftJoin('drivers', 'drivers.id', '=', 'van_assignments.driver_id')
+            ->where('van_assignments.id', $assignment->van_assignment_id)
+            ->where('van_assignments.van_id', $assignment->van_id)
+            ->first([
+                'van_assignments.representative_user_id',
+                'drivers.user_id as driver_user_id',
+            ]);
+
+        if ($runtime === null) {
+            return [];
+        }
+
+        return collect([
+            $runtime->representative_user_id,
+            $runtime->driver_user_id,
+        ])
+            ->filter(fn ($id): bool => $id !== null && (int) $id > 0)
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function publish(
@@ -404,7 +591,11 @@ final class OrderLifecycleNotificationService
                             'updated:'.(string) $order->updated_at,
                         ]),
                     ),
-                    'route' => $app === 'customer' ? 'order' : 'assignment',
+                    'route' => match ($app) {
+                        'customer' => 'order',
+                        'van' => 'order_detail',
+                        default => 'assignment',
+                    },
                     'deep_link' => $deepLink,
                 ],
             ],
@@ -429,6 +620,14 @@ final class OrderLifecycleNotificationService
                 'store_id' => $storeId,
                 'order_id' => $orderId,
                 'assignment_id' => $assignmentId > 0 ? $assignmentId : null,
+            ]);
+        }
+
+        if ($app === 'van') {
+            return '/van/orders/'.$orderId.'?'.http_build_query([
+                'channel' => 'b2b',
+                'store_id' => $storeId,
+                'order_van_assignment_id' => $extraData['order_van_assignment_id'] ?? null,
             ]);
         }
 
@@ -492,6 +691,23 @@ final class OrderLifecycleNotificationService
             ->first();
     }
 
+    private function activeVanAssignment(Order $order): ?OrderVanAssignment
+    {
+        return OrderVanAssignment::query()
+            ->where('order_id', $order->getKey())
+            ->where('status', 'active')
+            ->latest('id')
+            ->first();
+    }
+
+    private function latestVanAssignment(Order $order): ?OrderVanAssignment
+    {
+        return OrderVanAssignment::query()
+            ->where('order_id', $order->getKey())
+            ->latest('id')
+            ->first();
+    }
+
     /** @return array{title_ar:string,title_en:string,body_ar:string,body_en:string} */
     private function statusCopy(Order $order, string $status): array
     {
@@ -523,8 +739,8 @@ final class OrderLifecycleNotificationService
             'out_for_delivery' => [
                 'title_ar' => 'طلبك في الطريق',
                 'title_en' => 'Your order is on the way',
-                'body_ar' => 'السائق في طريقه لتوصيل طلبك.',
-                'body_en' => 'Your driver is on the way with your order.',
+                'body_ar' => 'طلبك في طريقه للتسليم.',
+                'body_en' => 'Your order is on the way for delivery.',
             ],
             'delivered' => [
                 'title_ar' => 'تم تسليم طلبك',
