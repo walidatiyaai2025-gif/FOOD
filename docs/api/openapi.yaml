@@ -2579,7 +2579,17 @@ components:
         type: string
         minLength: 8
         maxLength: 128
-        pattern: '^[A-Za-z0-9._:-]+
+        pattern: '^[A-Za-z0-9._:-]+$'
+    VanFinanceIdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Van collection/remittance idempotency key.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 72
+        pattern: '^[A-Za-z0-9._:-]+$'
   schemas:
     ApiVersion:
       type: object
