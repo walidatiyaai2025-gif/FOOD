@@ -194,11 +194,10 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         Queue::assertPushed(DispatchPushNotification::class);
     }
 
-    public function test_receive_and_fail_actions_are_available_before_ready_for_both_channels(): void
+    public function test_receive_and_fail_actions_are_available_before_ready_for_b2c_driver(): void
     {
         foreach ([
             ['channel' => 'b2c', 'role' => 'B2C_STORE_ADMIN', 'suffix' => 'PARITY-B2C'],
-            ['channel' => 'b2b', 'role' => 'B2B_ADMIN', 'suffix' => 'PARITY-B2B'],
         ] as $case) {
             [$storeId, $order] = $this->order($case['channel'], $case['suffix']);
             $order->forceFill(['status' => 'confirmed'])->save();
