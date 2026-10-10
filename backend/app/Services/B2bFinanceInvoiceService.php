@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use stdClass;
@@ -22,18 +23,35 @@ final class B2bFinanceInvoiceService
             'columns' => ['invoice', 'company', 'client', 'status', 'amount', 'paid', 'balance', 'issued_at', 'due', 'actions'],
             'rows' => $rows->map(function (stdClass $row) use ($isAr, $locale): array {
                 $total = (float) $row->total;
-                $paid = (float) $row->paid_total + (float) $row->ledger_payment_credits;
+                $paid = (float) $row->paid_total
+                    + (float) $row->collection_paid
+                    + (float) $row->ledger_payment_credits;
                 $balance = max(
                     0,
-                    $total + (float) $row->ledger_debits - (float) $row->paid_total - (float) $row->ledger_credits,
+                    $total
+                        + (float) $row->ledger_debits
+                        - (float) $row->paid_total
+                        - (float) $row->collection_paid
+                        - (float) $row->ledger_credits,
                 );
+                $invoiceStatus = (string) $row->status;
+                $status = in_array($invoiceStatus, ['void', 'voided', 'cancelled'], true)
+                    ? 'cancelled'
+                    : ($balance <= 0.0005
+                        ? 'paid'
+                        : ($paid > 0.0005
+                            ? 'partial'
+                            : ($row->due_at !== null && CarbonImmutable::parse((string) $row->due_at)->isPast()
+                                ? 'overdue'
+                                : 'unpaid')));
 
                 return [
                     '_id' => (int) $row->id,
+                    '_invoice_status' => $invoiceStatus,
                     'invoice' => (string) $row->invoice_number,
                     'company' => $row->company_name ?: '-',
                     'client' => (string) $row->client_name,
-                    'status' => (string) $row->status,
+                    'status' => $status,
                     'amount' => (string) $row->currency.' '.number_format($total, 3),
                     'paid' => (string) $row->currency.' '.number_format($paid, 3),
                     'balance' => (string) $row->currency.' '.number_format($balance, 3),
@@ -102,14 +120,31 @@ final class B2bFinanceInvoiceService
             ],
             'rows' => $rows->map(function (stdClass $row): array {
                 $total = (float) $row->total;
-                $paid = (float) $row->paid_total + (float) $row->ledger_payment_credits;
-                $net = $total + (float) $row->ledger_debits - (float) $row->paid_total - (float) $row->ledger_credits;
+                $paid = (float) $row->paid_total
+                    + (float) $row->collection_paid
+                    + (float) $row->ledger_payment_credits;
+                $net = $total
+                    + (float) $row->ledger_debits
+                    - (float) $row->paid_total
+                    - (float) $row->collection_paid
+                    - (float) $row->ledger_credits;
+                $balance = max(0, $net);
+                $invoiceStatus = (string) $row->status;
+                $status = in_array($invoiceStatus, ['void', 'voided', 'cancelled'], true)
+                    ? 'cancelled'
+                    : ($balance <= 0.0005
+                        ? 'paid'
+                        : ($paid > 0.0005
+                            ? 'partial'
+                            : ($row->due_at !== null && CarbonImmutable::parse((string) $row->due_at)->isPast()
+                                ? 'overdue'
+                                : 'unpaid')));
 
                 return [
                     'invoice' => (string) $row->invoice_number,
                     'company' => $row->company_name ?: '',
                     'client' => (string) $row->client_name,
-                    'status' => (string) $row->status,
+                    'status' => $status,
                     'currency' => (string) $row->currency,
                     'invoice_total' => $total,
                     'paid' => $paid,
@@ -138,7 +173,21 @@ final class B2bFinanceInvoiceService
         $paid = DB::table('payments')
             ->select('invoice_id')
             ->selectRaw("SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as paid_total")
+            ->whereNotNull('invoice_id')
+            ->where('provider', '<>', 'field_collection')
             ->groupBy('invoice_id');
+        $collections = DB::table('collection_allocations')
+            ->join(
+                'collection_transactions',
+                'collection_transactions.id',
+                '=',
+                'collection_allocations.collection_transaction_id',
+            )
+            ->select('collection_allocations.invoice_id')
+            ->selectRaw('SUM(collection_allocations.amount) as collection_paid')
+            ->where('collection_transactions.type', 'collection')
+            ->where('collection_transactions.status', 'posted')
+            ->groupBy('collection_allocations.invoice_id');
         $ledger = DB::table('customer_account_ledger_entries')
             ->select('invoice_id')
             ->selectRaw('SUM(debit) as ledger_debits')
@@ -152,6 +201,9 @@ final class B2bFinanceInvoiceService
             ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->leftJoinSub($paid, 'invoice_payments', function ($join): void {
                 $join->on('invoice_payments.invoice_id', '=', 'invoices.id');
+            })
+            ->leftJoinSub($collections, 'invoice_collections', function ($join): void {
+                $join->on('invoice_collections.invoice_id', '=', 'invoices.id');
             })
             ->leftJoinSub($ledger, 'invoice_ledger', function ($join): void {
                 $join->on('invoice_ledger.invoice_id', '=', 'invoices.id');
@@ -182,6 +234,7 @@ final class B2bFinanceInvoiceService
                 'b2b_customers.name as client_name',
                 'b2b_accounts.company_name',
                 DB::raw('COALESCE(invoice_payments.paid_total, 0) as paid_total'),
+                DB::raw('COALESCE(invoice_collections.collection_paid, 0) as collection_paid'),
                 DB::raw('COALESCE(invoice_ledger.ledger_debits, 0) as ledger_debits'),
                 DB::raw('COALESCE(invoice_ledger.ledger_credits, 0) as ledger_credits'),
                 DB::raw('COALESCE(invoice_ledger.ledger_payment_credits, 0) as ledger_payment_credits'),
@@ -243,7 +296,9 @@ final class B2bFinanceInvoiceService
             ->map(function (Collection $currencyRows, string $currency): array {
                 $total = (float) $currencyRows->sum(fn (stdClass $row): float => (float) $row->total);
                 $paid = (float) $currencyRows->sum(
-                    fn (stdClass $row): float => (float) $row->paid_total + (float) $row->ledger_payment_credits,
+                    fn (stdClass $row): float => (float) $row->paid_total
+                        + (float) $row->collection_paid
+                        + (float) $row->ledger_payment_credits,
                 );
                 $balance = (float) $currencyRows->sum(
                     fn (stdClass $row): float => max(
@@ -251,6 +306,7 @@ final class B2bFinanceInvoiceService
                         (float) $row->total
                             + (float) $row->ledger_debits
                             - (float) $row->paid_total
+                            - (float) $row->collection_paid
                             - (float) $row->ledger_credits,
                     ),
                 );

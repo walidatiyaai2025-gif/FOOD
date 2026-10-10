@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "purpose": "Mandatory business/runtime context resolved before visual reference selection or page code.",
+  "authority": {
+    "route_registry": "docs/execution/UI_ROUTE_AUTHORITY.json",
+    "function_screen_matrix": "docs/execution/FOODEX_FUNCTION_SCREEN_COVERAGE_MATRIX.md",
+    "tenant_context_source": "backend/app/Support/StoreContext.php",
+    "tenant_context_test": "backend/tests/Feature/TenantContextTest.php",
+    "brand_system": "docs/architecture/FOODEX_BRAND_SYSTEM.md",
+    "asset_policy": "docs/design-reference/ASSET_USAGE.md",
+    "localization_contract": "docs/quality/LOCALIZATION_CONTRACT.md"
+  },
+  "required_inputs": [
+    "surface",
+    "function_or_business_outcome",
+    "actor_role",
+    "permission",
+    "canonical_route_or_workspace",
+    "channel",
+    "store_or_tenant_scope",
+    "authoritative_data_service",
+    "currency_source_and_precision",
+    "locale_and_direction",
+    "mutation_risk",
+    "growth_or_live_lifecycle",
+    "required_tests_and_evidence"
+  ],
+  "rules": {
+    "tenancy": [
+      "Store/channel/tenant scope is a design input, not an implementation detail.",
+      "Caller-visible navigation never widens backend authorization.",
+      "Exact-record actions must resolve current authorized scope again on the server."
+    ],
+    "money": [
+      "Display currency from authoritative record/config/domain data; do not hard-code a currency label merely to style a page.",
+      "Preserve domain precision and rounding rules; client UI does not invent financial precision.",
+      "Do not perform client-side FX or infer settlement/payment success from formatting."
+    ],
+    "assets": [
+      "Use production brand assets and the current icon family; screenshots are reference material, not runtime assets.",
+      "Product/store imagery remains server/CDN driven where the product contract says so.",
+      "Do not bake translated copy into image assets for dynamic product UI."
+    ],
+    "completion_chain": [
+      "Function",
+      "Authorized entry point",
+      "Canonical route",
+      "Real screen",
+      "Authoritative data/service",
+      "Executable action",
+      "Persisted result or truthful feedback",
+      "Related-screen reconciliation"
+    ],
+    "lifecycle": [
+      "High-growth data requires bounded pagination/load-more or an explicit bounded-data contract.",
+      "Polling/subscriptions stop when the surface no longer needs them and reconcile on resume according to the owning contract.",
+      "Stale retained data is labelled and cannot masquerade as live."
+    ]
+  }
+}

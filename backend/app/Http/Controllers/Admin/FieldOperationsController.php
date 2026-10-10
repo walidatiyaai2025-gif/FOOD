@@ -333,7 +333,39 @@ final class FieldOperationsController extends Controller
         $assignment = $this->registry->assign($user, $van, $data);
 
         if (array_key_exists('allow_van_app', $data)) {
-            $this->applyAssignmentVanAccess($user, $assignment, (bool) $data['allow_van_app']);
+            $operatorUserId = null;
+            if ($assignment->driver_id !== null) {
+                $operatorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
+            }
+            $operatorUserId ??= $assignment->representative_user_id;
+
+            if ((bool) $data['allow_van_app'] && $operatorUserId === null) {
+                throw ValidationException::withMessages([
+                    'allow_van_app' => [__('field_operations.van_app_operator_required')],
+                ]);
+            }
+
+            if ($operatorUserId !== null) {
+                $operator = User::query()->findOrFail((int) $operatorUserId);
+                $vanRole = $this->ensureVanOperatorRole();
+                $beforeAccess = $operator->hasPermission('van.login');
+                if ((bool) $data['allow_van_app']) {
+                    $operator->roles()->syncWithoutDetaching([$vanRole->id]);
+                } else {
+                    $operator->roles()->detach($vanRole->id);
+                }
+                $operator->unsetRelation('roles');
+                $afterAccess = $operator->hasPermission('van.login');
+                $this->audit->record('van.runtime_access.updated', $user, $operator, [
+                    'van_login' => $beforeAccess,
+                    'van_id' => (int) $van->id,
+                    'assignment_id' => (int) $assignment->id,
+                ], [
+                    'van_login' => $afterAccess,
+                    'van_id' => (int) $van->id,
+                    'assignment_id' => (int) $assignment->id,
+                ]);
+            }
         }
 
         return back()->with('status', __('admin.field_operations.saved'));
@@ -352,18 +384,14 @@ final class FieldOperationsController extends Controller
             'territory_key' => ['nullable', 'string', 'max:150'],
             'van_pool_key' => ['nullable', 'string', 'max:150'],
             'assignment_type' => ['required', Rule::in(['primary', 'backup'])],
+            'status' => ['required', Rule::in(['active', 'ended'])],
             'effective_from' => ['required', 'date'],
             'effective_until' => ['nullable', 'date', 'after:effective_from'],
             'loaded_work_count' => ['nullable', 'integer', 'min:0'],
             'allow_van_app' => ['nullable', 'boolean'],
         ]);
 
-        $van = Van::query()
-            ->whereKey((int) $data['van_id'])
-            ->where('status', 'active')
-            ->firstOrFail();
-
-        $updated = $this->registry->updateAssignment($user, $assignment, $van, $data);
+        $updated = $this->registry->updateAssignment($user, $assignment, $data);
 
         if (array_key_exists('allow_van_app', $data)) {
             $this->applyAssignmentVanAccess($user, $updated, (bool) $data['allow_van_app']);
@@ -381,11 +409,12 @@ final class FieldOperationsController extends Controller
             'confirm_purge' => ['required', 'accepted'],
         ]);
 
-        $summary = $this->registry->deleteAssignment($user, $assignment);
+        $counts = $this->registry->deleteAssignmentWithOperations($user, $assignment);
 
         return back()->with('status', __('field_operations.assignment_deleted', [
-            'visits' => $summary['visits'],
-            'dispatches' => $summary['order_van_assignments'],
+            'visits' => $counts['visits'],
+            'dispatches' => $counts['dispatch_assignments'],
+            'locations' => $counts['fleet_locations'],
         ]));
     }
 
@@ -1119,7 +1148,6 @@ final class FieldOperationsController extends Controller
 
         $operator->unsetRelation('roles');
         $afterAccess = $operator->hasPermission('van.login');
-
         $this->audit->record('van.runtime_access.updated', $actor, $operator, [
             'van_login' => $beforeAccess,
             'van_id' => (int) $assignment->van_id,

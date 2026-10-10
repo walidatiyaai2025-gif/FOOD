@@ -20,6 +20,7 @@ import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 
@@ -4575,7 +4576,7 @@ class _WholesaleOrdersDesignScreenState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      _refresh();
+      unawaited(_refresh());
     }
   }
 
@@ -4595,75 +4596,140 @@ class _WholesaleOrdersDesignScreenState
   }
 
   void _select(String value) {
+    if (status == value) return;
     setState(() {
       status = value;
       future = _load();
     });
   }
 
-  void _refresh() {
+  Future<void> _refresh() async {
+    final next = _load();
     setState(() {
-      future = _load();
+      future = next;
     });
+    try {
+      await next;
+    } catch (_) {
+      // FutureBuilder renders the authoritative error state.
+    }
   }
 
   @override
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: const Color(0xFFF8FBF9),
+          key: const ValueKey('b2b-orders-screen'),
+          backgroundColor: FoodexPalette.wholesale.background,
           body: SafeArea(
-            child: FutureBuilder<Object?>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const FoodexLoading(
-                    key: ValueKey('b2b-loading'),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return FoodexErrorState(
-                    key: const ValueKey('b2b-error'),
-                    message: 'تعذر تحميل الطلبات.',
-                    onRetry: _refresh,
-                  );
-                }
+            bottom: false,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final viewportWidth = constraints.maxWidth;
+                final compact = viewportWidth < 360;
+                final pageInset = viewportWidth <= 340
+                    ? 10.0
+                    : viewportWidth <= 430
+                        ? 16.0
+                        : 20.0;
+                final contentWidth = math.min(560.0, viewportWidth);
 
-                final rows = dataRows(snapshot.data);
-                return ListView(
-                  key: rows.isEmpty
-                      ? null
-                      : const ValueKey('b2b-orders-data'),
-                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(child: FoodexTopBar(title: 'طلباتي')),
-                        IconButton(
-                          key: const ValueKey('b2b-orders-refresh'),
-                          tooltip: 'تحديث',
-                          onPressed: _refresh,
-                          icon: const Icon(Icons.refresh_rounded),
-                        ),
-                      ],
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: contentWidth,
+                    child: FutureBuilder<Object?>(
+                      future: future,
+                      builder: (context, snapshot) {
+                        final loading =
+                            snapshot.connectionState != ConnectionState.done;
+                        final rows = snapshot.hasData
+                            ? dataRows(snapshot.data)
+                            : const <Map<String, dynamic>>[];
+
+                        Widget content;
+                        if (loading) {
+                          content = const FoodexLoading(
+                            key: ValueKey('b2b-loading'),
+                          );
+                        } else if (snapshot.hasError) {
+                          content = ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              pageInset,
+                              10,
+                              pageInset,
+                              24,
+                            ),
+                            children: [
+                              FoodexErrorState(
+                                key: const ValueKey('b2b-error'),
+                                message: context.tr('customer.error.action_failed'),
+                                retryLabel: context.tr('customer.action.retry'),
+                                onRetry: () => unawaited(_refresh()),
+                              ),
+                            ],
+                          );
+                        } else if (rows.isEmpty) {
+                          content = ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              pageInset,
+                              10,
+                              pageInset,
+                              24,
+                            ),
+                            children: [
+                              FoodexEmptyState(
+                                key: const ValueKey('b2b-empty'),
+                                title: context.tr('customer.orders.empty'),
+                                subtitle: context.tr('b2b.orders.subtitle'),
+                              ),
+                            ],
+                          );
+                        } else {
+                          content = RefreshIndicator(
+                            onRefresh: _refresh,
+                            child: ListView.separated(
+                              key: const ValueKey('b2b-orders-data'),
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.fromLTRB(
+                                pageInset,
+                                7,
+                                pageInset,
+                                20,
+                              ),
+                              itemCount: rows.length,
+                              separatorBuilder: (_, __) =>
+                                  SizedBox(height: compact ? 9 : 11),
+                              itemBuilder: (_, index) => _OrderCard(
+                                row: rows[index],
+                                compact: compact,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children: [
+                            _WholesaleOrdersHeader(
+                              pageInset: pageInset,
+                              loading: loading,
+                              onRefresh: () => unawaited(_refresh()),
+                            ),
+                            _OrderTabs(
+                              selected: status,
+                              onChanged: _select,
+                              pageInset: pageInset,
+                              compact: compact,
+                              enabled: !loading,
+                            ),
+                            Expanded(child: content),
+                          ],
+                        );
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    _OrderTabs(
-                      selected: status,
-                      onChanged: _select,
-                    ),
-                    const SizedBox(height: 12),
-                    if (rows.isEmpty)
-                      const FoodexEmptyState(
-                        key: ValueKey('b2b-empty'),
-                        title: 'لا توجد طلبات',
-                        subtitle: 'لا توجد طلبات بهذه الحالة.',
-                      )
-                    else
-                      ...rows.map(
-                        (row) => _OrderCard(row: row),
-                      ),
-                  ],
+                  ),
                 );
               },
             ),
@@ -5584,133 +5650,401 @@ class _OrderDetailCard extends StatelessWidget {
       );
 }
 
+class _WholesaleOrdersHeader extends StatelessWidget {
+  const _WholesaleOrdersHeader({
+    required this.pageInset,
+    required this.loading,
+    required this.onRefresh,
+  });
+
+  final double pageInset;
+  final bool loading;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(
+          pageInset,
+          4,
+          pageInset,
+          0,
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 58,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(
+                context.tr('customer.profile.orders'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: CustomerUiColors.ink,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      height: 1.1,
+                    ),
+              ),
+              Positioned(
+                left: 0,
+                child: Semantics(
+                  button: true,
+                  label: context.tr('customer.orders.refresh'),
+                  child: Tooltip(
+                    message: context.tr('customer.orders.refresh'),
+                    child: Material(
+                      color: CustomerUiColors.mintStrong.withOpacity(.45),
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        key: const ValueKey('b2b-orders-refresh'),
+                        customBorder: const CircleBorder(),
+                        onTap: loading ? null : onRefresh,
+                        child: SizedBox.square(
+                          dimension: 42,
+                          child: loading
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: CustomerUiColors.deepGreenStrong,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 24,
+                                  color: CustomerUiColors.ink,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
 class _OrderTabs extends StatelessWidget {
   const _OrderTabs({
     required this.selected,
     required this.onChanged,
+    required this.pageInset,
+    required this.compact,
+    required this.enabled,
   });
 
   final String selected;
   final ValueChanged<String> onChanged;
+  final double pageInset;
+  final bool compact;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
-    const values = <(String, String)>[
-      ('all', 'الكل'),
-      ('pending', 'جديد'),
-      ('preparing', 'قيد التجهيز'),
-      ('out_for_delivery', 'قيد التوصيل'),
-      ('delivered', 'مكتمل'),
+    const values = <String>[
+      'all',
+      'pending',
+      'preparing',
+      'out_for_delivery',
+      'delivered',
     ];
-    return Wrap(
-      spacing: 7,
-      runSpacing: 7,
-      children: values
-          .map(
-            (item) => ChoiceChip(
-              label: Text(item.$2),
-              selected: selected == item.$1,
-              onSelected: (_) => onChanged(item.$1),
+
+    return SizedBox(
+      height: compact ? 54 : 58,
+      child: SingleChildScrollView(
+        key: const ValueKey('b2b-orders-status-filters'),
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsetsDirectional.fromSTEB(
+          pageInset,
+          5,
+          pageInset,
+          compact ? 7 : 9,
+        ),
+        child: Row(
+          children: [
+            for (var index = 0; index < values.length; index++) ...[
+              _OrderFilterPill(
+                key: ValueKey('b2b-orders-filter-' + values[index]),
+                value: values[index],
+                label: _wholesaleOrderFilterLabel(context, values[index]),
+                selected: selected == values[index],
+                compact: compact,
+                enabled: enabled,
+                showFilterIcon: values[index] == 'all',
+                onTap: () => onChanged(values[index]),
+              ),
+              if (index != values.length - 1)
+                SizedBox(width: compact ? 6 : 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderFilterPill extends StatelessWidget {
+  const _OrderFilterPill({
+    required this.value,
+    required this.label,
+    required this.selected,
+    required this.compact,
+    required this.enabled,
+    required this.showFilterIcon,
+    required this.onTap,
+    super.key,
+  });
+
+  final String value;
+  final String label;
+  final bool selected;
+  final bool compact;
+  final bool enabled;
+  final bool showFilterIcon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = FoodexPalette.wholesale;
+    final foreground =
+        selected ? CustomerUiColors.white : CustomerUiColors.inkSoft;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+          onTap: enabled ? onTap : null,
+          child: AnimatedContainer(
+            duration: CustomerUiMotion.resolve(
+              context,
+              CustomerUiMotion.standard,
             ),
-          )
-          .toList(growable: false),
+            curve: CustomerUiMotion.standardCurve,
+            height: compact ? 40 : 44,
+            constraints: BoxConstraints(
+              minWidth: compact ? 58 : 64,
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 10 : 14,
+            ),
+            decoration: BoxDecoration(
+              color: selected ? palette.primary : CustomerUiColors.white,
+              borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+              border: Border.all(
+                color: selected ? palette.primary : CustomerUiColors.border,
+              ),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: CustomerUiColors.shadow,
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : const <BoxShadow>[],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (showFilterIcon) ...[
+                  Icon(
+                    Icons.filter_list_rounded,
+                    size: compact ? 18 : 20,
+                    color: foreground,
+                  ),
+                  SizedBox(width: compact ? 5 : 7),
+                ],
+                Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: foreground,
+                        fontSize: compact ? 11.5 : 12.5,
+                        fontWeight:
+                            selected ? FontWeight.w900 : FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.row});
+  const _OrderCard({
+    required this.row,
+    required this.compact,
+  });
 
   final Map<String, dynamic> row;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final palette = FoodexPalette.wholesale;
     final id = intValue(row['id']);
     final store = row['store'];
-    final storeName = row['store_name']?.toString() ??
-        (store is Map ? store['name']?.toString() : null) ??
-        '';
-    final currency = row['currency']?.toString() ?? 'KWD';
+    final storeName = row['store_name']?.toString().trim().isNotEmpty == true
+        ? row['store_name'].toString().trim()
+        : (store is Map && store['name']?.toString().trim().isNotEmpty == true)
+            ? store['name'].toString().trim()
+            : context.tr('customer.orders.channel.wholesale');
+    final currency = (row['currency']?.toString().trim().isNotEmpty == true
+            ? row['currency'].toString().trim()
+            : 'EGP')
+        .toUpperCase();
     final total = row['grand_total'] ?? row['total'];
-    final totalLabel =
-        total == null ? '—' : total.toString() + ' ' + currency;
+    final totalLabel = _compactOrderAmount(total, currency);
+    final title = row['order_number']?.toString().trim().isNotEmpty == true
+        ? row['order_number'].toString().trim()
+        : '#' + (row['id']?.toString() ?? '');
+    final createdAt = _friendlyOrderDate(row['created_at']?.toString());
+    final canOpen = id > 0;
 
-    return Material(
-      key: ValueKey('b2b-order-row-' + id.toString()),
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
-        onTap: id <= 0
-            ? null
-            : () => Navigator.of(context)
-                .pushNamed('/b2b/orders/' + id.toString()),
-        borderRadius: BorderRadius.circular(17),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE9E3F0)),
-            borderRadius: BorderRadius.circular(17),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F8F4),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(
-                  Icons.receipt_long_outlined,
-                  color: Color(0xFF078A43),
-                ),
+    return Semantics(
+      button: canOpen,
+      label: title,
+      child: Material(
+        key: ValueKey('b2b-order-row-' + id.toString()),
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(compact ? 18 : 20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: canOpen
+              ? () => Navigator.of(context)
+                  .pushNamed('/b2b/orders/' + id.toString())
+              : null,
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: compact ? 86 : 94,
+            ),
+            padding: EdgeInsetsDirectional.fromSTEB(
+              compact ? 9 : 12,
+              compact ? 8 : 9,
+              compact ? 9 : 12,
+              compact ? 8 : 9,
+            ),
+            decoration: BoxDecoration(
+              color: CustomerUiColors.white,
+              borderRadius: BorderRadius.circular(compact ? 18 : 20),
+              border: Border.all(
+                color: CustomerUiColors.border.withOpacity(.72),
               ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      row['order_number']?.toString() ??
-                          '#' + (row['id']?.toString() ?? ''),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (storeName.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        storeName,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7785),
+              boxShadow: CustomerUiElevation.cardShadow,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _OrderOpenAffordance(
+                  orderId: id,
+                  compact: compact,
+                  enabled: canOpen,
+                ),
+                SizedBox(width: compact ? 7 : 10),
+                Expanded(
+                  child: Column(
+                    textDirection: TextDirection.ltr,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        Tooltip(
+                          message: title,
+                          child: Text(
+                            title,
+                            textDirection: TextDirection.ltr,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: CustomerUiColors.ink,
+                                  fontSize: compact ? 12.8 : 14,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.08,
+                                ),
+                          ),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 4),
-                    Text(
-                      row['created_at']?.toString() ?? '',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF6B7785),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      totalLabel,
-                      style: const TextStyle(
-                        color: Color(0xFF078A43),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
+                        SizedBox(height: compact ? 3 : 4),
+                        Text(
+                          storeName,
+                          textDirection: TextDirection.ltr,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: CustomerUiColors.muted,
+                                fontSize: compact ? 11 : 12.5,
+                                height: 1.05,
+                              ),
+                        ),
+                        if (createdAt != '-') ...[
+                          SizedBox(height: compact ? 4 : 5),
+                          Row(
+                            textDirection: TextDirection.ltr,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  createdAt,
+                                  textDirection: TextDirection.ltr,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: CustomerUiColors.muted,
+                                        fontSize: compact ? 10 : 11,
+                                        height: 1.05,
+                                      ),
+                                ),
+                              ),
+                              SizedBox(width: compact ? 5 : 7),
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: compact ? 14 : 16,
+                                color: CustomerUiColors.muted,
+                              ),
+                            ],
+                          ),
+                        ],
+                        SizedBox(height: compact ? 4 : 5),
+                        Text(
+                          totalLabel,
+                          textDirection: TextDirection.ltr,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: palette.primary,
+                                fontSize: compact ? 12.8 : 14.5,
+                                fontWeight: FontWeight.w900,
+                                height: 1.05,
+                              ),
+                        ),
+                      ],
+                  ),
                 ),
-              ),
-              _StatusPill(
-                status: row['status']?.toString() ?? '',
-              ),
-            ],
+                SizedBox(width: compact ? 7 : 10),
+                _StatusPill(
+                  status: row['status']?.toString() ?? '',
+                  compact: compact,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -5718,34 +6052,178 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
+class _OrderOpenAffordance extends StatelessWidget {
+  const _OrderOpenAffordance({
+    required this.orderId,
+    required this.compact,
+    required this.enabled,
+  });
+
+  final int orderId;
+  final bool compact;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: Opacity(
+          opacity: enabled ? 1 : .45,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.chevron_right_rounded,
+                size: compact ? 21 : 24,
+                color: CustomerUiColors.inkSoft,
+              ),
+              SizedBox(width: compact ? 2 : 4),
+              Container(
+                key: ValueKey('b2b-order-receipt-' + orderId.toString()),
+                width: compact ? 38 : 42,
+                height: compact ? 38 : 42,
+                decoration: BoxDecoration(
+                  color: CustomerUiColors.mint,
+                  borderRadius: BorderRadius.circular(compact ? 11 : 13),
+                ),
+                child: Icon(
+                  Icons.receipt_long_outlined,
+                  size: compact ? 23 : 25,
+                  color: FoodexPalette.wholesale.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
+  const _StatusPill({
+    required this.status,
+    required this.compact,
+  });
 
   final String status;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final delivered = status == 'delivered';
-    final color = delivered
-        ? const Color(0xFF078A43)
-        : const Color(0xFFE58B22);
+    final foreground = _wholesaleOrderStatusColor(status);
+    final label = _wholesaleOrderStatusLabel(context, status);
+
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(.1),
-        borderRadius: BorderRadius.circular(999),
+      constraints: BoxConstraints(
+        minWidth: compact ? 66 : 74,
+        maxWidth: compact ? 84 : 100,
       ),
-      child: Text(
-        orderStatusLabel(status),
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
+      padding: EdgeInsetsDirectional.fromSTEB(
+        compact ? 7 : 9,
+        compact ? 5 : 6,
+        compact ? 7 : 9,
+        compact ? 5 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: foreground.withOpacity(.10),
+        borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w900,
+                    fontSize: compact ? 10.5 : 11.5,
+                    height: 1.05,
+                  ),
+            ),
+          ),
+          SizedBox(width: compact ? 5 : 7),
+          Container(
+            width: compact ? 8 : 9,
+            height: compact ? 8 : 9,
+            decoration: BoxDecoration(
+              color: foreground,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+String _wholesaleOrderFilterLabel(BuildContext context, String value) {
+  switch (value) {
+    case 'all':
+      return context.tr('customer.orders.status.all');
+    case 'pending':
+      return context.tr('customer.orders.status.new_filter');
+    case 'preparing':
+      return context.tr('customer.orders.status.preparing_filter');
+    case 'out_for_delivery':
+      return context.tr('customer.orders.status.delivery_filter');
+    case 'delivered':
+      return context.tr('customer.orders.status.completed_filter');
+    default:
+      return _orderStatusText(context, value);
+  }
+}
+
+String _wholesaleOrderStatusLabel(BuildContext context, String status) {
+  switch (status.trim().toLowerCase()) {
+    case 'pending':
+      return context.tr('customer.orders.status.new_filter');
+    case 'processing':
+    case 'preparing':
+    case 'confirmed':
+      return context.tr('customer.orders.status.preparing_filter');
+    case 'shipped':
+    case 'in_delivery':
+    case 'out_for_delivery':
+      return context.tr('customer.orders.status.delivery_filter');
+    case 'completed':
+      return context.tr('customer.orders.status.completed_filter');
+    case 'ready':
+      return context.tr('customer.orders.status.ready_compact');
+    default:
+      return _orderStatusText(context, status.trim().toLowerCase());
+  }
+}
+
+Color _wholesaleOrderStatusColor(String status) {
+  switch (status.trim().toLowerCase()) {
+    case 'cancelled':
+    case 'canceled':
+    case 'failed':
+      return CustomerUiColors.destructive;
+    case 'shipped':
+    case 'in_delivery':
+    case 'out_for_delivery':
+      return CustomerUiColors.info;
+    case 'processing':
+    case 'preparing':
+    case 'confirmed':
+      return CustomerUiColors.warning;
+    case 'pending':
+    case 'delivered':
+    case 'completed':
+      return CustomerUiColors.success;
+    default:
+      return CustomerUiColors.deepGreenSoft;
+  }
+}
+
+String _compactOrderAmount(Object? value, String currency) {
+  final number = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
+  if (number == null) return currency + ' —';
+  var amount = number.toStringAsFixed(3);
+  amount = amount.replaceFirst(RegExp(r'\.?0+$'), '');
+  return currency + ' ' + amount;
 }
 
 String paymentLabel(String method) {

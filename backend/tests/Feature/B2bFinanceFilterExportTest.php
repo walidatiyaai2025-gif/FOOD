@@ -87,6 +87,84 @@ final class B2bFinanceFilterExportTest extends TestCase
         $this->assertNotSame('', $empty->getContent());
     }
 
+    public function test_van_collection_allocations_drive_invoice_paid_status_and_balance(): void
+    {
+        $principal = app(WholesalePrincipal::class)->storeId();
+        [$legacy, $customer] = $this->customer('Van Buyer', 'Van Buyer Company');
+        $invoice = $this->invoice($principal, $legacy, $customer, 'INV-VAN-PAID', '2026-10-02', 100, 0);
+        $admin = $this->admin('finance-van@example.test');
+
+        $account = (int) DB::table('collection_accounts')->insertGetId([
+            'actor_type' => 'van',
+            'actor_id' => 47,
+            'store_id' => $principal,
+            'currency' => 'KWD',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $payment = (int) DB::table('payments')->insertGetId([
+            'invoice_id' => null,
+            'provider' => 'field_collection',
+            'provider_reference' => 'van-test-payment',
+            'status' => 'paid',
+            'amount' => 100,
+            'currency' => 'KWD',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $transaction = (int) DB::table('collection_transactions')->insertGetId([
+            'collection_account_id' => $account,
+            'payment_id' => $payment,
+            'idempotency_key' => 'van-test-collection',
+            'type' => 'collection',
+            'status' => 'posted',
+            'amount' => 100,
+            'currency' => 'KWD',
+            'source' => 'van_app',
+            'created_by' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('collection_allocations')->insert([
+            'collection_transaction_id' => $transaction,
+            'invoice_id' => $invoice,
+            'amount' => 100,
+            'currency' => 'KWD',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/finance?finance_tab=invoices')
+            ->assertOk()
+            ->assertSee('INV-VAN-PAID')
+            ->assertSee('Paid in full')
+            ->assertSee('KWD 100.000')
+            ->assertSee('KWD 0.000');
+    }
+
+    public function test_finance_top_level_tabs_do_not_render_invoice_and_operations_tables_together(): void
+    {
+        $principal = app(WholesalePrincipal::class)->storeId();
+        [$legacy, $customer] = $this->customer('Tabbed Buyer', 'Tabbed Company');
+        $this->invoice($principal, $legacy, $customer, 'INV-TABS-ONLY', '2026-10-02', 55, 0);
+        $admin = $this->admin('finance-tabs@example.test');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/finance?finance_tab=invoices')
+            ->assertOk()
+            ->assertSee('Invoices &amp; settlement', false)
+            ->assertSee('INV-TABS-ONLY')
+            ->assertDontSee('Collections, custody &amp; remittance', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/finance?finance_tab=operations&ops_tab=collections')
+            ->assertOk()
+            ->assertSee('Collections, custody &amp; remittance', false)
+            ->assertDontSee('INV-TABS-ONLY');
+    }
+
     /** @return array{0:int,1:int} */
     private function customer(string $name, string $company): array
     {

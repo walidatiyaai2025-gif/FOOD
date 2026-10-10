@@ -149,7 +149,7 @@ class VanRegistryServiceTest extends TestCase
             'territory_key' => 'north',
         ]);
 
-        $updated = $service->updateAssignment($actor, $assignment, $van, [
+        $updated = $service->updateAssignment($actor, $assignment, [
             'assignment_type' => 'primary',
             'effective_from' => '2026-01-02T00:00:00Z',
             'effective_until' => '2026-02-02T00:00:00Z',
@@ -265,11 +265,11 @@ class VanRegistryServiceTest extends TestCase
             'decided_at' => now(),
         ]);
 
-        $summary = $service->deleteAssignment($actor, $assignment);
+        $summary = $service->deleteAssignmentWithOperations($actor, $assignment);
 
         $this->assertSame(1, $summary['visits']);
-        $this->assertSame(1, $summary['order_van_assignments']);
-        $this->assertSame(1, $summary['dispatch_states_reset']);
+        $this->assertSame(1, $summary['dispatch_assignments']);
+        $this->assertSame(1, $summary['dispatch_states']);
         $this->assertDatabaseMissing('van_assignments', ['id' => $assignment->id]);
         $this->assertDatabaseMissing('van_visits', ['id' => $ownedVisit->id]);
         $this->assertDatabaseHas('van_visits', ['id' => $otherVisit->id]);

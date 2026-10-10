@@ -25,6 +25,8 @@ jobs:
       mobile_prod_ux_acceptance: ${{ steps.filter.outputs.mobile_prod_ux_acceptance }}
       operational_completion_e2e: ${{ steps.filter.outputs.operational_completion_e2e }}
       c13_integrated_e2e: ${{ steps.filter.outputs.c13_integrated_e2e }}
+      dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}
+      mobile_ui: ${{ steps.filter.outputs.mobile_ui }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,6 +53,8 @@ jobs:
           mobile_prod_ux_acceptance=false
           operational_completion_e2e=false
           c13_integrated_e2e=false
+          dashboard_ui=false
+          mobile_ui=false
 
           if grep -Eq '^(backend/|docs/api/openapi\.yaml$|\.github/workflows/backend-ci\.yml$)' changed-files.txt; then
             backend=true
@@ -66,6 +70,14 @@ jobs:
 
           if grep -Eq '^(apps/van_app/|packages/(design_tokens|foodex_visualization)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint)\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\.py$|\.github/workflows/van-app-ci\.yml$)' changed-files.txt; then
             van=true
+          fi
+
+          if grep -Eq '^(backend/resources/views/admin/|backend/public/assets/admin/)' changed-files.txt; then
+            dashboard_ui=true
+          fi
+
+          if grep -Eq '^(apps/(customer_app|driver_app|van_app)/lib/.*\.dart$|packages/(design_tokens|foodex_visualization)/)' changed-files.txt; then
+            mobile_ui=true
           fi
 
           if grep -Eq '^(\.github/workflows/(release-validation|trial-distribution)\.yml|\.github/workflows/app-preview-acceptance-ci\.yml|scripts/(release-readiness\.sh|write-trial-bundle-manifest\.py|validate_release_artifact_contract\.py)|scripts/tests/test_release_artifact_contract\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\.md$)' changed-files.txt; then
@@ -130,6 +142,8 @@ jobs:
             echo "mobile_prod_ux_acceptance=$mobile_prod_ux_acceptance"
             echo "operational_completion_e2e=$operational_completion_e2e"
             echo "c13_integrated_e2e=$c13_integrated_e2e"
+            echo "dashboard_ui=$dashboard_ui"
+            echo "mobile_ui=$mobile_ui"
           } >> "$GITHUB_OUTPUT"
 
   repository-policy:
@@ -178,6 +192,93 @@ jobs:
       - name: Test UIUX v4.2 recovery independent audit
         run: python3 -m unittest discover -s scripts/tests -p 'test_uiux_v42_recovery_audit.py'
 
+      - name: Test FOODEX UIUX policy gate
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_uiux_audit.py'
+
+      - name: Test FOODEX UI contract planner
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_contract_plan.py'
+
+      - name: Test FOODEX UI business intent planner
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_intent_plan.py'
+
+      - name: Validate FOODEX business UI casebook
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-ui-intent-plan.py \
+            --validate-only \
+            --output artifacts/foodex-ui-business-casebook-audit.json
+
+      - name: Upload FOODEX business UI casebook audit
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-ui-business-casebook-${{ github.event.pull_request.head.sha }}
+          path: artifacts/foodex-ui-business-casebook-audit.json
+          if-no-files-found: warn
+          retention-days: 30
+
+
+      - name: Test FOODEX UI structural parity
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_structure_audit.py'
+
+      - name: Test FOODEX UI PR evidence plan
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_ui_pr_plan.py'
+
+      - name: Enforce FOODEX UI structural parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-ui-structure-audit.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --report artifacts/foodex-ui-structure-audit.json
+
+      - name: Generate strict FOODEX UI PR evidence plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-ui-pr-plan.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --strict \
+            --output artifacts/foodex-ui-pr-evidence-plan.json
+
+      - name: Upload FOODEX UI structural and evidence plan
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-ui-phase3-${{ github.event.pull_request.head.sha }}
+          path: |
+            artifacts/foodex-ui-structure-audit.json
+            artifacts/foodex-ui-pr-evidence-plan.json
+          if-no-files-found: warn
+          retention-days: 30
+
+
+
+      - name: Enforce FOODEX changed-surface UIUX policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-uiux-audit.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --report artifacts/foodex-uiux-audit.json
+
+      - name: Upload FOODEX UIUX policy report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-uiux-audit-${{ github.event.pull_request.head.sha }}
+          path: artifacts/foodex-uiux-audit.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Run UIUX v4.2 recovery independent whole-tree audit
         if: ${{ github.head_ref == 'test/1041-uiux-requirement-coverage-audit' }}
         run: |
@@ -223,6 +324,18 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.van == 'true' }}
     uses: ./.github/workflows/van-app-ci.yml
+
+  dashboard-visual-evidence:
+    name: Required Dashboard visual evidence
+    needs: changes
+    if: ${{ needs.changes.outputs.dashboard_ui == 'true' }}
+    uses: ./.github/workflows/ui-visual-qa.yml
+
+  mobile-visual-evidence:
+    name: Required Mobile visual evidence
+    needs: changes
+    if: ${{ needs.changes.outputs.mobile_ui == 'true' }}
+    uses: ./.github/workflows/mobile-screenshot-capture.yml
 
   localization-quality:
     name: Localization quality
@@ -316,6 +429,8 @@ jobs:
       - driver-validation
       - van-validation
       - localization-quality
+      - dashboard-visual-evidence
+      - mobile-visual-evidence
       - app-preview-visual-parity
       - preview-runtime-distribution
       - screenshot-evidence
@@ -337,6 +452,10 @@ jobs:
           VAN_CHANGED: ${{ needs.changes.outputs.van }}
           VAN_RESULT: ${{ needs.van-validation.result }}
           LOCALIZATION_RESULT: ${{ needs.localization-quality.result }}
+          DASHBOARD_UI_CHANGED: ${{ needs.changes.outputs.dashboard_ui }}
+          DASHBOARD_VISUAL_RESULT: ${{ needs.dashboard-visual-evidence.result }}
+          MOBILE_UI_CHANGED: ${{ needs.changes.outputs.mobile_ui }}
+          MOBILE_VISUAL_RESULT: ${{ needs.mobile-visual-evidence.result }}
           APP_PREVIEW_VISUAL_CHANGED: ${{ needs.changes.outputs.app_preview_visual }}
           APP_PREVIEW_VISUAL_RESULT: ${{ needs.app-preview-visual-parity.result }}
           PREVIEW_RUNTIME_DISTRIBUTION_CHANGED: ${{ needs.changes.outputs.preview_runtime_distribution }}
@@ -380,6 +499,8 @@ jobs:
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
           require_applicable_success "$VAN_CHANGED" "Van validation" "$VAN_RESULT"
           require_success "Localization quality" "$LOCALIZATION_RESULT"
+          require_applicable_success "$DASHBOARD_UI_CHANGED" "Dashboard visual evidence" "$DASHBOARD_VISUAL_RESULT"
+          require_applicable_success "$MOBILE_UI_CHANGED" "Mobile visual evidence" "$MOBILE_VISUAL_RESULT"
           require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
           require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"

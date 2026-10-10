@@ -1,0 +1,789 @@
+{
+  "schema_version": 1,
+  "purpose": "Production-backed FOODEX business UI casebook for resolving short owner prompts into real journeys.",
+  "routing": {
+    "min_score": 5,
+    "ambiguity_margin": 3
+  },
+  "cases": [
+    {
+      "id": "dashboard.order-operations",
+      "surface": "dashboard",
+      "archetype": "management-list",
+      "recipe_id": "operations-management",
+      "title": "Dashboard Order Operations & Dispatch",
+      "intent_phrases_ar": [
+        "ادارة توزيع الطلبات",
+        "اسناد الطلبات للسواق او الفان",
+        "عمليات الطلبات في الداشبورد"
+      ],
+      "intent_phrases_en": [
+        "order operations dashboard",
+        "dispatch order to driver or van",
+        "order assignment management"
+      ],
+      "keywords_ar": [
+        "توزيع",
+        "اسناد",
+        "طلبات",
+        "سواق",
+        "فان"
+      ],
+      "keywords_en": [
+        "dispatch",
+        "assignment",
+        "orders",
+        "driver",
+        "van"
+      ],
+      "surface_hints": [
+        "داشبورد",
+        "ادمن",
+        "dashboard",
+        "admin"
+      ],
+      "negative_keywords": [
+        "تطبيق الفان",
+        "تطبيق العميل",
+        "تطبيق السائق"
+      ],
+      "production_sources": [
+        "backend/resources/views/admin/order-operations.blade.php"
+      ],
+      "tests": [
+        "backend/tests/Feature/DashboardUiComplianceTest.php",
+        "backend/tests/Feature/AdminNavigationAuthorizationAuditTest.php"
+      ],
+      "source_markers": {
+        "backend/resources/views/admin/order-operations.blade.php": [
+          "data-order-row-actions",
+          "data-order-dispatch-driver",
+          "data-order-dispatch-van",
+          "available_statuses"
+        ]
+      },
+      "primary_actions": [
+        "view_exact_order",
+        "assign_or_reassign_driver_or_van",
+        "clear_assignment_when_allowed",
+        "apply_authoritative_status_transition"
+      ],
+      "business_invariants": [
+        "assignment choices stay store/channel scoped",
+        "available status transitions come from backend authority",
+        "payment/dispatch labels are business-readable"
+      ]
+    },
+    {
+      "id": "dashboard.customer-360",
+      "surface": "dashboard",
+      "archetype": "detail-manage",
+      "recipe_id": "record-360",
+      "title": "Dashboard Customer 360",
+      "intent_phrases_ar": [
+        "صفحة تفاصيل العميل",
+        "صفحة 360 للعميل",
+        "ماليات وعناوين العميل"
+      ],
+      "intent_phrases_en": [
+        "customer 360 page",
+        "customer detail workspace",
+        "customer finance and addresses"
+      ],
+      "keywords_ar": [
+        "عميل",
+        "عناوين",
+        "رصيد",
+        "فاتورة",
+        "ماليات"
+      ],
+      "keywords_en": [
+        "customer",
+        "address",
+        "balance",
+        "invoice",
+        "finance"
+      ],
+      "surface_hints": [
+        "داشبورد",
+        "ادمن",
+        "dashboard",
+        "admin"
+      ],
+      "negative_keywords": [
+        "تطبيق العميل"
+      ],
+      "production_sources": [
+        "backend/resources/views/admin/customer-360-show.blade.php"
+      ],
+      "tests": [
+        "backend/tests/Feature/DashboardUiComplianceTest.php"
+      ],
+      "source_markers": {
+        "backend/resources/views/admin/customer-360-show.blade.php": [
+          "data-c360-tab",
+          "finance-entries.store",
+          "select name=\"invoice_id\"",
+          "data-address-map-picker"
+        ]
+      },
+      "primary_actions": [
+        "manage_finance_when_authorized",
+        "manage_addresses_when_authorized",
+        "open_related_orders_and_invoices"
+      ],
+      "business_invariants": [
+        "keep exact customer context across tabs",
+        "finance currency comes from authoritative account",
+        "invoice selection uses business number rather than typed id"
+      ]
+    },
+    {
+      "id": "dashboard.live-tracking",
+      "surface": "dashboard",
+      "archetype": "map-geography",
+      "recipe_id": "live-monitoring",
+      "title": "Dashboard Driver/Van Live Tracking",
+      "intent_phrases_ar": [
+        "تتبع السواقين والفانات",
+        "خريطة السواقين والفانات",
+        "التتبع المباشر في الداشبورد"
+      ],
+      "intent_phrases_en": [
+        "driver and van live tracking",
+        "fleet live map",
+        "dashboard live tracking"
+      ],
+      "keywords_ar": [
+        "تتبع",
+        "خريطة",
+        "سواقين",
+        "فانات"
+      ],
+      "keywords_en": [
+        "tracking",
+        "map",
+        "drivers",
+        "vans",
+        "fleet"
+      ],
+      "surface_hints": [
+        "داشبورد",
+        "dashboard",
+        "admin"
+      ],
+      "negative_keywords": [
+        "خريطة مسار الفان"
+      ],
+      "production_sources": [
+        "backend/resources/views/admin/driver-live-tracking.blade.php"
+      ],
+      "tests": [
+        "backend/tests/Feature/DashboardUiComplianceTest.php"
+      ],
+      "source_markers": {
+        "backend/resources/views/admin/driver-live-tracking.blade.php": [
+          "data-foodex-utility=\"driver-live-tracking\"",
+          "'trackingActor' => 'mixed'",
+          "'pollMs' => 5000"
+        ]
+      },
+      "primary_actions": [
+        "filter_live_entities",
+        "focus_exact_driver_or_van",
+        "refresh_through_owned_polling"
+      ],
+      "business_invariants": [
+        "drivers and vans share the unified map",
+        "coordinates are authoritative",
+        "stale or absent locations are not fabricated"
+      ]
+    },
+    {
+      "id": "dashboard.van-finance-support",
+      "surface": "dashboard",
+      "archetype": "management-list",
+      "recipe_id": "finance-reconciliation",
+      "title": "Dashboard Van Finance Support",
+      "intent_phrases_ar": [
+        "مراجعة ماليات الفان",
+        "مراجعة تحصيلات وتوريدات الفان",
+        "تسوية ماليات الفانات"
+      ],
+      "intent_phrases_en": [
+        "van finance support dashboard",
+        "review van collections and remittances",
+        "van finance reconciliation"
+      ],
+      "keywords_ar": [
+        "مراجعة",
+        "توريدات",
+        "تسوية",
+        "ماليات",
+        "فانات"
+      ],
+      "keywords_en": [
+        "review",
+        "remittances",
+        "reconciliation",
+        "finance",
+        "vans"
+      ],
+      "surface_hints": [
+        "داشبورد",
+        "ادمن",
+        "dashboard",
+        "admin"
+      ],
+      "negative_keywords": [
+        "تطبيق الفان",
+        "تحصيل من العميل"
+      ],
+      "production_sources": [
+        "backend/resources/views/admin/van-finance-support.blade.php"
+      ],
+      "tests": [
+        "backend/tests/Feature/DashboardUiComplianceTest.php"
+      ],
+      "source_markers": {
+        "backend/resources/views/admin/van-finance-support.blade.php": [
+          "data-van-finance-support",
+          "remittances",
+          "reconciliation",
+          "ops_per_page"
+        ]
+      },
+      "primary_actions": [
+        "switch_wallet_collection_remittance_reconciliation_tabs",
+        "search_and_filter",
+        "paginate",
+        "open_field_operations_finance"
+      ],
+      "business_invariants": [
+        "finance rows remain paginated",
+        "currency is explicit per row",
+        "reconciliation exceptions remain distinguishable from normal rows"
+      ]
+    },
+    {
+      "id": "customer.wholesale-orders",
+      "surface": "customer",
+      "archetype": "customer-transaction",
+      "recipe_id": "transaction-list",
+      "title": "Customer Wholesale Orders",
+      "canonical_function_ids": [
+        "customer.wholesale.orders"
+      ],
+      "intent_phrases_ar": [
+        "طلبات الجملة في تطبيق العميل",
+        "سجل طلبات الجملة",
+        "تفاصيل طلب الجملة"
+      ],
+      "intent_phrases_en": [
+        "wholesale orders in customer app",
+        "wholesale order history",
+        "wholesale order details"
+      ],
+      "keywords_ar": [
+        "جملة",
+        "طلبات",
+        "سجل",
+        "تفاصيل"
+      ],
+      "keywords_en": [
+        "wholesale",
+        "orders",
+        "history",
+        "details"
+      ],
+      "surface_hints": [
+        "تطبيق العميل",
+        "customer app",
+        "customer"
+      ],
+      "negative_keywords": [
+        "داشبورد",
+        "فان",
+        "سائق"
+      ],
+      "production_sources": [
+        "apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart",
+        "apps/customer_app/lib/features/storefront/multistore_design_screen.dart"
+      ],
+      "tests": [
+        "apps/customer_app/test/b2b_journey_test.dart",
+        "apps/customer_app/test/customer_route_authority_test.dart",
+        "apps/customer_app/test/screenshot_evidence_test.dart"
+      ],
+      "source_markers": {
+        "apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart": [
+          "WholesaleOrdersDesignScreen",
+          "WholesaleOrderDetailsDesignScreen"
+        ],
+        "apps/customer_app/lib/features/storefront/multistore_design_screen.dart": [
+          "CustomerRoutePaths.b2bOrders",
+          "CustomerFooterDestination.orders"
+        ]
+      },
+      "primary_actions": [
+        "filter_or_refresh_orders",
+        "open_exact_order_detail",
+        "continue_authorized_next_action"
+      ],
+      "business_invariants": [
+        "canonical B2B route authority is preserved",
+        "order identity remains unambiguous",
+        "status comes from authoritative order data"
+      ]
+    },
+    {
+      "id": "customer.wholesale-checkout",
+      "surface": "customer",
+      "archetype": "customer-commerce",
+      "recipe_id": "commerce-checkout",
+      "title": "Customer Wholesale Cart & Checkout",
+      "canonical_function_ids": [
+        "customer.wholesale.checkout"
+      ],
+      "intent_phrases_ar": [
+        "سلة الجملة والدفع",
+        "اتمام طلب الجملة",
+        "checkout الجملة"
+      ],
+      "intent_phrases_en": [
+        "wholesale cart and checkout",
+        "complete wholesale order",
+        "b2b checkout"
+      ],
+      "keywords_ar": [
+        "سلة",
+        "جملة",
+        "اتمام",
+        "دفع"
+      ],
+      "keywords_en": [
+        "cart",
+        "wholesale",
+        "checkout",
+        "payment"
+      ],
+      "surface_hints": [
+        "تطبيق العميل",
+        "customer app",
+        "customer"
+      ],
+      "negative_keywords": [
+        "فان",
+        "سائق",
+        "داشبورد"
+      ],
+      "production_sources": [
+        "apps/customer_app/lib/features/storefront/multistore_design_screen.dart",
+        "apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart"
+      ],
+      "tests": [
+        "apps/customer_app/test/b2b_journey_test.dart",
+        "apps/customer_app/test/customer_route_authority_test.dart"
+      ],
+      "source_markers": {
+        "apps/customer_app/lib/features/storefront/multistore_design_screen.dart": [
+          "CustomerRoutePaths.b2bCart",
+          "WholesaleCartDesignScreen",
+          "CustomerRoutePaths.b2bCheckout",
+          "WholesaleCheckoutDesignScreen"
+        ]
+      },
+      "primary_actions": [
+        "review_cart",
+        "edit_quantity",
+        "review_authoritative_checkout_options",
+        "submit_once"
+      ],
+      "business_invariants": [
+        "store context stays explicit",
+        "server pricing/availability is authoritative",
+        "checkout never invents financial truth"
+      ]
+    },
+    {
+      "id": "driver.active-delivery",
+      "surface": "driver",
+      "archetype": "driver-operational",
+      "recipe_id": "active-field-delivery",
+      "title": "Driver Active Delivery Journey",
+      "canonical_function_ids": [
+        "driver.b2c.deliveries",
+        "driver.b2b.deliveries"
+      ],
+      "intent_phrases_ar": [
+        "مهام السائق والتسليم",
+        "تسليمات السائق الحالية",
+        "رحلة السائق النشطة"
+      ],
+      "intent_phrases_en": [
+        "driver active delivery journey",
+        "current driver deliveries",
+        "driver assignment workflow"
+      ],
+      "keywords_ar": [
+        "سائق",
+        "تسليم",
+        "مهام",
+        "اسناد"
+      ],
+      "keywords_en": [
+        "driver",
+        "delivery",
+        "assignment",
+        "tasks"
+      ],
+      "surface_hints": [
+        "تطبيق السائق",
+        "driver app"
+      ],
+      "negative_keywords": [
+        "داشبورد",
+        "فان"
+      ],
+      "production_sources": [
+        "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart"
+      ],
+      "tests": [
+        "apps/driver_app/test/driver_active_journey_test.dart"
+      ],
+      "source_markers": {
+        "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart": [
+          "_DriverActiveLoadState",
+          "_busyAssignments",
+          "_refreshTimer",
+          "_staleErrorKey"
+        ]
+      },
+      "primary_actions": [
+        "open_navigation",
+        "mark_delivered",
+        "mark_failed_with_reason",
+        "refresh_assignments"
+      ],
+      "business_invariants": [
+        "polling stops outside active lifecycle",
+        "busy assignment blocks duplicate action",
+        "stale retained assignments are visibly marked"
+      ]
+    },
+    {
+      "id": "driver.wallet",
+      "surface": "driver",
+      "archetype": "driver-operational",
+      "recipe_id": "custody-wallet",
+      "title": "Driver Wallet & Remittance",
+      "canonical_function_ids": [
+        "driver.wallet"
+      ],
+      "intent_phrases_ar": [
+        "محفظة السائق",
+        "توريد السائق",
+        "عهدة السائق"
+      ],
+      "intent_phrases_en": [
+        "driver wallet",
+        "driver remittance",
+        "driver custody balance"
+      ],
+      "keywords_ar": [
+        "محفظة",
+        "توريد",
+        "عهدة",
+        "سائق"
+      ],
+      "keywords_en": [
+        "wallet",
+        "remittance",
+        "custody",
+        "driver"
+      ],
+      "surface_hints": [
+        "تطبيق السائق",
+        "driver app"
+      ],
+      "negative_keywords": [
+        "فان",
+        "داشبورد"
+      ],
+      "production_sources": [
+        "apps/driver_app/lib/features/wallet/driver_wallet_page.dart"
+      ],
+      "tests": [
+        "apps/driver_app/test/driver_wallet_page_test.dart"
+      ],
+      "source_markers": {
+        "apps/driver_app/lib/features/wallet/driver_wallet_page.dart": [
+          "_submitting",
+          "_stale",
+          "submitRemittance(",
+          "idempotencyKey:"
+        ]
+      },
+      "primary_actions": [
+        "refresh_wallet",
+        "submit_remittance_if_available",
+        "inspect_recent_transactions"
+      ],
+      "business_invariants": [
+        "available_to_remit bounds the action",
+        "successful remittance reloads wallet",
+        "stale balance is visibly labelled"
+      ]
+    },
+    {
+      "id": "van.routes",
+      "surface": "van",
+      "archetype": "van-field-operation",
+      "recipe_id": "route-visits",
+      "title": "Van Routes & Visits",
+      "intent_phrases_ar": [
+        "مسارات الفان",
+        "زيارات الفان",
+        "جدول زيارات الفان"
+      ],
+      "intent_phrases_en": [
+        "van routes",
+        "van visits",
+        "van route schedule"
+      ],
+      "keywords_ar": [
+        "مسارات",
+        "زيارات",
+        "فان"
+      ],
+      "keywords_en": [
+        "routes",
+        "visits",
+        "van"
+      ],
+      "surface_hints": [
+        "تطبيق الفان",
+        "van app"
+      ],
+      "negative_keywords": [
+        "داشبورد",
+        "تتبع السواقين"
+      ],
+      "production_sources": [
+        "apps/van_app/lib/features/visits/van_routes_page.dart"
+      ],
+      "tests": [
+        "apps/van_app/test/app_test.dart",
+        "apps/van_app/test/van_v42_live_refresh_test.dart"
+      ],
+      "source_markers": {
+        "apps/van_app/lib/features/visits/van_routes_page.dart": [
+          "_stale",
+          "WidgetsBindingObserver",
+          "repository.visits()",
+          "VanSessionExpiredException"
+        ]
+      },
+      "primary_actions": [
+        "review_grouped_routes",
+        "open_exact_route",
+        "continue_visit_workspace"
+      ],
+      "business_invariants": [
+        "route grouping uses authoritative visits",
+        "background refresh preserves last data only as stale",
+        "session expiry returns to auth flow"
+      ]
+    },
+    {
+      "id": "van.order-builder",
+      "surface": "van",
+      "archetype": "van-field-operation",
+      "recipe_id": "authoritative-order-builder",
+      "title": "Van Order Builder",
+      "intent_phrases_ar": [
+        "انشاء طلب من الفان",
+        "بناء طلب للفان",
+        "طلب بيع من تطبيق الفان"
+      ],
+      "intent_phrases_en": [
+        "create order in van app",
+        "van order builder",
+        "field sales order"
+      ],
+      "keywords_ar": [
+        "انشاء",
+        "طلب",
+        "بيع",
+        "فان"
+      ],
+      "keywords_en": [
+        "create",
+        "order",
+        "sales",
+        "van",
+        "builder"
+      ],
+      "surface_hints": [
+        "تطبيق الفان",
+        "van app"
+      ],
+      "negative_keywords": [
+        "داشبورد",
+        "طلبات الجملة"
+      ],
+      "production_sources": [
+        "apps/van_app/lib/features/orders/van_order_builder_page.dart"
+      ],
+      "tests": [
+        "apps/van_app/test/app_test.dart"
+      ],
+      "source_markers": {
+        "apps/van_app/lib/features/orders/van_order_builder_page.dart": [
+          "repository.quote(",
+          "_quoting",
+          "orderingIncrement",
+          "onReview"
+        ]
+      },
+      "primary_actions": [
+        "edit_quantities_by_increment",
+        "request_authoritative_quote",
+        "open_review"
+      ],
+      "business_invariants": [
+        "customer and lines required before quote",
+        "payment option comes from configured options",
+        "review uses server quote"
+      ]
+    },
+    {
+      "id": "van.collection",
+      "surface": "van",
+      "archetype": "van-field-operation",
+      "recipe_id": "invoice-collection",
+      "title": "Van Customer Collection",
+      "intent_phrases_ar": [
+        "تحصيل الفان من العميل",
+        "تحصيل فاتورة من العميل في الفان",
+        "صفحة تحصيل للفان"
+      ],
+      "intent_phrases_en": [
+        "van customer collection",
+        "collect invoice in van app",
+        "van collection page"
+      ],
+      "keywords_ar": [
+        "تحصيل",
+        "فاتورة",
+        "عميل",
+        "فان"
+      ],
+      "keywords_en": [
+        "collect",
+        "collection",
+        "invoice",
+        "customer",
+        "van"
+      ],
+      "surface_hints": [
+        "تطبيق الفان",
+        "van app"
+      ],
+      "negative_keywords": [
+        "داشبورد",
+        "مراجعة التحصيلات"
+      ],
+      "production_sources": [
+        "apps/van_app/lib/features/wallet/van_collection_page.dart"
+      ],
+      "tests": [
+        "apps/van_app/test/van_wallet_page_test.dart",
+        "apps/van_app/test/van_wallet_http_test.dart",
+        "apps/van_app/test/van_v42_live_refresh_test.dart"
+      ],
+      "source_markers": {
+        "apps/van_app/lib/features/wallet/van_collection_page.dart": [
+          "_pendingIdempotencyKey",
+          "invoice.outstandingAmount",
+          "_submitting",
+          "collectionContext("
+        ]
+      },
+      "primary_actions": [
+        "select_customer",
+        "select_invoice",
+        "enter_valid_amount",
+        "collect_once"
+      ],
+      "business_invariants": [
+        "amount cannot exceed outstanding invoice balance",
+        "same payload retry preserves idempotency identity",
+        "successful collection reloads authoritative context"
+      ]
+    },
+    {
+      "id": "van.remittance",
+      "surface": "van",
+      "archetype": "van-field-operation",
+      "recipe_id": "custody-remittance",
+      "title": "Van Remittance",
+      "intent_phrases_ar": [
+        "توريد الفان",
+        "توريد عهدة الفان",
+        "صفحة توريد للفان"
+      ],
+      "intent_phrases_en": [
+        "van remittance",
+        "remit van custody",
+        "van cash deposit"
+      ],
+      "keywords_ar": [
+        "توريد",
+        "عهدة",
+        "فان"
+      ],
+      "keywords_en": [
+        "remittance",
+        "remit",
+        "custody",
+        "van"
+      ],
+      "surface_hints": [
+        "تطبيق الفان",
+        "van app"
+      ],
+      "negative_keywords": [
+        "داشبورد",
+        "مراجعة التوريدات"
+      ],
+      "production_sources": [
+        "apps/van_app/lib/features/wallet/van_remittance_page.dart"
+      ],
+      "tests": [
+        "apps/van_app/test/van_wallet_page_test.dart",
+        "apps/van_app/test/van_wallet_http_test.dart",
+        "apps/van_app/test/van_v42_live_refresh_test.dart"
+      ],
+      "source_markers": {
+        "apps/van_app/lib/features/wallet/van_remittance_page.dart": [
+          "_pendingIdempotencyKey",
+          "availableToRemit",
+          "VanOfflineException",
+          "repository.remit("
+        ]
+      },
+      "primary_actions": [
+        "select_account",
+        "enter_amount",
+        "choose_method",
+        "submit_once"
+      ],
+      "business_invariants": [
+        "amount cannot exceed available_to_remit",
+        "network retry preserves the same operation key",
+        "409 requires authoritative balance refresh"
+      ]
+    }
+  ]
+}

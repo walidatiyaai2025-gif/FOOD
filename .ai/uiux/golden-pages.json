@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "rule": "Inspect the nearest golden production page before inventing a new composition. These are references, not data fixtures.",
+  "surfaces": {
+    "dashboard": {
+      "management-list": [
+        "backend/resources/views/admin/order-operations.blade.php",
+        "backend/resources/views/admin/field-operations.blade.php"
+      ],
+      "detail-manage": [
+        "backend/resources/views/admin/customer-360-index.blade.php",
+        "backend/resources/views/admin/customer-360-show.blade.php"
+      ],
+      "finance": [
+        "backend/resources/views/admin/_field-operations-finance.blade.php",
+        "backend/resources/views/admin/invoice.blade.php"
+      ],
+      "analytics": [
+        "backend/resources/views/admin/commercial-dashboard.blade.php",
+        "backend/resources/views/admin/reports.blade.php"
+      ],
+      "admin-hub": [
+        "backend/resources/views/admin/administration-hub.blade.php"
+      ]
+    },
+    "customer": {
+      "retail-home": [
+        "apps/customer_app/lib/features/retail/customer_ui_v3/retail_home_v3_screen.dart"
+      ],
+      "orders": [
+        "apps/customer_app/lib/features/customer_orders/customer_order_screens.dart"
+      ],
+      "b2b-dashboard": [
+        "apps/customer_app/lib/features/b2b/dashboard_single_screen.dart"
+      ],
+      "shell": [
+        "apps/customer_app/lib/features/retail/customer_ui_v3/customer_retail_shell.dart"
+      ]
+    },
+    "driver": {
+      "operational": [
+        "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart"
+      ],
+      "wallet": [
+        "apps/driver_app/lib/features/wallet/driver_wallet_page.dart"
+      ]
+    },
+    "van": {
+      "shell": [
+        "apps/van_app/lib/features/foundation/van_foundation_screen.dart"
+      ],
+      "routes": [
+        "apps/van_app/lib/features/visits/van_routes_page.dart",
+        "apps/van_app/lib/features/visits/van_route_detail_page.dart"
+      ],
+      "orders": [
+        "apps/van_app/lib/features/orders/van_orders_page.dart",
+        "apps/van_app/lib/features/orders/van_order_builder_page.dart"
+      ],
+      "wallet": [
+        "apps/van_app/lib/features/wallet/van_wallet_page.dart",
+        "apps/van_app/lib/features/wallet/van_collection_page.dart"
+      ]
+    }
+  }
+}

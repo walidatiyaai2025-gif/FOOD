@@ -1,5 +1,7 @@
 # FOODEX National Field Operations, Van App, Territory Routing, Live Fleet & Collections Master Plan
 
+> **2026-10-10 OWNER AMENDMENT — #1190:** Wholesale/B2B fulfillment is now **Van-only**. Retail/B2C fulfillment remains **Driver-only**. Any older statement in this plan that allows a Driver to fulfill B2B/Wholesale work is superseded by `docs/execution/FOODEX_B2B_VAN_FULFILLMENT_EXECUTION_PLAN.md`. This amendment is a target-state migration and does not claim the current runtime has already been cut over.
+
 Status: **Proposed authoritative architecture and execution plan — owner review**
 Planning Issue: **#932**
 Initial market: **Egypt**

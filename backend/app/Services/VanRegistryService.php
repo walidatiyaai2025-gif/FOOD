@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\OrderDispatchState;
-use App\Models\OrderVanAssignment;
 use App\Models\ServiceTerritory;
 use App\Models\User;
 use App\Models\Van;
@@ -17,9 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 final class VanRegistryService
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly AuditLogger $audit) {}
 
     /** @param array<string,mixed> $attributes */
     public function createVan(array $attributes): Van
@@ -154,16 +150,11 @@ final class VanRegistryService
     }
 
     /** @param array<string,mixed> $attributes */
-    public function updateAssignment(
-        User $actor,
-        VanAssignment $assignment,
-        Van $van,
-        array $attributes,
-    ): VanAssignment
+    public function updateAssignment(User $actor, VanAssignment $assignment, array $attributes): VanAssignment
     {
-        $from = Carbon::parse($attributes['effective_from'] ?? $assignment->effective_from);
-        $until = array_key_exists('effective_until', $attributes) && $attributes['effective_until'] !== null && $attributes['effective_until'] !== ''
-            ? Carbon::parse($attributes['effective_until'])
+        $from = Carbon::parse($attributes['effective_from']);
+        $until = filled($attributes['effective_until'] ?? null)
+            ? Carbon::parse((string) $attributes['effective_until'])
             : null;
 
         if ($until !== null && $until->lessThanOrEqualTo($from)) {
@@ -173,16 +164,30 @@ final class VanRegistryService
         }
 
         $type = (string) ($attributes['assignment_type'] ?? $assignment->assignment_type);
-        if (in_array($type, ['primary', 'backup'], true) === false) {
+        if (! in_array($type, ['primary', 'backup'], true)) {
             throw ValidationException::withMessages([
                 'assignment_type' => ['Assignment type must be primary or backup.'],
             ]);
         }
 
-        $territoryKey = array_key_exists('territory_key', $attributes)
-            ? trim((string) ($attributes['territory_key'] ?? ''))
-            : trim((string) ($assignment->territory_key ?? ''));
-        $territoryKey = $territoryKey === '' ? null : $territoryKey;
+        $status = (string) ($attributes['status'] ?? $assignment->status);
+        if (! in_array($status, ['active', 'ended'], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Assignment status must be active or ended.'],
+            ]);
+        }
+
+        $vanId = (int) ($attributes['van_id'] ?? $assignment->van_id);
+        $vanExists = Van::query()->whereKey($vanId)->where('status', 'active')->exists();
+        if (! $vanExists) {
+            throw ValidationException::withMessages([
+                'van_id' => ['Van must reference an active Van.'],
+            ]);
+        }
+
+        $territoryKey = filled($attributes['territory_key'] ?? null)
+            ? trim((string) $attributes['territory_key'])
+            : null;
 
         if ($territoryKey !== null) {
             $territoryExists = ServiceTerritory::query()
@@ -192,25 +197,24 @@ final class VanRegistryService
                 ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
                 ->exists();
 
-            if ($territoryExists === false) {
+            if (! $territoryExists) {
                 throw ValidationException::withMessages([
                     'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
                 ]);
             }
         }
 
-        return DB::transaction(function () use ($actor, $assignment, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
+        return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
-            if ($type === 'primary') {
+            if ($type === 'primary' && $status === 'active') {
                 $overlap = VanAssignment::query()
-                    ->where('id', '!=', $locked->id)
-                    ->where('van_id', $van->id)
+                    ->whereKeyNot($locked->id)
+                    ->where('van_id', $vanId)
                     ->where('assignment_type', 'primary')
                     ->where('status', 'active')
                     ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                     ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
-                    ->lockForUpdate()
                     ->exists();
 
                 if ($overlap) {
@@ -221,14 +225,13 @@ final class VanRegistryService
 
                 if ($territoryKey !== null) {
                     $territoryOverlap = VanAssignment::query()
-                        ->where('id', '!=', $locked->id)
+                        ->whereKeyNot($locked->id)
                         ->where('territory_key', $territoryKey)
                         ->where('assignment_type', 'primary')
                         ->where('status', 'active')
-                        ->where('van_id', '!=', $van->id)
+                        ->where('van_id', '!=', $vanId)
                         ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                         ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
-                        ->lockForUpdate()
                         ->exists();
 
                     if ($territoryOverlap) {
@@ -239,154 +242,121 @@ final class VanRegistryService
                 }
             }
 
-            $before = $locked->toArray();
+            $before = $locked->only([
+                'van_id',
+                'driver_id',
+                'representative_user_id',
+                'warehouse_id',
+                'territory_key',
+                'van_pool_key',
+                'assignment_type',
+                'status',
+                'effective_from',
+                'effective_until',
+                'loaded_work_count',
+            ]);
+
             $locked->forceFill([
-                'van_id' => $van->id,
+                'van_id' => $vanId,
                 'driver_id' => $attributes['driver_id'] ?? null,
                 'representative_user_id' => $attributes['representative_user_id'] ?? null,
-                'warehouse_id' => $attributes['warehouse_id'] ?? $van->home_warehouse_id,
+                'warehouse_id' => $attributes['warehouse_id'] ?? null,
                 'territory_key' => $territoryKey,
-                'van_pool_key' => $attributes['van_pool_key'] ?? null,
+                'van_pool_key' => filled($attributes['van_pool_key'] ?? null) ? trim((string) $attributes['van_pool_key']) : null,
                 'assignment_type' => $type,
+                'status' => $status,
                 'effective_from' => $from,
                 'effective_until' => $until,
-                'loaded_work_count' => $attributes['loaded_work_count'] ?? 0,
+                'loaded_work_count' => (int) ($attributes['loaded_work_count'] ?? 0),
             ])->save();
 
-            $this->audit->record(
-                'van.assignment.updated',
-                $actor,
-                $locked,
-                $before,
-                $locked->fresh()->toArray(),
-            );
+            $this->audit->record('van.assignment.updated', $actor, $locked, $before, $locked->only(array_keys($before)));
 
             return $locked->fresh();
         });
     }
 
     /**
-     * Delete an assignment and assignment-owned operational activity while
-     * preserving orders, customers, financial ledgers and immutable audit history.
+     * Delete an assignment and only the operational records explicitly attributed to it
+     * inside its own effective window. Canonical orders, invoices and finance ledgers are
+     * preserved; dispatch state is reset instead of deleting the order itself.
      *
-     * @return array{visits:int,order_van_assignments:int,dispatch_states_reset:int}
+     * @return array{visits:int,dispatch_assignments:int,dispatch_states:int,fleet_locations:int}
      */
-    public function deleteAssignment(User $actor, VanAssignment $assignment): array
+    public function deleteAssignmentWithOperations(User $actor, VanAssignment $assignment): array
     {
         return DB::transaction(function () use ($actor, $assignment): array {
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
             $before = $locked->toArray();
             $from = Carbon::parse($locked->effective_from);
-            $until = $locked->effective_until === null ? now() : Carbon::parse($locked->effective_until);
+            $until = $locked->effective_until === null
+                ? now()
+                : Carbon::parse($locked->effective_until);
 
-            $operatorUserIds = collect([$locked->representative_user_id]);
-            if ($locked->driver_id !== null) {
-                $driverUserId = DB::table('drivers')->where('id', $locked->driver_id)->value('user_id');
-                if ($driverUserId !== null) {
-                    $operatorUserIds->push((int) $driverUserId);
-                }
-            }
-            $operatorUserIds = $operatorUserIds->filter()->map(fn ($id) => (int) $id)->unique()->values();
+            $visits = VanVisit::query()
+                ->where('metadata->van_assignment_id', $locked->id)
+                ->whereBetween('created_at', [$from, $until])
+                ->delete();
 
-            $visitQuery = VanVisit::query()
-                ->where(function ($query) use ($locked, $operatorUserIds, $from, $until): void {
-                    $query->where('metadata->van_assignment_id', (int) $locked->id);
-
-                    if ($operatorUserIds->isNotEmpty()) {
-                        $query->orWhere(function ($legacy) use ($locked, $operatorUserIds, $from, $until): void {
-                            $legacy
-                                ->whereNull('metadata->van_assignment_id')
-                                ->where('metadata->van_id', (int) $locked->van_id)
-                                ->whereIn('actor_user_id', $operatorUserIds->all())
-                                ->whereBetween('created_at', [$from, $until]);
-                        });
-                    }
-                })
-                ->lockForUpdate();
-
-            $visitIds = $visitQuery->pluck('id');
-            $visitCount = $visitIds->count();
-            if ($visitIds->isNotEmpty()) {
-                VanVisit::query()->whereIn('id', $visitIds)->delete();
-            }
-
-            $orderLinks = OrderVanAssignment::query()
+            $dispatchRows = DB::table('order_van_assignments')
                 ->where('van_assignment_id', $locked->id)
-                ->lockForUpdate()
+                ->whereBetween('assigned_at', [$from, $until])
                 ->get(['id', 'order_id', 'decision_key']);
 
-            $orderIds = $orderLinks->pluck('order_id')->unique()->values();
-            $decisionKeys = $orderLinks->pluck('decision_key')->filter()->values()->all();
-            $dispatchStatesReset = 0;
+            $orderIds = $dispatchRows->pluck('order_id')->map(static fn ($id): int => (int) $id)->unique()->values();
+            $decisionKeys = $dispatchRows->pluck('decision_key')->filter()->map(static fn ($key): string => (string) $key)->values();
 
+            $dispatchAssignments = DB::table('order_van_assignments')
+                ->whereIn('id', $dispatchRows->pluck('id'))
+                ->delete();
+
+            $dispatchStates = 0;
             if ($orderIds->isNotEmpty()) {
-                $states = OrderDispatchState::query()
+                $dispatchStates = DB::table('order_dispatch_states')
                     ->whereIn('order_id', $orderIds)
-                    ->lockForUpdate()
-                    ->get();
-
-                foreach ($states as $state) {
-                    $context = is_array($state->context) ? $state->context : [];
-                    $contextAssignmentId = (int) (
-                        $context['van_assignment_id']
-                        ?? ($context['manual_dispatch']['van_assignment_id'] ?? 0)
-                    );
-
-                    $belongsToDeletedAssignment = $contextAssignmentId === (int) $locked->id
-                        || in_array((string) $state->decision_key, $decisionKeys, true);
-
-                    if (
-                        $belongsToDeletedAssignment
-                        && (string) $state->current_assignee_type === 'van'
-                        && (int) $state->current_assignee_id === (int) $locked->van_id
-                    ) {
-                        unset($context['van_assignment_id']);
-                        if (
-                            isset($context['manual_dispatch'])
-                            && is_array($context['manual_dispatch'])
-                            && (int) ($context['manual_dispatch']['van_assignment_id'] ?? 0) === (int) $locked->id
-                        ) {
-                            unset($context['manual_dispatch']);
+                    ->where('current_assignee_type', 'van')
+                    ->where('current_assignee_id', $locked->van_id)
+                    ->where(function ($query) use ($locked, $decisionKeys): void {
+                        $query->where('context->van_assignment_id', $locked->id);
+                        if ($decisionKeys->isNotEmpty()) {
+                            $query->orWhereIn('decision_key', $decisionKeys->all());
                         }
-
-                        $state->forceFill([
-                            'status' => 'awaiting_dispatch',
-                            'routing_source' => 'assignment_deleted',
-                            'routing_reason' => 'van_assignment_deleted',
-                            'current_assignee_type' => null,
-                            'current_assignee_id' => null,
-                            'decision_key' => null,
-                            'context' => $context,
-                            'decided_at' => now(),
-                        ])->save();
-
-                        $dispatchStatesReset++;
-                    }
-                }
+                    })
+                    ->update([
+                        'status' => 'awaiting_dispatch',
+                        'routing_mode' => null,
+                        'routing_source' => null,
+                        'routing_reason' => 'van_assignment_deleted',
+                        'current_assignee_type' => null,
+                        'current_assignee_id' => null,
+                        'decision_key' => null,
+                        'context' => null,
+                        'decided_at' => null,
+                        'updated_at' => now(),
+                    ]);
             }
 
-            $orderLinkCount = $orderLinks->count();
-            if ($orderLinks->isNotEmpty()) {
-                OrderVanAssignment::query()->whereIn('id', $orderLinks->pluck('id'))->delete();
-            }
+            $fleetLocations = DB::table('fleet_current_locations')
+                ->where('actor_type', 'van')
+                ->where('actor_id', $locked->van_id)
+                ->where('assignment_id', $locked->id)
+                ->whereBetween('captured_at', [$from, $until])
+                ->delete();
+
+            $counts = [
+                'visits' => $visits,
+                'dispatch_assignments' => $dispatchAssignments,
+                'dispatch_states' => $dispatchStates,
+                'fleet_locations' => $fleetLocations,
+            ];
+
+            $this->audit->record('van.assignment.deleted', $actor, $locked, $before, [
+                'purged_operations' => $counts,
+            ]);
 
             $locked->delete();
 
-            $summary = [
-                'visits' => $visitCount,
-                'order_van_assignments' => $orderLinkCount,
-                'dispatch_states_reset' => $dispatchStatesReset,
-            ];
-
-            $this->audit->record(
-                'van.assignment.deleted',
-                $actor,
-                $locked,
-                $before,
-                ['purged' => $summary],
-            );
-
-            return $summary;
+            return $counts;
         });
     }
 

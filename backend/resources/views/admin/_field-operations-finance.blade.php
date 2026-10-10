@@ -49,7 +49,7 @@
 
     <form method="get" action="{{ route($opsRouteName, $opsRouteParams) }}" class="foodex-ops-toolbar">
         <input type="hidden" name="ops_tab" value="{{ $opsTab }}">
-        @foreach(request()->only(['from','to','customer_id']) as $name=>$value)
+        @foreach(request()->only(['from','to','customer_id','finance_tab']) as $name=>$value)
             @if($value !== null && $value !== '')<input type="hidden" name="{{ $name }}" value="{{ $value }}">@endif
         @endforeach
         <label>

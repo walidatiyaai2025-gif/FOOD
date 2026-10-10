@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "purpose": "Machine-readable map of the current FOODEX production UI primitives. Source files remain authoritative.",
+  "surfaces": {
+    "dashboard": {
+      "match": [
+        "backend/resources/views/admin/**/*.blade.php",
+        "backend/public/assets/admin/**/*.{css,js}"
+      ],
+      "canonical_sources": [
+        "backend/resources/views/admin/_brand.blade.php",
+        "backend/resources/views/admin/_brand-components.blade.php",
+        "backend/resources/views/admin/_sidebar.blade.php",
+        "backend/resources/views/admin/shell.blade.php"
+      ],
+      "visualization_source": "backend/public/assets/admin/foodex-visualization.css",
+      "shell_markers": [
+        "admin._brand-components",
+        "foodex-admin-layout",
+        "foodex-admin-main",
+        "foodex-admin-page"
+      ],
+      "primitives": {
+        "header": [
+          "foodex-page-header",
+          "foodex-header-actions",
+          "foodex-subtitle"
+        ],
+        "tabs": [
+          "foodex-tabs",
+          "foodex-tab"
+        ],
+        "table": [
+          "foodex-table",
+          "foodex-table-wrap",
+          "foodex-ops-grid",
+          "foodex-ops-toolbar"
+        ],
+        "row_actions": [
+          "foodex-ops-actions",
+          "foodex-ops-menu"
+        ],
+        "states": [
+          "foodex-alert",
+          "foodex-state",
+          "foodex-empty-state",
+          "foodex-ops-state"
+        ],
+        "modal": [
+          "foodex-modal-backdrop",
+          "foodex-modal",
+          "foodex-modal-header",
+          "foodex-modal-close",
+          "foodex-operational-dialog-host"
+        ],
+        "form": [
+          "foodex-form",
+          "foodex-premium-auto-form",
+          "foodex-control"
+        ],
+        "pagination": [
+          "foodex-pagination",
+          "pagination",
+          "pager"
+        ]
+      }
+    },
+    "customer": {
+      "match": [
+        "apps/customer_app/lib/**/*.dart"
+      ],
+      "canonical_sources": [
+        "apps/customer_app/lib/core/theme/customer_ui_v3_tokens.dart",
+        "apps/customer_app/lib/core/theme/foodex_theme.dart",
+        "apps/customer_app/lib/shared/customer_ui_v3/customer_components.dart",
+        "apps/customer_app/lib/shared/customer_ui_v3/customer_states.dart",
+        "apps/customer_app/lib/shared/customer_persistent_footer.dart"
+      ],
+      "primitives": [
+        "CustomerCurvedHeaderSurface",
+        "CustomerSearchPill",
+        "CustomerBadge",
+        "CustomerOutlineIconButton",
+        "CustomerCategoryTile",
+        "CustomerProductImage",
+        "CustomerProductCard",
+        "CustomerSkeletonBox",
+        "CustomerCategorySkeleton",
+        "CustomerProductCardSkeleton",
+        "CustomerStateView",
+        "CustomerPersistentFooterShell",
+        "CustomerPersistentFooterDock",
+        "CustomerPersistentFooter"
+      ]
+    },
+    "driver": {
+      "match": [
+        "apps/driver_app/lib/**/*.dart"
+      ],
+      "canonical_sources": [
+        "apps/driver_app/lib/core/theme/foodex_theme.dart",
+        "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart",
+        "apps/driver_app/lib/navigation.dart"
+      ],
+      "interaction_reference": "apps/driver_app/lib/features/delivery/active/driver_active_journey.dart"
+    },
+    "van": {
+      "match": [
+        "apps/van_app/lib/**/*.dart"
+      ],
+      "canonical_sources": [
+        "apps/van_app/lib/core/theme/foodex_van_theme.dart",
+        "apps/van_app/lib/features/foundation/van_foundation_screen.dart",
+        "apps/van_app/lib/features/foundation/van_screen_inventory.dart",
+        "apps/van_app/lib/shared/van_action_button.dart"
+      ],
+      "primitives": [
+        "FoodexVanTheme",
+        "FoodexVanTokens",
+        "VanActionButton",
+        "VanIconAction"
+      ],
+      "canonical_inventory_count": 19
+    }
+  }
+}
