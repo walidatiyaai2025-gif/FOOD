@@ -39,6 +39,22 @@ jobs:
       - name: Syntax-check Worker Watchdog
         run: node --check .github/scripts/worker-watchdog.js
 
+      - name: Test FOODEX skill router
+        run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_skill_router.py'
+
+      - name: Enforce FOODEX skill routing
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/foodex-skill-router.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --strict \
+            --github-summary \
+            --report artifacts/foodex-skill-router.json
+
       - name: Require issue-style PR branch
         if: github.event_name == 'pull_request'
         run: |
