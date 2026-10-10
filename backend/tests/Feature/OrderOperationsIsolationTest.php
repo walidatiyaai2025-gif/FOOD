@@ -572,8 +572,7 @@ class OrderOperationsIsolationTest extends TestCase
                 'assignee_id' => $driver,
                 'reason' => 'Approved by Customer Service',
             ])
-            ->assertRedirect()
-            ->assertSessionHasErrors('assignee_type');
+            ->assertStatus(409);
 
         $this->assertDatabaseMissing('driver_assignments', [
             'order_id' => $order,

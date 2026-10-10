@@ -275,10 +275,10 @@ class MobilePushSettingsTest extends TestCase
             'environment' => 'production',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $driver = $this->roleUser('B2B_DRIVER', 'push-driver-service-account@example.test');
+        $driver = $this->roleUser('B2C_DRIVER', 'push-driver-service-account@example.test');
         Driver::query()->create([
             'user_id' => $driver->id,
-            'driver_type' => 'b2b',
+            'driver_type' => 'b2c',
             'is_available' => true,
             'is_active' => true,
         ]);

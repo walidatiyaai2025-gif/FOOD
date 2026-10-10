@@ -137,7 +137,8 @@ class EmptyRepo implements DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel) async => const [];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status,
+      {String? note, String? failureReason}) async {}
 }
 
 DriverSession session(DriverChannel channel) => DriverSession(
@@ -163,16 +164,18 @@ void main() {
     expect(find.byKey(const Key('driver-shell')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
     expect(
-      tester.widget<NavigationBar>(
-        find.byKey(const Key('driver-shell-navigation')),
-      ).selectedIndex,
+      tester
+          .widget<NavigationBar>(
+            find.byKey(const Key('driver-shell-navigation')),
+          )
+          .selectedIndex,
       DriverShellDestination.home.index,
     );
     expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
-  testWidgets('B2B driver starts inside the backend-derived B2B partition',
+  testWidgets('B2B driver runtime is denied after Van fulfillment cutover',
       (tester) async {
     final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
@@ -182,12 +185,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(repo.requestedChannel, DriverChannel.b2b);
-    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
-    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
+    expect(repo.requestedChannel, isNull);
+    expect(find.byKey(const Key('driver-open-deliveries')), findsNothing);
+    expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
   });
 
-  testWidgets('driver home shows five status cards and opens failed deliveries exactly',
+  testWidgets(
+      'driver home shows five status cards and opens failed deliveries exactly',
       (tester) async {
     final repo = _StatusRepo();
     await tester.pumpWidget(
@@ -204,11 +208,15 @@ void main() {
     expect(find.text('توزيع التوصيلات'), findsOneWidget);
     expect(find.text('مقبول · 1'), findsOneWidget);
     expect(find.text('قناة العمل'), findsNothing);
-    expect(find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
-    expect(find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
-    expect(find.byKey(const Key('driver-home-status-out_for_delivery')), findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-status-out_for_delivery')),
+        findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-failed')), findsOneWidget);
-    expect(find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
 
     final failedCard = find.byKey(const Key('driver-home-status-failed'));
     await tester.scrollUntilVisible(
@@ -229,19 +237,23 @@ void main() {
     expect(find.byKey(const Key('driver-shell')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
     expect(
-      tester.widget<NavigationBar>(
-        find.byKey(const Key('driver-shell-navigation')),
-      ).selectedIndex,
+      tester
+          .widget<NavigationBar>(
+            find.byKey(const Key('driver-shell-navigation')),
+          )
+          .selectedIndex,
       DriverShellDestination.deliveries.index,
     );
-    expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
     expect(find.text('FAILED-1'), findsOneWidget);
     expect(find.text('OUT-1'), findsNothing);
     expect(find.text('ACCEPTED-1'), findsNothing);
     expect(find.text('DONE-1'), findsNothing);
   });
 
-  testWidgets('home status cards refresh from server data without manual refresh',
+  testWidgets(
+      'home status cards refresh from server data without manual refresh',
       (tester) async {
     final repo = _LiveStatusRepo();
     await tester.pumpWidget(
@@ -284,7 +296,8 @@ void main() {
     );
   });
 
-  testWidgets('home workload chart marks retained data stale after refresh failure',
+  testWidgets(
+      'home workload chart marks retained data stale after refresh failure',
       (tester) async {
     final repo = _StaleStatusRepo();
     await tester.pumpWidget(
@@ -331,7 +344,7 @@ void main() {
       FoodexDriverApp(
         initialSession: session(DriverChannel.b2c),
         assignmentRepositoryFactory: (_) => EmptyRepo(),
-        initialRoute: DriverRoutes.b2bDeliveries,
+        initialRoute: '/driver/b2b/deliveries',
       ),
     );
     await tester.pumpAndSettle();

@@ -255,9 +255,8 @@ class AppPreviewSessionTest extends TestCase
             'target_user_id' => $driverUser->id,
             'target_type' => 'driver',
             'channel' => 'b2b',
-        ])->assertCreated()
-            ->assertJsonPath('data.store_id', $wholesaleStoreId)
-            ->assertJsonPath('data.target_type', 'driver');
+        ])->assertNotFound()
+            ->assertSee('Driver preview is available only for Retail (B2C) drivers.');
 
         $this->postJson('/api/v1/admin/app-preview/sessions', [
             'target_user_id' => $driverUser->id,

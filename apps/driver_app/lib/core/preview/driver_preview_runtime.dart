@@ -7,10 +7,7 @@ import 'driver_preview_bootstrap.dart';
 import 'driver_preview_transport.dart';
 
 class DriverPreviewRuntime {
-  DriverPreviewRuntime._({
-    required this.app,
-    required this.bundle,
-  });
+  DriverPreviewRuntime._({required this.app, required this.bundle});
 
   final Widget app;
   final DriverPreviewAssignmentBundle bundle;
@@ -26,7 +23,8 @@ class DriverPreviewRuntime {
       String endpoint,
       int? statusCode,
       String updatedAt,
-    )? onReadState,
+    )?
+    onReadState,
   }) {
     if (baseUrl.trim().isEmpty) {
       throw const DriverPreviewBootstrapException('preview_api_base_missing');
@@ -38,10 +36,13 @@ class DriverPreviewRuntime {
       client: client,
       onReadState: onReadState,
     );
-    final channel = bootstrap.context.channel;
-    final initialRoute = channel == DriverChannel.b2c
-        ? DriverRoutes.b2cHome
-        : DriverRoutes.b2bHome;
+    if (bootstrap.context.channel != DriverChannel.b2c) {
+      bundle.close();
+      throw const DriverPreviewBootstrapException(
+        'driver_b2c_runtime_required',
+      );
+    }
+    const initialRoute = DriverRoutes.b2cHome;
 
     final app = FoodexDriverApp.preview(
       previewContext: bootstrap.context,
@@ -51,9 +52,6 @@ class DriverPreviewRuntime {
       previewBootstrap: bootstrap,
     );
 
-    return DriverPreviewRuntime._(
-      app: app,
-      bundle: bundle,
-    );
+    return DriverPreviewRuntime._(app: app, bundle: bundle);
   }
 }

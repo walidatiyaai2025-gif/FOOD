@@ -87,6 +87,10 @@ final class AppPreviewTargetService
     /** @return list<array<string,mixed>> */
     private function drivers(string $channel, int $storeId, string $search): array
     {
+        if ($channel !== 'b2c') {
+            return [];
+        }
+
         $driverQuery = Driver::query()
             ->where('driver_type', $channel)
             ->where('store_id', $storeId)

@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Driver;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -21,17 +20,17 @@ class DriverLocationHeartbeatTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
 
         $user = User::query()->create([
-            'name' => 'B2B Driver',
+            'name' => 'B2C Driver',
             'email' => 'tracking-driver@example.test',
             'password' => 'password',
             'is_active' => true,
         ]);
-        $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
 
         $driver = Driver::query()->create([
             'user_id' => $user->id,
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
-            'driver_type' => 'b2b',
+            'store_id' => $this->retailStoreId(),
+            'driver_type' => 'b2c',
             'is_available' => true,
             'is_active' => true,
         ]);
@@ -52,8 +51,8 @@ class DriverLocationHeartbeatTest extends TestCase
         $this->postJson('/api/v1/driver/location/heartbeat', $payload)
             ->assertOk()
             ->assertJsonPath('data.driver_id', $driver->id)
-            ->assertJsonPath('data.channel', 'b2b')
-            ->assertJsonPath('data.store_id', app(WholesalePrincipal::class)->storeId());
+            ->assertJsonPath('data.channel', 'b2c')
+            ->assertJsonPath('data.store_id', $this->retailStoreId());
 
         $this->assertDatabaseCount('driver_current_locations', 1);
 
@@ -65,8 +64,8 @@ class DriverLocationHeartbeatTest extends TestCase
         $this->assertDatabaseCount('driver_current_locations', 1);
         $this->assertDatabaseHas('driver_current_locations', [
             'driver_id' => $driver->id,
-            'channel' => 'b2b',
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
+            'channel' => 'b2c',
+            'store_id' => $this->retailStoreId(),
         ]);
     }
 
@@ -75,17 +74,17 @@ class DriverLocationHeartbeatTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
 
         $user = User::query()->create([
-            'name' => 'Ordered B2B Driver',
+            'name' => 'Ordered B2C Driver',
             'email' => 'ordered-tracking-driver@example.test',
             'password' => 'password',
             'is_active' => true,
         ]);
-        $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
 
         $driver = Driver::query()->create([
             'user_id' => $user->id,
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
-            'driver_type' => 'b2b',
+            'store_id' => $this->retailStoreId(),
+            'driver_type' => 'b2c',
             'is_available' => true,
             'is_active' => true,
         ]);
@@ -137,11 +136,11 @@ class DriverLocationHeartbeatTest extends TestCase
             'password' => 'password',
             'is_active' => true,
         ]);
-        $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
         Driver::query()->create([
             'user_id' => $user->id,
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
-            'driver_type' => 'b2b',
+            'store_id' => $this->retailStoreId(),
+            'driver_type' => 'b2c',
             'is_available' => true,
             'is_active' => true,
         ]);
@@ -167,11 +166,11 @@ class DriverLocationHeartbeatTest extends TestCase
             'password' => 'password',
             'is_active' => true,
         ]);
-        $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
         Driver::query()->create([
             'user_id' => $user->id,
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
-            'driver_type' => 'b2b',
+            'store_id' => $this->retailStoreId(),
+            'driver_type' => 'b2c',
             'is_available' => true,
             'is_active' => true,
         ]);
@@ -185,5 +184,25 @@ class DriverLocationHeartbeatTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['latitude', 'longitude']);
+    }
+
+    private ?int $retailStore = null;
+
+    private function retailStoreId(): int
+    {
+        if ($this->retailStore !== null) {
+            return $this->retailStore;
+        }
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+
+        return $this->retailStore = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'DRIVER-LOCATION-B2C',
+            'name' => 'Driver Location B2C Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

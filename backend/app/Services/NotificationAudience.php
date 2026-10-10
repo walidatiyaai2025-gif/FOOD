@@ -34,6 +34,7 @@ final class NotificationAudience
         $driverChannels = collect(
             DB::table('drivers')
                 ->where('user_id', $user->id)
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->pluck('driver_type'),
         )

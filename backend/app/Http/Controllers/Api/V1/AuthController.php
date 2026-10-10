@@ -46,9 +46,10 @@ class AuthController extends Controller
         if ($app === 'driver') {
             $driverExists = DB::table('drivers')
                 ->where('user_id', $user->id)
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->exists();
-            $driverRole = $user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER');
+            $driverRole = $user->hasRole('B2C_DRIVER');
             abort_unless($driverExists && $driverRole, 403, 'This account is not authorized for the Driver app.');
         }
 
@@ -116,9 +117,10 @@ class AuthController extends Controller
         if ($validated['app'] === 'driver') {
             $driverExists = DB::table('drivers')
                 ->where('user_id', $user->id)
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->exists();
-            $driverRole = $user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER');
+            $driverRole = $user->hasRole('B2C_DRIVER');
 
             if (! $driverExists || ! $driverRole) {
                 throw ValidationException::withMessages([

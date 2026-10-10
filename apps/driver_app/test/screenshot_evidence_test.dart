@@ -26,13 +26,6 @@ void main() {
       locale: localeCode,
       channel: DriverChannel.b2c,
     );
-    final b2bSession = DriverSession(
-      token: 'evidence-token',
-      name: localeCode == 'ar' ? 'سالم · سائق FOODEX أعمال' : 'FOODEX B2B Driver Salem',
-      email: 'driver.b2b@foodex.test',
-      locale: localeCode,
-      channel: DriverChannel.b2b,
-    );
 
     testWidgets('capture driver login $localeCode', (tester) async {
       await _setup(tester);
@@ -56,22 +49,14 @@ void main() {
       (
         session: b2cSession,
         route: '/driver/b2c/deliveries',
-        path: '01_Mobile/Driver_B2C/03_driver_deliveries__populated__$localeCode.png',
-      ),
-      (
-        session: b2bSession,
-        route: '/driver/b2b/home',
-        path: '01_Mobile/Driver_B2B/01_driver_home__default__$localeCode.png',
-      ),
-      (
-        session: b2bSession,
-        route: '/driver/b2b/deliveries',
-        path: '01_Mobile/Driver_B2B/02_driver_deliveries__populated__$localeCode.png',
+        path:
+            '01_Mobile/Driver_B2C/03_driver_deliveries__populated__$localeCode.png',
       ),
       (
         session: b2cSession,
         route: '/driver/b2c/notifications',
-        path: '01_Mobile/Driver_B2C/08_driver_notifications__populated__$localeCode.png',
+        path:
+            '01_Mobile/Driver_B2C/08_driver_notifications__populated__$localeCode.png',
       ),
     ]) {
       testWidgets('capture ${item.path}', (tester) async {
@@ -79,27 +64,29 @@ void main() {
         await _captureApp(
           tester,
           FoodexDriverApp(
-          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             initialSession: item.session,
             initialRoute: item.route,
             locale: locale,
             authRepository: const _EvidenceAuthRepository(),
             assignmentRepositoryFactory: (_) => const _EvidenceAssignments(),
-            notificationRepositoryFactory: (_) => const _EvidenceNotifications(),
+            notificationRepositoryFactory: (_) =>
+                const _EvidenceNotifications(),
           ),
           item.path,
         );
       });
     }
 
-    testWidgets('capture B2C delivery detail action sheet $localeCode', (tester) async {
+    testWidgets('capture B2C delivery detail action sheet $localeCode',
+        (tester) async {
       await _setup(tester);
       final key = GlobalKey();
       await tester.pumpWidget(
         RepaintBoundary(
           key: key,
           child: FoodexDriverApp(
-          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             initialSession: b2cSession,
             initialRoute: '/driver/b2c/deliveries',
             locale: locale,
@@ -109,10 +96,10 @@ void main() {
         ),
       );
       await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 150));
       await tester.tap(find.byKey(const Key('driver-active-assignment-3')));
       await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 150));
       await _writeBoundary(
         tester,
         key,
@@ -142,7 +129,8 @@ void main() {
             locale: locale,
             authRepository: const _EvidenceAuthRepository(),
             assignmentRepositoryFactory: (_) => const _EvidenceAssignments(),
-            notificationRepositoryFactory: (_) => const _EvidenceNotifications(),
+            notificationRepositoryFactory: (_) =>
+                const _EvidenceNotifications(),
             pushService: push,
             showPersistentFooter: false,
           ),
@@ -166,7 +154,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
 
-      expect(find.textContaining(localeCode == 'ar' ? 'طلب #41' : 'Order #41'), findsOneWidget);
+      expect(find.textContaining(localeCode == 'ar' ? 'طلب #41' : 'Order #41'),
+          findsOneWidget);
       expect(
         find.text(localeCode == 'ar' ? 'عرض الطلب' : 'View order'),
         findsOneWidget,
@@ -212,7 +201,6 @@ void main() {
   }
 }
 
-
 const _evidenceFontFamily = 'FoodexEvidence';
 
 Future<void> _loadEvidenceFont() async {
@@ -245,7 +233,8 @@ Future<void> _loadEvidenceFont() async {
 
   final flutterRoot = Platform.environment['FLUTTER_ROOT'];
   if (flutterRoot == null || flutterRoot.isEmpty) {
-    throw StateError('FLUTTER_ROOT is required for readable Material Icons evidence.');
+    throw StateError(
+        'FLUTTER_ROOT is required for readable Material Icons evidence.');
   }
 
   final materialIcons = File(
@@ -278,7 +267,7 @@ Future<void> _captureApp(
   final key = GlobalKey();
   await tester.pumpWidget(RepaintBoundary(key: key, child: app));
   await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
+  await tester.pump(const Duration(milliseconds: 150));
   await _writeBoundary(tester, key, relativePath);
 }
 
@@ -330,9 +319,8 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
           id: channel == DriverChannel.b2c ? 3 : 13,
           orderId: channel == DriverChannel.b2c ? 41 : 141,
           channel: channel,
-          reference: channel == DriverChannel.b2c
-              ? '#FOODEX-41'
-              : '#FOODEX-B2B-141',
+          reference:
+              channel == DriverChannel.b2c ? '#FOODEX-41' : '#FOODEX-B2B-141',
           status: 'assigned',
           address: 'Bayan Block 1 · Street 5 · Building 12',
           navigationLatitude: 29.3031,
@@ -344,16 +332,16 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
           id: channel == DriverChannel.b2c ? 4 : 14,
           orderId: channel == DriverChannel.b2c ? 42 : 142,
           channel: channel,
-          reference: channel == DriverChannel.b2c
-              ? '#FOODEX-42'
-              : '#FOODEX-B2B-142',
+          reference:
+              channel == DriverChannel.b2c ? '#FOODEX-42' : '#FOODEX-B2B-142',
           status: 'out_for_delivery',
           availableStatuses: const ['delivered'],
         ),
       ];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status,
+      {String? note, String? failureReason}) async {}
 }
 
 class _EvidenceNotifications implements DriverNotificationRepository {
@@ -416,7 +404,8 @@ class _EmptyAssignments implements DriverAssignmentRepository {
   Future<List<DriverAssignment>> list(DriverChannel channel) async => const [];
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async {}
+  Future<void> transition(int id, DriverChannel channel, String status,
+      {String? note, String? failureReason}) async {}
 }
 
 class _OfflineAssignments implements DriverAssignmentRepository {
@@ -427,6 +416,7 @@ class _OfflineAssignments implements DriverAssignmentRepository {
       throw const DriverOfflineException();
 
   @override
-  Future<void> transition(int id, DriverChannel channel, String status, {String? note, String? failureReason}) async =>
+  Future<void> transition(int id, DriverChannel channel, String status,
+          {String? note, String? failureReason}) async =>
       throw const DriverOfflineException();
 }

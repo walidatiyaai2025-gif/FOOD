@@ -68,11 +68,11 @@ void main() {
     expect(preview.nativeNavigationEnabled, isFalse);
   });
 
-  test('resolved #500 driver context never becomes a normal auth token', () {
+  test('resolved retail driver context never becomes a normal auth token', () {
     final preview = DriverPreviewContext.fromResolvedSession({
       'session_id': 'preview-session-id',
       'target_type': 'driver',
-      'channel': 'b2b',
+      'channel': 'b2c',
       'store_id': 9,
       'mode': 'read_only',
       'read_only': true,
@@ -81,18 +81,39 @@ void main() {
       'target': {
         'user_id': 17,
         'driver_id': 23,
-        'name': 'Wholesale Driver',
+        'name': 'Retail Driver',
         'locale': 'ar',
       },
     });
 
-    expect(preview.channel, DriverChannel.b2b);
+    expect(preview.channel, DriverChannel.b2c);
     expect(preview.storeId, 9);
     expect(preview.driverId, 23);
     expect(preview.auditCorrelationId, 'audit-id');
     expect(preview.runtimeIdentity.token, isEmpty);
-    expect(preview.runtimeIdentity.channel, DriverChannel.b2b);
+    expect(preview.runtimeIdentity.channel, DriverChannel.b2c);
     expect(preview.runtimeIdentity.storeId, 9);
+  });
+
+  test('resolved B2B driver preview is rejected after Van fulfillment cutover',
+      () {
+    expect(
+      () => DriverPreviewContext.fromResolvedSession({
+        'session_id': 'preview-session-id',
+        'target_type': 'driver',
+        'channel': 'b2b',
+        'store_id': 9,
+        'mode': 'read_only',
+        'read_only': true,
+        'target': {
+          'user_id': 17,
+          'driver_id': 23,
+          'name': 'Legacy Wholesale Driver',
+          'locale': 'ar',
+        },
+      }),
+      throwsFormatException,
+    );
   });
 
   testWidgets('real B2C journey filters preview to the selected retail store',
@@ -142,7 +163,8 @@ void main() {
     expect(find.textContaining('draft-17'), findsOneWidget);
   });
 
-  testWidgets('safe preview renders lifecycle action but never mutates production',
+  testWidgets(
+      'safe preview renders lifecycle action but never mutates production',
       (tester) async {
     final repo = _PreviewRepo(const [
       DriverAssignment(
@@ -228,7 +250,8 @@ void main() {
     await tester.pump();
 
     expect(launched, isFalse);
-    expect(find.textContaining('Native navigation is disabled'), findsOneWidget);
+    expect(
+        find.textContaining('Native navigation is disabled'), findsOneWidget);
   });
 
   testWidgets('preview refuses a session from the wrong driver channel',

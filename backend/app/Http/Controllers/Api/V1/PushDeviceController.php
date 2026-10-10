@@ -58,6 +58,7 @@ final class PushDeviceController extends Controller
         } elseif ($data['app'] === 'driver') {
             $allowed = DB::table('drivers')
                 ->where('user_id', $user->id)
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->exists();
             abort_unless($allowed, 403);

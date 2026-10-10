@@ -106,12 +106,12 @@ class AppPreviewDashboardBridgeTest extends TestCase
         ]);
     }
 
-    public function test_wholesale_driver_discovery_uses_active_driver_profile_and_permission(): void
+    public function test_wholesale_driver_discovery_is_empty_after_van_fulfillment_cutover(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
         $admin = $this->roleUser('B2B_ADMIN', 'bridge-b2b-admin@example.test');
         $driverUser = $this->roleUser('B2B_DRIVER', 'bridge-b2b-driver@example.test');
-        $driver = Driver::query()->create([
+        Driver::query()->create([
             'user_id' => $driverUser->id,
             'store_id' => $storeId,
             'driver_type' => 'b2b',
@@ -125,10 +125,7 @@ class AppPreviewDashboardBridgeTest extends TestCase
                 'channel' => 'b2b',
             ]))
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.user_id', $driverUser->id)
-            ->assertJsonPath('data.0.driver_id', $driver->id)
-            ->assertJsonPath('data.0.store_id', $storeId);
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_driver_discovery_is_deterministic_and_exact_store_scoped_for_auto_launch(): void
