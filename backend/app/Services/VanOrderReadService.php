@@ -110,7 +110,7 @@ final class VanOrderReadService
                 ->where('id', $order->b2b_customer_id)
                 ->first(['id', 'legacy_customer_id', 'name', 'phone', 'email']);
 
-        if ($customer === null && $order->customer_id !== null) {
+        if ($customer === null) {
             $legacy = DB::table('customers')
                 ->where('id', $order->customer_id)
                 ->first(['id', 'name', 'phone', 'email']);
