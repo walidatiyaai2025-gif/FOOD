@@ -147,3 +147,76 @@ When the repository owner says only **"اعمل صفحة X"**, interpret that as
 > Build X as a production FOODEX page using the existing canonical route/domain architecture, current FOODEX design tokens and shared components, AR/EN + RTL/LTR, responsive/data-first states, exact-record actions and current v4.2 UI/UX acceptance rules.
 
 The owner does not need to repeat these UI/UX rules in every prompt.
+
+## 8. Production fingerprint — mandatory, not optional
+
+Before building a page, identify the exact production fingerprint for its surface. Do not infer styling from memory.
+
+### Dashboard fingerprint
+Use these files directly:
+- `backend/resources/views/admin/_brand.blade.php`
+- `backend/resources/views/admin/_brand-components.blade.php`
+- `backend/resources/views/admin/shell.blade.php`
+- `backend/public/assets/admin/foodex-visualization.css` when visualizations are present
+
+The current real Dashboard shell/components define the visual language. Default Bootstrap markup is not a FOODEX design system.
+
+### Customer fingerprint
+Use:
+- `apps/customer_app/lib/core/theme/customer_ui_v3_tokens.dart`
+- `apps/customer_app/lib/core/theme/foodex_theme.dart`
+- `apps/customer_app/lib/shared/customer_ui_v3/customer_components.dart`
+- `apps/customer_app/lib/shared/customer_ui_v3/customer_states.dart`
+- `apps/customer_app/lib/shared/customer_persistent_footer.dart`
+
+### Driver fingerprint
+Use:
+- `apps/driver_app/lib/core/theme/foodex_theme.dart`
+- `apps/driver_app/lib/features/delivery/active/driver_active_journey.dart`
+- `apps/driver_app/lib/navigation.dart`
+
+### Van fingerprint
+Use:
+- `apps/van_app/lib/core/theme/foodex_van_theme.dart`
+- `apps/van_app/lib/features/foundation/van_foundation_screen.dart`
+- `apps/van_app/lib/features/foundation/van_screen_inventory.dart`
+- `apps/van_app/lib/shared/van_action_button.dart`
+
+## 9. Reference-screen selection algorithm
+
+Before markup/widgets:
+
+1. search `docs/design-reference/SCREEN_MANIFEST.json`;
+2. select the same role + platform + closest business archetype;
+3. inspect the current production implementation for that route/domain;
+4. use the production implementation as behavior authority and the approved reference as visual intent;
+5. record the selected reference internally before coding.
+
+The manifest currently contains 46 approved reference entries:
+- 13 B2B Customer mobile;
+- 12 B2C Customer mobile;
+- 10 B2B Super Admin web;
+- 11 B2C Admin web.
+
+Do not copy fake data or obsolete navigation from a mockup. The reference informs composition; current production contracts own data and behavior.
+
+## 10. No-improvisation rule
+
+A short request such as `اعمل صفحة` grants no permission to invent:
+- new colors;
+- new card radius;
+- a new sidebar/footer;
+- new table/list styling;
+- new status-chip semantics;
+- a second form system;
+- a second modal system;
+- new spacing scale;
+- per-page Material/Bootstrap defaults;
+- arbitrary mobile navigation.
+
+If the needed primitive does not exist, first prove that the current production primitives cannot express the requirement. Then extend the shared system, not only one page.
+
+## 11. Page recipes
+
+After this router, read `.ai/skills/page-patterns.md`. It contains the canonical composition recipes for list/management, detail/manage, form/create, dashboard/KPI, Customer commerce, Driver operational and Van field-operation pages.
+
