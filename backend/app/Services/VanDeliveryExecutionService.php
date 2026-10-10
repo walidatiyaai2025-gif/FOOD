@@ -168,8 +168,7 @@ final class VanDeliveryExecutionService
                     'captured_at' => now(),
                 ]);
 
-                $contextValue = $state->getAttribute('context');
-                $context = is_array($contextValue) ? $contextValue : [];
+                $context = $this->contextArray($state->getAttribute('context'));
                 $state->forceFill([
                     'status' => $targetStatus,
                     'failure_reason_code' => $targetStatus === 'failed' ? $normalizedFailureReason : null,
@@ -318,8 +317,7 @@ final class VanDeliveryExecutionService
                     'captured_at' => now(),
                 ]);
 
-                $contextValue = $state->getAttribute('context');
-                $context = is_array($contextValue) ? $contextValue : [];
+                $context = $this->contextArray($state->getAttribute('context'));
                 $state->forceFill([
                     'version' => ((int) $state->version) + 1,
                     'context' => [
@@ -492,6 +490,12 @@ final class VanDeliveryExecutionService
                 : null,
             'last_transition_at' => $this->atomTimestamp($state->getAttribute('last_transition_at')),
         ];
+    }
+
+    /** @return array<string,mixed> */
+    private function contextArray(mixed $value): array
+    {
+        return is_array($value) ? $value : [];
     }
 
     private function atomTimestamp(mixed $value): ?string
