@@ -150,6 +150,13 @@ class VanDeliveryExecutionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.replayed', true);
 
+        $this->withHeader('Idempotency-Key', 'van-failed-0001')
+            ->postJson('/api/v1/van/orders/'.$order->id.'/execution/fail', [
+                ...$payload,
+                'note' => 'Changed request must not replay',
+            ])
+            ->assertConflict();
+
         $this->assertSame(
             1,
             DB::table('order_van_execution_events')
