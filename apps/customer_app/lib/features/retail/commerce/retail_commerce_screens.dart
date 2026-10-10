@@ -281,7 +281,8 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                                   vertical: 9,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF7E6),
+                                  color: CustomerUiColors.warning
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -289,7 +290,7 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                                     const Icon(
                                       Icons.cloud_upload_outlined,
                                       size: 18,
-                                      color: Color(0xFF8A5A00),
+                                      color: CustomerUiColors.warning,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -303,7 +304,7 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                                             .textTheme
                                             .bodySmall
                                             ?.copyWith(
-                                              color: const Color(0xFF6B4A00),
+                                              color: CustomerUiColors.inkSoft,
                                               fontWeight: FontWeight.w700,
                                             ),
                                       ),

@@ -521,7 +521,7 @@ class DefaultRetailCommerceApi implements RetailCommerceApi {
       await accountApi.removeCartItem(itemId);
       await mutationQueue.remove(storeId, itemId);
       await _persistGuestToken(storeId);
-      return loadCart(storeId: storeId);
+      return await loadCart(storeId: storeId);
     } catch (error, stack) {
       if (!_isTransientCartError(error)) rethrow;
       await mutationQueue.upsert(

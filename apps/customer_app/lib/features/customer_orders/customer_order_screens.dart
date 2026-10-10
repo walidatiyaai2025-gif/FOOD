@@ -351,8 +351,9 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     label,
                     maxLines: 1,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color:
-                              selected ? Colors.white : const Color(0xFF303A36),
+                          color: selected
+                              ? Colors.white
+                              : CustomerUiColors.inkSoft,
                           fontSize: 13,
                           fontWeight:
                               selected ? FontWeight.w800 : FontWeight.w600,
@@ -608,9 +609,11 @@ class _OrdersStaleBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(18, 0, 18, 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
+        color: CustomerUiColors.warning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1D39A)),
+        border: Border.all(
+          color: CustomerUiColors.warning.withValues(alpha: 0.28),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,7 +621,7 @@ class _OrdersStaleBanner extends StatelessWidget {
           const Icon(
             Icons.cloud_off_outlined,
             size: 18,
-            color: Color(0xFF8A5A00),
+            color: CustomerUiColors.warning,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -631,7 +634,7 @@ class _OrdersStaleBanner extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6B4A00),
+                    color: CustomerUiColors.inkSoft,
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -1132,7 +1135,7 @@ class _OrderCard extends StatelessWidget {
                           textAlign: TextAlign.left,
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: const Color(0xFF69736F),
+                                    color: CustomerUiColors.muted,
                                     fontSize: 13.5,
                                     height: 1.1,
                                   ),
@@ -1153,7 +1156,7 @@ class _OrderCard extends StatelessWidget {
                                       .textTheme
                                       .bodySmall
                                       ?.copyWith(
-                                        color: const Color(0xFF69736F),
+                                        color: CustomerUiColors.muted,
                                         fontSize: 11.5,
                                       ),
                                 ),
@@ -1177,7 +1180,7 @@ class _OrderCard extends StatelessWidget {
                           maxLines: 1,
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: const Color(0xFF087A56),
+                                    color: CustomerUiColors.success,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 15.5,
                                     height: 1.05,
@@ -1243,7 +1246,10 @@ class _CompactOrderStatusChip extends StatelessWidget {
           background: Color(0xFFE7F8F1),
           foreground: Color(0xFF07925D),
         ),
-      _ => const (background: Color(0xFFEDF8EF), foreground: Color(0xFF178A2A)),
+      _ => const (
+          background: CustomerUiColors.mint,
+          foreground: CustomerUiColors.success,
+        ),
     };
 
     return Container(

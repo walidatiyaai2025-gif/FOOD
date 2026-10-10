@@ -364,8 +364,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   }
 
   void _showPushAlert(FoodexPushAlert alert) {
-    final message =
-        alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
+    final message = alert.body.isEmpty
+        ? alert.title
+        : '${alert.title}\n${alert.body}'; // localization-gate: allow server-provided push content
     _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(message)));
   }
 
@@ -794,9 +795,9 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
                     child: IgnorePointer(
                       child: DecoratedBox(
                         decoration: const BoxDecoration(
-                          color: Color(0xFFF8FAFC),
+                          color: FoodexBrand.surfaceMuted,
                           border: Border(
-                            top: BorderSide(color: Color(0xFFE3E8EF)),
+                            top: BorderSide(color: FoodexBrand.border),
                           ),
                         ),
                         child: SafeArea(
