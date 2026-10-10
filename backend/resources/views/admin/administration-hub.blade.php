@@ -154,24 +154,28 @@ html[dir=ltr] .main{grid-column:2}
 </div>
 </div>
 
+@php
+$mobileStatusLabels = [
+    'pending' => __('admin.mobile_apps.status_pending'),
+    'downloading' => __('admin.mobile_apps.status_downloading'),
+    'verifying' => __('admin.mobile_apps.status_verifying'),
+    'ready' => __('admin.mobile_apps.status_ready'),
+    'failed' => __('admin.mobile_apps.status_failed'),
+];
+$mobileAppLabels = [
+    'customer' => __('admin.administration_hub.customer'),
+    'driver' => __('admin.administration_hub.driver'),
+    'van' => __('admin.administration_hub.van'),
+];
+@endphp
 <script>
 (() => {
     const statusUrl = @json(route('admin.mobile-apps.status'));
     const prepareUrl = @json(route('admin.mobile-apps.prepare'));
     const retryUrl = @json(route('admin.mobile-apps.retry'));
     const csrf = @json(csrf_token());
-    const labels = @json([
-        'pending' => __('admin.mobile_apps.status_pending'),
-        'downloading' => __('admin.mobile_apps.status_downloading'),
-        'verifying' => __('admin.mobile_apps.status_verifying'),
-        'ready' => __('admin.mobile_apps.status_ready'),
-        'failed' => __('admin.mobile_apps.status_failed'),
-    ]);
-    const appLabels = @json([
-        'customer' => __('admin.administration_hub.customer'),
-        'driver' => __('admin.administration_hub.driver'),
-        'van' => __('admin.administration_hub.van'),
-    ]);
+    const labels = @json($mobileStatusLabels);
+    const appLabels = @json($mobileAppLabels);
     let artifacts = @json($mobileReleaseArtifacts->values()->all());
     let selectedApp = null;
     let refreshing = false;
