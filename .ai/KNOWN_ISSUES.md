@@ -30,4 +30,12 @@ This file records recurring structural hazards and reusable lessons. It is **not
 **Risk:** delete/reassignment features can accidentally remove core order, customer or ledger history.
 **Guard:** Define purge ownership/scope, transact related writes, preserve immutable audit/ledger records and test cross-assignment/store isolation.
 
+## K-008 — Local/remote CI routing can drift
+**Risk:** The worker can validate one set of apps/tests locally while Required CI selects another set remotely.
+**Guard:** `.ci/ci-map.json` is the single routing authority; both local preflight and Required CI use `scripts/ci-plan.py`, with drift regression tests.
+
+## K-009 — Test network/toolchain nondeterminism can create false red
+**Risk:** Unit/widget tests or mutable CI tools may depend on external network availability or silently change behavior between pushes.
+**Guard:** Keep Flutter tests transport-hermetic, pin mutable CLI/action generations, classify recurring failures in `.ci/failure-patterns.json`, and never rerun deterministic red state unchanged.
+
 Only add reusable risks here. Put concrete live defects in GitHub.

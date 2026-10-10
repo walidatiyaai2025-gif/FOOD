@@ -56,7 +56,7 @@ jobs:
       FOODEX_API_BASE_URL: https://foodex.50sols.com
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -114,7 +114,7 @@ jobs:
           ! unzip -Z1 Release/FOODEX-Laravel-Setup.zip | grep -Eq '(^|/)\.env$|\.jks$|\.keystore$|\.p12$|\.pfx$|(^|/)auth\.json$'
 
       - name: Set up Node for fresh-install visual QA
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 

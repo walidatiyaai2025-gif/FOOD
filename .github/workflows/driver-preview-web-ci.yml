@@ -21,7 +21,7 @@ jobs:
       run:
         working-directory: apps/driver_app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Flutter 3.47.5
         uses: subosito/flutter-action@v2
