@@ -16,7 +16,8 @@ Read:
    - `.ai/skills/van-uiux.md`
 6. the authoritative contract/files named by that skill.
 7. `.ai/skills/ui-interaction-safety.md` when the page mutates state; `.ai/skills/ui-performance.md` for lists/search/live/high-growth surfaces.
-8. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
+8. `.ai/skills/ui-structural-parity.md` and `.ai/skills/ui-pr-evidence-plan.md` for structural/evidence planning.
+9. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
 
 Before markup/widget code, also run the **UI Contract Planner** when the page/archetype is known:
 
@@ -127,3 +128,15 @@ After the page is implemented:
 6. only then report the page complete.
 
 The worker must not use "not covered by CI" as acceptance when the reason is an incomplete workflow path trigger.
+
+## Phase 3 pre-merge checks
+
+Run on the exact PR diff:
+
+```bash
+python3 scripts/foodex-ui-structure-audit.py --base <base> --head <head> --report artifacts/foodex-ui-structure-audit.json
+python3 scripts/foodex-ui-pr-plan.py --base <base> --head <head> --strict --output artifacts/foodex-ui-pr-evidence-plan.json
+```
+
+A new screen without its runtime evidence inventory update is incomplete.
+

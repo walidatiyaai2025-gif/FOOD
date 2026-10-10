@@ -168,3 +168,14 @@ For high-growth/live surfaces, record the relevant non-visual evidence:
 - stale-response/race control when relevant.
 
 Performance acceptance cannot be inferred from a static screenshot.
+
+## Phase 3 — exact-diff evidence planning
+
+Use `.ai/uiux/visual-evidence-matrix.json` and generate:
+
+```bash
+python3 scripts/foodex-ui-pr-plan.py --base <base> --head <head> --strict --output artifacts/foodex-ui-pr-evidence-plan.json
+```
+
+For newly added screens, update the owning capture inventory in the same PR. Dashboard and mobile visual workflows are invoked from Required CI for actual UI-code changes.
+
