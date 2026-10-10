@@ -316,12 +316,7 @@ final class OrderLifecycleNotificationService
             ? null
             : (int) $driver->store_id;
         $orderStoreId = (int) $order->store_id;
-        if ($channel === 'b2c' && $driverStoreId !== $orderStoreId) {
-            return;
-        }
-        if ($channel === 'b2b'
-            && $driverStoreId !== null
-            && $driverStoreId !== $orderStoreId) {
+        if ($driverStoreId !== $orderStoreId) {
             return;
         }
 
