@@ -169,6 +169,23 @@ class MobileAppDownloadTest extends TestCase
         );
     }
 
+    public function test_first_post_update_redirect_bootstraps_local_mirror(): void
+    {
+        Queue::fake();
+        $admin = $this->superAdmin();
+        $this->installVersion('9.8.7');
+
+        $this->actingAs($admin)
+            ->withSession(['status' => 'Update 9.8.7 completed successfully.'])
+            ->get(route('admin.system-update.index'))
+            ->assertOk();
+
+        Queue::assertPushed(
+            MirrorMobileReleaseArtifacts::class,
+            fn (MirrorMobileReleaseArtifacts $job): bool => $job->version === '9.8.7',
+        );
+    }
+
     private function installVersion(string $version): void
     {
         SystemVersion::query()->create([
