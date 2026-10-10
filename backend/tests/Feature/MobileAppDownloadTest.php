@@ -105,7 +105,7 @@ class MobileAppDownloadTest extends TestCase
         ]);
     }
 
-    public function test_admin_status_endpoint_reports_progress_and_schedules_unfinished_release(): void
+    public function test_admin_status_endpoint_reports_progress_without_dispatching_work(): void
     {
         Queue::fake();
         $admin = $this->superAdmin();
@@ -132,7 +132,24 @@ class MobileAppDownloadTest extends TestCase
             ->assertJsonPath('artifacts.0.progress_percent', 42)
             ->assertJsonPath('artifacts.0.download_url', null);
 
-        Queue::assertPushed(MirrorMobileReleaseArtifacts::class);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_admin_prepare_endpoint_queues_unfinished_release(): void
+    {
+        Queue::fake();
+        $admin = $this->superAdmin();
+        $this->installVersion('9.8.7');
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.mobile-apps.prepare'))
+            ->assertStatus(202)
+            ->assertJsonPath('version', '9.8.7');
+
+        Queue::assertPushed(
+            MirrorMobileReleaseArtifacts::class,
+            fn (MirrorMobileReleaseArtifacts $job): bool => $job->version === '9.8.7',
+        );
     }
 
     public function test_admin_retry_resets_failed_release_and_queues_background_mirror(): void
