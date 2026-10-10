@@ -135,10 +135,14 @@ class VanDeliveryEvidenceDashboardTest extends TestCase
             ->assertSee('W07 gate was locked')
             ->assertSee('data-van-delivery-proof-link', false);
 
-        $this->actingAs($admin)
+        $proofResponse = $this->actingAs($admin)
             ->get('/admin/operations/orders/van-assignments/'.$orderVanAssignmentId.'/proofs/'.$proofEventId)
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0');
+            ->assertOk();
+
+        $cacheControl = (string) $proofResponse->headers->get('Cache-Control');
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
 
         $foreign = User::factory()->create(['is_active' => true]);
         $this->actingAs($foreign)
