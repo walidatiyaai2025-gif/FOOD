@@ -179,7 +179,7 @@ void main() {
           await _writeBoundary(
             tester,
             key,
-            '03_Van_Order_Detail/order_detail__$code__${evidence.suffix}.png',
+            '03_Van_Order_Detail/order_detail__${code}__${evidence.suffix}.png',
           );
         },
       );
