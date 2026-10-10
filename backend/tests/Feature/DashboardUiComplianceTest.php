@@ -63,6 +63,10 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-dispatch-van', $view);
         $this->assertStringContainsString('data-order-dispatch-clear', $view);
         $this->assertStringContainsString('data-order-dispatch-detail', $view);
+        $this->assertStringContainsString('data-order-dispatch-workspace', $view);
+        $this->assertStringContainsString('data-b2b-van-operations', $view);
+        $this->assertStringContainsString('data-van-collection-timeline', $view);
+        $this->assertStringContainsString('data-van-proof-link', $view);
         $this->assertStringContainsString("__('order_operations.dispatch.warning')", $view);
         $this->assertStringNotContainsString('name="assignee_id" type="number"', $view);
 
@@ -115,6 +119,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('{{ $invoice[\'number\'] }}', $view);
         $this->assertStringNotContainsString('{{ strtoupper($order[\'channel\']) }}', $view);
         $this->assertStringNotContainsString('<td>{{ $order[\'status\'] }}</td>', $view);
+        $this->assertStringContainsString('data-c360-fulfillment', $view);
+        $this->assertStringContainsString('data-c360-van-timeline', $view);
     }
 
     public function test_notifications_use_shared_foodex_admin_shell(): void
