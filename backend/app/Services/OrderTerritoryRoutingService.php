@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderDispatchState;
 use App\Models\OrderVanAssignment;
+use App\Models\OrderVanExecutionState;
 use App\Models\RoutingDecisionTrace;
 use App\Models\RoutingPolicy;
 use App\Models\ServiceTerritory;
@@ -28,6 +29,11 @@ final class OrderTerritoryRoutingService
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
         $order->refresh();
         $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
+
+        $protected = $this->protectedInFlightState($order, $actor);
+        if ($protected instanceof OrderDispatchState) {
+            return $protected;
+        }
 
         $existing = OrderDispatchState::query()->where('order_id', $order->id)->first();
         if ($existing !== null && in_array($existing->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
@@ -183,6 +189,39 @@ final class OrderTerritoryRoutingService
         );
     }
 
+    /** @param array<string,mixed> $context */
+    public function deferToDispatch(
+        Order $order,
+        ?User $actor,
+        string $source,
+        string $reason,
+        array $context = [],
+    ): OrderDispatchState {
+        $order->refresh();
+        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
+
+        $protected = $this->protectedInFlightState($order, $actor);
+        if ($protected instanceof OrderDispatchState) {
+            return $protected;
+        }
+
+        $source = strtolower(trim($source));
+        $reason = strtolower(trim($reason));
+
+        return $this->persistPending(
+            $order,
+            null,
+            null,
+            null,
+            $source === '' ? 'post_create_guard' : $source,
+            $reason === '' ? 'routing_unavailable' : $reason,
+            [],
+            $actor,
+            now(),
+            $context,
+        );
+    }
+
     private function routeWithoutPolicy(
         Order $order,
         ?ServiceTerritory $territory,
@@ -281,6 +320,68 @@ final class OrderTerritoryRoutingService
         return null;
     }
 
+    private function protectedInFlightState(Order $order, ?User $actor): ?OrderDispatchState
+    {
+        $execution = OrderVanExecutionState::query()
+            ->where('order_id', $order->id)
+            ->whereIn('status', ['picked_up', 'out_for_delivery'])
+            ->latest('id')
+            ->first();
+
+        if (! $execution instanceof OrderVanExecutionState) {
+            return null;
+        }
+
+        $assignment = OrderVanAssignment::query()
+            ->whereKey($execution->order_van_assignment_id)
+            ->where('order_id', $order->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $assignment instanceof OrderVanAssignment) {
+            return null;
+        }
+
+        $state = OrderDispatchState::query()->firstOrNew(['order_id' => $order->id]);
+        $before = $state->exists ? $state->toArray() : null;
+
+        if (
+            ! $state->exists
+            || (string) $state->current_assignee_type !== 'van'
+            || (int) $state->current_assignee_id !== (int) $assignment->van_id
+        ) {
+            $state->fill([
+                'status' => 'assigned',
+                'service_territory_id' => $assignment->service_territory_id,
+                'routing_source' => 'execution_lock',
+                'routing_reason' => 'protected_'.$execution->status,
+                'current_assignee_type' => 'van',
+                'current_assignee_id' => $assignment->van_id,
+                'decision_key' => $assignment->decision_key,
+                'context' => array_merge(
+                    (array) $state->getAttribute('context'),
+                    [
+                        'execution_lock' => true,
+                        'execution_status' => (string) $execution->status,
+                        'order_van_assignment_id' => (int) $assignment->getKey(),
+                    ],
+                ),
+                'decided_at' => now(),
+            ])->save();
+        }
+
+        $fresh = $state->fresh();
+        $this->audit->record(
+            'order.dispatch.reroute_blocked',
+            $actor,
+            $order,
+            $before,
+            $fresh->toArray(),
+        );
+
+        return $fresh;
+    }
+
     private function persistPending(
         Order $order,
         ?ServiceTerritory $territory,
@@ -291,6 +392,7 @@ final class OrderTerritoryRoutingService
         array $resolution,
         ?User $actor,
         Carbon $moment,
+        array $context = [],
     ): OrderDispatchState {
         $territoryId = $territory instanceof ServiceTerritory ? (int) $territory->getKey() : null;
         $policyId = $policy instanceof RoutingPolicy ? (int) $policy->getKey() : null;
@@ -304,7 +406,7 @@ final class OrderTerritoryRoutingService
             $reason,
         ]));
 
-        return DB::transaction(function () use ($order, $territory, $policy, $trace, $source, $reason, $resolution, $actor, $moment, $decisionKey): OrderDispatchState {
+        return DB::transaction(function () use ($order, $territory, $policy, $trace, $source, $reason, $resolution, $actor, $moment, $decisionKey, $context): OrderDispatchState {
             $state = OrderDispatchState::query()->lockForUpdate()->firstOrNew(['order_id' => $order->id]);
 
             if ($state->exists && in_array($state->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
@@ -329,7 +431,10 @@ final class OrderTerritoryRoutingService
                 'current_assignee_type' => null,
                 'current_assignee_id' => null,
                 'decision_key' => $decisionKey,
-                'context' => ['territory_resolution' => $resolution],
+                'context' => [
+                    'territory_resolution' => $resolution,
+                    ...$context,
+                ],
                 'decided_at' => $moment,
             ])->save();
 
@@ -376,7 +481,15 @@ final class OrderTerritoryRoutingService
             $same = $active->firstWhere('decision_key', $decisionKey);
             if (($same instanceof OrderVanAssignment) === false) {
                 foreach ($active as $assignment) {
+                    $assignmentBefore = $assignment->toArray();
                     $assignment->forceFill(['status' => 'reassigned', 'ended_at' => $moment])->save();
+                    $this->audit->record(
+                        'order.dispatch.reassigned',
+                        $actor,
+                        $order,
+                        ['order_van_assignment' => $assignmentBefore],
+                        ['order_van_assignment' => $assignment->fresh()->toArray()],
+                    );
                 }
 
                 $same = OrderVanAssignment::query()->firstOrCreate(

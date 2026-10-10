@@ -16,6 +16,7 @@ use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
+use App\Services\B2BOrderRoutingCoordinator;
 use App\Services\CommerceQuoteService;
 use App\Services\CommercialPolicyService;
 use App\Services\CouponRedemptionService;
@@ -39,6 +40,7 @@ class CheckoutController extends Controller
         CommerceQuoteService $quotes,
         CommercialPolicyService $commercialPolicy,
         InvoiceService $invoices,
+        B2BOrderRoutingCoordinator $routing,
     ): JsonResponse {
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
@@ -385,6 +387,8 @@ class CheckoutController extends Controller
         }, 3);
 
         [$order, $created] = $result;
+
+        $routing->routeCreatedOrder($order, $user, 'customer');
 
         if ($created) {
             $dashboardNotifier->orderCreated($order->fresh());

@@ -26,6 +26,7 @@ final class AdminOrderManagementService
         private readonly OrderInventoryReservationService $reservations,
         private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
+        private readonly B2BOrderRoutingCoordinator $routing,
     ) {}
 
     /** @return array<string, mixed> */
@@ -101,7 +102,7 @@ final class AdminOrderManagementService
         $channel = strtolower($channel);
         $source = strtolower(trim($source));
         $policyChannel = strtolower(trim($policyChannel));
-        abort_unless(in_array($source, ['dashboard', 'van'], true), 500, 'Unsupported order source.');
+        abort_unless(in_array($source, ['dashboard', 'van', 'integration'], true), 500, 'Unsupported order source.');
         abort_if($policyChannel === '', 500, 'Commercial policy channel is required.');
 
         $data = $this->validated($request, $channel);
@@ -142,7 +143,9 @@ final class AdminOrderManagementService
                     'Idempotency key was already used for a different order request.',
                 );
 
-                return $existing;
+                $this->routing->routeCreatedOrder($existing, $actor, $source);
+
+                return $existing->fresh();
             }
         }
 
@@ -328,6 +331,7 @@ final class AdminOrderManagementService
             return $order;
         }, 3);
 
+        $this->routing->routeCreatedOrder($order, $actor, $source);
         $this->notifier->orderCreated($order->fresh());
 
         return $order->fresh();
