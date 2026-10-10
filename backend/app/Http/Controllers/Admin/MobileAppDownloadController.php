@@ -74,8 +74,7 @@ final class MobileAppDownloadController extends Controller
             ], 202);
         }
 
-        $version = $this->mirror->currentVersionForApp($app);
-        $this->mirror->ensureScheduled($version);
+        $version = $this->mirror->ensureScheduled();
 
         return response()->json([
             'version' => $version,
@@ -124,7 +123,9 @@ final class MobileAppDownloadController extends Controller
     {
         Gate::authorize('platform.manage');
 
-        $version = $this->mirror->ensureScheduled();
+        $version = $this->mirror->currentVersionForApp($app);
+        $this->mirror->ensureScheduled($version);
+
         $artifact = MobileReleaseArtifact::query()
             ->where('app', $app)
             ->where('version', $version)
