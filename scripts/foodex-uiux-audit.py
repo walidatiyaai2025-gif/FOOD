@@ -83,6 +83,7 @@ def validate_policy(root: Path = ROOT) -> list[str]:
     golden = load_json("golden-pages.json", root)
     scorecard = load_json("uiux-scorecard.json", root)
     patterns = load_json("forbidden-patterns.json", root)
+    quality_gates = load_json("quality-gates.json", root)
 
     for surface, data in registry.get("surfaces", {}).items():
         for rel in data.get("canonical_sources", []):
@@ -104,6 +105,21 @@ def validate_policy(root: Path = ROOT) -> list[str]:
 
     if not archetypes.get("archetypes"):
         errors.append("page-archetypes: at least one archetype is required")
+
+    def require_paths(owner: str, value: object) -> None:
+        if isinstance(value, str):
+            if "/" in value and not (root / value).exists():
+                errors.append(f"quality-gates: {owner} missing: {value}")
+            return
+        if isinstance(value, list):
+            for item in value:
+                require_paths(owner, item)
+            return
+        if isinstance(value, dict):
+            for key, item in value.items():
+                require_paths(f"{owner}/{key}", item)
+
+    require_paths("root", quality_gates)
 
     ids: set[str] = set()
     for rule in patterns.get("rules", []):
@@ -169,6 +185,50 @@ def validate_new_dashboard_page(path: str, status: str, root: Path = ROOT) -> li
     ]
 
 
+DASHBOARD_PAGINATION_EXCEPTIONS = {
+    "app-versions.blade.php",
+    "invoice.blade.php",
+    "flash-offer-preview.blade.php",
+    "flash-offer-analytics.blade.php",
+}
+
+
+def validate_dashboard_pagination(path: str, root: Path = ROOT) -> list[Finding]:
+    if not (path.startswith("backend/resources/views/admin/") and path.endswith(".blade.php")):
+        return []
+    target = root / path
+    if not target.exists() or target.name in DASHBOARD_PAGINATION_EXCEPTIONS:
+        return []
+    content = target.read_text(encoding="utf-8")
+    if not re.search(r"<table\b", content, re.IGNORECASE):
+        return []
+    has_contract = (
+        "data-pagination-required" in content
+        or "data-pagination-exempt=" in content
+        or "->links()" in content
+        or ("['current_page']" in content and "['last_page']" in content)
+    )
+    if has_contract:
+        return []
+    return [Finding(
+        rule="dashboard-pagination-contract",
+        severity="error",
+        path=path,
+        message="Dashboard table has no explicit pagination/bounded-data contract.",
+        deduction=25,
+    )]
+
+
+def required_quality_gates(surfaces: set[str], root: Path = ROOT) -> dict:
+    config = load_json("quality-gates.json", root)
+    selected = {}
+    for surface in sorted(surfaces):
+        if surface in config.get("surfaces", {}):
+            selected[surface] = config["surfaces"][surface]
+    selected["cross_surface"] = config.get("cross_surface", {})
+    return selected
+
+
 def run_audit(base: str, head: str, root: Path = ROOT) -> tuple[list[Finding], dict]:
     policy_errors = validate_policy(root)
     config = load_json("forbidden-patterns.json", root)
@@ -182,14 +242,16 @@ def run_audit(base: str, head: str, root: Path = ROOT) -> tuple[list[Finding], d
             continue
         findings.extend(scan_added(path, added_text(base, head, path, root), config.get("rules", [])))
         findings.extend(validate_new_dashboard_page(path, status, root))
+        findings.extend(validate_dashboard_pagination(path, root))
 
     score = max(0, 100 - sum(item.deduction for item in findings))
     errors = [item for item in findings if item.severity == "error"]
     threshold = int(scorecard.get("threshold", 90))
     ok = not policy_errors and not errors and score >= threshold
 
+    surfaces = {ui_surface(path) for _, path in ui_rows if ui_surface(path)}
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "base": base,
         "head": head,
         "changed_ui_files": [{"status": status, "path": path, "surface": ui_surface(path)} for status, path in ui_rows],
@@ -198,6 +260,7 @@ def run_audit(base: str, head: str, root: Path = ROOT) -> tuple[list[Finding], d
         "static_compliance_score": score,
         "threshold": threshold,
         "runtime_evidence_required_separately": bool(ui_rows),
+        "required_quality_gates": required_quality_gates(surfaces, root),
         "ok": ok,
     }
     return findings, report

@@ -142,3 +142,29 @@ Before accepting evidence ask:
 - Does the page look like the same FOODEX product as adjacent screens?
 
 Any "no/unknown" means more evidence is required.
+
+## 9. Authority and mutation evidence
+
+Visual proof must be paired with the product gate that owns the behavior.
+
+When routes/navigation changed, include the current authority/navigation test for the surface.
+
+When a state-changing action changed, functional evidence should prove as applicable:
+- one submit produces one business mutation;
+- duplicate tap is blocked/deduplicated;
+- retry semantics are safe;
+- server authorization/scope still applies;
+- success reconciles authoritative state;
+- error/offline does not fabricate success.
+
+A screenshot of a green success message is not proof that only one order/payment/ledger transition occurred.
+
+## 10. Performance evidence
+
+For high-growth/live surfaces, record the relevant non-visual evidence:
+- pagination contract/server paginator;
+- load-more/incremental list behavior;
+- request/timer lifecycle test;
+- stale-response/race control when relevant.
+
+Performance acceptance cannot be inferred from a static screenshot.

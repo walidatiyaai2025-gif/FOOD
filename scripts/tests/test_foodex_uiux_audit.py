@@ -115,8 +115,57 @@ class FoodexUiuxAuditTest(unittest.TestCase):
                     "message": "bad",
                 }]
             }), encoding="utf-8")
+            gate = root / "gate.txt"
+            gate.write_text("x", encoding="utf-8")
+            (policy / "quality-gates.json").write_text(json.dumps({
+                "surfaces": {"dashboard": {"required_tests": ["gate.txt"]}},
+                "cross_surface": {},
+            }), encoding="utf-8")
 
             self.assertEqual([], module.validate_policy(root))
+
+    def test_dashboard_table_without_pagination_contract_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            view = root / "backend/resources/views/admin/orders.blade.php"
+            view.parent.mkdir(parents=True)
+            view.write_text("<table><tr><td>x</td></tr></table>", encoding="utf-8")
+            findings = module.validate_dashboard_pagination(
+                "backend/resources/views/admin/orders.blade.php",
+                root,
+            )
+            self.assertEqual("dashboard-pagination-contract", findings[0].rule)
+
+    def test_dashboard_table_with_paginator_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            view = root / "backend/resources/views/admin/orders.blade.php"
+            view.parent.mkdir(parents=True)
+            view.write_text("<table></table>{{ $orders->links() }}", encoding="utf-8")
+            self.assertEqual(
+                [],
+                module.validate_dashboard_pagination(
+                    "backend/resources/views/admin/orders.blade.php",
+                    root,
+                ),
+            )
+
+    def test_quality_gate_metadata_selects_changed_surface(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / ".ai/uiux"
+            policy.mkdir(parents=True)
+            (policy / "quality-gates.json").write_text(json.dumps({
+                "surfaces": {
+                    "dashboard": {"required_tests": ["dashboard-test"]},
+                    "customer": {"required_tests": ["customer-test"]},
+                },
+                "cross_surface": {"static_gates": ["shared-test"]},
+            }), encoding="utf-8")
+            gates = module.required_quality_gates({"customer"}, root)
+            self.assertIn("customer", gates)
+            self.assertNotIn("dashboard", gates)
+            self.assertIn("cross_surface", gates)
 
 
 if __name__ == "__main__":

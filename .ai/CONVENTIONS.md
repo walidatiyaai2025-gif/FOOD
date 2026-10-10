@@ -48,7 +48,7 @@ vendor/bin/pint --test app routes tests
 
 ## UI/UX skill routing
 
-For every page/screen change, first read `.ai/skills/foodex-uiux.md`, `.ai/skills/ui-pattern-library.md`, and `.ai/skills/page-patterns.md`, then the matching Dashboard/Customer/Driver/Van UIUX skill. The surface skill points to the current production token/component files that must be reused. UI completion requires `.ai/skills/uiux-audit.md` PASS plus `.ai/skills/uiux-evidence.md` wherever runtime visual/interaction proof is required.
+For every page/screen change, first read `.ai/skills/foodex-uiux.md`, `.ai/skills/ui-pattern-library.md`, `.ai/skills/page-patterns.md`, `.ai/skills/ui-route-authority.md`, and `.ai/skills/ui-accessibility.md`, then the matching Dashboard/Customer/Driver/Van UIUX skill. Read `.ai/skills/ui-interaction-safety.md` for mutations and `.ai/skills/ui-performance.md` for list/search/live/high-growth surfaces. The surface skill points to the current production token/component files that must be reused. UI completion requires `.ai/skills/uiux-audit.md` PASS plus `.ai/skills/uiux-evidence.md` wherever runtime visual/interaction proof is required.
 
 ## Dashboard UI
 

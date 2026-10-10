@@ -8,20 +8,31 @@ Read:
 1. `.ai/skills/foodex-uiux.md`
 2. `.ai/skills/ui-pattern-library.md`
 3. `.ai/skills/page-patterns.md`
-4. exactly one or more surface skills:
+4. `.ai/skills/ui-route-authority.md` and `.ai/skills/ui-accessibility.md`.
+5. exactly one or more surface skills:
    - `.ai/skills/dashboard-uiux.md`
    - `.ai/skills/customer-uiux.md`
    - `.ai/skills/driver-uiux.md`
    - `.ai/skills/van-uiux.md`
-5. the authoritative contract/files named by that skill.
-6. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
+6. the authoritative contract/files named by that skill.
+7. `.ai/skills/ui-interaction-safety.md` when the page mutates state; `.ai/skills/ui-performance.md` for lists/search/live/high-growth surfaces.
+8. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
+
+Before markup/widget code, also run the **UI Contract Planner** when the page/archetype is known:
+
+```bash
+python3 scripts/foodex-ui-contract-plan.py --surface <surface> --archetype <archetype> [--function-id <id>] [--route <route>]
+```
+
+Read `.ai/skills/ui-context-authority.md` and resolve Store/channel/tenant context, currency/precision authority and asset policy from the generated plan.
 
 Do not start markup/widget code before this pass.
 
 ## Execution sequence
 
-### 1. Find the real page context
-- canonical route;
+### 1. Lock route authority and real page context
+- read `docs/execution/UI_ROUTE_AUTHORITY.json`;
+- canonical route/renderer;
 - normal navigation owner;
 - nearby production page;
 - shared shell/theme/components;
@@ -44,13 +55,19 @@ A new page should look like it has always belonged to FOODEX.
 - explicit loading/empty/error/stale/offline states;
 - no fake-live/fake-data fallback.
 
-### 4. Apply localization and direction
+### 4. Apply interaction safety and scale
+For mutations, enforce busy locking, duplicate-submit protection, retry/idempotency evaluation and authoritative reconciliation. For high-growth/live data, enforce pagination/request control/timer lifecycle.
+
+### 5. Apply accessibility
+Preserve focus/ARIA/semantic labels/touch targets and non-color-only status meaning.
+
+### 6. Apply localization and direction
 Build AR/RTL and EN/LTR together. Localize raw status/state/channel/role/payment/unit values.
 
-### 5. Apply responsive contract
+### 7. Apply responsive contract
 Use the current surface's real width targets and density rules. Do not make desktop a stretched mobile card stack or mobile a squeezed desktop table.
 
-### 6. Verify real behavior
+### 8. Verify real behavior
 Test the actual route/screen, not only static source.
 
 For visual/interaction requirements, provide the runtime evidence required by the owning Issue/matrix.
