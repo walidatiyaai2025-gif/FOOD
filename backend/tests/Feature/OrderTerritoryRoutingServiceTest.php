@@ -15,6 +15,7 @@ use App\Services\RoutingPolicyService;
 use App\Services\TerritoryService;
 use App\Services\VanRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -135,6 +136,111 @@ class OrderTerritoryRoutingServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
         app(OrderTerritoryRoutingService::class)->route($order, $actor, '2026-10-08T12:00:00Z');
+    }
+
+    public function test_automatic_reroute_preserves_previous_order_van_assignment_history(): void
+    {
+        [$order, $territory, $actor] = $this->orderInsideTerritory('HISTORY');
+        $registry = app(VanRegistryService::class);
+        $firstVan = $registry->createVan(['code' => 'VAN-HISTORY-A']);
+        $firstTerritoryAssignment = $registry->assign($actor, $firstVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinutes(5),
+        ]);
+
+        $service = app(OrderTerritoryRoutingService::class);
+        $first = $service->route($order, $actor);
+        $this->assertSame($firstVan->id, $first->current_assignee_id);
+
+        $firstTerritoryAssignment->forceFill([
+            'status' => 'ended',
+            'effective_until' => now(),
+        ])->save();
+
+        $secondVan = $registry->createVan(['code' => 'VAN-HISTORY-B']);
+        $registry->assign($actor, $secondVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => now(),
+        ]);
+
+        $second = $service->route($order, $actor);
+
+        $this->assertSame('assigned', $second->status);
+        $this->assertSame($secondVan->id, $second->current_assignee_id);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'order_id' => $order->id,
+            'van_id' => $firstVan->id,
+            'status' => 'reassigned',
+        ]);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'order_id' => $order->id,
+            'van_id' => $secondVan->id,
+            'status' => 'active',
+        ]);
+        $this->assertSame(
+            2,
+            DB::table('order_van_assignments')->where('order_id', $order->id)->count(),
+        );
+    }
+
+    public function test_automatic_routing_does_not_move_order_after_physical_custody(): void
+    {
+        [$order, $territory, $actor] = $this->orderInsideTerritory('CUSTODY');
+        $registry = app(VanRegistryService::class);
+        $firstVan = $registry->createVan(['code' => 'VAN-CUSTODY-A']);
+        $firstTerritoryAssignment = $registry->assign($actor, $firstVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinutes(5),
+        ]);
+
+        $service = app(OrderTerritoryRoutingService::class);
+        $first = $service->route($order, $actor);
+        $orderAssignmentId = (int) DB::table('order_van_assignments')
+            ->where('order_id', $order->id)
+            ->where('status', 'active')
+            ->value('id');
+
+        DB::table('order_van_execution_states')
+            ->where('order_van_assignment_id', $orderAssignmentId)
+            ->update([
+                'status' => 'picked_up',
+                'last_transition_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $firstTerritoryAssignment->forceFill([
+            'status' => 'ended',
+            'effective_until' => now(),
+        ])->save();
+
+        $secondVan = $registry->createVan(['code' => 'VAN-CUSTODY-B']);
+        $registry->assign($actor, $secondVan, [
+            'territory_key' => $territory->code,
+            'assignment_type' => 'primary',
+            'effective_from' => now(),
+        ]);
+
+        $second = $service->route($order, $actor);
+
+        $this->assertSame($first->decision_key, $second->decision_key);
+        $this->assertSame($firstVan->id, $second->current_assignee_id);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'id' => $orderAssignmentId,
+            'order_id' => $order->id,
+            'van_id' => $firstVan->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseMissing('order_van_assignments', [
+            'order_id' => $order->id,
+            'van_id' => $secondVan->id,
+        ]);
+        $this->assertDatabaseHas('order_van_execution_states', [
+            'order_van_assignment_id' => $orderAssignmentId,
+            'status' => 'picked_up',
+        ]);
     }
 
     /** @return array{0:Order,1:ServiceTerritory,2:User} */

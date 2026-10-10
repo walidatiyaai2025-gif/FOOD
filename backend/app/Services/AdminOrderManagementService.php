@@ -26,6 +26,7 @@ final class AdminOrderManagementService
         private readonly OrderInventoryReservationService $reservations,
         private readonly AuditLogger $audit,
         private readonly DashboardOperationalNotifier $notifier,
+        private readonly OrderPostCreateRoutingService $postCreateRouting,
     ) {}
 
     /** @return array<string, mixed> */
@@ -101,7 +102,7 @@ final class AdminOrderManagementService
         $channel = strtolower($channel);
         $source = strtolower(trim($source));
         $policyChannel = strtolower(trim($policyChannel));
-        abort_unless(in_array($source, ['dashboard', 'van'], true), 500, 'Unsupported order source.');
+        abort_unless(in_array($source, ['dashboard', 'van', 'integration'], true), 500, 'Unsupported order source.');
         abort_if($policyChannel === '', 500, 'Commercial policy channel is required.');
 
         $data = $this->validated($request, $channel);
@@ -328,9 +329,11 @@ final class AdminOrderManagementService
             return $order;
         }, 3);
 
-        $this->notifier->orderCreated($order->fresh());
+        $freshOrder = $order->fresh();
+        $this->postCreateRouting->handle($freshOrder, $actor, $source);
+        $this->notifier->orderCreated($freshOrder);
 
-        return $order->fresh();
+        return $freshOrder->fresh();
     }
 
     public function update(Request $request, User $actor, Order $order): Order

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderDispatchState;
 use App\Models\OrderVanAssignment;
+use App\Models\OrderVanExecutionState;
 use App\Models\RoutingDecisionTrace;
 use App\Models\RoutingPolicy;
 use App\Models\ServiceTerritory;
@@ -31,6 +32,10 @@ final class OrderTerritoryRoutingService
 
         $existing = OrderDispatchState::query()->where('order_id', $order->id)->first();
         if ($existing !== null && in_array($existing->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
+            return $existing;
+        }
+
+        if ($existing !== null && $this->hasPhysicalCustody($order)) {
             return $existing;
         }
 
@@ -183,6 +188,31 @@ final class OrderTerritoryRoutingService
         );
     }
 
+    /** @param array<string, mixed> $context */
+    public function awaitingDispatch(
+        Order $order,
+        ?User $actor,
+        string $reason,
+        array $context = [],
+        Carbon|string|null $at = null,
+    ): OrderDispatchState {
+        $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
+        $order->refresh();
+        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
+
+        return $this->persistPending(
+            $order,
+            null,
+            null,
+            null,
+            'order_created_hook',
+            $reason,
+            $context,
+            $actor,
+            $moment,
+        );
+    }
+
     private function routeWithoutPolicy(
         Order $order,
         ?ServiceTerritory $territory,
@@ -265,6 +295,19 @@ final class OrderTerritoryRoutingService
         }
 
         return ['policy' => null, 'ambiguous' => true];
+    }
+
+    private function hasPhysicalCustody(Order $order): bool
+    {
+        if ((string) $order->status === 'out_for_delivery') {
+            return true;
+        }
+
+        return OrderVanExecutionState::query()
+            ->where('order_id', $order->id)
+            ->whereIn('status', ['picked_up', 'out_for_delivery'])
+            ->whereHas('assignment', fn ($query) => $query->where('status', 'active'))
+            ->exists();
     }
 
     /** @param array<string,mixed> $result */

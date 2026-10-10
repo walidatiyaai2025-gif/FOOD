@@ -24,6 +24,7 @@ use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\OrderPostCreateRoutingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -387,7 +388,13 @@ class CheckoutController extends Controller
         [$order, $created] = $result;
 
         if ($created) {
-            $dashboardNotifier->orderCreated($order->fresh());
+            $freshOrder = $order->fresh();
+            $postCreateRouting->handle(
+                $freshOrder,
+                $user,
+                OrderPostCreateRoutingService::CUSTOMER_CHECKOUT,
+            );
+            $dashboardNotifier->orderCreated($freshOrder);
         }
 
         return response()->json(
