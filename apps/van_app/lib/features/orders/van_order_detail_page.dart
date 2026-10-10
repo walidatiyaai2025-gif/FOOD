@@ -6,7 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
+import 'van_delivery_evidence_sheet.dart';
 import 'van_order_contract.dart';
+import 'van_order_proof_picker.dart';
 
 typedef VanOrderNavigationLauncher = Future<bool> Function(
   double latitude,
@@ -20,12 +22,14 @@ class VanOrderDetailPage extends StatefulWidget {
     required this.repository,
     required this.onSessionExpired,
     this.navigationLauncher,
+    this.proofPicker,
   });
 
   final int orderId;
   final VanOrderRepository repository;
   final Future<void> Function() onSessionExpired;
   final VanOrderNavigationLauncher? navigationLauncher;
+  final VanOrderProofPicker? proofPicker;
 
   @override
   State<VanOrderDetailPage> createState() => _VanOrderDetailPageState();
@@ -40,6 +44,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   Object? _error;
   VanOrderDetail? _detail;
   VanOrderExecutionState? _execution;
+  late final VanOrderProofPicker _proofPicker;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
@@ -48,6 +53,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _proofPicker = widget.proofPicker ?? ImagePickerVanOrderProofPicker();
     unawaited(_load());
   }
 
@@ -108,17 +114,17 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     }
   }
 
-  Future<void> _transition(String status) async {
-    if (_submitting) return;
+  String _idempotencyKey(String action) =>
+      'van-ui-${widget.orderId}-$action-${DateTime.now().microsecondsSinceEpoch}';
+
+  Future<void> _applyMutation(
+    Future<VanOrderExecutionState> Function() mutation,
+  ) async {
+    if (_submitting || _stale) return;
     setState(() => _submitting = true);
 
     try {
-      final execution = await widget.repository.transitionOrder(
-        orderId: widget.orderId,
-        status: status,
-        idempotencyKey:
-            'van-ui-${widget.orderId}-$status-${DateTime.now().microsecondsSinceEpoch}',
-      );
+      final execution = await mutation();
       final detail = await widget.repository.order(widget.orderId);
       if (!mounted) return;
       setState(() {
@@ -132,21 +138,140 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       if (!mounted) return;
       final message = error is VanOfflineException
           ? _text(
-              'Network unavailable. The order was not changed locally.',
-              'لا يوجد اتصال بالشبكة. لم يتم تغيير الطلب محليًا.',
+              'Network unavailable. No delivery change was applied locally.',
+              'لا يوجد اتصال بالشبكة. لم يتم تطبيق أي تغيير محليًا.',
             )
           : error is VanAccessDeniedException
               ? _text('Access denied.', 'غير مصرح بهذه العملية.')
-              : _text(
-                  'The server rejected this delivery action.',
-                  'رفض الخادم إجراء التسليم هذا.',
-                );
+              : error is VanApiException && error.message.trim().isNotEmpty
+                  ? error.message
+                  : _text(
+                      'The server rejected this delivery action.',
+                      'رفض الخادم إجراء التسليم هذا.',
+                    );
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<void> _transition(String status) =>
+      _applyMutation(
+        () => widget.repository.transitionOrder(
+          orderId: widget.orderId,
+          status: status,
+          idempotencyKey: _idempotencyKey(status),
+        ),
+      );
+
+  Future<void> _captureProof() async {
+    if (_submitting || _stale) return;
+    final draft = await showVanDeliveryEvidenceSheet(
+      context: context,
+      mode: VanDeliveryEvidenceMode.proof,
+      proofPicker: _proofPicker,
+    );
+    if (!mounted || draft?.proof == null) return;
+
+    await _applyMutation(
+      () => widget.repository.uploadProof(
+        orderId: widget.orderId,
+        proof: draft!.proof!,
+        note: draft.note,
+        idempotencyKey: _idempotencyKey('proof'),
+      ),
+    );
+  }
+
+  Future<void> _markFailed() async {
+    if (_submitting || _stale) return;
+
+    List<VanFailureReasonOption> reasons;
+    try {
+      setState(() => _submitting = true);
+      reasons = await widget.repository.failedDeliveryReasons();
+      if (!mounted) return;
+      if (reasons.isEmpty) {
+        throw const VanApiException(
+          'No configured failed-delivery reasons are available.',
+        );
+      }
+    } on VanSessionExpiredException {
+      await widget.onSessionExpired();
+      return;
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is VanOfflineException
+          ? _text(
+              'Network unavailable. Failure reasons could not be loaded.',
+              'لا يوجد اتصال بالشبكة. تعذر تحميل أسباب التعذر.',
+            )
+          : _text(
+              'Failed-delivery reasons are unavailable.',
+              'أسباب تعذر التسليم غير متاحة.',
+            );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+      return;
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+
+    final draft = await showVanDeliveryEvidenceSheet(
+      context: context,
+      mode: VanDeliveryEvidenceMode.failure,
+      proofPicker: _proofPicker,
+      failureReasons: reasons,
+    );
+    if (!mounted || draft == null || draft.failureReason == null) return;
+
+    await _applyMutation(
+      () => widget.repository.failOrder(
+        orderId: widget.orderId,
+        failureReason: draft.failureReason!,
+        note: draft.note,
+        proof: draft.proof,
+        idempotencyKey: _idempotencyKey('fail'),
+      ),
+    );
+  }
+
+  Future<void> _retryDelivery() async {
+    if (_submitting || _stale) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_text('Retry delivery?', 'إعادة محاولة التسليم؟')),
+        content: Text(
+          _text(
+            'The order will return to Out for delivery using the server-authorized retry transition.',
+            'سيعود الطلب إلى حالة خرج للتسليم باستخدام انتقال إعادة المحاولة المعتمد من الخادم.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_text('Cancel', 'إلغاء')),
+          ),
+          FilledButton(
+            key: const ValueKey('van-retry-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_text('Retry delivery', 'إعادة محاولة التسليم')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await _applyMutation(
+      () => widget.repository.retryOrder(
+        orderId: widget.orderId,
+        idempotencyKey: _idempotencyKey('retry'),
+      ),
+    );
   }
 
   Future<void> _openMap(VanOrderDeliveryAddress address) async {
@@ -242,14 +367,32 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
   }
 
   List<String> get _deliveryActions {
-    final allowed = _execution?.allowedActions ?? const <String>[];
-    return allowed.where(_isPrimaryAction).toList(growable: false);
+    final execution = _execution;
+    final allowed = execution?.allowedActions ?? const <String>[];
+    return allowed.where((action) {
+      if (!_isPrimaryAction(action)) return false;
+      if (execution?.status == 'failed' && action == 'out_for_delivery') {
+        return false;
+      }
+      if (action == 'delivered' &&
+          execution?.proofRequiredForDelivered == true &&
+          execution?.deliveryProofReady != true) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
   }
 
-  List<String> get _additionalActions {
-    final allowed = _execution?.allowedActions ?? const <String>[];
-    return allowed.where((value) => !_isPrimaryAction(value)).toList(growable: false);
-  }
+  bool get _canFail =>
+      _execution?.allowedActions.contains('failed') == true;
+
+  bool get _canRetry =>
+      _execution?.status == 'failed' &&
+      _execution?.allowedActions.contains('out_for_delivery') == true;
+
+  bool get _canCaptureProof =>
+      _execution?.status == 'out_for_delivery' &&
+      _execution?.proofRequiredForDelivered == true;
 
   Widget _section({
     required String title,
@@ -394,37 +537,80 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       label: Text(_actionLabel(action)),
                     ),
                   ],
-                  if (_additionalActions.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _text(
-                        'Additional server actions',
-                        'إجراءات إضافية من الخادم',
+                  if (_canCaptureProof) ...[
+                    const SizedBox(height: 10),
+                    VanActionButton.secondaryIcon(
+                      key: const ValueKey('van-order-proof-action'),
+                      onPressed: _submitting || _stale ? null : _captureProof,
+                      icon: Icon(
+                        execution?.deliveryProofReady == true
+                            ? Icons.verified_outlined
+                            : Icons.add_a_photo_outlined,
                       ),
+                      label: Text(
+                        execution?.deliveryProofReady == true
+                            ? _text(
+                                'Replace delivery proof',
+                                'استبدال إثبات التسليم',
+                              )
+                            : _text(
+                                'Add delivery proof',
+                                'إضافة إثبات التسليم',
+                              ),
+                      ),
+                    ),
+                    if (execution?.deliveryProofReady == true) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        _text(
+                          'Delivery proof is ready. Delivered can now be confirmed.',
+                          'إثبات التسليم جاهز. يمكن الآن تأكيد التسليم.',
+                        ),
+                        key: const ValueKey('van-order-proof-ready'),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexVanTokens.green,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
+                  ],
+                  if (_canFail) ...[
+                    const SizedBox(height: 10),
+                    VanActionButton.secondaryIcon(
+                      key: const ValueKey('van-order-fail-action'),
+                      onPressed: _submitting || _stale ? null : _markFailed,
+                      icon: const Icon(Icons.report_problem_outlined),
+                      label: Text(
+                        _text('Failed delivery', 'تعذر التسليم'),
+                      ),
+                    ),
+                  ],
+                  if (_canRetry) ...[
+                    const SizedBox(height: 10),
+                    VanActionButton.icon(
+                      key: const ValueKey('van-order-retry-action'),
+                      onPressed:
+                          _submitting || _stale ? null : _retryDelivery,
+                      icon: const Icon(Icons.restart_alt_rounded),
+                      label: Text(
+                        _text('Retry delivery', 'إعادة محاولة التسليم'),
+                      ),
+                    ),
+                  ],
+                  if (execution?.status == 'failed' &&
+                      execution?.failureReasonCode != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      '${_text('Failure reason', 'سبب التعذر')}: '
+                      '${execution!.failureReasonCode}',
+                      key: const ValueKey('van-order-failure-reason'),
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final action in _additionalActions)
-                          Chip(
-                            key: ValueKey('van-order-server-action-$action'),
-                            label: Text(_statusLabel(action)),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _text(
-                        'Failure reasons, retry handling and proof capture continue in the dedicated exception/proof workflow.',
-                        'تستمر أسباب التعذر وإعادة المحاولة والتقاط الإثبات في مسار الاستثناء/الإثبات المخصص.',
+                    if (execution.failureNote?.trim().isNotEmpty == true)
+                      Text(
+                        execution.failureNote!,
+                        key: const ValueKey('van-order-failure-note'),
                       ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: FoodexVanTokens.muted,
-                          ),
-                    ),
                   ],
                 ],
               ),
