@@ -159,4 +159,65 @@ void main() {
     client.close();
   });
 
+
+  test('foreground cache-miss GET concurrency is capped at three', () async {
+    var active = 0;
+    var maxActive = 0;
+    final gates = <Completer<http.Response>>[];
+    final client = CustomerLowDataHttpClient(
+      MockClient((request) {
+        active += 1;
+        if (active > maxActive) maxActive = active;
+        final gate = Completer<http.Response>();
+        gates.add(gate);
+        return gate.future.whenComplete(() => active -= 1);
+      }),
+      dataMode: CustomerDataModeController.instance,
+      cache: CustomerHttpResponseCache(maxEntries: 8),
+    );
+
+    final futures = List.generate(
+      4,
+      (index) => client.get(
+        Uri.parse(
+          'https://foodex.example/api/v1/b2b/products/${index + 1}?store_id=4',
+        ),
+      ),
+    );
+
+    for (var spin = 0; spin < 10 && gates.length < 3; spin++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(gates, hasLength(3));
+    expect(maxActive, 3);
+
+    gates.first.complete(
+      http.Response('{}', 200, headers: const {'content-type': 'application/json'}),
+    );
+
+    for (var spin = 0; spin < 10 && gates.length < 4; spin++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(gates, hasLength(4));
+    expect(maxActive, 3);
+
+    for (final gate in gates.skip(1)) {
+      if (!gate.isCompleted) {
+        gate.complete(
+          http.Response(
+            '{}',
+            200,
+            headers: const {'content-type': 'application/json'},
+          ),
+        );
+      }
+    }
+
+    final responses = await Future.wait(futures);
+    expect(responses, hasLength(4));
+    expect(responses.every((response) => response.statusCode == 200), isTrue);
+
+    client.close();
+  });
+
 }
