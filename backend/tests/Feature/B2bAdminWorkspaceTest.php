@@ -153,7 +153,7 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertDontSee('Wholesale store');
     }
 
-    public function test_b2b_operations_use_principal_warehouse_and_driver_without_store_selector(): void
+    public function test_b2b_operations_use_principal_warehouse_and_reject_driver_fulfillment(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
         $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($store, 'b2b');
@@ -281,20 +281,11 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
             'driver_id' => $driver->id,
             'order_id' => $order->id,
-        ])->assertRedirect();
+        ])->assertConflict();
 
-        $this->assertDatabaseHas('driver_assignments', [
+        $this->assertDatabaseMissing('driver_assignments', [
             'driver_id' => $driver->id,
             'order_id' => $order->id,
-            'assignment_type' => 'b2b',
-            'status' => 'assigned',
-        ]);
-
-        $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-        ])->assertRedirect()->assertSessionHasErrors([
-            'operation' => 'This order already has an active driver assignment. Complete or clear the current assignment before assigning another driver.',
         ]);
 
         $this->actingAs($admin)->post('/admin/b2b/pricing', [

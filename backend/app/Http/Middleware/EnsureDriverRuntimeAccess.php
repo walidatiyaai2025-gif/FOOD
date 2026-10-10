@@ -19,17 +19,15 @@ final class EnsureDriverRuntimeAccess
 
         $driver = DB::table('drivers')
             ->where('user_id', $user->id)
+            ->where('driver_type', 'b2c')
             ->where('is_active', true)
             ->first(['id', 'driver_type', 'store_id']);
 
-        abort_unless($driver !== null, 403, 'No active Driver identity is available for this account.');
-
-        $roleAllowed = match (strtolower((string) $driver->driver_type)) {
-            'b2b' => $user->hasRole('B2B_DRIVER'),
-            'b2c' => $user->hasRole('B2C_DRIVER'),
-            default => false,
-        };
-        abort_unless($roleAllowed, 403, 'This account is not authorized for the Driver App.');
+        abort_unless(
+            $driver !== null && $user->hasRole('B2C_DRIVER'),
+            403,
+            'Driver App execution is available only for Retail (B2C) drivers.',
+        );
 
         $request->attributes->set('driver_runtime_context', [
             'driver_id' => (int) $driver->id,

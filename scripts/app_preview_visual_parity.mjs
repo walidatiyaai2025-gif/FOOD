@@ -28,7 +28,7 @@ const cases = [
   { id: 'customer-b2c-guest-published-ar', app: 'customer', channel: 'b2c', storeId: 21, authenticated: false, configuration: 'published', locale: 'ar', width: 430, height: 900, profile: 'large-android', expectedState: 'ready' },
   { id: 'customer-b2c-auth-draft-en', app: 'customer', channel: 'b2c', storeId: 22, authenticated: true, configuration: 'draft', locale: 'en', width: 390, height: 844, profile: 'iphone-common', expectedState: 'ready' },
   { id: 'customer-b2c-missing-published-en', app: 'customer', channel: 'b2c', storeId: 99, authenticated: false, configuration: 'published', locale: 'en', width: 360, height: 800, profile: 'small-android', expectedState: 'error', expectedCode: 'preview_published_unavailable' },
-  { id: 'driver-b2b-auth-published-ar', app: 'driver', channel: 'b2b', storeId: 31, authenticated: true, configuration: 'published', locale: 'ar', width: 390, height: 844, profile: 'iphone-common', expectedState: 'ready' },
+  { id: 'driver-b2b-auth-rejected-ar', app: 'driver', channel: 'b2b', storeId: 31, authenticated: true, configuration: 'published', locale: 'ar', width: 390, height: 844, profile: 'iphone-common', expectedState: 'error', expectedCode: 'preview_bootstrap_failed' },
   { id: 'driver-b2c-auth-draft-en', app: 'driver', channel: 'b2c', storeId: 32, authenticated: true, configuration: 'draft', locale: 'en', width: 360, height: 800, profile: 'small-android', expectedState: 'ready' },
 ];
 

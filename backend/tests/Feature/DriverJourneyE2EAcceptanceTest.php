@@ -194,11 +194,10 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         Queue::assertPushed(DispatchPushNotification::class);
     }
 
-    public function test_receive_and_fail_actions_are_available_before_ready_for_both_channels(): void
+    public function test_receive_and_fail_actions_are_available_before_ready_for_b2c_driver(): void
     {
         foreach ([
             ['channel' => 'b2c', 'role' => 'B2C_STORE_ADMIN', 'suffix' => 'PARITY-B2C'],
-            ['channel' => 'b2b', 'role' => 'B2B_ADMIN', 'suffix' => 'PARITY-B2B'],
         ] as $case) {
             [$storeId, $order] = $this->order($case['channel'], $case['suffix']);
             $order->forceFill(['status' => 'confirmed'])->save();
@@ -324,18 +323,20 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         );
 
         Sanctum::actingAs($b2bAdmin);
-        $b2bAssignmentId = $this->postJson('/api/v1/admin/deliveries/assign', [
+        $this->postJson('/api/v1/admin/deliveries/assign', [
             'driver_id' => $b2bDriver->id,
             'order_id' => $b2bOrder->id,
-        ])->assertCreated()
-            ->assertJsonPath('data.assignment_type', 'b2b')
-            ->json('data.id');
+        ])->assertConflict()
+            ->assertSee('B2B orders are fulfilled by Van runtime.');
+
+        $this->assertDatabaseMissing('driver_assignments', [
+            'driver_id' => $b2bDriver->id,
+            'order_id' => $b2bOrder->id,
+        ]);
 
         Sanctum::actingAs($b2bDriverUser, ['app:driver']);
-        $this->transition($b2bAssignmentId, 'accepted', 'b2b-accept-1')
-            ->assertJsonPath('data.status', 'accepted');
-        $this->transition($b2bAssignmentId, 'picked_up', 'b2b-pickup-1')
-            ->assertJsonPath('data.status', 'picked_up');
+        $this->getJson('/api/v1/driver/assignments')
+            ->assertForbidden();
     }
 
     private function transition(int $assignmentId, string $status, string $key)

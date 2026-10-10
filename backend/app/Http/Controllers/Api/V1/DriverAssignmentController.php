@@ -98,7 +98,7 @@ class DriverAssignmentController extends Controller
         ]);
         $order = Order::query()->findOrFail($data['order_id']);
         $channel = strtolower((string) $order->channel);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 409, 'Unsupported order channel.');
+        abort_unless($channel === 'b2c', 409, 'B2B orders are fulfilled by Van runtime.');
 
         $ability = 'orders.dispatch';
         $user = $request->user();
@@ -118,15 +118,6 @@ class DriverAssignmentController extends Controller
             $driverStoreId === (int) $order->store_id,
             409,
             'Driver and order must belong to the same authoritative store.',
-        );
-        $customerServiceOverride = $request->boolean('customer_service_override')
-            && ($user->hasRole('SUPER_ADMIN') || $user->hasPermission('support.manage'));
-        abort_if(
-            $channel === 'b2b'
-                && (string) $order->status === 'pending'
-                && ! $customerServiceOverride,
-            409,
-            'Pending B2B orders require Customer Service approval before driver assignment.',
         );
         abort_if(
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
@@ -397,8 +388,12 @@ class DriverAssignmentController extends Controller
         abort_unless($driver instanceof Driver, 403, 'Active driver profile is required.');
 
         $channel = strtolower((string) $driver->driver_type);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
-        abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
+        abort_unless(
+            $channel === 'b2c',
+            403,
+            'Driver App execution is available only for Retail (B2C) drivers.',
+        );
+        abort_unless($user->hasPermission('deliveries.b2c.execute'), 403);
 
         $this->driverTenants->resolve($driver);
 

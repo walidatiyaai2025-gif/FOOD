@@ -56,7 +56,7 @@ class MerchantIntelligenceIntegratedGate1122Test extends TestCase
             ->pluck('id')
             ->all();
         $this->assertContains('driver.b2c.deliveries', $driverFunctions);
-        $this->assertContains('driver.b2b.deliveries', $driverFunctions);
+        $this->assertNotContains('driver.b2b.deliveries', $driverFunctions);
 
         $vanScreens = data_get($authority, 'surfaces.van.production_screens', []);
         foreach (['dashboard', 'routes', 'orders', 'wallet', 'remittance'] as $screen) {

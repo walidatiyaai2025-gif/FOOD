@@ -34,9 +34,10 @@ class DriverPreviewContext {
     }
 
     final channel = switch (data['channel']) {
-      'b2b' => DriverChannel.b2b,
       'b2c' => DriverChannel.b2c,
-      _ => throw const FormatException('Unsupported Driver preview channel.'),
+      _ => throw const FormatException(
+        'Driver preview is available only for Retail (B2C).',
+      ),
     };
     final storeId = data['store_id'];
     final target = data['target'];
@@ -84,13 +85,13 @@ class DriverPreviewContext {
   /// The empty token is intentional. Preview data access must come from
   /// host-injected repositories backed by the dedicated preview contract.
   DriverSession get runtimeIdentity => DriverSession(
-        token: '',
-        name: targetName,
-        email: '',
-        locale: targetLocale,
-        channel: channel,
-        storeId: storeId,
-      );
+    token: '',
+    name: targetName,
+    email: '',
+    locale: targetLocale,
+    channel: channel,
+    storeId: storeId,
+  );
 
   bool matchesSession(DriverSession session) =>
       session.channel == channel && session.storeId == storeId;
