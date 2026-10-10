@@ -56,7 +56,13 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
       initialIndex: initialIndex < 0 ? 0 : initialIndex,
     )..addListener(_onTabChanged);
     _dataMode.addListener(_onDataModeChanged);
-    unawaited(_loadChannel(_activeChannel));
+    if (_dataMode.effectiveMode == CustomerDataMode.normal) {
+      for (final channel in _channels) {
+        unawaited(_loadChannel(channel));
+      }
+    } else {
+      unawaited(_loadChannel(_activeChannel));
+    }
     _scheduleRefresh();
   }
 
@@ -124,9 +130,8 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     _refreshTimer?.cancel();
     final interval = _activeRefreshInterval();
     if (interval == null) return;
-    _refreshTimer = Timer(interval, () async {
-      await _refreshActiveOpenOrders();
-      if (mounted) _scheduleRefresh();
+    _refreshTimer = Timer.periodic(interval, (_) {
+      unawaited(_refreshActiveOpenOrders());
     });
   }
 

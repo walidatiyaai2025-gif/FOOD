@@ -653,12 +653,13 @@ class SecureRetailCheckoutAttemptStore implements RetailCheckoutAttemptStore {
       : _storage = storage ?? const FlutterSecureStorage();
 
   static const _key = 'foodex.retail.checkout.attempts.v1';
+  static const _ioTimeout = Duration(milliseconds: 250);
   final FlutterSecureStorage _storage;
   final Map<String, String> _fallback = <String, String>{};
 
   Future<Map<String, String>> _readAll() async {
     try {
-      final raw = await _storage.read(key: _key);
+      final raw = await _storage.read(key: _key).timeout(_ioTimeout);
       if (raw == null || raw.isEmpty) {
         return Map<String, String>.from(_fallback);
       }
@@ -679,9 +680,11 @@ class SecureRetailCheckoutAttemptStore implements RetailCheckoutAttemptStore {
       ..addAll(values);
     try {
       if (values.isEmpty) {
-        await _storage.delete(key: _key);
+        await _storage.delete(key: _key).timeout(_ioTimeout);
       } else {
-        await _storage.write(key: _key, value: jsonEncode(values));
+        await _storage
+            .write(key: _key, value: jsonEncode(values))
+            .timeout(_ioTimeout);
       }
     } catch (_) {}
   }
@@ -735,23 +738,23 @@ class RetailCheckoutSubmissionGuard {
       throw const RetailCommerceException('checkout_in_progress');
     }
 
-    final normalizedCoupon = couponCode?.trim().toUpperCase();
-    final fingerprint = [
-      storeId,
-      addressId,
-      paymentMethod.trim(),
-      normalizedCoupon ?? '',
-    ].join('|');
-
-    if (_fingerprint != fingerprint || _idempotencyKey == null) {
-      _fingerprint = fingerprint;
-      _idempotencyKey = await _attemptStore.read(fingerprint) ??
-          _idempotencyKeyFactory(storeId);
-      await _attemptStore.write(fingerprint, _idempotencyKey!);
-    }
-
     _inFlight = true;
     try {
+      final normalizedCoupon = couponCode?.trim().toUpperCase();
+      final fingerprint = [
+        storeId,
+        addressId,
+        paymentMethod.trim(),
+        normalizedCoupon ?? '',
+      ].join('|');
+
+      if (_fingerprint != fingerprint || _idempotencyKey == null) {
+        _fingerprint = fingerprint;
+        _idempotencyKey = await _attemptStore.read(fingerprint) ??
+            _idempotencyKeyFactory(storeId);
+        await _attemptStore.write(fingerprint, _idempotencyKey!);
+      }
+
       final order = await api.submitCheckout(
         storeId: storeId,
         addressId: addressId,
