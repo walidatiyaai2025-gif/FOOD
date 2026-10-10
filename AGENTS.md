@@ -392,19 +392,27 @@ The canonical operating contract is documented in:
 - `docs/worker-rules/FIRST_RUN_GREEN.md`
 - `docs/worker-rules/CI_FAILURE_PATTERNS.md`
 
-At task start, workers SHOULD bootstrap repository state with:
+At task start, workers MUST enter through the canonical bootstrap. When creating a new task branch from `main`, use the Issue-aware generator so branch policy cannot drift:
+
+```bash
+bash ./scripts/worker-start.sh --new <issue> <kind> <slug>
+```
+
+For an already-valid task branch, run:
 
 ```bash
 bash ./scripts/worker-start.sh
 ```
 
-Before the first push of executable changes, every worker MUST run:
+Before the **first remote push** of executable changes, every worker MUST run the CI-parity contract:
 
 ```bash
-bash ./scripts/worker-preflight.sh --fast
+bash ./scripts/worker-preflight.sh --ci-parity
 ```
 
-Before declaring a PR ready for final merge validation, the worker SHOULD run, whenever the required local toolchain/environment is available:
+`--ci-parity` is the normal one-push-green gate: it resolves the exact diff through `.ci/ci-map.json`, autofixes changed PHP/Dart formatting, runs analyzers/static analysis, runs focused tests before full affected suites, validates Customer/Driver/Van parity, and performs affected Android release validation where available.
+
+`--fast` is only an inner-loop check and does not authorize the first remote push. Before declaring a PR ready for final merge validation, run, whenever the required local toolchain/environment is available:
 
 ```bash
 bash ./scripts/worker-preflight.sh --full

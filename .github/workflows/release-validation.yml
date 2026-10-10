@@ -18,7 +18,7 @@ jobs:
   release-validation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate release evidence
         run: bash ./scripts/release-readiness.sh
       - name: Validate synchronized release artifact contract tests

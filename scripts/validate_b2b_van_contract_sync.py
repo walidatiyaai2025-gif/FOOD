@@ -44,21 +44,33 @@ def validate_openapi(text: str) -> list[str]:
     return errors
 
 
-def validate_visual_workflow(text: str) -> list[str]:
+def validate_visual_workflow(text: str, ci_map: dict) -> list[str]:
     errors: list[str] = []
-    required = (
-        "apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$",
-        "mobile_ui=true",
+
+    required_workflow = (
+        "mobile_ui: ${{ steps.filter.outputs.mobile_ui }}",
         "needs.changes.outputs.mobile_ui == 'true'",
         "uses: ./.github/workflows/mobile-screenshot-capture.yml",
-        "backend/resources/views/admin/",
-        "dashboard_ui=true",
+        "dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}",
         "needs.changes.outputs.dashboard_ui == 'true'",
         "uses: ./.github/workflows/ui-visual-qa.yml",
     )
-    for marker in required:
+    for marker in required_workflow:
         if marker not in text:
             errors.append(f"Required CI visual evidence contract is missing: {marker}")
+
+    areas = ci_map.get("areas", {})
+    required_routes = {
+        "mobile_ui": "apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$",
+        "dashboard_ui": "backend/resources/views/admin/",
+    }
+    for area, marker in required_routes.items():
+        path_regex = str(areas.get(area, {}).get("path_regex", ""))
+        if marker not in path_regex:
+            errors.append(
+                f"CI map visual evidence route is missing {area}: {marker}"
+            )
+
     return errors
 
 
@@ -124,7 +136,8 @@ def validate(root: Path) -> list[str]:
     required_ci = (root / ".github/workflows/required-ci-gate.yml").read_text(
         encoding="utf-8"
     )
-    errors.extend(validate_visual_workflow(required_ci))
+    ci_map = json.loads((root / ".ci/ci-map.json").read_text(encoding="utf-8"))
+    errors.extend(validate_visual_workflow(required_ci, ci_map))
 
     release_contract = (
         root / "docs/release/RELEASE_ARTIFACT_CONTRACT.md"

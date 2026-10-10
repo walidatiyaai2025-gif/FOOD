@@ -23,7 +23,18 @@ class B2BVanContractSyncTest(unittest.TestCase):
 
     def test_visual_gate_requires_mobile_and_dashboard_evidence(self) -> None:
         errors = contract.validate_visual_workflow(
-            "mobile_ui=true\ndashboard_ui=true\n"
+            "mobile_ui: ${{ steps.filter.outputs.mobile_ui }}\n"
+            "dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}\n",
+            {
+                "areas": {
+                    "mobile_ui": {
+                        "path_regex": "apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$"
+                    },
+                    "dashboard_ui": {
+                        "path_regex": "backend/resources/views/admin/"
+                    },
+                }
+            },
         )
         self.assertTrue(
             any("mobile-screenshot-capture.yml" in error for error in errors),

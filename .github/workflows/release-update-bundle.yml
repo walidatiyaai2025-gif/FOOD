@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -50,7 +50,7 @@ jobs:
           node .github/scripts/release-registry.js assert-unpublished origin/main
 
       - name: Checkout pinned TCPDF runtime
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: tecnickcom/TCPDF
           ref: b18f6119161019916c5bb07cb8da5205ae5c1b63

@@ -16,7 +16,7 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -27,7 +27,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
@@ -59,7 +59,10 @@ jobs:
 
       - name: Validate OpenAPI contract
         working-directory: .
-        run: npx --yes @redocly/cli@latest lint docs/api/openapi.yaml
+        env:
+          REDOCLY_TELEMETRY: "off"
+          REDOCLY_SUPPRESS_UPDATE_NOTICE: "true"
+        run: npx --yes @redocly/cli@2.59.0 lint docs/api/openapi.yaml
 
   backend:
     name: Backend tests
@@ -71,7 +74,7 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -82,7 +85,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
@@ -111,7 +114,7 @@ jobs:
           DB_DATABASE: database/database.sqlite
 
       - name: Set up Node for live-map runtime tests
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 
@@ -199,7 +202,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -208,7 +211,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}

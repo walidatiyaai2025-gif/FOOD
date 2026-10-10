@@ -13,21 +13,24 @@ Every coding task follows this sequence:
 3. determine changed/risk areas before editing;
 4. implement the smallest safe change;
 5. run mechanical autofix tools instead of guessing formatter output;
-6. run the changed-area fast preflight;
+6. run the authoritative CI-parity preflight;
 7. run affected focused tests and contract checks;
 8. run runtime/visual/migration smoke checks when the change requires them;
 9. review the final diff for scope, secrets, debug code, stale generated files and hardcoded business data;
-10. push only after the local fast preflight is green;
+10. push only after the local CI-parity preflight is green;
 11. before merge readiness, run the full affected preflight and validate the exact final head.
 
 Canonical local commands:
 
 ```bash
 bash ./scripts/worker-preflight.sh --fast
+bash ./scripts/worker-preflight.sh --ci-parity
 bash ./scripts/worker-preflight.sh --full
 ```
 
-The fast command is the minimum pre-push contract. The full command is the readiness contract when the required tools and environment are available.
+`--fast` is for local iteration only. `--ci-parity` is the mandatory first-push contract and mirrors the deterministic PR gates selected from `.ci/ci-map.json`; it also runs formatter autofix, diff-selected focused tests, full affected unit/widget suites and affected Android release validation. `--full` adds readiness checks that depend on the richest local environment.
+
+Changed-area routing has one machine-readable authority: `.ci/ci-map.json`. Both `scripts/detect-changed-areas.sh` and GitHub Required CI consume `scripts/ci-plan.py`; duplicating path regexes in workflows/preflight is prohibited.
 
 ## Fast-fail ordering
 
@@ -75,7 +78,7 @@ Android release build, iOS no-codesign build, preview Web build, parity and pack
 
 Do not run `flutter clean` by default. Preserve useful dependency/build caches unless a real cache invalidation defect requires cleaning.
 
-Customer-only changes must not trigger Driver validation unless shared code/contracts are affected, and vice versa.
+Customer-only changes must not trigger Driver validation unless shared code/contracts are affected, and vice versa. Van is equally first-class: any Van diff must run Van format/analyze/tests before push.
 
 ## Changed-area and risk routing
 
@@ -204,3 +207,13 @@ Release/distribution workflows must use explicit release intent:
 If neither condition is true, the workflow should perform only a lightweight release-intent check and finish successfully with distribution skipped. It must not produce a red main build simply because runtime paths changed.
 
 When VERSION changes, all release identities and immutable publication checks remain mandatory.
+
+
+## One-Push Green machine contracts
+
+- `.ci/ci-map.json` is the only changed-area/focused-test routing authority.
+- `.ci/failure-patterns.json` is the machine-readable recurring-failure registry.
+- `scripts/foodex-branch-policy.py` is the only branch-name generator/validator used by bootstrap, preflight and CI.
+- `scripts/flutter-test-hermeticity.py` rejects direct socket/DNS/HttpClient primitives in Flutter unit/widget tests unless an explicit reviewed allow marker exists.
+- Mutable CLI selectors such as `@latest` are forbidden in required CI; tool upgrades are explicit repository changes.
+- GitHub-maintained actions should use a Node-24 generation supported by hosted runners; do not leave known Node-20 deprecation warnings unresolved.

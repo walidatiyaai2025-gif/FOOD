@@ -14,18 +14,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - run: ./scripts/validate-repo.sh
 
-      - name: Syntax-check First-Run Green scripts
+      - name: Validate One-Push Green tooling
         shell: bash
         run: |
           bash -n scripts/worker-start.sh
           bash -n scripts/worker-preflight.sh
           bash -n scripts/detect-changed-areas.sh
           bash -n scripts/validate-premerge-release-version.sh
+          python3 -m py_compile scripts/ci-plan.py scripts/ci-failure-registry.py scripts/foodex-branch-policy.py scripts/flutter-test-hermeticity.py
+          python3 scripts/ci-plan.py --validate
+          python3 scripts/ci-failure-registry.py --validate
+          python3 scripts/flutter-test-hermeticity.py
+          python3 -m unittest discover -s scripts/tests -p 'test_ci_plan.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_ci_failure_registry.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_foodex_branch_policy.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_flutter_test_hermeticity.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_one_push_green_contract.py'
           test -s docs/worker-rules/FIRST_RUN_GREEN.md
           test -s docs/worker-rules/CI_FAILURE_PATTERNS.md
       - name: Prevent post-merge main release failures
@@ -57,14 +66,4 @@ jobs:
 
       - name: Require issue-style PR branch
         if: github.event_name == 'pull_request'
-        run: |
-          branch="${{ github.head_ref }}"
-          base="${{ github.base_ref }}"
-
-          # Allow the canonical baseline-sync topology from main into a versioned
-          # release branch. main is still rejected as a PR head for every other base.
-          if [[ "$branch" == "main" && "$base" =~ ^release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+$ ]]; then
-            exit 0
-          fi
-
-          [[ "$branch" == "feat/assistant-v1-integration" || "$branch" == "chore/geography-reset-one-shot" || "$branch" =~ ^((feat|fix|chore|docs|refactor|test|ci)/[0-9]+-[a-z0-9-]+|release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]]
+        run: python3 scripts/foodex-branch-policy.py validate "${{ github.head_ref }}" --base "${{ github.base_ref }}"

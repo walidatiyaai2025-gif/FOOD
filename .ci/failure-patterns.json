@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "patterns": [
+    {"id":"invalid-issue-branch","fingerprint_regex":"Invalid issue branch name|Invalid issue-style branch","detector":"python3 scripts/foodex-branch-policy.py validate <branch>","prevention":"Create branches through scripts/worker-start.sh --new <issue> <kind> <slug>."},
+    {"id":"pint-style-drift","fingerprint_regex":"pint .* returned with error code 1|Laravel Pint","detector":"bash scripts/worker-preflight.sh --ci-parity","prevention":"CI-parity autofixes changed PHP with Pint, then composer lint verifies canonical formatting."},
+    {"id":"phpstan-type-drift","fingerprint_regex":"phpstan|Found [0-9]+ errors|unresolvable type|Cannot call method .* on string","detector":"composer analyse","prevention":"CI-parity runs PHPStan before push and focused domain tests before the full backend suite."},
+    {"id":"flutter-analyzer-drift","fingerprint_regex":"flutter analyze|creation_with_non_type|error •","detector":"bash scripts/worker-preflight.sh --ci-parity","prevention":"Every affected Customer, Driver and Van app runs dart format plus flutter analyze before push."},
+    {"id":"backend-contract-regression","fingerprint_regex":"Tests: +[0-9]+ failed|FAILED +Tests\\\\Feature|Failed asserting that","detector":"python3 scripts/ci-plan.py --focused backend","prevention":"Diff-selected focused Laravel tests run before the full backend suite."},
+    {"id":"flutter-contract-regression","fingerprint_regex":"tests passed, [1-9][0-9]* failed|TestFailure|Test timed out after","detector":"python3 scripts/ci-plan.py --focused <customer|driver|van>","prevention":"Diff-selected Flutter tests run first, then the full affected app test suite."},
+    {"id":"flutter-runtime-font-fetch","fingerprint_regex":"google_fonts was unable to load font|fonts\\.gstatic\\.com","detector":"flutter test under Flutter test binding","prevention":"Tests must not rely on successful external font/network fetching; network-backed typography is never assertion authority."},
+    {"id":"mutable-tool-latest","fingerprint_regex":"@latest","detector":"python3 scripts/ci-failure-registry.py --validate","prevention":"CI tools are pinned to an explicit version and upgraded intentionally."},
+    {"id":"repeated-identical-red","fingerprint_regex":"Process completed with exit code 1","detector":"python3 scripts/ci-failure-registry.py --classify <log>","prevention":"Do not rerun unchanged deterministic red state; reproduce through CI-parity and promote a stable detector."}
+  ]
+}
