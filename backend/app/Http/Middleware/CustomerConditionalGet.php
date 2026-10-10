@@ -129,7 +129,7 @@ final class CustomerConditionalGet
     }
 
     /**
-     * @param list<string> $required
+     * @param  list<string>  $required
      */
     private function mergeVary(string $existing, array $required): string
     {
