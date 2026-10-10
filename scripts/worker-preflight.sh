@@ -94,7 +94,11 @@ if [[ "${area[backend]:-false}" == "true" ]]; then
         [[ -f "../$path" ]] && php_paths+=("${path#backend/}")
       done
       if (("${#php_paths[@]}" > 0)); then
-        vendor/bin/pint "${php_paths[@]}"
+        if ! vendor/bin/pint --test "${php_paths[@]}"; then
+          vendor/bin/pint "${php_paths[@]}"
+          echo "Pint autofixed changed PHP files. Review/commit the formatter delta, then rerun --ci-parity before pushing." >&2
+          exit 3
+        fi
       fi
     fi
 
@@ -134,8 +138,11 @@ run_flutter() {
     flutter pub get
 
     if [[ "$mode" != "fast" && "${#dart_files[@]}" -gt 0 ]]; then
-      dart format "${dart_files[@]}"
-      dart format --output=none --set-exit-if-changed "${dart_files[@]}"
+      if ! dart format --output=none --set-exit-if-changed "${dart_files[@]}"; then
+        dart format "${dart_files[@]}"
+        echo "dart format autofixed changed $app files. Review/commit the formatter delta, then rerun --ci-parity before pushing." >&2
+        exit 3
+      fi
     fi
 
     flutter analyze
