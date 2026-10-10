@@ -9,7 +9,6 @@ use App\Models\DriverCurrentLocation;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\DriverLocationEnforcementPolicy;
-use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
