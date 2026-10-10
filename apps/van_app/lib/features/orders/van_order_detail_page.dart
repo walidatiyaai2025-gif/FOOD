@@ -792,6 +792,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                     ),
             ),
             _section(
+              key: const ValueKey('van-order-finance'),
               title: _text('Invoice & collection', 'الفاتورة والتحصيل'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
