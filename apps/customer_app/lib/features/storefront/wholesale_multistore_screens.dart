@@ -4605,7 +4605,9 @@ class _WholesaleOrdersDesignScreenState
 
   Future<void> _refresh() async {
     final next = _load();
-    setState(() => future = next);
+    setState(() {
+      future = next;
+    });
     try {
       await next;
     } catch (_) {
@@ -5953,16 +5955,16 @@ class _OrderCard extends StatelessWidget {
                 ),
                 SizedBox(width: compact ? 7 : 10),
                 Expanded(
-                  child: Directionality(
+                  child: Column(
                     textDirection: TextDirection.ltr,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                         Tooltip(
                           message: title,
                           child: Text(
                             title,
+                            textDirection: TextDirection.ltr,
                             maxLines: 1,
                             softWrap: false,
                             overflow: TextOverflow.ellipsis,
@@ -5977,6 +5979,7 @@ class _OrderCard extends StatelessWidget {
                         SizedBox(height: compact ? 3 : 4),
                         Text(
                           storeName,
+                          textDirection: TextDirection.ltr,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -5988,11 +5991,13 @@ class _OrderCard extends StatelessWidget {
                         if (createdAt != '-') ...[
                           SizedBox(height: compact ? 4 : 5),
                           Row(
+                            textDirection: TextDirection.ltr,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Flexible(
                                 child: Text(
                                   createdAt,
+                                  textDirection: TextDirection.ltr,
                                   maxLines: 1,
                                   softWrap: false,
                                   overflow: TextOverflow.ellipsis,
@@ -6018,6 +6023,7 @@ class _OrderCard extends StatelessWidget {
                         SizedBox(height: compact ? 4 : 5),
                         Text(
                           totalLabel,
+                          textDirection: TextDirection.ltr,
                           maxLines: 1,
                           softWrap: false,
                           overflow: TextOverflow.ellipsis,
@@ -6029,7 +6035,6 @@ class _OrderCard extends StatelessWidget {
                               ),
                         ),
                       ],
-                    ),
                   ),
                 ),
                 SizedBox(width: compact ? 7 : 10),
@@ -6182,6 +6187,8 @@ String _wholesaleOrderStatusLabel(BuildContext context, String status) {
       return context.tr('customer.orders.status.delivery_filter');
     case 'completed':
       return context.tr('customer.orders.status.completed_filter');
+    case 'ready':
+      return context.tr('customer.orders.status.ready_compact');
     default:
       return _orderStatusText(context, status.trim().toLowerCase());
   }
