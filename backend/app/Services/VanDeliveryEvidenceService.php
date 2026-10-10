@@ -71,34 +71,35 @@ final class VanDeliveryEvidenceService
             ->where('order_van_assignment_id', $assignment->getKey())
             ->first();
 
-        $timeline = OrderVanExecutionEvent::query()
-            ->where('order_van_assignment_id', $assignment->getKey())
-            ->where('order_id', $assignment->order_id)
-            ->orderBy('id')
-            ->get()
-            ->map(function (OrderVanExecutionEvent $event) use ($assignment): array {
-                $hasProof = is_string($event->proof_path)
-                    && trim((string) $event->proof_path) !== '';
+        $timeline = [];
+        foreach (
+            OrderVanExecutionEvent::query()
+                ->where('order_van_assignment_id', $assignment->getKey())
+                ->where('order_id', $assignment->order_id)
+                ->orderBy('id')
+                ->get() as $event
+        ) {
+            $hasProof = is_string($event->proof_path)
+                && trim((string) $event->proof_path) !== '';
 
-                return [
-                    'id' => (int) $event->getKey(),
-                    'action' => (string) $event->action,
-                    'from_status' => (string) $event->from_status,
-                    'to_status' => (string) $event->to_status,
-                    'proof_type' => $event->proof_type,
-                    'reason_code' => $event->reason_code,
-                    'note' => $event->note,
-                    'captured_at' => $event->captured_at?->toISOString(),
-                    'proof' => $hasProof ? [
-                        'available' => true,
-                        'url' => route('admin.operations.orders.van-proofs.show', [
-                            'assignment' => $assignment->getKey(),
-                            'proof' => $event->getKey(),
-                        ]),
-                    ] : null,
-                ];
-            })
-            ->all();
+            $timeline[] = [
+                'id' => (int) $event->getKey(),
+                'action' => (string) $event->action,
+                'from_status' => (string) $event->from_status,
+                'to_status' => (string) $event->to_status,
+                'proof_type' => $event->proof_type,
+                'reason_code' => $event->reason_code,
+                'note' => $event->note,
+                'captured_at' => $this->isoTimestamp($event->getAttribute('captured_at')),
+                'proof' => $hasProof ? [
+                    'available' => true,
+                    'url' => route('admin.operations.orders.van-proofs.show', [
+                        'assignment' => $assignment->getKey(),
+                        'proof' => $event->getKey(),
+                    ]),
+                ] : null,
+            ];
+        }
 
         $vanLabel = $van === null
             ? '#'.$assignment->van_id
@@ -114,9 +115,18 @@ final class VanDeliveryEvidenceService
             'execution_status' => $state instanceof OrderVanExecutionState
                 ? (string) $state->status
                 : null,
-            'assigned_at' => $assignment->assigned_at?->toISOString(),
-            'ended_at' => $assignment->ended_at?->toISOString(),
+            'assigned_at' => $this->isoTimestamp($assignment->getAttribute('assigned_at')),
+            'ended_at' => $this->isoTimestamp($assignment->getAttribute('ended_at')),
             'timeline' => $timeline,
         ];
+    }
+
+    private function isoTimestamp(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return now()->parse($value)->toISOString();
     }
 }
