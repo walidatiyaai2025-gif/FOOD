@@ -10,6 +10,34 @@ The objective is simple:
 
 GitHub is the source of truth. Chat history is not.
 
+## Repository-native AI context and skills
+
+FOODEX keeps a repository-native orientation and execution layer under `.ai/`. It exists to make a new or resumed coding agent productive quickly; it does **not** replace this file, live GitHub state, or authoritative contracts under `docs/`.
+
+After the mandatory live GitHub preflight in Section 2, and before substantial implementation, workers should read:
+
+1. `.ai/PROJECT.md`;
+2. `.ai/ARCHITECTURE.md`;
+3. `.ai/CONVENTIONS.md`;
+4. `.ai/CURRENT_STATE.md` as orientation only;
+5. the one relevant playbook under `.ai/skills/`.
+
+Precedence is strict:
+
+1. live GitHub Issue / branch / PR / exact-head CI state;
+2. this `AGENTS.md`;
+3. authoritative repository contracts and plans under `docs/`;
+4. source code and tests;
+5. `.ai/` orientation, summaries and playbooks.
+
+If `.ai/` disagrees with a higher-precedence source, the higher-precedence source wins and the stale `.ai/` file should be corrected when in scope.
+
+When a change creates a durable architectural decision, convention, project invariant, or reusable failure lesson, update the corresponding `.ai/` file in the same PR. Do **not** copy transient Issue/CI state into durable files except as a clearly dated snapshot.
+
+Normal task claims, leases and handoffs still belong in the Issue/PR through the required `foodex-worker-state:v1` / handoff protocol. `.ai/handoffs/latest.md` is a repository-level orientation/template and must never be treated as the live lease or task authority.
+
+---
+
 ## Mandatory Dashboard UI/UX and Master-Data contract
 
 Before implementing or modifying any Dashboard page, Admin navigation, business-facing form, or application-management feature, every worker **MUST** read and follow:
