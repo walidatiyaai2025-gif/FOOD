@@ -144,10 +144,13 @@ class CustomerLowDataHttpClient extends http.BaseClient {
   final CustomerNetworkMetrics metrics;
   final Set<String> _revalidating = <String>{};
   final Map<String, Future<bool>> _inFlightGets = <String, Future<bool>>{};
+  final List<Completer<void>> _foregroundGetWaiters = <Completer<void>>[];
+  int _activeForegroundGets = 0;
   bool _revalidationInFlight = false;
   DateTime? _circuitOpenUntil;
 
   static const Duration _circuitCooldown = Duration(seconds: 12);
+  static const int _maxForegroundGets = 3;
 
   CustomerNetworkMetricsSnapshot get metricsSnapshot => metrics.snapshot;
 
@@ -165,6 +168,34 @@ class CustomerLowDataHttpClient extends http.BaseClient {
 
   void _closeCircuit() {
     _circuitOpenUntil = null;
+  }
+
+  Future<void> _acquireForegroundGetSlot() async {
+    if (_activeForegroundGets < _maxForegroundGets) {
+      _activeForegroundGets += 1;
+      return;
+    }
+
+    final waiter = Completer<void>();
+    _foregroundGetWaiters.add(waiter);
+    await waiter.future;
+  }
+
+  void _releaseForegroundGetSlot() {
+    if (_foregroundGetWaiters.isNotEmpty) {
+      _foregroundGetWaiters.removeAt(0).complete();
+      return;
+    }
+    _activeForegroundGets -= 1;
+  }
+
+  Future<T> _withForegroundGetSlot<T>(Future<T> Function() action) async {
+    await _acquireForegroundGetSlot();
+    try {
+      return await action();
+    } finally {
+      _releaseForegroundGetSlot();
+    }
   }
 
   @override
@@ -286,11 +317,25 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       final completer = Completer<bool>();
       _inFlightGets[key] = completer.future;
       try {
-        final response = await _networkSend(
-          request,
-          cacheIdentity: identity,
-          cached: null,
-        );
+        final response = await _withForegroundGetSlot(() async {
+          if (_isCircuitOpen) {
+            metrics.recordCircuitBreakerHit();
+            _recordTransfer(
+              request: request,
+              statusCode: null,
+              downloadedBytes: 0,
+              uploadedBytes: 0,
+              elapsed: Duration.zero,
+              cacheState: 'circuit_open',
+            );
+            throw http.ClientException('network_circuit_open', request.url);
+          }
+          return _networkSend(
+            request,
+            cacheIdentity: identity,
+            cached: null,
+          );
+        });
         completer.complete(_isSuccessful(response.statusCode));
         return response;
       } catch (_) {
