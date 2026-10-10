@@ -23,6 +23,7 @@ use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
+use App\Services\OrderLiveTrackingService;
 use App\Services\PlatformCustomerService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -649,29 +650,9 @@ class OrderController extends Controller
                 ->all()
             : [];
 
-        $tracking = null;
-        if ($includeTimeline) {
-            $tracking = DB::table('driver_assignments')
-                ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
-                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-                ->where('driver_assignments.order_id', $order->getKey())
-                ->where('driver_assignments.store_id', $order->store_id)
-                ->where('driver_assignments.assignment_type', $order->channel)
-                ->whereNotIn('driver_assignments.status', [
-                    'cancelled',
-                    'unassigned',
-                    'reassigned',
-                ])
-                ->orderByDesc('driver_assignments.id')
-                ->first([
-                    'driver_assignments.id',
-                    'driver_assignments.driver_id',
-                    'driver_assignments.status',
-                    'driver_assignments.assigned_at',
-                    'driver_assignments.completed_at',
-                    'users.name as driver_name',
-                ]);
-        }
+        $tracking = $includeTimeline
+            ? app(OrderLiveTrackingService::class)->forOrder($order)
+            : null;
 
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
@@ -739,14 +720,7 @@ class OrderController extends Controller
                     : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
             ] : null,
             'collection_receipts' => $collectionReceipts,
-            'tracking' => $tracking === null ? null : [
-                'assignment_id' => (int) $tracking->id,
-                'driver_id' => (int) $tracking->driver_id,
-                'driver_name' => $tracking->driver_name === null ? null : (string) $tracking->driver_name,
-                'status' => (string) $tracking->status,
-                'assigned_at' => $tracking->assigned_at,
-                'completed_at' => $tracking->completed_at,
-            ],
+            'tracking' => $tracking,
             'allowed_actions' => [
                 'view_invoice' => $invoice instanceof Invoice,
                 'view_map' => (bool) ($deliveryAddress['has_coordinates'] ?? false),
