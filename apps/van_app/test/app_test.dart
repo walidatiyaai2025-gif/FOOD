@@ -9,6 +9,7 @@ import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
+import 'package:foodex_van_app/features/orders/van_order_detail_page.dart';
 import 'package:foodex_van_app/shared/van_action_button.dart';
 
 Future<void> _scrollUntilBuilt(
@@ -474,14 +475,16 @@ void main() {
   });
 
 
-  testWidgets('Van Route Detail renders route visit KPIs from visit repository',
+  testWidgets('Van Route Detail opens the exact linked B2B order',
       (tester) async {
+    final orders = _OrderRepository()..createdCount = 1;
     await tester.pumpWidget(
-      const FoodexVanApp(
-        locale: Locale('en'),
-        walletRepository: _EmptyWalletRepository(),
-        visitRepository: _RoutesVisitRepository(),
-        initialSession: VanSession(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        visitRepository: const _RoutesVisitRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
           token: 'test-token',
           name: 'Van Operator',
           email: 'van@example.test',
@@ -513,6 +516,23 @@ void main() {
     expect(find.text('Visits · 2'), findsOneWidget);
     expect(find.text('Planned · 1'), findsOneWidget);
     expect(find.text('Started · 1'), findsOneWidget);
+
+    final linkedVisit = find.byKey(const ValueKey('van-route-detail-visit-601'));
+    await tester.scrollUntilVisible(
+      linkedVisit,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-route-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    final tile = tester.widget<ListTile>(linkedVisit);
+    expect(tile.onTap, isNotNull);
+    tile.onTap?.call();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.text('Acme Grocery'), findsOneWidget);
   });
 
 
@@ -580,6 +600,47 @@ void main() {
     expect(find.text('0/2'), findsOneWidget);
     expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
     expect(find.text('Block 3 · Street 17'), findsOneWidget);
+  });
+
+
+  testWidgets('Van Order Detail opens authoritative delivery coordinates',
+      (tester) async {
+    final orders = _OrderRepository()..createdCount = 1;
+    double? openedLatitude;
+    double? openedLongitude;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: VanOrderDetailPage(
+          orderId: 7001,
+          repository: orders,
+          onSessionExpired: () async {},
+          navigationLauncher: (latitude, longitude) async {
+            openedLatitude = latitude;
+            openedLongitude = longitude;
+            return true;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final mapAction = find.byKey(const ValueKey('van-order-open-map'));
+    await tester.scrollUntilVisible(
+      mapAction,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    final button = tester.widget<VanActionButton>(mapAction);
+    expect(button.onPressed, isNotNull);
+    button.onPressed?.call();
+    await tester.pumpAndSettle();
+
+    expect(openedLatitude, closeTo(29.3375, 0.000001));
+    expect(openedLongitude, closeTo(47.6581, 0.000001));
   });
 
 
@@ -1254,6 +1315,7 @@ class _RoutesVisitRepository implements VanVisitRepository {
           customerId: 42,
           storeId: 7,
           routeKey: 'ROUTE-A',
+          orderId: 7001,
           latitude: 29.3375,
           longitude: 47.6581,
           address: 'Block 3 · Street 17',
