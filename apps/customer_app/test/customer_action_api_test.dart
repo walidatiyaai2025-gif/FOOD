@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -112,4 +114,31 @@ void main() {
     expect(result.token, 'platform-token');
     expect(result.platformCustomer, isTrue);
   });
+
+  test('duplicate logout triggers share one physical request', () async {
+    var calls = 0;
+    final gate = Completer<http.Response>();
+    final api = HttpCustomerActionApi(
+      baseUrl: 'https://foodex.example',
+      token: 'logout-dedupe-token-1242',
+      client: MockClient((request) {
+        calls++;
+        expect(request.url.path, '/api/v1/auth/logout');
+        return gate.future;
+      }),
+    );
+
+    final first = api.logout();
+    final second = api.logout();
+
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, 1);
+
+    gate.complete(http.Response('', 204));
+    await Future.wait([first, second]);
+
+    await api.logout();
+    expect(calls, 1);
+  });
+
 }
