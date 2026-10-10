@@ -109,7 +109,7 @@ void main() {
 
     test('locks AR/EN, phone widths, text scale, state and motion coverage', () {
       expect(_visualContract.locales, <String>{'ar', 'en'});
-      expect(_visualContract.viewportWidths, <int>{360, 390, 430});
+      expect(_visualContract.viewportWidths, <int>{320, 360, 390, 430});
       expect(_visualContract.textScales, containsAll(<double>{1.0, 1.3}));
       expect(
         _visualContract.states,
@@ -322,7 +322,7 @@ class _VisualContract {
 
 final _visualContract = _VisualContract(
   locales: <String>{'ar', 'en'},
-  viewportWidths: <int>{360, 390, 430},
+  viewportWidths: <int>{320, 360, 390, 430},
   textScales: <double>{1.0, 1.3},
   states: <_VisualState>{
     _VisualState.loading,

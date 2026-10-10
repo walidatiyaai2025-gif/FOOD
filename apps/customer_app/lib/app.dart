@@ -786,7 +786,16 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
             builder: (translatedContext) => Stack(
               fit: StackFit.expand,
               children: [
-                child ?? const SizedBox.shrink(),
+                if (_showVersionFooter && widget.showPersistentFooter)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom:
+                          34 + MediaQuery.viewPaddingOf(translatedContext).bottom,
+                    ),
+                    child: child ?? const SizedBox.shrink(),
+                  )
+                else
+                  child ?? const SizedBox.shrink(),
                 if (_showVersionFooter && widget.showPersistentFooter) ...[
                   PositionedDirectional(
                     start: 0,

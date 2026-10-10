@@ -235,15 +235,18 @@ class B2bJourneyScreen extends StatelessWidget {
             title: Row(
               key: const ValueKey('b2b-invoices-header-row'),
               children: [
-                Text(
-                  content.$1,
-                  key: const ValueKey('b2b-invoices-header-title'),
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: CustomerUiColors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
+                Flexible(
+                  child: Text(
+                    content.$1,
+                    key: const ValueKey('b2b-invoices-header-title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: CustomerUiColors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -4266,6 +4269,10 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         const gap = 10.0;
                         final columns = constraints.maxWidth >= 350 ? 3 : 2;
                         final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+                        final textScale = MediaQuery.textScalerOf(context).scale(1);
+                        final scaledDelta =
+                            (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+                        final cardHeight = 112.0 + (scaledDelta * 90.0);
                         return Wrap(
                           spacing: gap,
                           runSpacing: gap,
@@ -4273,7 +4280,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                             for (final item in items)
                               SizedBox(
                                 width: width,
-                                height: 112,
+                                height: cardHeight,
                                 child: _MoreCard(item: item),
                               ),
                           ],
@@ -4346,96 +4353,118 @@ class _MoreHeader extends StatelessWidget {
   final VoidCallback onNotifications;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: _B2bMorePageState.deep,
-        child: SafeArea(
-          bottom: false,
-          child: SizedBox(
-            height: 74,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                PositionedDirectional(
-                  start: 10,
-                  top: 13,
-                  child: Row(
-                    children: [
-                      FutureBuilder<Object?>(
-                        future: cart,
-                        builder: (_, snap) => _HeaderCircle(
-                          icon: Icons.shopping_cart_outlined,
-                          onTap: onCart,
-                          badge: snap.hasData ? cartCount(snap.data) : null,
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      FutureBuilder<Object?>(
-                        future: notifications,
-                        builder: (_, snap) {
-                          final count = snap.hasData ? unreadCount(snap.data) : null;
-                          return _HeaderCircle(
-                            icon: Icons.notifications_none_rounded,
-                            onTap: onNotifications,
-                            dot: count != null && count > 0,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+
+    return Material(
+      color: _B2bMorePageState.deep,
+      child: SafeArea(
+        bottom: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 360 || textScale > 1.15;
+
+            return ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 74),
+              child: Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  compact ? 6 : 10,
+                  8,
+                  compact ? 6 : 10,
+                  8,
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 104),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FutureBuilder<Object?>(
+                          future: cart,
+                          builder: (_, snap) => _HeaderCircle(
+                            icon: Icons.shopping_cart_outlined,
+                            onTap: onCart,
+                            badge: snap.hasData ? cartCount(snap.data) : null,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDDF4B9),
-                          borderRadius: BorderRadius.circular(99),
+                        const SizedBox(width: 7),
+                        FutureBuilder<Object?>(
+                          future: notifications,
+                          builder: (_, snap) {
+                            final count =
+                                snap.hasData ? unreadCount(snap.data) : null;
+                            return _HeaderCircle(
+                              icon: Icons.notifications_none_rounded,
+                              onTap: onNotifications,
+                              dot: count != null && count > 0,
+                            );
+                          },
                         ),
-                        child: const Text(
-                          'B2B',
-                          textDirection: TextDirection.ltr,
-                          style: TextStyle(
-                            color: _B2bMorePageState.dark,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                          ),
+                      ],
+                    ),
+                    SizedBox(width: compact ? 6 : 10),
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          runSpacing: 2,
+                          children: [
+                            Text(
+                              title,
+                              key: const ValueKey('b2b-more-header-title'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: CustomerUiColors.limeSoft,
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: const Text(
+                                'B2B',
+                                textDirection: TextDirection.ltr,
+                                style: TextStyle(
+                                  color: _B2bMorePageState.dark,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: compact ? 2 : 6),
+                    IconButton(
+                      key: const ValueKey('b2b-more-back'),
+                      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_forward_rounded),
+                      color: Colors.white,
+                      iconSize: 26,
+                    ),
+                  ],
                 ),
-                PositionedDirectional(
-                  end: 2,
-                  top: 8,
-                  child: IconButton(
-                    key: const ValueKey('b2b-more-back'),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    color: Colors.white,
-                    iconSize: 26,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
-      );
+      ),
+    );
+  }
 
 }
 

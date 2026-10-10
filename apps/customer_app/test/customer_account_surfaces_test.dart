@@ -221,7 +221,7 @@ void main() {
           theme: FoodexTheme.light(),
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
-              size: const Size(360, 760),
+              size: const Size(320, 760),
               textScaler: const TextScaler.linear(1.3),
             ),
             child: Directionality(
