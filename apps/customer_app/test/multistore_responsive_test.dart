@@ -75,6 +75,74 @@ void main() {
       },
     );
   }
+
+  const orderReferenceDevices = <Size>[
+    Size(320, 568),
+    Size(360, 800),
+    Size(390, 844),
+    Size(412, 915),
+    Size(430, 932),
+    Size(480, 960),
+  ];
+
+  for (final device in orderReferenceDevices) {
+    testWidgets(
+      'wholesale Orders reference stays dense and single-line at ' +
+          device.width.toInt().toString() +
+          'x' +
+          device.height.toInt().toString(),
+      (tester) async {
+        await tester.binding.setSurfaceSize(device);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            initialRoute: '/b2b/orders?channel=wholesale&store_id=70',
+            session: const CustomerSession.authenticated(
+              CustomerChannel.b2c,
+              accessToken: 'responsive-orders-token',
+              b2bRetailStoreId: 7,
+            ),
+            b2cCatalogApi: const _ResponsiveCatalogApi(),
+            b2cAccountApi: const _ResponsiveAccountApi(),
+            actionApi: const _ResponsiveActionApi(),
+            b2bApi: const _ResponsiveB2bApi(),
+            storefrontApi: const _ResponsiveStorefrontApi(),
+            wholesaleCommerceApi: const _ResponsiveWholesaleApi(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('b2b-orders-screen')), findsOneWidget);
+        expect(find.byKey(const ValueKey('b2b-orders-refresh')), findsOneWidget);
+        expect(find.byKey(const ValueKey('b2b-order-row-1001')), findsOneWidget);
+        expect(find.byKey(const ValueKey('b2b-order-receipt-1001')), findsOneWidget);
+        expect(find.byKey(const ValueKey('customer-persistent-footer')), findsOneWidget);
+
+        const filterKeys = <String>[
+          'all',
+          'pending',
+          'preparing',
+          'out_for_delivery',
+          'delivered',
+        ];
+        final firstTop = tester.getTopLeft(
+          find.byKey(const ValueKey('b2b-orders-filter-all')),
+        ).dy;
+        for (final filter in filterKeys) {
+          final finder = find.byKey(ValueKey('b2b-orders-filter-' + filter));
+          expect(finder, findsOneWidget);
+          expect(tester.getTopLeft(finder).dy, closeTo(firstTop, .5));
+        }
+
+        final cardWidth =
+            tester.getSize(find.byKey(const ValueKey('b2b-order-row-1001'))).width;
+        expect(cardWidth, lessThanOrEqualTo(device.width - 20));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
 }
 
 class _ResponsiveCatalogApi implements B2cCatalogApi {
@@ -271,9 +339,21 @@ class _ResponsiveB2bApi implements B2bApi {
         'data': [
           {
             'id': 1001,
-            'order_number': 'B2B-1001',
+            'order_number': 'FDX-B2B-20261005-JV3MRNRDF',
             'status': 'pending',
-            'grand_total': 725,
+            'store_name': 'FOODEX wholesale',
+            'created_at': '2026-10-05T14:30:00Z',
+            'currency': 'EGP',
+            'grand_total': 1000,
+          },
+          {
+            'id': 1002,
+            'order_number': 'FDX-B2B-20261005-MOY92072Y6',
+            'status': 'preparing',
+            'store_name': 'FOODEX wholesale',
+            'created_at': '2026-10-06T10:15:00Z',
+            'currency': 'EGP',
+            'grand_total': 480,
           },
         ],
       };
