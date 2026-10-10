@@ -168,6 +168,13 @@ class FieldOperationsUiFoundationTest extends TestCase
         $this->assertStringContainsString('data-van-transfer-lookup', $view);
         $this->assertStringContainsString('data-representative-lookup', $view);
         $this->assertStringContainsString('data-warehouse-lookup', $view);
+        $this->assertStringContainsString('data-assignment-row-actions', $view);
+        $this->assertStringContainsString('admin.field-operations.assignments.update', $view);
+        $this->assertStringContainsString('admin.field-operations.assignments.destroy', $view);
+        $this->assertStringContainsString('@method(\'PATCH\')', $view);
+        $this->assertStringContainsString('@method(\'DELETE\')', $view);
+        $this->assertStringContainsString('name="confirm_purge"', $view);
+        $this->assertStringContainsString('>⋮</summary>', $view);
         $this->assertStringContainsString('data-visit-customer', $view);
         $this->assertStringContainsString('data-store-lookup', $view);
         $this->assertStringContainsString('data-route-lookup', $view);

@@ -267,7 +267,7 @@
                         <td>{{ $a->effective_from }} → {{ $a->effective_until ?: '∞' }}</td>
                         <td>
                             @if($canManageVan)
-                            <details class="foodex-ops-actions">
+                            <details class="foodex-ops-actions" data-assignment-row-actions>
                                 <summary aria-label="{{ __('field_operations.actions_label') }}">⋮</summary>
                                 <div class="foodex-ops-menu" style="min-width:min(560px,88vw)">
                                     <details>
@@ -275,6 +275,7 @@
                                         <form method="post" action="{{ route('admin.field-operations.assignments.update',$a) }}" class="fieldops-form" style="margin-top:10px">
                                             @csrf @method('PATCH')
                                             <div class="fieldops-form-grid">
+                                                <label>{{ __('field_operations.van') }}<select name="van_id" required>@foreach($vans as $van)<option value="{{ $van->id }}" @selected((int)$a->van_id===(int)$van->id)>{{ $van->code }}</option>@endforeach</select></label>
                                                 <label>{{ __('field_operations.driver') }}<select name="driver_id"><option value="">—</option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" @selected((int)$a->driver_id===(int)$driver->id)>{{ $driver->name ?: ('Driver #'.$driver->id) }}</option>@endforeach</select></label>
                                                 <label>{{ __('field_operations.representative_operator') }}<select name="representative_user_id"><option value="">—</option>@foreach($representatives as $representative)<option value="{{ $representative->id }}" @selected((int)$a->representative_user_id===(int)$representative->id)>{{ $representative->name }}{{ $representative->email ? ' · '.$representative->email : '' }}</option>@endforeach</select></label>
                                                 <label>{{ __('field_operations.territory') }}<select name="territory_key"><option value="">—</option>@foreach($territories as $territory)<option value="{{ $territory->code }}" @selected($a->territory_key===$territory->code)>{{ $territory->localized_name }} · {{ $territory->code }}</option>@endforeach</select></label>
@@ -285,12 +286,14 @@
                                                 <label>{{ __('field_operations.effective_until') }}<input type="datetime-local" name="effective_until" value="{{ $a->effective_until?->format('Y-m-d\\TH:i') }}"></label>
                                                 <label>{{ __('field_operations.loaded_work') }}<input type="number" min="0" name="loaded_work_count" value="{{ (int)$a->loaded_work_count }}"></label>
                                                 <label>{{ __('field_operations.van_pool') }}<input name="van_pool_key" value="{{ $a->van_pool_key }}"></label>
+                                                <label><span>{{ __('field_operations.allow_van_app') }}</span><input type="hidden" name="allow_van_app" value="0"><input type="checkbox" name="allow_van_app" value="1" @checked((bool)$a->van_app_allowed)> <small class="fieldops-muted">{{ __('field_operations.allow_van_app_help') }}</small></label>
                                             </div>
                                             <button class="foodex-primary" type="submit">{{ __('field_operations.save_changes') }}</button>
                                         </form>
                                     </details>
                                     <form method="post" action="{{ route('admin.field-operations.assignments.destroy',$a) }}" onsubmit="return confirm(@js(__('field_operations.assignment_delete_confirm')))">
                                         @csrf @method('DELETE')
+                                        <label><input type="checkbox" name="confirm_purge" value="1" required> {{ __('field_operations.assignment_delete_acknowledge') }}</label>
                                         <button type="submit" class="foodex-danger">{{ __('field_operations.delete_assignment') }}</button>
                                         <small class="fieldops-muted">{{ __('field_operations.assignment_delete_help') }}</small>
                                     </form>

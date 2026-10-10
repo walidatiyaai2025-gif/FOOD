@@ -177,6 +177,14 @@ final class VanRegistryService
             ]);
         }
 
+        $vanId = (int) ($attributes['van_id'] ?? $assignment->van_id);
+        $vanExists = Van::query()->whereKey($vanId)->where('status', 'active')->exists();
+        if (! $vanExists) {
+            throw ValidationException::withMessages([
+                'van_id' => ['Van must reference an active Van.'],
+            ]);
+        }
+
         $territoryKey = filled($attributes['territory_key'] ?? null)
             ? trim((string) $attributes['territory_key'])
             : null;
@@ -196,22 +204,16 @@ final class VanRegistryService
             }
         }
 
-        return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey): VanAssignment {
+        return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
             if ($type === 'primary' && $status === 'active') {
                 $overlap = VanAssignment::query()
                     ->whereKeyNot($locked->id)
-                    ->where('van_id', $locked->van_id)
+                    ->where('van_id', $vanId)
                     ->where('assignment_type', 'primary')
                     ->where('status', 'active')
-                    ->where(function ($query) use ($until): void {
-                        if ($until === null) {
-                            $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-                        } else {
-                            $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
-                        }
-                    })
+                    ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                     ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
                     ->exists();
 
@@ -227,14 +229,8 @@ final class VanRegistryService
                         ->where('territory_key', $territoryKey)
                         ->where('assignment_type', 'primary')
                         ->where('status', 'active')
-                        ->where('van_id', '!=', $locked->van_id)
-                        ->where(function ($query) use ($until): void {
-                            if ($until === null) {
-                                $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-                            } else {
-                                $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
-                            }
-                        })
+                        ->where('van_id', '!=', $vanId)
+                        ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                         ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
                         ->exists();
 
@@ -247,6 +243,7 @@ final class VanRegistryService
             }
 
             $before = $locked->only([
+                'van_id',
                 'driver_id',
                 'representative_user_id',
                 'warehouse_id',
@@ -260,6 +257,7 @@ final class VanRegistryService
             ]);
 
             $locked->forceFill([
+                'van_id' => $vanId,
                 'driver_id' => $attributes['driver_id'] ?? null,
                 'representative_user_id' => $attributes['representative_user_id'] ?? null,
                 'warehouse_id' => $attributes['warehouse_id'] ?? null,
@@ -289,6 +287,7 @@ final class VanRegistryService
     {
         return DB::transaction(function () use ($actor, $assignment): array {
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
+            $before = $locked->toArray();
             $from = Carbon::parse($locked->effective_from);
             $until = $locked->effective_until === null
                 ? now()
@@ -302,9 +301,10 @@ final class VanRegistryService
             $dispatchRows = DB::table('order_van_assignments')
                 ->where('van_assignment_id', $locked->id)
                 ->whereBetween('assigned_at', [$from, $until])
-                ->get(['id', 'order_id']);
+                ->get(['id', 'order_id', 'decision_key']);
 
             $orderIds = $dispatchRows->pluck('order_id')->map(static fn ($id): int => (int) $id)->unique()->values();
+            $decisionKeys = $dispatchRows->pluck('decision_key')->filter()->map(static fn ($key): string => (string) $key)->values();
 
             $dispatchAssignments = DB::table('order_van_assignments')
                 ->whereIn('id', $dispatchRows->pluck('id'))
@@ -314,9 +314,16 @@ final class VanRegistryService
             if ($orderIds->isNotEmpty()) {
                 $dispatchStates = DB::table('order_dispatch_states')
                     ->whereIn('order_id', $orderIds)
-                    ->where('context->van_assignment_id', $locked->id)
+                    ->where('current_assignee_type', 'van')
+                    ->where('current_assignee_id', $locked->van_id)
+                    ->where(function ($query) use ($locked, $decisionKeys): void {
+                        $query->where('context->van_assignment_id', $locked->id);
+                        if ($decisionKeys->isNotEmpty()) {
+                            $query->orWhereIn('decision_key', $decisionKeys->all());
+                        }
+                    })
                     ->update([
-                        'status' => 'unrouted',
+                        'status' => 'awaiting_dispatch',
                         'routing_mode' => null,
                         'routing_source' => null,
                         'routing_reason' => 'van_assignment_deleted',
@@ -343,11 +350,7 @@ final class VanRegistryService
                 'fleet_locations' => $fleetLocations,
             ];
 
-            $this->audit->record('van.assignment.deleted', $actor, $locked, [
-                'van_id' => (int) $locked->van_id,
-                'effective_from' => (string) $locked->effective_from,
-                'effective_until' => $locked->effective_until === null ? null : (string) $locked->effective_until,
-            ], [
+            $this->audit->record('van.assignment.deleted', $actor, $locked, $before, [
                 'purged_operations' => $counts,
             ]);
 
