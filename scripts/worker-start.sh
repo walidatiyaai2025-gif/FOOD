@@ -4,42 +4,48 @@ set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
+if [[ "${1:-}" == "--new" ]]; then
+  [[ "$#" -eq 4 ]] || { echo "Usage: $0 --new <issue> <kind> <slug>" >&2; exit 2; }
+  issue="$2"
+  kind="$3"
+  slug="$4"
+  current="$(git branch --show-current)"
+  [[ "$current" == "main" ]] || { echo "New task branches must be created from main; current=$current" >&2; exit 1; }
+  [[ -z "$(git status --porcelain)" ]] || { echo "Working tree must be clean before creating a task branch." >&2; exit 1; }
+  git fetch origin main
+  new_branch="$(python3 scripts/foodex-branch-policy.py name "$issue" "$kind" "$slug")"
+  git switch -c "$new_branch" origin/main
+fi
+
 branch="$(git branch --show-current)"
+if [[ "$branch" == "main" ]]; then
+  echo "Refusing implementation work directly on main." >&2
+  echo "Start with: bash scripts/worker-start.sh --new <issue> <kind> <slug>" >&2
+  exit 1
+fi
+python3 scripts/foodex-branch-policy.py validate "$branch"
+
 head="$(git rev-parse HEAD)"
 base_ref="origin/main"
-
 if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
   base_ref="main"
 fi
-
 base="$(git merge-base "$base_ref" HEAD)"
 
 echo "FOODEX worker bootstrap"
-echo
-echo "MANDATORY UI/UX CONTRACT:"
-echo "  docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md"
-echo "  Read before changing Dashboard/Admin/business-facing UI."
-echo "  No raw IDs/keys/codes/JSON when a Lookup/Enum/Builder is appropriate."
-echo "  Customer + Driver + Van application parity must be evaluated."
-echo "  Localization: every new UI/page/function must keep Arabic/English labels and localized business data aligned; no raw English in Arabic UI."
-echo "  Mobile UI: compact header, full viewport, one-line filters, no wrapped order numbers, compact rows, green ellipsis actions."
-echo "  Auth parity: Remember Me + biometric unlock for Customer/Driver/Van; never store plaintext passwords."
-echo "  Dashboard map: unified Live Tracking for Drivers (person icon) + Vans (vehicle icon)."
-echo "  Release contract: every VERSION release refreshes Release/Updates + versioned Customer/Driver/Van APKs + LATEST_RELEASE.json."
-echo "  Active FOOD mission: #1001 (UIUX-V42); bare commands 'حرك مشروع FOOD' / 'FOOD MISSION' mean drain #1001."
-echo "  Mission registry: docs/execution/ACTIVE_FOOD_MISSION.json"
-echo "  Connection safety: re-read GitHub before retrying uncertain branch/PR/workflow mutations; never duplicate branches/PRs."
 echo
 echo "branch=$branch"
 echo "head=$head"
 echo "base_ref=$base_ref"
 echo "base=$base"
 
-git status --short
+echo
+echo "Resolved CI plan:"
+python3 scripts/ci-plan.py --base "$base" --head WORKTREE --branch "$branch"
 
 echo
-echo "Affected areas:"
-bash ./scripts/detect-changed-areas.sh "$base" WORKTREE
+echo "Resolved skill pack:"
+python3 scripts/foodex-skill-router.py --base "$base" --head WORKTREE --strict || true
 
 echo
 echo "Recent commits:"
@@ -50,5 +56,5 @@ echo "Baseline diff summary:"
 git diff --stat "$base"
 
 echo
-echo "Next required command before push:"
-echo "  bash ./scripts/worker-preflight.sh --fast"
+echo "Required command before first push:"
+echo "  bash ./scripts/worker-preflight.sh --ci-parity"
