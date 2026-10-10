@@ -58,6 +58,18 @@ jobs:
       - name: Validate repository foundation
         run: ./scripts/validate-repo.sh
 
+      - name: Validate One-Push Green contracts
+        shell: bash
+        run: |
+          python3 scripts/ci-plan.py --validate
+          python3 scripts/ci-failure-registry.py --validate
+          python3 scripts/flutter-test-hermeticity.py
+          python3 -m unittest discover -s scripts/tests -p 'test_ci_plan.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_ci_failure_registry.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_foodex_branch_policy.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_flutter_test_hermeticity.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_one_push_green_contract.py'
+
       - name: Prevent post-merge main release failures
         shell: bash
         run: bash scripts/validate-premerge-release-version.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
