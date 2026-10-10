@@ -22,14 +22,17 @@ use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderManualDispatchService;
+use App\Services\VanDeliveryEvidenceService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class OrderOperationsController extends Controller
 {
@@ -37,6 +40,7 @@ final class OrderOperationsController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $scope,
         private readonly DriverDeliveryEvidenceService $deliveryEvidence,
+        private readonly VanDeliveryEvidenceService $vanDeliveryEvidence,
         private readonly OperationalLookupService $lookups,
     ) {}
 
@@ -213,6 +217,26 @@ final class OrderOperationsController extends Controller
             'selectedStatus' => $selectedStatus,
             'newOrderWizard' => $this->newOrderWizard($actor),
             'isAr' => app()->getLocale() === 'ar',
+        ]);
+    }
+
+    public function vanProof(
+        Request $request,
+        int $assignment,
+        int $proof,
+    ): StreamedResponse {
+        $actor = $this->actor($request);
+        $event = $this->vanDeliveryEvidence->proof($actor, $assignment, $proof);
+        $path = trim((string) $event->proof_path);
+        abort_unless($path !== '' && Storage::disk('public')->exists($path), 404);
+
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $filename = 'van-delivery-proof-'.$event->getKey()
+            .($extension === '' ? '' : '.'.$extension);
+
+        return Storage::disk('public')->response($path, $filename, [
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -1079,6 +1103,9 @@ final class OrderOperationsController extends Controller
             'van_assignments' => $vanAssignments,
             'dispatch_audit' => $dispatchAudit,
             'delivery_evidence' => $this->deliveryEvidence->order($actor, $order),
+            'van_delivery_evidence' => strtolower((string) $order->channel) === 'b2b'
+                ? $this->vanDeliveryEvidence->order($actor, $order)
+                : [],
         ];
     }
 
