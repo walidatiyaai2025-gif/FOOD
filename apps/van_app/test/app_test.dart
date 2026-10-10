@@ -559,6 +559,8 @@ void main() {
           email: 'van@example.test',
           locale: 'en',
           permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
         ),
       ),
     );
@@ -599,6 +601,8 @@ void main() {
           email: 'van@example.test',
           locale: 'en',
           permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
         ),
       ),
     );
@@ -641,6 +645,8 @@ void main() {
           email: 'van@example.test',
           locale: 'en',
           permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
         ),
       ),
     );
