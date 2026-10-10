@@ -835,12 +835,12 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                     if (_hasAccountCreditOutstanding) ...[
                       const SizedBox(height: 8),
                       Text(
-                        key: const ValueKey(
-                          'van-order-account-credit-settlement',
-                        ),
                         _text(
                           'Account credit is authoritative. No cash collection is required from the Van for this outstanding balance.',
                           'الائتمان على الحساب هو المرجع المعتمد. لا يلزم تحصيل نقدي من الفان لهذا الرصيد المستحق.',
+                        ),
+                        key: const ValueKey(
+                          'van-order-account-credit-settlement',
                         ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: FoodexVanTokens.muted,
