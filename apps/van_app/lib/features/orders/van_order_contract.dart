@@ -249,6 +249,53 @@ class VanOrderDetail {
   final List<VanOrderTimelineRecord> timeline;
 }
 
+class VanFailureReasonOption {
+  const VanFailureReasonOption({
+    required this.code,
+    required this.labelAr,
+    required this.labelEn,
+  });
+
+  final String code;
+  final String labelAr;
+  final String labelEn;
+
+  String labelFor(String languageCode) =>
+      languageCode.toLowerCase() == 'ar' ? labelAr : labelEn;
+}
+
+class VanProofAttachment {
+  const VanProofAttachment({
+    required this.path,
+    required this.fileName,
+    required this.byteLength,
+    this.mimeType,
+  });
+
+  static const maxBytes = 5 * 1024 * 1024;
+
+  final String path;
+  final String fileName;
+  final int byteLength;
+  final String? mimeType;
+
+  bool get isWithinSizeLimit => byteLength > 0 && byteLength <= maxBytes;
+}
+
+class VanOrderProofRecord {
+  const VanOrderProofRecord({
+    required this.id,
+    required this.type,
+    required this.available,
+    this.capturedAt,
+  });
+
+  final int id;
+  final String type;
+  final bool available;
+  final String? capturedAt;
+}
+
 class VanOrderExecutionState {
   const VanOrderExecutionState({
     required this.orderId,
@@ -256,7 +303,10 @@ class VanOrderExecutionState {
     required this.status,
     required this.allowedActions,
     required this.proofRequiredForDelivered,
+    required this.deliveryProofReady,
     this.failureReasonCode,
+    this.failureNote,
+    this.latestProof,
     this.lastTransitionAt,
   });
 
@@ -265,7 +315,10 @@ class VanOrderExecutionState {
   final String status;
   final List<String> allowedActions;
   final bool proofRequiredForDelivered;
+  final bool deliveryProofReady;
   final String? failureReasonCode;
+  final String? failureNote;
+  final VanOrderProofRecord? latestProof;
   final String? lastTransitionAt;
 }
 
@@ -309,6 +362,29 @@ abstract interface class VanOrderRepository {
     required int orderId,
     required String status,
     required String idempotencyKey,
+  });
+
+  Future<List<VanFailureReasonOption>> failedDeliveryReasons();
+
+  Future<VanOrderExecutionState> uploadProof({
+    required int orderId,
+    required VanProofAttachment proof,
+    required String idempotencyKey,
+    String? note,
+  });
+
+  Future<VanOrderExecutionState> failOrder({
+    required int orderId,
+    required String failureReason,
+    required String idempotencyKey,
+    String? note,
+    VanProofAttachment? proof,
+  });
+
+  Future<VanOrderExecutionState> retryOrder({
+    required int orderId,
+    required String idempotencyKey,
+    String? note,
   });
 }
 
