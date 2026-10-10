@@ -30,7 +30,7 @@ final class VanDeliveryExecutionService
     }
 
     /**
-     * @param array<string,mixed> $runtime
+     * @param  array<string,mixed>  $runtime
      * @return array<string,mixed>
      */
     public function transition(
@@ -216,7 +216,7 @@ final class VanDeliveryExecutionService
     }
 
     /**
-     * @param array<string,mixed> $runtime
+     * @param  array<string,mixed>  $runtime
      * @return array<string,mixed>
      */
     public function uploadProof(
@@ -358,7 +358,7 @@ final class VanDeliveryExecutionService
     }
 
     /**
-     * @param array<string,mixed> $runtime
+     * @param  array<string,mixed>  $runtime
      * @return array{0:OrderVanAssignment,1:OrderVanExecutionState,2:Order}
      */
     private function ownedExecution(
