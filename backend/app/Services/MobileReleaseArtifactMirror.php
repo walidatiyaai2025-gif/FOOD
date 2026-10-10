@@ -75,6 +75,25 @@ final class MobileReleaseArtifactMirror
             ->all();
     }
 
+    public function retryVersion(?string $version = null): string
+    {
+        $version ??= $this->currentVersion();
+        $this->assertVersion($version);
+        $this->ensureRecords($version);
+
+        MobileReleaseArtifact::query()
+            ->where('version', $version)
+            ->where('status', 'failed')
+            ->update([
+                'status' => 'pending',
+                'last_error' => null,
+                'downloaded_bytes' => 0,
+                'updated_at' => now(),
+            ]);
+
+        return $this->ensureScheduled($version);
+    }
+
     public function syncVersion(string $version): void
     {
         $this->assertVersion($version);
