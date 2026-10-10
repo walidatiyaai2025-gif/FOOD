@@ -29,6 +29,7 @@ class VanDeliveryExecutionTest extends TestCase
         $this->getJson('/api/v1/van/orders/'.$order->id.'/execution')
             ->assertOk()
             ->assertJsonPath('data.status', 'assigned')
+            ->assertJsonPath('data.delivery_proof_ready', false)
             ->assertJsonPath('data.allowed_actions.0', 'accepted');
 
         $this->transition($order->id, 'accepted', 'van-accept-0001')
@@ -54,6 +55,8 @@ class VanDeliveryExecutionTest extends TestCase
         $proofResponse
             ->assertOk()
             ->assertJsonPath('data.status', 'out_for_delivery')
+            ->assertJsonPath('data.delivery_proof_ready', true)
+            ->assertJsonPath('data.latest_proof.available', true)
             ->assertJsonPath('data.proof.available', true);
 
         DB::table('payments')->insert([
@@ -173,6 +176,7 @@ class VanDeliveryExecutionTest extends TestCase
             ->assertJsonPath('data.status', 'out_for_delivery')
             ->assertJsonPath('data.order_status', 'out_for_delivery')
             ->assertJsonPath('data.failure_reason_code', null)
+            ->assertJsonPath('data.delivery_proof_ready', false)
             ->assertJsonPath('data.allowed_actions.0', 'delivered')
             ->assertJsonPath('data.allowed_actions.1', 'failed');
 
