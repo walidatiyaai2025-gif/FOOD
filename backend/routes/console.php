@@ -38,7 +38,6 @@ Schedule::command('foodex:expire-flash-reservations')
     ->everyMinute()
     ->withoutOverlapping();
 
-
 Artisan::command('foodex:audit-b2b-van-cutover {--json}', function (B2BVanFulfillmentMigrationAudit $audit): int {
     $report = $audit->report();
 
