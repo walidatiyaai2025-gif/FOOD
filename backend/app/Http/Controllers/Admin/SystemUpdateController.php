@@ -35,7 +35,7 @@ final class SystemUpdateController extends Controller
         // success flash is the bootstrap signal for the new local APK mirror.
         if ($request->session()->has('status')) {
             try {
-                $this->mobileArtifacts->ensureScheduled($currentVersion);
+                $this->mobileArtifacts->ensureCurrentAppsScheduled();
             } catch (Throwable $exception) {
                 report($exception);
             }
@@ -92,7 +92,7 @@ final class SystemUpdateController extends Controller
             );
 
             try {
-                $this->mobileArtifacts->ensureScheduled($history->to_version);
+                $this->mobileArtifacts->ensureCurrentAppsScheduled();
             } catch (Throwable $exception) {
                 report($exception);
             }

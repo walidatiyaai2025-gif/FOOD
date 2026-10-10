@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\MirrorMobileReleaseArtifacts;
+use App\Models\AppVersion;
 use App\Models\MobileReleaseArtifact;
 use App\Models\SystemVersion;
 use Illuminate\Support\Collection;
@@ -34,6 +35,77 @@ final class MobileReleaseArtifactMirror
         $this->assertVersion($version);
 
         return $version;
+    }
+
+    public function currentVersionForApp(string $app): string
+    {
+        if (! array_key_exists($app, self::APPS)) {
+            throw new RuntimeException('Unsupported FOODEX mobile application.');
+        }
+
+        $version = AppVersion::query()
+            ->where('app', $app)
+            ->where('platform', 'android')
+            ->value('latest_version');
+
+        if (! is_string($version) || $version === '') {
+            return $this->currentVersion();
+        }
+
+        $this->assertVersion($version);
+
+        return $version;
+    }
+
+    /** @return array<string, string> */
+    public function currentAppVersions(): array
+    {
+        $versions = [];
+
+        foreach (array_keys(self::APPS) as $app) {
+            $version = AppVersion::query()
+                ->where('app', $app)
+                ->where('platform', 'android')
+                ->value('latest_version');
+
+            if (! is_string($version) || $version === '') {
+                continue;
+            }
+
+            $this->assertVersion($version);
+            $versions[$app] = $version;
+        }
+
+        if ($versions === []) {
+            $fallback = $this->currentVersion();
+
+            foreach (array_keys(self::APPS) as $app) {
+                $versions[$app] = $fallback;
+            }
+        }
+
+        return $versions;
+    }
+
+    /** @return array<string, mixed> */
+    public function statusPayloadForApp(string $app): array
+    {
+        $version = $this->currentVersionForApp($app);
+
+        return collect($this->statusPayload($version))
+            ->firstWhere('app', $app) ?? [];
+    }
+
+    /** @return array<string, string> */
+    public function ensureCurrentAppsScheduled(): array
+    {
+        $versions = $this->currentAppVersions();
+
+        foreach (array_values(array_unique($versions)) as $version) {
+            $this->ensureScheduled($version);
+        }
+
+        return $versions;
     }
 
     public function ensureScheduled(?string $version = null): string

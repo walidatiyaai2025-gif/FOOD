@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\MirrorMobileReleaseArtifacts;
+use App\Models\AppVersion;
 use App\Models\MobileReleaseArtifact;
 use App\Models\Role;
 use App\Models\SystemVersion;
@@ -55,7 +56,8 @@ class MobileAppDownloadTest extends TestCase
     {
         Queue::fake();
         $admin = $this->superAdmin();
-        $this->installVersion('9.8.7');
+        $this->installVersion('9.9.9');
+        $this->setAndroidVersion('customer', '9.8.7');
         $this->readyArtifact('customer', 'Customer', 'customer-local-bytes');
 
         $this->actingAs($admin)
@@ -68,7 +70,8 @@ class MobileAppDownloadTest extends TestCase
 
     public function test_public_ready_apk_is_served_from_local_storage_without_any_github_request(): void
     {
-        $this->installVersion('9.8.7');
+        $this->installVersion('9.9.9');
+        $this->setAndroidVersion('customer', '9.8.7');
         $payload = 'verified-local-customer-apk';
         $artifact = $this->readyArtifact('customer', 'Customer', $payload);
 
@@ -88,7 +91,8 @@ class MobileAppDownloadTest extends TestCase
     public function test_missing_latest_apk_returns_preparing_response_and_schedules_background_mirror(): void
     {
         Queue::fake();
-        $this->installVersion('9.8.7');
+        $this->installVersion('9.9.9');
+        $this->setAndroidVersion('customer', '9.8.7');
 
         $this->get('/downloads/apps/customer/latest.apk')
             ->assertStatus(503);
@@ -185,14 +189,17 @@ class MobileAppDownloadTest extends TestCase
         );
     }
 
-    public function test_first_post_update_redirect_bootstraps_local_mirror(): void
+    public function test_dashboard_update_bootstrap_uses_mobile_policy_version_instead_of_dashboard_version(): void
     {
         Queue::fake();
         $admin = $this->superAdmin();
-        $this->installVersion('9.8.7');
+        $this->installVersion('9.9.9');
+        $this->setAndroidVersion('customer', '9.8.7');
+        $this->setAndroidVersion('driver', '9.8.7');
+        $this->setAndroidVersion('van', '9.8.7');
 
         $this->actingAs($admin)
-            ->withSession(['status' => 'Update 9.8.7 completed successfully.'])
+            ->withSession(['status' => 'Update 9.9.9 completed successfully.'])
             ->get(route('admin.system-update.index'))
             ->assertOk();
 
@@ -200,6 +207,41 @@ class MobileAppDownloadTest extends TestCase
             MirrorMobileReleaseArtifacts::class,
             fn (MirrorMobileReleaseArtifacts $job): bool => $job->version === '9.8.7',
         );
+        Queue::assertNotPushed(
+            MirrorMobileReleaseArtifacts::class,
+            fn (MirrorMobileReleaseArtifacts $job): bool => $job->version === '9.9.9',
+        );
+    }
+
+    public function test_latest_endpoint_uses_android_policy_for_customer_driver_and_van(): void
+    {
+        $this->installVersion('9.9.9');
+
+        foreach ([
+            'customer' => 'Customer',
+            'driver' => 'Driver',
+            'van' => 'Van',
+        ] as $app => $label) {
+            $this->setAndroidVersion($app, '9.8.7');
+            $this->readyArtifact($app, $label, $app.'-apk-bytes');
+
+            $this->get('/downloads/apps/'.$app.'/latest.apk')
+                ->assertOk()
+                ->assertHeader('x-foodex-release-version', '9.8.7')
+                ->assertDownload('FOODEX-'.$label.'-9.8.7.apk');
+        }
+    }
+
+    public function test_explicit_versioned_download_stays_independent_from_latest_policy(): void
+    {
+        $this->installVersion('9.9.9');
+        $this->setAndroidVersion('customer', '9.8.8');
+        $this->readyArtifact('customer', 'Customer', 'versioned-customer-apk');
+
+        $this->get('/downloads/apps/customer/9.8.7.apk')
+            ->assertOk()
+            ->assertHeader('x-foodex-release-version', '9.8.7')
+            ->assertDownload('FOODEX-Customer-9.8.7.apk');
     }
 
     private function installVersion(string $version): void
@@ -209,6 +251,19 @@ class MobileAppDownloadTest extends TestCase
             'installed_at' => now(),
             'package_hash' => str_repeat('a', 64),
         ]);
+    }
+
+    private function setAndroidVersion(string $app, string $version): void
+    {
+        AppVersion::query()->updateOrCreate(
+            ['app' => $app, 'platform' => 'android'],
+            [
+                'latest_version' => $version,
+                'minimum_supported_version' => $version,
+                'force_update' => false,
+                'store_url' => 'https://foodex.50sols.com/downloads/apps/'.$app.'/latest.apk',
+            ],
+        );
     }
 
     private function readyArtifact(string $app, string $label, string $payload): MobileReleaseArtifact
