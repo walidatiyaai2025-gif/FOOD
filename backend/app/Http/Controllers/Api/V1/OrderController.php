@@ -732,4 +732,5 @@ class OrderController extends Controller
             'created_at' => $order->created_at?->toAtomString(),
         ];
     }
+
 }

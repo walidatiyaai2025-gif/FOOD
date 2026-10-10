@@ -135,6 +135,89 @@ void main() {
         );
       });
     }
+
+    for (final evidence in const [
+      (size: Size(430, 932), suffix: '430x932'),
+      (size: Size(360, 800), suffix: '360x800'),
+    ]) {
+      testWidgets(
+        'capture Van order detail $code ${evidence.suffix}',
+        (tester) async {
+          await _setup(tester, evidence.size);
+          final key = GlobalKey();
+          await tester.pumpWidget(
+            RepaintBoundary(
+              key: key,
+              child: FoodexVanApp(
+                locale: locale,
+                theme: FoodexVanTheme.light(fontFamily: _fontFamily),
+                initialSession: VanSession(
+                  token: 'evidence-token',
+                  name:
+                      code == 'ar' ? 'أحمد · مندوب FOODEX' : 'FOODEX Van Ahmed',
+                  email: 'van@foodex.test',
+                  locale: code,
+                  permissions: const {'van.login', 'finance.view'},
+                ),
+                walletRepository: const _Wallet(),
+                commercialRepository: const _Commercial(),
+                visitRepository: const _Visits(),
+                orderRepository: _Orders(),
+                notificationRepository: const _Notifications(),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await _openScreen(tester, VanScreenId.orders);
+          await tester.tap(find.byKey(const ValueKey('van-order-7001')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('van-order-detail-page')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_detail__${code}__${evidence.suffix}.png',
+          );
+
+          await tester.tap(
+            find.byKey(const ValueKey('van-order-proof-action')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-proof-evidence-sheet')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_proof__${code}__${evidence.suffix}.png',
+          );
+          Navigator.of(
+            tester.element(
+              find.byKey(const ValueKey('van-proof-evidence-sheet')),
+            ),
+          ).pop();
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.byKey(const ValueKey('van-order-fail-action')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-failure-evidence-sheet')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_failure__${code}__${evidence.suffix}.png',
+          );
+        },
+      );
+    }
   }
 }
 
@@ -170,6 +253,8 @@ Future<void> _openScreen(WidgetTester tester, VanScreenId screen) async {
     180,
     scrollable: menuScrollable.first,
   );
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
   await tester.tap(target);
   await tester.pumpAndSettle();
 }
@@ -608,8 +693,173 @@ class _Orders implements VanOrderRepository {
           status: 'pending',
           currency: 'KWD',
           grandTotal: 12,
+          vanExecutionStatus: 'assigned',
         ),
       ];
+
+  @override
+  Future<VanOrderDetail> order(int orderId) async => const VanOrderDetail(
+        summary: VanOrderRecord(
+          id: 7001,
+          orderNumber: 'FDX-B2B-20261007-A1',
+          customerType: 'b2b',
+          customerId: 42,
+          storeId: 7,
+          status: 'pending',
+          currency: 'KWD',
+          grandTotal: 12,
+          vanExecutionStatus: 'assigned',
+        ),
+        paymentMethod: 'cash_on_delivery',
+        customer: VanOrderCustomer(
+          name: 'Acme Grocery',
+          phone: '+96550000077',
+          email: 'acme@example.test',
+        ),
+        deliveryAddress: VanOrderDeliveryAddress(
+          formatted: 'Warehouse gate, Street 17, Shuwaikh, Kuwait City, KW',
+          hasCoordinates: true,
+          latitude: 29.3375,
+          longitude: 47.6581,
+        ),
+        items: [
+          VanOrderItemRecord(
+            name: 'FOODEX Water Case',
+            sku: 'WATER-12',
+            quantity: 1,
+            lineTotal: 12,
+          ),
+        ],
+        invoice: VanOrderInvoiceRecord(
+          number: 'INV-7001',
+          status: 'issued',
+          currency: 'KWD',
+          total: 12,
+          paidAmount: 4,
+          outstandingAmount: 8,
+        ),
+        payments: [
+          VanOrderPaymentRecord(
+            provider: 'cash_on_delivery',
+            status: 'paid',
+            amount: 4,
+            currency: 'KWD',
+          ),
+        ],
+        collections: [
+          VanOrderCollectionRecord(
+            status: 'posted',
+            source: 'van',
+            amount: 4,
+            currency: 'KWD',
+          ),
+        ],
+        timeline: [
+          VanOrderTimelineRecord(
+            stage: 'assigned',
+            status: 'assigned',
+            source: 'van_assignment',
+            occurredAt: '2026-10-07T10:00:00+03:00',
+          ),
+        ],
+      );
+
+  @override
+  Future<VanOrderExecutionState> execution(int orderId) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'out_for_delivery',
+        status: 'out_for_delivery',
+        allowedActions: const ['delivered', 'failed'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: false,
+      );
+
+  @override
+  Future<VanOrderExecutionState> transitionOrder({
+    required int orderId,
+    required String status,
+    required String idempotencyKey,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: status,
+        status: status,
+        allowedActions: const <String>[],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: false,
+      );
+
+  @override
+  Future<List<VanFailureReasonOption>> failedDeliveryReasons() async => const [
+        VanFailureReasonOption(
+          code: 'customer_no_answer',
+          labelAr: 'العميل لا يجيب',
+          labelEn: 'Customer did not answer',
+        ),
+        VanFailureReasonOption(
+          code: 'other',
+          labelAr: 'أخرى',
+          labelEn: 'Other',
+        ),
+      ];
+
+  @override
+  Future<VanOrderExecutionState> uploadProof({
+    required int orderId,
+    required VanProofAttachment proof,
+    required String idempotencyKey,
+    String? note,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'out_for_delivery',
+        status: 'out_for_delivery',
+        allowedActions: const ['delivered', 'failed'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: true,
+        latestProof: const VanOrderProofRecord(
+          id: 91,
+          type: 'delivery_image',
+          available: true,
+          capturedAt: '2026-10-07T11:15:00+03:00',
+        ),
+      );
+
+  @override
+  Future<VanOrderExecutionState> failOrder({
+    required int orderId,
+    required String failureReason,
+    required String idempotencyKey,
+    String? note,
+    VanProofAttachment? proof,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'failed',
+        status: 'failed',
+        allowedActions: const ['out_for_delivery'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: false,
+        failureReasonCode: failureReason,
+        failureNote: note,
+      );
+
+  @override
+  Future<VanOrderExecutionState> retryOrder({
+    required int orderId,
+    required String idempotencyKey,
+    String? note,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'out_for_delivery',
+        status: 'out_for_delivery',
+        allowedActions: const ['delivered', 'failed'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: false,
+      );
+
 }
 
 class _Notifications implements VanNotificationRepository {

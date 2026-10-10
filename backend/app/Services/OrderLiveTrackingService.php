@@ -66,9 +66,9 @@ final class OrderLiveTrackingService
             ->where('actor_id', (int) $assignment->van_id)
             ->first();
 
-        $status = $execution?->status === null
-            ? (string) $assignment->status
-            : (string) $execution->status;
+        $status = $execution?->status !== null
+            ? (string) $execution->status
+            : ($dispatch?->status !== null ? (string) $dispatch->status : 'assigned');
 
         return [
             'actor_type' => 'van',

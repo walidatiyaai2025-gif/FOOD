@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 import 'package:foodex_van_app/app.dart';
 import 'package:foodex_van_app/core/auth/van_session.dart';
+import 'package:foodex_van_app/core/push/firebase_push_service.dart';
 import 'package:foodex_van_app/features/foundation/van_screen_inventory.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:foodex_van_app/features/visits/van_visit_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notification_contract.dart';
 import 'package:foodex_van_app/features/notifications/van_notifications_page.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
+import 'package:foodex_van_app/features/orders/van_order_detail_page.dart';
+import 'package:foodex_van_app/features/orders/van_order_proof_picker.dart';
+import 'package:foodex_van_app/shared/van_action_button.dart';
 
 Future<void> _scrollUntilBuilt(
   WidgetTester tester,
@@ -473,14 +479,16 @@ void main() {
   });
 
 
-  testWidgets('Van Route Detail renders route visit KPIs from visit repository',
+  testWidgets('Van Route Detail opens the exact linked B2B order',
       (tester) async {
+    final orders = _OrderRepository()..createdCount = 1;
     await tester.pumpWidget(
-      const FoodexVanApp(
-        locale: Locale('en'),
-        walletRepository: _EmptyWalletRepository(),
-        visitRepository: _RoutesVisitRepository(),
-        initialSession: VanSession(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        visitRepository: const _RoutesVisitRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
           token: 'test-token',
           name: 'Van Operator',
           email: 'van@example.test',
@@ -512,8 +520,153 @@ void main() {
     expect(find.text('Visits · 2'), findsOneWidget);
     expect(find.text('Planned · 1'), findsOneWidget);
     expect(find.text('Started · 1'), findsOneWidget);
+
+    final linkedVisit = find.byKey(const ValueKey('van-route-detail-visit-601'));
+    await tester.scrollUntilVisible(
+      linkedVisit,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-route-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    final tile = tester.widget<ListTile>(
+      find.descendant(of: linkedVisit, matching: find.byType(ListTile)),
+    );
+    expect(tile.onTap, isNotNull);
+    tile.onTap?.call();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.text('Acme Grocery'), findsOneWidget);
   });
 
+
+  testWidgets('Van push tap opens canonical B2B Order Detail',
+      (tester) async {
+    final alerts = StreamController<VanPushAlert>.broadcast();
+    final orders = _OrderRepository()..createdCount = 1;
+    addTearDown(alerts.close);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        orderRepository: orders,
+        pushAlerts: alerts.stream,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    alerts.add(
+      const VanPushAlert(
+        title: 'New Van delivery',
+        body: 'Open the order',
+        openRequested: true,
+        orderId: 7001,
+        storeId: 7,
+        channel: 'b2b',
+        deepLink: '/van/orders/7001?channel=b2b&store_id=7',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.text('Acme Grocery'), findsOneWidget);
+  });
+
+  testWidgets('Van foreground push requires explicit Open action',
+      (tester) async {
+    final alerts = StreamController<VanPushAlert>.broadcast();
+    final orders = _OrderRepository()..createdCount = 1;
+    addTearDown(alerts.close);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        orderRepository: orders,
+        pushAlerts: alerts.stream,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    alerts.add(
+      const VanPushAlert(
+        title: 'Order update',
+        body: 'Tap Open',
+        openRequested: false,
+        orderId: 7001,
+        storeId: 7,
+        channel: 'b2b',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsNothing);
+    expect(find.text('Open'), findsOneWidget);
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+  });
+
+  testWidgets('Van push refuses non-B2B navigation intents', (tester) async {
+    final alerts = StreamController<VanPushAlert>.broadcast();
+    final orders = _OrderRepository()..createdCount = 1;
+    addTearDown(alerts.close);
+
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _EmptyWalletRepository(),
+        orderRepository: orders,
+        pushAlerts: alerts.stream,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+          vanId: 7,
+          assignmentId: 701,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    alerts.add(
+      const VanPushAlert(
+        title: 'Wrong channel',
+        body: 'Must not open',
+        openRequested: true,
+        orderId: 7001,
+        storeId: 7,
+        channel: 'b2c',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsNothing);
+  });
 
   testWidgets('Van Notifications renders canonical feed and marks read',
       (tester) async {
@@ -579,6 +732,84 @@ void main() {
     expect(find.text('0/2'), findsOneWidget);
     expect(find.textContaining('Next: Acme Grocery'), findsOneWidget);
     expect(find.text('Block 3 · Street 17'), findsOneWidget);
+  });
+
+
+  testWidgets('Van Order Detail opens authoritative delivery coordinates',
+      (tester) async {
+    final orders = _OrderRepository()..createdCount = 1;
+    double? openedLatitude;
+    double? openedLongitude;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: VanOrderDetailPage(
+          orderId: 7001,
+          repository: orders,
+          onSessionExpired: () async {},
+          navigationLauncher: (latitude, longitude) async {
+            openedLatitude = latitude;
+            openedLongitude = longitude;
+            return true;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final mapAction = find.byKey(const ValueKey('van-order-open-map'));
+    await tester.scrollUntilVisible(
+      mapAction,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    final button = tester.widget<VanActionButton>(mapAction);
+    expect(button.onPressed, isNotNull);
+    button.onPressed?.call();
+    await tester.pumpAndSettle();
+
+    expect(openedLatitude, closeTo(29.3375, 0.000001));
+    expect(openedLongitude, closeTo(47.6581, 0.000001));
+  });
+
+
+  testWidgets('Van Dashboard opens exact active B2B order', (tester) async {
+    final orders = _OrderRepository()..createdCount = 1;
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _CustomerWalletRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final orderLink = find.byKey(const ValueKey('van-dashboard-order-7001'));
+    await tester.scrollUntilVisible(
+      orderLink,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-dashboard-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(orderLink, findsOneWidget);
+    final dashboardTile = tester.widget<ListTile>(orderLink);
+    dashboardTile.onTap?.call();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.text('Acme Grocery'), findsOneWidget);
   });
 
 
@@ -675,6 +906,46 @@ void main() {
     expect(find.text('FDX-B2B-TEST-001'), findsOneWidget);
     expect(find.text('12.000 KWD'), findsWidgets);
     expect(orders.createdCount, 1);
+    expect(find.byKey(const ValueKey('van-orders-filter-new')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-orders-filter-new')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-7001')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('van-order-7001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    expect(find.textContaining('Warehouse gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-action-accepted')), findsOneWidget);
+
+    final timeline = find.byKey(const ValueKey('van-order-detail-timeline'));
+    await tester.scrollUntilVisible(
+      timeline,
+      220,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(timeline, findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('van-order-action-accepted')),
+      -220,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-order-detail-page')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+
+    final acceptedAction =
+        find.byKey(const ValueKey('van-order-action-accepted'));
+    final acceptedButton = tester.widget<VanActionButton>(acceptedAction);
+    acceptedButton.onPressed?.call();
+    await tester.pumpAndSettle();
+    expect(orders.transitions, contains('accepted'));
+    expect(find.byKey(const ValueKey('van-order-action-picked_up')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-fail-action')), findsOneWidget);
   });
 
 
@@ -714,6 +985,14 @@ void main() {
     await tester.tap(target);
     await tester.pumpAndSettle();
 
+    final exactOrder = find.byKey(const ValueKey('van-visit-open-order-801'));
+    await tester.ensureVisible(exactOrder);
+    await tester.tap(exactOrder);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-order-detail-page')), findsOneWidget);
+    Navigator.of(tester.element(find.byKey(const ValueKey('van-order-detail-page')))).pop();
+    await tester.pumpAndSettle();
+
     final visitOrder = find.byKey(const ValueKey('van-visit-order-801'));
     await tester.ensureVisible(visitOrder);
     await tester.pumpAndSettle();
@@ -732,6 +1011,98 @@ void main() {
     expect(visits.lastStatus, 'completed_with_order');
     expect(visits.lastOrderId, 7001);
     expect(find.text('Completed with order'), findsOneWidget);
+  });
+
+  testWidgets('Van Order Detail completes proof failure and retry UX',
+      (tester) async {
+    final orders = _OrderRepository()
+      ..createdCount = 1
+      ..executionStatus = 'out_for_delivery';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: VanOrderDetailPage(
+          orderId: 7001,
+          repository: orders,
+          proofPicker: const _ProofPicker(),
+          onSessionExpired: () async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final proofAction = find.byKey(const ValueKey('van-order-proof-action'));
+    expect(proofAction, findsOneWidget);
+    await tester.tap(proofAction);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-proof-evidence-sheet')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-proof-camera')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('van-proof-attached')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('van-proof-submit')));
+    await tester.pumpAndSettle();
+
+    expect(orders.transitions, contains('proof_upload'));
+    expect(find.byKey(const ValueKey('van-order-proof-ready')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('van-order-action-delivered')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-order-fail-action')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-failure-evidence-sheet')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-failure-reason')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Other').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('van-failure-submit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('van-evidence-validation')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('van-evidence-note')),
+      'Entrance blocked',
+    );
+    await tester.tap(find.byKey(const ValueKey('van-failure-submit')));
+    await tester.pumpAndSettle();
+
+    expect(orders.executionStatus, 'failed');
+    expect(orders.failureReasonCode, 'other');
+    expect(
+      find.byKey(const ValueKey('van-order-retry-action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('van-order-failure-note')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('van-order-retry-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('van-retry-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(orders.transitions, contains('retry'));
+    expect(orders.executionStatus, 'out_for_delivery');
+    expect(orders.deliveryProofReady, isFalse);
+    expect(
+      find.byKey(const ValueKey('van-order-proof-action')),
+      findsOneWidget,
+    );
   });
 
 }
@@ -1168,6 +1539,7 @@ class _RoutesVisitRepository implements VanVisitRepository {
           customerId: 42,
           storeId: 7,
           routeKey: 'ROUTE-A',
+          orderId: 7001,
           latitude: 29.3375,
           longitude: 47.6581,
           address: 'Block 3 · Street 17',
@@ -1285,6 +1657,30 @@ class _RouteCustomersRepository implements VanWalletRepository {
 
 class _OrderRepository implements VanOrderRepository {
   int createdCount = 0;
+  String executionStatus = 'assigned';
+  bool deliveryProofReady = false;
+  String? failureReasonCode;
+  String? failureNote;
+  final List<String> transitions = [];
+
+  VanOrderRecord _record() => VanOrderRecord(
+        id: 7001,
+        orderNumber: 'FDX-B2B-TEST-001',
+        customerType: 'b2b',
+        customerId: 42,
+        storeId: 7,
+        status: executionStatus == 'out_for_delivery'
+            ? 'out_for_delivery'
+            : executionStatus == 'delivered'
+                ? 'delivered'
+                : executionStatus == 'failed'
+                    ? 'failed'
+                    : 'pending',
+        currency: 'KWD',
+        grandTotal: 12,
+        createdAt: '2026-10-07T10:00:00+03:00',
+        vanExecutionStatus: executionStatus,
+      );
 
   @override
   Future<List<VanCatalogProduct>> catalog(
@@ -1353,39 +1749,170 @@ class _OrderRepository implements VanOrderRepository {
     String? customerNote,
   }) async {
     createdCount += 1;
-    return const VanOrderRecord(
-      id: 7001,
-      orderNumber: 'FDX-B2B-TEST-001',
-      customerType: 'b2b',
-      customerId: 42,
-      storeId: 7,
-      status: 'pending',
-      currency: 'KWD',
-      grandTotal: 12,
-      createdAt: '2026-10-07T10:00:00+03:00',
-    );
+    return _record();
   }
 
   @override
   Future<List<VanOrderRecord>> orders({
     VanCustomerScope? customer,
     String? status,
-  }) async =>
-      createdCount == 0
-          ? const []
-          : const [
-              VanOrderRecord(
-                id: 7001,
-                orderNumber: 'FDX-B2B-TEST-001',
-                customerType: 'b2b',
-                customerId: 42,
-                storeId: 7,
-                status: 'pending',
-                currency: 'KWD',
-                grandTotal: 12,
-                createdAt: '2026-10-07T10:00:00+03:00',
-              ),
-            ];
+  }) async => createdCount == 0 ? const [] : [_record()];
+
+  @override
+  Future<VanOrderDetail> order(int orderId) async => VanOrderDetail(
+        summary: _record(),
+        paymentMethod: 'cash_on_delivery',
+        customer: const VanOrderCustomer(
+          name: 'Acme Grocery',
+          phone: '+96550000077',
+          email: 'acme@example.test',
+        ),
+        deliveryAddress: const VanOrderDeliveryAddress(
+          formatted: 'Warehouse gate, Street 17, Shuwaikh, Kuwait City, KW',
+          hasCoordinates: true,
+          latitude: 29.3375,
+          longitude: 47.6581,
+        ),
+        items: const [
+          VanOrderItemRecord(
+            name: 'Water Case',
+            sku: 'WATER-CASE',
+            quantity: 1,
+            lineTotal: 12,
+          ),
+        ],
+        invoice: const VanOrderInvoiceRecord(
+          number: 'INV-7001',
+          status: 'issued',
+          currency: 'KWD',
+          total: 12,
+          paidAmount: 0,
+          outstandingAmount: 12,
+        ),
+        payments: const [],
+        collections: const [],
+        timeline: const [
+          VanOrderTimelineRecord(
+            stage: 'assigned',
+            status: 'assigned',
+            source: 'van_assignment',
+            occurredAt: '2026-10-07T10:00:00+03:00',
+          ),
+        ],
+      );
+
+  @override
+  Future<VanOrderExecutionState> execution(int orderId) async {
+    final allowed = switch (executionStatus) {
+      'assigned' => const ['accepted'],
+      'accepted' => const ['picked_up', 'failed'],
+      'picked_up' => const ['out_for_delivery', 'failed'],
+      'out_for_delivery' => const ['delivered', 'failed'],
+      'failed' => const ['out_for_delivery'],
+      _ => const <String>[],
+    };
+    return VanOrderExecutionState(
+      orderId: orderId,
+      orderStatus: _record().status,
+      status: executionStatus,
+      allowedActions: allowed,
+      proofRequiredForDelivered: true,
+      deliveryProofReady: deliveryProofReady,
+      failureReasonCode: failureReasonCode,
+      failureNote: failureNote,
+      latestProof: deliveryProofReady
+          ? const VanOrderProofRecord(
+              id: 91,
+              type: 'delivery_image',
+              available: true,
+              capturedAt: '2026-10-07T11:15:00+03:00',
+            )
+          : null,
+    );
+  }
+
+  @override
+  Future<VanOrderExecutionState> transitionOrder({
+    required int orderId,
+    required String status,
+    required String idempotencyKey,
+  }) async {
+    transitions.add(status);
+    executionStatus = status;
+    if (status != 'out_for_delivery') deliveryProofReady = false;
+    return execution(orderId);
+  }
+
+  @override
+  Future<List<VanFailureReasonOption>> failedDeliveryReasons() async => const [
+        VanFailureReasonOption(
+          code: 'customer_no_answer',
+          labelAr: 'العميل لا يجيب',
+          labelEn: 'Customer did not answer',
+        ),
+        VanFailureReasonOption(
+          code: 'other',
+          labelAr: 'أخرى',
+          labelEn: 'Other',
+        ),
+      ];
+
+  @override
+  Future<VanOrderExecutionState> uploadProof({
+    required int orderId,
+    required VanProofAttachment proof,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    transitions.add('proof_upload');
+    deliveryProofReady = true;
+    return execution(orderId);
+  }
+
+  @override
+  Future<VanOrderExecutionState> failOrder({
+    required int orderId,
+    required String failureReason,
+    required String idempotencyKey,
+    String? note,
+    VanProofAttachment? proof,
+  }) async {
+    transitions.add('failed');
+    executionStatus = 'failed';
+    failureReasonCode = failureReason;
+    failureNote = note;
+    deliveryProofReady = false;
+    return execution(orderId);
+  }
+
+  @override
+  Future<VanOrderExecutionState> retryOrder({
+    required int orderId,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    transitions.add('retry');
+    executionStatus = 'out_for_delivery';
+    failureReasonCode = null;
+    failureNote = null;
+    deliveryProofReady = false;
+    return execution(orderId);
+  }
+}
+
+class _ProofPicker implements VanOrderProofPicker {
+  const _ProofPicker();
+
+  @override
+  Future<VanProofAttachment?> pickCamera() async => const VanProofAttachment(
+        path: '/tmp/van-proof.jpg',
+        fileName: 'van-proof.jpg',
+        byteLength: 1024,
+        mimeType: 'image/jpeg',
+      );
+
+  @override
+  Future<VanProofAttachment?> pickGallery() => pickCamera();
 }
 
 
@@ -1401,6 +1928,7 @@ class _StartedVisitRepository implements VanVisitRepository {
           customerId: 42,
           storeId: 7,
           status: 'started',
+          orderId: 7001,
           allowedTransitions: [
             'completed_with_order',
             'completed_no_order',

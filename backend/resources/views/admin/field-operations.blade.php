@@ -230,6 +230,38 @@
                 @endforelse
                 </tbody></table></div>
             </section>
+            <section class="fieldops-card" data-van-b2b-orders>
+                <h2>{{ __('order_operations.title') }} · {{ __('order_operations.filters.wholesale') }}</h2>
+                <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr>
+                    <th>{{ __('order_operations.columns.order') }}</th>
+                    <th>{{ __('order_operations.columns.status') }}</th>
+                    <th>{{ __('order_operations.dispatch.current_assignment') }}</th>
+                    <th>{{ __('order_operations.detail.van_execution_timeline') }}</th>
+                    <th>{{ __('order_operations.columns.total') }}</th>
+                    <th>{{ __('order_operations.columns.actions') }}</th>
+                </tr></thead><tbody>
+                @forelse($b2bOrders as $order)
+                    <tr data-van-b2b-order="{{ $order->id }}">
+                        <td><strong>{{ $order->order_number }}</strong><div class="fieldops-muted">{{ $order->assigned_at }}</div></td>
+                        <td>{{ __('order_operations.business_labels.'.$order->order_status) }}</td>
+                        <td>{{ __('order_operations.business_labels.'.$order->assignment_status) }} · {{ __('order_operations.business_labels.'.$order->source) }}</td>
+                        <td>
+                            @if($order->execution_status)
+                                <strong>{{ __('order_operations.business_labels.'.$order->execution_status) }}</strong>
+                                @if($order->failure_reason_code)<div class="fieldops-muted">{{ __('order_operations.detail.failure_reason') }}: {{ __('order_operations.business_labels.'.$order->failure_reason_code) }}</div>@endif
+                                @if($order->last_transition_at)<small>{{ $order->last_transition_at }}</small>@endif
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td>{{ number_format((float)$order->grand_total,3) }} {{ $order->currency }}</td>
+                        <td><a href="{{ route('admin.operations.orders.index',['channel'=>'b2b','order'=>$order->id]) }}">{{ __('order_operations.view_order') }}</a></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6"><div class="foodex-ops-state">{{ __('order_operations.empty') }}</div></td></tr>
+                @endforelse
+                </tbody></table></div>
+            </section>
 
         @elseif($section === 'assignments')
             @if($canManageVan)
