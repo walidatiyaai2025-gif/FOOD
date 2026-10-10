@@ -321,6 +321,10 @@ Route::prefix('admin')
         Route::post('/operations/lookups/{type}', [SystemLookupController::class, 'store'])->name('operations.lookups.store');
         Route::patch('/operations/lookups/{type}/{lookup}', [SystemLookupController::class, 'update'])->whereNumber('lookup')->name('operations.lookups.update');
         Route::get('/operations/orders', [OrderOperationsController::class, 'index'])->name('operations.orders.index');
+        Route::get('/operations/orders/van-assignments/{assignment}/proofs/{proof}', [OrderOperationsController::class, 'vanProof'])
+            ->whereNumber('assignment')
+            ->whereNumber('proof')
+            ->name('operations.orders.van-proofs.show');
         Route::post('/operations/orders/quote', [OrderOperationsController::class, 'quoteNewOrder'])->name('operations.orders.quote');
         Route::post('/operations/orders', [OrderOperationsController::class, 'storeNewOrder'])->name('operations.orders.store');
         Route::post('/operations/orders/{order}/remind-driver', [OrderOperationsController::class, 'remindDriver'])->whereNumber('order')->name('operations.orders.remind');

@@ -143,6 +143,44 @@ class VanApiClient {
     );
   }
 
+  Future<Object?> postMultipart(
+    String path, {
+    Map<String, String> fields = const {},
+    Map<String, String> headers = const {},
+    String? fileField,
+    String? filePath,
+    String? fileName,
+  }) async {
+    try {
+      final request = http.MultipartRequest('POST', _endpoint(path))
+        ..headers.addAll({
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+          ...headers,
+        })
+        ..fields.addAll(fields);
+
+      if (fileField != null && filePath != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            fileField,
+            filePath,
+            filename: fileName,
+          ),
+        );
+      }
+
+      final streamed = await _client.send(request);
+      return _decodeResponse(await http.Response.fromStream(streamed));
+    } on SocketException {
+      throw const VanOfflineException();
+    } on http.ClientException {
+      throw const VanOfflineException();
+    } on FileSystemException {
+      throw const VanApiException('The selected proof image is unavailable.');
+    }
+  }
+
   Future<Object?> _request(Future<http.Response> Function() request) async {
     final http.Response response;
     try {
@@ -153,6 +191,10 @@ class VanApiClient {
       throw const VanOfflineException();
     }
 
+    return _decodeResponse(response);
+  }
+
+  Object? _decodeResponse(http.Response response) {
     if (response.statusCode == 401) {
       throw const VanSessionExpiredException();
     }
@@ -160,10 +202,19 @@ class VanApiClient {
       throw const VanAccessDeniedException();
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw VanApiException(
-        'Van API request failed (${response.statusCode}).',
-        response.statusCode,
-      );
+      var message = 'Van API request failed (${response.statusCode}).';
+      if (response.body.trim().isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['message'] is String) {
+            final serverMessage = (decoded['message'] as String).trim();
+            if (serverMessage.isNotEmpty) message = serverMessage;
+          }
+        } on FormatException {
+          // Preserve the stable HTTP status fallback.
+        }
+      }
+      throw VanApiException(message, response.statusCode);
     }
     if (response.body.trim().isEmpty) return null;
 

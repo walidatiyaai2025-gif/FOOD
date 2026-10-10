@@ -181,6 +181,40 @@ void main() {
             key,
             '03_Van_Order_Detail/order_detail__${code}__${evidence.suffix}.png',
           );
+
+          await tester.tap(
+            find.byKey(const ValueKey('van-order-proof-action')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-proof-evidence-sheet')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_proof__${code}__${evidence.suffix}.png',
+          );
+          Navigator.of(
+            tester.element(
+              find.byKey(const ValueKey('van-proof-evidence-sheet')),
+            ),
+          ).pop();
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.byKey(const ValueKey('van-order-fail-action')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('van-failure-evidence-sheet')),
+            findsOneWidget,
+          );
+          await _writeBoundary(
+            tester,
+            key,
+            '03_Van_Order_Detail/order_failure__${code}__${evidence.suffix}.png',
+          );
         },
       );
     }
@@ -734,10 +768,11 @@ class _Orders implements VanOrderRepository {
   Future<VanOrderExecutionState> execution(int orderId) async =>
       VanOrderExecutionState(
         orderId: orderId,
-        orderStatus: 'pending',
-        status: 'assigned',
-        allowedActions: const ['accepted'],
+        orderStatus: 'out_for_delivery',
+        status: 'out_for_delivery',
+        allowedActions: const ['delivered', 'failed'],
         proofRequiredForDelivered: true,
+        deliveryProofReady: false,
       );
 
   @override
@@ -748,12 +783,81 @@ class _Orders implements VanOrderRepository {
   }) async =>
       VanOrderExecutionState(
         orderId: orderId,
-        orderStatus: status == 'out_for_delivery' ? status : 'pending',
+        orderStatus: status,
         status: status,
-        allowedActions: status == 'accepted'
-            ? const ['picked_up', 'failed']
-            : const <String>[],
+        allowedActions: const <String>[],
         proofRequiredForDelivered: true,
+        deliveryProofReady: false,
+      );
+
+  @override
+  Future<List<VanFailureReasonOption>> failedDeliveryReasons() async => const [
+        VanFailureReasonOption(
+          code: 'customer_no_answer',
+          labelAr: 'العميل لا يجيب',
+          labelEn: 'Customer did not answer',
+        ),
+        VanFailureReasonOption(
+          code: 'other',
+          labelAr: 'أخرى',
+          labelEn: 'Other',
+        ),
+      ];
+
+  @override
+  Future<VanOrderExecutionState> uploadProof({
+    required int orderId,
+    required VanProofAttachment proof,
+    required String idempotencyKey,
+    String? note,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'out_for_delivery',
+        status: 'out_for_delivery',
+        allowedActions: const ['delivered', 'failed'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: true,
+        latestProof: const VanOrderProofRecord(
+          id: 91,
+          type: 'delivery_image',
+          available: true,
+          capturedAt: '2026-10-07T11:15:00+03:00',
+        ),
+      );
+
+  @override
+  Future<VanOrderExecutionState> failOrder({
+    required int orderId,
+    required String failureReason,
+    required String idempotencyKey,
+    String? note,
+    VanProofAttachment? proof,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'failed',
+        status: 'failed',
+        allowedActions: const ['out_for_delivery'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: false,
+        failureReasonCode: failureReason,
+        failureNote: note,
+      );
+
+  @override
+  Future<VanOrderExecutionState> retryOrder({
+    required int orderId,
+    required String idempotencyKey,
+    String? note,
+  }) async =>
+      VanOrderExecutionState(
+        orderId: orderId,
+        orderStatus: 'out_for_delivery',
+        status: 'out_for_delivery',
+        allowedActions: const ['delivered', 'failed'],
+        proofRequiredForDelivered: true,
+        deliveryProofReady: false,
       );
 
 }
