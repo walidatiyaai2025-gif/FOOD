@@ -168,6 +168,112 @@ class HttpVanOrderRepository implements VanOrderRepository {
         .toList(growable: false);
   }
 
+  @override
+  Future<VanOrderDetail> order(int orderId) async {
+    final decoded = _map(await api.getJson('van/orders/$orderId'));
+    final data = _map(decoded['data']);
+    final customer = data['customer'] is Map ? _map(data['customer']) : null;
+    final address =
+        data['delivery_address'] is Map ? _map(data['delivery_address']) : null;
+    final invoice = data['invoice'] is Map ? _map(data['invoice']) : null;
+
+    return VanOrderDetail(
+      summary: _order(data),
+      paymentMethod: _nullableString(data['payment_method']),
+      customer: customer == null
+          ? null
+          : VanOrderCustomer(
+              name: _string(customer['name']),
+              phone: _nullableString(customer['phone']),
+              email: _nullableString(customer['email']),
+            ),
+      deliveryAddress: address == null
+          ? null
+          : VanOrderDeliveryAddress(
+              formatted: _string(address['formatted']),
+              hasCoordinates: address['has_coordinates'] == true,
+              latitude: _nullableDouble(address['latitude']),
+              longitude: _nullableDouble(address['longitude']),
+            ),
+      items: _list(data['items'])
+          .map((row) {
+            final item = _map(row);
+            return VanOrderItemRecord(
+              name: _string(item['name']),
+              sku: _string(item['sku']),
+              quantity: _double(item['quantity']),
+              lineTotal: _double(item['line_total']),
+            );
+          })
+          .toList(growable: false),
+      invoice: invoice == null
+          ? null
+          : VanOrderInvoiceRecord(
+              number: _string(invoice['invoice_number']),
+              status: _string(invoice['status']),
+              currency: _string(invoice['currency']),
+              total: _double(invoice['total']),
+              paidAmount: _double(invoice['paid_amount']),
+              outstandingAmount: _double(invoice['outstanding_amount']),
+            ),
+      payments: _list(data['payments'])
+          .map((row) {
+            final item = _map(row);
+            return VanOrderPaymentRecord(
+              provider: _string(item['provider']),
+              status: _string(item['status']),
+              amount: _double(item['amount']),
+              currency: _string(item['currency']),
+            );
+          })
+          .toList(growable: false),
+      collections: _list(data['collections'])
+          .map((row) {
+            final item = _map(row);
+            return VanOrderCollectionRecord(
+              status: _string(item['status']),
+              source: _string(item['source']),
+              amount: _double(item['amount']),
+              currency: _string(item['currency']),
+            );
+          })
+          .toList(growable: false),
+      timeline: _list(data['timeline'])
+          .map((row) {
+            final item = _map(row);
+            return VanOrderTimelineRecord(
+              stage: _string(item['stage']),
+              status: _string(item['status']),
+              source: _string(item['source']),
+              occurredAt: _nullableString(item['occurred_at']),
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
+  @override
+  Future<VanOrderExecutionState> execution(int orderId) async {
+    final decoded = _map(await api.getJson('van/orders/$orderId/execution'));
+    return _execution(_map(decoded['data']));
+  }
+
+  @override
+  Future<VanOrderExecutionState> transitionOrder({
+    required int orderId,
+    required String status,
+    required String idempotencyKey,
+  }) async {
+    final decoded = _map(
+      await api.postJson(
+        'van/orders/$orderId/execution/transition',
+        headers: {'Idempotency-Key': idempotencyKey},
+        body: {'status': status},
+      ),
+    );
+    return _execution(_map(decoded['data']));
+  }
+
   VanOrderQuote _quote(Map<String, dynamic> data) => VanOrderQuote(
         currency: _string(data['currency']),
         subtotal: _double(data['subtotal']),
@@ -188,6 +294,28 @@ class HttpVanOrderRepository implements VanOrderRepository {
         currency: _string(data['currency']),
         grandTotal: _double(data['grand_total']),
         createdAt: _nullableString(data['created_at']),
+        vanExecutionStatus: _nullableString(data['van_execution_status']),
+        vanFailureReasonCode:
+            _nullableString(data['van_failure_reason_code']),
+        vanLastTransitionAt:
+            _nullableString(data['van_last_transition_at']),
+      );
+
+  VanOrderExecutionState _execution(Map<String, dynamic> data) =>
+      VanOrderExecutionState(
+        orderId: _requiredInt(data['order_id']),
+        orderStatus: _string(data['order_status']),
+        status: _string(data['status']),
+        allowedActions: _list(data['allowed_actions'])
+            .map(_string)
+            .where((value) => value.isNotEmpty)
+            .toList(growable: false),
+        proofRequiredForDelivered:
+            data['proof_required_for_delivered'] == true,
+        failureReasonCode:
+            _nullableString(data['failure_reason_code']),
+        lastTransitionAt:
+            _nullableString(data['last_transition_at']),
       );
 
   Map<String, dynamic> _map(Object? value) {
