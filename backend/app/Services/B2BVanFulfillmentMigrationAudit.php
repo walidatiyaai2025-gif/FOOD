@@ -84,20 +84,20 @@ final class B2BVanFulfillmentMigrationAudit
                         if ($activeDriverIds !== []) {
                             $issues[] = 'b2b_active_driver';
                         }
-                        if (($dispatch?->current_assignee_type ?? null) === FulfillmentActorPolicy::DRIVER) {
+                        if ($dispatch?->current_assignee_type === FulfillmentActorPolicy::DRIVER) {
                             $issues[] = 'b2b_dispatch_driver';
                         }
                         if (count($activeVanIds) > 1) {
                             $issues[] = 'b2b_multiple_active_vans';
                         }
-                        if ($activeVanIds === [] && ($dispatch?->current_assignee_type ?? null) !== FulfillmentActorPolicy::VAN) {
+                        if ($activeVanIds === [] && $dispatch?->current_assignee_type !== FulfillmentActorPolicy::VAN) {
                             $issues[] = 'b2b_requires_van_routing';
                         }
                     } else {
                         if ($activeVanIds !== []) {
                             $issues[] = 'b2c_active_van';
                         }
-                        if (($dispatch?->current_assignee_type ?? null) === FulfillmentActorPolicy::VAN) {
+                        if ($dispatch?->current_assignee_type === FulfillmentActorPolicy::VAN) {
                             $issues[] = 'b2c_dispatch_van';
                         }
                     }
