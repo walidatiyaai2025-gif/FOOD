@@ -856,6 +856,29 @@ Recommended lanes:
 
 Child Issues may close individually. **#1190 must not close until lane 16 passes and the coverage matrix has no unresolved Critical/High row.**
 
+### Created execution Issue map
+
+| Wave/Lane | Issue | Scope |
+| --- | ---: | --- |
+| W01 | #1192 | Channel actor contract, Van execution state, migration dry-run |
+| W02 | #1193 | Route every B2B order source through Smart Routing |
+| W03 | #1194 | Van assigned-order and exact Order Detail APIs |
+| W04 | #1195 | Shared delivery execution rules + B2C Driver non-regression |
+| W05 | #1196 | Van B2B delivery execution backend |
+| W06 | #1197 | Van Orders, Order Detail and delivery-action UX |
+| W07 | #1198 | Van proof, failed-delivery and retry UX |
+| W08 | #1199 | Van collection, receipt, wallet and Delivered integration |
+| W09 | #1200 | Van B2B notifications, push targeting and deep links |
+| W10 | #1201 | B2B Van live location and tracking integration |
+| W11 | #1202 | Dashboard B2B Van dispatch, exceptions and timelines |
+| W12 | #1203 | Remove B2B execution from Driver App and APIs |
+| W13 | #1204 | Customer App B2B Van fulfillment status and tracking |
+| W14 | #1205 | Cut over existing open B2B work to Van ownership |
+| W15 | #1206 | OpenAPI/docs/route authority/release evidence |
+| W16 | #1207 | Final integrated E2E closure gate |
+
+These Issues are execution lanes, not substitutes for the umbrella. #1190 remains the only program-level completion gate.
+
 ---
 
 ## 19. Required final E2E scenarios
