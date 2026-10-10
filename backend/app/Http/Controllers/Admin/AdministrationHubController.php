@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\MobileReleaseArtifactMirror;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -11,7 +12,10 @@ use Illuminate\Support\Facades\App;
 
 final class AdministrationHubController extends Controller
 {
-    public function __construct(private readonly AdminNavigation $navigation) {}
+    public function __construct(
+        private readonly AdminNavigation $navigation,
+        private readonly MobileReleaseArtifactMirror $mobileArtifacts,
+    ) {}
 
     public function __invoke(Request $request): View
     {
@@ -23,6 +27,8 @@ final class AdministrationHubController extends Controller
             : (string) config('app.locale', 'ar');
 
         App::setLocale($locale);
+
+        $mobileReleaseVersion = $this->mobileArtifacts->ensureScheduled();
 
         return view('admin.administration-hub', [
             'user' => $user,
@@ -44,6 +50,8 @@ final class AdministrationHubController extends Controller
                 || $user->hasPermission('settings.view')
                 || $user->hasPermission('settings.manage'),
             'canSystemUpdate' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('system.update'),
+            'mobileReleaseVersion' => $mobileReleaseVersion,
+            'mobileReleaseArtifacts' => collect($this->mobileArtifacts->statusPayload($mobileReleaseVersion))->keyBy('app'),
         ]);
     }
 }
