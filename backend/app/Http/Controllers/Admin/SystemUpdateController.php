@@ -7,6 +7,7 @@ use App\Domain\Updater\UpdatePackageManifest;
 use App\Http\Controllers\Controller;
 use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
+use App\Services\MobileReleaseArtifactMirror;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -17,14 +18,20 @@ use ZipArchive;
 
 final class SystemUpdateController extends Controller
 {
-    public function __construct(private readonly UpdateManager $manager) {}
+    public function __construct(
+        private readonly UpdateManager $manager,
+        private readonly MobileReleaseArtifactMirror $mobileArtifacts,
+    ) {}
 
     public function index(Request $request): View
     {
         Gate::authorize('system.update');
 
+        $currentVersion = $this->currentVersion();
+        $this->mobileArtifacts->ensureScheduled($currentVersion);
+
         return view('admin.system-update', [
-            'currentVersion' => $this->currentVersion(),
+            'currentVersion' => $currentVersion,
             'historyRows' => UpdateHistory::query()->latest('id')->paginate(20)->withQueryString(),
         ]);
     }
@@ -72,6 +79,8 @@ final class SystemUpdateController extends Controller
                 $packagePath,
                 $user,
             );
+
+            $this->mobileArtifacts->ensureScheduled($history->to_version);
 
             return redirect()
                 ->route('admin.system-update.index')
