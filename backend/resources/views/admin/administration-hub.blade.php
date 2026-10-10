@@ -32,6 +32,20 @@ html[dir=ltr] .main{grid-column:2}
 .utility-card{display:flex;justify-content:space-between;gap:16px;align-items:center}
 .utility-card h3{margin:0 0 6px}
 .utility-card .action{flex:0 0 auto}
+.apk-mirror{margin-top:10px;padding:11px;border:1px solid var(--foodex-border);border-radius:10px;background:#f8faf9}
+.apk-mirror-head{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:.9rem;font-weight:800}
+.apk-status{font-weight:900}
+.apk-progress{height:7px;margin-top:9px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.apk-progress>span{display:block;height:100%;width:0;background:var(--foodex-green);transition:width .25s ease}
+.apk-meta{margin-top:7px;color:var(--foodex-muted);font-size:.82rem}
+.apk-modal[hidden]{display:none}
+.apk-modal{position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.48);display:grid;place-items:center;padding:18px}
+.apk-modal-card{width:min(520px,100%);background:#fff;border-radius:16px;padding:20px;box-shadow:0 24px 70px rgba(15,23,42,.28)}
+.apk-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.apk-modal-head h2{margin:0}
+.apk-modal-close{border:0;background:#f3f4f6;border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:800}
+.apk-modal-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.apk-modal-note{margin:10px 0 0}
 @media(max-width:1023px){.foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{grid-template-columns:1fr}.sidebar,.main,html[dir=ltr] .sidebar,html[dir=ltr] .main{grid-column:1}.sidebar{grid-row:1;border-inline:0;border-bottom:1px solid var(--foodex-border)}.main{grid-row:2}.grid{grid-template-columns:1fr 1fr}}
 @media(max-width:680px){.hub-intro,.section-head,.utility-card{align-items:stretch;flex-direction:column}.grid,.utility-grid{grid-template-columns:1fr}}
 </style>
@@ -62,7 +76,23 @@ html[dir=ltr] .main{grid-column:2}
 <div class="app-badge">{{ strtoupper(substr($app,0,1)) }}</div>
 <h3>{{ __('admin.administration_hub.'.$app) }}</h3>
 <p class="muted">{{ __('admin.administration_hub.applications_description') }}</p>
+@if($canPlatformManage)
+@php($artifact = $mobileReleaseArtifacts->get($app, []))
+@php($artifactStatus = $artifact['status'] ?? 'pending')
+@php($artifactProgress = (int)($artifact['progress_percent'] ?? 0))
+<div class="apk-mirror" data-apk-card="{{ $app }}" data-status="{{ $artifactStatus }}">
+<div class="apk-mirror-head">
+<span>{{ __('admin.mobile_apps.server_copy') }}</span>
+<span class="apk-status" data-apk-status>{{ __('admin.mobile_apps.status_'.$artifactStatus) }}</span>
+</div>
+<div class="apk-progress" aria-label="{{ __('admin.mobile_apps.progress') }}"><span data-apk-progress style="width:{{ $artifactProgress }}%"></span></div>
+<div class="apk-meta"><span data-apk-percent>{{ $artifactProgress }}%</span> · {{ __('admin.mobile_apps.version') }} {{ $mobileReleaseVersion }}</div>
+</div>
+@endif
 <div class="actions">
+@if($canPlatformManage)
+<button type="button" class="action" data-apk-open="{{ $app }}">{{ __('admin.mobile_apps.download_apk') }}</button>
+@endif
 @if($canAppPreview)
 <a class="action" href="{{ route('admin.app-preview.index', ['application'=>$app]) }}">{{ __('admin.administration_hub.preview') }}</a>
 @else
@@ -97,5 +127,182 @@ html[dir=ltr] .main{grid-column:2}
 </section>
 </main>
 </div>
+
+@if($canPlatformManage)
+<div class="apk-modal" id="apk-download-modal" hidden role="dialog" aria-modal="true" aria-labelledby="apk-modal-title">
+<div class="apk-modal-card">
+<div class="apk-modal-head">
+<div>
+<h2 id="apk-modal-title">{{ __('admin.mobile_apps.download_apk') }}</h2>
+<p class="muted apk-modal-note"><span data-apk-modal-app></span> · {{ __('admin.mobile_apps.version') }} <span data-apk-modal-version>{{ $mobileReleaseVersion }}</span></p>
+</div>
+<button type="button" class="apk-modal-close" data-apk-close>{{ __('admin.mobile_apps.close') }}</button>
+</div>
+<div class="apk-mirror">
+<div class="apk-mirror-head">
+<span>{{ __('admin.mobile_apps.server_copy') }}</span>
+<span class="apk-status" data-apk-modal-status></span>
+</div>
+<div class="apk-progress"><span data-apk-modal-progress></span></div>
+<div class="apk-meta"><span data-apk-modal-percent>0%</span></div>
+<p class="muted apk-modal-note" data-apk-modal-note>{{ __('admin.mobile_apps.not_ready') }}</p>
+</div>
+<div class="apk-modal-actions">
+<a class="action" data-apk-download hidden href="#">{{ __('admin.mobile_apps.download_from_server') }}</a>
+<button type="button" class="action secondary" data-apk-retry hidden>{{ __('admin.mobile_apps.retry') }}</button>
+</div>
+</div>
+</div>
+
+<script>
+(() => {
+    const statusUrl = @json(route('admin.mobile-apps.status'));
+    const retryUrl = @json(route('admin.mobile-apps.retry'));
+    const csrf = @json(csrf_token());
+    const labels = @json([
+        'pending' => __('admin.mobile_apps.status_pending'),
+        'downloading' => __('admin.mobile_apps.status_downloading'),
+        'verifying' => __('admin.mobile_apps.status_verifying'),
+        'ready' => __('admin.mobile_apps.status_ready'),
+        'failed' => __('admin.mobile_apps.status_failed'),
+    ]);
+    const appLabels = @json([
+        'customer' => __('admin.administration_hub.customer'),
+        'driver' => __('admin.administration_hub.driver'),
+        'van' => __('admin.administration_hub.van'),
+    ]);
+    let artifacts = @json($mobileReleaseArtifacts->values()->all());
+    let selectedApp = null;
+    let refreshing = false;
+
+    const modal = document.getElementById('apk-download-modal');
+    const modalStatus = modal.querySelector('[data-apk-modal-status]');
+    const modalProgress = modal.querySelector('[data-apk-modal-progress]');
+    const modalPercent = modal.querySelector('[data-apk-modal-percent]');
+    const modalApp = modal.querySelector('[data-apk-modal-app]');
+    const modalVersion = modal.querySelector('[data-apk-modal-version]');
+    const modalNote = modal.querySelector('[data-apk-modal-note]');
+    const download = modal.querySelector('[data-apk-download]');
+    const retry = modal.querySelector('[data-apk-retry]');
+
+    function artifactFor(app) {
+        return artifacts.find((row) => row.app === app) || {
+            app,
+            version: @json($mobileReleaseVersion),
+            status: 'pending',
+            progress_percent: 0,
+            download_url: null,
+        };
+    }
+
+    function renderCard(row) {
+        const card = document.querySelector('[data-apk-card="' + row.app + '"]');
+        if (!card) return;
+        const progress = Math.max(0, Math.min(100, Number(row.progress_percent || 0)));
+        card.dataset.status = row.status;
+        card.querySelector('[data-apk-status]').textContent = labels[row.status] || row.status;
+        card.querySelector('[data-apk-progress]').style.width = progress + '%';
+        card.querySelector('[data-apk-percent]').textContent = progress + '%';
+    }
+
+    function renderModal() {
+        if (!selectedApp) return;
+        const row = artifactFor(selectedApp);
+        const progress = Math.max(0, Math.min(100, Number(row.progress_percent || 0)));
+        modalApp.textContent = appLabels[selectedApp] || selectedApp;
+        modalVersion.textContent = row.version || @json($mobileReleaseVersion);
+        modalStatus.textContent = labels[row.status] || row.status;
+        modalProgress.style.width = progress + '%';
+        modalPercent.textContent = progress + '%';
+        download.hidden = row.status !== 'ready' || !row.download_url;
+        download.href = row.download_url || '#';
+        retry.hidden = row.status !== 'failed';
+        modalNote.hidden = row.status === 'ready';
+        if (row.status === 'failed' && row.last_error) {
+            modalNote.hidden = false;
+            modalNote.textContent = row.last_error;
+        } else if (row.status !== 'ready') {
+            modalNote.textContent = @json(__('admin.mobile_apps.not_ready'));
+        }
+    }
+
+    function renderAll() {
+        artifacts.forEach(renderCard);
+        renderModal();
+    }
+
+    async function refresh() {
+        if (refreshing) return;
+        refreshing = true;
+        try {
+            const response = await fetch(statusUrl, {
+                credentials: 'same-origin',
+                headers: {'Accept': 'application/json'},
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            artifacts = Array.isArray(payload.artifacts) ? payload.artifacts : artifacts;
+            renderAll();
+        } finally {
+            refreshing = false;
+        }
+    }
+
+    function openModal(app) {
+        selectedApp = app;
+        modal.hidden = false;
+        renderModal();
+        void refresh();
+    }
+
+    document.querySelectorAll('[data-apk-open]').forEach((button) => {
+        button.addEventListener('click', () => openModal(button.dataset.apkOpen));
+    });
+    modal.querySelector('[data-apk-close]').addEventListener('click', () => {
+        modal.hidden = true;
+        selectedApp = null;
+    });
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.hidden = true;
+            selectedApp = null;
+        }
+    });
+    retry.addEventListener('click', async () => {
+        retry.disabled = true;
+        try {
+            const response = await fetch(retryUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'Content-Type': 'application/json',
+                },
+                body: '{}',
+            });
+            if (response.ok) {
+                const payload = await response.json();
+                artifacts = Array.isArray(payload.artifacts) ? payload.artifacts : artifacts;
+                renderAll();
+            }
+        } finally {
+            retry.disabled = false;
+        }
+    });
+
+    renderAll();
+    const requestedApp = @json(request('download_app'));
+    if (requestedApp && appLabels[requestedApp]) {
+        openModal(requestedApp);
+    }
+
+    window.setInterval(() => {
+        const unfinished = artifacts.some((row) => ['pending', 'downloading', 'verifying'].includes(row.status));
+        if (!modal.hidden || unfinished) void refresh();
+    }, 2000);
+})();
+</script>
+@endif
 </body>
 </html>
