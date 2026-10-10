@@ -235,8 +235,18 @@ final class MobileReleaseArtifactMirror
                 ])
                 ->get(self::RELEASE_BASE_URL.'/v'.$version.'/'.$filename);
 
-            if (! $response->successful() || ! is_file($partialPath)) {
+            if (! $response->successful()) {
                 throw new RuntimeException('FOODEX APK artifact is unavailable.');
+            }
+
+            if ((! is_file($partialPath) || filesize($partialPath) === 0) && $response->body() !== '') {
+                if (file_put_contents($partialPath, $response->body()) === false) {
+                    throw new RuntimeException('Could not persist downloaded FOODEX APK bytes.');
+                }
+            }
+
+            if (! is_file($partialPath)) {
+                throw new RuntimeException('FOODEX APK artifact was not persisted locally.');
             }
 
             clearstatcache(true, $partialPath);
