@@ -234,56 +234,62 @@ class OrderDomainTest extends TestCase
             ]);
         }
 
-        $driverUser = User::query()->create([
-            'name' => 'Wholesale Driver',
-            'email' => 'wholesale-timeline-driver@example.test',
-            'password' => 'secret-password',
-            'is_active' => true,
-        ]);
-        $driverId = (int) DB::table('drivers')->insertGetId([
-            'user_id' => $driverUser->id,
-            'store_id' => $this->b2bStoreId,
-            'driver_type' => 'b2b',
-            'is_available' => true,
-            'is_active' => true,
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000000077',
+            'code' => 'VAN-CUSTOMER-77',
+            'status' => 'active',
             'created_at' => $base,
             'updated_at' => $base,
         ]);
-        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
-            'driver_id' => $driverId,
+        $assignmentId = (int) DB::table('order_van_assignments')->insertGetId([
             'order_id' => $order->id,
-            'store_id' => $this->b2bStoreId,
-            'assignment_type' => 'b2b',
-            'status' => 'delivered',
+            'van_id' => $vanId,
+            'status' => 'active',
+            'source' => 'smart_routing',
+            'decision_key' => 'customer-timeline-'.$order->id,
             'assigned_at' => $base->copy()->addMinutes(4),
-            'completed_at' => $base->copy()->addMinutes(8),
+            'created_at' => $base->copy()->addMinutes(4),
+            'updated_at' => $base->copy()->addMinutes(4),
+        ]);
+        $stateId = (int) DB::table('order_van_execution_states')->insertGetId([
+            'order_van_assignment_id' => $assignmentId,
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'delivered',
+            'version' => 5,
+            'last_transition_at' => $base->copy()->addMinutes(8),
             'created_at' => $base->copy()->addMinutes(4),
             'updated_at' => $base->copy()->addMinutes(8),
         ]);
 
+        $from = 'assigned';
         foreach ([
-            ['accepted', 5, 'status_note'],
-            ['picked_up', 6, 'status_note'],
-            ['out_for_delivery', 7, 'status_note'],
-            ['delivered', 8, 'delivery_image'],
-        ] as [$status, $minutes, $proofType]) {
-            DB::table('delivery_proofs')->insert([
-                'driver_assignment_id' => $assignmentId,
+            ['accepted', 5],
+            ['picked_up', 6],
+            ['out_for_delivery', 7],
+            ['delivered', 8],
+        ] as [$status, $minutes]) {
+            DB::table('order_van_execution_events')->insert([
+                'order_van_assignment_id' => $assignmentId,
+                'order_van_execution_state_id' => $stateId,
                 'order_id' => $order->id,
-                'user_id' => $driverUser->id,
-                'proof_type' => $proofType,
-                'from_status' => null,
+                'van_id' => $vanId,
+                'user_id' => null,
+                'action' => $status,
+                'idempotency_key' => 'customer-'.$status,
+                'from_status' => $from,
                 'to_status' => $status,
-                'file_path' => $status === 'delivered'
-                    ? 'delivery-proofs/PRIVATE-CUSTOMER-PROOF.jpg'
+                'proof_type' => $status === 'delivered' ? 'delivery_image' : null,
+                'proof_path' => $status === 'delivered'
+                    ? 'van-proofs/PRIVATE-CUSTOMER-PROOF.jpg'
                     : null,
-                'otp_hash' => null,
                 'reason_code' => null,
-                'note' => 'PRIVATE DRIVER NOTE '.$status,
+                'note' => 'PRIVATE VAN NOTE '.$status,
                 'captured_at' => $base->copy()->addMinutes($minutes),
                 'created_at' => $base->copy()->addMinutes($minutes),
                 'updated_at' => $base->copy()->addMinutes($minutes),
             ]);
+            $from = $status;
         }
 
         Sanctum::actingAs($this->b2bUser);
@@ -292,10 +298,6 @@ class OrderDomainTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.id', $order->id)
             ->assertJsonPath('data.0.timeline', null);
-        $this->assertStringNotContainsString(
-            'PRIVATE DRIVER NOTE',
-            (string) $list->getContent(),
-        );
 
         $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
             ->assertOk()
@@ -305,13 +307,14 @@ class OrderDomainTest extends TestCase
             ->assertJsonPath('timeline.1.stage', 'confirmed')
             ->assertJsonPath('timeline.2.stage', 'preparing')
             ->assertJsonPath('timeline.3.stage', 'ready')
-            ->assertJsonPath('timeline.4.stage', 'driver_assigned')
-            ->assertJsonPath('timeline.4.driver_name', 'Wholesale Driver')
+            ->assertJsonPath('timeline.4.stage', 'van_assigned')
+            ->assertJsonPath('timeline.4.van_code', 'VAN-CUSTOMER-77')
             ->assertJsonPath('timeline.5.stage', 'accepted')
             ->assertJsonPath('timeline.6.stage', 'picked_up')
             ->assertJsonPath('timeline.7.stage', 'out_for_delivery')
             ->assertJsonPath('timeline.8.stage', 'delivered')
-            ->assertJsonPath('tracking.driver_name', 'Wholesale Driver')
+            ->assertJsonPath('tracking.actor_type', 'van')
+            ->assertJsonPath('tracking.van_code', 'VAN-CUSTOMER-77')
             ->assertJsonPath('tracking.status', 'delivered')
             ->assertJsonPath('allowed_actions.cancel', false)
             ->assertJsonPath('allowed_actions.reorder', false)
@@ -319,8 +322,10 @@ class OrderDomainTest extends TestCase
             ->assertJsonPath('tax_total', 0);
 
         $payload = (string) $response->getContent();
+        $this->assertStringNotContainsString('driver_name', $payload);
+        $this->assertStringNotContainsString('driver_id', $payload);
         $this->assertStringNotContainsString('INTERNAL ORDER NOTE', $payload);
-        $this->assertStringNotContainsString('PRIVATE DRIVER NOTE', $payload);
+        $this->assertStringNotContainsString('PRIVATE VAN NOTE', $payload);
         $this->assertStringNotContainsString('PRIVATE-CUSTOMER-PROOF.jpg', $payload);
         $this->assertStringNotContainsString('"note"', $payload);
     }
@@ -338,41 +343,47 @@ class OrderDomainTest extends TestCase
         ]);
         DB::table('order_status_history')->where('order_id', $order->id)->delete();
 
-        $driverUser = User::query()->create([
-            'name' => 'Failed Wholesale Driver',
-            'email' => 'failed-wholesale-driver@example.test',
-            'password' => 'secret-password',
-            'is_active' => true,
-        ]);
-        $driverId = (int) DB::table('drivers')->insertGetId([
-            'user_id' => $driverUser->id,
-            'store_id' => $this->b2bStoreId,
-            'driver_type' => 'b2b',
-            'is_available' => true,
-            'is_active' => true,
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000000078',
+            'code' => 'VAN-FAILED-78',
+            'status' => 'active',
             'created_at' => $base,
             'updated_at' => $base,
         ]);
-        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
-            'driver_id' => $driverId,
+        $assignmentId = (int) DB::table('order_van_assignments')->insertGetId([
             'order_id' => $order->id,
-            'store_id' => $this->b2bStoreId,
-            'assignment_type' => 'b2b',
-            'status' => 'failed',
+            'van_id' => $vanId,
+            'status' => 'active',
+            'source' => 'smart_routing',
+            'decision_key' => 'customer-failed-'.$order->id,
             'assigned_at' => $base->copy()->addMinute(),
-            'completed_at' => $base->copy()->addMinutes(2),
+            'created_at' => $base->copy()->addMinute(),
+            'updated_at' => $base->copy()->addMinute(),
+        ]);
+        $stateId = (int) DB::table('order_van_execution_states')->insertGetId([
+            'order_van_assignment_id' => $assignmentId,
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'failed',
+            'failure_reason_code' => 'customer_no_answer',
+            'failure_note' => 'DO NOT SHOW THIS STATE NOTE',
+            'version' => 2,
+            'last_transition_at' => $base->copy()->addMinutes(2),
             'created_at' => $base->copy()->addMinute(),
             'updated_at' => $base->copy()->addMinutes(2),
         ]);
-        DB::table('delivery_proofs')->insert([
-            'driver_assignment_id' => $assignmentId,
+        DB::table('order_van_execution_events')->insert([
+            'order_van_assignment_id' => $assignmentId,
+            'order_van_execution_state_id' => $stateId,
             'order_id' => $order->id,
-            'user_id' => $driverUser->id,
-            'proof_type' => 'failure_note',
+            'van_id' => $vanId,
+            'user_id' => null,
+            'action' => 'failed',
+            'idempotency_key' => 'customer-failed-event',
             'from_status' => 'out_for_delivery',
             'to_status' => 'failed',
-            'file_path' => null,
-            'otp_hash' => null,
+            'proof_type' => 'failure_note',
+            'proof_path' => null,
             'reason_code' => 'customer_no_answer',
             'note' => 'DO NOT SHOW THIS FAILURE NOTE',
             'captured_at' => $base->copy()->addMinutes(2),
@@ -384,16 +395,161 @@ class OrderDomainTest extends TestCase
 
         $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
             ->assertOk()
+            ->assertJsonPath('timeline.1.stage', 'van_assigned')
+            ->assertJsonPath('timeline.1.van_code', 'VAN-FAILED-78')
             ->assertJsonPath('timeline.2.stage', 'failed')
             ->assertJsonPath('timeline.2.reason_code', 'customer_no_answer')
-            ->assertJsonPath('tracking.driver_name', 'Failed Wholesale Driver')
+            ->assertJsonPath('tracking.actor_type', 'van')
+            ->assertJsonPath('tracking.van_code', 'VAN-FAILED-78')
             ->assertJsonPath('tracking.status', 'failed')
             ->assertJsonPath('is_terminal', true);
 
-        $this->assertStringNotContainsString(
-            'DO NOT SHOW THIS FAILURE NOTE',
-            (string) $response->getContent(),
+        $payload = (string) $response->getContent();
+        $this->assertStringNotContainsString('driver_name', $payload);
+        $this->assertStringNotContainsString('DO NOT SHOW THIS FAILURE NOTE', $payload);
+        $this->assertStringNotContainsString('DO NOT SHOW THIS STATE NOTE', $payload);
+    }
+
+    public function test_b2b_retry_timeline_preserves_failed_reason_then_returns_to_out_for_delivery(): void
+    {
+        $order = $this->makeOrder(
+            $this->b2bCustomer,
+            $this->b2bStoreId,
+            'b2b',
+            'out_for_delivery',
         );
+        $base = now()->subMinutes(10)->startOfSecond();
+
+        DB::table('orders')->where('id', $order->id)->update([
+            'created_at' => $base,
+            'updated_at' => $base->copy()->addMinutes(3),
+        ]);
+        DB::table('order_status_history')->where('order_id', $order->id)->delete();
+
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000000079',
+            'code' => 'VAN-RETRY-79',
+            'status' => 'active',
+            'created_at' => $base,
+            'updated_at' => $base,
+        ]);
+        $assignmentId = (int) DB::table('order_van_assignments')->insertGetId([
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'active',
+            'source' => 'smart_routing',
+            'decision_key' => 'customer-retry-'.$order->id,
+            'assigned_at' => $base->copy()->addMinute(),
+            'created_at' => $base->copy()->addMinute(),
+            'updated_at' => $base->copy()->addMinute(),
+        ]);
+        $stateId = (int) DB::table('order_van_execution_states')->insertGetId([
+            'order_van_assignment_id' => $assignmentId,
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'out_for_delivery',
+            'failure_reason_code' => null,
+            'failure_note' => null,
+            'version' => 3,
+            'last_transition_at' => $base->copy()->addMinutes(3),
+            'created_at' => $base->copy()->addMinute(),
+            'updated_at' => $base->copy()->addMinutes(3),
+        ]);
+
+        foreach ([
+            [
+                'action' => 'failed',
+                'key' => 'customer-retry-failed',
+                'from' => 'out_for_delivery',
+                'to' => 'failed',
+                'reason' => 'customer_no_answer',
+                'note' => 'DO NOT SHOW RETRY FAILURE NOTE',
+                'minute' => 2,
+            ],
+            [
+                'action' => 'retry',
+                'key' => 'customer-retry-success',
+                'from' => 'failed',
+                'to' => 'out_for_delivery',
+                'reason' => null,
+                'note' => 'DO NOT SHOW RETRY NOTE',
+                'minute' => 3,
+            ],
+        ] as $event) {
+            DB::table('order_van_execution_events')->insert([
+                'order_van_assignment_id' => $assignmentId,
+                'order_van_execution_state_id' => $stateId,
+                'order_id' => $order->id,
+                'van_id' => $vanId,
+                'user_id' => null,
+                'action' => $event['action'],
+                'idempotency_key' => $event['key'],
+                'from_status' => $event['from'],
+                'to_status' => $event['to'],
+                'proof_type' => $event['to'] === 'failed' ? 'failure_note' : null,
+                'proof_path' => null,
+                'reason_code' => $event['reason'],
+                'note' => $event['note'],
+                'captured_at' => $base->copy()->addMinutes($event['minute']),
+                'created_at' => $base->copy()->addMinutes($event['minute']),
+                'updated_at' => $base->copy()->addMinutes($event['minute']),
+            ]);
+        }
+
+        Sanctum::actingAs($this->b2bUser);
+
+        $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('timeline.0.stage', 'placed')
+            ->assertJsonPath('timeline.1.stage', 'van_assigned')
+            ->assertJsonPath('timeline.1.van_code', 'VAN-RETRY-79')
+            ->assertJsonPath('timeline.2.stage', 'failed')
+            ->assertJsonPath('timeline.2.reason_code', 'customer_no_answer')
+            ->assertJsonPath('timeline.3.stage', 'out_for_delivery')
+            ->assertJsonMissingPath('timeline.3.reason_code')
+            ->assertJsonPath('tracking.actor_type', 'van')
+            ->assertJsonPath('tracking.van_code', 'VAN-RETRY-79')
+            ->assertJsonPath('tracking.status', 'out_for_delivery');
+
+        $payload = (string) $response->getContent();
+        $this->assertStringNotContainsString('driver_name', $payload);
+        $this->assertStringNotContainsString('DO NOT SHOW RETRY FAILURE NOTE', $payload);
+        $this->assertStringNotContainsString('DO NOT SHOW RETRY NOTE', $payload);
+    }
+
+    public function test_b2b_awaiting_dispatch_is_exposed_without_driver_fallback(): void
+    {
+        $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b');
+        $base = now()->subMinutes(5)->startOfSecond();
+
+        DB::table('orders')->where('id', $order->id)->update([
+            'created_at' => $base,
+            'updated_at' => $base->copy()->addMinute(),
+        ]);
+        DB::table('order_status_history')->where('order_id', $order->id)->delete();
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order->id,
+            'status' => 'awaiting_dispatch',
+            'routing_source' => 'smart_routing',
+            'routing_reason' => 'no_eligible_van',
+            'decided_at' => $base->copy()->addMinute(),
+            'created_at' => $base->copy()->addMinute(),
+            'updated_at' => $base->copy()->addMinute(),
+        ]);
+
+        Sanctum::actingAs($this->b2bUser);
+
+        $response = $this->getJson("/api/v1/b2b/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('timeline.0.stage', 'placed')
+            ->assertJsonPath('timeline.1.stage', 'awaiting_dispatch')
+            ->assertJsonPath('tracking.actor_type', 'van')
+            ->assertJsonPath('tracking.status', 'awaiting_dispatch')
+            ->assertJsonPath('tracking.van_code', null);
+
+        $payload = (string) $response->getContent();
+        $this->assertStringNotContainsString('driver_name', $payload);
+        $this->assertStringNotContainsString('no_eligible_van', $payload);
     }
 
     public function test_customer_cannot_transition_order_and_invalid_admin_transition_conflicts(): void

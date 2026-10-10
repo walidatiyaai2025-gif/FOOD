@@ -1503,14 +1503,13 @@ void main() {
             'occurred_at': '2026-10-01T20:10:00+00:00',
           },
           {
-            'stage': 'driver_assigned',
+            'stage': 'van_assigned',
             'occurred_at': '2026-10-01T20:12:00+00:00',
-            'driver_name': 'Ahmed Driver',
+            'van_code': 'VAN-07',
           },
           {
             'stage': 'out_for_delivery',
             'occurred_at': '2026-10-01T20:20:00+00:00',
-            'driver_name': 'Ahmed Driver',
           },
         ],
         'items': const <Object>[],
@@ -1531,7 +1530,6 @@ void main() {
           {
             'stage': 'delivered',
             'occurred_at': '2026-10-01T20:30:00+00:00',
-            'driver_name': 'Ahmed Driver',
           },
         ],
         'items': const <Object>[],
@@ -1550,14 +1548,15 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-timeline-0-placed')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('b2b-timeline-2-driver_assigned')),
+      find.byKey(const ValueKey('b2b-timeline-2-van_assigned')),
       findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('b2b-timeline-3-out_for_delivery')),
       findsOneWidget,
     );
-    expect(find.text('Ahmed Driver'), findsWidgets);
+    expect(find.text('VAN-07'), findsOneWidget);
+    expect(find.textContaining('Driver'), findsNothing);
     expect(find.text('تم التأكيد'), findsNothing);
     expect(find.text('جاري التجهيز'), findsNothing);
     expect(find.text('تم التسليم'), findsNothing);
@@ -1575,6 +1574,57 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-timeline-1-delivered')), findsOneWidget);
     expect(find.text('تم التسليم'), findsWidgets);
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
+  });
+
+  testWidgets('B2B awaiting dispatch is explicit and never invents a Driver',
+      (tester) async {
+    final api = _FakeB2bApi({
+      'id': 79,
+      'order_number': 'B2B-79',
+      'status': 'pending',
+      'channel': 'b2b',
+      'currency': 'KWD',
+      'grand_total': 20.0,
+      'store': {'id': 7, 'name': 'Wholesale Store'},
+      'tracking': {
+        'actor_type': 'van',
+        'status': 'awaiting_dispatch',
+        'van_code': null,
+      },
+      'timeline': [
+        {
+          'stage': 'placed',
+          'occurred_at': '2026-10-04T10:00:00+00:00',
+        },
+        {
+          'stage': 'awaiting_dispatch',
+          'occurred_at': '2026-10-04T10:01:00+00:00',
+        },
+      ],
+      'items': const <Object>[],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/orders/79',
+        b2bApi: api,
+        locale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2b-timeline-1-awaiting_dispatch')),
+      findsOneWidget,
+    );
+    await _scrollUntilBuilt(
+      tester,
+      find.byKey(const ValueKey('b2b-order-detail')),
+      find.text('Awaiting dispatch'),
+    );
+    expect(find.text('Awaiting dispatch'), findsWidgets);
+    expect(find.text('Driver'), findsNothing);
   });
 
   testWidgets(
@@ -1615,7 +1665,8 @@ void main() {
         'has_coordinates': true,
       },
       'tracking': {
-        'driver_name': 'Driver One',
+        'actor_type': 'van',
+        'van_code': 'VAN-ONE',
         'status': 'failed',
         'assigned_at': '2026-10-04T10:10:00+00:00',
       },
@@ -1653,7 +1704,6 @@ void main() {
         {
           'stage': 'failed',
           'occurred_at': '2026-10-04T10:20:00+00:00',
-          'driver_name': 'Driver One',
           'reason_code': 'customer_no_answer',
         },
       ],
@@ -1699,7 +1749,8 @@ void main() {
       find.text('Customer did not answer'),
     );
     expect(find.text('Customer did not answer'), findsOneWidget);
-    expect(find.text('Driver One'), findsWidgets);
+    expect(find.text('VAN-ONE'), findsWidgets);
+    expect(find.textContaining('Driver One'), findsNothing);
 
     await _scrollUntilBuilt(
       tester,
