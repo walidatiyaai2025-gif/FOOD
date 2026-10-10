@@ -16,15 +16,15 @@ Status vocabulary:
 | ID | Priority | Area | Required capability | Current baseline | Target evidence | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | BF-001 | Critical | Policy | Channel determines fulfillment actor | Mixed historical Driver/Van assumptions | `FulfillmentActorPolicy`; `B2BVanFulfillmentMigrationAuditTest::test_channel_actor_contract_is_explicit`; PR #1209 | EVIDENCED |
-| BF-002 | Critical | Routing | Customer App B2B order invokes Smart Routing | Routing service exists; order-create integration incomplete | E2E Customer checkout -> OrderVanAssignment | PLANNED |
-| BF-003 | Critical | Routing | Dashboard-created B2B invokes same routing | Order engine exists | E2E Dashboard order -> Van assignment | PLANNED |
-| BF-004 | Critical | Routing | Van-created B2B invokes same routing | Van order capture exists | E2E visit order -> policy-selected Van | PLANNED |
-| BF-005 | Critical | Routing | No Driver fallback for unresolved B2B | Manual Driver dispatch currently exists generically | awaiting_dispatch + explicit Van-only manual queue | PLANNED |
+| BF-002 | Critical | Routing | Customer App B2B order invokes Smart Routing | PR #1214 `OrderCreatedRoutingService` wired after Customer checkout commit | `B2bPostCreateSmartRoutingTest::test_customer_checkout_routes_b2b_order_to_responsible_van` | EVIDENCED |
+| BF-003 | Critical | Routing | Dashboard-created B2B invokes same routing | PR #1214 shared `AdminOrderManagementService` post-create hook | `B2bPostCreateSmartRoutingTest::test_dashboard_created_b2b_order_uses_same_post_create_routing_hook` | EVIDENCED |
+| BF-004 | Critical | Routing | Van-created B2B invokes same routing | PR #1214 Van capture uses shared hook; creator Van is not authoritative | `B2bPostCreateSmartRoutingTest::test_van_created_b2b_order_is_policy_authoritative_not_self_assigned` | EVIDENCED |
+| BF-005 | Critical | Routing | No Driver fallback for unresolved B2B | PR #1214 persists unresolved B2B as `awaiting_dispatch` and creates no Driver assignment | `B2bPostCreateSmartRoutingTest::test_integration_and_import_orders_survive_routing_inability_without_driver_fallback` | EVIDENCED |
 | BF-006 | Critical | Routing | B2C never auto-assigns Van | Van routing service accepts generic Order | `OrderTerritoryRoutingService` actor guard; `OrderTerritoryRoutingServiceTest::test_b2c_order_cannot_enter_van_routing_runtime`; PR #1209 | EVIDENCED |
 | BF-007 | Critical | Dispatch | Manual B2B dispatch offers/accepts Van only | assignDriver + assignVan both exist | UI/API authorization tests | PLANNED |
 | BF-008 | Critical | Dispatch | Manual B2C dispatch offers/accepts Driver only | mixed dispatch capability exists | `OrderManualDispatchService` actor guards; `OrderManualDispatchServiceTest::test_manual_dispatch_rejects_cross_channel_actor_assignment`; PR #1209 | EVIDENCED |
-| BF-009 | High | Routing | Reassignment preserves history | OrderVanAssignment history foundation exists | reassignment + audit test | PLANNED |
-| BF-010 | High | Routing | Physically loaded/out-for-delivery work not silently rerouted | policy concept exists | lock/override acceptance test | PLANNED |
+| BF-009 | High | Routing | Reassignment preserves history | PR #1214 ends prior active assignment as `reassigned` and retains history | `OrderTerritoryRoutingServiceTest::test_automatic_reroute_reassigns_van_and_preserves_assignment_history` | EVIDENCED |
+| BF-010 | High | Routing | Physically loaded/out-for-delivery work not silently rerouted | PR #1214 automatic reroute guard preserves active Van once execution is in progress | `OrderTerritoryRoutingServiceTest::test_in_progress_van_execution_blocks_silent_automatic_reroute` | EVIDENCED |
 | BF-011 | Critical | Backend | Van assigned-order query includes Customer/Dashboard-created orders | Van order list is visit/customer scoped | active OrderVanAssignment read-model test | PLANNED |
 | BF-012 | Critical | Backend | Exact Van B2B Order Detail API | no complete assigned-delivery detail contract | authorization + payload test | PLANNED |
 | BF-013 | Critical | Execution | Van acceptance | Driver behavior exists | Van transition API + test | PLANNED |
