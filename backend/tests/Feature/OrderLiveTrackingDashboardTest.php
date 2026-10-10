@@ -203,6 +203,54 @@ class OrderLiveTrackingDashboardTest extends TestCase
             ->assertJsonPath('data.0.channel', 'b2c');
     }
 
+    public function test_web_dashboard_fleet_feed_passes_order_tracking_resolver_to_van_feed(): void
+    {
+        [$order] = $this->order('b2b', 'WEB-TRACK-B2B');
+        $van = Van::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'WEB-TRACK-VAN',
+            'status' => 'active',
+        ]);
+        $assignment = OrderVanAssignment::query()->create([
+            'order_id' => $order->id,
+            'van_id' => $van->id,
+            'status' => 'active',
+            'source' => 'smart_routing',
+            'reason' => 'territory_match',
+            'decision_key' => hash('sha256', 'web-dashboard-tracking-'.$order->id),
+            'assigned_at' => now(),
+        ]);
+        OrderDispatchState::query()->create([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'smart_routing',
+            'routing_reason' => 'territory_match',
+            'current_assignee_type' => 'van',
+            'current_assignee_id' => $van->id,
+            'decision_key' => hash('sha256', 'web-dashboard-dispatch-'.$order->id),
+            'context' => ['order_van_assignment_id' => $assignment->id],
+            'decided_at' => now(),
+        ]);
+        FleetCurrentLocation::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => $van->id,
+            'vehicle_id' => $van->id,
+            'latitude' => 29.3759,
+            'longitude' => 47.9774,
+            'captured_at' => now(),
+            'received_at' => now(),
+            'source_app' => 'van',
+        ]);
+
+        $this->actingAs($this->admin())
+            ->getJson(route('admin.field-operations.fleet.feed', ['order_id' => $order->id]))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.actor_type', 'van')
+            ->assertJsonPath('data.0.actor_id', $van->id)
+            ->assertJsonPath('meta.order_tracking.van_id', $van->id);
+    }
+
     public function test_live_map_sends_order_filter_to_both_driver_and_van_feeds(): void
     {
         $javascript = file_get_contents(public_path('assets/admin/driver-live-map.js'));
