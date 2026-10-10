@@ -354,6 +354,7 @@ final class MobileReleaseArtifactMirror
             'last_error' => $artifact->last_error,
             'ready_at' => $artifact->ready_at?->toIso8601String(),
             'download_url' => $artifact->isReady()
+                && is_file(storage_path('app/private/'.$artifact->local_path))
                 ? route('public.mobile-apps.versioned', [
                     'app' => $artifact->app,
                     'version' => $artifact->version,
