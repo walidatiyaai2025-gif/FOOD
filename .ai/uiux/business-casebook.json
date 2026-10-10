@@ -412,8 +412,7 @@
       "recipe_id": "active-field-delivery",
       "title": "Driver Active Delivery Journey",
       "canonical_function_ids": [
-        "driver.b2c.deliveries",
-        "driver.b2b.deliveries"
+        "driver.b2c.deliveries"
       ],
       "intent_phrases_ar": [
         "مهام السائق والتسليم",
@@ -478,7 +477,7 @@
       "recipe_id": "custody-wallet",
       "title": "Driver Wallet & Remittance",
       "canonical_function_ids": [
-        "driver.wallet"
+        "driver.b2c.wallet"
       ],
       "intent_phrases_ar": [
         "محفظة السائق",
