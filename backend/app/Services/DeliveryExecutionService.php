@@ -128,6 +128,7 @@ final class DeliveryExecutionService
         ?string $note,
         ?string $failureReason,
         ?UploadedFile $proofImage,
+        bool $hasStoredDeliveryProof = false,
     ): void {
         if ($targetStatus === 'delivered') {
             $deliveryInvoice = Invoice::query()
@@ -148,7 +149,10 @@ final class DeliveryExecutionService
                 'Required collection must be completed before delivery can be finalized.',
             );
 
-            if (! $proofImage instanceof UploadedFile || ! $proofImage->isValid()) {
+            if (
+                ! $hasStoredDeliveryProof
+                && (! $proofImage instanceof UploadedFile || ! $proofImage->isValid())
+            ) {
                 throw ValidationException::withMessages([
                     'proof_image' => ['A valid delivery proof image is required before completing delivery.'],
                 ]);

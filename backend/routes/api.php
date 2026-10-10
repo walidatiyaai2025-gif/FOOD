@@ -45,6 +45,7 @@ use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
 use App\Http\Controllers\Api\V1\VanCollectionController;
 use App\Http\Controllers\Api\V1\VanCommercialPolicyController;
+use App\Http\Controllers\Api\V1\VanDeliveryExecutionController;
 use App\Http\Controllers\Api\V1\VanFlashOfferController;
 use App\Http\Controllers\Api\V1\VanOrderController;
 use App\Http\Controllers\Api\V1\VanRegistryController;
@@ -206,6 +207,12 @@ Route::prefix('v1')->group(function (): void {
                 ->whereNumber('customer');
             Route::get('/orders', [VanOrderController::class, 'index']);
             Route::get('/orders/{order}', [VanOrderController::class, 'show'])->whereNumber('order');
+            Route::get('/orders/{order}/execution', [VanDeliveryExecutionController::class, 'show'])->whereNumber('order');
+            Route::get('/orders/{order}/execution/allowed-actions', [VanDeliveryExecutionController::class, 'show'])->whereNumber('order');
+            Route::post('/orders/{order}/execution/transition', [VanDeliveryExecutionController::class, 'transition'])->whereNumber('order');
+            Route::post('/orders/{order}/execution/proof', [VanDeliveryExecutionController::class, 'proof'])->whereNumber('order');
+            Route::post('/orders/{order}/execution/fail', [VanDeliveryExecutionController::class, 'fail'])->whereNumber('order');
+            Route::post('/orders/{order}/execution/retry', [VanDeliveryExecutionController::class, 'retry'])->whereNumber('order');
         });
         Route::prefix('/admin/field-operations')->group(function (): void {
             Route::post('/geography', [TerritoryController::class, 'storeGeography']);
