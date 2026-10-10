@@ -20,6 +20,8 @@ class CustomerNetworkMetricsSnapshot {
     required this.cacheFallbacks,
     required this.networkErrors,
     required this.timeouts,
+    required this.dedupedRequests,
+    required this.circuitBreakerHits,
     required this.totalLatencyMs,
   });
 
@@ -33,6 +35,8 @@ class CustomerNetworkMetricsSnapshot {
   final int cacheFallbacks;
   final int networkErrors;
   final int timeouts;
+  final int dedupedRequests;
+  final int circuitBreakerHits;
   final int totalLatencyMs;
 
   double get cacheHitRatio => requestCount == 0 ? 0 : cacheHits / requestCount;
@@ -51,6 +55,8 @@ class CustomerNetworkMetricsSnapshot {
         'cache_fallbacks': cacheFallbacks,
         'network_errors': networkErrors,
         'timeouts': timeouts,
+        'deduped_requests': dedupedRequests,
+        'circuit_breaker_hits': circuitBreakerHits,
         'cache_hit_ratio': cacheHitRatio,
         'average_network_latency_ms': averageNetworkLatencyMs,
       };
@@ -67,6 +73,8 @@ class CustomerNetworkMetrics {
   int _cacheFallbacks = 0;
   int _networkErrors = 0;
   int _timeouts = 0;
+  int _dedupedRequests = 0;
+  int _circuitBreakerHits = 0;
   int _totalLatencyMs = 0;
 
   void beginRequest() => _requestCount += 1;
@@ -96,6 +104,10 @@ class CustomerNetworkMetrics {
     if (timeout) _timeouts += 1;
   }
 
+  void recordDedupedRequest() => _dedupedRequests += 1;
+
+  void recordCircuitBreakerHit() => _circuitBreakerHits += 1;
+
   CustomerNetworkMetricsSnapshot get snapshot => CustomerNetworkMetricsSnapshot(
         requestCount: _requestCount,
         networkRequestCount: _networkRequestCount,
@@ -107,6 +119,8 @@ class CustomerNetworkMetrics {
         cacheFallbacks: _cacheFallbacks,
         networkErrors: _networkErrors,
         timeouts: _timeouts,
+        dedupedRequests: _dedupedRequests,
+        circuitBreakerHits: _circuitBreakerHits,
         totalLatencyMs: _totalLatencyMs,
       );
 }
@@ -129,8 +143,29 @@ class CustomerLowDataHttpClient extends http.BaseClient {
   final CustomerHttpResponseCache cache;
   final CustomerNetworkMetrics metrics;
   final Set<String> _revalidating = <String>{};
+  final Map<String, Future<bool>> _inFlightGets = <String, Future<bool>>{};
+  bool _revalidationInFlight = false;
+  DateTime? _circuitOpenUntil;
+
+  static const Duration _circuitCooldown = Duration(seconds: 12);
 
   CustomerNetworkMetricsSnapshot get metricsSnapshot => metrics.snapshot;
+
+  bool get _isCircuitOpen {
+    final until = _circuitOpenUntil;
+    if (until == null) return false;
+    if (DateTime.now().toUtc().isBefore(until)) return true;
+    _circuitOpenUntil = null;
+    return false;
+  }
+
+  void _openCircuit() {
+    _circuitOpenUntil = DateTime.now().toUtc().add(_circuitCooldown);
+  }
+
+  void _closeCircuit() {
+    _circuitOpenUntil = null;
+  }
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
@@ -194,7 +229,78 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       );
     }
 
-    if (cacheable) metrics.recordCacheMiss();
+    if (cacheable) {
+      metrics.recordCacheMiss();
+      final key = identity!.key;
+
+      if (_isCircuitOpen) {
+        metrics.recordCircuitBreakerHit();
+        _recordTransfer(
+          request: request,
+          statusCode: null,
+          downloadedBytes: 0,
+          uploadedBytes: 0,
+          elapsed: Duration.zero,
+          cacheState: 'circuit_open',
+        );
+        throw http.ClientException('network_circuit_open', request.url);
+      }
+
+      final pending = _inFlightGets[key];
+      if (pending != null) {
+        metrics.recordDedupedRequest();
+        final succeeded = await pending;
+        if (succeeded) {
+          final coalesced = await cache.read(
+            key,
+            sensitive: identity.sensitive,
+          );
+          if (coalesced != null) {
+            metrics.recordCacheHit();
+            _recordTransfer(
+              request: request,
+              statusCode: coalesced.statusCode,
+              downloadedBytes: 0,
+              uploadedBytes: 0,
+              elapsed: Duration.zero,
+              cacheState: 'coalesced',
+            );
+            return _cachedResponse(request, coalesced, 'coalesced');
+          }
+        }
+
+        if (_isCircuitOpen) {
+          metrics.recordCircuitBreakerHit();
+          _recordTransfer(
+            request: request,
+            statusCode: null,
+            downloadedBytes: 0,
+            uploadedBytes: 0,
+            elapsed: Duration.zero,
+            cacheState: 'circuit_open',
+          );
+          throw http.ClientException('network_circuit_open', request.url);
+        }
+      }
+
+      final completer = Completer<bool>();
+      _inFlightGets[key] = completer.future;
+      try {
+        final response = await _networkSend(
+          request,
+          cacheIdentity: identity,
+          cached: null,
+        );
+        completer.complete(_isSuccessful(response.statusCode));
+        return response;
+      } catch (_) {
+        if (!completer.isCompleted) completer.complete(false);
+        rethrow;
+      } finally {
+        _inFlightGets.remove(key);
+      }
+    }
+
     return _networkSend(
       request,
       cacheIdentity: identity,
@@ -215,6 +321,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       final bytes = await response.stream.toBytes().timeout(timeout);
       stopwatch.stop();
 
+      _closeCircuit();
       dataMode.observeSuccess(stopwatch.elapsed);
       metrics.recordNetwork(
         uploadedBytes: _uploadBytes(request),
@@ -270,6 +377,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       return _rebuiltResponse(request, response, bytes);
     } on TimeoutException catch (error) {
       stopwatch.stop();
+      _openCircuit();
       dataMode.observeFailure();
       metrics.recordError(timeout: true);
       diagnostics.recordNetworkTransfer(
@@ -289,6 +397,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       rethrow;
     } catch (error) {
       stopwatch.stop();
+      _openCircuit();
       dataMode.observeFailure();
       metrics.recordError(timeout: false);
       diagnostics.recordNetworkTransfer(
@@ -315,7 +424,9 @@ class CustomerLowDataHttpClient extends http.BaseClient {
     Map<String, String> sourceHeaders,
     CustomerCachedHttpResponse cached,
   ) {
+    if (_isCircuitOpen || _revalidationInFlight) return;
     if (!_revalidating.add(identity.key)) return;
+    _revalidationInFlight = true;
 
     unawaited(() async {
       final request = http.Request('GET', uri);
@@ -336,6 +447,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         final bytes = await response.stream.toBytes().timeout(timeout);
         stopwatch.stop();
 
+        _closeCircuit();
         dataMode.observeSuccess(stopwatch.elapsed);
         metrics.recordNetwork(
           uploadedBytes: 0,
@@ -375,6 +487,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         );
       } on TimeoutException catch (error) {
         stopwatch.stop();
+        _openCircuit();
         dataMode.observeFailure();
         metrics.recordError(timeout: true);
         diagnostics.recordNetworkTransfer(
@@ -389,6 +502,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         );
       } catch (error) {
         stopwatch.stop();
+        _openCircuit();
         dataMode.observeFailure();
         metrics.recordError(timeout: false);
         diagnostics.recordNetworkTransfer(
@@ -403,6 +517,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         );
       } finally {
         _revalidating.remove(identity.key);
+        _revalidationInFlight = false;
       }
     }());
   }
