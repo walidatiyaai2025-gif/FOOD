@@ -78,7 +78,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
           CustomerUiSpacing.sm,
           CustomerUiSpacing.xs,
           CustomerUiSpacing.sm,
-          42 + media.viewPadding.bottom,
+          CustomerUiSpacing.xs + media.viewPadding.bottom,
         ),
         child: CustomerPersistentFooter(
           commerceContext: commerceContext,
@@ -186,10 +186,10 @@ class CustomerPersistentFooter extends StatelessWidget {
           border: Border.all(color: CustomerUiColors.border),
           borderRadius: BorderRadius.circular(32),
         ),
-        child: SizedBox(
-          height: 82,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 82),
           child: Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: Directionality.of(context),
             child: Row(
               children: [
                 for (final item in items)
@@ -330,22 +330,23 @@ class _FooterButton extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              SizedBox(
-                height: 15,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    item.label,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: active
-                              ? CustomerUiColors.deepGreenStrong
-                              : CustomerUiColors.muted,
-                          fontWeight:
-                              active ? FontWeight.w900 : FontWeight.w700,
-                          fontSize: 10.5,
-                        ),
-                  ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 15),
+                child: Text(
+                  item.label,
+                  maxLines: 2,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: active
+                            ? CustomerUiColors.deepGreenStrong
+                            : CustomerUiColors.muted,
+                        fontWeight:
+                            active ? FontWeight.w900 : FontWeight.w700,
+                        fontSize: 10.5,
+                        height: 1.05,
+                      ),
                 ),
               ),
             ],
