@@ -156,6 +156,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
         builder: (_) => VanOrderDetailPage(
           orderId: order.id,
           repository: widget.repository,
+          walletRepository: widget.customerRepository,
           onSessionExpired: widget.onSessionExpired,
         ),
       ),
