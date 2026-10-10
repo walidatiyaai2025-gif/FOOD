@@ -12,10 +12,20 @@ class VanCollectionPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onSessionExpired,
+    this.initialCustomer,
+    this.initialInvoiceId,
+    this.onReceiptPosted,
+    this.onOpenReceipt,
+    this.onReturnToOrder,
   });
 
   final VanWalletRepository repository;
   final Future<void> Function() onSessionExpired;
+  final VanCustomerScope? initialCustomer;
+  final int? initialInvoiceId;
+  final ValueChanged<VanCollectionResult>? onReceiptPosted;
+  final ValueChanged<int>? onOpenReceipt;
+  final ValueChanged<VanCollectionResult>? onReturnToOrder;
 
   @override
   State<VanCollectionPage> createState() => _VanCollectionPageState();
@@ -74,7 +84,19 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     try {
       final customers = await widget.repository.customers();
       if (!mounted) return;
-      final selected = customers.isEmpty ? null : customers.first;
+      VanCustomerScope? selected;
+      final preferred = widget.initialCustomer;
+      if (preferred != null) {
+        for (final customer in customers) {
+          if (customer.type == preferred.type &&
+              customer.id == preferred.id &&
+              customer.storeId == preferred.storeId) {
+            selected = customer;
+            break;
+          }
+        }
+      }
+      selected ??= customers.isEmpty ? null : customers.first;
       setState(() {
         _customers = customers;
         _customer = selected;
@@ -115,10 +137,10 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     try {
       final context = await widget.repository.collectionContext(customer);
       if (!mounted) return;
-      final currentInvoiceId = _invoice?.id;
+      final preferredInvoiceId = _invoice?.id ?? widget.initialInvoiceId;
       VanInvoiceBalance? selected;
       for (final invoice in context.invoices) {
-        if (invoice.id == currentInvoiceId) {
+        if (invoice.id == preferredInvoiceId) {
           selected = invoice;
           break;
         }
@@ -240,6 +262,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         _pendingOperation = null;
         _pendingIdempotencyKey = null;
       });
+      widget.onReceiptPosted?.call(result);
       await _loadContext(customer);
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
@@ -472,6 +495,42 @@ class _VanCollectionPageState extends State<VanCollectionPage>
                             '${_lastResult!.receipt.currency}',
                       ),
                     ),
+                    if (widget.onOpenReceipt != null ||
+                        widget.onReturnToOrder != null) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (widget.onOpenReceipt != null)
+                            OutlinedButton.icon(
+                              key: const ValueKey(
+                                'van-collection-view-receipt',
+                              ),
+                              onPressed: () => widget.onOpenReceipt!(
+                                _lastResult!.receipt.id,
+                              ),
+                              icon: const Icon(Icons.receipt_long_outlined),
+                              label: Text(
+                                _text('View receipt', 'عرض الإيصال'),
+                              ),
+                            ),
+                          if (widget.onReturnToOrder != null)
+                            FilledButton.icon(
+                              key: const ValueKey(
+                                'van-collection-return-order',
+                              ),
+                              onPressed: () => widget.onReturnToOrder!(
+                                _lastResult!,
+                              ),
+                              icon: const Icon(Icons.arrow_back_outlined),
+                              label: Text(
+                                _text('Return to order', 'العودة إلى الطلب'),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
