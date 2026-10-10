@@ -222,3 +222,55 @@ If the needed primitive does not exist, first prove that the current production 
 
 After this router, read `.ai/skills/page-patterns.md`. It contains the canonical composition recipes for list/management, detail/manage, form/create, dashboard/KPI, Customer commerce, Driver operational and Van field-operation pages.
 
+
+## 12. Mandatory UI execution pipeline
+
+Every UI task follows this sequence. Skipping a stage is not a shortcut.
+
+### Stage A — Reference Lock
+Identify:
+- surface;
+- role/permission;
+- canonical route/navigation;
+- page archetype;
+- nearest production screen/reference;
+- exact production token/theme/component sources.
+
+### Stage B — Component Map
+Read `.ai/skills/ui-pattern-library.md` and list the exact existing primitives used for:
+- shell/navigation;
+- page header;
+- primary/secondary action;
+- filter/search;
+- row/card/grid;
+- row actions;
+- states;
+- detail/modal/sheet;
+- visualization if any.
+
+If the design requires many new primitives, re-check the nearest production pattern before coding.
+
+### Stage C — Production Build
+Implement with authoritative data/permissions/business transitions. Do not style a generic CRUD screen first and retrofit FOODEX later.
+
+### Stage D — Mandatory Self-Audit
+Run `.ai/skills/uiux-audit.md`.
+
+Any applicable FAIL / UNKNOWN / NOT CHECKED means the page is not complete.
+
+### Stage E — Evidence Gate
+Run `.ai/skills/uiux-evidence.md` for visual/interaction work.
+
+Evidence must belong to the current exact source lineage. Old screenshots from a previous relevant SHA are stale.
+
+## 13. No completion claim without UI audit
+
+For any page/screen task, the worker may say "complete", "done", "جاهز", or close the owning UI Issue only when:
+
+1. applicable automated feature/design guards pass;
+2. `uiux-audit.md` verdict is PASS;
+3. required AR/EN and responsive runtime evidence exists;
+4. evidence workflow/path triggers actually cover the changed UI;
+5. no required interaction is still UNKNOWN.
+
+Generic green CI alone is not a substitute for this UI acceptance gate.

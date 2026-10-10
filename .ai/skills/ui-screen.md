@@ -14,6 +14,7 @@ Read:
    - `.ai/skills/driver-uiux.md`
    - `.ai/skills/van-uiux.md`
 5. the authoritative contract/files named by that skill.
+6. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
 
 Do not start markup/widget code before this pass.
 
@@ -96,3 +97,16 @@ For an ordinary page request, build in this order:
 
 Do not start by creating a new Card/Scaffold/Table/Button style.
 
+
+## Mandatory post-build audit
+
+After the page is implemented:
+
+1. run the relevant feature/widget/contract tests;
+2. run `.ai/skills/uiux-audit.md` against the actual page;
+3. verify runtime evidence using `.ai/skills/uiux-evidence.md`;
+4. check that the owning screenshot/visual workflow path filters include the new/changed screen;
+5. fix every applicable FAIL/UNKNOWN on the same branch;
+6. only then report the page complete.
+
+The worker must not use "not covered by CI" as acceptance when the reason is an incomplete workflow path trigger.
