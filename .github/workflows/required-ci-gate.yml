@@ -195,11 +195,8 @@ jobs:
           retention-days: 30
 
       - name: Require issue-style PR branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          branch="${{ github.head_ref }}"
-          [[ "$branch" == "feat/assistant-v1-integration" || "$branch" == "chore/geography-reset-one-shot" || "$branch" =~ ^((feat|fix|chore|docs|refactor|test|ci)/[0-9]+-[a-z0-9-]+|release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+)$ ]]
+        run: python3 scripts/foodex-branch-policy.py validate "${{ github.head_ref }}" --base "${{ github.base_ref }}"
+
 
   backend-validation:
     name: Backend validation
