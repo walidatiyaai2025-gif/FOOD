@@ -12,10 +12,12 @@ class VanRoutesPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onSessionExpired,
+    required this.onOpenOrder,
   });
 
   final VanVisitRepository repository;
   final Future<void> Function() onSessionExpired;
+  final ValueChanged<int> onOpenOrder;
 
   @override
   State<VanRoutesPage> createState() => _VanRoutesPageState();
@@ -298,6 +300,9 @@ class _VanRoutesPageState extends State<VanRoutesPage>
                     for (final visit in entry.value)
                       ListTile(
                         dense: true,
+                        onTap: visit.orderId == null
+                            ? null
+                            : () => widget.onOpenOrder(visit.orderId!),
                         leading: const Icon(Icons.storefront_outlined, size: 18),
                         title: Text(
                           _text('Assigned customer', 'عميل مسند'),
@@ -314,8 +319,13 @@ class _VanRoutesPageState extends State<VanRoutesPage>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                        trailing: Chip(
-                          label: Text(_visitStatusLabel(visit)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Chip(label: Text(_visitStatusLabel(visit))),
+                            if (visit.orderId != null)
+                              const Icon(Icons.chevron_right),
+                          ],
                         ),
                       ),
                   ],

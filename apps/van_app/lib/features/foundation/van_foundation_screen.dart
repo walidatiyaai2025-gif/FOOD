@@ -7,6 +7,7 @@ import '../commercial/van_offers_page.dart';
 import '../notifications/van_notification_contract.dart';
 import '../notifications/van_notifications_page.dart';
 import '../orders/van_order_contract.dart';
+import '../orders/van_order_detail_page.dart';
 import '../orders/van_product_catalog_page.dart';
 import '../orders/van_order_builder_page.dart';
 import '../orders/van_order_review_page.dart';
@@ -77,6 +78,18 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
     setState(() => _screen = screen);
   }
 
+  void _openOrderDetail(int orderId) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => VanOrderDetailPage(
+          orderId: orderId,
+          repository: widget.orderRepository,
+          onSessionExpired: widget.onLogout,
+        ),
+      ),
+    );
+  }
+
   void _openNavigationDrawer() {
     final scaffold = _scaffoldKey.currentState;
     if (scaffold == null) return;
@@ -141,7 +154,9 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
       case VanScreenId.dashboard:
         return VanDashboardPage(
           repository: widget.walletRepository,
+          orderRepository: widget.orderRepository,
           onSessionExpired: widget.onLogout,
+          onOpenOrder: _openOrderDetail,
           onOpenCustomers: () => _open(VanScreenId.customers),
           onOpenWallet: () => _open(VanScreenId.wallet),
           onOpenReceipts: () => _open(VanScreenId.receipt),
@@ -151,6 +166,7 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         return VanRoutesPage(
           repository: widget.visitRepository,
           onSessionExpired: widget.onLogout,
+          onOpenOrder: _openOrderDetail,
         );
       case VanScreenId.routeMap:
         return VanRouteMapPage(
@@ -162,6 +178,7 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
         return VanRouteDetailPage(
           repository: widget.visitRepository,
           onSessionExpired: widget.onLogout,
+          onOpenOrder: _openOrderDetail,
         );
       case VanScreenId.catalog:
         return VanProductCatalogPage(
@@ -212,6 +229,7 @@ class _VanFoundationScreenState extends State<VanFoundationScreen> {
           customerRepository: widget.walletRepository,
           orderRepository: widget.orderRepository,
           onSessionExpired: widget.onLogout,
+          onOpenOrder: _openOrderDetail,
         );
       case VanScreenId.customer360:
         return VanCustomer360Page(

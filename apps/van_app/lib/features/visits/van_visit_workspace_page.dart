@@ -16,12 +16,14 @@ class VanVisitWorkspacePage extends StatefulWidget {
     required this.customerRepository,
     required this.orderRepository,
     required this.onSessionExpired,
+    required this.onOpenOrder,
   });
 
   final VanVisitRepository visitRepository;
   final VanWalletRepository customerRepository;
   final VanOrderRepository orderRepository;
   final Future<void> Function() onSessionExpired;
+  final ValueChanged<int> onOpenOrder;
 
   @override
   State<VanVisitWorkspacePage> createState() => _VanVisitWorkspacePageState();
@@ -303,6 +305,15 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                   'Planned: ${visit.plannedAt}',
                   'الموعد: ${visit.plannedAt}',
                 ),
+              ),
+            ],
+            if (visit.orderId != null) ...[
+              const SizedBox(height: 8),
+              VanActionButton.secondaryIcon(
+                key: ValueKey('van-visit-open-order-${visit.id}'),
+                onPressed: () => widget.onOpenOrder(visit.orderId!),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: Text(_text('Open order', 'فتح الطلب')),
               ),
             ],
             if (visit.allowedTransitions.contains('started')) ...[
