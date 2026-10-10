@@ -19,6 +19,10 @@ final class MirrorMobileReleaseArtifacts implements ShouldBeUnique, ShouldQueue
 
     public int $tries = 4;
 
+    public int $timeout = 1800;
+
+    public bool $failOnTimeout = true;
+
     /** @var array<int, int> */
     public array $backoff = [60, 300, 900];
 
