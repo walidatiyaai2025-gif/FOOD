@@ -205,6 +205,7 @@ Route::prefix('v1')->group(function (): void {
                 ->whereIn('type', ['b2b', 'b2c'])
                 ->whereNumber('customer');
             Route::get('/orders', [VanOrderController::class, 'index']);
+            Route::get('/orders/{order}', [VanOrderController::class, 'show'])->whereNumber('order');
         });
         Route::prefix('/admin/field-operations')->group(function (): void {
             Route::post('/geography', [TerritoryController::class, 'storeGeography']);

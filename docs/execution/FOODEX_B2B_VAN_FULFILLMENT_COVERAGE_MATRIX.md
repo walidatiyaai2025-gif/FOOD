@@ -25,8 +25,8 @@ Status vocabulary:
 | BF-008 | Critical | Dispatch | Manual B2C dispatch offers/accepts Driver only | mixed dispatch capability exists | `OrderManualDispatchService` actor guards; `OrderManualDispatchServiceTest::test_manual_dispatch_rejects_cross_channel_actor_assignment`; PR #1209 | EVIDENCED |
 | BF-009 | High | Routing | Reassignment preserves history | Prior active Van assignment is marked `reassigned` and explicit reassignment audit is recorded | `test_reassignment_preserves_history_and_writes_explicit_audit` + PR #1212 / Required CI Gate #3925 (backend tests + MySQL/Redis acceptance PASS) | EVIDENCED |
 | BF-010 | High | Routing | Physically loaded/out-for-delivery work not silently rerouted | `picked_up` / `out_for_delivery` execution ownership locks automatic reroute | `test_picked_up_execution_blocks_silent_reroute_to_another_van` + PR #1212 / Required CI Gate #3925 (backend tests + MySQL/Redis acceptance PASS) | EVIDENCED |
-| BF-011 | Critical | Backend | Van assigned-order query includes Customer/Dashboard-created orders | Van order list is visit/customer scoped | active OrderVanAssignment read-model test | PLANNED |
-| BF-012 | Critical | Backend | Exact Van B2B Order Detail API | no complete assigned-delivery detail contract | authorization + payload test | PLANNED |
+| BF-011 | Critical | Backend | Van assigned-order query includes Customer/Dashboard-created orders | `VanOrderReadService::queryForActor()` reads active `order_van_assignments` ownership, independent of visit scope | `VanOrderControllerTest::test_van_order_feed_uses_active_order_ownership_without_visit_scope` | IMPLEMENTED |
+| BF-012 | Critical | Backend | Exact Van B2B Order Detail API | `GET /api/v1/van/orders/{order}` returns customer/items/invoice/payment/collection/timeline context | `VanOrderControllerTest::test_exact_van_order_detail_exposes_commercial_finance_collection_and_timeline_context` | IMPLEMENTED |
 | BF-013 | Critical | Execution | Van acceptance | Driver behavior exists | Van transition API + test | PLANNED |
 | BF-014 | Critical | Execution | Van picked-up | Driver behavior exists | Van transition API + test | PLANNED |
 | BF-015 | Critical | Execution | Van out-for-delivery updates Order | Driver behavior exists | shared-rule + Van adapter test | PLANNED |
@@ -84,9 +84,9 @@ Status vocabulary:
 | BF-067 | Critical | Migration | Open B2B re-routed to Van or awaiting_dispatch | not migrated | production-like backfill test | PLANNED |
 | BF-068 | Critical | Migration | B2C active Van contradictions cleaned | not audited | W01 inventory evidence: `b2c_active_van` + `b2c_dispatch_van` in dry-run/test; destructive cleanup intentionally deferred to W14 #1205; PR #1209 | EVIDENCED (W01 AUDIT) |
 | BF-069 | High | Migration | historical Driver B2B remains readable | historical data exists | audit/read regression | PLANNED |
-| BF-070 | Critical | Security | Van A cannot act on Van B order | scope partial | authorization test | PLANNED |
-| BF-071 | Critical | Security | store/channel ID tampering fails safely | platform guards exist | 403/404 tests | PLANNED |
-| BF-072 | Critical | Security | direct deep link revalidates current assignment | push/deep-link exists separately | authorization test | PLANNED |
+| BF-070 | Critical | Security | Van A cannot act on Van B order | exact read resolves through the current actor's active Van + active order ownership | `VanOrderControllerTest::test_van_order_detail_rejects_cross_van_stale_and_tampered_context` | IMPLEMENTED |
+| BF-071 | Critical | Security | store/channel ID tampering fails safely | exact Van detail revalidates optional store/channel deep-link context and returns 404 on mismatch | `VanOrderControllerTest::test_van_order_detail_rejects_cross_van_stale_and_tampered_context` | IMPLEMENTED |
+| BF-072 | Critical | Security | direct deep link revalidates current assignment | every detail request re-queries active `order_van_assignments`; stale/reassigned ownership returns 404 | `VanOrderControllerTest::test_van_order_detail_rejects_cross_van_stale_and_tampered_context` | IMPLEMENTED |
 | BF-073 | High | Audit | every routing/execution/reassignment event recorded | audit foundation exists | audit assertions | PLANNED |
 | BF-074 | High | Inspector | routing/Van fulfillment failures actionable | inspector exists | inspector contract test | PLANNED |
 | BF-075 | High | OpenAPI | Van fulfillment APIs documented | current OpenAPI incomplete for target | OpenAPI gate | PLANNED |
