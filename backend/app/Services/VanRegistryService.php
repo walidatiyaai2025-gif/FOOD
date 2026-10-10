@@ -17,9 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 final class VanRegistryService
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly AuditLogger $audit) {}
 
     /** @param array<string,mixed> $attributes */
     public function createVan(array $attributes): Van
@@ -159,8 +157,7 @@ final class VanRegistryService
         VanAssignment $assignment,
         Van|array $van,
         array $attributes = [],
-    ): VanAssignment
-    {
+    ): VanAssignment {
         if (is_array($van)) {
             $attributes = $van;
             $van = Van::query()->findOrFail((int) ($attributes['van_id'] ?? $assignment->van_id));
