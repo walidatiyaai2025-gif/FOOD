@@ -2880,6 +2880,52 @@ void main() {
     expect(find.text('Recovered Product'), findsOneWidget);
   });
 
+  testWidgets(
+      'B2B More header stays usable at 320px with 1.3 text scaling',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 760);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    final api = _FakeB2bApi(const {
+      'company_name': 'FOODEX Wholesale Business Account With Long Name',
+      'name': 'Business Buyer',
+      'currency': 'KWD',
+      'balance': 12.5,
+      'open_amount': 12.5,
+      'overdue_amount': 0,
+      'credit_limit': 100,
+      'available_credit_line': 87.5,
+      'items_count': 2,
+      'unread_count': 3,
+      'data': <Object?>[],
+      'items': <Object?>[],
+    });
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        initialRoute: '/b2b/profile?store_id=7',
+        b2bApi: api,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final title = find.byKey(const ValueKey('b2b-more-header-title'));
+    expect(title, findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-more-back')), findsOneWidget);
+
+    final titleRect = tester.getRect(title);
+    expect(titleRect.left, greaterThanOrEqualTo(0));
+    expect(titleRect.right, lessThanOrEqualTo(320));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('B2B runtime diagnostics classify 401 403 404 and 5xx',
       (tester) async {
     const cases = <({int status, String code, String category})>[
