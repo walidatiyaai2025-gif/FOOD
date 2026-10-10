@@ -346,6 +346,43 @@ final class FieldOperationsController extends Controller
         return back()->with('status', __('admin.field_operations.saved'));
     }
 
+    public function updateAssignment(Request $request, VanAssignment $assignment): RedirectResponse
+    {
+        $user = $this->actor($request);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
+
+        $data = $request->validate([
+            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
+            'representative_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+            'territory_key' => ['nullable', 'string', 'max:150'],
+            'van_pool_key' => ['nullable', 'string', 'max:150'],
+            'assignment_type' => ['required', Rule::in(['primary', 'backup'])],
+            'status' => ['required', Rule::in(['active', 'ended'])],
+            'effective_from' => ['required', 'date'],
+            'effective_until' => ['nullable', 'date', 'after:effective_from'],
+            'loaded_work_count' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $this->registry->updateAssignment($user, $assignment, $data);
+
+        return back()->with('status', __('field_operations.assignment_updated'));
+    }
+
+    public function destroyAssignment(Request $request, VanAssignment $assignment): RedirectResponse
+    {
+        $user = $this->actor($request);
+        $this->authorizeAny($user, ['drivers.b2b.manage']);
+
+        $counts = $this->registry->deleteAssignmentWithOperations($user, $assignment);
+
+        return back()->with('status', __('field_operations.assignment_deleted', [
+            'visits' => $counts['visits'],
+            'dispatches' => $counts['dispatch_assignments'],
+            'locations' => $counts['fleet_locations'],
+        ]));
+    }
+
     public function customers(Request $request): View
     {
         $user = $this->actor($request);
