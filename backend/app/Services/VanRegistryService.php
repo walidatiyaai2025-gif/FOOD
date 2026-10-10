@@ -17,7 +17,9 @@ use Illuminate\Validation\ValidationException;
 
 final class VanRegistryService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit)
+    {
+    }
 
     /** @param array<string,mixed> $attributes */
     public function createVan(array $attributes): Van
