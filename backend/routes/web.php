@@ -353,6 +353,7 @@ Route::prefix('admin')
         Route::get('/apps/driver/download', [MobileAppDownloadController::class, 'driver'])->name('mobile-apps.driver.download');
         Route::get('/apps/van/download', [MobileAppDownloadController::class, 'van'])->name('mobile-apps.van.download');
         Route::get('/apps/downloads/status', [MobileAppDownloadController::class, 'status'])->name('mobile-apps.status');
+        Route::post('/apps/downloads/prepare', [MobileAppDownloadController::class, 'prepare'])->name('mobile-apps.prepare');
         Route::post('/apps/downloads/retry', [MobileAppDownloadController::class, 'retry'])->name('mobile-apps.retry');
         Route::get('/settings/assistant', [AssistantSettingsController::class, 'index'])->name('assistant-settings.index');
         Route::put('/settings/assistant', [AssistantSettingsController::class, 'update'])->name('assistant-settings.update');
