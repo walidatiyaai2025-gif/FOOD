@@ -27,13 +27,13 @@ Status vocabulary:
 | BF-010 | High | Routing | Physically loaded/out-for-delivery work not silently rerouted | `picked_up` / `out_for_delivery` execution ownership locks automatic reroute | `test_picked_up_execution_blocks_silent_reroute_to_another_van` + PR #1212 / Required CI Gate #3925 (backend tests + MySQL/Redis acceptance PASS) | EVIDENCED |
 | BF-011 | Critical | Backend | Van assigned-order query includes Customer/Dashboard-created orders | `VanOrderReadService::queryForActor()` reads active `order_van_assignments` ownership, independent of visit scope | `VanOrderControllerTest::test_van_order_feed_uses_active_order_ownership_without_visit_scope`; PR #1215 / Required CI Gate #3933 on exact head `533735993cb0b5c0fc3eef0001c72dc56ff37ba5` (backend tests + MySQL/Redis acceptance PASS) | EVIDENCED |
 | BF-012 | Critical | Backend | Exact Van B2B Order Detail API | `GET /api/v1/van/orders/{order}` returns customer/items/invoice/payment/collection/timeline context | `VanOrderControllerTest::test_exact_van_order_detail_exposes_commercial_finance_collection_and_timeline_context`; PR #1215 / Required CI Gate #3933 on exact head `533735993cb0b5c0fc3eef0001c72dc56ff37ba5` (backend tests + MySQL/Redis acceptance PASS) | EVIDENCED |
-| BF-013 | Critical | Execution | Van acceptance | Driver behavior exists | Van transition API + test | PLANNED |
-| BF-014 | Critical | Execution | Van picked-up | Driver behavior exists | Van transition API + test | PLANNED |
-| BF-015 | Critical | Execution | Van out-for-delivery updates Order | Driver behavior exists | shared-rule + Van adapter test | PLANNED |
-| BF-016 | Critical | Execution | Van delivered updates Order | Driver behavior exists | shared-rule + Van adapter test | PLANNED |
-| BF-017 | Critical | Execution | Van failed delivery + configured reason | Driver behavior exists | failure-reason contract test | PLANNED |
-| BF-018 | Critical | Execution | Van retry after failed | Order allows retry | Van retry E2E | PLANNED |
-| BF-019 | Critical | Execution | Van transition idempotency | Driver has fingerprint behavior | duplicate/retry test | PLANNED |
+| BF-013 | Critical | Execution | Van acceptance | Shared `DeliveryExecutionService` owns acceptance transition contract; Van adapter pending | W04 shared-contract test + W05 Van transition API/test | IMPLEMENTED |
+| BF-014 | Critical | Execution | Van picked-up | Shared `DeliveryExecutionService` owns pickup transition contract; Van adapter pending | W04 shared-contract test + W05 Van transition API/test | IMPLEMENTED |
+| BF-015 | Critical | Execution | Van out-for-delivery updates Order | Shared execution core owns order-status synchronization/audit; Van adapter pending | W04 Driver regression + W05 Van adapter test | IMPLEMENTED |
+| BF-016 | Critical | Execution | Van delivered updates Order | Shared execution core owns delivered synchronization, inventory consumption, proof/collection gates; Van adapter pending | W04 Driver regression + W05 Van adapter test | IMPLEMENTED |
+| BF-017 | Critical | Execution | Van failed delivery + configured reason | Shared execution core owns configured failure-reason/note validation and failed order sync; Van adapter pending | W04 shared/Driver tests + W05 Van failure test | IMPLEMENTED |
+| BF-018 | Critical | Execution | Van retry after failed | Shared execution contract allows `failed -> out_for_delivery` for non-terminal actor state; Van adapter pending | W04 shared-contract test + W05 Van retry E2E | IMPLEMENTED |
+| BF-019 | Critical | Execution | Van transition idempotency | Fingerprint/replay validation extracted to shared execution core; actor persistence adapter pending | W04 idempotency contract + W05 Van duplicate/retry test | IMPLEMENTED |
 | BF-020 | Critical | Execution | Reassigned/stale Van cannot mutate | scope foundation exists | stale-assignment rejection test | PLANNED |
 | BF-021 | Critical | Proof | Delivery proof required before delivered | Driver rule exists | Van proof upload + delivered gate | PLANNED |
 | BF-022 | High | Proof | Proof appears in Dashboard timeline | Driver evidence exists | B2B Van timeline test + screenshot | PLANNED |
@@ -72,7 +72,7 @@ Status vocabulary:
 | BF-055 | High | Dashboard | Customer 360 timeline shows Van actor | order timeline exists | feature test | PLANNED |
 | BF-056 | Critical | Driver | Driver APIs reject B2B execution after cutover | Driver supports both historically | negative API tests | PLANNED |
 | BF-057 | Critical | Driver | Driver App hides/removes B2B operational paths | wholesale behavior exists historically | navigation/widget tests | PLANNED |
-| BF-058 | Critical | Driver | B2C lifecycle remains intact | mature Driver flow exists | full regression gate | PLANNED |
+| BF-058 | Critical | Driver | B2C lifecycle remains intact | `DriverOrderService` is a thin adapter over shared delivery rules with legacy payload/proof persistence preserved | `DriverAssignmentLifecycleTest` + `DriverJourneyE2EAcceptanceTest` + required CI on W04 | IMPLEMENTED |
 | BF-059 | Critical | Customer | B2B My Orders uses same canonical order truth | exists | E2E | PLANNED |
 | BF-060 | Critical | Customer | B2B Order Detail/Tracking resolves Van actor | current tracking historically Driver-centric | widget/backend E2E | PLANNED |
 | BF-061 | High | Customer | awaiting_dispatch shown truthfully | dispatch state exists backend | runtime evidence | PLANNED |
