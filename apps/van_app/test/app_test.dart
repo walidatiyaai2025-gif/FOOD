@@ -816,7 +816,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(orders.transitions, contains('accepted'));
     expect(find.byKey(const ValueKey('van-order-action-picked_up')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-order-server-action-failed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('van-order-fail-action')), findsOneWidget);
   });
 
 
