@@ -239,7 +239,11 @@ void main() {
             key,
             '03_Van_Order_Detail/order_receipt__${code}__${evidence.suffix}.png',
           );
-          await tester.pageBack();
+          Navigator.of(
+            tester.element(
+              find.byKey(const ValueKey('van-collection-page')),
+            ),
+          ).pop();
           await tester.pumpAndSettle();
 
           final orderDetailList =
