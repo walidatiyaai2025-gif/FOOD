@@ -340,6 +340,7 @@ class VanDeliveryExecutionTest extends TestCase
         ]);
         $this->assertDatabaseCount('order_van_execution_events', 0);
     }
+
     private function transition(int $orderId, string $status, string $key)
     {
         return $this->withHeader('Idempotency-Key', $key)
