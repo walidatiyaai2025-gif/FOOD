@@ -43,7 +43,7 @@ html[dir=ltr] .main{grid-column:2}
 .apk-modal-card{width:min(520px,100%);background:#fff;border-radius:16px;padding:20px;box-shadow:0 24px 70px rgba(15,23,42,.28)}
 .apk-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:center}
 .apk-modal-head h2{margin:0}
-.apk-modal-close{border:0;background:#f3f4f6;border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:800}
+.apk-modal-close{border:0;background:var(--foodex-background);border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:800}
 .apk-modal-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
 .apk-modal-note{margin:10px 0 0}
 @media(max-width:1023px){.foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{grid-template-columns:1fr}.sidebar,.main,html[dir=ltr] .sidebar,html[dir=ltr] .main{grid-column:1}.sidebar{grid-row:1;border-inline:0;border-bottom:1px solid var(--foodex-border)}.main{grid-row:2}.grid{grid-template-columns:1fr 1fr}}
