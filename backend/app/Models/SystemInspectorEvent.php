@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -18,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $url
  * @property string $message
  * @property string|null $exception_class
+ * @property string|null $category
  * @property string|null $correlation_id
  * @property array<string,mixed>|null $context
  * @property Carbon $occurred_at
@@ -34,6 +36,14 @@ class SystemInspectorEvent extends Model
             'context' => 'array',
             'occurred_at' => 'datetime',
         ];
+    }
+
+    /** @return Attribute<string|null, never> */
+    protected function category(): Attribute
+    {
+        return Attribute::get(fn (): ?string => is_string($this->context['category'] ?? null)
+            ? $this->context['category']
+            : null);
     }
 
     /** @return BelongsTo<User, $this> */
