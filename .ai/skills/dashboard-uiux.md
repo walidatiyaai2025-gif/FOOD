@@ -290,3 +290,66 @@ Before marking complete:
 - no hidden/orphaned route;
 - existing compliance tests updated/added;
 - runtime evidence provided when required.
+
+## 15. Exact Dashboard primitive recipes from current production source
+
+The following are the current shared implementation primitives in `_brand-components.blade.php`. Prefer them over page-local CSS.
+
+### Standard page
+- `.foodex-admin-layout`
+- `.foodex-admin-main`
+- `.foodex-admin-page`
+- `.foodex-page-header`
+- `.foodex-header-actions`
+- `.foodex-tabs`
+
+### Management/list page
+- `.foodex-ops-shell`
+- `.foodex-ops-toolbar`
+- `.foodex-table-wrap` or current table wrapper
+- `.foodex-ops-grid`
+- `.foodex-ops-actions`
+- `.foodex-ops-menu`
+- `.foodex-pagination`
+
+### Detail/manage
+- `.foodex-modal-backdrop`
+- `.foodex-modal`
+- `.foodex-operational-dialog-host`
+- `.foodex-modal-header`
+- `.foodex-modal-close`
+- `.foodex-ops-detail-grid`
+
+### Forms
+- `.foodex-form`
+- `.foodex-premium-auto-form`
+- `.foodex-control` / production-enhanced controls
+- existing authoritative lookup/select components
+
+### States
+- `.foodex-alert`
+- `.foodex-state`
+- `.foodex-empty-state`
+- `.foodex-ops-state`
+
+### Actions
+- primary: existing `.primary`, `.foodex-primary`, `.foodex-action-primary`
+- secondary: existing `.secondary`, `.foodex-action-secondary`
+- destructive: existing danger treatment
+- multiple row actions: one `.foodex-ops-actions` ellipsis menu
+
+A new Dashboard page that replaces these with bespoke equivalents is a UI/UX regression unless the shared system itself is deliberately being changed.
+
+## 16. Dashboard archetype selection
+
+When the owner only says “اعمل صفحة”:
+
+- records/index/management -> use the Management/list recipe;
+- record View/Edit/Manage -> use detail/manage inside direct record context;
+- create/edit business object -> use Forms + authoritative lookups;
+- finance/invoices/operations sibling functions -> use page tabs + management grid;
+- analytics/dashboard -> use Premium Dashboard + visualization contract;
+- geography/territory -> map-first interaction, not raw coordinate textboxes.
+
+The nearest production domain page is the layout reference. Do not create a generic CRUD page first and “style it later”.
+
