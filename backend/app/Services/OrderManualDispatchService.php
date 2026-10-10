@@ -16,7 +16,11 @@ use Illuminate\Validation\ValidationException;
 
 final class OrderManualDispatchService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly FulfillmentActorPolicy $actors,
+        private readonly VanExecutionStateService $executionStates,
+    ) {}
 
     public function assignDriver(
         Order $order,
@@ -25,6 +29,7 @@ final class OrderManualDispatchService
         string $reason,
     ): OrderDispatchState {
         $reason = $this->reason($reason);
+        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::DRIVER);
 
         if (
             (int) $driverAssignment->order_id !== (int) $order->id
@@ -100,6 +105,7 @@ final class OrderManualDispatchService
         Carbon|string|null $at = null,
     ): OrderDispatchState {
         $reason = $this->reason($reason);
+        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
 
         $van = Van::query()
@@ -185,6 +191,8 @@ final class OrderManualDispatchService
                     ],
                 ]);
             }
+
+            $this->executionStates->initialize($same, $moment);
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([
