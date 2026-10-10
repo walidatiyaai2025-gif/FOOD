@@ -28,7 +28,7 @@ final class AdministrationHubController extends Controller
 
         App::setLocale($locale);
 
-        $mobileReleaseVersion = $this->mobileArtifacts->ensureScheduled();
+        $mobileReleaseVersion = $this->mobileArtifacts->currentVersion();
 
         return view('admin.administration-hub', [
             'user' => $user,
