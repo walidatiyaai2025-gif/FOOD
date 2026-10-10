@@ -158,6 +158,90 @@
         "remittance",
         "notifications",
         "profile"
+      ],
+      "functions": [
+        {
+          "id": "van.b2b.dashboard",
+          "route": "VanScreenId.dashboard",
+          "authority": "VanDashboardPage"
+        },
+        {
+          "id": "van.b2b.routes",
+          "route": "VanScreenId.routes,VanScreenId.routeMap,VanScreenId.routeDetail,VanScreenId.visit",
+          "authority": "VanRoutesPage / VanRouteMapPage / VanRouteDetailPage / VanVisitWorkspace"
+        },
+        {
+          "id": "van.b2b.orders",
+          "route": "VanScreenId.orders",
+          "authority": "VanOrdersPage"
+        },
+        {
+          "id": "van.b2b.order.detail",
+          "route": "assigned B2B order -> exact order detail",
+          "authority": "VanOrderDetailPage"
+        },
+        {
+          "id": "van.b2b.finance",
+          "route": "VanScreenId.wallet,VanScreenId.collection,VanScreenId.receipt,VanScreenId.remittance",
+          "authority": "VanWalletPage / VanCollectionPage / VanReceiptsPage / VanRemittancePage"
+        }
+      ],
+      "fulfillment_actions": [
+        {
+          "id": "van.b2b.order.accept",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "case 'accepted':"
+        },
+        {
+          "id": "van.b2b.order.pickup",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "case 'picked_up':"
+        },
+        {
+          "id": "van.b2b.order.out_for_delivery",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "case 'out_for_delivery':"
+        },
+        {
+          "id": "van.b2b.order.proof",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "widget.repository.uploadProof("
+        },
+        {
+          "id": "van.b2b.order.delivered",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "case 'delivered':"
+        },
+        {
+          "id": "van.b2b.order.fail",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "widget.repository.failOrder("
+        },
+        {
+          "id": "van.b2b.order.retry",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "widget.repository.retryOrder("
+        },
+        {
+          "id": "van.b2b.order.collect",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "_openCollectionFlow()"
+        },
+        {
+          "id": "van.b2b.order.receipt",
+          "source": "apps/van_app/lib/features/orders/van_order_detail_page.dart",
+          "marker": "_openReceipt(int receiptId)"
+        },
+        {
+          "id": "van.b2b.finance.collect",
+          "source": "apps/van_app/lib/features/wallet/van_collection_page.dart",
+          "marker": "widget.repository.collect("
+        },
+        {
+          "id": "van.b2b.finance.remit",
+          "source": "apps/van_app/lib/features/wallet/van_remittance_page.dart",
+          "marker": "widget.repository.remit("
+        }
       ]
     },
     "dashboard": {
