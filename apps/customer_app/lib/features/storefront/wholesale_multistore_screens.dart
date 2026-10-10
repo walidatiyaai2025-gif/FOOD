@@ -3100,6 +3100,10 @@ class _WholesaleCartDesignScreenState
   late int storeId = wholesaleStoreId(widget.location);
   late Future<Object?> future = _load();
   final Set<int> _removedItemIds = <int>{};
+  final Map<int, double> _optimisticQuantities = <int, double>{};
+  final Map<int, double> _queuedQuantities = <int, double>{};
+  final Set<int> _syncingQuantityIds = <int>{};
+  Map<String, dynamic>? _cartOverride;
 
   @override
   void initState() {
@@ -3110,7 +3114,10 @@ class _WholesaleCartDesignScreenState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      setState(() => future = _load());
+      setState(() {
+        _cartOverride = null;
+        future = _load();
+      });
     }
   }
 
@@ -3141,6 +3148,11 @@ class _WholesaleCartDesignScreenState
       if (mounted) {
         setState(() {
           _removedItemIds.addAll(removedItemIds);
+          for (final id in removedItemIds) {
+            _optimisticQuantities.remove(id);
+            _queuedQuantities.remove(id);
+          }
+          _cartOverride = null;
           future = Future<Object?>.value(refreshed);
         });
       }
@@ -3154,12 +3166,97 @@ class _WholesaleCartDesignScreenState
     }
   }
 
-  Future<void> _update(int id, double value) async {
+  void _stepQuantity({
+    required int id,
+    required double baseQuantity,
+    required double increment,
+    required double minimum,
+    required bool increase,
+    double? available,
+  }) {
+    final api = widget.commerceApi;
+    if (api == null || id <= 0 || increment <= 0) return;
+
+    final current = _optimisticQuantities[id] ?? baseQuantity;
+    final rawNext = increase ? current + increment : current - increment;
+    final next = increase
+        ? rawNext
+        : math.max(minimum, rawNext).toDouble();
+
+    if ((next - current).abs() < .0001) return;
+    if (available != null && next > available + .0001) return;
+
+    setState(() {
+      _optimisticQuantities[id] = next;
+      // Keep only the latest desired target while an earlier request is in
+      // flight. This makes rapid taps cheap and deterministic on slow links.
+      _queuedQuantities[id] = next;
+    });
+    unawaited(_drainQuantityUpdates(id));
+  }
+
+  Future<void> _drainQuantityUpdates(int id) async {
+    if (_syncingQuantityIds.contains(id)) return;
     final api = widget.commerceApi;
     if (api == null) return;
-    await _mutate(() async {
-      await api.updateItem(id, value);
-    });
+
+    _syncingQuantityIds.add(id);
+    try {
+      while (mounted) {
+        final target = _queuedQuantities.remove(id);
+        if (target == null) break;
+
+        final value = await api.updateItem(id, target);
+        if (!mounted) return;
+
+        if (value is Map) {
+          final authoritative = Map<String, dynamic>.from(value);
+          setState(() {
+            _cartOverride = authoritative;
+            final optimistic = _optimisticQuantities[id];
+            if (!_queuedQuantities.containsKey(id) &&
+                optimistic != null &&
+                (optimistic - target).abs() < .0001) {
+              _optimisticQuantities.remove(id);
+            }
+          });
+          continue;
+        }
+
+        // Legacy/custom adapters may not return the authoritative cart from
+        // PATCH. Refresh once only after the queue is drained, never per tap.
+        if (!_queuedQuantities.containsKey(id)) {
+          final refreshed = await _load();
+          if (!mounted) return;
+          if (!_queuedQuantities.containsKey(id)) {
+            setState(() {
+              _cartOverride = refreshed is Map
+                  ? Map<String, dynamic>.from(refreshed)
+                  : null;
+              _optimisticQuantities.remove(id);
+            });
+          }
+        }
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _queuedQuantities.remove(id);
+        _optimisticQuantities.remove(id);
+      });
+      await showOperationalError(context, error);
+      if (mounted) {
+        setState(() {
+          _cartOverride = null;
+          future = _load();
+        });
+      }
+    } finally {
+      _syncingQuantityIds.remove(id);
+      if (mounted && _queuedQuantities.containsKey(id)) {
+        unawaited(_drainQuantityUpdates(id));
+      }
+    }
   }
 
   Future<void> _remove(int id) async {
@@ -3206,9 +3303,10 @@ class _WholesaleCartDesignScreenState
                   );
                 }
 
-                final cart = snapshot.data is Map
-                    ? Map<String, dynamic>.from(snapshot.data as Map)
-                    : <String, dynamic>{};
+                final cart = _cartOverride ??
+                    (snapshot.data is Map
+                        ? Map<String, dynamic>.from(snapshot.data as Map)
+                        : <String, dynamic>{});
                 if (storeId <= 0) {
                   storeId = intValue(cart['store_id']);
                 }
@@ -3281,7 +3379,8 @@ class _WholesaleCartDesignScreenState
                             ? Map<String, dynamic>.from(row['product'] as Map)
                             : row;
                         final id = intValue(row['id']);
-                        final qty = doubleValue(row['quantity'], 1);
+                        final serverQty = doubleValue(row['quantity'], 1);
+                        final qty = _optimisticQuantities[id] ?? serverQty;
                         final increment =
                             doubleValue(row['ordering_increment'], 1);
                         final minimum =
@@ -3291,6 +3390,7 @@ class _WholesaleCartDesignScreenState
                             : doubleValue(row['available_quantity'], 0);
 
                         return _CartLine(
+                          itemId: id,
                           name: product['name']?.toString() ??
                               row['name']?.toString() ??
                               '',
@@ -3308,18 +3408,29 @@ class _WholesaleCartDesignScreenState
                           lineTotal: row['line_total'],
                           availableQuantity: available,
                           isAvailable: row['is_available'] != false,
-                          onMinus: widget.commerceApi == null
+                          onMinus: widget.commerceApi == null ||
+                                  qty <= minimum + .0001
                               ? null
-                              : () {
-                                  final next =
-                                      math.max(minimum, qty - increment);
-                                  _update(id, next.toDouble());
-                                },
+                              : () => _stepQuantity(
+                                    id: id,
+                                    baseQuantity: serverQty,
+                                    increment: increment,
+                                    minimum: minimum,
+                                    available: available,
+                                    increase: false,
+                                  ),
                           onPlus: widget.commerceApi == null ||
                                   (available != null &&
                                       qty + increment > available + .0001)
                               ? null
-                              : () => _update(id, qty + increment),
+                              : () => _stepQuantity(
+                                    id: id,
+                                    baseQuantity: serverQty,
+                                    increment: increment,
+                                    minimum: minimum,
+                                    available: available,
+                                    increase: true,
+                                  ),
                           onRemove: widget.commerceApi == null || id <= 0
                               ? null
                               : () => _remove(id),
@@ -3345,6 +3456,7 @@ class _WholesaleCartDesignScreenState
 
 class _CartLine extends StatelessWidget {
   const _CartLine({
+    required this.itemId,
     required this.name,
     required this.subtitle,
     required this.quantity,
@@ -3358,6 +3470,7 @@ class _CartLine extends StatelessWidget {
     this.imageUrl,
   });
 
+  final int itemId;
   final String name;
   final String subtitle;
   final String? imageUrl;
@@ -3490,7 +3603,11 @@ class _CartLine extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _MiniStep(icon: Icons.remove, onTap: onMinus),
+                    _MiniStep(
+                      key: ValueKey('b2b-cart-minus-$itemId'),
+                      icon: Icons.remove,
+                      onTap: onMinus,
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 9),
                       child: Text(
@@ -3498,7 +3615,11 @@ class _CartLine extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
-                    _MiniStep(icon: Icons.add, onTap: onPlus),
+                    _MiniStep(
+                      key: ValueKey('b2b-cart-plus-$itemId'),
+                      icon: Icons.add,
+                      onTap: onPlus,
+                    ),
                   ],
                 ),
               ],
@@ -3514,6 +3635,7 @@ class _MiniStep extends StatelessWidget {
   const _MiniStep({
     required this.icon,
     required this.onTap,
+    super.key,
   });
 
   final IconData icon;
