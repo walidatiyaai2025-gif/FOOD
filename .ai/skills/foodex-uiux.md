@@ -21,6 +21,8 @@ Cross-cutting quality skills:
 - `.ai/skills/ui-interaction-safety.md` — mandatory when the UI mutates business state;
 - `.ai/skills/ui-performance.md` — mandatory for lists/grids/search/live/polling/high-growth data;
 - `.ai/skills/uiux-skill-maintenance.md` — use when durable UI architecture/contracts change.
+- `.ai/skills/ui-structural-parity.md` — hard minimum signature for new screens + Golden structural similarity.
+- `.ai/skills/ui-pr-evidence-plan.md` — exact-diff runtime evidence plan and inventory enforcement.
 
 ## 0. Authority order
 
@@ -326,4 +328,20 @@ python3 scripts/foodex-ui-contract-plan.py --surface <surface> --archetype <arch
 The output binds visual composition to route authority, Store/channel/tenant context, currency/precision authority, asset policy, lifecycle expectations, Golden Page candidates and the exact tests/evidence for that surface.
 
 Do not start page code while those inputs are materially unknown.
+
+## 16. Structural parity and exact-diff evidence
+
+Before merge for UI work:
+
+```bash
+python3 scripts/foodex-ui-structure-audit.py --base <base> --head <head> --report artifacts/foodex-ui-structure-audit.json
+python3 scripts/foodex-ui-pr-plan.py --base <base> --head <head> --strict --output artifacts/foodex-ui-pr-evidence-plan.json
+```
+
+Read:
+- `.ai/skills/ui-structural-parity.md`
+- `.ai/skills/ui-pr-evidence-plan.md`
+- `.ai/uiux/visual-evidence-matrix.json`
+
+New screens must satisfy the surface structural signature and be added to the owning runtime screenshot inventory. Applicable Web/Mobile visual evidence jobs are part of Required CI.
 

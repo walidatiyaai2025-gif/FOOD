@@ -107,7 +107,11 @@
       "scripts/foodex-uiux-audit.py",
       "scripts/uiux-v42-recovery-audit.py",
       "scripts/validate_ui_route_convergence.py",
-      "scripts/foodex-ui-contract-plan.py"
-    ]
+      "scripts/foodex-ui-contract-plan.py",
+      "scripts/foodex-ui-structure-audit.py",
+      "scripts/foodex-ui-pr-plan.py"
+    ],
+    "visual_evidence_matrix": ".ai/uiux/visual-evidence-matrix.json",
+    "structural_signatures": ".ai/uiux/structural-signatures.json"
   }
 }

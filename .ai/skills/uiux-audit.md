@@ -276,3 +276,20 @@ python3 scripts/foodex-ui-contract-plan.py --surface <surface> --archetype <arch
 
 The generated contract is planning evidence, not a replacement for source/runtime proof.
 
+## 13. Structural parity gate
+
+Run `scripts/foodex-ui-structure-audit.py`.
+
+Hard FAIL:
+- a new user-facing screen misses its minimum FOODEX structural signature;
+- a durable shared UI marker referenced by policy has drifted/disappeared unexpectedly.
+
+Advisory:
+- low Golden structural similarity on an existing screen. Review the intended archetype; do not blindly rewrite valid legacy UI.
+
+## 14. Exact-diff evidence-plan gate
+
+Run `scripts/foodex-ui-pr-plan.py --strict`.
+
+A new screen without an owning screenshot/capture inventory update is FAIL. Applicable Dashboard/Mobile visual evidence jobs must pass inside Required CI.
+

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "purpose": "Minimum runtime visual evidence expected when a FOODEX UI surface changes.",
+  "surfaces": {
+    "dashboard": {
+      "workflow": ".github/workflows/ui-visual-qa.yml",
+      "required_ci_job": "dashboard-visual-evidence",
+      "evidence_inventory": "scripts/capture_web_screenshots.mjs",
+      "locales": [
+        "ar",
+        "en"
+      ],
+      "viewports": [
+        "desktop-1280",
+        "compact-1024",
+        "tablet-768",
+        "mobile-390"
+      ],
+      "baseline_states": [
+        "loaded"
+      ],
+      "conditional_states": [
+        "empty",
+        "error",
+        "open-row-menu",
+        "open-modal-or-drawer",
+        "selected-tab",
+        "map-or-chart"
+      ]
+    },
+    "customer": {
+      "workflow": ".github/workflows/mobile-screenshot-capture.yml",
+      "required_ci_job": "mobile-visual-evidence",
+      "evidence_inventory": "apps/customer_app/test/screenshot_evidence_test.dart",
+      "locales": [
+        "ar",
+        "en"
+      ],
+      "viewports": [
+        "430x932"
+      ],
+      "baseline_states": [
+        "loaded"
+      ],
+      "conditional_states": [
+        "empty",
+        "error",
+        "stale-or-offline",
+        "open-sheet-or-menu",
+        "critical-transaction-state"
+      ]
+    },
+    "driver": {
+      "workflow": ".github/workflows/mobile-screenshot-capture.yml",
+      "required_ci_job": "mobile-visual-evidence",
+      "evidence_inventory": "apps/driver_app/test/screenshot_evidence_test.dart",
+      "locales": [
+        "ar",
+        "en"
+      ],
+      "viewports": [
+        "430x932"
+      ],
+      "baseline_states": [
+        "loaded"
+      ],
+      "conditional_states": [
+        "empty",
+        "error",
+        "stale-or-offline",
+        "active-assignment",
+        "open-action-sheet"
+      ]
+    },
+    "van": {
+      "workflow": ".github/workflows/mobile-screenshot-capture.yml",
+      "required_ci_job": "mobile-visual-evidence",
+      "evidence_inventory": "apps/van_app/test/screenshot_evidence_test.dart",
+      "locales": [
+        "ar",
+        "en"
+      ],
+      "viewports": [
+        "430x932",
+        "360x800"
+      ],
+      "baseline_states": [
+        "loaded"
+      ],
+      "conditional_states": [
+        "empty",
+        "error",
+        "stale-or-offline",
+        "active-route-or-order",
+        "finance-confirmation"
+      ]
+    }
+  }
+}

@@ -2,22 +2,6 @@ name: FOODEX Mobile Screenshot Capture
 
 on:
   workflow_call:
-  pull_request:
-    paths:
-      - "apps/customer_app/lib/app.dart"
-      - "apps/customer_app/lib/features/b2b/business_account_profile.dart"
-      - "apps/customer_app/lib/core/theme/foodex_theme.dart"
-      - "apps/customer_app/lib/shared/customer_persistent_footer.dart"
-      - "apps/customer_app/lib/features/b2b/b2b_journey_screen.dart"
-      - "apps/customer_app/lib/features/storefront/multistore_design_screen.dart"
-      - "apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart"
-      - "apps/customer_app/test/screenshot_evidence_test.dart"
-      - "apps/driver_app/lib/app.dart"
-      - "apps/driver_app/lib/core/theme/foodex_theme.dart"
-      - "apps/driver_app/test/screenshot_evidence_test.dart"
-      - "apps/van_app/lib/**"
-      - "apps/van_app/test/screenshot_evidence_test.dart"
-      - ".github/workflows/mobile-screenshot-capture.yml"
 
 permissions:
   contents: read

@@ -36,6 +36,8 @@ Keep these aligned with production:
 - `.ai/uiux/context-contract.json`
 - `.ai/uiux/uiux-scorecard.json`
 - `.ai/uiux/ui-lessons.json`
+- `.ai/uiux/visual-evidence-matrix.json`
+- `.ai/uiux/structural-signatures.json`
 
 If a referenced source/test moves, policy validation must fail until corrected.
 
