@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\MirrorMobileReleaseArtifacts;
 use App\Models\Role;
 use App\Models\SystemVersion;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class VanControlPlaneParityTest extends TestCase
