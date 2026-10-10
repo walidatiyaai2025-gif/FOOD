@@ -274,6 +274,91 @@ class HttpVanOrderRepository implements VanOrderRepository {
     return _execution(_map(decoded['data']));
   }
 
+  @override
+  Future<List<VanFailureReasonOption>> failedDeliveryReasons() async {
+    final decoded = _map(await api.getJson('lookups/failed-delivery-reasons'));
+    return _list(decoded['data'])
+        .map((row) {
+          final item = _map(row);
+          return VanFailureReasonOption(
+            code: _string(item['code']),
+            labelAr: _string(item['label_ar']),
+            labelEn: _string(item['label_en']),
+          );
+        })
+        .where(
+          (reason) =>
+              reason.code.trim().isNotEmpty &&
+              reason.labelAr.trim().isNotEmpty &&
+              reason.labelEn.trim().isNotEmpty,
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<VanOrderExecutionState> uploadProof({
+    required int orderId,
+    required VanProofAttachment proof,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    final decoded = _map(
+      await api.postMultipart(
+        'van/orders/$orderId/execution/proof',
+        headers: {'Idempotency-Key': idempotencyKey},
+        fields: {
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        },
+        fileField: 'proof_image',
+        filePath: proof.path,
+        fileName: proof.fileName,
+      ),
+    );
+    return _execution(_map(decoded['data']));
+  }
+
+  @override
+  Future<VanOrderExecutionState> failOrder({
+    required int orderId,
+    required String failureReason,
+    required String idempotencyKey,
+    String? note,
+    VanProofAttachment? proof,
+  }) async {
+    final decoded = _map(
+      await api.postMultipart(
+        'van/orders/$orderId/execution/fail',
+        headers: {'Idempotency-Key': idempotencyKey},
+        fields: {
+          'failure_reason': failureReason.trim(),
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        },
+        fileField: proof == null ? null : 'proof_image',
+        filePath: proof?.path,
+        fileName: proof?.fileName,
+      ),
+    );
+    return _execution(_map(decoded['data']));
+  }
+
+  @override
+  Future<VanOrderExecutionState> retryOrder({
+    required int orderId,
+    required String idempotencyKey,
+    String? note,
+  }) async {
+    final decoded = _map(
+      await api.postJson(
+        'van/orders/$orderId/execution/retry',
+        headers: {'Idempotency-Key': idempotencyKey},
+        body: {
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        },
+      ),
+    );
+    return _execution(_map(decoded['data']));
+  }
+
   VanOrderQuote _quote(Map<String, dynamic> data) => VanOrderQuote(
         currency: _string(data['currency']),
         subtotal: _double(data['subtotal']),
@@ -301,22 +386,37 @@ class HttpVanOrderRepository implements VanOrderRepository {
             _nullableString(data['van_last_transition_at']),
       );
 
-  VanOrderExecutionState _execution(Map<String, dynamic> data) =>
-      VanOrderExecutionState(
-        orderId: _requiredInt(data['order_id']),
-        orderStatus: _string(data['order_status']),
-        status: _string(data['status']),
-        allowedActions: _list(data['allowed_actions'])
-            .map(_string)
-            .where((value) => value.isNotEmpty)
-            .toList(growable: false),
-        proofRequiredForDelivered:
-            data['proof_required_for_delivered'] == true,
-        failureReasonCode:
-            _nullableString(data['failure_reason_code']),
-        lastTransitionAt:
-            _nullableString(data['last_transition_at']),
-      );
+  VanOrderExecutionState _execution(Map<String, dynamic> data) {
+    final proof = data['latest_proof'] is Map
+        ? _map(data['latest_proof'])
+        : null;
+
+    return VanOrderExecutionState(
+      orderId: _requiredInt(data['order_id']),
+      orderStatus: _string(data['order_status']),
+      status: _string(data['status']),
+      allowedActions: _list(data['allowed_actions'])
+          .map(_string)
+          .where((value) => value.isNotEmpty)
+          .toList(growable: false),
+      proofRequiredForDelivered:
+          data['proof_required_for_delivered'] == true,
+      deliveryProofReady: data['delivery_proof_ready'] == true,
+      failureReasonCode:
+          _nullableString(data['failure_reason_code']),
+      failureNote: _nullableString(data['failure_note']),
+      latestProof: proof == null
+          ? null
+          : VanOrderProofRecord(
+              id: _requiredInt(proof['id']),
+              type: _string(proof['type']),
+              available: proof['available'] == true,
+              capturedAt: _nullableString(proof['captured_at']),
+            ),
+      lastTransitionAt:
+          _nullableString(data['last_transition_at']),
+    );
+  }
 
   Map<String, dynamic> _map(Object? value) {
     if (value is Map<String, dynamic>) {
