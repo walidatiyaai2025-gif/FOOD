@@ -7,6 +7,7 @@ use App\Models\MobileReleaseArtifact;
 use App\Services\MobileReleaseArtifactMirror;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -36,9 +37,19 @@ final class MobileAppDownloadController extends Controller
         return $this->adminDownload('van');
     }
 
-    public function status(): JsonResponse
+    public function status(Request $request): JsonResponse
     {
         Gate::authorize('platform.manage');
+
+        $app = $this->requestedApp($request);
+        if ($app !== null) {
+            $artifact = $this->mirror->statusPayloadForApp($app);
+
+            return response()->json([
+                'version' => $artifact['version'] ?? $this->mirror->currentVersionForApp($app),
+                'artifacts' => [$artifact],
+            ]);
+        }
 
         $version = $this->mirror->currentVersion();
 
@@ -48,11 +59,23 @@ final class MobileAppDownloadController extends Controller
         ]);
     }
 
-    public function prepare(): JsonResponse
+    public function prepare(Request $request): JsonResponse
     {
         Gate::authorize('platform.manage');
 
-        $version = $this->mirror->ensureScheduled();
+        $app = $this->requestedApp($request);
+        if ($app !== null) {
+            $version = $this->mirror->currentVersionForApp($app);
+            $this->mirror->ensureScheduled($version);
+
+            return response()->json([
+                'version' => $version,
+                'artifacts' => [$this->mirror->statusPayloadForApp($app)],
+            ], 202);
+        }
+
+        $version = $this->mirror->currentVersionForApp($app);
+        $this->mirror->ensureScheduled($version);
 
         return response()->json([
             'version' => $version,
@@ -60,9 +83,20 @@ final class MobileAppDownloadController extends Controller
         ], 202);
     }
 
-    public function retry(): JsonResponse
+    public function retry(Request $request): JsonResponse
     {
         Gate::authorize('platform.manage');
+
+        $app = $this->requestedApp($request);
+        if ($app !== null) {
+            $version = $this->mirror->currentVersionForApp($app);
+            $this->mirror->retryVersion($version);
+
+            return response()->json([
+                'version' => $version,
+                'artifacts' => [$this->mirror->statusPayloadForApp($app)],
+            ], 202);
+        }
 
         $version = $this->mirror->retryVersion();
 
@@ -74,7 +108,7 @@ final class MobileAppDownloadController extends Controller
 
     public function latest(string $app): BinaryFileResponse
     {
-        return $this->download($app, $this->mirror->currentVersion());
+        return $this->download($app, $this->mirror->currentVersionForApp($app));
     }
 
     public function versioned(string $app, string $version): BinaryFileResponse
@@ -121,9 +155,7 @@ final class MobileAppDownloadController extends Controller
             ->first();
 
         if (! $artifact instanceof MobileReleaseArtifact || ! $this->isLocallyReady($artifact)) {
-            if ($version === $this->mirror->currentVersion()) {
-                $this->mirror->ensureScheduled($version);
-            }
+            $this->mirror->ensureScheduled($version);
 
             abort(503, 'FOODEX APK is still being prepared on this server.');
         }
@@ -138,9 +170,7 @@ final class MobileAppDownloadController extends Controller
                 'last_error' => 'Local APK file is missing or has the wrong size.',
             ])->save();
 
-            if ($version === $this->mirror->currentVersion()) {
-                $this->mirror->retryVersion($version);
-            }
+            $this->mirror->retryVersion($version);
 
             abort(503, 'FOODEX APK local mirror requires repair.');
         }
@@ -158,6 +188,21 @@ final class MobileAppDownloadController extends Controller
             'X-FOODEX-Artifact-Source' => 'local-mirror',
             'Cache-Control' => 'private, max-age=300',
         ]);
+    }
+
+    private function requestedApp(Request $request): ?string
+    {
+        $app = $request->input('app');
+
+        if ($app === null || $app === '') {
+            return null;
+        }
+
+        if (! is_string($app) || ! array_key_exists($app, self::APPS)) {
+            abort(422, 'Unsupported FOODEX mobile application.');
+        }
+
+        return $app;
     }
 
     private function isLocallyReady(MobileReleaseArtifact $artifact): bool
