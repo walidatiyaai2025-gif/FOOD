@@ -8,16 +8,25 @@ Read:
 1. `.ai/skills/foodex-uiux.md`
 2. `.ai/skills/ui-pattern-library.md`
 3. `.ai/skills/page-patterns.md`
-4. `.ai/skills/ui-route-authority.md` and `.ai/skills/ui-accessibility.md`.
-5. exactly one or more surface skills:
+4. `.ai/skills/ui-business-journeys.md` and `.ai/skills/ui-intent-routing.md`
+5. `.ai/skills/ui-route-authority.md` and `.ai/skills/ui-accessibility.md`.
+6. exactly one or more surface skills:
    - `.ai/skills/dashboard-uiux.md`
    - `.ai/skills/customer-uiux.md`
    - `.ai/skills/driver-uiux.md`
    - `.ai/skills/van-uiux.md`
-6. the authoritative contract/files named by that skill.
-7. `.ai/skills/ui-interaction-safety.md` when the page mutates state; `.ai/skills/ui-performance.md` for lists/search/live/high-growth surfaces.
-8. `.ai/skills/ui-structural-parity.md` and `.ai/skills/ui-pr-evidence-plan.md` for structural/evidence planning.
-9. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
+7. the authoritative contract/files named by that skill.
+8. `.ai/skills/ui-interaction-safety.md` when the page mutates state; `.ai/skills/ui-performance.md` for lists/search/live/high-growth surfaces.
+9. `.ai/skills/ui-structural-parity.md` and `.ai/skills/ui-pr-evidence-plan.md` for structural/evidence planning.
+10. `.ai/skills/uiux-audit.md` and `.ai/skills/uiux-evidence.md` are mandatory after implementation before completion.
+
+For a short owner prompt, resolve the business journey first:
+
+```bash
+python3 scripts/foodex-ui-intent-plan.py --intent "<owner request>" [--surface <surface>] [--strict]
+```
+
+If repository/Issue context already names the exact route or business case, use that higher authority instead of inference.
 
 Before markup/widget code, also run the **UI Contract Planner** when the page/archetype is known:
 

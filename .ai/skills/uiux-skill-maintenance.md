@@ -36,6 +36,8 @@ Keep these aligned with production:
 - `.ai/uiux/context-contract.json`
 - `.ai/uiux/uiux-scorecard.json`
 - `.ai/uiux/ui-lessons.json`
+- `.ai/uiux/business-recipes.json`
+- `.ai/uiux/business-casebook.json`
 - `.ai/uiux/visual-evidence-matrix.json`
 - `.ai/uiux/structural-signatures.json`
 
@@ -76,3 +78,10 @@ Remove duplicated prose when a shared skill can own the invariant.
 ## 7. Completion
 
 A design-system/route/evidence contract change is incomplete if the repository-native skill layer now teaches a materially stale implementation.
+
+## Business casebook maintenance
+
+Read `.ai/skills/ui-casebook-learning.md`.
+
+When a production journey changes materially, update its casebook entry in the same PR. When a new reusable journey appears, add it only after source + route/context + regression tests exist. The casebook is repository truth derived from production, not a place to store speculative product ideas.
+

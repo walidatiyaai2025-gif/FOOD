@@ -293,3 +293,20 @@ Run `scripts/foodex-ui-pr-plan.py --strict`.
 
 A new screen without an owning screenshot/capture inventory update is FAIL. Applicable Dashboard/Mobile visual evidence jobs must pass inside Required CI.
 
+## 15. Business journey / casebook gate
+
+For a UI task matching a known production journey:
+
+```bash
+python3 scripts/foodex-ui-intent-plan.py --intent "<owner request>" --strict
+```
+
+PASS only if:
+- the selected case matches explicit Issue/route/surface context;
+- its production source and regression tests still exist;
+- its source markers still prove the documented behavior;
+- implementation preserves applicable recipe states/actions/invariants;
+- any intentional business-flow change updates source, tests and casebook in the same PR.
+
+Generic/ambiguous prompts must not be forced into the wrong journey.
+
