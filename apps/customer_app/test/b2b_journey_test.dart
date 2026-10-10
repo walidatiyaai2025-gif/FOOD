@@ -1465,7 +1465,7 @@ void main() {
     expect(find.text('B2B-91'), findsOneWidget);
     expect(find.text('FOODEX Wholesale'), findsOneWidget);
     expect(find.text('جاهز'), findsOneWidget);
-    expect(find.text('42.5 KWD'), findsOneWidget);
+    expect(find.text('KWD 42.5'), findsOneWidget);
 
     await tester.tap(find.text('B2B-91'));
     await tester.pumpAndSettle();
