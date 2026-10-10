@@ -77,9 +77,7 @@ final class OrderLiveTrackingService
             'van_code' => $van?->code,
             'status' => $status,
             'dispatch_status' => $dispatch?->status === null ? null : (string) $dispatch->status,
-            'assigned_at' => $assignment->assigned_at === null
-                ? null
-                : CarbonImmutable::parse((string) $assignment->assigned_at)->toAtomString(),
+            'assigned_at' => CarbonImmutable::parse((string) $assignment->assigned_at)->toAtomString(),
             'completed_at' => $status === 'delivered'
                 ? ($execution?->last_transition_at === null
                     ? ($assignment->ended_at === null
