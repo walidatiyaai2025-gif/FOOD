@@ -19,12 +19,15 @@ final class OrderTerritoryRoutingService
         private readonly TerritoryService $territories,
         private readonly RoutingPolicyService $routingPolicies,
         private readonly AuditLogger $audit,
+        private readonly FulfillmentActorPolicy $actors,
+        private readonly VanExecutionStateService $executionStates,
     ) {}
 
     public function route(Order $order, ?User $actor = null, Carbon|string|null $at = null): OrderDispatchState
     {
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
         $order->refresh();
+        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
 
         $existing = OrderDispatchState::query()->where('order_id', $order->id)->first();
         if ($existing !== null && in_array($existing->routing_source, ['manual_customer_service', 'reassignment_override'], true)) {
@@ -376,7 +379,7 @@ final class OrderTerritoryRoutingService
                     $assignment->forceFill(['status' => 'reassigned', 'ended_at' => $moment])->save();
                 }
 
-                OrderVanAssignment::query()->firstOrCreate(
+                $same = OrderVanAssignment::query()->firstOrCreate(
                     ['decision_key' => $decisionKey],
                     [
                         'order_id' => $order->id,
@@ -396,6 +399,8 @@ final class OrderTerritoryRoutingService
                     ],
                 );
             }
+
+            $this->executionStates->initialize($same, $moment);
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([
