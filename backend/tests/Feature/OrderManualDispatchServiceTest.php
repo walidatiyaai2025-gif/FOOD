@@ -19,9 +19,9 @@ class OrderManualDispatchServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_customer_service_can_assign_van_idempotently_and_clear_to_pending_queue(): void
+    public function test_customer_service_can_assign_b2b_van_idempotently_initialize_execution_state_and_clear(): void
     {
-        [$order, $actor] = $this->fixture('VAN');
+        [$order, $actor] = $this->fixture('VAN', 'b2b');
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'VAN-CS']);
         $registry->assign($actor, $van, [
@@ -39,10 +39,16 @@ class OrderManualDispatchServiceTest extends TestCase
         $this->assertSame('manual_customer_service', $first->routing_source);
         $this->assertSame($first->routing_source, $second->routing_source);
         $this->assertDatabaseCount('order_van_assignments', 1);
+        $this->assertDatabaseCount('order_van_execution_states', 1);
         $this->assertDatabaseHas('order_van_assignments', [
             'order_id' => $order->id,
             'van_id' => $van->id,
             'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('order_van_execution_states', [
+            'order_id' => $order->id,
+            'van_id' => $van->id,
+            'status' => 'assigned',
         ]);
 
         $cleared = $service->clear($order, $actor, 'Van unavailable');
@@ -57,94 +63,77 @@ class OrderManualDispatchServiceTest extends TestCase
             'van_id' => $van->id,
             'status' => 'ended',
         ]);
+        $this->assertDatabaseHas('order_van_execution_states', [
+            'order_id' => $order->id,
+            'van_id' => $van->id,
+            'status' => 'assigned',
+        ]);
     }
 
-    public function test_driver_dispatch_supersedes_active_van_without_leaving_two_executors(): void
+    public function test_customer_service_can_assign_driver_to_b2c_order(): void
     {
-        [$order, $actor, $store] = $this->fixture('DRIVER');
-        $registry = app(VanRegistryService::class);
-        $van = $registry->createVan(['code' => 'VAN-FIRST']);
-        $registry->assign($actor, $van, [
-            'assignment_type' => 'primary',
-            'effective_from' => '2026-10-01T00:00:00Z',
-        ]);
+        [$order, $actor, $store] = $this->fixture('DRIVER', 'b2c');
+        $driverAssignment = $this->driverAssignment($order, $store);
 
-        $service = app(OrderManualDispatchService::class);
-        $service->assignVan($order, $actor, $van->id, 'Initial Van assignment', '2026-10-08T18:00:00Z');
-
-        $driverUser = User::factory()->create();
-        $driver = Driver::query()->create([
-            'user_id' => $driverUser->id,
-            'store_id' => $store->id,
-            'driver_type' => 'b2c',
-            'is_available' => true,
-            'is_active' => true,
-        ]);
-        $driverAssignment = DriverAssignment::query()->create([
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-            'store_id' => $store->id,
-            'assignment_type' => 'b2c',
-            'status' => 'assigned',
-            'assigned_at' => now(),
-        ]);
-
-        $state = $service->assignDriver($order, $actor, $driverAssignment, 'Customer requested direct driver');
+        $state = app(OrderManualDispatchService::class)
+            ->assignDriver($order, $actor, $driverAssignment, 'Retail delivery assignment');
 
         $this->assertSame('assigned', $state->status);
         $this->assertSame('driver', $state->current_assignee_type);
-        $this->assertSame($driver->id, $state->current_assignee_id);
-        $this->assertSame('reassignment_override', $state->routing_source);
-        $this->assertDatabaseMissing('order_van_assignments', [
-            'order_id' => $order->id,
-            'status' => 'active',
-        ]);
-        $this->assertDatabaseHas('order_van_assignments', [
-            'order_id' => $order->id,
-            'van_id' => $van->id,
-            'status' => 'reassigned',
-        ]);
-        $this->assertDatabaseHas('audit_logs', [
-            'event' => 'order.dispatch.manual_assigned',
-            'auditable_type' => Order::class,
-            'auditable_id' => $order->id,
-        ]);
+        $this->assertSame($driverAssignment->driver_id, $state->current_assignee_id);
+        $this->assertDatabaseCount('order_van_assignments', 0);
+        $this->assertDatabaseCount('order_van_execution_states', 0);
     }
 
-    public function test_van_dispatch_rejects_when_active_driver_was_not_ended(): void
+    public function test_manual_dispatch_rejects_cross_channel_actor_assignment(): void
     {
-        [$order, $actor, $store] = $this->fixture('DUAL');
+        [$b2bOrder, $actor, $b2bStore] = $this->fixture('B2B-WRONG', 'b2b');
+        $driverAssignment = $this->driverAssignment($b2bOrder, $b2bStore);
+
+        try {
+            app(OrderManualDispatchService::class)
+                ->assignDriver($b2bOrder, $actor, $driverAssignment, 'Invalid wholesale driver');
+            $this->fail('B2B Driver assignment must be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('assignee_type', $exception->errors());
+        }
+
+        [$b2cOrder, $actor, $b2cStore] = $this->fixture('B2C-WRONG', 'b2c');
         $registry = app(VanRegistryService::class);
-        $van = $registry->createVan(['code' => 'VAN-DUAL']);
+        $van = $registry->createVan(['code' => 'VAN-B2C-WRONG']);
         $registry->assign($actor, $van, [
             'assignment_type' => 'primary',
             'effective_from' => '2026-10-01T00:00:00Z',
-        ]);
-
-        $driverUser = User::factory()->create();
-        $driver = Driver::query()->create([
-            'user_id' => $driverUser->id,
-            'store_id' => $store->id,
-            'driver_type' => 'b2c',
-            'is_available' => true,
-            'is_active' => true,
-        ]);
-        DriverAssignment::query()->create([
-            'driver_id' => $driver->id,
-            'order_id' => $order->id,
-            'store_id' => $store->id,
-            'assignment_type' => 'b2c',
-            'status' => 'assigned',
-            'assigned_at' => now(),
         ]);
 
         $this->expectException(ValidationException::class);
         app(OrderManualDispatchService::class)
-            ->assignVan($order, $actor, $van->id, 'Unsafe dual assignment attempt');
+            ->assignVan($b2cOrder, $actor, $van->id, 'Invalid retail Van assignment');
+    }
+
+    private function driverAssignment(Order $order, Store $store): DriverAssignment
+    {
+        $driverUser = User::factory()->create();
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $store->id,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
+        return DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
     }
 
     /** @return array{0:Order,1:User,2:Store} */
-    private function fixture(string $suffix): array
+    private function fixture(string $suffix, string $channel): array
     {
         $actor = User::factory()->create();
         $type = StoreType::query()->create([
@@ -158,13 +147,13 @@ class OrderManualDispatchServiceTest extends TestCase
         ]);
         $customer = Customer::query()->create([
             'name' => 'Dispatch Customer '.$suffix,
-            'type' => 'b2c',
+            'type' => $channel,
         ]);
         $order = Order::query()->create([
             'store_id' => $store->id,
             'customer_id' => $customer->id,
             'order_number' => 'DSP-'.$suffix,
-            'channel' => 'b2c',
+            'channel' => $channel,
             'status' => 'pending',
             'currency' => 'KWD',
             'subtotal' => 10,
