@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api\V1;
 
@@ -118,15 +118,6 @@ class DriverAssignmentController extends Controller
             $driverStoreId === (int) $order->store_id,
             409,
             'Driver and order must belong to the same authoritative store.',
-        );
-        $customerServiceOverride = $request->boolean('customer_service_override')
-            && ($user->hasRole('SUPER_ADMIN') || $user->hasPermission('support.manage'));
-        abort_if(
-            $channel === 'b2b'
-                && (string) $order->status === 'pending'
-                && ! $customerServiceOverride,
-            409,
-            'Pending B2B orders require Customer Service approval before driver assignment.',
         );
         abort_if(
             in_array((string) $order->status, ['delivered', 'cancelled'], true),
