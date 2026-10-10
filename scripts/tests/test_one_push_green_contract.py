@@ -33,6 +33,7 @@ class OnePushGreenContractTest(unittest.TestCase):
             self.assertNotIn("actions/checkout@v4",text,path.name)
             self.assertNotIn("actions/cache@v4",text,path.name)
             self.assertNotIn("actions/setup-node@v4",text,path.name)
+            self.assertNotIn("@latest",text,path.name)
 
 if __name__=="__main__":
     unittest.main()
