@@ -615,9 +615,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
                     bottom: 0,
                     child: DecoratedBox(
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF8FAFC),
+                        color: FoodexBrand.surfaceMuted,
                         border: Border(
-                          top: BorderSide(color: Color(0xFFE3E8EF)),
+                          top: BorderSide(color: FoodexBrand.border),
                         ),
                       ),
                       child: SafeArea(
