@@ -76,6 +76,8 @@ class OrderController extends Controller
             && app(PlatformCustomerService::class)->isPlatformCustomer($user)
         ) {
             $query = $this->platformCustomerOrders($user)
+                ->with(['store:id,code,name,logo_path'])
+                ->withCount('items')
                 ->when(
                     isset($validated['store_id']),
                     fn ($query) => $query->where('store_id', (int) $validated['store_id']),
