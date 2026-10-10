@@ -11,10 +11,12 @@ class VanReceiptsPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onSessionExpired,
+    this.highlightReceiptId,
   });
 
   final VanWalletRepository repository;
   final Future<void> Function() onSessionExpired;
+  final int? highlightReceiptId;
 
   @override
   State<VanReceiptsPage> createState() => _VanReceiptsPageState();
@@ -182,6 +184,40 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
               onAction: _load,
             )
           else ...[
+            if (widget.highlightReceiptId != null &&
+                receipts.any(
+                  (row) => row.receipt.id == widget.highlightReceiptId,
+                )) ...[
+              Card(
+                key: ValueKey(
+                  'van-receipt-focus-${widget.highlightReceiptId}',
+                ),
+                elevation: 0,
+                color: FoodexVanTokens.mint,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle_outline,
+                        color: FoodexVanTokens.green,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _text(
+                            'Receipt #${widget.highlightReceiptId} from the current order collection.',
+                            'الإيصال #${widget.highlightReceiptId} من تحصيل الطلب الحالي.',
+                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Text(
               _text('Posted receipts', 'الإيصالات المسجلة'),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
