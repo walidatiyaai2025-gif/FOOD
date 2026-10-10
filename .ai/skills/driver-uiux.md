@@ -164,3 +164,19 @@ Verify at narrow and normal phone widths:
 - exact-record push/deep-link behavior safe;
 - AR/EN + RTL/LTR verified;
 - relevant widget/navigation tests updated.
+
+## 13. Driver production composition lock
+
+For Driver operational screens, `driver_active_journey.dart` is the canonical interaction reference unless the owning feature already has a newer shared pattern.
+
+New operational lists should preserve:
+- compact assignment/order identity;
+- single-line operational filters;
+- compact record cards/rows;
+- one green overflow menu for multiple row actions;
+- focused detail/action sheet instead of action-button clutter;
+- explicit stale banner when retained data is no longer confirmed live;
+- authoritative transition refresh after mutation.
+
+Use the current Driver theme for AppBar, navigation, buttons, fields, radii and colors. Do not style a new screen with raw per-screen `Colors.*`, arbitrary radii, or a custom navigation shell when the theme/navigation already owns them.
+
