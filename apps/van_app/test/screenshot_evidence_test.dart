@@ -233,6 +233,14 @@ void main() {
           await tester.pageBack();
           await tester.pumpAndSettle();
 
+          final orderDetailList =
+              find.byKey(const ValueKey('van-order-detail-page'));
+          await tester.fling(
+            orderDetailList,
+            const Offset(0, 1800),
+            2400,
+          );
+          await tester.pumpAndSettle();
           final proofAction =
               find.byKey(const ValueKey('van-order-proof-action'));
           await tester.ensureVisible(proofAction);
