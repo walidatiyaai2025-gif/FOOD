@@ -220,6 +220,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       if (mounted) setState(() => _submitting = false);
     }
 
+    if (!mounted) return;
     final draft = await showVanDeliveryEvidenceSheet(
       context: context,
       mode: VanDeliveryEvidenceMode.failure,
