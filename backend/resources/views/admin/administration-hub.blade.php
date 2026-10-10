@@ -157,6 +157,7 @@ html[dir=ltr] .main{grid-column:2}
 <script>
 (() => {
     const statusUrl = @json(route('admin.mobile-apps.status'));
+    const prepareUrl = @json(route('admin.mobile-apps.prepare'));
     const retryUrl = @json(route('admin.mobile-apps.retry'));
     const csrf = @json(csrf_token());
     const labels = @json([
@@ -248,11 +249,33 @@ html[dir=ltr] .main{grid-column:2}
         }
     }
 
+    async function prepare() {
+        try {
+            const response = await fetch(prepareUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'Content-Type': 'application/json',
+                },
+                body: '{}',
+            });
+            if (response.ok) {
+                const payload = await response.json();
+                artifacts = Array.isArray(payload.artifacts) ? payload.artifacts : artifacts;
+                renderAll();
+            }
+        } finally {
+            void refresh();
+        }
+    }
+
     function openModal(app) {
         selectedApp = app;
         modal.hidden = false;
         renderModal();
-        void refresh();
+        void prepare();
     }
 
     document.querySelectorAll('[data-apk-open]').forEach((button) => {
