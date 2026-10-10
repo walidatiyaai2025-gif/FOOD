@@ -199,6 +199,35 @@ final class FieldOperationsController extends Controller
             })
             ->keyBy('code');
 
+        $b2bOrders = DB::table('order_van_assignments')
+            ->join('orders', 'orders.id', '=', 'order_van_assignments.order_id')
+            ->leftJoin(
+                'order_van_execution_states',
+                'order_van_execution_states.order_van_assignment_id',
+                '=',
+                'order_van_assignments.id',
+            )
+            ->where('order_van_assignments.van_id', $van->id)
+            ->where('orders.channel', 'b2b')
+            ->orderByRaw("CASE WHEN order_van_assignments.status = 'active' THEN 0 ELSE 1 END")
+            ->orderByDesc('order_van_assignments.assigned_at')
+            ->limit(50)
+            ->get([
+                'orders.id',
+                'orders.order_number',
+                'orders.status as order_status',
+                'orders.currency',
+                'orders.grand_total',
+                'order_van_assignments.status as assignment_status',
+                'order_van_assignments.source',
+                'order_van_assignments.reason',
+                'order_van_assignments.assigned_at',
+                'order_van_assignments.ended_at',
+                'order_van_execution_states.status as execution_status',
+                'order_van_execution_states.failure_reason_code',
+                'order_van_execution_states.last_transition_at',
+            ]);
+
         return $this->render($request, 'van-detail', compact(
             'van',
             'location',
@@ -207,6 +236,7 @@ final class FieldOperationsController extends Controller
             'driverNames',
             'representativeNames',
             'territoryNames',
+            'b2bOrders',
         ));
     }
 
