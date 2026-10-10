@@ -485,6 +485,8 @@ final class VanDeliveryExecutionService
             'failure_note' => $state->failure_note,
             'allowed_actions' => $this->execution->availableStatuses((string) $state->status, $order),
             'proof_required_for_delivered' => true,
+            'delivery_proof_ready' => (string) $state->status === 'out_for_delivery'
+                && $this->hasCurrentDeliveryProof($assignment, $state),
             'latest_proof' => $latestProof instanceof OrderVanExecutionEvent
                 ? $this->proofPayload($latestProof)
                 : null,
