@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.67",
-  "minimum_current_version": "1.0.65",
-  "sha256": "88fc289e44682354e9a3bebc225ae6f02ded4d577b3587a84369cc8dac7b667d",
+  "target_version": "1.0.68",
+  "minimum_current_version": "1.0.67",
+  "sha256": "e8e491cc130a843b7e0a1bca810d6bf58a523bc5565dacb5cc4f18b487af7a2a",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Release FOODEX 1.0.67 dashboard hotfix (#1171)",
+  "release_notes": "release: promote mobile apps to 1.0.68+68",
   "dashboard_fields": {
-    "target_version": "1.0.67",
-    "minimum_current_version": "1.0.65",
-    "sha256": "88fc289e44682354e9a3bebc225ae6f02ded4d577b3587a84369cc8dac7b667d",
+    "target_version": "1.0.68",
+    "minimum_current_version": "1.0.67",
+    "sha256": "e8e491cc130a843b7e0a1bca810d6bf58a523bc5565dacb5cc4f18b487af7a2a",
     "contains_migrations": true,
-    "release_notes": "Release FOODEX 1.0.67 dashboard hotfix (#1171)"
+    "release_notes": "release: promote mobile apps to 1.0.68+68"
   }
 }

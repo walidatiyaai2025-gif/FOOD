@@ -129,6 +129,7 @@ backend/app/Http/Controllers/Api/V1/B2bFinanceController.php
 backend/app/Http/Controllers/Api/V1/B2bPricingController.php
 backend/app/Http/Controllers/Api/V1/B2bReportController.php
 backend/app/Http/Controllers/Api/V1/CheckoutController.php
+backend/app/Http/Controllers/Api/V1/CustomerCatalogImageController.php
 backend/app/Http/Controllers/Api/V1/CustomerInvoiceController.php
 backend/app/Http/Controllers/Api/V1/CustomerProfileController.php
 backend/app/Http/Controllers/Api/V1/DriverAssignmentController.php
@@ -163,6 +164,7 @@ backend/app/Http/Controllers/Api/V1/TerritoryController.php
 backend/app/Http/Controllers/Api/V1/TranslationController.php
 backend/app/Http/Controllers/Api/V1/VanCollectionController.php
 backend/app/Http/Controllers/Api/V1/VanCommercialPolicyController.php
+backend/app/Http/Controllers/Api/V1/VanDeliveryExecutionController.php
 backend/app/Http/Controllers/Api/V1/VanFlashOfferController.php
 backend/app/Http/Controllers/Api/V1/VanOrderController.php
 backend/app/Http/Controllers/Api/V1/VanRegistryController.php
@@ -172,6 +174,7 @@ backend/app/Http/Controllers/Installer/
 backend/app/Http/Controllers/Installer/InstallerController.php
 backend/app/Http/Middleware/
 backend/app/Http/Middleware/CorrelationId.php
+backend/app/Http/Middleware/CustomerConditionalGet.php
 backend/app/Http/Middleware/EnsureActiveUser.php
 backend/app/Http/Middleware/EnsureDriverRuntimeAccess.php
 backend/app/Http/Middleware/EnsureFreshDriverLocation.php
@@ -195,6 +198,8 @@ backend/app/Models/AppPreviewSession.php
 backend/app/Models/AppTranslation.php
 backend/app/Models/AppVersion.php
 backend/app/Models/AuditLog.php
+backend/app/Models/B2BVanCutoverRun.php
+backend/app/Models/B2BVanCutoverSnapshot.php
 backend/app/Models/B2bAccount.php
 backend/app/Models/B2bCustomer.php
 backend/app/Models/B2bPriceRule.php
@@ -243,6 +248,8 @@ backend/app/Models/OrderDispatchState.php
 backend/app/Models/OrderItem.php
 backend/app/Models/OrderStatusHistory.php
 backend/app/Models/OrderVanAssignment.php
+backend/app/Models/OrderVanExecutionEvent.php
+backend/app/Models/OrderVanExecutionState.php
 backend/app/Models/Payment.php
 backend/app/Models/Permission.php
 backend/app/Models/PlatformCustomer.php
@@ -300,6 +307,9 @@ backend/app/Services/AppPreviewTargetService.php
 backend/app/Services/AppVersionPolicy.php
 backend/app/Services/AssistantRuntimeSettings.php
 backend/app/Services/AuditLogger.php
+backend/app/Services/B2BOrderRoutingCoordinator.php
+backend/app/Services/B2BVanFulfillmentCutoverService.php
+backend/app/Services/B2BVanFulfillmentMigrationAudit.php
 backend/app/Services/B2bAccountLedgerService.php
 backend/app/Services/B2bCustomerService.php
 backend/app/Services/B2bDashboardService.php
@@ -322,6 +332,8 @@ backend/app/Services/CustomerImageService.php
 backend/app/Services/CustomerOrderTimelineService.php
 backend/app/Services/DashboardOperationalNotifier.php
 backend/app/Services/DatabaseTranslationLoader.php
+backend/app/Services/DeliveryExecutionService.php
+backend/app/Services/DeliverySettlementService.php
 backend/app/Services/DemoDataManager.php
 backend/app/Services/DriverDeliveryEvidenceService.php
 backend/app/Services/DriverLocationEnforcementPolicy.php
@@ -336,6 +348,7 @@ backend/app/Services/FlashOfferAudienceService.php
 backend/app/Services/FlashOfferNotificationDispatcher.php
 backend/app/Services/FlashOfferService.php
 backend/app/Services/FleetLocationService.php
+backend/app/Services/FulfillmentActorPolicy.php
 backend/app/Services/InvoiceService.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
@@ -347,6 +360,7 @@ backend/app/Services/OperationalTenantScope.php
 backend/app/Services/OrderDeliveryAddressSnapshotService.php
 backend/app/Services/OrderInventoryReservationService.php
 backend/app/Services/OrderLifecycleNotificationService.php
+backend/app/Services/OrderLiveTrackingService.php
 backend/app/Services/OrderManualDispatchService.php
 backend/app/Services/OrderTerritoryRoutingService.php
 backend/app/Services/PdfDocumentFactory.php
@@ -378,6 +392,10 @@ backend/app/Services/SystemInspectorRecorder.php
 backend/app/Services/TerritoryService.php
 backend/app/Services/TranslationCatalog.php
 backend/app/Services/VanCustomerCollectionContextService.php
+backend/app/Services/VanDeliveryEvidenceService.php
+backend/app/Services/VanDeliveryExecutionService.php
+backend/app/Services/VanExecutionStateService.php
+backend/app/Services/VanOrderReadService.php
 backend/app/Services/VanRegistryService.php
 backend/app/Services/VanRuntimeContextResolver.php
 backend/app/Services/VanRuntimeVisitScope.php
@@ -506,6 +524,9 @@ backend/database/migrations/2026_10_08_143600_add_order_dispatch_permission.php
 backend/database/migrations/2026_10_08_173800_snapshot_replenishment_conversion_factor.php
 backend/database/migrations/2026_10_09_134700_force_egp_business_currency.php
 backend/database/migrations/2026_10_09_174800_bootstrap_van_runtime_access_reference_data.php
+backend/database/migrations/2026_10_10_064500_create_order_van_execution_states.php
+backend/database/migrations/2026_10_10_071900_create_order_van_execution_events.php
+backend/database/migrations/2026_10_10_085500_create_b2b_van_cutover_ledger.php
 backend/database/seeders/
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
