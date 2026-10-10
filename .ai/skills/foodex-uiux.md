@@ -11,21 +11,20 @@ Examples:
 - "اعمل Dashboard screen"
 - any Customer / Driver / Van UI work
 
-This skill is a router. It does not replace the surface-specific skill.
+This skill is a router. It does not replace the surface-specific skill. The canonical machine selector is `.ai/skill-router.json`; workers should load the resolved pack instead of reading every UI skill by default.
 
-Also read `.ai/skills/ui-pattern-library.md`. It maps the real production classes/widgets and source files that must be inspected before inventing UI.
+The base UI pack is deliberately small and consistent: route authority, accessibility, the matching surface skill, UI audit/evidence and the PR evidence plan. The machine router adds:
+- `.ai/skills/ui-interaction-safety.md` when state-changing behavior is present;
+- `.ai/skills/ui-performance.md` for lists/grids/search/live/polling/high-growth data.
 
-Cross-cutting quality skills:
-- `.ai/skills/ui-route-authority.md` — mandatory for every page/route/navigation change;
-- `.ai/skills/ui-accessibility.md` — mandatory for every user-facing UI;
-- `.ai/skills/ui-interaction-safety.md` — mandatory when the UI mutates business state;
-- `.ai/skills/ui-performance.md` — mandatory for lists/grids/search/live/polling/high-growth data;
-- `.ai/skills/uiux-skill-maintenance.md` — use when durable UI architecture/contracts change.
-- `.ai/skills/ui-structural-parity.md` — hard minimum signature for new screens + Golden structural similarity.
-- `.ai/skills/ui-pr-evidence-plan.md` — exact-diff runtime evidence plan and inventory enforcement.
-- `.ai/skills/ui-business-journeys.md` — production-backed business flows, states and invariants.
-- `.ai/skills/ui-intent-routing.md` — resolve short AR/EN owner prompts into bounded FOODEX journeys.
-- `.ai/skills/ui-casebook-learning.md` — promote only source+test-backed reusable business lessons.
+Load deeper skills only when the task requires them:
+- `.ai/skills/ui-pattern-library.md` and `.ai/skills/page-patterns.md` when creating/changing composition or introducing a primitive;
+- `.ai/skills/ui-structural-parity.md` for new screens or meaningful structural redesign;
+- `.ai/skills/ui-business-journeys.md` and `.ai/skills/ui-intent-routing.md` when a short owner prompt must be resolved into a bounded business journey;
+- `.ai/skills/ui-casebook-learning.md` only when promoting source+test-backed reusable business lessons;
+- `.ai/skills/uiux-skill-maintenance.md` when durable UI architecture/contracts change.
+
+Do not skip an applicable deeper skill merely to reduce context; the objective is the smallest **correct** pack, not the smallest possible pack.
 
 ## 0. Authority order
 
