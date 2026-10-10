@@ -1220,6 +1220,93 @@ void main() {
     expect(find.text('The cart is empty'), findsOneWidget);
   });
 
+
+
+  testWidgets(
+      'B2B cart serializes rapid plus taps and keeps optimistic quantity stable',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final updateGate = Completer<void>();
+    final commerce = _C13WholesaleCommerceApi(
+      updateCompleter: updateGate,
+      cartValue: {
+        'store_id': 7,
+        'currency': 'EGP',
+        'subtotal': 20.0,
+        'has_unavailable_items': false,
+        'items': [
+          {
+            'id': 11,
+            'product': {
+              'id': 101,
+              'name': 'Bulk Water',
+              'sku': 'W-101',
+            },
+            'quantity': 2.0,
+            'unit_price_snapshot': 10.0,
+            'line_total': 20.0,
+            'is_available': true,
+            'available_quantity': 20.0,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/cart?store_id=7',
+        wholesaleCommerceApi: commerce,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final plus = find.byKey(const ValueKey('b2b-cart-plus-11'));
+    expect(plus, findsOneWidget);
+    expect(
+      tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-cart-quantity-11')),
+      ).data,
+      '2',
+    );
+
+    await tester.tap(plus);
+    await tester.tap(plus);
+    await tester.tap(plus);
+    await tester.pump();
+
+    expect(
+      tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-cart-quantity-11')),
+      ).data,
+      '5',
+    );
+    expect(commerce.updateCalls, 1);
+    expect(commerce.maxConcurrentUpdates, 1);
+
+    updateGate.complete();
+    await tester.pumpAndSettle();
+
+    expect(commerce.updateCalls, 2);
+    expect(commerce.updateQuantities, <double>[3.0, 5.0]);
+    expect(commerce.maxConcurrentUpdates, 1);
+    expect(
+      tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-cart-quantity-11')),
+      ).data,
+      '5',
+    );
+  });
+
   testWidgets(
       'C13 checkout exposes financial position and blocks insufficient account credit',
       (tester) async {
@@ -2876,12 +2963,17 @@ class _C13WholesaleCommerceApi implements WholesaleCommerceApi {
   _C13WholesaleCommerceApi({
     required this.cartValue,
     this.checkoutCompleter,
+    this.updateCompleter,
   });
 
   final Map<String, dynamic> cartValue;
   final Completer<Object?>? checkoutCompleter;
+  final Completer<void>? updateCompleter;
   int removeCalls = 0;
   int updateCalls = 0;
+  int activeUpdates = 0;
+  int maxConcurrentUpdates = 0;
+  final List<double> updateQuantities = <double>[];
   int checkoutCalls = 0;
   final Set<int> removedItemIds = <int>{};
   final List<String> checkoutKeys = <String>[];
@@ -2909,13 +3001,25 @@ class _C13WholesaleCommerceApi implements WholesaleCommerceApi {
   @override
   Future<Object?> updateItem(int itemId, double quantity) async {
     updateCalls += 1;
-    final items = (cartValue['items'] as List? ?? <Object>[]);
-    for (final raw in items) {
-      if (raw is Map && raw['id'] == itemId) {
-        raw['quantity'] = quantity;
-      }
+    updateQuantities.add(quantity);
+    activeUpdates += 1;
+    if (activeUpdates > maxConcurrentUpdates) {
+      maxConcurrentUpdates = activeUpdates;
     }
-    return cartValue;
+    try {
+      if (updateCompleter != null) {
+        await updateCompleter!.future;
+      }
+      final items = (cartValue['items'] as List? ?? <Object>[]);
+      for (final raw in items) {
+        if (raw is Map && raw['id'] == itemId) {
+          raw['quantity'] = quantity;
+        }
+      }
+      return cartValue;
+    } finally {
+      activeUpdates -= 1;
+    }
   }
 
   @override

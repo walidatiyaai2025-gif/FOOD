@@ -3100,6 +3100,9 @@ class _WholesaleCartDesignScreenState
   late int storeId = wholesaleStoreId(widget.location);
   late Future<Object?> future = _load();
   final Set<int> _removedItemIds = <int>{};
+  final Map<int, double> _optimisticQuantities = <int, double>{};
+  final Map<int, double> _desiredQuantities = <int, double>{};
+  final Set<int> _updatingItemIds = <int>{};
 
   @override
   void initState() {
@@ -3154,12 +3157,78 @@ class _WholesaleCartDesignScreenState
     }
   }
 
-  Future<void> _update(int id, double value) async {
+  void _adjustQuantity({
+    required int id,
+    required double serverQuantity,
+    required double delta,
+    required double minimum,
+    required double? available,
+  }) {
+    if (id <= 0 || widget.commerceApi == null) return;
+    final current = _optimisticQuantities[id] ?? serverQuantity;
+    var next = current + delta;
+    if (delta < 0) {
+      next = math.max(minimum, next).toDouble();
+    }
+    next = double.parse(next.toStringAsFixed(6));
+    if (available != null && next > available + .0001) return;
+    _queueQuantityUpdate(id, next);
+  }
+
+  void _queueQuantityUpdate(int id, double value) {
     final api = widget.commerceApi;
-    if (api == null) return;
-    await _mutate(() async {
-      await api.updateItem(id, value);
+    if (api == null || id <= 0) return;
+    final shouldStart = !_updatingItemIds.contains(id);
+    setState(() {
+      _optimisticQuantities[id] = value;
+      _desiredQuantities[id] = value;
+      if (shouldStart) {
+        _updatingItemIds.add(id);
+      }
     });
+    if (shouldStart) {
+      unawaited(_drainQuantityUpdates(id, api));
+    }
+  }
+
+  Future<void> _drainQuantityUpdates(
+    int id,
+    WholesaleCommerceApi api,
+  ) async {
+    try {
+      while (mounted) {
+        final target = _desiredQuantities[id];
+        if (target == null) return;
+        await api.updateItem(id, target);
+        if (!mounted) return;
+        if (_desiredQuantities[id] != target) {
+          continue;
+        }
+        final refreshed = await _load();
+        if (!mounted) return;
+        if (_desiredQuantities[id] != target) {
+          continue;
+        }
+        setState(() {
+          _optimisticQuantities.remove(id);
+          _desiredQuantities.remove(id);
+          _updatingItemIds.remove(id);
+          future = Future<Object?>.value(refreshed);
+        });
+        return;
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _optimisticQuantities.remove(id);
+        _desiredQuantities.remove(id);
+        _updatingItemIds.remove(id);
+      });
+      await showOperationalError(context, error);
+      if (mounted) {
+        setState(() => future = _load());
+      }
+    }
   }
 
   Future<void> _remove(int id) async {
@@ -3260,7 +3329,9 @@ class _WholesaleCartDesignScreenState
                           if (rows.isNotEmpty && widget.commerceApi != null)
                             TextButton.icon(
                               key: const ValueKey('b2b-cart-clear'),
-                              onPressed: () => _clear(rows),
+                              onPressed: _updatingItemIds.isEmpty
+                                  ? () => _clear(rows)
+                                  : null,
                               icon: const Icon(Icons.delete_sweep_outlined,
                                   size: 18),
                               label: Text(context.tr('b2b.cart.clear')),
@@ -3282,6 +3353,7 @@ class _WholesaleCartDesignScreenState
                             : row;
                         final id = intValue(row['id']);
                         final qty = doubleValue(row['quantity'], 1);
+                        final effectiveQty = _optimisticQuantities[id] ?? qty;
                         final increment =
                             doubleValue(row['ordering_increment'], 1);
                         final minimum =
@@ -3291,6 +3363,7 @@ class _WholesaleCartDesignScreenState
                             : doubleValue(row['available_quantity'], 0);
 
                         return _CartLine(
+                          itemId: id,
                           name: product['name']?.toString() ??
                               row['name']?.toString() ??
                               '',
@@ -3302,25 +3375,38 @@ class _WholesaleCartDesignScreenState
                                   value != null && value.trim().isNotEmpty)
                               .join(' • '),
                           imageUrl: product['image_url']?.toString(),
-                          quantity: qty,
+                          quantity: effectiveQty,
                           unitPrice:
                               row['unit_price_snapshot'] ?? row['unit_price'],
                           lineTotal: row['line_total'],
                           availableQuantity: available,
                           isAvailable: row['is_available'] != false,
-                          onMinus: widget.commerceApi == null
+                          isUpdating: _updatingItemIds.contains(id),
+                          onMinus: widget.commerceApi == null ||
+                                  effectiveQty <= minimum + .0001
                               ? null
-                              : () {
-                                  final next =
-                                      math.max(minimum, qty - increment);
-                                  _update(id, next.toDouble());
-                                },
+                              : () => _adjustQuantity(
+                                    id: id,
+                                    serverQuantity: qty,
+                                    delta: -increment,
+                                    minimum: minimum,
+                                    available: available,
+                                  ),
                           onPlus: widget.commerceApi == null ||
                                   (available != null &&
-                                      qty + increment > available + .0001)
+                                      effectiveQty + increment >
+                                          available + .0001)
                               ? null
-                              : () => _update(id, qty + increment),
-                          onRemove: widget.commerceApi == null || id <= 0
+                              : () => _adjustQuantity(
+                                    id: id,
+                                    serverQuantity: qty,
+                                    delta: increment,
+                                    minimum: minimum,
+                                    available: available,
+                                  ),
+                          onRemove: widget.commerceApi == null ||
+                                  id <= 0 ||
+                                  _updatingItemIds.contains(id)
                               ? null
                               : () => _remove(id),
                         );
@@ -3328,8 +3414,10 @@ class _WholesaleCartDesignScreenState
                     const SizedBox(height: 14),
                     _CartTotalPanel(
                       cart: cart,
-                      enabled:
-                          rows.isNotEmpty && storeId > 0 && !hasUnavailable,
+                      enabled: rows.isNotEmpty &&
+                          storeId > 0 &&
+                          !hasUnavailable &&
+                          _updatingItemIds.isEmpty,
                       onCheckout: () => Navigator.of(context).pushNamed(
                         '/b2b/checkout?store_id=' + storeId.toString(),
                       ),
@@ -3345,6 +3433,7 @@ class _WholesaleCartDesignScreenState
 
 class _CartLine extends StatelessWidget {
   const _CartLine({
+    required this.itemId,
     required this.name,
     required this.subtitle,
     required this.quantity,
@@ -3352,12 +3441,14 @@ class _CartLine extends StatelessWidget {
     required this.lineTotal,
     required this.availableQuantity,
     required this.isAvailable,
+    required this.isUpdating,
     required this.onMinus,
     required this.onPlus,
     required this.onRemove,
     this.imageUrl,
   });
 
+  final int itemId;
   final String name;
   final String subtitle;
   final String? imageUrl;
@@ -3366,6 +3457,7 @@ class _CartLine extends StatelessWidget {
   final Object? lineTotal;
   final double? availableQuantity;
   final bool isAvailable;
+  final bool isUpdating;
   final VoidCallback? onMinus;
   final VoidCallback? onPlus;
   final VoidCallback? onRemove;
@@ -3490,15 +3582,37 @@ class _CartLine extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _MiniStep(icon: Icons.remove, onTap: onMinus),
+                    _MiniStep(
+                      key: ValueKey('b2b-cart-minus-$itemId'),
+                      icon: Icons.remove,
+                      onTap: onMinus,
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 9),
-                      child: Text(
-                        compactNumber(quantity),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            compactNumber(quantity),
+                            key: ValueKey('b2b-cart-quantity-$itemId'),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          if (isUpdating) ...[
+                            const SizedBox(width: 6),
+                            const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(strokeWidth: 1.6),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    _MiniStep(icon: Icons.add, onTap: onPlus),
+                    _MiniStep(
+                      key: ValueKey('b2b-cart-plus-$itemId'),
+                      icon: Icons.add,
+                      onTap: onPlus,
+                    ),
                   ],
                 ),
               ],
@@ -3512,6 +3626,7 @@ class _CartLine extends StatelessWidget {
 
 class _MiniStep extends StatelessWidget {
   const _MiniStep({
+    super.key,
     required this.icon,
     required this.onTap,
   });
