@@ -206,6 +206,107 @@ void main() {
   });
 
   testWidgets(
+      'Wholesale reorder prompts before merge, applies current rules and opens cart',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final api = _PathB2bApi({
+      '/api/v1/b2b/orders': {
+        'data': [
+          {
+            'id': 77,
+            'order_number': 'B2B-77',
+            'store_id': 7,
+            'status': 'delivered',
+            'grand_total': 48.0,
+            'currency': 'KWD',
+          },
+        ],
+      },
+      '/api/v1/b2b/orders/77': {
+        'id': 77,
+        'order_number': 'B2B-77',
+        'store_id': 7,
+        'status': 'delivered',
+        'items': [
+          {
+            'id': 701,
+            'product_id': 101,
+            'name': 'Current Water',
+            'quantity': 3.0,
+          },
+          {
+            'id': 702,
+            'product_id': 102,
+            'name': 'Unavailable Juice',
+            'quantity': 2.0,
+          },
+        ],
+      },
+      '/api/v1/b2b/products/101?store_id=7': {
+        'id': 101,
+        'minimum_order_quantity': 5.0,
+        'ordering_increment': 5.0,
+        'available_quantity': 20.0,
+        'is_available': true,
+        'availability_state': 'AVAILABLE',
+      },
+      '/api/v1/b2b/products/102?store_id=7': {
+        'id': 102,
+        'minimum_order_quantity': 1.0,
+        'ordering_increment': 1.0,
+        'available_quantity': 0.0,
+        'is_available': false,
+        'availability_state': 'OUT_OF_STOCK',
+      },
+    });
+    final commerce = _ReorderWholesaleCommerceApi();
+
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        session: b2b,
+        locale: const Locale('en'),
+        initialRoute: '/b2b/orders?store_id=7',
+        b2bApi: api,
+        wholesaleCommerceApi: commerce,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final reorder = find.byKey(const ValueKey('b2b-order-reorder-77'));
+    expect(reorder, findsOneWidget);
+    await tester.tap(reorder);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('b2b-reorder-merge-confirm')),
+      findsOneWidget,
+    );
+    expect(commerce.addCalls, isEmpty);
+
+    await tester.tap(
+      find.byKey(const ValueKey('b2b-reorder-merge-confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(commerce.addCalls, <String>['7:101:5.0']);
+    expect(find.text('Cart rebuilt with current rules'), findsOneWidget);
+    expect(find.textContaining('Current Water: 3 → 5'), findsOneWidget);
+    expect(find.textContaining('Unavailable Juice'), findsOneWidget);
+
+    await tester.tap(find.text('Review cart'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-cart-data')), findsOneWidget);
+    expect(commerce.cartCalls, greaterThanOrEqualTo(2));
+  });
+
+  testWidgets(
       'B2B dashboard Store icon resolves principal Wholesale and opens canonical home',
       (tester) async {
     final storefront = _FakeWholesaleStorefrontApi();
@@ -847,8 +948,25 @@ void main() {
 
     expect(actionApi.lastStoreId, 7);
     expect(actionApi.lastProductId, 42);
-    expect(find.text('سلة الجملة'), findsOneWidget);
-    expect(api.lastPath, '/api/v1/cart?store=7');
+    expect(
+      find.byKey(const ValueKey('wholesale-cart-confirmation-42')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('wholesale-cart-confirmation-close-42')),
+      findsOneWidget,
+    );
+    expect(find.text('سلة الجملة'), findsNothing);
+    expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
+
+    await tester.tap(
+      find.byKey(const ValueKey('wholesale-cart-confirmation-close-42')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('b2b-product-detail-data')),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -3168,6 +3286,73 @@ class _CheckoutStorefrontApi implements StorefrontApi {
         'delivery_dates': ['2026-09-30'],
         'payment_methods': ['cash_on_delivery'],
       };
+}
+
+class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
+  int cartCalls = 0;
+  final List<String> addCalls = <String>[];
+
+  @override
+  Future<Object?> cart(int storeId) async {
+    cartCalls++;
+    return {
+      'store_id': storeId,
+      'currency': 'KWD',
+      'subtotal': 10.0,
+      'grand_total': 10.0,
+      'items': [
+        {
+          'id': 900,
+          'product': {
+            'id': 900,
+            'name': 'Existing Cart Item',
+            'sku': 'EX-900',
+          },
+          'quantity': 1.0,
+          'unit_price_snapshot': 10.0,
+          'line_total': 10.0,
+          'is_available': true,
+          'available_quantity': 10.0,
+          'minimum_order_quantity': 1.0,
+          'ordering_increment': 1.0,
+        },
+      ],
+    };
+  }
+
+  @override
+  Future<Object?> addItem(
+    int storeId,
+    int productId,
+    double quantity,
+  ) async {
+    addCalls.add(
+      storeId.toString() +
+          ':' +
+          productId.toString() +
+          ':' +
+          quantity.toString(),
+    );
+    return null;
+  }
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async => null;
+
+  @override
+  Future<void> removeItem(int itemId) async {}
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      const <String, Object?>{};
 }
 
 class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
