@@ -20,7 +20,10 @@
         "apps/driver_app/lib/**",
         "apps/driver_app/test/**",
         "apps/van_app/lib/**",
-        "apps/van_app/test/**"
+        "apps/van_app/test/**",
+        "apps/customer_app/analysis_options.yaml",
+        "apps/driver_app/analysis_options.yaml",
+        "apps/van_app/analysis_options.yaml"
       ],
       "skills": [
         "flutter-authoring.md",
@@ -184,7 +187,8 @@
         "scripts/tests/test_ci_*.py",
         "scripts/tests/test_one_push_green_contract.py",
         "scripts/tests/test_flutter_test_hermeticity.py",
-        "scripts/tests/test_foodex_branch_policy.py"
+        "scripts/tests/test_foodex_branch_policy.py",
+        "scripts/flutter-changed-analysis.sh"
       ],
       "skills": [
         "ci-repair.md"
