@@ -213,6 +213,15 @@ class DashboardOrderManagementTest extends TestCase
     {
         $store = app(WholesalePrincipal::class)->storeId();
         DB::table('settings')->updateOrInsert(
+            ['store_id' => $store, 'key' => 'b2b.pricing_tiers_enabled'],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+        DB::table('settings')->updateOrInsert(
             [
                 'store_id' => $store,
                 'key' => 'b2b.pricing_tiers_enabled',
@@ -402,6 +411,15 @@ class DashboardOrderManagementTest extends TestCase
     public function test_wholesale_dashboard_quote_uses_selected_warehouse_and_tier_for_multiple_lines(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $store, 'key' => 'b2b.pricing_tiers_enabled'],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
         DB::table('settings')->updateOrInsert(
             [
                 'store_id' => $store,
