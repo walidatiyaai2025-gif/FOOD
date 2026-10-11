@@ -1093,7 +1093,7 @@ class B2bWorkspaceController extends Controller
                     'sku' => $row->sku,
                     'name' => $row->name,
                     'price' => $row->price === null ? '-' : \App\Support\DisplayNumber::money((float) $row->price, 'EGP').' EGP',
-                    'available' => number_format((float) $stock, 3),
+                    'available' => \App\Support\DisplayNumber::quantity((float) $stock),
                     'status' => (bool) $row->is_active,
                     'actions' => true,
                 ];
