@@ -374,7 +374,7 @@ final class CustomerReplicaReportPdfService
     }
 
     /** @param array<int,int>|null $fill
-     * @param  array<int,int>  $text
+     * @param array<int,int> $textColor
      */
     private function cell(
         TCPDF $pdf,
