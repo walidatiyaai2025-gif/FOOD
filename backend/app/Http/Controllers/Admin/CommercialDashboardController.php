@@ -26,17 +26,18 @@ final class CommercialDashboardController extends Controller
 
     public function salesControl(Request $request): View
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'catalog.view', true);
+        [$user, $storeId] = $this->authorizedStore($request, 'catalog.view', true, 'b2b');
 
         $products = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
             ->orderBy('products.name')
             ->limit(200)
             ->get(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
 
-        $legacyCustomerIds = DB::table('b2c_customers')
-            ->where('store_id', $storeId)
+        $legacyCustomerIds = DB::table('b2b_customers')
             ->whereNotNull('legacy_customer_id')
             ->pluck('legacy_customer_id')
             ->map(static fn ($id): int => (int) $id)
@@ -74,8 +75,17 @@ final class CommercialDashboardController extends Controller
 
     public function saveSalesControl(Request $request, int $product): RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'catalog.manage');
-        abort_unless(DB::table('store_products')->where('store_id', $storeId)->where('product_id', $product)->exists(), 404);
+        [$user, $storeId] = $this->authorizedStore($request, 'catalog.manage', false, 'b2b');
+        abort_unless(
+            DB::table('store_products')
+                ->join('products', 'products.id', '=', 'store_products.product_id')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->where('store_products.store_id', $storeId)
+                ->where('store_products.product_id', $product)
+                ->where('catalogs.channel', 'b2b')
+                ->exists(),
+            404,
+        );
 
         $data = $request->validate([
             'status' => ['required', 'in:OPEN,RESTRICTED,CLOSED'],
@@ -582,7 +592,7 @@ final class CommercialDashboardController extends Controller
     }
 
     /** @return array{0: User, 1: int} */
-    private function authorizedStore(Request $request, string $permission, bool $allowEmptyStore = false): array
+    private function authorizedStore(Request $request, string $permission, bool $allowEmptyStore = false, string $channel = 'b2c'): array
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
@@ -591,7 +601,7 @@ final class CommercialDashboardController extends Controller
         $storeId = $request->integer('store_id');
 
         if ($storeId <= 0) {
-            $allowedStoreIds = $scope->allowedStoreIds($user, $permission, 'b2c');
+            $allowedStoreIds = $scope->allowedStoreIds($user, $permission, $channel);
 
             if ($allowedStoreIds !== []) {
                 $storeId = (int) $allowedStoreIds[0];
@@ -601,7 +611,7 @@ final class CommercialDashboardController extends Controller
         }
 
         abort_unless($storeId > 0, 404);
-        $scope->assertStore($user, $storeId, $permission, 'b2c');
+        $scope->assertStore($user, $storeId, $permission, $channel);
 
         return [$user, $storeId];
     }
@@ -697,8 +707,7 @@ final class CommercialDashboardController extends Controller
             }
         }
 
-        $legacyCustomerIds = DB::table('b2c_customers')
-            ->where('store_id', $storeId)
+        $legacyCustomerIds = DB::table('b2b_customers')
             ->whereNotNull('legacy_customer_id')
             ->pluck('legacy_customer_id')
             ->map(static fn ($id): int => (int) $id)
@@ -998,7 +1007,7 @@ final class CommercialDashboardController extends Controller
             'section' => $section,
             'supportAccess' => $supportAccess,
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => $section === 'sales-control' ? 'b2c_products' : 'b2c_promotions',
+            'navContext' => $section === 'sales-control' ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 }

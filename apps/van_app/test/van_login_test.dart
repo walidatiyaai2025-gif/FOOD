@@ -56,10 +56,7 @@ class _PreferenceStore implements VanAuthPreferenceStore {
 }
 
 class _Biometric implements VanBiometricAuthenticator {
-  const _Biometric({
-    this.available = true,
-    this.result = true,
-  });
+  const _Biometric({this.available = true, this.result = true});
 
   final bool available;
   final bool result;
@@ -83,108 +80,130 @@ VanSession _savedSession() => const VanSession(
     );
 
 void main() {
-  testWidgets('Van login uses the approved Customer business entry composition',
-      (tester) async {
-    await tester.pumpWidget(
-      FoodexVanApp(
-        locale: const Locale('en'),
-        authRepository: _Auth(),
-        sessionStore: _MemoryStore(),
-        authPreferenceStore: _PreferenceStore(),
-        biometricAuthenticator: const _Biometric(),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Van login uses the approved Customer business entry composition',
+    (tester) async {
+      await tester.pumpWidget(
+        FoodexVanApp(
+          locale: const Locale('en'),
+          authRepository: _Auth(),
+          sessionStore: _MemoryStore(),
+          authPreferenceStore: _PreferenceStore(),
+          biometricAuthenticator: const _Biometric(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('van-customer-parity-login')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-login-header')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-login-hero')), findsOneWidget);
-    expect(find.byKey(const Key('van-login-email')), findsOneWidget);
-    expect(find.byKey(const Key('van-login-password')), findsOneWidget);
-    expect(find.byKey(const Key('van-login-remember')), findsOneWidget);
-    expect(find.byKey(const Key('van-login-biometric-toggle')), findsOneWidget);
-    expect(find.byKey(const Key('van-login-submit')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-business-forgot-password')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-business-contact-us')), findsOneWidget);
-    expect(find.byKey(const ValueKey('van-business-login-version')), findsOneWidget);
-  });
+      expect(
+        find.byKey(const ValueKey('van-customer-parity-login')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('van-login-header')), findsOneWidget);
+      expect(find.byKey(const ValueKey('van-login-hero')), findsOneWidget);
+      expect(find.byKey(const Key('van-login-email')), findsOneWidget);
+      expect(find.byKey(const Key('van-login-password')), findsOneWidget);
+      expect(find.byKey(const Key('van-login-remember')), findsOneWidget);
+      expect(
+        find.byKey(const Key('van-login-biometric-toggle')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('van-login-submit')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('van-business-forgot-password')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('van-business-contact-us')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('van-business-login-version')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets(
-      'password login persists only after Remember Me is selected and can enable biometrics',
-      (tester) async {
-    final store = _MemoryStore();
-    final preferences = _PreferenceStore();
+    'remembered password login automatically enables biometric unlock when available',
+    (tester) async {
+      final store = _MemoryStore();
+      final preferences = _PreferenceStore();
 
-    await tester.pumpWidget(
-      FoodexVanApp(
-        locale: const Locale('en'),
-        authRepository: _Auth(),
-        sessionStore: store,
-        authPreferenceStore: preferences,
-        biometricAuthenticator: const _Biometric(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Van App'), findsOneWidget);
-
-    await tester.ensureVisible(find.byKey(const Key('van-login-biometric-toggle')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('van-login-biometric-toggle')));
-    await tester.pump();
-    await tester.enterText(
-      find.byKey(const Key('van-login-email')),
-      'van@example.test',
-    );
-    await tester.enterText(
-      find.byKey(const Key('van-login-password')),
-      'password',
-    );
-    await tester.ensureVisible(find.byKey(const Key('van-login-submit')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('van-login-submit')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Authorized Van'), findsOneWidget);
-    expect(find.text('Home Dashboard'), findsWidgets);
-    expect(store.value?.token, 'token');
-    expect(preferences.value?.rememberMe, isTrue);
-    expect(preferences.value?.biometricEnabled, isTrue);
-  });
-
-  testWidgets('remembered biometric session waits for device unlock on restart',
-      (tester) async {
-    final store = _MemoryStore()..value = _savedSession();
-    final preferences = _PreferenceStore()
-      ..value = const VanAuthPreferences(
-        rememberMe: true,
-        biometricEnabled: true,
+      await tester.pumpWidget(
+        FoodexVanApp(
+          locale: const Locale('en'),
+          authRepository: _Auth(),
+          sessionStore: store,
+          authPreferenceStore: preferences,
+          biometricAuthenticator: const _Biometric(),
+        ),
       );
+      await tester.pumpAndSettle();
 
-    await tester.pumpWidget(
-      FoodexVanApp(
-        locale: const Locale('en'),
-        authRepository: _Auth(),
-        sessionStore: store,
-        authPreferenceStore: preferences,
-        biometricAuthenticator: const _Biometric(),
-      ),
-    );
-    await tester.pumpAndSettle();
+      expect(find.text('Van App'), findsOneWidget);
 
-    expect(find.byKey(const Key('van-login-biometric')), findsOneWidget);
-    expect(find.text('Remembered Van'), findsNothing);
+      await tester.ensureVisible(find.byKey(const Key('van-login-remember')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('van-login-remember')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('van-login-email')),
+        'van@example.test',
+      );
+      await tester.enterText(
+        find.byKey(const Key('van-login-password')),
+        'password',
+      );
+      await tester.ensureVisible(find.byKey(const Key('van-login-submit')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('van-login-submit')));
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('van-login-biometric')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('van-login-biometric')));
-    await tester.pumpAndSettle();
+      expect(find.text('Authorized Van'), findsOneWidget);
+      expect(find.text('Home Dashboard'), findsWidgets);
+      expect(store.value?.token, 'token');
+      expect(preferences.value?.rememberMe, isTrue);
+      expect(preferences.value?.biometricEnabled, isTrue);
+    },
+  );
 
-    expect(find.text('Remembered Van'), findsOneWidget);
-    expect(find.text('Home Dashboard'), findsWidgets);
-  });
+  testWidgets(
+    'remembered biometric session waits for device unlock on restart',
+    (tester) async {
+      final store = _MemoryStore()..value = _savedSession();
+      final preferences = _PreferenceStore()
+        ..value = const VanAuthPreferences(
+          rememberMe: true,
+          biometricEnabled: true,
+        );
 
-  testWidgets('failed biometric keeps password login available', (tester) async {
+      await tester.pumpWidget(
+        FoodexVanApp(
+          locale: const Locale('en'),
+          authRepository: _Auth(),
+          sessionStore: store,
+          authPreferenceStore: preferences,
+          biometricAuthenticator: const _Biometric(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('van-login-biometric')), findsOneWidget);
+      expect(find.text('Remembered Van'), findsNothing);
+
+      await tester.ensureVisible(find.byKey(const Key('van-login-biometric')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('van-login-biometric')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remembered Van'), findsOneWidget);
+      expect(find.text('Home Dashboard'), findsWidgets);
+    },
+  );
+
+  testWidgets('failed biometric keeps password login available', (
+    tester,
+  ) async {
     final store = _MemoryStore()..value = _savedSession();
     final preferences = _PreferenceStore()
       ..value = const VanAuthPreferences(
@@ -209,9 +228,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text(
-        'Biometric verification failed. Use your password to sign in.',
-      ),
+      find.text('Biometric verification failed. Use your password to sign in.'),
       findsOneWidget,
     );
     expect(find.byKey(const Key('van-login-email')), findsOneWidget);
@@ -219,8 +236,9 @@ void main() {
     expect(find.byKey(const Key('van-login-submit')), findsOneWidget);
   });
 
-  testWidgets('logout clears remembered session and biometric preferences',
-      (tester) async {
+  testWidgets('logout clears remembered session and biometric preferences', (
+    tester,
+  ) async {
     final store = _MemoryStore();
     final preferences = _PreferenceStore();
 
@@ -235,9 +253,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.ensureVisible(find.byKey(const Key('van-login-remember')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.tap(find.byKey(const Key('van-login-remember')));
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('van-login-email')),
       'van@example.test',

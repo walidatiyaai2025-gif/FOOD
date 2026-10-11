@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/auth/van_auth_persistence.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/auth/van_session_store.dart';
@@ -71,8 +72,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   Future<void> _loadAuthOptions() async {
     final available = await _biometricAuthenticator.isAvailable();
     VanSession? stored;
-    if (widget.preferences.rememberMe &&
-        widget.preferences.biometricEnabled) {
+    if (widget.preferences.rememberMe && widget.preferences.biometricEnabled) {
       try {
         stored = await _sessionStore.read();
       } catch (_) {
@@ -83,8 +83,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
     if (!mounted) return;
     setState(() {
       _biometricAvailable = available;
-      _savedBiometricLogin =
-          available &&
+      _savedBiometricLogin = available &&
           widget.preferences.biometricEnabled &&
           stored != null &&
           stored.canUseVan;
@@ -109,10 +108,12 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       );
       if (!authenticated) {
         if (mounted) {
-          setState(() => _error = _text(
-                'Biometric verification failed. Use your password to sign in.',
-                'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
-              ));
+          setState(
+            () => _error = _text(
+              'Biometric verification failed. Use your password to sign in.',
+              'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
+            ),
+          );
         }
         return;
       }
@@ -120,10 +121,12 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       final stored = await _sessionStore.read();
       if (stored == null || !stored.canUseVan) {
         if (mounted) {
-          setState(() => _error = _text(
-                'The saved session is no longer available. Sign in again.',
-                'جلسة الدخول المحفوظة لم تعد متاحة. سجّل الدخول مرة أخرى.',
-              ));
+          setState(
+            () => _error = _text(
+              'The saved session is no longer available. Sign in again.',
+              'جلسة الدخول المحفوظة لم تعد متاحة. سجّل الدخول مرة أخرى.',
+            ),
+          );
         }
         return;
       }
@@ -131,10 +134,12 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
       await widget.onAuthenticated(stored, true, true);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = _text(
-              'Biometric verification failed. Use your password to sign in.',
-              'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
-            ));
+        setState(
+          () => _error = _text(
+            'Biometric verification failed. Use your password to sign in.',
+            'فشل التحقق بالبصمة. استخدم كلمة المرور لتسجيل الدخول.',
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -151,10 +156,12 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
   Future<void> _submit() async {
     if (_submitting) return;
     if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      setState(() => _error = _text(
-            'Email and password are required.',
-            'البريد الإلكتروني وكلمة المرور مطلوبان.',
-          ));
+      setState(
+        () => _error = _text(
+          'Email and password are required.',
+          'البريد الإلكتروني وكلمة المرور مطلوبان.',
+        ),
+      );
       return;
     }
 
@@ -168,38 +175,43 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
         email: _email.text.trim(),
         password: _password.text,
       );
-      await widget.onAuthenticated(
-        session,
-        _rememberMe,
-        _rememberMe && _enableBiometrics,
-      );
+      final useBiometricUnlock = _rememberMe && _biometricAvailable;
+      await widget.onAuthenticated(session, _rememberMe, useBiometricUnlock);
     } on VanAuthenticationException {
       if (mounted) {
-        setState(() => _error = _text(
-              'Invalid email or password.',
-              'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
-            ));
+        setState(
+          () => _error = _text(
+            'Invalid email or password.',
+            'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+          ),
+        );
       }
     } on VanAccessDeniedException {
       if (mounted) {
-        setState(() => _error = _text(
-              'This account is not authorized for the Van app.',
-              'هذا الحساب غير مصرح له باستخدام تطبيق الفان.',
-            ));
+        setState(
+          () => _error = _text(
+            'This account is not authorized for the Van app.',
+            'هذا الحساب غير مصرح له باستخدام تطبيق الفان.',
+          ),
+        );
       }
     } on VanOfflineException {
       if (mounted) {
-        setState(() => _error = _text(
-              'No network connection. Try again.',
-              'لا يوجد اتصال بالشبكة. حاول مرة أخرى.',
-            ));
+        setState(
+          () => _error = _text(
+            'No network connection. Try again.',
+            'لا يوجد اتصال بالشبكة. حاول مرة أخرى.',
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = _text(
-              'Unable to sign in right now.',
-              'تعذر تسجيل الدخول الآن.',
-            ));
+        setState(
+          () => _error = _text(
+            'Unable to sign in right now.',
+            'تعذر تسجيل الدخول الآن.',
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -299,7 +311,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                         'assets/branding/login_reference/header_complete.png',
                         key: const ValueKey('van-login-header'),
                         fit: BoxFit.contain,
-                        semanticLabel: _text('FOODEX Economic Group', 'مجموعة فودكس الاقتصادية'),
+                        semanticLabel: _text(
+                          'FOODEX Economic Group',
+                          'مجموعة فودكس الاقتصادية',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -453,15 +468,10 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                           ),
                                           Flexible(
                                             child: Text(
-                                              _text(
-                                                'Remember me',
-                                                'تذكرني',
-                                              ),
+                                              _text('Remember me', 'تذكرني'),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                              ),
+                                              style: TextStyle(fontSize: 12),
                                             ),
                                           ),
                                         ],
@@ -510,8 +520,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                             : _LoginColors.border,
                                       ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
                                   ),
@@ -538,8 +547,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 key: const Key('van-login-submit'),
                                 onPressed: _submitting ? null : _submit,
                                 style: FilledButton.styleFrom(
-                                  backgroundColor:
-                                      _LoginColors.deepGreenSoft,
+                                  backgroundColor: _LoginColors.deepGreenSoft,
                                   foregroundColor: _LoginColors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
@@ -582,8 +590,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                       ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size.fromHeight(52),
-                                foregroundColor:
-                                    _LoginColors.deepGreenSoft,
+                                foregroundColor: _LoginColors.deepGreenSoft,
                                 backgroundColor: const Color(0xFFF9FCFA),
                                 side: const BorderSide(
                                   color: Color(0xFFE2E9E5),
@@ -593,13 +600,8 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                 ),
                               ),
                               child: Text(
-                                _text(
-                                  'Forgot password?',
-                                  'نسيت كلمة المرور؟',
-                                ),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                _text('Forgot password?', 'نسيت كلمة المرور؟'),
+                                style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -626,9 +628,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               ),
                               child: Text(
                                 _text('Contact us', 'تواصل معنا'),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w800),
                               ),
                             ),
                           ],

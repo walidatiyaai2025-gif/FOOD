@@ -31,7 +31,7 @@ final class VanRuntimeVisitScope
             ->exists();
     }
 
-    /** @return array{van_id:int,assignment_id:int}|null */
+    /** @return array{van_id:int,assignment_id:int,store_id:?int}|null */
     public function context(Request $request): ?array
     {
         $context = $request->attributes->get('van_runtime_context');
@@ -46,6 +46,12 @@ final class VanRuntimeVisitScope
             return null;
         }
 
-        return ['van_id' => $vanId, 'assignment_id' => $assignmentId];
+        $storeId = (int) ($context['store_id'] ?? 0);
+
+        return [
+            'van_id' => $vanId,
+            'assignment_id' => $assignmentId,
+            'store_id' => $storeId > 0 ? $storeId : null,
+        ];
     }
 }

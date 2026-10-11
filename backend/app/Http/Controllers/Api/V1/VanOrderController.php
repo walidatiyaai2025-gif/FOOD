@@ -33,11 +33,11 @@ final class VanOrderController extends Controller
     {
         $actor = $this->actor($request);
         $validated = $request->validate([
-            'store_id' => ['required', 'integer', 'min:1'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:120'],
         ]);
-        $storeId = (int) $validated['store_id'];
-        $this->assertCustomerScope($actor, $type, $customer, $storeId);
+        $storeId = $this->sellerStoreId($request, $validated['store_id'] ?? null);
+        $this->assertCustomerScope($request, $actor, $type, $customer, $storeId);
         $search = trim((string) ($validated['q'] ?? ''));
 
         $rows = $type === 'b2b'
@@ -54,10 +54,10 @@ final class VanOrderController extends Controller
     {
         $actor = $this->actor($request);
         $validated = $request->validate([
-            'store_id' => ['required', 'integer', 'min:1'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
         ]);
-        $storeId = (int) $validated['store_id'];
-        $this->assertCustomerScope($actor, $type, $customer, $storeId);
+        $storeId = $this->sellerStoreId($request, $validated['store_id'] ?? null);
+        $this->assertCustomerScope($request, $actor, $type, $customer, $storeId);
 
         $customerColumn = $type === 'b2b' ? 'b2b_customer_id' : 'b2c_customer_id';
         $addresses = DB::table('addresses')
@@ -135,10 +135,10 @@ final class VanOrderController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'min:1'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
         ]);
-        $storeId = (int) $data['store_id'];
-        $this->assertCustomerScope($actor, $type, $customer, $storeId);
+        $storeId = $this->sellerStoreId($request, $data['store_id'] ?? null);
+        $this->assertCustomerScope($request, $actor, $type, $customer, $storeId);
 
         $request->merge(['customer_id' => $customer]);
         $quote = $this->orders->quote($request, $type, $storeId);
@@ -150,10 +150,10 @@ final class VanOrderController extends Controller
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'store_id' => ['required', 'integer', 'min:1'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
         ]);
-        $storeId = (int) $data['store_id'];
-        $this->assertCustomerScope($actor, $type, $customer, $storeId);
+        $storeId = $this->sellerStoreId($request, $data['store_id'] ?? null);
+        $this->assertCustomerScope($request, $actor, $type, $customer, $storeId);
 
         $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
         if (strlen($idempotencyKey) < 16 || strlen($idempotencyKey) > 100) {
@@ -250,6 +250,7 @@ final class VanOrderController extends Controller
     }
 
     private function assertCustomerScope(
+        Request $request,
         User $actor,
         string $type,
         int $customer,
@@ -257,15 +258,41 @@ final class VanOrderController extends Controller
     ): void {
         abort_unless(in_array($type, ['b2b', 'b2c'], true), 404);
 
-        abort_unless(
-            VanVisit::query()
-                ->where('actor_user_id', $actor->getKey())
-                ->where('customer_type', $type)
-                ->where('customer_id', $customer)
-                ->where('store_id', $storeId)
-                ->exists(),
-            404,
-        );
+        $query = VanVisit::query()
+            ->where('actor_user_id', $actor->getKey())
+            ->where('customer_type', $type)
+            ->where('customer_id', $customer);
+
+        if ($this->runtimeStoreId($request) === null) {
+            $query->where('store_id', $storeId);
+        }
+
+        abort_unless($query->exists(), 404);
+    }
+
+    private function sellerStoreId(Request $request, mixed $requestedStoreId): int
+    {
+        $runtimeStoreId = $this->runtimeStoreId($request);
+        if ($runtimeStoreId !== null) {
+            return $runtimeStoreId;
+        }
+
+        $storeId = (int) ($requestedStoreId ?? 0);
+        if ($storeId <= 0) {
+            throw ValidationException::withMessages([
+                'store_id' => ['A seller store is required when the Van runtime assignment has no authoritative store.'],
+            ]);
+        }
+
+        return $storeId;
+    }
+
+    private function runtimeStoreId(Request $request): ?int
+    {
+        $context = $request->attributes->get('van_runtime_context');
+        $storeId = is_array($context) ? (int) ($context['store_id'] ?? 0) : 0;
+
+        return $storeId > 0 ? $storeId : null;
     }
 
     /** @return list<array<string, mixed>> */
