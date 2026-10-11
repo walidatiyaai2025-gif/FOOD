@@ -178,7 +178,7 @@ class DashboardCustomer360Test extends TestCase
             ->assertSee('Accounts & finance')
             ->assertSee('Retail Owner Store')
             ->assertSee('Company owes customer')
-            ->assertSee('50.000');
+            ->assertSee('50.00');
 
         $b2bAdmin = $this->globalAdmin('B2B_ADMIN');
         $this->actingAs($b2bAdmin)
