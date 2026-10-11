@@ -213,6 +213,19 @@ class B2bAdminWorkspaceTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        DB::table('settings')->updateOrInsert(
+            [
+                'store_id' => $store,
+                'key' => 'b2b.pricing_tiers_enabled',
+            ],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
         $admin = $this->user('B2B_ADMIN', 'en');
 
         $driverResponse = $this->actingAs($admin)->post('/admin/b2b/drivers', [
