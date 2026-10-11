@@ -158,7 +158,11 @@ class MultiStoreDesignScreen extends StatelessWidget {
         );
       case CustomerRoutePaths.b2bOrders:
         return withFooter(
-          WholesaleOrdersDesignScreen(api: b2bApi),
+          WholesaleOrdersDesignScreen(
+            location: location,
+            api: b2bApi,
+            commerceApi: wholesaleApi,
+          ),
           CustomerFooterDestination.orders,
         );
       case CustomerRoutePaths.b2bOrderDetails:
