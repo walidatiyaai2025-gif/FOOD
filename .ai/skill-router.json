@@ -264,7 +264,7 @@
       "route_ids": [
         "flutter-core"
       ],
-      "added_regex": "(?i)(\\\\bawait\\\\b|\\\\bFuture(?:<|\\\\.|\\\\s)|\\\\bTimer(?:\\\\.|\\\\s*\\\\()|\\\\bStream(?:Subscription|Builder|Controller)?(?:<|\\\\.|\\\\s*\\\\()|\\\\b(?:Animation|TextEditing|Scroll|Page|Tab)Controller\\\\s*\\\\(|\\\\bFocusNode\\\\s*\\\\(|\\\\b(?:Change|Value)Notifier(?:<|\\\\s*\\\\())",
+      "added_regex": "(?i)(\\bawait\\b|\\bFuture(?:<|\\.|\\s)|\\bTimer(?:\\.|\\s*\\()|\\bStream(?:Subscription|Builder|Controller)?(?:<|\\.|\\s*\\()|\\b(?:Animation|TextEditing|Scroll|Page|Tab)Controller\\s*\\(|\\bFocusNode\\s*\\(|\\b(?:Change|Value)Notifier(?:<|\\s*\\())",
       "skills": [
         "flutter-async-lifecycle.md"
       ],
@@ -277,7 +277,7 @@
       "route_ids": [
         "flutter-core"
       ],
-      "added_regex": "(?i)(\\\\bhttp\\\\.|\\\\bClient\\\\s*\\\\(|\\\\bUri\\\\.|\\\\bjson(?:Decode|Encode)\\\\s*\\\\(|\\\\b(?:fromJson|toJson)\\\\s*\\\\(|\\\\bstatusCode\\\\b|\\\\bResponse\\\\b|\\\\bheaders\\\\b)",
+      "added_regex": "(?i)(\\bhttp\\.|\\bClient\\s*\\(|\\bUri\\.|\\bjson(?:Decode|Encode)\\s*\\(|\\b(?:fromJson|toJson)\\s*\\(|\\bstatusCode\\b|\\bResponse\\b|\\bheaders\\b)",
       "skills": [
         "flutter-api-model-contract.md"
       ],
@@ -290,7 +290,7 @@
       "route_ids": [
         "flutter-core"
       ],
-      "added_regex": "(?i)(\\\\bNavigator(?:\\\\.|\\\\s)|\\\\bshowDialog\\\\s*\\\\(|\\\\bshowModalBottomSheet\\\\s*\\\\(|\\\\bScaffoldMessenger(?:\\\\.|\\\\s)|\\\\bBuildContext\\\\b)",
+      "added_regex": "(?i)(\\bNavigator(?:\\.|\\s)|\\bshowDialog\\s*\\(|\\bshowModalBottomSheet\\s*\\(|\\bScaffoldMessenger(?:\\.|\\s)|\\bBuildContext\\b)",
       "skills": [
         "flutter-navigation-safety.md"
       ],
@@ -303,7 +303,7 @@
       "route_ids": [
         "flutter-core"
       ],
-      "added_regex": "(?i)(\\\\bText\\\\s*\\\\(|\\\\b(?:labelText|hintText|helperText|errorText|tooltip|semanticLabel|title|subtitle)\\\\s*:|\\\\bSnackBar\\\\s*\\\\(|\\\\bAlertDialog\\\\s*\\\\()",
+      "added_regex": "(?i)(\\bText\\s*\\(|\\b(?:labelText|hintText|helperText|errorText|tooltip|semanticLabel|title|subtitle)\\s*:|\\bSnackBar\\s*\\(|\\bAlertDialog\\s*\\()",
       "skills": [
         "flutter-localization-code.md"
       ],
@@ -316,7 +316,7 @@
       "route_ids": [
         "flutter-core"
       ],
-      "added_regex": "(?i)(\\\\bListView(?:\\\\.|\\\\s*\\\\()|\\\\bGridView(?:\\\\.|\\\\s*\\\\()|\\\\bCustomScrollView\\\\s*\\\\(|\\\\bStreamBuilder\\\\s*<|\\\\bTimer\\\\.periodic\\\\b|\\\\bImage(?:\\\\.|\\\\s*\\\\()|\\\\bsearch\\\\b|\\\\bpoll(?:ing)?\\\\b)",
+      "added_regex": "(?i)(\\bListView(?:\\.|\\s*\\()|\\bGridView(?:\\.|\\s*\\()|\\bCustomScrollView\\s*\\(|\\bStreamBuilder\\s*<|\\bTimer\\.periodic\\b|\\bImage(?:\\.|\\s*\\()|\\bsearch\\b|\\bpoll(?:ing)?\\b)",
       "skills": [
         "flutter-performance-code.md"
       ],
