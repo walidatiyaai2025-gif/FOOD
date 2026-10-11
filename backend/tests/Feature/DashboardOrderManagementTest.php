@@ -153,7 +153,7 @@ class DashboardOrderManagementTest extends TestCase
         $this->actingAs($adminA)
             ->get('/admin/b2c/finance?store_id='.$storeA)
             ->assertOk()
-            ->assertSee($invoice->invoice_number);
+            ->assertSee('#'.$invoice->id);
 
         $this->actingAs($adminA)
             ->get('/admin/invoices/'.$invoice->id)
@@ -392,7 +392,7 @@ class DashboardOrderManagementTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/b2c/orders?store_id='.$store)
             ->assertOk()
-            ->assertSee($invoice->invoice_number)
+            ->assertSee('#'.$invoice->id)
             ->assertSee('Print');
     }
 
