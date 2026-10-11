@@ -68,6 +68,22 @@ class MobileAppDownloadTest extends TestCase
             ]));
     }
 
+    public function test_dashboard_missing_apk_link_redirects_to_hub_without_scheduling_from_get(): void
+    {
+        Queue::fake();
+        $admin = $this->superAdmin();
+        $this->installVersion('9.9.9');
+        $this->setAndroidVersion('customer', '9.8.7');
+
+        $this->actingAs($admin)
+            ->get(route('admin.mobile-apps.customer.download'))
+            ->assertRedirect(route('admin.administration.index', [
+                'download_app' => 'customer',
+            ]));
+
+        Queue::assertNothingPushed();
+    }
+
     public function test_public_ready_apk_is_served_from_local_storage_without_any_github_request(): void
     {
         $this->installVersion('9.9.9');

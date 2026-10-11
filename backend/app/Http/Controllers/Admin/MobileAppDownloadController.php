@@ -124,8 +124,11 @@ final class MobileAppDownloadController extends Controller
         Gate::authorize('platform.manage');
 
         $version = $this->mirror->currentVersionForApp($app);
-        $this->mirror->ensureScheduled($version);
 
+        // Keep GET navigation side-effect free. The Administration Hub opens
+        // the download modal and explicitly POSTs to prepare/retry when work
+        // needs to be scheduled. This also prevents sync queue drivers from
+        // turning a harmless navigation audit into an external release fetch.
         $artifact = MobileReleaseArtifact::query()
             ->where('app', $app)
             ->where('version', $version)

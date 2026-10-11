@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.57",
+  "current_version": "1.0.69",
   "releases": [
     {
       "version": "1.0.40",
@@ -194,6 +194,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
       "note": "FOODEX 1.0.57 production release for Issue #943 / PR #946: in-place Customer client UI/UX normalization, localized display cleanup, and Dashboard Driver map silent-refresh stabilization with last-success preservation, duplicate-refresh suppression, cleanup, and synchronized Customer/Driver release identity 1.0.57+57."
+    },
+    {
+      "version": "1.0.69",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.69.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "ec9349ea7df11c185b34d70c99c06b2f560ef048971a27f4637d0c5b550f0014",
+      "note": "FOODEX 1.0.69 synchronized release for Issue #1256 / PR #1257, promoting the authoritative post-1.0.67 main lineage through #1255 with B2B Van-only fulfillment, Customer low-data and responsive hardening, Dashboard-local APK mirroring, CI reliability improvements, and synchronized Dashboard/Customer/Driver/Van 1.0.69 identities."
     }
   ]
 }

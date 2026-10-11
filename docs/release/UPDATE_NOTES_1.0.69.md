@@ -1,6 +1,6 @@
 # FOODEX 1.0.69 Release Notes
 
-Status: synchronized production release from the current authoritative `main` lineage through #1255.
+Status: immutable synchronized production release registered for Issue #1256 / PR #1257.
 
 ## Release identity
 
