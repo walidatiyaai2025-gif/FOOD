@@ -1701,7 +1701,7 @@ class _WholesaleCatalogDesignScreenState
           }
           final brands = brandMap.values.toList(growable: false);
 
-          var visibleRows = allRows.where((row) {
+          final visibleRows = allRows.where((row) {
             if (selectedCategoryId != null &&
                 intValue(row['category_id']) != selectedCategoryId) {
               return false;
