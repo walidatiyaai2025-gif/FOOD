@@ -29,7 +29,7 @@ final class CustomerReplicaReportPdfService
         };
 
         $this->stampFooters($pdf, $type);
-        $content = $pdf->Output('', 'S');
+        $content = (string) $pdf->Output('', 'S');
 
         if (! str_starts_with($content, '%PDF-')) {
             throw new \RuntimeException('Unable to generate customer replica PDF.');
@@ -183,8 +183,11 @@ final class CustomerReplicaReportPdfService
     private function accountRow(TCPDF $pdf, float $y, array $row, bool $opening = false): void
     {
         $fill = $opening ? [220, 220, 220] : null;
-        $this->cell($pdf, 3, $y, 20, 9, $this->moneyOrBlank((float) ($row['balance_credit'] ?? 0)), true, 'C', 7.3, false, $fill);
-        $this->cell($pdf, 23, $y, 20, 9, $this->moneyOrBlank((float) ($row['balance_debit'] ?? 0)), true, 'C', 7.3, false, $fill);
+        $balanceCredit = (float) ($row['balance_credit'] ?? 0);
+        $balanceDebit = (float) ($row['balance_debit'] ?? 0);
+        $zeroBalance = abs($balanceCredit) < 0.0005 && abs($balanceDebit) < 0.0005;
+        $this->cell($pdf, 3, $y, 20, 9, $zeroBalance ? $this->money(0) : $this->moneyOrBlank($balanceCredit), true, 'C', 7.3, false, $fill);
+        $this->cell($pdf, 23, $y, 20, 9, $zeroBalance ? $this->money(0) : $this->moneyOrBlank($balanceDebit), true, 'C', 7.3, false, $fill);
         $this->cell($pdf, 43, $y, 20, 9, $this->moneyOrBlank((float) ($row['credit'] ?? 0)), true, 'C', 7.3, false, $fill);
         $this->cell($pdf, 63, $y, 20, 9, $this->moneyOrBlank((float) ($row['debit'] ?? 0)), true, 'C', 7.3, false, $fill);
         $this->cell($pdf, 83, $y, 53, 9, (string) ($row['description'] ?? ''), true, 'R', 6.8, false, $fill);
@@ -249,7 +252,7 @@ final class CustomerReplicaReportPdfService
             [29, 30, (string) ($row['seller'] ?? ''), 'C'],
             [59, 22, $value < 0 ? '('.$this->money(abs($value)).')' : $this->money($value), 'C'],
             [81, 16, number_format((float) ($row['price'] ?? 0), 1, '.', ''), 'C'],
-            [97, 14, number_format((float) ($row['quantity'] ?? 0), 1, '.', ''), 'C'],
+            [97, 14, (float) ($row['quantity'] ?? 0) < 0 ? number_format(abs((float) $row['quantity']), 1, '.', '').'-' : number_format((float) ($row['quantity'] ?? 0), 1, '.', ''), 'C'],
             [111, 18, (string) ($row['item_code'] ?? ''), 'C'],
             [129, 66, (string) ($row['item'] ?? ''), 'R'],
             [195, 36, (string) ($row['customer'] ?? ''), 'R'],
