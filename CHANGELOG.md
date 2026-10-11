@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.70 - 2026-10-11
+
+- Promote the post-1.0.69 Dashboard order-notification work from Issue #1258 / PR #1259 into a new immutable FOODEX release version.
+- Add the global Customer App new-order popup across authenticated Dashboard pages, with scoped incremental feed, queueing, session deduplication, direct order deep-linking, AR/EN support, visibility-aware polling and backoff.
+- Preserve tenant/store/channel authorization and exclude orders created manually from Dashboard, Van or Integration sources from the Customer App popup.
+- Synchronize repository/mobile source identities at FOODEX 1.0.70 / mobile build 1.0.70+70; the Dashboard Update ZIP can be installed independently and does not overwrite APKs already installed on devices.
+
 ## 1.0.69 - 2026-10-11
 
 - Promote every authoritative main change merged after FOODEX 1.0.67 through #1255 into the synchronized FOODEX 1.0.69 production release.
