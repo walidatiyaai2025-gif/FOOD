@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -6345,11 +6346,10 @@ Color _wholesaleOrderStatusColor(String status) {
 }
 
 String _compactOrderAmount(Object? value, String currency) {
-  final number = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
+  final number =
+      value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
   if (number == null) return currency + ' —';
-  var amount = number.toStringAsFixed(3);
-  amount = amount.replaceFirst(RegExp(r'\.?0+$'), '');
-  return currency + ' ' + amount;
+  return foodexMoneyText(number, currency, currencyFirst: true);
 }
 
 String paymentLabel(String method) {
