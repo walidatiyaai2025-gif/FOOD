@@ -193,7 +193,8 @@ final class Customer360Controller extends Controller
 
             return [
                 'id' => (int) $row->id,
-                'number' => (string) $row->order_number,
+                'number' => \App\Support\DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->order_number,
                 'store' => (string) ($row->store_name ?? '-'),
                 'channel' => $channel,
                 'channel_label' => $this->businessLabel($channel),
@@ -234,7 +235,8 @@ final class Customer360Controller extends Controller
 
             return [
                 'id' => (int) $row->id,
-                'number' => (string) $row->invoice_number,
+                'number' => \App\Support\DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->invoice_number,
                 'store' => (string) ($row->store_name ?? '-'),
                 'channel' => strtolower((string) $row->channel),
                 'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),
