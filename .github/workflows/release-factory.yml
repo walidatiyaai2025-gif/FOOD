@@ -167,6 +167,69 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  fresh-install:
+    name: Validate clean install from exact Setup ZIP
+    needs: [plan, setup]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CURRENT_VERSION: ${{ needs.plan.outputs.version }}
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: foodex_acceptance
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip
+          coverage: none
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-laravel-setup-${{ github.sha }}
+          path: Release
+      - name: Run canonical fresh-install acceptance
+        shell: bash
+        run: bash scripts/validate-fresh-setup.sh
+      - name: Upload fresh-install evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-fresh-install-evidence-${{ github.sha }}
+          path: |
+            Release/FRESH_INSTALL_EVIDENCE.json
+            ScreenShots/FreshVan/
+          if-no-files-found: error
+          retention-days: 30
+
   dashboard-update:
     name: Build Dashboard delta update
     needs: [plan, previews]
@@ -227,7 +290,7 @@ jobs:
 
   assemble:
     name: Assemble and validate synchronized release
-    needs: [plan, mobile, setup, dashboard-update]
+    needs: [plan, mobile, setup, fresh-install, dashboard-update]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -249,6 +312,10 @@ jobs:
         with:
           name: release-dashboard-update-${{ github.sha }}
           path: release-input/update
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-fresh-install-evidence-${{ github.sha }}
+          path: release-input/fresh
       - name: Assemble exact tested artifacts
         shell: bash
         run: |
@@ -261,6 +328,7 @@ jobs:
             cp "$src" "Release/FOODEX-$display-$CURRENT_VERSION.apk"
           done
           cp release-input/setup/FOODEX-Laravel-Setup.zip Release/FOODEX-Laravel-Setup.zip
+          cp release-input/fresh/Release/FRESH_INSTALL_EVIDENCE.json Release/FRESH_INSTALL_EVIDENCE.json
           cp release-input/update/FOODEX-Update.* Release/Updates/
 
           python3 scripts/write-trial-bundle-manifest.py             --version "$CURRENT_VERSION"             --source-commit "$SOURCE_COMMIT"             --run-number "$GITHUB_RUN_NUMBER"             --mobile-build-number "$MOBILE_BUILD_NUMBER"             --api-base-url https://foodex.50sols.com             --customer "Release/FOODEX-Customer-$CURRENT_VERSION.apk"             --driver "Release/FOODEX-Driver-$CURRENT_VERSION.apk"             --van "Release/FOODEX-Van-$CURRENT_VERSION.apk"             --setup Release/FOODEX-Laravel-Setup.zip             --output Release/BUILD_INFO.json
@@ -288,6 +356,33 @@ jobs:
           path: Release/
           if-no-files-found: error
           retention-days: 30
+      - name: Publish generated bundle branch
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_branch="release/221-generated-trial-bundle"
+          stage="$(mktemp -d)"
+          cp -a Release/. "$stage/"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin "refs/heads/$generated_branch" >/dev/null 2>&1; then
+            git fetch origin "$generated_branch"
+            git switch -C "$generated_branch" "origin/$generated_branch"
+          else
+            git switch -C "$generated_branch" "$SOURCE_COMMIT"
+          fi
+          rm -rf Release
+          mkdir -p Release
+          cp -a "$stage/." Release/
+          git add -f Release
+          if git diff --cached --quiet; then
+            echo "Generated distribution branch already matches this release."
+          else
+            git commit -m "release: refresh FOODEX $CURRENT_VERSION factory distribution"
+            git push origin "HEAD:refs/heads/$generated_branch"
+          fi
+
       - name: Publish immutable GitHub Release
         if: ${{ github.event_name == 'push' || inputs.publish }}
         shell: bash
