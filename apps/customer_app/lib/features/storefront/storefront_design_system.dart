@@ -454,7 +454,7 @@ String compactNumber(double value) => value == value.roundToDouble()
 
 String money(Object? value, {String currency = 'EGP'}) {
   if (value == null) return '—';
-  return foodexMoneyText(doubleValue(value), currency);
+  return foodexMoneyText(doubleValue(value), currency, fractionDigits: 2);
 }
 
 int retailStoreId(String location) {
