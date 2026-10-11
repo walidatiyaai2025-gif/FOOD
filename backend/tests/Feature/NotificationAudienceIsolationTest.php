@@ -301,6 +301,7 @@ class NotificationAudienceIsolationTest extends TestCase
         $admin = $this->retailAdmin($store, 'popup-retail@example.test');
         $customer = app(B2cCustomerService::class)->create($store, [
             'name' => 'Popup Customer',
+            'phone' => '96550001111',
         ]);
 
         $oldOrder = $this->order(
@@ -354,7 +355,9 @@ class NotificationAudienceIsolationTest extends TestCase
             ->assertJsonPath('data.0.order_id', $appOrder->id)
             ->assertJsonPath('data.0.order_number', 'POPUP-APP-1003')
             ->assertJsonPath('data.0.channel', 'b2c')
-            ->assertJsonPath('data.0.store_id', $store);
+            ->assertJsonPath('data.0.store_id', $store)
+            ->assertJsonPath('data.0.customer_name', 'Popup Customer')
+            ->assertJsonPath('data.0.customer_phone', '96550001111');
 
         $this->assertStringContainsString(
             '/admin/operations/orders?channel=b2c&order='.$appOrder->id,
@@ -368,6 +371,44 @@ class NotificationAudienceIsolationTest extends TestCase
             ->where('data->order_id', $appOrder->id)
             ->sole();
         $this->assertSame('customer_app', $notification->data['source'] ?? null);
+        $this->assertSame('Popup Customer', $notification->data['customer_name'] ?? null);
+        $this->assertSame('96550001111', $notification->data['customer_phone'] ?? null);
+        $this->assertSame('هذا الطلب من: Popup Customer', $notification->title_ar);
+        $this->assertSame('This order is from: Popup Customer', $notification->title_en);
+        $this->assertStringContainsString('الهاتف: 96550001111', (string) $notification->body_ar);
+        $this->assertStringContainsString('Phone: 96550001111', (string) $notification->body_en);
+
+        $noPhoneCustomer = app(B2cCustomerService::class)->create($store, [
+            'name' => 'No Phone Customer',
+        ]);
+        $noPhoneOrder = $this->order(
+            $store,
+            'b2c',
+            (int) $noPhoneCustomer->legacy_customer_id,
+            null,
+            (int) $noPhoneCustomer->getKey(),
+            'POPUP-APP-1004',
+        );
+        app(DashboardOperationalNotifier::class)->orderCreated($noPhoneOrder, 'customer_app');
+
+        $afterFirst = (int) $response->json('meta.cursor');
+        $noPhoneResponse = $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/new-order-feed?after='.$afterFirst)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.customer_name', 'No Phone Customer')
+            ->assertJsonPath('data.0.customer_phone', null);
+
+        $noPhoneNotification = Notification::query()
+            ->where('user_id', $admin->id)
+            ->where('type', 'order.created')
+            ->where('data->order_id', $noPhoneOrder->id)
+            ->sole();
+        $this->assertSame('هذا الطلب من: No Phone Customer', $noPhoneNotification->title_ar);
+        $this->assertStringNotContainsString('الهاتف:', (string) $noPhoneNotification->body_ar);
+        $this->assertStringNotContainsString('Phone:', (string) $noPhoneNotification->body_en);
+        $this->assertNull($noPhoneNotification->data['customer_phone'] ?? null);
+        $this->assertSame($noPhoneOrder->id, $noPhoneResponse->json('data.0.order_id'));
     }
 
     private function store(string $typeCode, string $code): int
