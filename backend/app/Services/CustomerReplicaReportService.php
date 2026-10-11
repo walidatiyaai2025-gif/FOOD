@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bCustomer;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -107,9 +108,11 @@ final class CustomerReplicaReportService
                 'movement_type' => $isReturn ? 'مرتجعات' : 'مبيعات',
                 'customer' => (string) $customer->name,
                 'item' => (string) $row->description,
-                'item_code' => trim((string) ($row->sku ?? '')) !== ''
-                    ? (string) $row->sku
-                    : ($row->product_id === null ? '' : (string) $row->product_id),
+                'item_code' => trim((string) ($row->sku_snapshot ?? '')) !== ''
+                    ? (string) $row->sku_snapshot
+                    : (trim((string) ($row->sku ?? '')) !== ''
+                        ? (string) $row->sku
+                        : ($row->product_id === null ? '' : (string) $row->product_id)),
                 'quantity' => $movementQuantity,
                 'price' => round((float) $row->unit_price, 3),
                 'net_value' => $movementValue,
@@ -197,6 +200,7 @@ final class CustomerReplicaReportService
                 'invoices.created_at as invoice_created_at',
                 'invoice_items.id as item_id',
                 'invoice_items.product_id',
+                'invoice_items.sku_snapshot',
                 'invoice_items.description',
                 'invoice_items.quantity',
                 'invoice_items.unit_price',
@@ -207,7 +211,7 @@ final class CustomerReplicaReportService
             ]);
     }
 
-    private function applyInvoiceDateRange(mixed $query, string $from, string $to): void
+    private function applyInvoiceDateRange(QueryBuilder $query, string $from, string $to): void
     {
         $query
             ->where(function ($scope) use ($from): void {
@@ -244,7 +248,11 @@ final class CustomerReplicaReportService
             ->orderByDesc('order_van_assignments.id')
             ->get(['order_van_assignments.order_id', 'users.name'])
             ->groupBy('order_id')
-            ->map(fn (Collection $rows): string => (string) $rows->first()->name)
+            ->map(function (Collection $rows): string {
+                $row = $rows->first();
+
+                return is_object($row) && isset($row->name) ? (string) $row->name : '';
+            })
             ->all();
     }
 
