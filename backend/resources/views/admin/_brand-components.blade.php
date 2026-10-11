@@ -183,7 +183,6 @@
         .foodex-form{padding:14px;gap:12px;margin-bottom:14px}
         .foodex-form button{width:100%;justify-self:stretch}
         .foodex-card,.panel,.card,.filters,.back{max-width:100%;min-width:0}
-        .table-wrap,.module-table-wrap,.foodex-table-wrap{overflow:visible}
         .foodex-ops-toolbar{grid-template-columns:minmax(0,1fr)!important;gap:10px}
         .foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)!important}
         .foodex-modal-backdrop{padding:0;align-items:end;justify-items:stretch}
