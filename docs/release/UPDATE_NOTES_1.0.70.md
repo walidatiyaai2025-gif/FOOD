@@ -1,6 +1,6 @@
 # FOODEX 1.0.70 Release Notes
 
-Status: release candidate for the post-1.0.69 Dashboard new-order notification release.
+Status: immutable production release registered through release PR #1260.
 
 ## Release identity
 
