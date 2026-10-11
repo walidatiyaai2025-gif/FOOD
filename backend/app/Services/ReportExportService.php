@@ -2,11 +2,24 @@
 
 namespace App\Services;
 
+use App\Support\DisplayNumber;
 use RuntimeException;
 use ZipArchive;
 
 final class ReportExportService
 {
+    private const MONEY_FIELDS = [
+        'total', 'revenue', 'value', 'amount', 'gross_value',
+        'recognized_revenue', 'average_order_value', 'product_revenue',
+        'customer_value', 'invoice_total', 'paid', 'balance',
+        'opening_balance', 'period_debits', 'period_credits',
+        'closing_balance', 'current_balance', 'debit', 'credit',
+        'running_balance',
+    ];
+
+    private const QUANTITY_FIELDS = [
+        'quantity', 'quantity_sold', 'inventory_quantity', 'reserved_quantity',
+    ];
     /**
      * @param  array<string, mixed>  $report
      * @return array{content:string,mime:string,extension:string}
@@ -60,15 +73,24 @@ final class ReportExportService
     {
         $rows = $this->tabularRows($report, $locale);
         $headerRow = $this->headerRowIndex($report);
-        $columnCount = max(1, count((array) ($report['columns'] ?? [])));
+        $columns = array_values((array) ($report['columns'] ?? []));
+        $currency = strtoupper(trim((string) ($report['currency'] ?? '')));
+        $columnCount = max(1, count($columns));
         $sheetRows = [];
 
         foreach ($rows as $rowIndex => $row) {
             $cells = [];
             foreach (array_values($row) as $columnIndex => $value) {
                 $reference = $this->columnLetter($columnIndex + 1).($rowIndex + 1);
+                $isDataRow = ($rowIndex + 1) > $headerRow;
+                $column = $isDataRow ? ($columns[$columnIndex] ?? null) : null;
+                $moneyStyle = $currency === 'EGP'
+                    && is_string($column)
+                    && self::isMoneyField($column)
+                    ? ' s="1"'
+                    : '';
                 if (is_int($value) || is_float($value)) {
-                    $cells[] = '<c r="'.$reference.'" t="n"><v>'.$value.'</v></c>';
+                    $cells[] = '<c r="'.$reference.'" t="n"'.$moneyStyle.'><v>'.$value.'</v></c>';
 
                     continue;
                 }
@@ -118,7 +140,7 @@ final class ReportExportService
                 .'<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
                 .'<borders count="1"><border/></borders>'
                 .'<cellStyleXfs count="1"><xf/></cellStyleXfs>'
-                .'<cellXfs count="1"><xf xfId="0"/></cellXfs>'
+                .'<cellXfs count="2"><xf xfId="0"/><xf xfId="0" numFmtId="4" applyNumberFormat="1"/></cellXfs>'
                 .'</styleSheet>',
             'xl/worksheets/sheet1.xml' => $sheet,
         ]);
@@ -143,7 +165,10 @@ final class ReportExportService
 
         foreach ((array) ($report['rows'] ?? []) as $row) {
             $tableRows[] = '<w:tr>'.implode('', array_map(
-                fn (string $column): string => $this->wordCell((string) ($row[$column] ?? ''), $rtl),
+                fn (string $column): string => $this->wordCell(
+                    (string) $this->displayValue($row[$column] ?? '', $column, $report),
+                    $rtl,
+                ),
                 $columns,
             )).'</w:tr>';
         }
@@ -208,7 +233,9 @@ final class ReportExportService
         foreach ((array) ($report['rows'] ?? []) as $row) {
             $html .= '<tr>';
             foreach ($columns as $column) {
-                $html .= '<td>'.$this->html((string) ($row[$column] ?? '')).'</td>';
+                $html .= '<td>'.$this->html(
+                    (string) $this->displayValue($row[$column] ?? '', $column, $report),
+                ).'</td>';
             }
             $html .= '</tr>';
         }
@@ -221,6 +248,30 @@ final class ReportExportService
         }
 
         return $content;
+    }
+
+    /** @param array<string, mixed> $report */
+    private function displayValue(mixed $value, string $key, array $report): mixed
+    {
+        if (! is_numeric($value)) {
+            return $value;
+        }
+
+        $currency = (string) ($report['currency'] ?? '');
+        if (self::isMoneyField($key)) {
+            return DisplayNumber::money((float) $value, $currency);
+        }
+
+        if (in_array($key, self::QUANTITY_FIELDS, true)) {
+            return DisplayNumber::quantity((float) $value);
+        }
+
+        return $value;
+    }
+
+    private static function isMoneyField(string $key): bool
+    {
+        return in_array($key, self::MONEY_FIELDS, true);
     }
 
     private function html(string $value): string
@@ -240,7 +291,8 @@ final class ReportExportService
         ];
 
         foreach ((array) ($report['kpis'] ?? []) as $key => $value) {
-            $lines[] = (string) __("reports.kpis.{$key}").': '.$value;
+            $lines[] = (string) __("reports.kpis.{$key}").': '
+                .$this->displayValue($value, (string) $key, $report);
         }
 
         $lines[] = $locale === 'ar' ? 'FOODEX · تقرير إداري' : 'FOODEX · Management Report';
