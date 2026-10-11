@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.69",
+  "target_version": "1.0.70",
   "minimum_current_version": "1.0.67",
-  "sha256": "883c35c3be71cee07660603797f30fe5e10ec7061b0f8f8ac3f3a3ed5ef022c1",
+  "sha256": "21eeca072b953a35b0d6b66cb4e849a9294d788aa848b1f2c7d008c01b3c6219",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release: prepare synchronized FOODEX 1.0.69 (#1256)",
+  "release_notes": "release: FOODEX 1.0.70 dashboard new-order popup (#1260)",
   "dashboard_fields": {
-    "target_version": "1.0.69",
+    "target_version": "1.0.70",
     "minimum_current_version": "1.0.67",
-    "sha256": "883c35c3be71cee07660603797f30fe5e10ec7061b0f8f8ac3f3a3ed5ef022c1",
+    "sha256": "21eeca072b953a35b0d6b66cb4e849a9294d788aa848b1f2c7d008c01b3c6219",
     "contains_migrations": true,
-    "release_notes": "release: prepare synchronized FOODEX 1.0.69 (#1256)"
+    "release_notes": "release: FOODEX 1.0.70 dashboard new-order popup (#1260)"
   }
 }

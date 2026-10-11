@@ -624,6 +624,7 @@ backend/resources/views/admin/_driver-live-map.blade.php
 backend/resources/views/admin/_field-operations-finance.blade.php
 backend/resources/views/admin/_live-notifications.blade.php
 backend/resources/views/admin/_merchant-intelligence-dashboard.blade.php
+backend/resources/views/admin/_new-order-popup.blade.php
 backend/resources/views/admin/_order-new-wizard.blade.php
 backend/resources/views/admin/_premium-icon.blade.php
 backend/resources/views/admin/_premium-sidebar.blade.php
