@@ -433,6 +433,15 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     }
   }
 
+  String _collectionStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
+        'posted' || 'completed' => _text('Completed', 'مكتمل'),
+        'pending' || 'processing' => _text('Processing', 'قيد المعالجة'),
+        'reversed' || 'voided' => _text('Reversed', 'معكوس'),
+        'failed' => _text('Failed', 'فشل'),
+        _ => _text('Collection status', 'حالة التحصيل'),
+      };
+
   String _actionLabel(String value) {
     switch (value) {
       case 'accepted':
@@ -857,7 +866,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                   ),
                   for (final collection in detail.collections)
                     Text(
-                      '${foodexMoneyText(collection.amount, collection.currency)} · ${collection.status}',
+                      '${foodexMoneyText(collection.amount, collection.currency)} · ${_collectionStatusLabel(collection.status)}',
                     ),
                   if (_lastCollectionResult != null) ...[
                     const SizedBox(height: 10),
