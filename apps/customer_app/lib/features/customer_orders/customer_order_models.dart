@@ -1,6 +1,6 @@
 class CustomerOrderContext {
   const CustomerOrderContext({required this.storeId, required this.channel})
-      : assert(storeId > 0);
+    : assert(storeId > 0);
 
   final int storeId;
   final String channel;
@@ -40,13 +40,13 @@ class CustomerOrderPage {
 
     final orders = raw is List
         ? raw
-            .whereType<Map>()
-            .map(
-              (item) => CustomerOrderSummary.fromJson(
-                Map<String, dynamic>.from(item),
-              ),
-            )
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(
+                (item) => CustomerOrderSummary.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(growable: false)
         : const <CustomerOrderSummary>[];
 
     final rawCounts = meta['status_counts'] is Map
@@ -58,9 +58,9 @@ class CustomerOrderPage {
     };
     final statusCodes = meta['status_codes'] is List
         ? (meta['status_codes'] as List)
-            .map((value) => value.toString().toLowerCase())
-            .where((value) => value.isNotEmpty)
-            .toList(growable: false)
+              .map((value) => value.toString().toLowerCase())
+              .where((value) => value.isNotEmpty)
+              .toList(growable: false)
         : statusCounts.keys.toList(growable: false);
 
     return CustomerOrderPage(
@@ -179,30 +179,32 @@ class CustomerOrderSummary {
       settlement['fully_settled'],
       invoice['fully_settled'],
     ]);
-    final fullySettled = explicitFullySettled ??
+    final fullySettled =
+        explicitFullySettled ??
         (invoiceOutstandingAmount == null
             ? null
             : invoiceOutstandingAmount <= 0.0000001);
     final reorderItems = json['items'] is List
         ? (json['items'] as List)
-            .whereType<Map>()
-            .map(
-              (item) =>
-                  CustomerOrderItem.fromJson(Map<String, dynamic>.from(item)),
-            )
-            .where((item) => item.productId > 0 && item.quantity > 0)
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(
+                (item) =>
+                    CustomerOrderItem.fromJson(Map<String, dynamic>.from(item)),
+              )
+              .where((item) => item.productId > 0 && item.quantity > 0)
+              .toList(growable: false)
         : const <CustomerOrderItem>[];
     final nextStatuses = json['next_statuses'] is List
         ? (json['next_statuses'] as List)
-            .map((value) => value.toString().toLowerCase())
-            .where((value) => value.isNotEmpty)
-            .toList(growable: false)
+              .map((value) => value.toString().toLowerCase())
+              .where((value) => value.isNotEmpty)
+              .toList(growable: false)
         : const <String>[];
 
     return CustomerOrderSummary(
       id: _int(json['id']),
-      orderNumber: json['display_order_number']?.toString() ??
+      orderNumber:
+          json['display_order_number']?.toString() ??
           json['order_number']?.toString() ??
           '',
       storeId: _int(json['store_id'] ?? store['id']),
@@ -258,34 +260,34 @@ class CustomerOrderDetails {
   factory CustomerOrderDetails.fromJson(Map<String, dynamic> json) {
     final items = json['items'] is List
         ? (json['items'] as List)
-            .whereType<Map>()
-            .map(
-              (item) =>
-                  CustomerOrderItem.fromJson(Map<String, dynamic>.from(item)),
-            )
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(
+                (item) =>
+                    CustomerOrderItem.fromJson(Map<String, dynamic>.from(item)),
+              )
+              .toList(growable: false)
         : const <CustomerOrderItem>[];
 
     final history = json['status_history'] is List
         ? (json['status_history'] as List)
-            .whereType<Map>()
-            .map(
-              (entry) => CustomerOrderHistoryEntry.fromJson(
-                Map<String, dynamic>.from(entry),
-              ),
-            )
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(
+                (entry) => CustomerOrderHistoryEntry.fromJson(
+                  Map<String, dynamic>.from(entry),
+                ),
+              )
+              .toList(growable: false)
         : const <CustomerOrderHistoryEntry>[];
 
     final collectionReceipts = json['collection_receipts'] is List
         ? (json['collection_receipts'] as List)
-            .whereType<Map>()
-            .map(
-              (receipt) => CustomerCollectionReceipt.fromJson(
-                Map<String, dynamic>.from(receipt),
-              ),
-            )
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(
+                (receipt) => CustomerCollectionReceipt.fromJson(
+                  Map<String, dynamic>.from(receipt),
+                ),
+              )
+              .toList(growable: false)
         : const <CustomerCollectionReceipt>[];
 
     return CustomerOrderDetails(

@@ -23,6 +23,7 @@ import 'dashboard_single_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
+
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 class B2bJourneyScreen extends StatelessWidget {
@@ -830,9 +831,8 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
         channel: CustomerCommerceChannel.wholesale,
         storeId: principalId,
       );
-      Navigator.of(
-        context,
-      ).pushNamed(CustomerRouteLocations.wholesaleHome(commerceContext));
+      Navigator.of(context)
+          .pushNamed(CustomerRouteLocations.wholesaleHome(commerceContext));
     } catch (error) {
       if (mounted) await showOperationalError(context, error);
     } finally {
@@ -1129,9 +1129,9 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     borderRadius: BorderRadius.circular(16),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
-      onTap: () => Navigator.of(
-        context,
-      ).pushNamed(_scopedRoute(CustomerRoutePaths.b2bTopProducts)),
+      onTap: () =>
+          Navigator.of(context)
+              .pushNamed(_scopedRoute(CustomerRoutePaths.b2bTopProducts)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Row(
@@ -1161,9 +1161,8 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                   Text(
                     context.tr('b2b.dashboard.offers_cta'),
                     maxLines: 1,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(fontSize: 12, height: 1.2),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(fontSize: 12, height: 1.2),
                   ),
                 ],
               ),
@@ -1631,17 +1630,15 @@ class _B2bProductDetailRemoteStateState
                   ),
                   Text(
                     context.tr('b2b.product.account_price'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: CustomerUiColors.muted,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: CustomerUiColors.muted),
                   ),
                   if (sku.isNotEmpty) ...[
                     const SizedBox(height: CustomerUiSpacing.xs),
                     Text(
                       sku,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: CustomerUiColors.muted,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: CustomerUiColors.muted),
                     ),
                   ],
                   const SizedBox(height: CustomerUiSpacing.md),
@@ -2836,9 +2833,8 @@ class _PurchaseReportRemoteStateState
         children: [
           Text(
             context.tr('b2b.purchase_reports.period'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -2959,9 +2955,9 @@ class _PurchaseReportRemoteStateState
                       width: tileWidth,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Padding(
@@ -3041,9 +3037,8 @@ class _PurchaseReportRemoteStateState
         children: [
           Text(
             context.tr('b2b.purchase_reports.trend'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           if (rows.isEmpty)
@@ -3068,9 +3063,8 @@ class _PurchaseReportRemoteStateState
         children: [
           Text(
             context.tr('b2b.purchase_reports.categories'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           if (rows.isEmpty)
@@ -3109,9 +3103,8 @@ class _PurchaseReportRemoteStateState
             padding: const EdgeInsets.all(4),
             child: Text(
               context.tr('b2b.purchase_reports.recent_orders'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
           ...rows.map((row) {
@@ -3328,9 +3321,8 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
                 Text(
                   '${percentage.toStringAsFixed(1)}% · '
                   '${_reportMoney(row['purchase_total'], currency)}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -4268,9 +4260,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                         final width =
                             (constraints.maxWidth - gap * (columns - 1)) /
                             columns;
-                        final textScale = MediaQuery.textScalerOf(
-                          context,
-                        ).scale(1);
+                        final textScale = MediaQuery.textScalerOf(context)
+                            .scale(1);
                         final scaledDelta = (textScale - 1.0)
                             .clamp(0.0, 1.0)
                             .toDouble();
@@ -4453,9 +4444,8 @@ class _MoreHeader extends StatelessWidget {
                     SizedBox(width: compact ? 2 : 6),
                     IconButton(
                       key: const ValueKey('b2b-more-back'),
-                      tooltip: MaterialLocalizations.of(
-                        context,
-                      ).backButtonTooltip,
+                      tooltip: MaterialLocalizations.of(context)
+                          .backButtonTooltip,
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_forward_rounded),
                       color: Colors.white,
@@ -5039,9 +5029,8 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
                       isArabic
                           ? 'ملخص الحساب المالي'
                           : 'Financial account summary',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 12),
                     _FinanceValue(
@@ -5542,18 +5531,16 @@ class _B2bAccountStatementRemoteStateState
                         key: const ValueKey('b2b-statement-closing-value'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         '${context.tr('b2b.statement.current_balance')}: '
                         '$currentDirection · ${_money(current.abs(), currency)}',
                         key: const ValueKey('b2b-statement-current-direction'),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -5711,9 +5698,8 @@ class _B2bAccountStatementRemoteStateState
               value,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -5743,9 +5729,8 @@ class _B2bAccountStatementRemoteStateState
                 Expanded(
                   child: Text(
                     _typeLabel(type),
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
                 Text(_shortDate(row['occurred_at']?.toString())),
@@ -6220,9 +6205,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                           ar ? 'تفاصيل الفاتورة' : 'Invoice details',
                           style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
@@ -6232,9 +6217,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                               (data['id'] == null ? '—' : '#${data['id']}'),
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
                                 fontWeight: FontWeight.w900,
                               ),
                         ),
@@ -6422,9 +6407,8 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         const SizedBox(height: 8),
         Text(
           ar ? 'بنود الفاتورة' : 'Invoice items',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
         if (items.isEmpty)
@@ -6482,9 +6466,8 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         const SizedBox(height: 8),
         Text(
           ar ? 'سجل المدفوعات' : 'Payment history',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         Card(
           key: const ValueKey('b2b-invoice-payments'),
@@ -6523,9 +6506,8 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
           const SizedBox(height: 8),
           Text(
             ar ? 'التسويات والحركات المرتبطة' : 'Related adjustments',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           Card(
             key: const ValueKey('b2b-invoice-ledger'),
@@ -7201,9 +7183,9 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                           ),
                           FilledButton.tonalIcon(
                             key: ValueKey('b2b-invoice-open-${row['id']}'),
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pushNamed(_detailRoute(row)),
+                            onPressed: () =>
+                                Navigator.of(context)
+                                    .pushNamed(_detailRoute(row)),
                             icon: const Icon(Icons.open_in_new_rounded),
                             label: Text(ar ? 'التفاصيل' : 'Details'),
                           ),

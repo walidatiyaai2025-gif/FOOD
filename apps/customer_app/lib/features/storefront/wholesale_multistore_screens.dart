@@ -391,9 +391,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                           ).toString(),
                         )
                       : null,
-                  onCart: () => Navigator.of(
-                    context,
-                  ).pushNamed('/b2b/cart?store=' + storeId.toString()),
+                  onCart: () =>
+                      Navigator.of(context)
+                          .pushNamed('/b2b/cart?store=' + storeId.toString()),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
@@ -1586,9 +1586,9 @@ class _WholesaleCatalogDesignScreenState
                     ChoiceChip(
                       label: Text(category['name']?.toString() ?? ''),
                       selected: selectedCategoryId == intValue(category['id']),
-                      onSelected: (_) => Navigator.of(
-                        sheetContext,
-                      ).pop(intValue(category['id'])),
+                      onSelected: (_) =>
+                          Navigator.of(sheetContext)
+                              .pop(intValue(category['id'])),
                     ),
                 ],
               ),
@@ -1767,9 +1767,9 @@ class _WholesaleCatalogDesignScreenState
                 logoUrl: branding['logo_url']?.toString(),
                 address: branding['address']?.toString(),
                 palette: palette,
-                onCart: () => Navigator.of(
-                  context,
-                ).pushNamed('/b2b/cart?store=' + storeId.toString()),
+                onCart: () =>
+                    Navigator.of(context)
+                        .pushNamed('/b2b/cart?store=' + storeId.toString()),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
@@ -2066,13 +2066,11 @@ class _WholesaleBottomNav extends StatelessWidget {
     indicatorColor: palette.soft,
     onDestinationSelected: (index) {
       if (index == 1) {
-        Navigator.of(
-          context,
-        ).pushNamed('/b2b/products?store_id=' + storeId.toString());
+        Navigator.of(context)
+            .pushNamed('/b2b/products?store_id=' + storeId.toString());
       } else if (index == 2) {
-        Navigator.of(
-          context,
-        ).pushNamed('/b2b/cart?store=' + storeId.toString());
+        Navigator.of(context)
+            .pushNamed('/b2b/cart?store=' + storeId.toString());
       } else if (index == 3) {
         Navigator.of(context).pushNamed(
           '/b2b/orders?channel=wholesale&store_id=' + storeId.toString(),
@@ -2504,9 +2502,8 @@ class _WholesaleProductDetailsDesignScreenState
         if (!mounted) return;
         final issue = _quantityIssue(context, row, selectedQuantity);
         if (issue != null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(issue)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(issue)));
         }
         return;
       }
@@ -2578,8 +2575,8 @@ class _WholesaleProductDetailsDesignScreenState
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       key: const ValueKey('b2b-error-back-products'),
-                      onPressed: () =>
-                          Navigator.of(context).pushReplacementNamed(
+                      onPressed: () => Navigator.of(context)
+                          .pushReplacementNamed(
                             '/b2b/products?store_id=' + storeId.toString(),
                           ),
                       icon: const Icon(Icons.arrow_back_rounded),
@@ -2866,9 +2863,8 @@ class _WholesaleProductDetailsDesignScreenState
                               quantity!,
                             );
                             if (issue != null) {
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text(issue)));
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text(issue)));
                               return;
                             }
                             await _addProduct(row);
@@ -5304,9 +5300,9 @@ class _WholesaleOrderDetailsDesignScreenState
                 children: [
                   IconButton(
                     key: const ValueKey('b2b-order-back'),
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pushReplacementNamed('/b2b/orders'),
+                    onPressed: () =>
+                        Navigator.of(context)
+                            .pushReplacementNamed('/b2b/orders'),
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   Expanded(
@@ -6358,9 +6354,9 @@ class _OrderCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: canOpen
-              ? () => Navigator.of(
-                  context,
-                ).pushNamed('/b2b/orders/' + id.toString())
+              ? () =>
+                    Navigator.of(context)
+                        .pushNamed('/b2b/orders/' + id.toString())
               : null,
           child: Container(
             constraints: BoxConstraints(minHeight: compact ? 86 : 94),
