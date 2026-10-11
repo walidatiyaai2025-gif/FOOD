@@ -199,9 +199,11 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
         .map((invoice) => invoice.currency.trim().toUpperCase())
         .where((currency) => currency.isNotEmpty)
         .toSet();
-    final totalOutstandingText = outstandingCurrencies.length == 1
-        ? foodexMoneyText(totalOutstanding, outstandingCurrencies.single)
-        : foodexCompactDecimal(totalOutstanding);
+    final singleOutstandingCurrency =
+        outstandingCurrencies.length == 1 ? outstandingCurrencies.single : '';
+    final totalOutstandingText = singleOutstandingCurrency == 'EGP'
+        ? foodexMoneyAmount(totalOutstanding, 'EGP')
+        : totalOutstanding.toStringAsFixed(3);
 
     return RefreshIndicator(
       onRefresh: _refresh,
