@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/features/storefront/storefront_design_system.dart' as storefront;
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 void main() {
@@ -12,6 +13,11 @@ void main() {
   test('other currencies keep fixed precision', () {
     expect(foodexMoneyAmount(100, 'KWD'), '100.000');
     expect(foodexMoneyAmount(100.5, 'USD'), '100.500');
+  });
+
+  test('storefront helper preserves its existing two-decimal non-EGP contract', () {
+    expect(storefront.money(42.5, currency: 'KWD'), '42.50 KWD');
+    expect(storefront.money(42.5, currency: 'EGP'), '42.50 EGP');
   });
 
   test('unit counts compact without losing fractional values', () {
