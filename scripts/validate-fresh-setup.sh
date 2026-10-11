@@ -141,6 +141,73 @@ if ($mode === 'finish') {
         throw new RuntimeException('Expected seeded B2B store was not returned after fresh setup.');
     }
 
+    $b2bCatalogId = (int) $db::table('catalogs')->insertGetId([
+        'store_id' => $b2bStoreId,
+        'channel' => 'b2b',
+        'code' => 'fresh-b2b',
+        'name' => 'Fresh B2B Acceptance',
+        'is_active' => true,
+        'is_migration_quarantine' => false,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $b2bUnitId = (int) $db::table('units')->insertGetId([
+        'store_id' => $b2bStoreId,
+        'scope' => 'store',
+        'scope_key' => 'store:'.$b2bStoreId,
+        'code' => 'B2BEA',
+        'name' => 'B2B Each',
+        'name_ar' => 'B2B Each',
+        'name_en' => 'B2B Each',
+        'decimal_places' => 0,
+        'is_active' => true,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $b2bProductId = (int) $db::table('products')->insertGetId([
+        'catalog_id' => $b2bCatalogId,
+        'unit_id' => $b2bUnitId,
+        'sku' => 'FRESH-B2B-001',
+        'name' => 'Fresh B2B Product',
+        'is_active' => true,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $db::table('store_products')->insert([
+        'store_id' => $b2bStoreId,
+        'product_id' => $b2bProductId,
+        'price' => 20,
+        'is_active' => true,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $db::table('product_selling_units')->insert([
+        'product_id' => $b2bProductId,
+        'unit_id' => $b2bUnitId,
+        'code' => 'B2BEA',
+        'name' => 'B2B Each',
+        'conversion_factor' => 1,
+        'price' => 20,
+        'sku' => 'FRESH-B2B-001',
+        'barcode' => null,
+        'is_base' => true,
+        'is_active' => true,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $db::table('product_commercial_policies')->insert([
+        'product_id' => $b2bProductId,
+        'status' => 'OPEN',
+        'hide_when_closed' => false,
+        'override_allowed' => true,
+        'channels' => json_encode(['customer'=>true,'van'=>true,'admin'=>true], JSON_THROW_ON_ERROR),
+        'break_pack_policy' => 'mixed',
+        'business_timezone' => 'Asia/Kuwait',
+        'week_starts_on' => 1,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+
     $storeTypeId = (int) $db::table('store_types')->where('code', 'B2C')->value('id');
     if ($storeTypeId <= 0) {
         throw new RuntimeException('Expected seeded B2C store type was not returned after fresh setup.');
