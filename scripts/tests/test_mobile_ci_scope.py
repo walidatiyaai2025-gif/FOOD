@@ -18,6 +18,12 @@ class MobileCiScopeTest(unittest.TestCase):
         self.assertFalse(plan["ios"])
         self.assertFalse(plan["web_preview"])
 
+    def test_test_only_change_skips_platform_builds(self) -> None:
+        plan = MODULE.resolve("customer", ["apps/customer_app/test/auth_test.dart"])
+        self.assertFalse(plan["android"])
+        self.assertFalse(plan["ios"])
+        self.assertFalse(plan["web_preview"])
+
     def test_pubspec_change_enables_all_supported_platforms(self) -> None:
         plan = MODULE.resolve("driver", ["apps/driver_app/pubspec.yaml"])
         self.assertTrue(plan["android"])
