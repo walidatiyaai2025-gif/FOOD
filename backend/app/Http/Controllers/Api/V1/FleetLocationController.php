@@ -90,6 +90,11 @@ class FleetLocationController extends Controller
             ? DB::table('warehouses')->where('id', $warehouseId)->value('store_id')
             : null;
 
+        $driverId = isset($context['driver_id']) ? (int) $context['driver_id'] : 0;
+        if ($storeId === null && $driverId > 0) {
+            $storeId = DB::table('drivers')->where('id', $driverId)->value('store_id');
+        }
+
         $location = $service->heartbeat('van', $vanId, [
             'vehicle_id' => $vanId,
             'assignment_id' => $assignmentId,
