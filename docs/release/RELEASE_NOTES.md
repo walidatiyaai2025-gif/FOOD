@@ -1,30 +1,30 @@
-# FOODEX 1.0.69 Release Notes
+# FOODEX 1.0.70 Release Notes
 
-Status: synchronized production release from the current authoritative `main` lineage through #1255.
+Status: release candidate for the post-1.0.69 Dashboard new-order notification release.
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.69`
-- Customer app: `1.0.69+69`
-- Driver app: `1.0.69+69`
-- Van app: `1.0.69+69`
-- Customer runtime/footer identity: `1.0.69`
-- Driver runtime/footer identity: `1.0.69`
+- Dashboard / repository release: `1.0.70`
+- Customer app source identity: `1.0.70+70`
+- Driver app source identity: `1.0.70+70`
+- Van app source identity: `1.0.70+70`
+- Customer runtime/footer identity: `1.0.70`
+- Driver runtime/footer identity: `1.0.70`
 - Production API: `https://foodex.50sols.com`
 - Forbidden legacy API: `https://vanfoodex.50sols.com`
 
-## Included convergence
+## Included changes
 
-- Promote all authoritative main changes merged after FOODEX 1.0.67 into one synchronized production release.
-- Include the B2B Van-only fulfillment cutover and associated Dashboard/Customer/Van operational convergence while preserving Driver-only Retail fulfillment.
-- Include Customer low-data hardening that coalesces duplicate reads, caps foreground concurrency on weak links and prevents request storms before release.
-- Include Dashboard-local APK mirroring and mobile-version policy decoupling so Customer, Driver and Van packages can be prepared and downloaded directly from the Dashboard backend with explicit mirror state.
-- Include the one-push-green CI foundation, deterministic branch/release policy checks and Node 24 workflow migration.
-- Include Customer app-wide responsive hardening for 320px devices, enlarged text, RTL/LTR footer behavior and narrow B2B/account surfaces.
+- Include Issue #1258 / PR #1259: a global Dashboard popup for new orders created by the Customer App.
+- Use the existing dashboard operational-notification domain as the authoritative source and tag creation source explicitly instead of inferring from route/user-agent text.
+- Add a lightweight incremental feed with cursor bootstrap, scoped authorization, no-store cache semantics and short visible-tab polling with retry backoff.
+- Queue multiple new orders without overlap or duplicates and persist the cursor per browser session.
+- Open the exact Order Operations record from the popup and support Arabic/English plus RTL/LTR responsive Dashboard layouts.
+- Exclude Dashboard-, Van- and Integration-created orders from this popup.
+- Keep the Dashboard update package independently deployable; installing it does not replace mobile APKs already installed on devices.
 
-## Release contract
+## Validation contract
 
-- Customer, Driver and Van APKs must be built from the same final source commit as the Dashboard Update and Laravel Setup package.
-- `BUILD_INFO.json`, `LATEST_RELEASE.json` and `FRESH_INSTALL_EVIDENCE.json` must record that same source commit.
-- APK binary verification must confirm `https://foodex.50sols.com` is embedded and `https://vanfoodex.50sols.com` is absent.
-- GitHub Release `v1.0.69` must not be published until required PR checks are green.
+- Required CI must pass backend tests, PHPStan/lint/security/OpenAPI, MySQL/Redis install-upgrade-recovery acceptance, localization and Dashboard runtime visual evidence.
+- The generated `FOODEX-Update.zip` must target `1.0.70`, remain compatible with current `1.0.69` installations, and report no full redeploy requirement.
+- The exact generated package SHA-256 must be registered before merge to `main`.
