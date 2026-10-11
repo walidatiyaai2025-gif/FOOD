@@ -30,11 +30,12 @@ final class VanVisitController extends Controller
             ->orderBy('customer_id')
             ->get();
 
-        $data = $visits->map(function (VanVisit $visit): array {
+        $runtimeStoreId = $this->runtimeStoreId($request);
+        $data = $visits->map(function (VanVisit $visit) use ($runtimeStoreId): array {
             return $this->customerPayload(
                 (string) $visit->customer_type,
                 (int) $visit->customer_id,
-                $visit->store_id === null ? null : (int) $visit->store_id,
+                $runtimeStoreId ?? ($visit->store_id === null ? null : (int) $visit->store_id),
             );
         })->values();
 
@@ -56,7 +57,7 @@ final class VanVisitController extends Controller
         return response()->json($this->customerPayload(
             $type,
             $customer,
-            $storeId === null ? null : (int) $storeId,
+            $this->runtimeStoreId($request) ?? ($storeId === null ? null : (int) $storeId),
         ));
     }
 
@@ -86,7 +87,7 @@ final class VanVisitController extends Controller
 
         return response()->json([
             'data' => collect($paginator->items())->map(
-                fn (VanVisit $visit): array => $this->visitPayload($visit),
+                fn (VanVisit $visit): array => $this->visitPayload($visit, $this->runtimeStoreId($request)),
             )->values(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
@@ -126,16 +127,26 @@ final class VanVisitController extends Controller
 
             $runtimeContext = app(VanRuntimeVisitScope::class)->context($request);
             $metadata = is_array($validated['metadata'] ?? null) ? $validated['metadata'] : [];
+            $sellerStoreId = $runtimeContext['store_id'] ?? ($validated['store_id'] ?? null);
             if ($runtimeContext !== null) {
                 $metadata['van_id'] = $runtimeContext['van_id'];
                 $metadata['van_assignment_id'] = $runtimeContext['assignment_id'];
+            }
+
+            if ($type === 'b2b') {
+                $customerStoreId = DB::table('retail_wholesale_accounts')
+                    ->where('b2b_customer_id', $customerId)
+                    ->value('retail_store_id');
+                if ($customerStoreId !== null) {
+                    $metadata['customer_store_id'] = (int) $customerStoreId;
+                }
             }
 
             return VanVisit::query()->create([
                 'actor_user_id' => $actor->getKey(),
                 'customer_type' => $type,
                 'customer_id' => $customerId,
-                'store_id' => $validated['store_id'] ?? null,
+                'store_id' => $sellerStoreId,
                 'status' => 'planned',
                 'planned_at' => $validated['planned_at'] ?? null,
                 'idempotency_key' => $validated['idempotency_key'],
@@ -143,7 +154,7 @@ final class VanVisitController extends Controller
             ]);
         }, 3);
 
-        return response()->json($this->visitPayload($visit), 201);
+        return response()->json($this->visitPayload($visit, $this->runtimeStoreId($request)), 201);
     }
 
     public function transition(
@@ -174,7 +185,7 @@ final class VanVisitController extends Controller
             isset($validated['no_order_reason_id']) ? (int) $validated['no_order_reason_id'] : null,
         );
 
-        return response()->json($this->visitPayload($updated));
+        return response()->json($this->visitPayload($updated, $this->runtimeStoreId($request)));
     }
 
     public function noOrderReasons(Request $request): JsonResponse
@@ -232,6 +243,14 @@ final class VanVisitController extends Controller
         }
     }
 
+    private function runtimeStoreId(Request $request): ?int
+    {
+        $context = app(VanRuntimeVisitScope::class)->context($request);
+        $storeId = (int) ($context['store_id'] ?? 0);
+
+        return $storeId > 0 ? $storeId : null;
+    }
+
     /** @return array<string, mixed> */
     private function customerPayload(string $type, int $customerId, ?int $storeId): array
     {
@@ -252,7 +271,7 @@ final class VanVisitController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function visitPayload(VanVisit $visit): array
+    private function visitPayload(VanVisit $visit, ?int $sellerStoreId = null): array
     {
         $rawMetadata = $visit->getAttribute('metadata');
         $metadata = is_array($rawMetadata) ? $rawMetadata : [];
@@ -287,7 +306,7 @@ final class VanVisitController extends Controller
             'id' => (int) $visit->getKey(),
             'customer_type' => $customerType,
             'customer_id' => $customerId,
-            'store_id' => $visit->store_id === null ? null : (int) $visit->store_id,
+            'store_id' => $sellerStoreId ?? ($visit->store_id === null ? null : (int) $visit->store_id),
             'route_key' => $routeKey === null || $routeKey === '' ? null : $routeKey,
             'latitude' => $latitude,
             'longitude' => $longitude,
