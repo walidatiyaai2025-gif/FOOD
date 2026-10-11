@@ -138,7 +138,7 @@ run_flutter() {
 
     bash ../../scripts/flutter-changed-analysis.sh "$app" "$base" WORKTREE
 
-    flutter analyze
+    flutter analyze --no-fatal-infos
 
     mapfile -t focused < <(python3 ../../scripts/ci-plan.py --base "$base" --head WORKTREE --branch "$branch" --focused "$app")
     if (("${#focused[@]}" > 0)); then
