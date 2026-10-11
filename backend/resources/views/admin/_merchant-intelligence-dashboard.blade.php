@@ -234,7 +234,7 @@
                     ['key'=>'availability_limited','label'=>__('admin.b2c_dashboard.merchant_intelligence.availability_limited'),'class'=>'info'],
                 ] as $bar)
                     @php $barValue=(float)($spend[$bar['key']] ?? 0); @endphp
-                    <div class="merchant-simple-row {{ $bar['class'] }}"><span>{{ $bar['label'] }}</span><span class="merchant-simple-track"><i style="width:{{ round($barValue/$spendMax*100,1) }}%"></i></span><b>{{ number_format($barValue,3) }}</b></div>
+                    <div class="merchant-simple-row {{ $bar['class'] }}"><span>{{ $bar['label'] }}</span><span class="merchant-simple-track"><i style="width:{{ round($barValue/$spendMax*100,1) }}%"></i></span><b>{{ \App\Support\DisplayNumber::money($barValue, $dashboard['currency']) }}</b></div>
                 @endforeach
             </div>
         </article>
