@@ -4925,11 +4925,15 @@ class _SelectCard extends StatelessWidget {
 
 class WholesaleOrdersDesignScreen extends StatefulWidget {
   const WholesaleOrdersDesignScreen({
+    required this.location,
     required this.api,
+    required this.commerceApi,
     super.key,
   });
 
+  final String location;
   final B2bApi? api;
+  final WholesaleCommerceApi? commerceApi;
 
   @override
   State<WholesaleOrdersDesignScreen> createState() =>
@@ -4939,6 +4943,7 @@ class WholesaleOrdersDesignScreen extends StatefulWidget {
 class _WholesaleOrdersDesignScreenState
     extends State<WholesaleOrdersDesignScreen> with WidgetsBindingObserver {
   String status = 'all';
+  final Set<int> _reordering = <int>{};
   late Future<Object?> future = _load();
 
   @override
@@ -4986,6 +4991,268 @@ class _WholesaleOrdersDesignScreenState
       await next;
     } catch (_) {
       // FutureBuilder renders the authoritative error state.
+    }
+  }
+
+  int _orderStoreId(Map<String, dynamic> order) {
+    final nestedStore = order['store'];
+    final fromRow = intValue(
+      order['store_id'] ?? (nestedStore is Map ? nestedStore['id'] : null),
+    );
+    return fromRow > 0 ? fromRow : wholesaleStoreId(widget.location);
+  }
+
+  Future<double?> _currentReorderQuantity(
+    int storeId,
+    Map<String, dynamic> item,
+  ) async {
+    final productId = intValue(
+      item['product_id'] ??
+          (item['product'] is Map ? (item['product'] as Map)['id'] : null),
+    );
+    if (productId <= 0) return null;
+
+    final requested = math.max(.001, doubleValue(item['quantity'], 1));
+    final api = widget.api;
+    if (api == null) return requested;
+
+    final raw = await api.get(
+      '/api/v1/b2b/products/' +
+          productId.toString() +
+          '?store_id=' +
+          storeId.toString(),
+    );
+    if (raw is! Map) return null;
+
+    final product = Map<String, dynamic>.from(raw);
+    final isAvailable = product['is_available'] != false &&
+        product['availability_state'] != 'OUT_OF_STOCK';
+    if (!isAvailable) return null;
+
+    final minimum = math.max(
+      .001,
+      doubleValue(
+        product['minimum_order_quantity'] ?? product['minimum_quantity'],
+        1,
+      ),
+    );
+    final increment = math.max(
+      .001,
+      doubleValue(product['ordering_increment'], 1),
+    );
+    final available = product['available_quantity'] == null
+        ? null
+        : doubleValue(product['available_quantity'], 0);
+
+    var normalized = math.max(requested, minimum).toDouble();
+    final steps = math.max(
+      0,
+      ((normalized - minimum) / increment - .000001).ceil(),
+    );
+    normalized = minimum + steps * increment;
+
+    if (available != null && normalized > available + .0001) {
+      if (available + .0001 < minimum) return null;
+      final maxSteps = math.max(
+        0,
+        ((available - minimum) / increment + .000001).floor(),
+      );
+      normalized = minimum + maxSteps * increment;
+    }
+
+    return normalized > 0 ? normalized : null;
+  }
+
+  Future<bool> _confirmMergeExistingCart(int storeId) async {
+    final commerceApi = widget.commerceApi;
+    if (commerceApi == null) return true;
+
+    final raw = await commerceApi.cart(storeId);
+    final cart = raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : <String, dynamic>{};
+    if (mapRows(cart['items']).isEmpty) return true;
+    if (!mounted) return false;
+
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(context.tr('customer.orders.reorder')),
+            content: Text(
+              isArabic
+                  ? 'السلة تحتوي على أصناف بالفعل. هل تريد دمج أصناف هذا الطلب معها؟ لن يتم حذف أي صنف موجود.'
+                  : 'Your cart already has items. Merge this order into the current cart? Existing items will not be removed.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(
+                  MaterialLocalizations.of(context).cancelButtonLabel,
+                ),
+              ),
+              FilledButton(
+                key: const ValueKey('b2b-reorder-merge-confirm'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(
+                  isArabic ? 'دمج وفتح السلة' : 'Merge and open cart',
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _reorder(Map<String, dynamic> summary) async {
+    final orderId = intValue(summary['id']);
+    final commerceApi = widget.commerceApi;
+    if (orderId <= 0 ||
+        commerceApi == null ||
+        _reordering.contains(orderId)) {
+      return;
+    }
+
+    setState(() => _reordering.add(orderId));
+    try {
+      final raw = await widget.api?.get(
+        '/api/v1/b2b/orders/' + orderId.toString(),
+      );
+      final order = raw is Map
+          ? Map<String, dynamic>.from(raw)
+          : Map<String, dynamic>.from(summary);
+      final storeId = _orderStoreId(order);
+      final items = mapRows(order['items']);
+
+      if (storeId <= 0 || items.isEmpty) {
+        throw const WholesaleCommerceException(
+          'Order items are not available for reorder.',
+        );
+      }
+
+      final merge = await _confirmMergeExistingCart(storeId);
+      if (!merge || !mounted) return;
+
+      final failed = <String>[];
+      final adjusted = <String>[];
+      var added = 0;
+
+      for (final item in items) {
+        final productId = intValue(
+          item['product_id'] ??
+              (item['product'] is Map
+                  ? (item['product'] as Map)['id']
+                  : null),
+        );
+        final label = item['name']?.toString().trim().isNotEmpty == true
+            ? item['name'].toString().trim()
+            : (item['name_snapshot']?.toString().trim().isNotEmpty == true
+                ? item['name_snapshot'].toString().trim()
+                : (item['sku']?.toString().trim().isNotEmpty == true
+                    ? item['sku'].toString().trim()
+                    : '#' + productId.toString()));
+
+        try {
+          final original = math.max(
+            .001,
+            doubleValue(item['quantity'], 1),
+          );
+          final quantity = await _currentReorderQuantity(storeId, item);
+
+          if (productId <= 0 || quantity == null) {
+            failed.add(label);
+            continue;
+          }
+
+          if ((quantity - original).abs() >= .0001) {
+            adjusted.add(
+              label +
+                  ': ' +
+                  compactNumber(original) +
+                  ' → ' +
+                  compactNumber(quantity),
+            );
+          }
+
+          await commerceApi.addItem(storeId, productId, quantity);
+          added++;
+        } catch (_) {
+          failed.add(label);
+        }
+      }
+
+      if (!mounted) return;
+
+      if (added == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              failed.isEmpty
+                  ? context.tr('customer.orders.reorder_failed')
+                  : context.tr('customer.orders.reorder_failed') +
+                      ': ' +
+                      failed.join(', '),
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (failed.isNotEmpty || adjusted.isNotEmpty) {
+        final isArabic =
+            Localizations.localeOf(context).languageCode == 'ar';
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(
+              isArabic
+                  ? 'تم تجهيز السلة بالشروط الحالية'
+                  : 'Cart rebuilt with current rules',
+            ),
+            content: SingleChildScrollView(
+              child: Text(
+                [
+                  if (adjusted.isNotEmpty)
+                    (isArabic
+                            ? 'تم تعديل الكمية:\n'
+                            : 'Quantity adjusted:\n') +
+                        adjusted.join('\n'),
+                  if (failed.isNotEmpty)
+                    (isArabic
+                            ? 'تعذر إضافة:\n'
+                            : 'Could not add:\n') +
+                        failed.join('\n'),
+                  if (isArabic)
+                    'راجع السلة ويمكنك تعديل الكميات أو حذف وإضافة أصناف قبل إتمام الطلب.'
+                  else
+                    'Review the cart. You can edit quantities, remove items, or add products before checkout.',
+                ].join('\n\n'),
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  isArabic ? 'مراجعة السلة' : 'Review cart',
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pushNamed(
+        '/b2b/cart?channel=wholesale&store_id=' + storeId.toString(),
+      );
+    } catch (error) {
+      if (mounted) {
+        await showOperationalError(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _reordering.remove(orderId));
+      }
     }
   }
 
@@ -5076,10 +5343,19 @@ class _WholesaleOrdersDesignScreenState
                               itemCount: rows.length,
                               separatorBuilder: (_, __) =>
                                   SizedBox(height: compact ? 9 : 11),
-                              itemBuilder: (_, index) => _OrderCard(
-                                row: rows[index],
-                                compact: compact,
-                              ),
+                              itemBuilder: (_, index) {
+                                final row = rows[index];
+                                final orderId = intValue(row['id']);
+                                return _OrderCard(
+                                  row: row,
+                                  compact: compact,
+                                  reordering: _reordering.contains(orderId),
+                                  onReorder:
+                                      widget.commerceApi != null && orderId > 0
+                                          ? () => unawaited(_reorder(row))
+                                          : null,
+                                );
+                              },
                             ),
                           );
                         }
@@ -6266,10 +6542,14 @@ class _OrderCard extends StatelessWidget {
   const _OrderCard({
     required this.row,
     required this.compact,
+    required this.reordering,
+    this.onReorder,
   });
 
   final Map<String, dynamic> row;
   final bool compact;
+  final bool reordering;
+  final VoidCallback? onReorder;
 
   @override
   Widget build(BuildContext context) {
@@ -6416,7 +6696,20 @@ class _OrderCard extends StatelessWidget {
                       ],
                   ),
                 ),
-                SizedBox(width: compact ? 7 : 10),
+                SizedBox(width: compact ? 5 : 8),
+                if (onReorder != null)
+                  IconButton(
+                    key: ValueKey('b2b-order-reorder-' + id.toString()),
+                    tooltip: context.tr('customer.orders.reorder'),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: reordering ? null : onReorder,
+                    icon: reordering
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.replay_rounded),
+                  ),
                 _StatusPill(
                   status: row['status']?.toString() ?? '',
                   compact: compact,
