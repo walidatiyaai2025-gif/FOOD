@@ -608,7 +608,7 @@ test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/r
 curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-routing-populated.html http://127.0.0.1:8099/admin/field-operations/routing-policies
 grep -Fq 'FRESH-ROUTING' /tmp/field-routing-populated.html
 
-test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/sales-control?store_id=$STORE_ID")" = "200"
+test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2b/commercial/sales-control?store_id=$B2B_STORE_ID")" = "200"
 grep -Fq 'Product Sales Control' /tmp/sales-control.html
 grep -Fq 'Break-pack policy' /tmp/sales-control.html
 grep -Fq '<section class="policy-section structured-editor" data-selling-unit-editor>' /tmp/sales-control.html
