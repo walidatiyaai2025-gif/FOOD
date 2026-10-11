@@ -716,6 +716,26 @@ async function captureLocale(browser, locale) {
     `02_Web/B2C_Admin/12_customer_360_addresses__populated__${locale}.png`,
   );
 
+  const customerReportHref = customer360Href.replace(/\/$/, '')
+    + '/reports/account-statement?from=2026-10-01&to=2026-10-11';
+  const customerReportResponse = await page.goto(
+    new URL(customerReportHref, baseUrl).toString(),
+    { waitUntil: 'networkidle' },
+  );
+  if (!customerReportResponse || !customerReportResponse.ok()) {
+    throw new Error(
+      `Customer report replica evidence page failed: HTTP ${customerReportResponse?.status() ?? 'no-response'}`,
+    );
+  }
+  await assertSharedAdminRuntimeShell(page, `customer-360/report-replica/${locale}`);
+  if (await page.locator('[data-report-frame]').count() !== 1) {
+    throw new Error(`Customer report replica PDF frame was not rendered (${locale}).`);
+  }
+  await snap(
+    page,
+    `02_Web/B2C_Admin/12_customer_report_replica__populated__${locale}.png`,
+  );
+
   await page.goto(
     `${baseUrl}/admin/operations/orders?channel=b2c&order_number=FOODEX-EVID-LOC-1`,
     { waitUntil: 'networkidle' },

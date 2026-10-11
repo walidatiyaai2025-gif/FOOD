@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
+use App\Services\CustomerReplicaReportPdfService;
+use App\Services\CustomerReplicaReportService;
 use App\Services\OperationalTenantScope;
 use App\Services\ReportExportService;
 use App\Services\RetailMerchantIdentityService;
@@ -530,6 +532,93 @@ final class Customer360Controller extends Controller
             'Content-Type' => $export['mime'],
             'Content-Disposition' => 'attachment; filename="'.$exports->filename($report, $export['extension']).'"',
             'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    public function replicaReport(
+        Request $request,
+        int $platformCustomer,
+        string $report,
+        CustomerReplicaReportService $reports,
+    ): View {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+        $from = (string) ($filters['from'] ?? now()->startOfMonth()->toDateString());
+        $to = (string) ($filters['to'] ?? now()->toDateString());
+
+        // Build once before presenting the viewer so invalid report keys and
+        // customer/date scope fail before the embedded PDF request is rendered.
+        $data = $reports->build($domain, $report, $from, $to);
+
+        return view('admin.customer-report-replica', [
+            'user' => $actor,
+            'navGroups' => $this->navigation->groupsFor($actor),
+            'navContext' => 'customer_360',
+            'customer' => $customer,
+            'report' => $report,
+            'reportTitle' => $this->replicaReportTitle($report),
+            'from' => $from,
+            'to' => $to,
+            'rowCount' => count((array) ($data['rows'] ?? [])),
+        ]);
+    }
+
+    public function replicaReportPdf(
+        Request $request,
+        int $platformCustomer,
+        string $report,
+        CustomerReplicaReportService $reports,
+        CustomerReplicaReportPdfService $pdfs,
+        AuditLogger $audit,
+    ): Response {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'inline' => ['nullable', Rule::in(['0', '1'])],
+        ]);
+        $from = (string) ($filters['from'] ?? now()->startOfMonth()->toDateString());
+        $to = (string) ($filters['to'] ?? now()->toDateString());
+        $data = $reports->build($domain, $report, $from, $to);
+
+        try {
+            $content = $pdfs->render($data);
+        } catch (RuntimeException) {
+            abort(503, 'Document export is temporarily unavailable.');
+        }
+
+        $audit->record('customer360.replica_report_exported', $actor, $customer, null, [
+            'report' => $report,
+            'from' => $from,
+            'to' => $to,
+            'rows' => count((array) ($data['rows'] ?? [])),
+        ], $request);
+
+        $disposition = ($filters['inline'] ?? '0') === '1' ? 'inline' : 'attachment';
+        $filename = 'FOODEX-'.$report.'-customer-'.$domain->getKey().'-'.str_replace('-', '', $from).'-'.str_replace('-', '', $to).'.pdf';
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -1207,6 +1296,16 @@ final class Customer360Controller extends Controller
             ->whereIn('id', $access['origin_store_ids'])
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
+    }
+
+    private function replicaReportTitle(string $report): string
+    {
+        return match ($report) {
+            CustomerReplicaReportService::ACCOUNT_STATEMENT => 'كشف حساب عميل',
+            CustomerReplicaReportService::ITEM_DETAIL => 'مسحوبات عميل تفصيلي بالاصناف',
+            CustomerReplicaReportService::ITEM_SUMMARY => 'مسحوبات عميل بالاصناف',
+            default => abort(404),
+        };
     }
 
     private function msg(string $ar, string $en): string

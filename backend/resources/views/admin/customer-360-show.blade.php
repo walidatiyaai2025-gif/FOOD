@@ -34,6 +34,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-address-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.c360-address-card{padding:15px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff}.c360-address-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.c360-address-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.c360-address-form .wide{grid-column:1/-1}.c360-address-form input,.c360-address-form textarea,.c360-address-form select{width:100%;box-sizing:border-box}
 .c360-table-wrap{overflow:auto}.c360-table{width:100%;border-collapse:collapse;min-width:760px}.c360-table th,.c360-table td{padding:12px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:middle}.c360-table th{font-size:12px;color:var(--foodex-muted);background:#f8fafc}.c360-table tr:hover td{background:#fbfefc}
 .c360-empty{padding:42px 20px;text-align:center;color:var(--foodex-muted);border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
+.c360-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.c360-report-card{border:1px solid var(--foodex-border);border-radius:14px;padding:16px;background:var(--foodex-surface);display:grid;gap:12px}.c360-report-card h3{font-size:1rem}.c360-report-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}.c360-report-form label{display:grid;gap:4px}.c360-report-form input{width:100%;box-sizing:border-box}.c360-report-form .wide{grid-column:1/-1}
 .c360-finance-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--foodex-border);border-radius:14px;overflow:hidden}.c360-finance-details>div{padding:15px;border-inline-end:1px solid var(--foodex-border);border-bottom:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(3n){border-inline-end:0}.c360-finance-details small{display:block;color:var(--foodex-muted);margin-bottom:5px}
 .c360-form-details{margin-top:16px;border-top:1px solid var(--foodex-border);padding-top:14px}.c360-form-details summary{cursor:pointer;font-weight:800}
 .c360-map-picker-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
@@ -52,12 +53,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 #c360-address-map{height:min(56vh,500px);min-height:340px;border-radius:12px;border:1px solid var(--foodex-border);overflow:hidden}
 .c360-map-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.c360-map-coords{font-family:var(--foodex-font-en);color:var(--foodex-muted);font-size:.82rem;direction:ltr}
 @media(max-width:1100px){.c360-kpis{grid-template-columns:repeat(2,1fr)}.c360-finance-details{grid-template-columns:repeat(2,1fr)}.c360-finance-details>div:nth-child(3n){border-inline-end:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(2n){border-inline-end:0}}
-@media(max-width:720px){.c360-summary{align-items:flex-start}.c360-avatar{width:54px;height:54px;font-size:27px}.c360-kpis{grid-template-columns:1fr}.c360-finance-details{grid-template-columns:1fr}.c360-finance-details>div{border-inline-end:0!important}.c360-address-form{grid-template-columns:1fr}.c360-address-form .wide{grid-column:auto}.c360-tab{padding:12px 15px}.c360-card{padding:15px}}
+@media(max-width:1100px){.c360-report-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){.c360-report-grid{grid-template-columns:1fr}.c360-summary{align-items:flex-start}.c360-avatar{width:54px;height:54px;font-size:27px}.c360-kpis{grid-template-columns:1fr}.c360-finance-details{grid-template-columns:1fr}.c360-finance-details>div{border-inline-end:0!important}.c360-address-form{grid-template-columns:1fr}.c360-address-form .wide{grid-column:auto}.c360-tab{padding:12px 15px}.c360-card{padding:15px}}
 </style>
 </head>
 <body>
 @php($ar=app()->getLocale()==='ar')
 @php($finance=$wholesale['financial'] ?? null)
+@php($replicaFrom=now()->startOfMonth()->toDateString())
+@php($replicaTo=now()->toDateString())
 
 <div class="foodex-admin-layout">
 <aside class="sidebar">@include('admin._sidebar')</aside>
@@ -102,6 +106,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <button class="c360-tab" type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" data-c360-tab="orders"><span class="c360-tab-icon">🛒</span>{{ __('customer_360.tabs.orders') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-invoices" aria-controls="panel-invoices" aria-selected="false" data-c360-tab="invoices"><span class="c360-tab-icon">▤</span>{{ __('customer_360.tabs.invoices') }}</button>
 <button class="c360-tab" type="button" role="tab" id="tab-statement" aria-controls="panel-statement" aria-selected="false" data-c360-tab="statement"><span class="c360-tab-icon">≣</span>{{ __('customer_360.tabs.statement') }}</button>
+@if($wholesale)<button class="c360-tab" type="button" role="tab" id="tab-reports" aria-controls="panel-reports" aria-selected="false" data-c360-tab="reports"><span class="c360-tab-icon">▥</span>{{ __('customer_360.tabs.reports') }}</button>@endif
 </div>
 </div>
 
@@ -308,6 +313,30 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @endif
 </div>
 </section>
+
+@if($wholesale)
+<section class="c360-panel" id="panel-reports" role="tabpanel" aria-labelledby="tab-reports" data-c360-panel="reports" hidden>
+<div class="foodex-card c360-card">
+<div class="c360-section-head"><div><h2>{{ __('customer_360.tabs.reports') }}</h2><p>{{ __('customer_360.reports.description') }}</p></div></div>
+<div class="c360-report-grid">
+@foreach([
+    ['key'=>'account-statement','label'=>__('customer_360.reports.account_statement')],
+    ['key'=>'item-detail','label'=>__('customer_360.reports.item_detail')],
+    ['key'=>'item-summary','label'=>__('customer_360.reports.item_summary')],
+] as $replica)
+<article class="c360-report-card" data-customer-replica-report="{{ $replica['key'] }}">
+<h3>{{ $replica['label'] }}</h3>
+<form method="get" action="{{ route('admin.customer-360.reports.show',['platformCustomer'=>$customer->id,'report'=>$replica['key']]) }}" class="c360-report-form">
+<label><small>{{ __('customer_360.reports.from') }}</small><input type="date" name="from" value="{{ $replicaFrom }}" required></label>
+<label><small>{{ __('customer_360.reports.to') }}</small><input type="date" name="to" value="{{ $replicaTo }}" required></label>
+<div class="wide c360-actions"><button class="foodex-action-primary" type="submit">{{ __('customer_360.reports.view') }}</button><a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.reports.pdf',['platformCustomer'=>$customer->id,'report'=>$replica['key'],'from'=>$replicaFrom,'to'=>$replicaTo]) }}">{{ __('customer_360.reports.download_pdf') }}</a></div>
+</form>
+</article>
+@endforeach
+</div>
+</div>
+</section>
+@endif
 
 </div>
 </main>
@@ -534,7 +563,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     });
 
     const requested = location.hash.replace('#','');
-    activate(['finance','identity','addresses','stores','orders','invoices'].includes(requested) ? requested : 'finance');
+    activate(['finance','identity','addresses','stores','orders','invoices','statement','reports'].includes(requested) ? requested : 'finance');
 })();
 </script>
 </body>

@@ -183,6 +183,14 @@ Route::prefix('admin')
         Route::post('/customer-360/{platformCustomer}/invoices/{invoice}/settle', [Customer360Controller::class, 'settleInvoice'])->whereNumber('platformCustomer')->whereNumber('invoice')->name('customer-360.invoices.settle');
         Route::post('/customer-360/{platformCustomer}/finance-entries/{ledgerEntry}/reverse', [Customer360Controller::class, 'reverseFinanceEntry'])->whereNumber('platformCustomer')->whereNumber('ledgerEntry')->name('customer-360.finance-entries.reverse');
         Route::get('/customer-360/{platformCustomer}/statement/export', [Customer360Controller::class, 'statementExport'])->whereNumber('platformCustomer')->name('customer-360.statement.export');
+        Route::get('/customer-360/{platformCustomer}/reports/{report}', [Customer360Controller::class, 'replicaReport'])
+            ->whereNumber('platformCustomer')
+            ->whereIn('report', ['account-statement', 'item-detail', 'item-summary'])
+            ->name('customer-360.reports.show');
+        Route::get('/customer-360/{platformCustomer}/reports/{report}/pdf', [Customer360Controller::class, 'replicaReportPdf'])
+            ->whereNumber('platformCustomer')
+            ->whereIn('report', ['account-statement', 'item-detail', 'item-summary'])
+            ->name('customer-360.reports.pdf');
         Route::patch('/customer-360/{platformCustomer}/credit-limit', [Customer360Controller::class, 'updateCreditLimit'])->whereNumber('platformCustomer')->name('customer-360.credit-limit.update');
         Route::get('/customer-360/{invalidCustomerReference}', [Customer360Controller::class, 'invalidReference'])
             ->where('invalidCustomerReference', '[^0-9]+')

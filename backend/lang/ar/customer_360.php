@@ -16,6 +16,7 @@ return [
         'orders' => 'أحدث الطلبات',
         'invoices' => 'الفواتير',
         'statement' => 'كشف الحساب',
+        'reports' => 'تقارير العميل',
     ],
     'identity' => [
         'name' => 'الاسم',
@@ -93,6 +94,19 @@ return [
         'reversal_reason' => 'سبب العكس',
         'cancel' => 'إلغاء',
         'xlsx' => 'XLSX', // localization-gate: allow — XLSX is a technical export format acronym.
+    ],
+    'reports' => [
+        'description' => 'التقارير المعتمدة للعميل بنفس نماذج FOODEX الأصلية.',
+        'account_statement' => 'كشف حساب عميل',
+        'item_detail' => 'مسحوبات عميل تفصيلي بالاصناف',
+        'item_summary' => 'مسحوبات عميل بالاصناف',
+        'from' => 'من تاريخ',
+        'to' => 'إلى تاريخ',
+        'view' => 'عرض التقرير',
+        'download_pdf' => 'تحميل PDF',
+        'print' => 'طباعة',
+        'back' => 'عودة إلى العميل',
+        'rows' => 'عدد السجلات',
     ],
     'addresses' => [
         'description' => 'إدارة العناوين المحفوظة للعميل.',
