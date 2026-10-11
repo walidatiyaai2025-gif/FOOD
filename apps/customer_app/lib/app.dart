@@ -147,7 +147,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final http.Client? marketplaceClient;
   final MarketplaceBarcodeScanner? marketplaceBarcodeScanner;
   final CustomerNotificationCampaignPopupService?
-  notificationCampaignPopupService;
+      notificationCampaignPopupService;
   final bool showPersistentFooter;
 
   @override
@@ -187,8 +187,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     WidgetsBinding.instance.addObserver(this);
     CustomerDataModeController.instance.setBackgrounded(false);
     _translations = Map<String, String>.from(widget.translationOverrides);
-    _launchCampaignPopups =
-        widget.notificationCampaignPopupService ??
+    _launchCampaignPopups = widget.notificationCampaignPopupService ??
         CustomerNotificationCampaignPopupService();
     _session = widget.session;
     _authPreferences = widget.authPreferences;
@@ -574,41 +573,41 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     final b2bApi = preview != null
         ? widget.b2bApi
         : widget.b2bApi ??
-              (token == null
-                  ? null
-                  : HttpB2bApi(
-                      baseUrl: baseUrl,
-                      token: token,
-                      retailStoreContextId: _session.b2bRetailStoreId,
-                      client: _sessionHttpClient,
-                    ));
+            (token == null
+                ? null
+                : HttpB2bApi(
+                    baseUrl: baseUrl,
+                    token: token,
+                    retailStoreContextId: _session.b2bRetailStoreId,
+                    client: _sessionHttpClient,
+                  ));
     final b2cCatalogApi = preview != null
         ? widget.b2cCatalogApi!
         : widget.b2cCatalogApi ??
-              HttpB2cCatalogApi(
-                baseUrl: baseUrl,
-                token: token,
-                client: _sessionHttpClient,
-              );
+            HttpB2cCatalogApi(
+              baseUrl: baseUrl,
+              token: token,
+              client: _sessionHttpClient,
+            );
     final actionApi = preview != null
         ? widget.actionApi!
         : widget.actionApi ??
-              HttpCustomerActionApi(
-                baseUrl: baseUrl,
-                token: token,
-                guestSession: _guestSession,
-                b2bRetailStoreId: _session.b2bRetailStoreId,
-                client: _sessionHttpClient,
-              );
+            HttpCustomerActionApi(
+              baseUrl: baseUrl,
+              token: token,
+              guestSession: _guestSession,
+              b2bRetailStoreId: _session.b2bRetailStoreId,
+              client: _sessionHttpClient,
+            );
     final b2cAccountApi = preview != null
         ? widget.b2cAccountApi!
         : widget.b2cAccountApi ??
-              HttpB2cAccountApi(
-                baseUrl: baseUrl,
-                token: token,
-                guestSession: _guestSession,
-                client: _sessionHttpClient,
-              );
+            HttpB2cAccountApi(
+              baseUrl: baseUrl,
+              token: token,
+              guestSession: _guestSession,
+              client: _sessionHttpClient,
+            );
     final b2bAccountApi = preview != null
         ? widget.b2cAccountApi!
         : HttpB2cAccountApi(
@@ -622,25 +621,25 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     final storefrontApi = preview != null
         ? widget.storefrontApi!
         : widget.storefrontApi ??
-              (widget.b2cCatalogApi != null
-                  ? null
-                  : HttpStorefrontApi(
-                      baseUrl: baseUrl,
-                      token: token,
-                      retailStoreContextId: _session.b2bRetailStoreId,
-                      client: _sessionHttpClient,
-                    ));
+            (widget.b2cCatalogApi != null
+                ? null
+                : HttpStorefrontApi(
+                    baseUrl: baseUrl,
+                    token: token,
+                    retailStoreContextId: _session.b2bRetailStoreId,
+                    client: _sessionHttpClient,
+                  ));
     final wholesaleCommerceApi = preview != null
         ? widget.wholesaleCommerceApi
         : widget.wholesaleCommerceApi ??
-              (token == null || widget.b2bApi != null
-                  ? null
-                  : HttpWholesaleCommerceApi(
-                      baseUrl: baseUrl,
-                      token: token,
-                      retailStoreContextId: _session.b2bRetailStoreId,
-                      client: _sessionHttpClient,
-                    ));
+            (token == null || widget.b2bApi != null
+                ? null
+                : HttpWholesaleCommerceApi(
+                    baseUrl: baseUrl,
+                    token: token,
+                    retailStoreContextId: _session.b2bRetailStoreId,
+                    client: _sessionHttpClient,
+                  ));
 
     CustomerActionApi customerActionForToken(String accessToken) {
       if (widget.actionApi != null) {
@@ -707,8 +706,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     }
 
     final retailCommerceApi = retailCommerceForToken(token);
-    final customerOrdersApi =
-        widget.customerOrdersApi ??
+    final customerOrdersApi = widget.customerOrdersApi ??
         (token == null || token.isEmpty
             ? null
             : HttpCustomerOrdersApi(
@@ -746,15 +744,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       onLogout: widget.previewContext == null ? () => _logout(actionApi) : null,
       sessionStore: widget.previewContext == null ? widget.sessionStore : null,
       authPreferences: _authPreferences,
-      biometricAuthenticator: widget.previewContext == null
-          ? widget.biometricAuthenticator
-          : null,
-      pendingActionStore: widget.previewContext == null
-          ? _pendingActionStore
-          : null,
-      pendingActionExecutor: widget.previewContext == null
-          ? executePendingAction
-          : null,
+      biometricAuthenticator:
+          widget.previewContext == null ? widget.biometricAuthenticator : null,
+      pendingActionStore:
+          widget.previewContext == null ? _pendingActionStore : null,
+      pendingActionExecutor:
+          widget.previewContext == null ? executePendingAction : null,
       onLocaleChanged: _changeLocale,
       locationService:
           widget.locationService ?? const GeolocatorCustomerLocationService(),
@@ -794,8 +789,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
                 if (_showVersionFooter && widget.showPersistentFooter)
                   Padding(
                     padding: EdgeInsets.only(
-                      bottom:
-                          34 +
+                      bottom: 34 +
                           MediaQuery.viewPaddingOf(translatedContext).bottom,
                     ),
                     child: child ?? const SizedBox.shrink(),
