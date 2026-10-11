@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\DisplayNumber;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -244,7 +245,8 @@ final class B2cDashboardService
             ->get()
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
-                'number' => (string) $row->order_number,
+                'number' => DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->order_number,
                 'status' => (string) $row->status,
                 'amount' => round((float) $row->grand_total, 3),
                 'currency' => (string) $row->currency,
