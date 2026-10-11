@@ -149,6 +149,52 @@ Widget buildList() {
         )
         self.assertTrue(any(item.rule == "ellipsis-actions" for item in result))
 
+    def test_formatting_only_multi_button_row_passes(self):
+        diff = """diff --git a/apps/customer_app/lib/features/example/example_screen.dart b/apps/customer_app/lib/features/example/example_screen.dart
+--- a/apps/customer_app/lib/features/example/example_screen.dart
++++ b/apps/customer_app/lib/features/example/example_screen.dart
+@@ -1,9 +1,12 @@
+ Widget buildList() {
+   return ListView.builder(
+     itemBuilder: (context, index) => ListTile(
+-      trailing: Row(children: [
+-        TextButton(onPressed: () {}, child: const Text('View')),
+-        FilledButton(onPressed: () {}, child: const Text('Edit')),
+-      ]),
++      trailing: Row(
++        children: [
++          TextButton(onPressed: () {}, child: const Text('View')),
++          FilledButton(onPressed: () {}, child: const Text('Edit')),
++        ],
++      ),
+     ),
+   );
+ }
+"""
+        result = module.validate_diff(diff)
+        self.assertFalse(any(item.rule == "ellipsis-actions" for item in result))
+
+    def test_new_second_button_after_reformat_is_rejected(self):
+        diff = """diff --git a/apps/customer_app/lib/features/example/example_screen.dart b/apps/customer_app/lib/features/example/example_screen.dart
+--- a/apps/customer_app/lib/features/example/example_screen.dart
++++ b/apps/customer_app/lib/features/example/example_screen.dart
+@@ -1,7 +1,12 @@
+ Widget buildList() {
+   return ListView.builder(
+     itemBuilder: (context, index) => ListTile(
+-      trailing: TextButton(onPressed: () {}, child: const Text('View')),
++      trailing: Row(
++        children: [
++          TextButton(onPressed: () {}, child: const Text('View')),
++          FilledButton(onPressed: () {}, child: const Text('Edit')),
++        ],
++      ),
+     ),
+   );
+ }
+"""
+        result = module.validate_diff(diff)
+        self.assertTrue(any(item.rule == "ellipsis-actions" for item in result))
     def test_ellipsis_mobile_row_passes(self):
         result = findings(
             """

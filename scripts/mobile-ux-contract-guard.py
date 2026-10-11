@@ -326,35 +326,57 @@ def validate_hunk(app: str, hunk: Hunk) -> list[Finding]:
             )
         )
 
-    row_context = bool(
-        re.search(
-            r"(itemBuilder\s*:|ListTile\s*\(|ListView(?:\.separated|\.builder)?\s*\()",
-            context_text,
+    row_marker_re = re.compile(r"(itemBuilder\s*:|ListTile\s*\()")
+    window_radius = 40
+    checked_windows: set[tuple[int, int]] = set()
+    for index, line in enumerate(hunk.lines):
+        if line.kind != "+" or not BUTTON_RE.search(line.text):
+            continue
+
+        window_start = max(0, index - window_radius)
+        window_end = min(len(hunk.lines), index + window_radius + 1)
+        window_key = (window_start, window_end)
+        if window_key in checked_windows:
+            continue
+
+        window = hunk.lines[window_start:window_end]
+        final_window_text = "\n".join(
+            item.text for item in window if item.kind != "-"
         )
-    )
-    if row_context:
-        button_count = len(list(BUTTON_RE.finditer(added_text)))
+        if not row_marker_re.search(final_window_text):
+            continue
+
+        checked_windows.add(window_key)
+        added_window_text = "\n".join(
+            item.text for item in window if item.kind == "+"
+        )
+        removed_window_text = "\n".join(
+            item.text for item in window if item.kind == "-"
+        )
+        added_button_count = len(list(BUTTON_RE.finditer(added_window_text)))
+        removed_button_count = len(list(BUTTON_RE.finditer(removed_window_text)))
+        final_button_count = len(list(BUTTON_RE.finditer(final_window_text)))
+        net_new_button_count = max(0, added_button_count - removed_button_count)
         has_ellipsis = bool(
             re.search(
                 r"(PopupMenuButton|Icons\.more_vert|Icons\.more_horiz)",
-                context_text,
+                final_window_text,
             )
         )
-        if button_count >= 2 and not has_ellipsis:
-            first_button_line = next(
-                (line.line_no for line in added if BUTTON_RE.search(line.text)),
-                added[0].line_no,
-            )
+        if (
+            final_button_count >= 2
+            and net_new_button_count >= 1
+            and not has_ellipsis
+        ):
             findings.append(
                 Finding(
                     app,
                     hunk.path,
                     "ellipsis-actions",
-                    first_button_line,
+                    line.line_no,
                     "mobile list row adds multiple inline action buttons without one ellipsis menu",
                 )
             )
-
     return findings
 
 
