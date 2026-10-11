@@ -8,11 +8,12 @@ use PHPUnit\Framework\TestCase;
 
 final class DisplayNumberTest extends TestCase
 {
-    public function test_egp_money_omits_redundant_trailing_zeroes(): void
+    public function test_egp_money_uses_exactly_two_decimal_places(): void
     {
-        self::assertSame('100', DisplayNumber::money(100.000, 'EGP'));
-        self::assertSame('100.5', DisplayNumber::money(100.500, 'egp'));
-        self::assertSame('100.125', DisplayNumber::money(100.125, ' EGP '));
+        self::assertSame('100.00', DisplayNumber::money(100.000, 'EGP'));
+        self::assertSame('100.50', DisplayNumber::money(100.500, 'egp'));
+        self::assertSame('100.50', DisplayNumber::money(100.50, 'EGP'));
+        self::assertSame('100.57', DisplayNumber::money(100.567, ' EGP '));
     }
 
     public function test_non_egp_money_preserves_fixed_precision(): void
