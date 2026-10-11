@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,7 @@ final class VanOrderReadService
         return [
             'id' => (int) $order->getKey(),
             'order_number' => (string) $order->order_number,
+            'display_order_number' => DisplayNumber::reference($order->getKey()),
             'customer_type' => 'b2b',
             'customer_id' => $order->b2b_customer_id === null ? null : (int) $order->b2b_customer_id,
             'store_id' => (int) $order->store_id,
@@ -228,6 +230,7 @@ final class VanOrderReadService
             'invoice' => $invoice instanceof Invoice ? [
                 'id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
+                'display_invoice_number' => DisplayNumber::reference($invoice->getKey()),
                 'status' => (string) $invoice->status,
                 'currency' => (string) $invoice->currency,
                 'total' => (float) ($invoiceAmounts['invoice_total'] ?? $invoice->total),
