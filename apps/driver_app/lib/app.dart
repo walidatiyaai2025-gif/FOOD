@@ -25,8 +25,9 @@ import 'features/notifications/notification_feed.dart';
 import 'features/version/driver_version_policy_gate.dart';
 import 'navigation.dart';
 
-typedef DriverAssignmentRepositoryFactory =
-    DriverAssignmentRepository Function(DriverSession session);
+typedef DriverAssignmentRepositoryFactory = DriverAssignmentRepository Function(
+  DriverSession session,
+);
 typedef DriverNotificationRepositoryFactory =
     DriverNotificationRepository Function(DriverSession session);
 typedef DriverLocationTrackingFactory =
