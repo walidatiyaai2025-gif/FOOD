@@ -69,15 +69,15 @@ class _Biometric implements VanBiometricAuthenticator {
 }
 
 VanSession _savedSession() => const VanSession(
-  token: 'remembered-token',
-  name: 'Remembered Van',
-  email: 'remembered@example.test',
-  locale: 'en',
-  permissions: {'van.login'},
-  vanId: 21,
-  vanCode: 'VAN-21',
-  assignmentId: 43,
-);
+      token: 'remembered-token',
+      name: 'Remembered Van',
+      email: 'remembered@example.test',
+      locale: 'en',
+      permissions: {'van.login'},
+      vanId: 21,
+      vanCode: 'VAN-21',
+      assignmentId: 43,
+    );
 
 void main() {
   testWidgets(

@@ -83,8 +83,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
     if (!mounted) return;
     setState(() {
       _biometricAvailable = available;
-      _savedBiometricLogin =
-          available &&
+      _savedBiometricLogin = available &&
           widget.preferences.biometricEnabled &&
           stored != null &&
           stored.canUseVan;
@@ -460,8 +459,8 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                             onChanged: _submitting
                                                 ? null
                                                 : (value) => _toggleRemember(
-                                                    value ?? false,
-                                                  ),
+                                                      value ?? false,
+                                                    ),
                                             visualDensity:
                                                 VisualDensity.compact,
                                             activeColor:
@@ -490,8 +489,8 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                                     ),
                                     onPressed:
                                         _biometricAvailable && !_submitting
-                                        ? _toggleBiometric
-                                        : null,
+                                            ? _toggleBiometric
+                                            : null,
                                     icon: Image.asset(
                                       'assets/branding/login_reference/fingerprint_icon.png',
                                       width: 30,
@@ -580,15 +579,15 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               onPressed: _submitting
                                   ? null
                                   : () => _showInfo(
-                                      _text(
-                                        'Forgot password?',
-                                        'نسيت كلمة المرور؟',
+                                        _text(
+                                          'Forgot password?',
+                                          'نسيت كلمة المرور؟',
+                                        ),
+                                        _text(
+                                          'Contact FOODEX administration to reset the password for your approved Van account.',
+                                          'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الفان المعتمد.',
+                                        ),
                                       ),
-                                      _text(
-                                        'Contact FOODEX administration to reset the password for your approved Van account.',
-                                        'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الفان المعتمد.',
-                                      ),
-                                    ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size.fromHeight(52),
                                 foregroundColor: _LoginColors.deepGreenSoft,
@@ -611,12 +610,12 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                               onPressed: _submitting
                                   ? null
                                   : () => _showInfo(
-                                      _text('Contact us', 'تواصل معنا'),
-                                      _text(
-                                        'Van accounts and assignments are managed from the FOODEX management dashboard. Contact your administrator for activation or sign-in help.',
-                                        'حسابات الفان والإسنادات تُدار من لوحة إدارة FOODEX. تواصل مع المسؤول لتفعيل الحساب أو المساعدة في الدخول.',
+                                        _text('Contact us', 'تواصل معنا'),
+                                        _text(
+                                          'Van accounts and assignments are managed from the FOODEX management dashboard. Contact your administrator for activation or sign-in help.',
+                                          'حسابات الفان والإسنادات تُدار من لوحة إدارة FOODEX. تواصل مع المسؤول لتفعيل الحساب أو المساعدة في الدخول.',
+                                        ),
                                       ),
-                                    ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size.fromHeight(54),
                                 foregroundColor: _LoginColors.deepGreen,
