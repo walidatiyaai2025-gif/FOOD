@@ -10,19 +10,19 @@ final class DisplayNumber
         int $fractionDigits = 3,
         bool $groupThousands = true,
     ): string {
-        $number = (float) $value;
-        $currency = strtoupper(trim((string) $currency));
-
-        if ($currency !== 'EGP') {
-            return number_format(
-                $number,
-                $fractionDigits,
-                '.',
-                $groupThousands ? ',' : '',
-            );
+        if ($fractionDigits < 0) {
+            throw new \InvalidArgumentException('fractionDigits must be zero or greater.');
         }
 
-        return self::compact($number, $fractionDigits, $groupThousands);
+        $number = (float) $value;
+        $currency = strtoupper(trim((string) $currency));
+        $separator = $groupThousands ? ',' : '';
+
+        if ($currency === 'EGP') {
+            return number_format($number, 2, '.', $separator);
+        }
+
+        return number_format($number, $fractionDigits, '.', $separator);
     }
 
     public static function quantity(
