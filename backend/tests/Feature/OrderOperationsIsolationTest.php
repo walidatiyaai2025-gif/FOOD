@@ -273,7 +273,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders?channel=b2c&store_id='.$retailStore)
             ->assertOk()
             ->assertSee('#'.$retailOrder)
-            ->assertDontSee('#'.$wholesaleOrder);
+            ->assertDontSee('Wholesale Buyer');
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c&order='.$wholesaleOrder)
