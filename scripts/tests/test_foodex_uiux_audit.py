@@ -32,6 +32,40 @@ class FoodexUiuxAuditTest(unittest.TestCase):
         )
         self.assertEqual("hex", findings[0].rule)
 
+    def test_formatting_only_forbidden_match_is_ignored(self):
+        rules = [{
+            "id": "mobile-local-color",
+            "severity": "error",
+            "deduction": 20,
+            "scope_regex": r"^apps/customer_app/lib/features/.*\.dart$",
+            "added_regex": r"\bColor\(0x[0-9A-Fa-f]{8}\)",
+            "message": "use theme tokens",
+        }]
+        findings = module.scan_added(
+            "apps/customer_app/lib/features/example.dart",
+            "const color = Color(0xFF123456);",
+            rules,
+            "const color=Color(0xFF123456);",
+        )
+        self.assertEqual([], findings)
+
+    def test_net_new_forbidden_match_is_still_rejected(self):
+        rules = [{
+            "id": "mobile-local-color",
+            "severity": "error",
+            "deduction": 20,
+            "scope_regex": r"^apps/customer_app/lib/features/.*\.dart$",
+            "added_regex": r"\bColor\(0x[0-9A-Fa-f]{8}\)",
+            "message": "use theme tokens",
+        }]
+        findings = module.scan_added(
+            "apps/customer_app/lib/features/example.dart",
+            "Color(0xFF123456)\nColor(0xFF123456)",
+            rules,
+            "Color(0xFF123456)",
+        )
+        self.assertEqual(1, len(findings))
+        self.assertEqual("mobile-local-color", findings[0].rule)
     def test_shared_brand_file_can_be_excluded(self):
         rules = [{
             "id": "hex",
