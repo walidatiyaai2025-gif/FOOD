@@ -9,8 +9,8 @@ final class VanRuntimeContextResolver
 {
     /**
      * @return array{
-     *   selected:?array{van_id:int,van_code:string,assignment_id:int,assignment_type:string,driver_id:?int,territory_key:?string,warehouse_id:?int},
-     *   available:list<array{van_id:int,van_code:string,assignment_id:int,assignment_type:string,driver_id:?int,territory_key:?string,warehouse_id:?int}>,
+     *   selected:?array{van_id:int,van_code:string,assignment_id:int,assignment_type:string,driver_id:?int,territory_key:?string,warehouse_id:?int,store_id:?int},
+     *   available:list<array{van_id:int,van_code:string,assignment_id:int,assignment_type:string,driver_id:?int,territory_key:?string,warehouse_id:?int,store_id:?int}>,
      *   selection_reason:string
      * }
      */
@@ -23,6 +23,9 @@ final class VanRuntimeContextResolver
 
         $assignments = DB::table('van_assignments')
             ->join('vans', 'vans.id', '=', 'van_assignments.van_id')
+            ->leftJoin('warehouses as assignment_warehouses', 'assignment_warehouses.id', '=', 'van_assignments.warehouse_id')
+            ->leftJoin('warehouses as home_warehouses', 'home_warehouses.id', '=', 'vans.home_warehouse_id')
+            ->leftJoin('drivers as assignment_drivers', 'assignment_drivers.id', '=', 'van_assignments.driver_id')
             ->where('van_assignments.status', 'active')
             ->where('vans.status', 'active')
             ->where('van_assignments.effective_from', '<=', now())
@@ -45,6 +48,7 @@ final class VanRuntimeContextResolver
                 'van_assignments.driver_id',
                 'van_assignments.territory_key',
                 'van_assignments.warehouse_id',
+                DB::raw('COALESCE(assignment_warehouses.store_id, home_warehouses.store_id, assignment_drivers.store_id) as store_id'),
                 'vans.code as van_code',
             ]);
 
@@ -57,6 +61,7 @@ final class VanRuntimeContextResolver
                 'driver_id' => $row->driver_id === null ? null : (int) $row->driver_id,
                 'territory_key' => $row->territory_key === null ? null : (string) $row->territory_key,
                 'warehouse_id' => $row->warehouse_id === null ? null : (int) $row->warehouse_id,
+                'store_id' => $row->store_id === null ? null : (int) $row->store_id,
             ])
             ->values();
 
