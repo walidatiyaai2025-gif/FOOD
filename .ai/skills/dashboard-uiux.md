@@ -9,6 +9,7 @@ Read before editing:
 - `backend/resources/views/admin/_brand-components.blade.php`
 - `backend/resources/views/admin/shell.blade.php`
 - `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
+- `docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md` for all Dashboard browser layouts below 768 px
 - `docs/design-reference/PH05_PREMIUM_DASHBOARD.md` for premium dashboard composition
 - `docs/design-reference/FOODEX_VISUALIZATION_CONTRACT.md` for charts
 - nearby production page in the same domain
@@ -216,7 +217,9 @@ Current modal target:
 
 Use direct-record Modal/Drawer/detail context for View/Edit/Manage instead of routing users to a generic list.
 
-## 10. Responsive contract
+## 10. Responsive / Mobile Web contract
+
+`docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md` is mandatory for every existing and future Dashboard page. Mobile browser UI is the same Dashboard product on the same routes; it must not be treated as a separate app or as a scaled desktop screenshot.
 
 Current brand breakpoints:
 - desktop: 1280+
@@ -232,10 +235,13 @@ Premium dashboard target:
 
 Rules:
 - no page-level horizontal overflow;
-- table wrap may scroll intentionally;
-- page header becomes vertical when needed;
+- below 768 px the shared Sidebar is an off-canvas drawer;
+- canonical operational tables become labeled record cards by default; only `data-foodex-mobile-table="scroll"` is the explicit contained-scroll exception for true matrix/analytic tables;
+- page header becomes compact and vertical only where necessary;
 - tabs become horizontally scrollable;
-- toolbars collapse deliberately;
+- toolbars collapse deliberately or use a focused filter sheet;
+- form text controls remain at least 16 px on mobile and primary touch targets remain >=44 px;
+- desktop capabilities/actions are never silently removed on mobile;
 - do not shrink text/actions until unusable.
 
 ## 11. Premium dashboard / KPI composition

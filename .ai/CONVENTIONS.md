@@ -54,6 +54,7 @@ For every page/screen change, first read `.ai/skills/foodex-uiux.md`, `.ai/skill
 
 Before changing Dashboard UI read:
 - `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
+- `docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md`
 - `docs/quality/LOCALIZATION_CONTRACT.md`
 
 Expected patterns: domain sidebar + function tabs, clear FOODEX create actions, Modal/Drawer/Wizard where appropriate, exact-record actions, compact ellipsis row menu, business labels rather than raw DB IDs, authoritative lookups, loading/empty/error/stale states, AR/EN, RTL/LTR and responsive behavior.

@@ -203,17 +203,42 @@
             .bottom .panel:nth-child(2){grid-column:auto;grid-row:auto}
             .module-layout,html[dir=ltr] .module-layout{grid-template-columns:1fr}.module-layout aside,html[dir=ltr] .module-layout aside{display:block;grid-column:1;grid-row:1;position:relative;height:auto;max-height:320px;overflow:auto;border-inline:0;border-bottom:1px solid var(--foodex-border)}.module-layout main,html[dir=ltr] .module-layout main{grid-column:1;grid-row:2;padding:var(--foodex-space-6)}
         }
-        @media(max-width:620px){
-            .module-cards{grid-template-columns:1fr}
-            .content{padding:var(--foodex-space-4)}
-            .kpis{grid-template-columns:1fr}
-            .headline{align-items:flex-start;flex-direction:column}
-            .date-control{order:2}
-            .donut-wrap{flex-direction:column}
+        @media(max-width:767px){
+            .topbar,html[dir=ltr] .topbar{top:56px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"profile actions" "search search";gap:8px;min-height:auto;padding:8px 12px}
+            .profile{min-width:0;gap:8px}.profile small{display:none}.profile strong{display:block;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+            .avatar{width:34px;height:34px}
+            .top-actions{gap:8px}
+            .content{padding:12px}
+            .dashboard-tabs{margin-bottom:12px;padding:4px}.dashboard-tab{min-height:44px;padding-inline:12px;font-size:.8rem}
+            .headline{align-items:stretch;flex-direction:column;gap:10px;margin-bottom:12px}
+            .headline h1{font-size:1.35rem}.headline p{font-size:.8rem}
+            .date-control{order:2;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:6px;padding:6px}
+            .date-control label{min-width:0}.date-control input{width:100%;min-width:0;min-height:44px!important;font-size:16px!important}.date-control .foodex-filter-action{min-width:58px;min-height:44px;padding-inline:10px}
+            .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+            .kpi{min-height:108px;padding:12px;border-radius:14px}
+            .kpi-head{gap:8px;align-items:flex-start}.kpi-icon{width:36px;height:36px}.kpi-icon .foodex-svg-icon{width:19px;height:19px}
+            .kpi-label{font-size:.75rem}.kpi-label small{font-size:.65rem}
+            .kpi-value{font-size:1.2rem;margin:10px 0 7px;overflow:hidden;text-overflow:ellipsis}
+            .delta{max-width:100%;font-size:.64rem;padding:3px 6px;white-space:normal}
+            .middle,.bottom{gap:10px;margin-top:10px}
+            .panel{padding:12px!important;border-radius:14px!important}
+            .panel-title{margin-bottom:10px}.panel-title h2{font-size:.9rem}.legend{gap:8px;font-size:.64rem}
+            .chart{height:180px}
+            .donut-wrap{flex-direction:row;gap:10px;min-height:160px}.donut{width:116px;height:116px}.donut:after{inset:23px}.donut-center{font-size:1.05rem}.status-list{gap:8px;min-width:0}.status-row{font-size:.7rem}
             .recent.header{display:none}
-            .recent{grid-template-columns:1fr auto;gap:4px}
-            .recent>*:nth-child(3),.recent>*:nth-child(4){display:none}
-            
+            .recent{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id status" "customer customer" "amount time" "items time";gap:4px 10px;padding:10px 0;font-size:.72rem}
+            .recent>*:nth-child(1){grid-area:id}.recent>*:nth-child(2){grid-area:customer}.recent>*:nth-child(3){grid-area:items;color:var(--foodex-muted)}.recent>*:nth-child(4){grid-area:amount;font-family:var(--foodex-font-en);font-weight:700}.recent>*:nth-child(5){grid-area:status;justify-self:end}.recent>*:nth-child(6){grid-area:time;align-self:end;color:var(--foodex-muted)}
+            .module-cards{grid-template-columns:1fr}
+            .module-layout main{padding:12px!important}
+            .module-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+            .module-links,.module-actions{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px}
+            .module-inline-form{display:grid;grid-template-columns:minmax(0,1fr);padding:10px}.module-inline-form select,.module-inline-form input,.module-inline-form button{width:100%;min-width:0}
+        }
+        @media(max-width:620px){.profile strong{max-width:120px}}
+        @media(max-width:359px){
+            .date-control{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.date-control .foodex-filter-action{grid-column:1/-1;width:100%}
+            .kpis{gap:8px}.kpi{padding:10px}.kpi-icon{width:32px;height:32px}.kpi-value{font-size:1.08rem}
+            .donut-wrap{align-items:flex-start}.donut{width:104px;height:104px}.donut:after{inset:20px}
         }
     </style>
 </head>

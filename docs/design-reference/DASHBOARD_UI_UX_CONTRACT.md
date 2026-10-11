@@ -278,6 +278,32 @@ New pages/features should not be declared complete if they:
 
 ---
 
+## 13A. Dashboard Mobile Web — same web routes, mobile-first interaction
+
+The Laravel Management Dashboard on phone browsers is a **first-class responsive web application**, not a squeezed desktop page and not a separate mobile app.
+
+The mandatory detailed contract is:
+
+- `docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md`
+
+It applies to **every existing Dashboard page and every future Dashboard page**.
+
+Hard requirements include:
+
+- same route, permissions, authoritative data and business actions as desktop;
+- mobile navigation uses the shared off-canvas drawer rather than stacking the desktop Sidebar above content;
+- no page-level horizontal overflow at 320/360/390/412/430 px;
+- canonical operational tables become scan-friendly mobile record cards by default; genuinely matrix/analytic tables may explicitly opt into contained horizontal scrolling;
+- compact page headers/actions/tabs/filters/forms/dialogs/pagination;
+- >=44 px touch targets and readable mobile form typography;
+- AR/RTL + EN/LTR parity;
+- shared mobile primitives are mandatory; page-local duplicate mobile shells/table converters are regressions;
+- runtime responsive evidence is required when layout materially changes by width.
+
+A Dashboard page is not complete merely because desktop works.
+
+---
+
 ## 14. Compact mobile layout contract - Customer / Driver / Van
 
 This section is mandatory for all three FOODEX mobile applications:

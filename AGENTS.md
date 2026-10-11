@@ -39,8 +39,9 @@ Normal task claims, leases and handoffs still belong in the Issue/PR through the
 Before implementing or modifying any Dashboard page, Admin navigation, business-facing form, or application-management feature, every worker **MUST** read and follow:
 
 - `docs/design-reference/DASHBOARD_UI_UX_CONTRACT.md`
+- `docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md`
 
-This is a repository-level Definition-of-Done contract, not optional visual guidance.
+These are repository-level Definition-of-Done contracts, not optional visual guidance.
 
 Core invariants include:
 
