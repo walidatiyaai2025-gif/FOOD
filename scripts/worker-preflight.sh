@@ -131,21 +131,14 @@ run_flutter() {
   local dir="apps/${app}_app"
   command -v flutter >/dev/null || { echo "Flutter is required for $app preflight." >&2; exit 1; }
 
-  mapfile -t dart_files < <(grep -E "^apps/${app}_app/(lib|test)/.*\.dart$" <<<"$changed_files" | sed "s#^apps/${app}_app/##" || true)
 
   (
     cd "$dir"
     flutter pub get
 
-    if [[ "$mode" != "fast" && "${#dart_files[@]}" -gt 0 ]]; then
-      if ! dart format --output=none --set-exit-if-changed "${dart_files[@]}"; then
-        dart format "${dart_files[@]}"
-        echo "dart format autofixed changed $app files. Review/commit the formatter delta, then rerun --ci-parity before pushing." >&2
-        exit 3
-      fi
-    fi
+    bash ../../scripts/flutter-changed-analysis.sh "$app" "$base" WORKTREE
 
-    flutter analyze
+    flutter analyze --no-fatal-infos
 
     mapfile -t focused < <(python3 ../../scripts/ci-plan.py --base "$base" --head WORKTREE --branch "$branch" --focused "$app")
     if (("${#focused[@]}" > 0)); then
