@@ -231,7 +231,7 @@ final class CustomerReplicaReportService
     }
 
     /** @param array<int,int> $orderIds
-     *  @return array<int,string>
+     * @return array<int,string>
      */
     private function sellerByOrder(array $orderIds): array
     {
