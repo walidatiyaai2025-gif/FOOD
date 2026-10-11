@@ -5635,7 +5635,9 @@ class _WholesaleOrderDetailsDesignScreenState
                                 (
                                   context.tr('b2b.invoice.title'),
                                   invoice['display_invoice_number']?.toString() ??
-                                      (invoice['id'] == null ? '-' : '#${invoice['id']}'),
+                                      (invoice['id'] == null
+                                          ? '-'
+                                          : '#${invoice['id']}'),
                                 ),
                                 (
                                   context.tr('b2b.invoice.payment_status'),
@@ -6324,9 +6326,10 @@ class _OrderCard extends StatelessWidget {
         .toUpperCase();
     final total = row['grand_total'] ?? row['total'];
     final totalLabel = _compactOrderAmount(total, currency);
-    final title = row['display_order_number']?.toString().trim().isNotEmpty == true
-        ? row['display_order_number'].toString().trim()
-        : '#' + (row['id']?.toString() ?? '');
+    final title =
+        row['display_order_number']?.toString().trim().isNotEmpty == true
+            ? row['display_order_number'].toString().trim()
+            : '#' + (row['id']?.toString() ?? '');
     final createdAt = _friendlyOrderDate(row['created_at']?.toString());
     final canOpen = id > 0;
 
