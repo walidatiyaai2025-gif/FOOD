@@ -90,7 +90,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     aside.foodex-sidebar-collapsed .foodex-sidebar-search{display:block!important}
     aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:space-between;flex-wrap:nowrap}
     aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:flex-start;width:auto}
-    aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:40px}
+    aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:44px;height:44px}
     aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:24px minmax(0,1fr) 18px;place-items:initial;padding:8px 10px}
     aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:grid}
     aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:22px minmax(0,1fr);place-items:initial;padding:7px 9px}
