@@ -551,7 +551,8 @@ class _CollectionDialogState extends State<_CollectionDialog> {
     super.initState();
     _invoice = widget.invoices.first;
     _amount =
-        TextEditingController(text: _invoice.outstandingAmount.toStringAsFixed(3));
+        TextEditingController(
+          text: foodexMoneyAmount(_invoice.outstandingAmount, _invoice.currency));
   }
 
   @override
@@ -591,7 +592,7 @@ class _CollectionDialogState extends State<_CollectionDialog> {
                     widget.invoices.firstWhere((invoice) => invoice.id == value);
                 setState(() {
                   _invoice = next;
-                  _amount.text = next.outstandingAmount.toStringAsFixed(3);
+                  _amount.text = foodexMoneyAmount(next.outstandingAmount, next.currency);
                 });
               },
             ),
@@ -673,7 +674,10 @@ class _RemittanceDialogState extends State<_RemittanceDialog> {
   void initState() {
     super.initState();
     _amount = TextEditingController(
-      text: widget.account.availableToRemit.toStringAsFixed(3),
+      text: foodexMoneyAmount(
+        widget.account.availableToRemit,
+        widget.account.currency,
+      ),
     );
   }
 
