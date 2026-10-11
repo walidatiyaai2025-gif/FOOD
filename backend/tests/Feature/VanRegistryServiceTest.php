@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\VanAssignment;
 use App\Models\VanVisit;
 use App\Services\VanRegistryService;
+use App\Services\VanRuntimeContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +51,67 @@ class VanRegistryServiceTest extends TestCase
         $this->assertCount(1, $service->effectiveAssignments('2026-01-15T00:00:00Z'));
         $this->assertSame('north', $service->effectiveAssignments('2026-01-15T00:00:00Z')->first()->territory_key);
         $this->assertSame('south', $service->effectiveAssignments('2026-03-01T00:00:00Z')->first()->territory_key);
+    }
+
+    public function test_runtime_context_uses_assignment_warehouse_store_as_authoritative_seller_store(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $actor = User::factory()->create();
+        $operator = User::factory()->create();
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+
+        $sellerStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'WHOLESALE-RUNTIME',
+            'name' => 'Wholesale Runtime Seller',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $wrongCustomerStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'CUSTOMER-STORE-RUNTIME',
+            'name' => 'Customer Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $warehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $sellerStoreId,
+            'code' => 'WH-RUNTIME',
+            'name' => 'Wholesale Runtime Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $operator->id,
+            'store_id' => $wrongCustomerStoreId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $service = app(VanRegistryService::class);
+        $van = $service->createVan([
+            'code' => 'VAN-RUNTIME-STORE',
+            'home_warehouse_id' => $warehouseId,
+        ]);
+        $assignment = $service->assign($actor, $van, [
+            'driver_id' => $driverId,
+            'warehouse_id' => $warehouseId,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        $context = app(VanRuntimeContextResolver::class)->resolve($operator);
+
+        $this->assertSame($assignment->id, $context['selected']['assignment_id']);
+        $this->assertSame($sellerStoreId, $context['selected']['store_id']);
+        $this->assertNotSame($wrongCustomerStoreId, $context['selected']['store_id']);
     }
 
     public function test_overlapping_primary_assignments_are_rejected(): void
