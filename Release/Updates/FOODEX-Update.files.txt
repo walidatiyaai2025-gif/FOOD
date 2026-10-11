@@ -207,6 +207,7 @@ backend/app/Services/B2BVanFulfillmentMigrationAudit.php
 backend/app/Services/B2bAccountLedgerService.php
 backend/app/Services/B2bDashboardService.php
 backend/app/Services/B2bFinanceInvoiceService.php
+backend/app/Services/B2bPricingMode.php
 backend/app/Services/B2cCustomerService.php
 backend/app/Services/B2cDashboardService.php
 backend/app/Services/BannerImageService.php
@@ -293,6 +294,7 @@ backend/app/Services/VanVisitLifecycleService.php
 backend/app/Services/WholesalePrincipal.php
 backend/app/Support/AdminNavigation.php
 backend/app/Support/CommercialDashboardContract.php
+backend/app/Support/DisplayNumber.php
 backend/app/Support/StoreAccess.php
 backend/app/Support/TenantContextResolver.php
 backend/app/ThirdParty/tcpdf/.gitattributes
@@ -591,6 +593,7 @@ backend/database/migrations/2026_10_10_064500_create_order_van_execution_states.
 backend/database/migrations/2026_10_10_071900_create_order_van_execution_events.php
 backend/database/migrations/2026_10_10_085500_create_b2b_van_cutover_ledger.php
 backend/database/migrations/2026_10_10_173500_create_mobile_release_artifacts_table.php
+backend/database/migrations/2026_10_11_160000_add_product_low_stock_threshold.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/FieldOperationsScreenshotEvidenceSeeder.php

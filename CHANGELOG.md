@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.72 - 2026-10-11
+
+- Promote all authoritative Dashboard/backend changes merged after FOODEX 1.0.71 through PR #1287 into the FOODEX 1.0.72 Dashboard update.
+- Ship Wholesale/Retail commerce fixes from PRs #1268 and #1269, including optional Wholesale pricing, principal-stock behavior, Customer commerce UX hardening, and normalized EGP/unit display formatting.
+- Improve Dashboard operations from PRs #1274, #1275, #1279 and #1285: customer-first order notifications, simplified B2B product/inventory navigation, short customer-facing order/invoice display numbers while preserving immutable internal references, and Sales Control moved to the authoritative B2B context.
+- Include Van production fixes from PRs #1281 and #1283: remembered-session biometric unlock and authoritative Wholesale seller-store catalog resolution.
+- Include engineering/release hardening from PRs #1271 and #1287, including safer Flutter authoring gates, CI-parity formatting validation, and path-aware Fast Release Pipeline v2.
+- Synchronize Customer, Driver and Van source identities at 1.0.72+72 for the release contract; the Dashboard Update ZIP remains independently deployable and does not replace installed APKs unless mobile artifacts are explicitly published.
+
 ## 1.0.71 - 2026-10-11
 
 - Promote the post-1.0.70 Dashboard changes merged through PR #1265 into a new immutable FOODEX Dashboard release.

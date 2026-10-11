@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.71",
+  "current_version": "1.0.72",
   "releases": [
     {
       "version": "1.0.40",
@@ -230,6 +230,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "54aa630448d73dc1349a32317c4ed08ba8047148385feb4acc1dea6e8a317fb2",
       "note": "FOODEX 1.0.71 Dashboard update release for #1261 / PR #1262 customer legacy report replicas and PR #1265 live Van map/GPS heartbeat repair, promoted through release PR #1266. Mobile source identities are synchronized at 1.0.71+71 while the Dashboard Update ZIP remains independently deployable."
+    },
+    {
+      "version": "1.0.72",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.72.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "2fad59f5887be91ff9e4922ab0e75d17a4cd07bf51596ffc212b2f266df318f5",
+      "note": "FOODEX 1.0.72 Dashboard update release for post-1.0.71 main through PR #1287, including Wholesale/Retail commerce fixes, customer-first order notifications, B2B navigation and Sales Control correction, short customer-facing order/invoice numbers, Van biometric/catalog fixes, and Fast Release Pipeline v2. Promoted through release PR #1288; mobile source identities are synchronized at 1.0.72+72 while the Dashboard Update ZIP remains independently deployable."
     }
   ]
 }

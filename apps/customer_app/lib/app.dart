@@ -179,7 +179,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-  static const _appVersion = '1.0.71';
+  static const _appVersion = '1.0.72';
 
   @override
   void initState() {
@@ -789,8 +789,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
                 if (_showVersionFooter && widget.showPersistentFooter)
                   Padding(
                     padding: EdgeInsets.only(
-                      bottom:
-                          34 + MediaQuery.viewPaddingOf(translatedContext).bottom,
+                      bottom: 34 +
+                          MediaQuery.viewPaddingOf(translatedContext).bottom,
                     ),
                     child: child ?? const SizedBox.shrink(),
                   )

@@ -25,15 +25,16 @@ import 'features/notifications/notification_feed.dart';
 import 'features/version/driver_version_policy_gate.dart';
 import 'navigation.dart';
 
-typedef DriverAssignmentRepositoryFactory =
-    DriverAssignmentRepository Function(DriverSession session);
-typedef DriverNotificationRepositoryFactory =
-    DriverNotificationRepository Function(DriverSession session);
-typedef DriverLocationTrackingFactory =
-    DriverLocationTrackingController Function(
-      DriverSession session,
-      void Function() onSessionInvalid,
-    );
+typedef DriverAssignmentRepositoryFactory = DriverAssignmentRepository Function(
+  DriverSession session,
+);
+typedef DriverNotificationRepositoryFactory = DriverNotificationRepository
+    Function(DriverSession session);
+typedef DriverLocationTrackingFactory = DriverLocationTrackingController
+    Function(
+  DriverSession session,
+  void Function() onSessionInvalid,
+);
 
 class FoodexDriverApp extends StatefulWidget {
   const FoodexDriverApp({
@@ -78,9 +79,8 @@ class FoodexDriverApp extends StatefulWidget {
       translationOverrides: translationOverrides,
       translationFetcher: translationFetcher,
       assignmentRepositoryFactory: (_) => assignmentRepository,
-      notificationRepositoryFactory: notificationRepository == null
-          ? null
-          : (_) => notificationRepository,
+      notificationRepositoryFactory:
+          notificationRepository == null ? null : (_) => notificationRepository,
       initialSession: previewContext.runtimeIdentity,
       theme: theme,
       previewContext: previewContext,
@@ -132,7 +132,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   final DriverBiometricAuthenticator _biometricAuthenticator =
       LocalAuthDriverBiometricAuthenticator();
 
-  static const _appVersion = '1.0.71';
+  static const _appVersion = '1.0.72';
 
   String get _baseUrl => widget.apiBaseUrl ?? FoodexEnvironment.apiBaseUrl;
 
@@ -245,8 +245,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
       return;
     }
 
-    final tracking =
-        factory?.call(session, _sessionExpired) ??
+    final tracking = factory?.call(session, _sessionExpired) ??
         DriverLocationTrackingService(
           locationSource: GeolocatorDriverLocationSource(
             locale: session.locale,
@@ -398,11 +397,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     final payloadMessage = alert.body.isEmpty
         ? alert.title
         : '${alert.title}\n${alert.body}'; // localization-gate: allow — server-localized push payload.
-    final message = identity == null
-        ? payloadMessage
-        : '$identity\n$payloadMessage';
-    final actionable =
-        !alert.open.accessRevoked &&
+    final message =
+        identity == null ? payloadMessage : '$identity\n$payloadMessage';
+    final actionable = !alert.open.accessRevoked &&
         (alert.open.assignmentId != null || alert.open.orderId != null);
 
     _messengerKey.currentState?.showSnackBar(
@@ -534,17 +531,15 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   Widget build(BuildContext context) {
     final session = _session;
     final preview = widget.previewContext;
-    final previewConfigurationInvalid =
-        preview != null &&
+    final previewConfigurationInvalid = preview != null &&
         (preview.channel != DriverChannel.b2c ||
             session == null ||
             !preview.matchesSession(session) ||
             widget.assignmentRepositoryFactory == null);
     final authRepository = _authRepository();
     final assignments = session == null ? null : _assignmentRepository(session);
-    final notifications = session == null
-        ? null
-        : _notificationRepository(session);
+    final notifications =
+        session == null ? null : _notificationRepository(session);
     final navigator = session == null || assignments == null
         ? null
         : DriverNavigator(
@@ -562,30 +557,30 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     final runtimeHome = previewConfigurationInvalid
         ? const _DriverPreviewConfigurationError()
         : session == null
-        ? DriverLoginPage(
-            repository: authRepository,
-            sessionStore: _sessionStore,
-            biometricAuthenticator: _biometricAuthenticator,
-            onAuthenticated: _authenticated,
-          )
-        : assignments == null
-        ? const _DriverRuntimeConfigurationError()
-        : widget.locationGateService == null || preview != null
-        ? Navigator(
-            key: _driverNavigatorKey,
-            initialRoute: widget.initialRoute,
-            onGenerateRoute: navigator!.onGenerateRoute,
-          )
-        : DriverLocationGate(
-            service: widget.locationGateService!,
-            onLogout: _logout,
-            onStatusChanged: _onLocationGateStatus,
-            child: Navigator(
-              key: _driverNavigatorKey,
-              initialRoute: widget.initialRoute,
-              onGenerateRoute: navigator!.onGenerateRoute,
-            ),
-          );
+            ? DriverLoginPage(
+                repository: authRepository,
+                sessionStore: _sessionStore,
+                biometricAuthenticator: _biometricAuthenticator,
+                onAuthenticated: _authenticated,
+              )
+            : assignments == null
+                ? const _DriverRuntimeConfigurationError()
+                : widget.locationGateService == null || preview != null
+                    ? Navigator(
+                        key: _driverNavigatorKey,
+                        initialRoute: widget.initialRoute,
+                        onGenerateRoute: navigator!.onGenerateRoute,
+                      )
+                    : DriverLocationGate(
+                        service: widget.locationGateService!,
+                        onLogout: _logout,
+                        onStatusChanged: _onLocationGateStatus,
+                        child: Navigator(
+                          key: _driverNavigatorKey,
+                          initialRoute: widget.initialRoute,
+                          onGenerateRoute: navigator!.onGenerateRoute,
+                        ),
+                      );
 
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
@@ -656,11 +651,10 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
                                   onPressed: () {
                                     _routeBeforeInspector =
                                         DriverRuntimeInspector
-                                            .instance
-                                            .lastRoute ??
-                                        (_session == null
-                                            ? 'driver.login'
-                                            : widget.initialRoute);
+                                                .instance.lastRoute ??
+                                            (_session == null
+                                                ? 'driver.login'
+                                                : widget.initialRoute);
                                     DriverRuntimeInspector.instance
                                         .recordNavigation('driver.inspector');
                                     setState(() => _inspectorOpen = true);
@@ -712,9 +706,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
                           onPressed: () {
                             _routeBeforeInspector =
                                 DriverRuntimeInspector.instance.lastRoute ??
-                                (_session == null
-                                    ? 'driver.login'
-                                    : widget.initialRoute);
+                                    (_session == null
+                                        ? 'driver.login'
+                                        : widget.initialRoute);
                             DriverRuntimeInspector.instance.recordNavigation(
                               'driver.inspector',
                             );
