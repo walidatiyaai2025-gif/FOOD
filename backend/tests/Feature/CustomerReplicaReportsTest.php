@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\B2bCustomer;
 use App\Models\PlatformCustomer;
 use App\Models\Role;
 use App\Models\User;
@@ -154,7 +155,7 @@ class CustomerReplicaReportsTest extends TestCase
     }
 
     /**
-     * @return array{0:PlatformCustomer,1:\App\Models\B2bCustomer,2:int}
+     * @return array{0:PlatformCustomer,1:B2bCustomer,2:int}
      */
     private function customerFixture(): array
     {
