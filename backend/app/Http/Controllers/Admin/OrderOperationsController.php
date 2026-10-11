@@ -240,6 +240,109 @@ final class OrderOperationsController extends Controller
         ]);
     }
 
+    public function newOrderFeed(Request $request): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $validated = $request->validate([
+            'after' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $base = Notification::query()
+            ->where('user_id', $actor->getKey())
+            ->where('app', 'dashboard')
+            ->where('type', 'order.created')
+            ->where('status', 'published');
+
+        if (! array_key_exists('after', $validated)) {
+            $cursor = (int) ((clone $base)->max('id') ?? 0);
+
+            return response()->json([
+                'data' => [],
+                'meta' => ['cursor' => $cursor],
+            ])->withHeaders([
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+        }
+
+        $after = (int) $validated['after'];
+        $notifications = (clone $base)
+            ->where('id', '>', $after)
+            ->orderBy('id')
+            ->limit(50)
+            ->get();
+
+        $cursor = $after;
+        $items = [];
+
+        foreach ($notifications as $notification) {
+            $cursor = max($cursor, (int) $notification->getKey());
+            $payload = is_array($notification->data) ? $notification->data : [];
+
+            if (($payload['source'] ?? null) !== 'customer_app') {
+                continue;
+            }
+
+            $channel = strtolower((string) ($payload['channel'] ?? ''));
+            $storeId = (int) ($payload['store_id'] ?? 0);
+            $orderId = (int) ($payload['order_id'] ?? 0);
+
+            if (! in_array($channel, ['b2b', 'b2c'], true) || $storeId <= 0 || $orderId <= 0) {
+                continue;
+            }
+
+            if (! in_array(
+                $storeId,
+                $this->scope->allowedStoreIds($actor, 'orders.view', $channel),
+                true,
+            )) {
+                continue;
+            }
+
+            $order = Order::query()
+                ->whereKey($orderId)
+                ->where('store_id', $storeId)
+                ->where('channel', $channel)
+                ->first();
+
+            if (! $order instanceof Order) {
+                continue;
+            }
+
+            $customerName = $channel === 'b2b'
+                ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->value('name')
+                : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->value('name');
+            $storeName = DB::table('stores')->where('id', $storeId)->value('name');
+
+            $items[] = [
+                'notification_id' => (int) $notification->getKey(),
+                'order_id' => (int) $order->getKey(),
+                'order_number' => (string) $order->order_number,
+                'channel' => $channel,
+                'store_id' => $storeId,
+                'store_name' => $storeName === null ? null : (string) $storeName,
+                'customer_name' => $customerName === null ? null : (string) $customerName,
+                'grand_total' => (float) $order->grand_total,
+                'currency' => (string) $order->currency,
+                'created_at' => $order->created_at?->toIso8601String(),
+                'url' => route('admin.operations.orders.index', [
+                    'channel' => $channel,
+                    'order' => $order->getKey(),
+                ], false),
+            ];
+        }
+
+        return response()->json([
+            'data' => $items,
+            'meta' => ['cursor' => $cursor],
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function quoteNewOrder(Request $request, AdminOrderManagementService $orders): JsonResponse
     {
         $actor = $this->actor($request);
