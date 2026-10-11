@@ -1257,6 +1257,7 @@ class B2bWorkspaceController extends Controller
                     ->orderByDesc('orders.created_at')
                     ->limit(20)
                     ->get([
+                        'orders.id',
                         'orders.order_number as number',
                         'b2b_customers.name as client',
                         'stores.name as store',
@@ -1266,7 +1267,8 @@ class B2bWorkspaceController extends Controller
                         'orders.created_at as created',
                     ])
                     ->map(fn ($row) => [
-                        'number' => $row->number,
+                        'number' => DisplayNumber::reference($row->id),
+                        '_internal_number' => (string) $row->number,
                         'client' => $row->client,
                         'store' => $row->store,
                         'status' => $row->status,
@@ -1354,7 +1356,12 @@ class B2bWorkspaceController extends Controller
                     ->orderByDesc('orders.id')
                     ->limit(100)
                     ->get(['orders.id', 'orders.store_id', 'orders.order_number'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'number' => $row->order_number])
+                    ->map(fn ($row) => [
+                        'id' => (int) $row->id,
+                        'store_id' => (int) $row->store_id,
+                        'number' => DisplayNumber::reference($row->id),
+                        'internal_number' => (string) $row->order_number,
+                    ])
                     ->all(),
                 'assignments_list' => DB::table('driver_assignments')
                     ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
@@ -1392,7 +1399,8 @@ class B2bWorkspaceController extends Controller
                             'order_id' => (int) $row->order_id,
                             'driver_id' => (int) $row->driver_id,
                             'store_id' => (int) $row->store_id,
-                            'order' => $row->order_number,
+                            'order' => DisplayNumber::reference($row->order_id),
+                            '_internal_order' => (string) $row->order_number,
                             'driver' => $row->driver_name,
                             'status' => $row->status,
                             'assigned_at' => (string) $row->assigned_at,
@@ -1749,7 +1757,8 @@ class B2bWorkspaceController extends Controller
                         'total' => (float) $invoice->total,
                         'currency' => $invoice->currency,
                     ],
-                    'number' => $row->number,
+                    'number' => DisplayNumber::reference($row->id),
+                    '_internal_number' => (string) $row->number,
                     'client' => $row->client,
                     'warehouse' => $row->warehouse ?: $this->msg('طلب قديم - مخزن غير محدد', 'Legacy order - warehouse not set'),
                     'driver' => $activeAssignment?->driver_name ?: $this->msg('غير معين', 'Unassigned'),
