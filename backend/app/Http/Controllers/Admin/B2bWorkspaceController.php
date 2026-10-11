@@ -825,6 +825,7 @@ class B2bWorkspaceController extends Controller
             [
                 'value' => json_encode($enabled, JSON_THROW_ON_ERROR),
                 'is_secret' => false,
+                'created_at' => now(),
                 'updated_at' => now(),
             ],
         );
