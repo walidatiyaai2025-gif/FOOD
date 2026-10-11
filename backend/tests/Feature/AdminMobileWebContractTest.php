@@ -18,7 +18,7 @@ class AdminMobileWebContractTest extends TestCase
         $this->assertStringContainsString('off-canvas drawer', $contract);
         $this->assertStringContainsString('record cards', $contract);
         $this->assertStringContainsString('data-foodex-mobile-table="scroll"', $contract);
-        $this->assertStringContainsString('The same route, permissions, authoritative data and business actions remain available', $contract);
+        $this->assertStringContainsString('The same route, permissions, authoritative data, mutations and business capabilities remain available', $contract);
     }
 
     public function test_shared_admin_components_enforce_mobile_web_foundation(): void
