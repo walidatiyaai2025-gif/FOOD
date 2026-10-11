@@ -255,6 +255,18 @@ class RetailMerchantDashboardTest extends TestCase
     {
         $retailStore = $this->store('B2C', 'SMART-RETAIL');
         $wholesaleStore = $this->store('B2B', 'SMART-WHOLESALE');
+        DB::table('settings')->updateOrInsert(
+            [
+                'store_id' => $wholesaleStore,
+                'key' => 'b2b.pricing_tiers_enabled',
+            ],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
         $retailProduct = $this->product(
             $retailStore,
             'b2c',
