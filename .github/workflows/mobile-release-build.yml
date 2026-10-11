@@ -56,7 +56,32 @@ jobs:
           rm -f test/widget_test.dart
           flutter pub get
       - name: Build once
-        run: flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ inputs.build_number }}" --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
+        shell: bash
+        env:
+          CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_CUSTOMER_FIREBASE_API_KEY }}
+          CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_APP_ID }}
+          CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
+          CUSTOMER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_PROJECT_ID }}
+          DRIVER_FIREBASE_API_KEY: ${{ vars.FOODEX_DRIVER_FIREBASE_API_KEY }}
+          DRIVER_FIREBASE_APP_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_APP_ID }}
+          DRIVER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_MESSAGING_SENDER_ID }}
+          DRIVER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          defines=(--dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com)
+          if [[ "${{ inputs.app }}" == "customer" && -n "$CUSTOMER_FIREBASE_API_KEY" && -n "$CUSTOMER_FIREBASE_APP_ID" && -n "$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID" && -n "$CUSTOMER_FIREBASE_PROJECT_ID" ]]; then
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$CUSTOMER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$CUSTOMER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID")
+          fi
+          if [[ "${{ inputs.app }}" == "driver" && -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$DRIVER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$DRIVER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$DRIVER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$DRIVER_FIREBASE_PROJECT_ID")
+          fi
+          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ inputs.build_number }}" "${defines[@]}"
       - name: Verify artifact
         shell: bash
         run: |
