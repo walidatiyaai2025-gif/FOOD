@@ -210,7 +210,9 @@ class HttpVanOrderRepository implements VanOrderRepository {
           ? null
           : VanOrderInvoiceRecord(
               id: _requiredInt(invoice['id']),
-              number: _string(invoice['display_invoice_number'] ?? invoice['invoice_number']),
+              number: _string(
+                invoice['display_invoice_number'] ?? invoice['invoice_number'],
+              ),
               status: _string(invoice['status']),
               currency: _string(invoice['currency']),
               total: _double(invoice['total']),
@@ -372,7 +374,9 @@ class HttpVanOrderRepository implements VanOrderRepository {
 
   VanOrderRecord _order(Map<String, dynamic> data) => VanOrderRecord(
         id: _requiredInt(data['id']),
-        orderNumber: _string(data['display_order_number'] ?? data['order_number']),
+        orderNumber: _string(
+          data['display_order_number'] ?? data['order_number'],
+        ),
         customerType: _string(data['customer_type']),
         customerId: _requiredInt(data['customer_id']),
         storeId: _requiredInt(data['store_id']),
