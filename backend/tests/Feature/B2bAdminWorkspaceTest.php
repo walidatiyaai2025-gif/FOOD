@@ -252,7 +252,7 @@ class B2bAdminWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->get('/admin/b2b/dashboard')
             ->assertOk()
-            ->assertSee('B2B-ORDER-1')
+            ->assertSee('#'.$order)
             ->assertSee('Buyer One')
             ->assertSee('Wholesale Warehouse')
             ->assertSee('B2B Product');
