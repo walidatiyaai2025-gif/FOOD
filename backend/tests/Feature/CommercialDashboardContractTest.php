@@ -638,8 +638,8 @@ class CommercialDashboardContractTest extends TestCase
 
     public function test_sales_control_rejects_targeting_customer_outside_authoritative_store_scope(): void
     {
-        [$manager, $storeId] = $this->retailManager();
-        $productId = $this->flashProduct($storeId);
+        [$manager, $storeId] = $this->wholesaleManager();
+        $productId = $this->flashProduct($storeId, 'b2b');
 
         $this->actingAs($manager)
             ->from(route('admin.commercial.sales-control', ['store_id' => $storeId]))
@@ -709,10 +709,13 @@ class CommercialDashboardContractTest extends TestCase
         [$audienceCustomerId, $audienceGroupId, $audienceRegion, $audienceRoute] =
             $this->commercialAudienceFixture($storeId, $manager);
 
-        $this->actingAs($manager)
+        [$wholesaleManager, $wholesaleStoreId] = $this->wholesaleManager();
+        $wholesaleProductId = $this->flashProduct($wholesaleStoreId, 'b2b');
+
+        $this->actingAs($wholesaleManager)
             ->put(route('admin.commercial.sales-control.save', [
-                'store_id' => $storeId,
-                'product' => $productId,
+                'store_id' => $wholesaleStoreId,
+                'product' => $wholesaleProductId,
             ]), [
                 'status' => 'OPEN',
                 'channels_json' => '["customer","van"]',
@@ -727,18 +730,18 @@ class CommercialDashboardContractTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('product_commercial_policies', [
-            'product_id' => $productId,
+            'product_id' => $wholesaleProductId,
             'break_pack_policy' => 'one-unit-type',
             'break_pack_unit_code' => 'CASE12',
         ]);
         $this->assertDatabaseHas('product_selling_units', [
-            'product_id' => $productId,
+            'product_id' => $wholesaleProductId,
             'code' => 'CASE12',
             'conversion_factor' => 12,
             'is_active' => true,
         ]);
         $this->assertDatabaseHas('product_availability_windows', [
-            'product_id' => $productId,
+            'product_id' => $wholesaleProductId,
             'recurrence' => 'yearly',
             'start_month' => 1,
             'start_day' => 1,
@@ -747,7 +750,7 @@ class CommercialDashboardContractTest extends TestCase
             'is_active' => true,
         ]);
         $this->assertDatabaseHas('product_commercial_rules', [
-            'product_id' => $productId,
+            'product_id' => $wholesaleProductId,
             'customer_id' => $audienceCustomerId,
             'customer_group_id' => null,
             'channel' => 'van',
@@ -777,7 +780,7 @@ class CommercialDashboardContractTest extends TestCase
                 'popup_frequency' => 'once_per_session',
                 'products' => [[
                     'product_id' => $productId,
-                    'selling_unit_code' => 'CASE12',
+                    'selling_unit_code' => 'CARTON',
                     'flash_price' => 7,
                     'allocation_base' => 100,
                 ]],
@@ -837,6 +840,16 @@ class CommercialDashboardContractTest extends TestCase
         DB::table('b2c_customers')->insert([
             'legacy_customer_id' => $customerId,
             'store_id' => $storeId,
+            'user_id' => null,
+            'name' => 'Commercial Audience Customer',
+            'phone' => '55501036',
+            'email' => 'commercial-audience@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('b2b_customers')->insert([
+            'legacy_customer_id' => $customerId,
             'user_id' => null,
             'name' => 'Commercial Audience Customer',
             'phone' => '55501036',
