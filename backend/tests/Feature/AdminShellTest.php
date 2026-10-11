@@ -136,6 +136,27 @@ class AdminShellTest extends TestCase
             ->assertSee('Search navigation');
     }
 
+    public function test_b2b_sidebar_uses_simplified_management_labels_and_hides_clients_and_pricing(): void
+    {
+        $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');
+
+        $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('Product Management')
+            ->assertSee('Inventory Management')
+            ->assertDontSee('href="'.route('admin.b2b.module', ['module' => 'clients']).'"', false)
+            ->assertDontSee('href="'.route('admin.b2b.module', ['module' => 'pricing']).'"', false);
+
+        $user->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($user->fresh())
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('إدارة المنتجات')
+            ->assertSee('إدارة المخزون');
+    }
+
     public function test_shared_shell_exposes_foodex_brand_contract(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');

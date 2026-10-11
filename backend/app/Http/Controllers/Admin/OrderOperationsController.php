@@ -308,9 +308,18 @@ final class OrderOperationsController extends Controller
                 continue;
             }
 
-            $customerName = $channel === 'b2b'
-                ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->value('name')
-                : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->value('name');
+            $customerName = trim((string) data_get($notification->data, 'customer_name', ''));
+            $customerPhone = trim((string) data_get($notification->data, 'customer_phone', ''));
+
+            if ($customerName === '') {
+                $customer = $channel === 'b2b'
+                    ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->first(['name', 'phone'])
+                    : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->first(['name', 'phone']);
+
+                $customerName = trim((string) data_get($customer, 'name', ''));
+                $customerPhone = trim((string) data_get($customer, 'phone', ''));
+            }
+
             $storeName = DB::table('stores')->where('id', $storeId)->value('name');
 
             $items[] = [
@@ -320,7 +329,8 @@ final class OrderOperationsController extends Controller
                 'channel' => $channel,
                 'store_id' => $storeId,
                 'store_name' => $storeName === null ? null : (string) $storeName,
-                'customer_name' => $customerName === null ? null : (string) $customerName,
+                'customer_name' => $customerName === '' ? null : $customerName,
+                'customer_phone' => $customerPhone === '' ? null : $customerPhone,
                 'grand_total' => (float) $order->grand_total,
                 'currency' => (string) $order->currency,
                 'created_at' => $order->created_at?->toIso8601String(),
