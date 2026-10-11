@@ -14,6 +14,7 @@ use App\Services\OrderLiveTrackingService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
@@ -45,6 +46,56 @@ class FleetLocationController extends Controller
             'route_key' => $data['route_key'] ?? null,
             'store_id' => $data['store_id'] ?? null,
             'channel' => $data['channel'] ?? null,
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'accuracy' => $data['accuracy'] ?? null,
+            'speed' => $data['speed'] ?? null,
+            'heading' => $data['heading'] ?? null,
+            'captured_at' => $data['captured_at'],
+            'source_app' => 'van',
+            'app_version' => $data['app_version'] ?? null,
+            'is_mocked' => $data['is_mocked'] ?? null,
+        ]);
+
+        return response()->json(['data' => $this->serialize($location, $service)]);
+    }
+
+    public function vanRuntimeHeartbeat(Request $request, FleetLocationService $service): JsonResponse
+    {
+        $context = $request->attributes->get('van_runtime_context');
+        abort_unless(is_array($context), 403, 'Van runtime context is unavailable.');
+
+        $vanId = (int) ($context['van_id'] ?? 0);
+        $assignmentId = (int) ($context['assignment_id'] ?? 0);
+        abort_unless($vanId > 0 && $assignmentId > 0, 403, 'No effective Van assignment is available.');
+
+        $data = $request->validate([
+            'route_key' => ['nullable', 'string', 'max:128'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'accuracy' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'speed' => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'heading' => ['nullable', 'numeric', 'between:0,360'],
+            'captured_at' => ['required', 'date', 'before_or_equal:'.now()->addMinutes(5)->toDateTimeString()],
+            'app_version' => ['nullable', 'string', 'max:64'],
+            'is_mocked' => ['nullable', 'boolean'],
+        ]);
+
+        $warehouseId = isset($context['warehouse_id']) ? (int) $context['warehouse_id'] : 0;
+        if ($warehouseId <= 0) {
+            $warehouseId = (int) (Van::query()->whereKey($vanId)->value('home_warehouse_id') ?? 0);
+        }
+
+        $storeId = $warehouseId > 0
+            ? DB::table('warehouses')->where('id', $warehouseId)->value('store_id')
+            : null;
+
+        $location = $service->heartbeat('van', $vanId, [
+            'vehicle_id' => $vanId,
+            'assignment_id' => $assignmentId,
+            'route_key' => $data['route_key'] ?? null,
+            'store_id' => $storeId === null ? null : (int) $storeId,
+            'channel' => 'b2b',
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
             'accuracy' => $data['accuracy'] ?? null,
@@ -144,10 +195,18 @@ class FleetLocationController extends Controller
                     ->where('actor_id', $trackedVanId);
             }
         } else {
-            $query->where(function ($query) use ($allowedStoresByChannel): void {
+            $includeUnscopedVans = ($data['actor_type'] ?? null) === 'van' && $user->hasRole('SUPER_ADMIN');
+
+            $query->where(function ($query) use ($allowedStoresByChannel, $includeUnscopedVans): void {
                 foreach ($allowedStoresByChannel as $channel => $storeIds) {
                     $query->orWhere(function ($scope) use ($channel, $storeIds): void {
                         $scope->where('channel', $channel)->whereIn('store_id', $storeIds);
+                    });
+                }
+
+                if ($includeUnscopedVans) {
+                    $query->orWhere(function ($scope): void {
+                        $scope->where('actor_type', 'van')->whereNull('store_id');
                     });
                 }
             });
