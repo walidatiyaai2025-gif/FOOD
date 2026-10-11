@@ -29,13 +29,26 @@ The Dashboard update remains under `Release/Updates/`:
 
 If the Dashboard update manifest requires a full redeploy, the release must still provide the manifest and the synchronized Setup ZIP according to the existing update safety policy.
 
+## Fast Release Factory
+
+The canonical fast path is `.github/workflows/release-factory.yml`.
+
+- Customer, Driver and Van Android release artifacts are built once in parallel from the same source SHA.
+- The exact uploaded APK artifacts are promoted into the synchronized release bundle; the assembly job must not rebuild them.
+- Customer/Driver preview runtimes, Laravel Setup and mobile APK builds run in parallel where dependencies allow.
+- The Dashboard package is a deterministic delta from the previous release boundary and still carries recovery-critical files plus exact source/base provenance.
+- The canonical fresh-install acceptance remains mandatory and runs as an independent gate from the exact Setup ZIP before assembly/publication.
+- A VERSION promotion on `main` starts the factory automatically. Manual dispatch can validate without publishing; publication requires the explicit publish input.
+- Existing immutable version tags must never be moved to a different source commit.
+- Legacy distribution workflows are fallback/manual paths and must not duplicate normal `main` VERSION promotion builds.
+
 ## Automatic release behavior
 
 When `VERSION` is promoted, or when the canonical distribution workflow is manually dispatched for a release, the workflow must automatically:
 
 1. read and validate the FOODEX version;
 2. require Customer, Driver and Van mobile versions/build numbers to match;
-3. build all three Android APKs;
+3. build all three Android APKs once, in parallel, and retain those exact build outputs for final assembly;
 4. validate each APK's application identity and version;
 5. create the versioned APK filenames under `Release/`;
 6. retain the non-versioned latest aliases for compatibility;
