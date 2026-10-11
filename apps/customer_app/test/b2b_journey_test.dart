@@ -281,7 +281,8 @@ void main() {
     final reorder = find.byKey(const ValueKey('b2b-order-reorder-77'));
     expect(reorder, findsOneWidget);
     await tester.tap(reorder);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(
       find.byKey(const ValueKey('b2b-reorder-merge-confirm')),
@@ -292,7 +293,8 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('b2b-reorder-merge-confirm')),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(commerce.addCalls, <String>['7:101:5.0']);
     expect(find.text('Cart rebuilt with current rules'), findsOneWidget);
