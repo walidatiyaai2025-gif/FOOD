@@ -268,20 +268,30 @@ def main() -> int:
     build_zip(repo_root, entries, package)
     package_hash = sha256(package)
 
+    source_commit = run_git("rev-parse", "HEAD").strip()
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "available": True,
         "package": package.name,
         "target_version": args.target_version,
         "minimum_current_version": args.minimum_current_version,
+        "source_base": run_git("rev-parse", args.base).strip(),
+        "source_commit": source_commit,
         "sha256": package_hash,
         "contains_migrations": contains_migrations,
+        "migrations": migrations,
+        "delta": {
+            "file_count": len(entries),
+            "source_file_count": len(files),
+            "files_manifest": "FOODEX-Update.files.txt",
+        },
         "requires_full_redeploy": False,
         "reason": None,
         "release_notes": args.release_notes,
         "dashboard_fields": {
             "target_version": args.target_version,
             "minimum_current_version": args.minimum_current_version,
+            "source_commit": source_commit,
             "sha256": package_hash,
             "contains_migrations": contains_migrations,
             "release_notes": args.release_notes,
