@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+
 import '../../core/auth/van_auth_persistence.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/auth/van_session_store.dart';
 
-typedef VanAuthenticatedCallback =
-    Future<void> Function(
-      VanSession session,
-      bool rememberMe,
-      bool biometricEnabled,
-    );
+typedef VanAuthenticatedCallback = Future<void> Function(
+  VanSession session,
+  bool rememberMe,
+  bool biometricEnabled,
+);
 
 abstract final class _LoginColors {
   static const deepGreen = Color(0xFF00452F);
