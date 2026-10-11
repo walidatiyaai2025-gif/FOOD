@@ -386,6 +386,7 @@ final class VanOrderController extends Controller
         return [
             'id' => (int) $order->getKey(),
             'order_number' => (string) $order->order_number,
+            'display_order_number' => \App\Support\DisplayNumber::reference($order->getKey()),
             'customer_type' => $order->b2b_customer_id !== null ? 'b2b' : 'b2c',
             'customer_id' => (int) ($order->b2b_customer_id ?? $order->b2c_customer_id),
             'store_id' => (int) $order->store_id,
