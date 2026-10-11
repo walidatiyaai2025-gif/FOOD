@@ -316,8 +316,13 @@ class NotificationAudienceIsolationTest extends TestCase
         $bootstrap = $this->actingAs($admin)
             ->getJson('/admin/operations/orders/new-order-feed')
             ->assertOk()
-            ->assertJsonCount(0, 'data')
-            ->assertHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            ->assertJsonCount(0, 'data');
+
+        $cacheControl = (string) $bootstrap->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('must-revalidate', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
 
         $cursor = (int) $bootstrap->json('meta.cursor');
         $this->assertGreaterThan(0, $cursor);
