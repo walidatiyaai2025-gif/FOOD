@@ -186,6 +186,7 @@ backend/app/Http/Middleware/ResolveTenantContext.php
 backend/app/Http/Middleware/RunSchedulerHeartbeat.php
 backend/app/Jobs/
 backend/app/Jobs/DispatchPushNotification.php
+backend/app/Jobs/MirrorMobileReleaseArtifacts.php
 backend/app/Jobs/SendSmsJob.php
 backend/app/Models/
 backend/app/Models/AccountDeletionRequest.php
@@ -237,6 +238,7 @@ backend/app/Models/LiveAd.php
 backend/app/Models/MarketingCoupon.php
 backend/app/Models/MarketingCouponRedemption.php
 backend/app/Models/MobileAppSetting.php
+backend/app/Models/MobileReleaseArtifact.php
 backend/app/Models/MobileStoreSubmission.php
 backend/app/Models/Notification.php
 backend/app/Models/NotificationCampaign.php
@@ -353,6 +355,7 @@ backend/app/Services/InvoiceService.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
 backend/app/Services/MarketingImageService.php
+backend/app/Services/MobileReleaseArtifactMirror.php
 backend/app/Services/NotificationAudience.php
 backend/app/Services/NotificationCampaignDispatcher.php
 backend/app/Services/OperationalLookupService.php
@@ -527,6 +530,7 @@ backend/database/migrations/2026_10_09_174800_bootstrap_van_runtime_access_refer
 backend/database/migrations/2026_10_10_064500_create_order_van_execution_states.php
 backend/database/migrations/2026_10_10_071900_create_order_van_execution_events.php
 backend/database/migrations/2026_10_10_085500_create_b2b_van_cutover_ledger.php
+backend/database/migrations/2026_10_10_173500_create_mobile_release_artifacts_table.php
 backend/database/seeders/
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
