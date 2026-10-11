@@ -196,7 +196,7 @@
         .foodex-mobile-sticky-actions{position:sticky;z-index:20;inset-block-end:0;margin:12px -12px -12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--foodex-border);backdrop-filter:blur(10px)}
         .foodex-mobile-sticky-actions>*{flex:1 1 0}
 
-        table[data-foodex-mobile-table-ready="1"]{display:block;width:100%;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+        table[data-foodex-mobile-table-ready="1"]{display:block;width:100%;min-width:0!important;max-width:100%!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
         table[data-foodex-mobile-table-ready="1"] thead{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
         table[data-foodex-mobile-table-ready="1"] tbody{display:grid;gap:10px;width:100%}
         table[data-foodex-mobile-table-ready="1"] tbody tr{display:grid;width:100%;min-width:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:14px;box-shadow:var(--foodex-shadow-sm);overflow:hidden}
