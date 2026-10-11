@@ -23,8 +23,11 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     'to'=>$to,
     'inline'=>'1',
 ]))
+<div class="foodex-admin-layout">
+<aside class="sidebar">@include('admin._sidebar')</aside>
+<main class="foodex-admin-main foodex-admin-page">
 <div class="replica-viewer">
-<header class="replica-toolbar">
+<header class="replica-toolbar foodex-page-header">
 <div class="replica-title"><h1>{{ $reportTitle }}</h1><small>{{ $customer->name }} · {{ __('customer_360.reports.rows') }}: {{ $rowCount }}</small></div>
 <form method="get" action="{{ route('admin.customer-360.reports.show',['platformCustomer'=>$customer->id,'report'=>$report]) }}">
 <label><small>{{ __('customer_360.reports.from') }}</small><input type="date" name="from" value="{{ $from }}" required></label>
@@ -36,6 +39,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.show',['platformCustomer'=>$customer->id]) }}#reports">{{ __('customer_360.reports.back') }}</a>
 </header>
 <iframe class="replica-frame" src="{{ $pdfUrl }}" title="{{ $reportTitle }}" data-report-frame></iframe>
+</div>
+</main>
 </div>
 <script>
 document.querySelector('[data-report-print]')?.addEventListener('click', () => {
