@@ -36,6 +36,18 @@ class AuthoritativePricingQuoteTest extends TestCase
         config(['foodex.platform_wholesale_store_code' => 'WHOLESALE-MAIN']);
 
         $this->wholesale = $this->store('B2B', 'WHOLESALE-MAIN', 'Main Wholesale');
+        DB::table('settings')->updateOrInsert(
+            [
+                'store_id' => $this->wholesale,
+                'key' => 'b2b.pricing_tiers_enabled',
+            ],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
         $this->retailA = $this->store('B2C', 'RETAIL-A', 'Retail A');
         $this->retailB = $this->store('B2C', 'RETAIL-B', 'Retail B');
 

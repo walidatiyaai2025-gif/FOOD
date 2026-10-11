@@ -5,12 +5,15 @@ namespace App\Domain\Pricing;
 use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\User;
+use App\Services\B2bPricingMode;
 use App\Services\PlatformCustomerService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class B2bPriceResolver
 {
+    public function __construct(private readonly B2bPricingMode $pricingMode) {}
+
     /** @return array{price: float, minimum_quantity: float, ordering_increment: float, pack_size: float, case_size: float|null, pack_label: string|null, retail_reference_price: float|null} */
     public function resolve(B2bCustomer $customer, int $storeId, int $productId): array
     {
@@ -65,15 +68,33 @@ class B2bPriceResolver
             throw new HttpException(403, 'Approved B2B pricing account is required.');
         }
 
+        $tiersEnabledByStore = [];
+        foreach ($targets->pluck('store_id')->unique() as $storeId) {
+            $storeId = (int) $storeId;
+            $tiersEnabledByStore[$storeId] = $this->pricingMode->tiersEnabled($storeId);
+        }
+
+        $baseTargets = $targets
+            ->filter(fn (array $target): bool => ! ($tiersEnabledByStore[(int) $target['store_id']] ?? false))
+            ->values();
+        $tierTargets = $targets
+            ->filter(fn (array $target): bool => $tiersEnabledByStore[(int) $target['store_id']] ?? false)
+            ->values();
+
+        $baseResolved = $this->platformFallbackMany($baseTargets->all());
+        if ($tierTargets->isEmpty()) {
+            return $baseResolved;
+        }
+
         if ($account->price_tier_id === null) {
             if ($isPlatformCustomer) {
-                return $this->platformFallbackMany($targets->all());
+                return $baseResolved + $this->platformFallbackMany($tierTargets->all());
             }
 
             throw new HttpException(403, 'Approved B2B pricing account is required.');
         }
 
-        $groupedTargets = $targets->groupBy('store_id');
+        $groupedTargets = $tierTargets->groupBy('store_id');
         $rules = DB::table('b2b_price_rules')
             ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
@@ -128,17 +149,17 @@ class B2bPriceResolver
         }
 
         if (! $isPlatformCustomer) {
-            return $resolved;
+            return $baseResolved + $resolved;
         }
 
-        $missing = $targets
+        $missing = $tierTargets
             ->filter(fn (array $target): bool => ! isset(
                 $resolved[$this->key($target['store_id'], $target['product_id'])],
             ))
             ->values()
             ->all();
 
-        return $resolved + $this->platformFallbackMany($missing);
+        return $baseResolved + $resolved + $this->platformFallbackMany($missing);
     }
 
     /**

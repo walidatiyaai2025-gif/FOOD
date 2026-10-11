@@ -487,7 +487,9 @@
         <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}">{{ $category['name'] }}</option>@endforeach</select>
         <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}">{{ $brand['name'] }}</option>@endforeach</select>
         <select name="unit_id" required><option value="">{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}</option>@foreach($moduleData['units'] as $unit)<option value="{{ $unit['id'] }}">{{ $unit['code'] }} · {{ $unit['name'] }}</option>@endforeach</select>
-        <input name="price" type="number" min="0" step="0.001" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}">
+        <input name="price" type="number" min="0" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}">
+        <input name="quantity" type="number" min="0" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'الكمية بالمخزن الرئيسي':'Main warehouse quantity' }}">
+        <input name="low_stock_threshold" type="number" min="0" step="0.001" required value="0" placeholder="{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low-stock threshold' }}">
         <input name="description" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'الوصف':'Description' }}">
         <input type="hidden" name="is_active" value="1">
         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة منتج جملة':'Add wholesale product' }}</button>
@@ -495,20 +497,12 @@
       @endif
 
       @if($module==='inventory' && $user->hasPermission('inventory.manage'))
-      <form method="post" action="{{ route('admin.b2b.warehouses.store') }}" class="links workspace-inline-form">
-        @csrf
-        <input name="code" required maxlength="80" placeholder="{{ app()->getLocale()==='ar'?'كود المخزن':'Warehouse code' }}">
-        <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المخزن':'Warehouse name' }}">
-        <input type="hidden" name="is_active" value="1">
-        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة مخزن':'Add warehouse' }}</button>
-      </form>
-      <form method="post" action="{{ route('admin.b2b.inventory.ensure') }}" class="links workspace-inline-form">
-        @csrf
-        <select name="warehouse_id" required><option value="">{{ app()->getLocale()==='ar'?'المخزن':'Warehouse' }}</option>@foreach($moduleData['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}">{{ $warehouse['name'] }}</option>@endforeach</select>
-        <select name="product_id" required><option value="">{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</option>@foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach</select>
-        <input name="quantity" type="number" min="0" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'الكمية':'Quantity' }}">
-        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء/تحديث الرصيد':'Create/update balance' }}</button>
-      </form>
+      <div class="panel" style="margin-bottom:12px">
+        <strong>{{ app()->getLocale()==='ar'?'المخزن الرئيسي':'Principal warehouse' }}</strong>
+        <p class="muted">{{ app()->getLocale()==='ar'
+            ? 'مخزون منتجات الجملة يُدار من شاشة المنتجات. لكل منتج سعر وكمية وحد مخزون منخفض في نفس نموذج الإضافة أو التعديل، ولا يوجد اختيار مخزن آخر.'
+            : 'Wholesale product stock is managed from Products. Price, quantity and low-stock threshold live in the same create/edit form; no alternate warehouse is selectable.' }}</p>
+      </div>
       @endif
 
       @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))
@@ -542,6 +536,18 @@
       @endif
 
       @if($module==='settings' && $user->hasPermission('settings.manage'))
+      <form method="post" action="{{ route('admin.b2b.settings.pricing-tiers') }}" class="links workspace-inline-form" style="align-items:center">
+        @csrf @method('put')
+        <input type="hidden" name="enabled" value="0">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="enabled" value="1" @checked((bool)($moduleData['pricing_tiers_enabled'] ?? false))>
+          <span>{{ app()->getLocale()==='ar'?'تفعيل شرائح التسعير':'Enable pricing tiers' }}</span>
+        </label>
+        <span class="muted">{{ app()->getLocale()==='ar'
+            ? 'عند الإيقاف يستخدم جميع عملاء الجملة سعر المنتج الأساسي.'
+            : 'When disabled, every Wholesale customer uses the product base price.' }}</span>
+        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ وضع التسعير':'Save pricing mode' }}</button>
+      </form>
       <form method="post" action="{{ route('admin.b2b.settings.save') }}" class="links workspace-inline-form">
         @csrf @method('put')
         <input name="key" required maxlength="255" placeholder="wholesale.setting.key">
@@ -605,7 +611,10 @@
             <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'بدون تصنيف':'No category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}" @selected($row['_category_id']===$category['id'])>{{ $category['name'] }}</option>@endforeach</select>
             <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'بدون علامة':'No brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}" @selected($row['_brand_id']===$brand['id'])>{{ $brand['name'] }}</option>@endforeach</select>
             <select name="unit_id" required>@foreach($moduleData['units'] as $unit)<option value="{{ $unit['id'] }}" @selected($row['_unit_id']===$unit['id'])>{{ $unit['code'] }} · {{ $unit['name'] }}</option>@endforeach</select>
-            <input name="price" type="number" min="0" step="0.001" value="{{ $row['price']==='-'?'':str_replace([' EGP',','],'',$row['price']) }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: 1.250':'e.g. 1.250' }}">
+            <input name="price" type="number" min="0" step="0.001" required value="{{ $row['price']==='-'?'':str_replace([' EGP',','],'',$row['price']) }}" placeholder="{{ app()->getLocale()==='ar'?'السعر':'Price' }}">
+            <input name="quantity" type="number" min="{{ $row['_reserved_quantity'] }}" step="0.001" required value="{{ $row['_quantity'] }}" placeholder="{{ app()->getLocale()==='ar'?'الكمية بالمخزن الرئيسي':'Main warehouse quantity' }}">
+            <input name="low_stock_threshold" type="number" min="0" step="0.001" required value="{{ $row['_low_stock_threshold'] }}" placeholder="{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low-stock threshold' }}">
+            @if($row['_reserved_quantity'] > 0)<span class="muted">{{ app()->getLocale()==='ar'?'محجوز للطلبات: ':'Reserved for orders: ' }}{{ number_format((float)$row['_reserved_quantity'],3) }}</span>@endif
             <input name="description" maxlength="1000" value="{{ $row['_description'] }}" placeholder="{{ app()->getLocale()==='ar'?'وصف مختصر للمنتج':'Short product description' }}">
             <label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($row['status'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</label>
             <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>

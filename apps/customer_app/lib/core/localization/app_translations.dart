@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
-typedef TranslationFetcher = Future<Map<String, String>> Function(String locale);
+typedef TranslationFetcher = Future<Map<String, String>> Function(
+  String locale,
+);
 
 class AppTranslations extends InheritedWidget {
   const AppTranslations({
@@ -20,6 +22,7 @@ class AppTranslations extends InheritedWidget {
     'customer.app.title': 'فودكس',
     'customer.nav.home': 'الرئيسية',
     'customer.nav.products': 'المنتجات',
+    'customer.nav.catalog': 'الكتالوج',
     'customer.nav.shopping': 'التسوق',
     'customer.nav.invoices': 'الفواتير',
     'customer.nav.more': 'المزيد',
@@ -40,18 +43,24 @@ class AppTranslations extends InheritedWidget {
     'customer.marketplace.shop_now': 'تسوق الآن',
     'customer.marketplace.scan': 'مسح باركود أو QR',
     'customer.marketplace.all_categories': 'كل التصنيفات',
-    'customer.marketplace.browse_guest': 'تصفح المنتجات كضيف وسجل حسابك عند الشراء',
+    'customer.marketplace.browse_guest':
+        'تصفح المنتجات كضيف وسجل حسابك عند الشراء',
     'customer.marketplace.register': 'إنشاء حساب',
     'customer.marketplace.register_title': 'إنشاء حساب عميل',
-    'customer.marketplace.register_subtitle': 'حساب واحد للمنصة كلها؛ يتم توجيه طلبك حسب المتجر الذي تشتري منه.',
+    'customer.marketplace.register_subtitle':
+        'حساب واحد للمنصة كلها؛ يتم توجيه طلبك حسب المتجر الذي تشتري منه.',
     'customer.marketplace.phone': 'رقم الهاتف',
     'customer.marketplace.password_confirmation': 'تأكيد كلمة المرور',
     'customer.marketplace.create_account': 'إنشاء الحساب والمتابعة',
-    'customer.marketplace.registration_validation': 'أكمل البيانات وتأكد أن كلمة المرور 8 أحرف على الأقل ومتطابقة.',
-    'customer.marketplace.registration_success': 'تم إنشاء حسابك ويمكنك الآن الشراء من الجملة أو التجزئة.',
-    'customer.marketplace.registration_failed': 'تعذر إنشاء الحساب. راجع البيانات وحاول مرة أخرى.',
+    'customer.marketplace.registration_validation':
+        'أكمل البيانات وتأكد أن كلمة المرور 8 أحرف على الأقل ومتطابقة.',
+    'customer.marketplace.registration_success':
+        'تم إنشاء حسابك ويمكنك الآن الشراء من الجملة أو التجزئة.',
+    'customer.marketplace.registration_failed':
+        'تعذر إنشاء الحساب. راجع البيانات وحاول مرة أخرى.',
     'customer.marketplace.auth_required_title': 'سجل حسابك لإتمام الشراء',
-    'customer.marketplace.auth_required_body': 'يمكنك التصفح بدون تسجيل دخول، والشراء يحتاج حساب عميل واحد على منصة فودكس.',
+    'customer.marketplace.auth_required_body':
+        'يمكنك التصفح بدون تسجيل دخول، والشراء يحتاج حساب عميل واحد على منصة فودكس.',
     'customer.action.guest': 'تصفح كضيف',
     'customer.action.login': 'تسجيل الدخول',
     'customer.action.add_cart': 'إضافة إلى السلة',
@@ -61,20 +70,28 @@ class AppTranslations extends InheritedWidget {
     'customer.brand.economic_group': 'مجموعة فودكس الاقتصادية',
     'customer.auth.title': 'تسجيل دخول العميل',
     'customer.auth.register_title': 'إنشاء حساب عميل',
-    'customer.auth.subtitle': 'حساب فودكس واحد للجملة والتجزئة؛ المتجر والسلة هما اللذان يحددان مسار الطلب.',
+    'customer.auth.subtitle':
+        'حساب فودكس واحد للجملة والتجزئة؛ المتجر والسلة هما اللذان يحددان مسار الطلب.',
     'customer.auth.remember_me': 'تذكرني',
-    'customer.auth.remember_me_help': 'احتفظ بتسجيل الدخول الآمن على هذا الجهاز.',
+    'customer.auth.remember_me_help':
+        'احتفظ بتسجيل الدخول الآمن على هذا الجهاز.',
     'customer.auth.biometric_enable': 'تفعيل الدخول بالبصمة أو Face ID',
-    'customer.auth.biometric_help': 'يتم فتح جلسة محفوظة آمنًا فقط، ولا يتم حفظ كلمة المرور.',
+    'customer.auth.biometric_help':
+        'يتم فتح جلسة محفوظة آمنًا فقط، ولا يتم حفظ كلمة المرور.',
     'customer.auth.biometric_login': 'الدخول بالبصمة',
     'customer.auth.biometric_saved_title': 'تسجيل الدخول بالبصمة',
     'customer.auth.biometric_saved_hint': 'اضغط على البصمة لتسجيل الدخول',
     'customer.auth.biometric_reason': 'افتح جلسة فودكس المحفوظة',
-    'customer.auth.biometric_failed': 'تعذر التحقق بالبصمة. يمكنك تسجيل الدخول بالبريد وكلمة المرور.',
-    'customer.auth.biometric_session_missing': 'لا توجد جلسة محفوظة صالحة. سجل الدخول بالطريقة العادية.',
-    'customer.auth.invalid_credentials': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
-    'customer.auth.account_locked': 'الحساب مقفل حاليًا. تواصل مع الدعم أو حاول لاحقًا.',
-    'customer.auth.account_inactive': 'الحساب غير نشط حاليًا. تواصل مع الدعم لتفعيله.',
+    'customer.auth.biometric_failed':
+        'تعذر التحقق بالبصمة. يمكنك تسجيل الدخول بالبريد وكلمة المرور.',
+    'customer.auth.biometric_session_missing':
+        'لا توجد جلسة محفوظة صالحة. سجل الدخول بالطريقة العادية.',
+    'customer.auth.invalid_credentials':
+        'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+    'customer.auth.account_locked':
+        'الحساب مقفل حاليًا. تواصل مع الدعم أو حاول لاحقًا.',
+    'customer.auth.account_inactive':
+        'الحساب غير نشط حاليًا. تواصل مع الدعم لتفعيله.',
     'customer.login.email': 'البريد الإلكتروني',
     'customer.login.password': 'كلمة المرور',
     'customer.login.show_password': 'إظهار كلمة المرور',
@@ -83,7 +100,8 @@ class AppTranslations extends InheritedWidget {
     'customer.validation.password': 'أدخل كلمة المرور',
     'customer.validation.name': 'أدخل الاسم',
     'customer.validation.phone': 'أدخل رقم الهاتف',
-    'customer.validation.password_minimum': 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+    'customer.validation.password_minimum':
+        'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
     'customer.validation.password_confirmation': 'أكد كلمة المرور بشكل مطابق',
     'customer.validation.field_invalid': 'راجع قيمة هذا الحقل',
     'customer.login.username': 'اسم المستخدم',
@@ -93,17 +111,22 @@ class AppTranslations extends InheritedWidget {
     'customer.checkout.address_id': 'رقم عنوان التوصيل',
     'customer.validation.credentials': 'أدخل البريد الإلكتروني وكلمة المرور',
     'customer.validation.username': 'أدخل اسم المستخدم',
-    'customer.validation.store_required': 'اختر المتجر قبل إضافة المنتج إلى السلة',
+    'customer.validation.store_required':
+        'اختر المتجر قبل إضافة المنتج إلى السلة',
     'customer.validation.quantity': 'أدخل كمية صحيحة أكبر من صفر',
     'customer.validation.address': 'اختر عنوان توصيل صحيحاً',
-    'customer.error.action_failed': 'تعذر تنفيذ العملية. تحقق من البيانات وحاول مرة أخرى.',
-    'customer.error.offline': 'تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حاول مرة أخرى.',
-    'customer.error.session_expired': 'انتهت جلسة تسجيل الدخول. سجل الدخول مرة أخرى للمتابعة.',
+    'customer.error.action_failed':
+        'تعذر تنفيذ العملية. تحقق من البيانات وحاول مرة أخرى.',
+    'customer.error.offline':
+        'تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حاول مرة أخرى.',
+    'customer.error.session_expired':
+        'انتهت جلسة تسجيل الدخول. سجل الدخول مرة أخرى للمتابعة.',
     'customer.error.forbidden': 'لا تملك صلاحية الوصول إلى هذه البيانات.',
     'customer.action.retry': 'إعادة المحاولة',
     'customer.store.error.title': 'تعذر تحميل المتاجر',
     'customer.store.own_purchase_blocked.title': 'لا يمكن الشراء من متجرك',
-    'customer.store.own_purchase_blocked.body': 'يمكنك إدارة هذا المتجر من لوحة الإدارة، لكن لا يمكنك الشراء منه بحساب المالك أو المدير. اختر متجر تجزئة آخر أو متجر الجملة.',
+    'customer.store.own_purchase_blocked.body':
+        'يمكنك إدارة هذا المتجر من لوحة الإدارة، لكن لا يمكنك الشراء منه بحساب المالك أو المدير. اختر متجر تجزئة آخر أو متجر الجملة.',
     'customer.store.own_purchase_blocked.action': 'العودة إلى المتاجر',
     'customer.home.title': 'الرئيسية',
     'customer.home.subtitle': 'العروض والأقسام والمنتجات المتاحة',
@@ -118,6 +141,8 @@ class AppTranslations extends InheritedWidget {
     'customer.products.title': 'المنتجات',
     'customer.products.subtitle': 'بحث وتصفية المنتجات',
     'customer.products.search': 'ابحث عن منتج',
+    'customer.products.search_name_sku_barcode':
+        'البحث بالاسم أو SKU أو الباركود',
     'customer.products.empty': 'لا توجد منتجات مطابقة',
     'customer.products.sort_name': 'الاسم',
     'customer.products.sort_price': 'السعر',
@@ -166,11 +191,14 @@ class AppTranslations extends InheritedWidget {
     'customer.orders.next': 'الخطوة التالية',
     'customer.orders.reorder': 'إعادة الطلب',
     'customer.orders.view_details': 'عرض تفاصيل الطلب',
-    'customer.orders.reorder_success': 'تمت إضافة أصناف الطلب إلى السلة بالأسعار والمخزون الحاليين',
+    'customer.orders.reorder_success':
+        'تمت إضافة أصناف الطلب إلى السلة بالأسعار والمخزون الحاليين',
     'customer.orders.reorder_partial': 'تمت إضافة الأصناف المتاحة، وتعذر إضافة',
-    'customer.orders.reorder_failed': 'تعذر إعادة الطلب. راجع توفر الأصناف والكميات الحالية',
+    'customer.orders.reorder_failed':
+        'تعذر إعادة الطلب. راجع توفر الأصناف والكميات الحالية',
     'customer.orders.open_cart': 'فتح السلة',
-    'customer.orders.stale': 'تعرض القائمة آخر بيانات مؤكدة؛ تعذر جلب تحديث جديد.',
+    'customer.orders.stale':
+        'تعرض القائمة آخر بيانات مؤكدة؛ تعذر جلب تحديث جديد.',
     'customer.orders.last_confirmed_update': 'آخر تحديث مؤكد',
     'customer.orders.approval.label': 'حالة الاعتماد',
     'customer.orders.approval.pending': 'بانتظار اعتماد خدمة العملاء',
@@ -188,7 +216,8 @@ class AppTranslations extends InheritedWidget {
     'customer.order.last_updated': 'آخر تحديث',
     'customer.order.timeline': 'تسلسل حالة الطلب',
     'customer.order.tracking': 'التتبع',
-    'customer.order.no_live_tracking': 'يعرض فودكس هنا الحالة والتسلسل المؤكدين من النظام. موقع السائق والوقت المتوقع لا يظهران كبيانات حية إلا عند توفرهما من مصدر موثوق.',
+    'customer.order.no_live_tracking':
+        'يعرض فودكس هنا الحالة والتسلسل المؤكدين من النظام. موقع السائق والوقت المتوقع لا يظهران كبيانات حية إلا عند توفرهما من مصدر موثوق.',
     'customer.order.items': 'المنتجات',
     'customer.order.address': 'عنوان التوصيل',
     'customer.order.payment': 'الدفع',
@@ -237,23 +266,31 @@ class AppTranslations extends InheritedWidget {
     'customer.addresses.notes': 'ملاحظات التوصيل',
     'customer.addresses.edit': 'تعديل العنوان',
     'customer.addresses.delete': 'حذف العنوان',
-    'customer.addresses.delete_confirmation': 'هل تريد حذف هذا العنوان؟ لن تتأثر الطلبات السابقة.',
+    'customer.addresses.delete_confirmation':
+        'هل تريد حذف هذا العنوان؟ لن تتأثر الطلبات السابقة.',
     'customer.addresses.set_default': 'تعيين كعنوان افتراضي',
     'customer.addresses.default_badge': 'افتراضي',
     'customer.addresses.share_location': 'مشاركة موقعي',
     'customer.addresses.choose_map': 'اختيار الموقع على الخريطة',
-    'customer.addresses.map_instruction': 'اضغط على الخريطة لتحريك علامة التوصيل إلى الموقع الصحيح.',
+    'customer.addresses.map_instruction':
+        'اضغط على الخريطة لتحريك علامة التوصيل إلى الموقع الصحيح.',
     'customer.addresses.confirm_map': 'تأكيد الموقع',
     'customer.addresses.location_saved': 'تم تحديد الموقع',
-    'customer.addresses.location_services_disabled': 'خدمة الموقع غير مفعلة. يمكنك إدخال العنوان يدويًا أو تفعيل الموقع والمحاولة مرة أخرى.',
-    'customer.addresses.location_permission_denied': 'لم يتم السماح بالموقع. يمكنك الاستمرار بإدخال العنوان يدويًا.',
-    'customer.addresses.location_permission_settings': 'صلاحية الموقع مرفوضة نهائيًا. فعّلها من إعدادات الجهاز أو أدخل العنوان يدويًا.',
-    'customer.addresses.location_failed': 'تعذر تحديد الموقع حاليًا. يمكنك حفظ العنوان يدويًا.',
-    'customer.addresses.required_fields': 'أدخل العنوان والمدينة ورمز الدولة المكون من حرفين.',
+    'customer.addresses.location_services_disabled':
+        'خدمة الموقع غير مفعلة. يمكنك إدخال العنوان يدويًا أو تفعيل الموقع والمحاولة مرة أخرى.',
+    'customer.addresses.location_permission_denied':
+        'لم يتم السماح بالموقع. يمكنك الاستمرار بإدخال العنوان يدويًا.',
+    'customer.addresses.location_permission_settings':
+        'صلاحية الموقع مرفوضة نهائيًا. فعّلها من إعدادات الجهاز أو أدخل العنوان يدويًا.',
+    'customer.addresses.location_failed':
+        'تعذر تحديد الموقع حاليًا. يمكنك حفظ العنوان يدويًا.',
+    'customer.addresses.required_fields':
+        'أدخل العنوان والمدينة ورمز الدولة المكون من حرفين.',
     'customer.settings.title': 'الإعدادات',
     'customer.settings.subtitle': 'إدارة بيانات الحساب وتفضيلاتك',
     'customer.diagnostics.title': 'تشخيص التطبيق',
-    'customer.diagnostics.subtitle': 'صدّر ملف JSON آمن يحتوي سياق الأعطال والأخطاء الأخيرة لإرساله للدعم الفني.',
+    'customer.diagnostics.subtitle':
+        'صدّر ملف JSON آمن يحتوي سياق الأعطال والأخطاء الأخيرة لإرساله للدعم الفني.',
     'customer.diagnostics.open': 'فتح تشخيص التطبيق',
     'customer.diagnostics.version': 'الإصدار',
     'customer.diagnostics.environment': 'بيئة API',
@@ -262,15 +299,18 @@ class AppTranslations extends InheritedWidget {
     'customer.diagnostics.events': 'عدد الأحداث',
     'customer.diagnostics.last_event': 'آخر حدث',
     'customer.diagnostics.note': 'ملاحظة عن المشكلة - اختياري',
-    'customer.diagnostics.note_hint': 'اكتب باختصار ما الذي كنت تفعله عند ظهور المشكلة.',
+    'customer.diagnostics.note_hint':
+        'اكتب باختصار ما الذي كنت تفعله عند ظهور المشكلة.',
     'customer.diagnostics.export': 'تصدير ومشاركة JSON',
     'customer.diagnostics.copy_summary': 'نسخ ملخص التشخيص',
     'customer.diagnostics.clear': 'مسح سجل التشخيص',
-    'customer.diagnostics.privacy': 'لا يتضمن ملف التشخيص كلمات المرور أو التوكنات أو البريد أو الهاتف أو العناوين أو الإحداثيات الدقيقة.',
+    'customer.diagnostics.privacy':
+        'لا يتضمن ملف التشخيص كلمات المرور أو التوكنات أو البريد أو الهاتف أو العناوين أو الإحداثيات الدقيقة.',
     'customer.diagnostics.recent_events': 'آخر أحداث التشخيص',
     'customer.diagnostics.share_text': 'ملف تشخيص تطبيق عميل FOODEX',
     'customer.diagnostics.exported': 'تم تجهيز ملف التشخيص للمشاركة.',
-    'customer.diagnostics.export_failed': 'تعذر تجهيز ملف التشخيص. حاول مرة أخرى.',
+    'customer.diagnostics.export_failed':
+        'تعذر تجهيز ملف التشخيص. حاول مرة أخرى.',
     'customer.diagnostics.copied': 'تم نسخ ملخص التشخيص.',
     'customer.diagnostics.cleared': 'تم مسح سجل التشخيص.',
     'customer.settings.edit_profile': 'تعديل الملف الشخصي',
@@ -326,13 +366,15 @@ class AppTranslations extends InheritedWidget {
     'b2b.purchase_reports.trend': 'اتجاه المشتريات',
     'b2b.purchase_reports.categories': 'توزيع المشتريات حسب التصنيف',
     'b2b.purchase_reports.no_trend': 'لا توجد حركة مشتريات في الفترة المحددة.',
-    'b2b.purchase_reports.no_categories': 'لا توجد تصنيفات مشتريات في الفترة المحددة.',
+    'b2b.purchase_reports.no_categories':
+        'لا توجد تصنيفات مشتريات في الفترة المحددة.',
     'b2b.purchase_reports.recent_orders': 'الطلبات ضمن التقرير',
     'b2b.purchase_reports.page': 'صفحة',
     'b2b.purchase_reports.previous': 'السابق',
     'b2b.purchase_reports.next': 'التالي',
     'b2b.purchase_reports.empty': 'لا توجد مشتريات في الفترة المحددة.',
-    'b2b.purchase_reports.stale': 'تعذر تحديث التقرير. يتم عرض آخر بيانات مؤكدة.',
+    'b2b.purchase_reports.stale':
+        'تعذر تحديث التقرير. يتم عرض آخر بيانات مؤكدة.',
     'b2b.top_products.title': 'الأكثر شراء',
     'b2b.top_products.subtitle': 'المنتجات الأعلى شراءً للحساب',
     'b2b.top_products.search': 'ابحث في منتجاتك ومشترياتك',
@@ -353,7 +395,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.top_products.pack': 'العبوة',
     'b2b.top_products.available': 'متاح لإعادة الشراء',
     'b2b.top_products.out_of_stock': 'غير متاح حالياً — نفد المخزون',
-    'b2b.top_products.unavailable_account': 'غير متاح حالياً لهذا الحساب أو المتجر',
+    'b2b.top_products.unavailable_account':
+        'غير متاح حالياً لهذا الحساب أو المتجر',
     'b2b.top_products.below_moq': 'الكمية المتاحة أقل من الحد الأدنى للطلب',
     'b2b.top_products.open_product': 'فتح المنتج',
     'b2b.top_products.previous': 'السابق',
@@ -383,7 +426,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.catalog.no_results': 'لا توجد نتائج مطابقة',
     'b2b.catalog.no_results_body': 'غيّر البحث أو الفلتر لعرض منتجات أخرى.',
     'b2b.catalog.store_required_title': 'اختر متجر الجملة',
-    'b2b.catalog.store_required_body': 'يجب تحديد متجر الجملة قبل عرض الكتالوج.',
+    'b2b.catalog.store_required_body':
+        'يجب تحديد متجر الجملة قبل عرض الكتالوج.',
     'b2b.catalog.pack': 'العبوة',
     'b2b.catalog.step': 'الزيادة',
     'b2b.catalog.added': 'تمت إضافة المنتج إلى السلة',
@@ -405,9 +449,11 @@ class AppTranslations extends InheritedWidget {
     'b2b.product.quantity_minimum': 'الحد الأدنى للكمية',
     'b2b.product.quantity_step': 'الزيادة المسموح بها',
     'b2b.product.quantity_stock': 'الحد الأقصى المتاح',
-    'b2b.product.terms_updated': 'تم تحديث السعر أو المخزون. راجع البيانات الحالية ثم أضف المنتج مرة أخرى.',
+    'b2b.product.terms_updated':
+        'تم تحديث السعر أو المخزون. راجع البيانات الحالية ثم أضف المنتج مرة أخرى.',
     'b2b.product.revalidating': 'جاري التحقق...',
-    'b2b.product.stock_auto_refresh': 'سيتم تحديث حالة المخزون تلقائيًا عند توفر المنتج.',
+    'b2b.product.stock_auto_refresh':
+        'سيتم تحديث حالة المخزون تلقائيًا عند توفر المنتج.',
     'b2b.product.pack_details': 'تفاصيل العبوة والتحويل',
     'b2b.product.pack_size': 'حجم العبوة',
     'b2b.product.case_size': 'حجم الكرتونة',
@@ -533,7 +579,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.order.failure.order_issue': 'مشكلة في الطلب',
     'b2b.order.failure.other': 'سبب آخر',
     'b2b.cart.title': 'سلة الجملة',
-    'b2b.cart.subtitle': 'الأسعار والحد الأدنى والتوفر يعاد التحقق منها من الخادم',
+    'b2b.cart.subtitle':
+        'الأسعار والحد الأدنى والتوفر يعاد التحقق منها من الخادم',
     'b2b.cart.empty': 'السلة فارغة',
     'b2b.cart.store': 'متجر الجملة',
     'b2b.cart.clear': 'تفريغ السلة',
@@ -547,7 +594,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.cart.delivery': 'التوصيل',
     'b2b.cart.tax': 'الضريبة',
     'b2b.cart.total': 'الإجمالي',
-    'b2b.cart.revalidation': 'يتم التحقق من السعر والحد الأدنى والمخزون مرة أخرى عند كل تعديل وعند تأكيد الطلب.',
+    'b2b.cart.revalidation':
+        'يتم التحقق من السعر والحد الأدنى والمخزون مرة أخرى عند كل تعديل وعند تأكيد الطلب.',
     'b2b.checkout.title': 'إتمام الطلب',
     'b2b.checkout.address': 'عنوان التوصيل',
     'b2b.checkout.no_address': 'لا يوجد عنوان',
@@ -567,7 +615,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.checkout.credit_limit': 'الحد الائتماني',
     'b2b.checkout.available_credit': 'الائتمان المتاح',
     'b2b.checkout.purchasing_power': 'القوة الشرائية المتاحة',
-    'b2b.checkout.insufficient_credit': 'القوة الشرائية الحالية لا تكفي لإجمالي الطلب. اختر طريقة دفع أخرى أو خفّض قيمة السلة.',
+    'b2b.checkout.insufficient_credit':
+        'القوة الشرائية الحالية لا تكفي لإجمالي الطلب. اختر طريقة دفع أخرى أو خفّض قيمة السلة.',
     'b2b.checkout.review': 'المراجعة النهائية',
     'b2b.checkout.order_summary': 'ملخص الطلب',
     'b2b.checkout.product': 'منتج',
@@ -611,6 +660,7 @@ class AppTranslations extends InheritedWidget {
     'customer.app.title': 'FOODEX',
     'customer.nav.home': 'Home',
     'customer.nav.products': 'Products',
+    'customer.nav.catalog': 'Catalog',
     'customer.nav.shopping': 'Shopping',
     'customer.nav.invoices': 'Invoices',
     'customer.nav.more': 'More',
@@ -624,25 +674,32 @@ class AppTranslations extends InheritedWidget {
     'customer.splash.subtitle': 'Everything you need in one place',
     'customer.splash.copyright': '© 2026 FOODEX. All rights reserved',
     'customer.entry.title': 'Welcome',
-    'customer.entry.subtitle': 'Browse as a guest or sign in to complete checkout',
+    'customer.entry.subtitle':
+        'Browse as a guest or sign in to complete checkout',
     'customer.marketplace.main_wholesale': 'Main platform store · Wholesale',
     'customer.marketplace.wholesale_products': 'Wholesale products',
     'customer.marketplace.search_hint': 'Search by name, SKU, or barcode',
     'customer.marketplace.shop_now': 'Shop now',
     'customer.marketplace.scan': 'Scan barcode or QR',
     'customer.marketplace.all_categories': 'All categories',
-    'customer.marketplace.browse_guest': 'Browse as a guest and create your account when you are ready to buy',
+    'customer.marketplace.browse_guest':
+        'Browse as a guest and create your account when you are ready to buy',
     'customer.marketplace.register': 'Create account',
     'customer.marketplace.register_title': 'Create customer account',
-    'customer.marketplace.register_subtitle': 'One account for the whole platform; each order is routed to the store you buy from.',
+    'customer.marketplace.register_subtitle':
+        'One account for the whole platform; each order is routed to the store you buy from.',
     'customer.marketplace.phone': 'Phone number',
     'customer.marketplace.password_confirmation': 'Confirm password',
     'customer.marketplace.create_account': 'Create account and continue',
-    'customer.marketplace.registration_validation': 'Complete all fields and use matching passwords of at least 8 characters.',
-    'customer.marketplace.registration_success': 'Your account is ready. You can now buy from Wholesale or Retail.',
-    'customer.marketplace.registration_failed': 'Could not create the account. Check the details and try again.',
+    'customer.marketplace.registration_validation':
+        'Complete all fields and use matching passwords of at least 8 characters.',
+    'customer.marketplace.registration_success':
+        'Your account is ready. You can now buy from Wholesale or Retail.',
+    'customer.marketplace.registration_failed':
+        'Could not create the account. Check the details and try again.',
     'customer.marketplace.auth_required_title': 'Create an account to purchase',
-    'customer.marketplace.auth_required_body': 'Browsing is available without sign-in. Purchasing uses one FOODEX customer account across all stores.',
+    'customer.marketplace.auth_required_body':
+        'Browsing is available without sign-in. Purchasing uses one FOODEX customer account across all stores.',
     'customer.action.guest': 'Browse as guest',
     'customer.action.login': 'Sign in',
     'customer.action.add_cart': 'Add to cart',
@@ -652,20 +709,28 @@ class AppTranslations extends InheritedWidget {
     'customer.brand.economic_group': 'FOODEX Economic Group',
     'customer.auth.title': 'Customer sign in',
     'customer.auth.register_title': 'Create customer account',
-    'customer.auth.subtitle': 'One FOODEX account works across Wholesale and Retail; the store and cart determine order routing.',
+    'customer.auth.subtitle':
+        'One FOODEX account works across Wholesale and Retail; the store and cart determine order routing.',
     'customer.auth.remember_me': 'Remember me',
-    'customer.auth.remember_me_help': 'Keep a secure sign-in session on this device.',
+    'customer.auth.remember_me_help':
+        'Keep a secure sign-in session on this device.',
     'customer.auth.biometric_enable': 'Enable biometric sign-in',
-    'customer.auth.biometric_help': 'Biometrics unlock a securely stored session. Your password is never stored.',
+    'customer.auth.biometric_help':
+        'Biometrics unlock a securely stored session. Your password is never stored.',
     'customer.auth.biometric_login': 'Sign in with biometrics',
     'customer.auth.biometric_saved_title': 'Biometric sign in',
     'customer.auth.biometric_saved_hint': 'Tap the fingerprint to sign in',
     'customer.auth.biometric_reason': 'Unlock your saved FOODEX session',
-    'customer.auth.biometric_failed': 'Biometric verification was cancelled or failed. You can still sign in normally.',
-    'customer.auth.biometric_session_missing': 'No valid saved session is available. Sign in normally.',
-    'customer.auth.invalid_credentials': 'The email address or password is incorrect.',
-    'customer.auth.account_locked': 'This account is currently locked. Contact support or try again later.',
-    'customer.auth.account_inactive': 'This account is currently inactive. Contact support to reactivate it.',
+    'customer.auth.biometric_failed':
+        'Biometric verification was cancelled or failed. You can still sign in normally.',
+    'customer.auth.biometric_session_missing':
+        'No valid saved session is available. Sign in normally.',
+    'customer.auth.invalid_credentials':
+        'The email address or password is incorrect.',
+    'customer.auth.account_locked':
+        'This account is currently locked. Contact support or try again later.',
+    'customer.auth.account_inactive':
+        'This account is currently inactive. Contact support to reactivate it.',
     'customer.login.email': 'Email address',
     'customer.login.password': 'Password',
     'customer.login.show_password': 'Show password',
@@ -674,8 +739,10 @@ class AppTranslations extends InheritedWidget {
     'customer.validation.password': 'Enter your password',
     'customer.validation.name': 'Enter your name',
     'customer.validation.phone': 'Enter your phone number',
-    'customer.validation.password_minimum': 'Use a password with at least 8 characters',
-    'customer.validation.password_confirmation': 'Enter the same password again',
+    'customer.validation.password_minimum':
+        'Use a password with at least 8 characters',
+    'customer.validation.password_confirmation':
+        'Enter the same password again',
     'customer.validation.field_invalid': 'Check this field and try again',
     'customer.login.username': 'Username',
     'customer.logout': 'Sign out',
@@ -684,17 +751,24 @@ class AppTranslations extends InheritedWidget {
     'customer.checkout.address_id': 'Delivery address ID',
     'customer.validation.credentials': 'Enter your email address and password',
     'customer.validation.username': 'Enter your username',
-    'customer.validation.store_required': 'Choose a store before adding the product to cart',
+    'customer.validation.store_required':
+        'Choose a store before adding the product to cart',
     'customer.validation.quantity': 'Enter a valid quantity greater than zero',
     'customer.validation.address': 'Choose a valid delivery address',
-    'customer.error.action_failed': 'The action could not be completed. Check the data and try again.',
-    'customer.error.offline': 'You appear to be offline. Check your connection and try again.',
-    'customer.error.session_expired': 'Your session has expired. Sign in again to continue.',
-    'customer.error.forbidden': 'You do not have permission to access this data.',
+    'customer.error.action_failed':
+        'The action could not be completed. Check the data and try again.',
+    'customer.error.offline':
+        'You appear to be offline. Check your connection and try again.',
+    'customer.error.session_expired':
+        'Your session has expired. Sign in again to continue.',
+    'customer.error.forbidden':
+        'You do not have permission to access this data.',
     'customer.action.retry': 'Retry',
     'customer.store.error.title': 'Could not load stores',
-    'customer.store.own_purchase_blocked.title': 'You cannot purchase from your own store',
-    'customer.store.own_purchase_blocked.body': 'You can manage this store from the Dashboard, but an owner or manager account cannot purchase from it. Choose another Retail store or Wholesale.',
+    'customer.store.own_purchase_blocked.title':
+        'You cannot purchase from your own store',
+    'customer.store.own_purchase_blocked.body':
+        'You can manage this store from the Dashboard, but an owner or manager account cannot purchase from it. Choose another Retail store or Wholesale.',
     'customer.store.own_purchase_blocked.action': 'Back to marketplace',
     'customer.home.title': 'Home',
     'customer.home.subtitle': 'Available offers, categories and products',
@@ -709,22 +783,28 @@ class AppTranslations extends InheritedWidget {
     'customer.products.title': 'Products',
     'customer.products.subtitle': 'Search and filter products',
     'customer.products.search': 'Search products',
+    'customer.products.search_name_sku_barcode':
+        'Search by name, SKU, or barcode',
     'customer.products.empty': 'No matching products found',
     'customer.products.sort_name': 'Name',
     'customer.products.sort_price': 'Price',
     'customer.products.ascending': 'Ascending',
     'customer.products.descending': 'Descending',
     'customer.product.title': 'Product details',
-    'customer.product.subtitle': 'Price, availability and quantity come from the server',
+    'customer.product.subtitle':
+        'Price, availability and quantity come from the server',
     'customer.product.available': 'Available',
     'customer.product.out_of_stock': 'Out of stock',
     'customer.cart.title': 'Cart',
-    'customer.cart.subtitle': 'Price and availability are rechecked before payment',
+    'customer.cart.subtitle':
+        'Price and availability are rechecked before payment',
     'customer.cart.empty': 'Your cart is empty',
     'customer.checkout_login.title': 'Sign in',
-    'customer.checkout_login.subtitle': 'Sign in is required to complete checkout',
+    'customer.checkout_login.subtitle':
+        'Sign in is required to complete checkout',
     'customer.checkout.title': 'Address and payment',
-    'customer.checkout.subtitle': 'Choose a delivery address and payment method',
+    'customer.checkout.subtitle':
+        'Choose a delivery address and payment method',
     'customer.checkout.address': 'Delivery address',
     'customer.checkout.manage_addresses': 'Manage addresses',
     'customer.checkout.payment': 'Payment method',
@@ -739,7 +819,8 @@ class AppTranslations extends InheritedWidget {
     'customer.profile.addresses': 'Addresses',
     'customer.profile.favorites': 'Favorites',
     'customer.profile.orders': 'My orders',
-    'customer.orders.subtitle': 'Your current and previous orders and their status',
+    'customer.orders.subtitle':
+        'Your current and previous orders and their status',
     'customer.orders.channel.wholesale': 'Wholesale',
     'customer.orders.channel.retail': 'Retail',
     'customer.orders.tab.wholesale': 'Wholesale Orders',
@@ -757,11 +838,15 @@ class AppTranslations extends InheritedWidget {
     'customer.orders.next': 'Next',
     'customer.orders.reorder': 'Reorder',
     'customer.orders.view_details': 'View order details',
-    'customer.orders.reorder_success': 'Order items were added to cart using current prices and stock',
-    'customer.orders.reorder_partial': 'Available items were added; could not add',
-    'customer.orders.reorder_failed': 'Could not reorder. Check current item availability and quantities',
+    'customer.orders.reorder_success':
+        'Order items were added to cart using current prices and stock',
+    'customer.orders.reorder_partial':
+        'Available items were added; could not add',
+    'customer.orders.reorder_failed':
+        'Could not reorder. Check current item availability and quantities',
     'customer.orders.open_cart': 'Open cart',
-    'customer.orders.stale': 'Showing the last confirmed orders; a fresh update could not be loaded.',
+    'customer.orders.stale':
+        'Showing the last confirmed orders; a fresh update could not be loaded.',
     'customer.orders.last_confirmed_update': 'Last confirmed update',
     'customer.orders.approval.label': 'Approval',
     'customer.orders.approval.pending': 'Pending customer-service approval',
@@ -779,7 +864,8 @@ class AppTranslations extends InheritedWidget {
     'customer.order.last_updated': 'Last updated',
     'customer.order.timeline': 'Order status timeline',
     'customer.order.tracking': 'Tracking',
-    'customer.order.no_live_tracking': 'FOODEX shows authoritative order status and timeline here. Driver position and ETA are shown as live data only when an authoritative source provides them.',
+    'customer.order.no_live_tracking':
+        'FOODEX shows authoritative order status and timeline here. Driver position and ETA are shown as live data only when an authoritative source provides them.',
     'customer.order.items': 'Items',
     'customer.order.address': 'Delivery address',
     'customer.order.payment': 'Payment',
@@ -828,23 +914,31 @@ class AppTranslations extends InheritedWidget {
     'customer.addresses.notes': 'Delivery notes',
     'customer.addresses.edit': 'Edit address',
     'customer.addresses.delete': 'Delete address',
-    'customer.addresses.delete_confirmation': 'Delete this address? Previous orders will not be affected.',
+    'customer.addresses.delete_confirmation':
+        'Delete this address? Previous orders will not be affected.',
     'customer.addresses.set_default': 'Set as default',
     'customer.addresses.default_badge': 'Default',
     'customer.addresses.share_location': 'Share my location',
     'customer.addresses.choose_map': 'Choose on map',
-    'customer.addresses.map_instruction': 'Tap the map to move the delivery pin to the correct location.',
+    'customer.addresses.map_instruction':
+        'Tap the map to move the delivery pin to the correct location.',
     'customer.addresses.confirm_map': 'Confirm location',
     'customer.addresses.location_saved': 'Location selected',
-    'customer.addresses.location_services_disabled': 'Location services are off. Enter the address manually or enable location and try again.',
-    'customer.addresses.location_permission_denied': 'Location permission was not granted. You can continue with manual address entry.',
-    'customer.addresses.location_permission_settings': 'Location permission is permanently denied. Enable it in device settings or enter the address manually.',
-    'customer.addresses.location_failed': 'Could not get your location. You can save the address manually.',
-    'customer.addresses.required_fields': 'Enter the address, city, and a two-letter country code.',
+    'customer.addresses.location_services_disabled':
+        'Location services are off. Enter the address manually or enable location and try again.',
+    'customer.addresses.location_permission_denied':
+        'Location permission was not granted. You can continue with manual address entry.',
+    'customer.addresses.location_permission_settings':
+        'Location permission is permanently denied. Enable it in device settings or enter the address manually.',
+    'customer.addresses.location_failed':
+        'Could not get your location. You can save the address manually.',
+    'customer.addresses.required_fields':
+        'Enter the address, city, and a two-letter country code.',
     'customer.settings.title': 'Settings',
     'customer.settings.subtitle': 'Manage your account details and preferences',
     'customer.diagnostics.title': 'App diagnostics',
-    'customer.diagnostics.subtitle': 'Export a safe JSON file with recent app failures and context to share with support.',
+    'customer.diagnostics.subtitle':
+        'Export a safe JSON file with recent app failures and context to share with support.',
     'customer.diagnostics.open': 'Open app diagnostics',
     'customer.diagnostics.version': 'Version',
     'customer.diagnostics.environment': 'API environment',
@@ -853,15 +947,18 @@ class AppTranslations extends InheritedWidget {
     'customer.diagnostics.events': 'Events',
     'customer.diagnostics.last_event': 'Last event',
     'customer.diagnostics.note': 'Bug note - optional',
-    'customer.diagnostics.note_hint': 'Briefly describe what you were doing when the problem happened.',
+    'customer.diagnostics.note_hint':
+        'Briefly describe what you were doing when the problem happened.',
     'customer.diagnostics.export': 'Export and share JSON',
     'customer.diagnostics.copy_summary': 'Copy diagnostics summary',
     'customer.diagnostics.clear': 'Clear diagnostics history',
-    'customer.diagnostics.privacy': 'Diagnostics never export passwords, tokens, email, phone, addresses, or exact coordinates.',
+    'customer.diagnostics.privacy':
+        'Diagnostics never export passwords, tokens, email, phone, addresses, or exact coordinates.',
     'customer.diagnostics.recent_events': 'Recent diagnostics events',
     'customer.diagnostics.share_text': 'FOODEX Customer App diagnostics',
     'customer.diagnostics.exported': 'Diagnostics file is ready to share.',
-    'customer.diagnostics.export_failed': 'Could not prepare the diagnostics file. Please try again.',
+    'customer.diagnostics.export_failed':
+        'Could not prepare the diagnostics file. Please try again.',
     'customer.diagnostics.copied': 'Diagnostics summary copied.',
     'customer.diagnostics.cleared': 'Diagnostics history cleared.',
     'customer.settings.edit_profile': 'Edit profile',
@@ -872,7 +969,8 @@ class AppTranslations extends InheritedWidget {
     'customer.empty': 'No data available',
     'b2b.app.title': 'FOODEX Business',
     'b2b.login.title': 'Business customer sign in',
-    'b2b.login.subtitle': 'Accounts are created and approved from the management dashboard only',
+    'b2b.login.subtitle':
+        'Accounts are created and approved from the management dashboard only',
     'b2b.dashboard.title': 'Business dashboard',
     'b2b.dashboard.subtitle': 'Purchases, invoices and balance summary',
     'b2b.dashboard.last_updated': 'Last updated',
@@ -916,14 +1014,17 @@ class AppTranslations extends InheritedWidget {
     'b2b.purchase_reports.previous_period_total': 'Previous period total',
     'b2b.purchase_reports.trend': 'Purchase trend',
     'b2b.purchase_reports.categories': 'Purchases by category',
-    'b2b.purchase_reports.no_trend': 'No purchase activity in the selected period.',
-    'b2b.purchase_reports.no_categories': 'No purchase categories in the selected period.',
+    'b2b.purchase_reports.no_trend':
+        'No purchase activity in the selected period.',
+    'b2b.purchase_reports.no_categories':
+        'No purchase categories in the selected period.',
     'b2b.purchase_reports.recent_orders': 'Orders in this report',
     'b2b.purchase_reports.page': 'Page',
     'b2b.purchase_reports.previous': 'Previous',
     'b2b.purchase_reports.next': 'Next',
     'b2b.purchase_reports.empty': 'No purchases in the selected period.',
-    'b2b.purchase_reports.stale': 'Refresh failed. Showing the last confirmed report data.',
+    'b2b.purchase_reports.stale':
+        'Refresh failed. Showing the last confirmed report data.',
     'b2b.top_products.title': 'Top purchased products',
     'b2b.top_products.subtitle': 'Most purchased products for the account',
     'b2b.top_products.search': 'Search your products and purchases',
@@ -944,17 +1045,20 @@ class AppTranslations extends InheritedWidget {
     'b2b.top_products.pack': 'Pack',
     'b2b.top_products.available': 'Available to buy again',
     'b2b.top_products.out_of_stock': 'Currently unavailable — out of stock',
-    'b2b.top_products.unavailable_account': 'Currently unavailable for this account or store',
+    'b2b.top_products.unavailable_account':
+        'Currently unavailable for this account or store',
     'b2b.top_products.below_moq': 'Available stock is below the minimum order',
     'b2b.top_products.open_product': 'Open product',
     'b2b.top_products.previous': 'Previous',
     'b2b.top_products.next': 'Next',
     'b2b.top_products.page': 'Page',
     'b2b.products.title': 'Wholesale products',
-    'b2b.products.subtitle': 'Pricing and minimum quantities for the approved account',
+    'b2b.products.subtitle':
+        'Pricing and minimum quantities for the approved account',
     'b2b.catalog.search_hint': 'Search by name, SKU, or barcode',
     'b2b.catalog.clear_search': 'Clear search',
-    'b2b.catalog.load_error': 'Unable to load the wholesale catalog. Try again.',
+    'b2b.catalog.load_error':
+        'Unable to load the wholesale catalog. Try again.',
     'b2b.catalog.category': 'Category',
     'b2b.catalog.filter_title': 'Filter products',
     'b2b.catalog.filter': 'Filter',
@@ -970,17 +1074,21 @@ class AppTranslations extends InheritedWidget {
     'b2b.catalog.stale': 'Refresh failed. Showing the last loaded data.',
     'b2b.catalog.load_more': 'Load more',
     'b2b.catalog.empty_title': 'No wholesale products',
-    'b2b.catalog.empty_body': 'No products are currently available for this account.',
+    'b2b.catalog.empty_body':
+        'No products are currently available for this account.',
     'b2b.catalog.no_results': 'No matching products',
-    'b2b.catalog.no_results_body': 'Change the search or filter to see other products.',
+    'b2b.catalog.no_results_body':
+        'Change the search or filter to see other products.',
     'b2b.catalog.store_required_title': 'Choose a wholesale store',
-    'b2b.catalog.store_required_body': 'Select a wholesale store before opening the catalog.',
+    'b2b.catalog.store_required_body':
+        'Select a wholesale store before opening the catalog.',
     'b2b.catalog.pack': 'Pack',
     'b2b.catalog.step': 'Step',
     'b2b.catalog.added': 'Product added to cart',
     'b2b.catalog.open_cart': 'Open cart',
     'b2b.product.title': 'Wholesale product details',
-    'b2b.product.subtitle': 'Price and minimum order are calculated by the server',
+    'b2b.product.subtitle':
+        'Price and minimum order are calculated by the server',
     'b2b.minimum_order': 'Minimum order',
     'b2b.product.account_price': 'Account price',
     'b2b.product.inventory': 'Available quantity',
@@ -989,23 +1097,27 @@ class AppTranslations extends InheritedWidget {
     'b2b.product.base_price': 'Base wholesale price',
     'b2b.product.retail_reference_price': 'Retail reference price',
     'b2b.product.refresh': 'Refresh product',
-    'b2b.product.stale': 'Refresh failed. Showing the last confirmed product data.',
+    'b2b.product.stale':
+        'Refresh failed. Showing the last confirmed product data.',
     'b2b.product.brand': 'Brand',
     'b2b.product.category': 'Category',
     'b2b.product.promotion': 'Promotion',
     'b2b.product.quantity_minimum': 'Minimum quantity',
     'b2b.product.quantity_step': 'Allowed quantity step',
     'b2b.product.quantity_stock': 'Maximum available',
-    'b2b.product.terms_updated': 'Price or stock changed. Review the current terms, then add the product again.',
+    'b2b.product.terms_updated':
+        'Price or stock changed. Review the current terms, then add the product again.',
     'b2b.product.revalidating': 'Revalidating...',
-    'b2b.product.stock_auto_refresh': 'Stock status refreshes automatically when the product becomes available.',
+    'b2b.product.stock_auto_refresh':
+        'Stock status refreshes automatically when the product becomes available.',
     'b2b.product.pack_details': 'Pack and conversion details',
     'b2b.product.pack_size': 'Pack size',
     'b2b.product.case_size': 'Case size',
     'b2b.product.not_specified': 'Not specified',
     'b2b.product.description': 'Description',
     'b2b.product.no_description': 'No additional details are available.',
-    'b2b.remote.forbidden': 'This product is not available for this account or store',
+    'b2b.remote.forbidden':
+        'This product is not available for this account or store',
     'b2b.invoices.title': 'Invoices',
     'b2b.invoices.subtitle': 'Business account invoices',
     'b2b.invoice.title': 'Invoice details',
@@ -1036,8 +1148,10 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.credit': 'Credit',
     'b2b.statement.running_balance': 'Running balance',
     'b2b.statement.export_exact': 'Export this exact filtered result',
-    'b2b.statement.export_failed': 'Could not prepare the account statement file.',
-    'b2b.statement.stale': 'Refresh failed. Showing the last confirmed statement.',
+    'b2b.statement.export_failed':
+        'Could not prepare the account statement file.',
+    'b2b.statement.stale':
+        'Refresh failed. Showing the last confirmed statement.',
     'b2b.statement.page': 'Page',
     'b2b.statement.previous_page': 'Previous',
     'b2b.statement.next_page': 'Next',
@@ -1059,7 +1173,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.order.refresh': 'Refresh order',
     'b2b.order.load_error': 'Unable to load wholesale order details.',
     'b2b.order.unavailable': 'Order unavailable',
-    'b2b.order.unavailable_body': 'The wholesale order data could not be found.',
+    'b2b.order.unavailable_body':
+        'The wholesale order data could not be found.',
     'b2b.order.store': 'Store',
     'b2b.order.channel': 'Channel',
     'b2b.order.channel_b2b': 'Business',
@@ -1124,7 +1239,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.order.failure.order_issue': 'Order issue',
     'b2b.order.failure.other': 'Other reason',
     'b2b.cart.title': 'Wholesale cart',
-    'b2b.cart.subtitle': 'Prices, minimums and availability are rechecked by the server',
+    'b2b.cart.subtitle':
+        'Prices, minimums and availability are rechecked by the server',
     'b2b.cart.empty': 'The cart is empty',
     'b2b.cart.store': 'Wholesale store',
     'b2b.cart.clear': 'Clear cart',
@@ -1138,11 +1254,13 @@ class AppTranslations extends InheritedWidget {
     'b2b.cart.delivery': 'Delivery',
     'b2b.cart.tax': 'Tax',
     'b2b.cart.total': 'Total',
-    'b2b.cart.revalidation': 'Price, minimum quantity and stock are revalidated after every change and again at final submit.',
+    'b2b.cart.revalidation':
+        'Price, minimum quantity and stock are revalidated after every change and again at final submit.',
     'b2b.checkout.title': 'Checkout',
     'b2b.checkout.address': 'Delivery address',
     'b2b.checkout.no_address': 'No address',
-    'b2b.checkout.no_address_hint': 'Add a business address before completing the order.',
+    'b2b.checkout.no_address_hint':
+        'Add a business address before completing the order.',
     'b2b.checkout.add_address': 'Add address',
     'b2b.checkout.manage_addresses': 'Manage addresses',
     'b2b.checkout.delivery_date': 'Delivery date',
@@ -1158,7 +1276,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.checkout.credit_limit': 'Credit limit',
     'b2b.checkout.available_credit': 'Available credit line',
     'b2b.checkout.purchasing_power': 'Available purchasing power',
-    'b2b.checkout.insufficient_credit': 'Current purchasing power does not cover the order total. Choose another payment method or reduce the cart.',
+    'b2b.checkout.insufficient_credit':
+        'Current purchasing power does not cover the order total. Choose another payment method or reduce the cart.',
     'b2b.checkout.review': 'Final review',
     'b2b.checkout.order_summary': 'Order summary',
     'b2b.checkout.product': 'Product',
@@ -1220,11 +1339,19 @@ class AppTranslations extends InheritedWidget {
 }
 
 extension TranslationContext on BuildContext {
-  String tr(String key) => AppTranslations.maybeOf(this)?.text(key) ?? AppTranslations.fallback(this, key);
+  String tr(String key) =>
+      AppTranslations.maybeOf(this)?.text(key) ??
+      AppTranslations.fallback(this, key);
 }
 
-Future<Map<String, String>> fetchTranslationBundle(String baseUrl, String locale) async {
-  final response = await http.get(Uri.parse('$baseUrl/api/v1/translations/$locale'), headers: const {'Accept': 'application/json'});
+Future<Map<String, String>> fetchTranslationBundle(
+  String baseUrl,
+  String locale,
+) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/api/v1/translations/$locale'),
+    headers: const {'Accept': 'application/json'},
+  );
   if (response.statusCode < 200 || response.statusCode >= 300) {
     return const {};
   }
@@ -1234,5 +1361,7 @@ Future<Map<String, String>> fetchTranslationBundle(String baseUrl, String locale
     return const {};
   }
 
-  return (decoded['translations'] as Map).map((key, value) => MapEntry(key.toString(), value.toString()));
+  return (decoded['translations'] as Map).map(
+    (key, value) => MapEntry(key.toString(), value.toString()),
+  );
 }

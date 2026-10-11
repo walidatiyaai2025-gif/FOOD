@@ -20,6 +20,7 @@ class B2bPricingTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $productId, $tierId] = $this->catalog();
+        $this->setPricingTiers($storeId, true);
         $admin = $this->userWithRole('B2B_ADMIN', 'pricing-admin@example.test');
         Sanctum::actingAs($admin);
 
@@ -101,6 +102,90 @@ class B2bPricingTest extends TestCase
             ->assertJsonPath('subtotal', 36.25);
     }
 
+    public function test_pricing_tiers_are_off_by_default_and_base_price_is_authoritative(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $productId, $tierId] = $this->catalog();
+
+        DB::table('b2b_price_rules')->insert([
+            'price_tier_id' => $tierId,
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'unit_price' => 4.000,
+            'minimum_quantity' => 5,
+            'ordering_increment' => 5,
+            'pack_size' => 12,
+            'case_size' => 24,
+            'pack_label' => 'Legacy case',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->userWithRole(
+            'B2B_ADMIN',
+            'pricing-off-admin@example.test',
+        );
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/admin/b2b/prices')
+            ->assertConflict();
+
+        $this->putJson('/api/v1/admin/b2b/prices', [
+            'price_tier_id' => $tierId,
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'unit_price' => 3.000,
+            'minimum_quantity' => 2,
+        ])->assertConflict();
+
+        $buyer = User::query()->create([
+            'name' => 'Base Buyer',
+            'email' => 'base-price-buyer@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $customer = Customer::query()->create([
+            'user_id' => $buyer->id,
+            'type' => 'b2b',
+            'name' => 'Base Buyer',
+            'email' => $buyer->email,
+        ]);
+        B2bAccount::query()->create([
+            'customer_id' => $customer->id,
+            'price_tier_id' => $tierId,
+            'company_name' => 'Base Buyer Co',
+            'status' => 'active',
+        ]);
+        Sanctum::actingAs($buyer);
+
+        $this->getJson("/api/v1/b2b/products?store_id={$storeId}")
+            ->assertOk()
+            ->assertJsonPath('pricing_tiers_enabled', false)
+            ->assertJsonPath('data.0.unit_price', 10)
+            ->assertJsonPath('data.0.account_price', 10)
+            ->assertJsonPath('data.0.minimum_quantity', 1)
+            ->assertJsonPath('data.0.ordering_increment', 1)
+            ->assertJsonPath('data.0.pack_size', 1);
+
+        $this->getJson(
+            "/api/v1/b2b/products/{$productId}?store_id={$storeId}",
+        )
+            ->assertOk()
+            ->assertJsonPath('pricing_tiers_enabled', false)
+            ->assertJsonPath('account_price', 10)
+            ->assertJsonPath('minimum_order_quantity', 1)
+            ->assertJsonPath('price_tier', null);
+
+        $this->assertDatabaseHas('b2b_price_rules', [
+            'price_tier_id' => $tierId,
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'unit_price' => 4.000,
+            'minimum_quantity' => 5.000,
+        ]);
+    }
+
     public function test_unapproved_account_and_unauthorized_admin_are_denied(): void
     {
         $this->seed(CoreReferenceSeeder::class);
@@ -134,6 +219,22 @@ class B2bPricingTest extends TestCase
         $tier = (int) DB::table('b2b_price_tiers')->insertGetId(['code' => 'GOLD', 'name' => 'Gold', 'priority' => 10, 'created_at' => now(), 'updated_at' => now()]);
 
         return [$store, $product, $tier];
+    }
+
+    private function setPricingTiers(int $storeId, bool $enabled): void
+    {
+        DB::table('settings')->updateOrInsert(
+            [
+                'store_id' => $storeId,
+                'key' => 'b2b.pricing_tiers_enabled',
+            ],
+            [
+                'value' => json_encode($enabled, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
     }
 
     private function userWithRole(string $role, string $email): User

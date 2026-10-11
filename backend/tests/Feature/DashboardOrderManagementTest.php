@@ -212,6 +212,15 @@ class DashboardOrderManagementTest extends TestCase
     public function test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $store, 'key' => 'b2b.pricing_tiers_enabled'],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
         [$product, $inventory] = $this->product($store, 'b2b', 'WHOLESALE-ORDER-SKU', 10, 20);
         $warehouse = (int) DB::table('inventories')->where('inventories.id', $inventory)
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -390,6 +399,15 @@ class DashboardOrderManagementTest extends TestCase
     public function test_wholesale_dashboard_quote_uses_selected_warehouse_and_tier_for_multiple_lines(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $store, 'key' => 'b2b.pricing_tiers_enabled'],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
         [$productA, $inventoryA] = $this->product($store, 'b2b', 'MULTI-B2B-A', 12, 20);
         [$productB] = $this->product($store, 'b2b', 'MULTI-B2B-B', 20, 20);
         $warehouse = (int) DB::table('inventories')

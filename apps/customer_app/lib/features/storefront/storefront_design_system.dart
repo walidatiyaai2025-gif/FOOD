@@ -78,10 +78,8 @@ class FoodexTopBar extends StatelessWidget {
               child: Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
             ),
             ...actions,
@@ -96,12 +94,14 @@ class FoodexSectionHeader extends StatelessWidget {
     required this.title,
     required this.palette,
     this.action = 'عرض الكل',
+    this.onAction,
     super.key,
   });
 
   final String title;
   final String action;
   final FoodexPalette palette;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -118,14 +118,28 @@ class FoodexSectionHeader extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              action,
-              style: TextStyle(
-                color: palette.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+            if (onAction == null)
+              Text(
+                action,
+                style: TextStyle(
+                  color: palette.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            else
+              TextButton(
+                key: ValueKey('section-action-' + title),
+                onPressed: onAction,
+                child: Text(
+                  action,
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       );
@@ -159,8 +173,9 @@ class FoodexProductImage extends StatelessWidget {
             : Image.network(
                 url!,
                 fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : const Center(child: CircularProgressIndicator()),
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : const Center(child: CircularProgressIndicator()),
                 errorBuilder: (_, __, ___) => Center(
                   child: Icon(
                     Icons.inventory_2_outlined,
@@ -173,11 +188,7 @@ class FoodexProductImage extends StatelessWidget {
 }
 
 class FoodexGallery extends StatelessWidget {
-  const FoodexGallery({
-    required this.urls,
-    required this.palette,
-    super.key,
-  });
+  const FoodexGallery({required this.urls, required this.palette, super.key});
 
   final List<String> urls;
   final FoodexPalette palette;
@@ -253,7 +264,9 @@ class FoodexQuantityCta extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: onChanged == null ? null : () => onChanged!(quantity + increment),
+                  onPressed: onChanged == null
+                      ? null
+                      : () => onChanged!(quantity + increment),
                   icon: const Icon(Icons.add_rounded),
                 ),
               ],
@@ -264,9 +277,7 @@ class FoodexQuantityCta extends StatelessWidget {
             child: SizedBox(
               height: 52,
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: palette.primary,
-                ),
+                style: FilledButton.styleFrom(backgroundColor: palette.primary),
                 onPressed: onPressed,
                 child: Text(label),
               ),
@@ -349,11 +360,8 @@ class FoodexEmptyState extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Icon(
-                Icons.inbox_outlined,
-                size: 40,
-                color: Color(0xFF6B7785),
-              ),
+              const Icon(Icons.inbox_outlined,
+                  size: 40, color: Color(0xFF6B7785)),
               const SizedBox(height: 10),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
@@ -391,20 +399,14 @@ class FoodexDetailAccordion extends StatelessWidget {
             alignment: AlignmentDirectional.centerStart,
             child: Text(
               body,
-              style: const TextStyle(
-                color: Color(0xFF6B7785),
-                height: 1.6,
-              ),
+              style: const TextStyle(color: Color(0xFF6B7785), height: 1.6),
             ),
           ),
         ],
       );
 }
 
-Future<void> showOperationalError(
-  BuildContext context,
-  Object error,
-) =>
+Future<void> showOperationalError(BuildContext context, Object error) =>
     showDialog<void>(
       context: context,
       builder: (dialogContext) => Directionality(
@@ -415,9 +417,7 @@ Future<void> showOperationalError(
             color: Color(0xFFB42318),
           ),
           title: const Text('تعذر تنفيذ العملية'),
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -445,8 +445,9 @@ List<Map<String, dynamic>> dataRows(Object? value) {
 int intValue(Object? value) =>
     value is num ? value.toInt() : int.tryParse(value.toString()) ?? 0;
 
-double doubleValue(Object? value, [double fallback = 0]) =>
-    value is num ? value.toDouble() : double.tryParse(value.toString()) ?? fallback;
+double doubleValue(Object? value, [double fallback = 0]) => value is num
+    ? value.toDouble()
+    : double.tryParse(value.toString()) ?? fallback;
 
 String compactNumber(double value) => value == value.roundToDouble()
     ? value.toInt().toString()

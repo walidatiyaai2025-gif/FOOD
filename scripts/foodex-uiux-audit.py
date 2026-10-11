@@ -63,6 +63,16 @@ def added_text(base: str, head: str, path: str, root: Path = ROOT) -> str:
     return "\n".join(lines)
 
 
+def removed_text(base: str, head: str, path: str, root: Path = ROOT) -> str:
+    output = git(root, "diff", "--unified=0", base, head, "--", path)
+    lines = []
+    for line in output.splitlines():
+        if line.startswith("---") or not line.startswith("-"):
+            continue
+        lines.append(line[1:])
+    return "\n".join(lines)
+
+
 def ui_surface(path: str) -> str | None:
     if path.startswith("backend/resources/views/admin/") and path.endswith(".blade.php"):
         return "dashboard"
@@ -139,7 +149,12 @@ def validate_policy(root: Path = ROOT) -> list[str]:
     return errors
 
 
-def scan_added(path: str, text: str, rules: list[dict]) -> list[Finding]:
+def scan_added(
+    path: str,
+    text: str,
+    rules: list[dict],
+    removed: str = "",
+) -> list[Finding]:
     findings: list[Finding] = []
     for rule in rules:
         if not re.search(str(rule["scope_regex"]), path):
@@ -147,8 +162,16 @@ def scan_added(path: str, text: str, rules: list[dict]) -> list[Finding]:
         if path in set(rule.get("exclude_paths", [])):
             continue
         pattern = re.compile(str(rule["added_regex"]), re.IGNORECASE | re.MULTILINE | re.DOTALL)
+        removed_matches: dict[str, int] = {}
+        for removed_match in pattern.finditer(removed):
+            key = " ".join(removed_match.group(0).split())
+            removed_matches[key] = removed_matches.get(key, 0) + 1
         for match in pattern.finditer(text):
-            excerpt = " ".join(match.group(0).split())[:180]
+            key = " ".join(match.group(0).split())
+            if removed_matches.get(key, 0) > 0:
+                removed_matches[key] -= 1
+                continue
+            excerpt = key[:180]
             findings.append(
                 Finding(
                     rule=str(rule["id"]),
@@ -240,7 +263,14 @@ def run_audit(base: str, head: str, root: Path = ROOT) -> tuple[list[Finding], d
     for status, path in ui_rows:
         if status == "D" or not (root / path).exists():
             continue
-        findings.extend(scan_added(path, added_text(base, head, path, root), config.get("rules", [])))
+        findings.extend(
+            scan_added(
+                path,
+                added_text(base, head, path, root),
+                config.get("rules", []),
+                removed_text(base, head, path, root),
+            )
+        )
         findings.extend(validate_new_dashboard_page(path, status, root))
         findings.extend(validate_dashboard_pagination(path, root))
 

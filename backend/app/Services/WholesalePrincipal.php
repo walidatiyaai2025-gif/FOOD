@@ -8,6 +8,8 @@ final class WholesalePrincipal
 {
     public const STORE_CODE = 'FOODEX-WHOLESALE';
 
+    public const WAREHOUSE_CODE = 'FOODEX-WHOLESALE-MAIN';
+
     public function storeId(): int
     {
         return DB::transaction(function (): int {
@@ -57,6 +59,44 @@ final class WholesalePrincipal
                 'store_type_id' => $typeId,
                 'code' => self::STORE_CODE,
                 'name' => 'FOODEX Wholesale',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    public function warehouseId(): int
+    {
+        $storeId = $this->storeId();
+
+        return DB::transaction(function () use ($storeId): int {
+            $warehouse = DB::table('warehouses')
+                ->where('store_id', $storeId)
+                ->orderByDesc('is_active')
+                ->orderBy('id')
+                ->first(['id', 'is_active']);
+
+            if ($warehouse !== null) {
+                if (! (bool) $warehouse->is_active) {
+                    DB::table('warehouses')->where('id', $warehouse->id)->update([
+                        'is_active' => true,
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                return (int) $warehouse->id;
+            }
+
+            $code = self::WAREHOUSE_CODE;
+            if (DB::table('warehouses')->where('code', $code)->exists()) {
+                $code .= '-'.$storeId;
+            }
+
+            return (int) DB::table('warehouses')->insertGetId([
+                'store_id' => $storeId,
+                'code' => $code,
+                'name' => 'Main Warehouse',
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

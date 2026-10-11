@@ -71,6 +71,22 @@ class BuiltInRoleUpgradeReconciliationTest extends TestCase
             $this->assertTrue($user->fresh()->hasPermission($permission), "Missing reconciled permission: {$permission}");
         }
 
+        $wholesaleStoreId = (int) DB::table('stores')
+            ->where('code', 'UPGRADE-B2B')
+            ->value('id');
+        DB::table('settings')->updateOrInsert(
+            [
+                'store_id' => $wholesaleStoreId,
+                'key' => 'b2b.pricing_tiers_enabled',
+            ],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
         foreach ([
             '/admin/b2b/dashboard',
             '/admin/b2b/clients',
