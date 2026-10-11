@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -155,7 +156,8 @@ class DriverLiveTrackingController extends Controller
                     'tracking_required' => $row->active_assignment_id !== null,
                     'order' => $row->order_id === null ? null : [
                         'id' => (int) $row->order_id,
-                        'number' => (string) $row->order_number,
+                        'number' => DisplayNumber::reference($row->order_id),
+                        'internal_number' => (string) $row->order_number,
                     ],
                 ];
             })

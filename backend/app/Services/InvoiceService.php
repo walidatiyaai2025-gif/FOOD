@@ -267,10 +267,12 @@ final class InvoiceService
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
+            'display_invoice_number' => DisplayNumber::reference($invoice->getKey()),
             'revision' => (int) ($invoice->revision ?? 1),
             'status' => (string) $invoice->status,
             'order_id' => $invoice->order_id === null ? null : (int) $invoice->order_id,
             'order_number' => $invoice->order_number_snapshot,
+            'display_order_number' => $invoice->order_id === null ? '—' : DisplayNumber::reference($invoice->order_id),
             'store_id' => $invoice->store_id === null ? null : (int) $invoice->store_id,
             'store_name' => $invoice->store_name_snapshot,
             'channel' => $invoice->channel,
@@ -357,9 +359,9 @@ final class InvoiceService
         }
 
         return '<div style="font-family:dejavusans;"><h1>'.$e($labels['title']).'</h1>'
-            .'<table cellpadding="4"><tr><td><b>'.$e($labels['invoice']).':</b> '.$e($data['invoice_number']).'</td>'
+            .'<table cellpadding="4"><tr><td><b>'.$e($labels['invoice']).':</b> '.$e($data['display_invoice_number'] ?? $data['invoice_number']).'</td>'
             .'<td><b>'.$e($labels['date']).':</b> '.$e($data['issued_at']).'</td></tr>'
-            .'<tr><td><b>'.$e($labels['order']).':</b> '.$e($data['order_number']).'</td>'
+            .'<tr><td><b>'.$e($labels['order']).':</b> '.$e($data['display_order_number'] ?? $data['order_number']).'</td>'
             .'<td><b>'.$e($labels['store']).':</b> '.$e($data['store_name']).'</td></tr>'
             .'<tr><td><b>'.$e($labels['customer']).':</b> '.$e($data['customer']['name'] ?? '').'</td>'
             .'<td><b>'.$e($labels['status']).':</b> '.$e($data['status']).'</td></tr></table><br>'

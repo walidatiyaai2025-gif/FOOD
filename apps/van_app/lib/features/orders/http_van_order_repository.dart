@@ -31,8 +31,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         barcode: _nullableString(data['barcode']),
         unitPrice: _double(data['unit_price']),
         minimumQuantity: _double(data['minimum_quantity'], fallback: 1),
-        orderingIncrement:
-            _double(data['ordering_increment'], fallback: 1),
+        orderingIncrement: _double(data['ordering_increment'], fallback: 1),
         availableQuantity: _nullableDouble(data['available_quantity']),
         isAvailable: data['is_available'] != false,
         currency: currency.isEmpty ? 'KWD' : currency,
@@ -67,8 +66,9 @@ class HttpVanOrderRepository implements VanOrderRepository {
           name: _string(item['name']),
         );
       }).toList(growable: false),
-      paymentMethods:
-          _list(data['payment_methods']).map(_string).toList(growable: false),
+      paymentMethods: _list(
+        data['payment_methods'],
+      ).map(_string).toList(growable: false),
       defaultPaymentMethod: _string(data['default_payment_method']),
     );
   }
@@ -90,10 +90,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
           'customer_note': customerNote.trim(),
         'items': [
           for (final line in lines)
-            {
-              'product_id': line.product.id,
-              'quantity': line.quantity,
-            },
+            {'product_id': line.product.id, 'quantity': line.quantity},
         ],
       };
 
@@ -161,11 +158,10 @@ class HttpVanOrderRepository implements VanOrderRepository {
       if (status != null && status.trim().isNotEmpty)
         'status=${Uri.encodeQueryComponent(status.trim())}',
     ];
-    final decoded =
-        _map(await api.getJson('van/orders?${params.join('&')}'));
-    return _list(decoded['data'])
-        .map((row) => _order(_map(row)))
-        .toList(growable: false);
+    final decoded = _map(await api.getJson('van/orders?${params.join('&')}'));
+    return _list(
+      decoded['data'],
+    ).map((row) => _order(_map(row))).toList(growable: false);
   }
 
   @override
@@ -195,61 +191,55 @@ class HttpVanOrderRepository implements VanOrderRepository {
               latitude: _nullableDouble(address['latitude']),
               longitude: _nullableDouble(address['longitude']),
             ),
-      items: _list(data['items'])
-          .map((row) {
-            final item = _map(row);
-            return VanOrderItemRecord(
-              name: _string(item['name']),
-              sku: _string(item['sku']),
-              quantity: _double(item['quantity']),
-              lineTotal: _double(item['line_total']),
-            );
-          })
-          .toList(growable: false),
+      items: _list(data['items']).map((row) {
+        final item = _map(row);
+        return VanOrderItemRecord(
+          name: _string(item['name']),
+          sku: _string(item['sku']),
+          quantity: _double(item['quantity']),
+          lineTotal: _double(item['line_total']),
+        );
+      }).toList(growable: false),
       invoice: invoice == null
           ? null
           : VanOrderInvoiceRecord(
               id: _requiredInt(invoice['id']),
-              number: _string(invoice['invoice_number']),
+              number: _string(
+                invoice['display_invoice_number'] ?? invoice['invoice_number'],
+              ),
               status: _string(invoice['status']),
               currency: _string(invoice['currency']),
               total: _double(invoice['total']),
               paidAmount: _double(invoice['paid_amount']),
               outstandingAmount: _double(invoice['outstanding_amount']),
             ),
-      payments: _list(data['payments'])
-          .map((row) {
-            final item = _map(row);
-            return VanOrderPaymentRecord(
-              provider: _string(item['provider']),
-              status: _string(item['status']),
-              amount: _double(item['amount']),
-              currency: _string(item['currency']),
-            );
-          })
-          .toList(growable: false),
-      collections: _list(data['collections'])
-          .map((row) {
-            final item = _map(row);
-            return VanOrderCollectionRecord(
-              status: _string(item['status']),
-              source: _string(item['source']),
-              amount: _double(item['amount']),
-              currency: _string(item['currency']),
-            );
-          })
-          .toList(growable: false),
-      timeline: _list(data['timeline'])
-          .map((row) {
-            final item = _map(row);
-            return VanOrderTimelineRecord(
-              stage: _string(item['stage']),
-              status: _string(item['status']),
-              source: _string(item['source']),
-              occurredAt: _nullableString(item['occurred_at']),
-            );
-          })
-          .toList(growable: false),
+      payments: _list(data['payments']).map((row) {
+        final item = _map(row);
+        return VanOrderPaymentRecord(
+          provider: _string(item['provider']),
+          status: _string(item['status']),
+          amount: _double(item['amount']),
+          currency: _string(item['currency']),
+        );
+      }).toList(growable: false),
+      collections: _list(data['collections']).map((row) {
+        final item = _map(row);
+        return VanOrderCollectionRecord(
+          status: _string(item['status']),
+          source: _string(item['source']),
+          amount: _double(item['amount']),
+          currency: _string(item['currency']),
+        );
+      }).toList(growable: false),
+      timeline: _list(data['timeline']).map((row) {
+        final item = _map(row);
+        return VanOrderTimelineRecord(
+          stage: _string(item['stage']),
+          status: _string(item['status']),
+          source: _string(item['source']),
+          occurredAt: _nullableString(item['occurred_at']),
+        );
+      }).toList(growable: false),
     );
   }
 
@@ -352,9 +342,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
       await api.postJson(
         'van/orders/$orderId/execution/retry',
         headers: {'Idempotency-Key': idempotencyKey},
-        body: {
-          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-        },
+        body: {if (note != null && note.trim().isNotEmpty) 'note': note.trim()},
       ),
     );
     return _execution(_map(decoded['data']));
@@ -372,7 +360,8 @@ class HttpVanOrderRepository implements VanOrderRepository {
 
   VanOrderRecord _order(Map<String, dynamic> data) => VanOrderRecord(
         id: _requiredInt(data['id']),
-        orderNumber: _string(data['order_number']),
+        orderNumber:
+            _string(data['display_order_number'] ?? data['order_number']),
         customerType: _string(data['customer_type']),
         customerId: _requiredInt(data['customer_id']),
         storeId: _requiredInt(data['store_id']),
@@ -381,30 +370,24 @@ class HttpVanOrderRepository implements VanOrderRepository {
         grandTotal: _double(data['grand_total']),
         createdAt: _nullableString(data['created_at']),
         vanExecutionStatus: _nullableString(data['van_execution_status']),
-        vanFailureReasonCode:
-            _nullableString(data['van_failure_reason_code']),
-        vanLastTransitionAt:
-            _nullableString(data['van_last_transition_at']),
+        vanFailureReasonCode: _nullableString(data['van_failure_reason_code']),
+        vanLastTransitionAt: _nullableString(data['van_last_transition_at']),
       );
 
   VanOrderExecutionState _execution(Map<String, dynamic> data) {
-    final proof = data['latest_proof'] is Map
-        ? _map(data['latest_proof'])
-        : null;
+    final proof =
+        data['latest_proof'] is Map ? _map(data['latest_proof']) : null;
 
     return VanOrderExecutionState(
       orderId: _requiredInt(data['order_id']),
       orderStatus: _string(data['order_status']),
       status: _string(data['status']),
-      allowedActions: _list(data['allowed_actions'])
-          .map(_string)
-          .where((value) => value.isNotEmpty)
-          .toList(growable: false),
-      proofRequiredForDelivered:
-          data['proof_required_for_delivered'] == true,
+      allowedActions: _list(
+        data['allowed_actions'],
+      ).map(_string).where((value) => value.isNotEmpty).toList(growable: false),
+      proofRequiredForDelivered: data['proof_required_for_delivered'] == true,
       deliveryProofReady: data['delivery_proof_ready'] == true,
-      failureReasonCode:
-          _nullableString(data['failure_reason_code']),
+      failureReasonCode: _nullableString(data['failure_reason_code']),
       failureNote: _nullableString(data['failure_note']),
       latestProof: proof == null
           ? null
@@ -414,8 +397,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
               available: proof['available'] == true,
               capturedAt: _nullableString(proof['captured_at']),
             ),
-      lastTransitionAt:
-          _nullableString(data['last_transition_at']),
+      lastTransitionAt: _nullableString(data['last_transition_at']),
     );
   }
 

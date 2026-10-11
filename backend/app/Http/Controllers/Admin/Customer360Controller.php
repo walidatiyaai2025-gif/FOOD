@@ -19,6 +19,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\ReportExportService;
 use App\Services\RetailMerchantIdentityService;
 use App\Support\AdminNavigation;
+use App\Support\DisplayNumber;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -143,7 +144,7 @@ final class Customer360Controller extends Controller
         $orders->setCollection($orders->getCollection()->map(function (mixed $row) use ($actor): array {
             $row = (object) $row;
             $channel = strtolower((string) $row->channel);
-            $params = ['module' => 'orders', 'q' => $row->order_number];
+            $params = ['module' => 'orders', 'q' => DisplayNumber::reference($row->id)];
             if ($channel === 'b2c') {
                 $params['store_id'] = (int) $row->store_id;
                 if ($actor->hasRole('SUPER_ADMIN')) {
@@ -193,7 +194,8 @@ final class Customer360Controller extends Controller
 
             return [
                 'id' => (int) $row->id,
-                'number' => (string) $row->order_number,
+                'number' => DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->order_number,
                 'store' => (string) ($row->store_name ?? '-'),
                 'channel' => $channel,
                 'channel_label' => $this->businessLabel($channel),
@@ -234,7 +236,8 @@ final class Customer360Controller extends Controller
 
             return [
                 'id' => (int) $row->id,
-                'number' => (string) $row->invoice_number,
+                'number' => DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->invoice_number,
                 'store' => (string) ($row->store_name ?? '-'),
                 'channel' => strtolower((string) $row->channel),
                 'channel_label' => $this->businessLabel(strtolower((string) $row->channel)),

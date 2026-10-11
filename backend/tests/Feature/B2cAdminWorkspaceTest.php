@@ -81,7 +81,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('EGP 20.00')
             ->assertDontSee('KWD')
             ->assertSee('زيت زيتون عضوي')
-            ->assertSee('#1245')
+            ->assertSee('#'.$order)
             ->assertSee('--foodex-green:#158A3A', false);
 
         $this->actingAs($user)
@@ -126,10 +126,12 @@ class B2cAdminWorkspaceTest extends TestCase
             ['store_id' => $mine, 'customer_id' => $mineCustomer, 'b2c_customer_id' => $mineDomainCustomer, 'order_number' => 'MINE-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'EGP', 'subtotal' => 5, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 5, 'created_at' => now(), 'updated_at' => now()],
             ['store_id' => $other, 'customer_id' => $otherCustomer, 'b2c_customer_id' => $otherDomainCustomer, 'order_number' => 'OTHER-ORDER', 'channel' => 'b2c', 'status' => 'processing', 'currency' => 'EGP', 'subtotal' => 9, 'discount_total' => 0, 'delivery_total' => 0, 'grand_total' => 9, 'created_at' => now(), 'updated_at' => now()],
         ]);
+        $mineOrder = (int) DB::table('orders')->where('order_number', 'MINE-ORDER')->value('id');
+        $otherOrder = (int) DB::table('orders')->where('order_number', 'OTHER-ORDER')->value('id');
 
         $this->actingAs($user)->get('/admin/b2c/products')->assertOk()->assertSee('Mine Product')->assertDontSee('Other Product');
         $this->actingAs($user)->get('/admin/b2c/inventory')->assertOk()->assertSee('Mine Warehouse')->assertSee('6')->assertDontSee('Other Warehouse');
-        $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('MINE-ORDER')->assertSee('Mine Customer')->assertDontSee('OTHER-ORDER');
+        $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('#'.$mineOrder)->assertSee('Mine Customer')->assertDontSee('Other Customer');
         $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.00')->assertDontSee('Other Customer');
     }
 
@@ -218,19 +220,22 @@ class B2cAdminWorkspaceTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $retailOrderId = (int) DB::table('orders')->where('order_number', 'RETAIL-INCOMING-1001')->value('id');
+        $wholesaleOrderId = (int) DB::table('orders')->where('order_number', 'WHOLESALE-MERCHANT-2001')->value('id');
+
         $this->actingAs($admin)
             ->get('/admin/b2c/incoming_orders')
             ->assertOk()
             ->assertSee('Wholesale Purchases')
-            ->assertSee('WHOLESALE-MERCHANT-2001')
+            ->assertSee('#'.$wholesaleOrderId)
             ->assertSee('Make available for sale')
             ->assertSee('Received in Retail inventory')
-            ->assertDontSee('RETAIL-INCOMING-1001');
+            ->assertDontSee('Retail Buyer');
 
         $this->actingAs($admin)
             ->get('/admin/b2c/orders')
             ->assertOk()
-            ->assertSee('RETAIL-INCOMING-1001')
+            ->assertSee('#'.$retailOrderId)
             ->assertDontSee('WHOLESALE-MERCHANT-2001');
     }
 

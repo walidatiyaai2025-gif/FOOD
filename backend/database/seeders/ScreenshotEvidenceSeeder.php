@@ -257,7 +257,18 @@ class ScreenshotEvidenceSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+        $catalogId = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'code' => 'evidence-wholesale',
+            'name' => 'FOODEX Wholesale Evidence Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
         $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalogId,
             'category_id' => $categoryId,
             'unit_id' => $unitId,
             'sku' => 'FOODEX-B2B-001',

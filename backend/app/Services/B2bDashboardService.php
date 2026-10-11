@@ -171,7 +171,8 @@ final class B2bDashboardService
             ])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
-                'number' => (string) $row->order_number,
+                'number' => DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->order_number,
                 'status' => (string) $row->status,
                 'amount' => round((float) $row->grand_total, 3),
                 'currency' => (string) $row->currency,
@@ -286,14 +287,14 @@ final class B2bDashboardService
             ->whereNotNull('b2b_customer_id')
             ->whereIn('status', ['delivered', 'completed'])
             ->latest('updated_at')
-            ->first(['order_number']);
+            ->first(['id', 'order_number']);
 
         if ($delivered !== null) {
             $alerts[] = [
                 'key' => 'delivered',
                 'icon' => 'delivery',
                 'title' => 'delivered',
-                'body' => (string) $delivered->order_number,
+                'body' => DisplayNumber::reference($delivered->id),
                 'tone' => 'green',
                 'url' => route('admin.b2b.module', ['module' => 'orders']),
             ];
@@ -307,14 +308,14 @@ final class B2bDashboardService
             ->where('invoices.due_at', '<', now())
             ->whereNotIn('invoices.status', ['paid', 'settled', 'cancelled', 'void'])
             ->orderBy('invoices.due_at')
-            ->first(['invoices.invoice_number', 'invoices.total', 'invoices.currency']);
+            ->first(['invoices.id', 'invoices.invoice_number', 'invoices.total', 'invoices.currency']);
 
         if ($overdue !== null) {
             $alerts[] = [
                 'key' => 'overdue_invoice',
                 'icon' => 'revenue',
                 'title' => 'overdue_invoice',
-                'body' => $overdue->currency.' '.DisplayNumber::money((float) $overdue->total, $overdue->currency).' · '.$overdue->invoice_number,
+                'body' => $overdue->currency.' '.DisplayNumber::money((float) $overdue->total, $overdue->currency).' · '.DisplayNumber::reference($overdue->id),
                 'tone' => 'orange',
                 'url' => route('admin.b2b.module', ['module' => 'finance']),
             ];

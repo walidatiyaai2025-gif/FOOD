@@ -14,6 +14,7 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\InvoiceService;
 use App\Services\ReportExportService;
+use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -51,7 +52,21 @@ class B2bFinanceController extends Controller
             ->when($storeId, fn ($query, int $id) => $query->where('store_id', $id))
             ->when($filters['from'] ?? null, fn ($query, string $from) => $query->whereDate('issued_at', '>=', $from))
             ->when($filters['to'] ?? null, fn ($query, string $to) => $query->whereDate('issued_at', '<=', $to))
-            ->when($search !== '', fn ($query) => $query->where('invoice_number', 'like', '%'.addcslashes($search, '%_\\').'%'))
+            ->when($search !== '', function ($query) use ($search): void {
+                $needle = '%'.addcslashes($search, '%_\\').'%';
+                $displayId = DisplayNumber::referenceId($search);
+
+                $query->where(function ($nested) use ($needle, $displayId): void {
+                    if ($displayId !== null) {
+                        $nested->where('id', $displayId)
+                            ->orWhere('invoice_number', 'like', $needle);
+
+                        return;
+                    }
+
+                    $nested->where('invoice_number', 'like', $needle);
+                });
+            })
             ->latest('issued_at')
             ->latest('id')
             ->get()
@@ -165,7 +180,7 @@ class B2bFinanceController extends Controller
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$invoice->invoice_number.'.pdf"',
+            'Content-Disposition' => 'attachment; filename="invoice-'.(int) $invoice->getKey().'.pdf"',
             'Cache-Control' => 'private, no-store',
         ]);
     }
@@ -314,6 +329,7 @@ class B2bFinanceController extends Controller
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
+            'display_invoice_number' => DisplayNumber::reference($invoice->getKey()),
             'status' => (string) $invoice->status,
             'display_status' => $displayStatus,
             'currency' => (string) $invoice->currency,
@@ -330,6 +346,7 @@ class B2bFinanceController extends Controller
             'store_id' => $invoice->store_id === null ? null : (int) $invoice->store_id,
             'order_id' => $invoice->order_id === null ? null : (int) $invoice->order_id,
             'order_number' => $invoice->order_number_snapshot,
+            'display_order_number' => $invoice->order_id === null ? '—' : DisplayNumber::reference($invoice->order_id),
             'issued_at' => $invoice->issued_at,
             'due_at' => $invoice->due_at,
             'payment_method' => $invoice->payment_method_snapshot,

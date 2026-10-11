@@ -25,6 +25,7 @@ use App\Services\OrderManualDispatchService;
 use App\Services\VanDeliveryEvidenceService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
+use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,7 +92,21 @@ final class OrderOperationsController extends Controller
             ->when(isset($data['to']), fn ($query) => $query->whereDate('created_at', '<=', $data['to']))
             ->when(
                 isset($data['order_number']) && trim((string) $data['order_number']) !== '',
-                fn ($query) => $query->where('order_number', 'like', '%'.trim((string) $data['order_number']).'%'),
+                function ($query) use ($data): void {
+                    $search = trim((string) $data['order_number']);
+                    $displayId = DisplayNumber::referenceId($search);
+
+                    $query->where(function ($nested) use ($search, $displayId): void {
+                        if ($displayId !== null) {
+                            $nested->where('id', $displayId)
+                                ->orWhere('order_number', 'like', '%'.$search.'%');
+
+                            return;
+                        }
+
+                        $nested->where('order_number', 'like', '%'.$search.'%');
+                    });
+                },
             )
             ->when(
                 isset($data['driver_id']),
@@ -375,8 +390,8 @@ final class OrderOperationsController extends Controller
                 'order' => $order->getKey(),
             ])
             ->with('status', $this->msg(
-                'تم إنشاء الطلب '.$order->order_number.'.',
-                'Order '.$order->order_number.' created.',
+                'تم إنشاء الطلب '.DisplayNumber::reference($order->getKey()).'.',
+                'Order '.DisplayNumber::reference($order->getKey()).' created.',
             ));
     }
 
@@ -653,10 +668,10 @@ final class OrderOperationsController extends Controller
         $notification = Notification::query()->create([
             'channel' => 'both',
             'type' => 'order.driver_reminder',
-            'title' => 'تذكير بالطلب '.$model->order_number,
+            'title' => 'تذكير بالطلب '.DisplayNumber::reference($model->getKey()),
             'body' => 'يوجد طلب يحتاج متابعتك الآن.',
-            'title_ar' => 'تذكير بالطلب '.$model->order_number,
-            'title_en' => 'Order reminder '.$model->order_number,
+            'title_ar' => 'تذكير بالطلب '.DisplayNumber::reference($model->getKey()),
+            'title_en' => 'Order reminder '.DisplayNumber::reference($model->getKey()),
             'body_ar' => 'يوجد طلب يحتاج متابعتك الآن.',
             'body_en' => 'This order needs your attention now.',
             'audience' => 'driver',
@@ -668,7 +683,8 @@ final class OrderOperationsController extends Controller
             'published_at' => now(),
             'data' => [
                 'order_id' => (int) $model->getKey(),
-                'order_number' => (string) $model->order_number,
+                'order_number' => DisplayNumber::reference($model->getKey()),
+                'internal_order_number' => (string) $model->order_number,
                 'channel' => (string) $model->channel,
                 'driver_id' => (int) $driver->id,
                 'assignment_id' => (int) $assignment->getKey(),
@@ -1068,7 +1084,8 @@ final class OrderOperationsController extends Controller
 
         return [
             'id' => (int) $order->getKey(),
-            'number' => (string) $order->order_number,
+            'number' => DisplayNumber::reference($order->getKey()),
+            'internal_number' => (string) $order->order_number,
             'channel' => strtolower((string) $order->channel),
             'store_id' => (int) $order->store_id,
             'store' => $storeLabel,

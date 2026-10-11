@@ -39,8 +39,8 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders')
             ->assertOk()
-            ->assertSee('OPS-MINE-1001')
-            ->assertDontSee('OPS-FOREIGN-2001');
+            ->assertSee('#'.$mineOrder)
+            ->assertDontSee('Foreign Buyer');
 
         $this->actingAs($admin)->get('/admin/operations/orders?store_id='.$foreign)->assertNotFound();
         $this->actingAs($admin)->get('/admin/operations/orders?order='.$foreignOrder)->assertNotFound();
@@ -265,15 +265,26 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders')
             ->assertOk()
-            ->assertSee('OPS-WHOLESALE-ONLY-2001')
-            ->assertDontSee('OPS-ROGUE-WHOLESALE-3001')
-            ->assertDontSee('OPS-RETAIL-ONLY-1001');
+            ->assertViewHas('rows', function (array $rows) use ($wholesaleOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$wholesaleOrder];
+            })
+            ->assertSee('#'.$wholesaleOrder);
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c&store_id='.$retailStore)
             ->assertOk()
-            ->assertSee('OPS-RETAIL-ONLY-1001')
-            ->assertDontSee('OPS-WHOLESALE-ONLY-2001');
+            ->assertViewHas('rows', function (array $rows) use ($retailOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$retailOrder];
+            })
+            ->assertSee('#'.$retailOrder);
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c&order='.$wholesaleOrder)
@@ -371,8 +382,8 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=all')
             ->assertOk()
-            ->assertSee('OPS-ALL-RETAIL-1001')
-            ->assertSee('OPS-ALL-WHOLESALE-2001')
+            ->assertSee('#'.$retailOrder)
+            ->assertSee('#'.$wholesaleOrder)
             ->assertDontSee('OPS-ALL-ROGUE-3001')
             ->assertSee('Customer checkout')
             ->assertSee('Dashboard')
@@ -446,7 +457,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=assigned')
             ->assertOk()
-            ->assertSee('OPS-DISPATCH-1001')
+            ->assertSee('#'.$order)
             ->assertSee('Dispatch Driver')
             ->assertSee('data-order-dispatch-driver', false)
             ->assertDontSee('data-order-dispatch-van', false);
@@ -474,7 +485,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=awaiting_dispatch')
             ->assertOk()
-            ->assertSee('OPS-DISPATCH-1001')
+            ->assertSee('#'.$order)
             ->assertSee('This order requires a Customer Service dispatch decision.');
     }
 
@@ -553,7 +564,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
-            ->assertSee('OPS-B2B-PENDING-DISPATCH')
+            ->assertSee('#'.$order)
             ->assertSee('data-order-dispatch-workspace', false)
             ->assertSee('data-order-dispatch-van', false)
             ->assertDontSee('data-order-dispatch-driver', false);
@@ -1005,15 +1016,15 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('data-order-status-tabs', false)
             ->assertSee('data-order-status-tab="pending"', false)
             ->assertSee('data-order-status-tab="delivered"', false)
-            ->assertDontSee('OPS-TABS-FOREIGN-DELIVERED');
+            ->assertDontSee('Foreign Tabs Buyer');
 
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&status=delivered')
             ->assertOk()
             ->assertSee('data-order-status-selected="delivered"', false)
-            ->assertSee('OPS-TABS-DELIVERED')
+            ->assertSee('#'.$deliveredOrder)
             ->assertDontSee('OPS-TABS-PENDING')
-            ->assertDontSee('OPS-TABS-FOREIGN-DELIVERED');
+            ->assertDontSee('Foreign Tabs Buyer');
     }
 
     public function test_dashboard_rejects_inactive_lookup_status_and_illegal_lifecycle_jump(): void

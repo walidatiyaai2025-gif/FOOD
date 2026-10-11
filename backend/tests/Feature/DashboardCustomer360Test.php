@@ -72,10 +72,9 @@ class DashboardCustomer360Test extends TestCase
             ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
             ->assertOk()
             ->assertSee('Retail A')
-            ->assertSee('INV-A')
+            ->assertSee('#'.$invoiceA)
             ->assertDontSee('Wholesale account & finance')
-            ->assertDontSee('Retail B')
-            ->assertDontSee('INV-B');
+            ->assertDontSee('Retail B');
 
         $this->actingAs($admin)
             ->get(route('admin.customer-360.show', ['platformCustomer' => $foreignPlatform->id]))

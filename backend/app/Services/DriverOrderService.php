@@ -8,6 +8,7 @@ use App\Models\DriverAssignment;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -237,6 +238,8 @@ final class DriverOrderService
             'available_statuses' => $this->availableStatuses($assignment, $order),
             'order' => [
                 'number' => (string) $order->order_number,
+                'display_number' => DisplayNumber::reference($order->getKey()),
+                'internal_number' => (string) $order->order_number,
                 'status' => (string) $order->status,
                 'currency' => (string) $order->currency,
                 'subtotal' => (float) $order->subtotal,
@@ -276,6 +279,8 @@ final class DriverOrderService
                 'invoice' => $invoice === null ? null : [
                     'id' => (int) $invoice->id,
                     'number' => (string) $invoice->invoice_number,
+                    'display_number' => DisplayNumber::reference($invoice->id),
+                    'internal_number' => (string) $invoice->invoice_number,
                     'revision' => (int) ($invoice->revision ?? 1),
                     'status' => (string) $invoice->status,
                     'currency' => (string) $invoice->currency,
@@ -318,6 +323,8 @@ final class DriverOrderService
             'available_statuses' => [],
             'order' => [
                 'number' => (string) $order->order_number,
+                'display_number' => DisplayNumber::reference($order->getKey()),
+                'internal_number' => (string) $order->order_number,
                 'status' => (string) $order->status,
                 'created_at' => $order->created_at,
             ],

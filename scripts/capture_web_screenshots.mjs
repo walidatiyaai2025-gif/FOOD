@@ -30,7 +30,7 @@ const b2c = [
   ['09_واجهة_المتجر_ومعاينة_المتجر', '/admin/b2c/storefront-preview'],
   ['10_المحتوى_والبانرات', '/admin/b2c/content'],
   ['11_التقارير_والتحليلات_وإعدادات_المتجر', '/admin/b2c/reports'],
-  ['14_التحكم_التجاري_للمنتجات', '/admin/b2c/commercial/sales-control'],
+  ['14_التحكم_التجاري_للمنتجات', '/admin/b2b/commercial/sales-control'],
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
@@ -427,7 +427,7 @@ async function captureMobileSettingsParityEvidence(page, locale) {
 async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = []) {
   await page.setViewportSize({ width: 1280, height: 900 });
 
-  let response = await page.goto(`${baseUrl}/admin/b2c/commercial/sales-control`, {
+  let response = await page.goto(`${baseUrl}/admin/b2b/commercial/sales-control`, {
     waitUntil: 'networkidle',
   });
   if (!response || !response.ok() || page.url().includes('/login')) {
@@ -638,7 +638,7 @@ async function captureLocale(browser, locale) {
     locale,
     'B2C_Admin',
     'sales-control',
-    '/admin/b2c/commercial/sales-control',
+    '/admin/b2b/commercial/sales-control',
   );
   await captureResponsiveRoute(
     page,
@@ -740,9 +740,10 @@ async function captureLocale(browser, locale) {
     `${baseUrl}/admin/operations/orders?channel=b2c&order_number=FOODEX-EVID-LOC-1`,
     { waitUntil: 'networkidle' },
   );
+  // The filter uses the immutable internal reference, while the UI intentionally
+  // renders the short customer-facing display number (#ID).
   const orderLocationLink = page.locator(
     'td a[href*="order="]',
-    { hasText: 'FOODEX-EVID-LOC-1' },
   ).first();
   if (await orderLocationLink.count() !== 1) {
     throw new Error('Deterministic delivery-location order evidence was not found.');

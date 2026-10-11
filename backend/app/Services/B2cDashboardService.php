@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -244,7 +245,8 @@ final class B2cDashboardService
             ->get()
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
-                'number' => (string) $row->order_number,
+                'number' => DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->order_number,
                 'status' => (string) $row->status,
                 'amount' => round((float) $row->grand_total, 3),
                 'currency' => (string) $row->currency,
@@ -295,20 +297,26 @@ final class B2cDashboardService
             ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id')
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2c')
-            ->where(function (Builder $query) use ($needle): void {
+            ->where(function (Builder $query) use ($needle, $term): void {
                 $query->where('orders.order_number', 'like', $needle)
                     ->orWhere('b2c_customers.name', 'like', $needle)
                     ->orWhere('legacy_customers.name', 'like', $needle);
+
+                $shortId = DisplayNumber::referenceId($term);
+                if ($shortId !== null) {
+                    $query->orWhere('orders.id', $shortId);
+                }
             })
             ->latest('orders.created_at')
             ->limit(4)
             ->get([
+                'orders.id',
                 'orders.order_number',
                 DB::raw("COALESCE(b2c_customers.name, legacy_customers.name, '-') as name"),
             ])
             ->map(fn (object $row): array => [
                 'type' => 'order',
-                'title' => (string) $row->order_number,
+                'title' => DisplayNumber::reference($row->id),
                 'subtitle' => (string) $row->name,
                 'route' => route('admin.b2c.module', ['module' => 'orders']),
             ]);

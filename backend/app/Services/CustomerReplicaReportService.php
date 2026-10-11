@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\B2bCustomer;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
@@ -104,7 +105,7 @@ final class CustomerReplicaReportService
 
             return [
                 'date' => CarbonImmutable::parse((string) ($row->issued_at ?? $row->invoice_created_at))->format('Y/m/d'),
-                'movement_number' => (string) $row->invoice_number,
+                'movement_number' => DisplayNumber::reference($row->invoice_id),
                 'movement_type' => $isReturn ? 'مرتجعات' : 'مبيعات',
                 'customer' => (string) $customer->name,
                 'item' => (string) $row->description,

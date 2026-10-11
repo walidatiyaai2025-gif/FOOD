@@ -126,7 +126,7 @@
             identity.append(create('span', '', labels.phone + ': ' + customerPhone));
         }
 
-        const number = create('div', 'foodex-new-order-popup-number', item.order_number || ('#' + item.order_id));
+        const number = create('div', 'foodex-new-order-popup-number', '#' + item.order_id);
         const meta = create('div', 'foodex-new-order-popup-meta');
         const channel = create('span', '', labels.channel + ': ' + String(item.channel || '').toUpperCase());
         const store = create('span', '', labels.store + ': ' + (item.store_name || ('#' + item.store_id)));

@@ -1216,7 +1216,7 @@ void main() {
 
       expect(api.lastPath, '/api/v1/b2b/orders/4');
       expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
-      expect(find.text('FDX-B2B-4'), findsOneWidget);
+      expect(find.text('#4'), findsOneWidget);
       expect(find.text('Wholesale Store'), findsOneWidget);
       await _scrollUntilBuilt(
         tester,
@@ -1615,7 +1615,7 @@ void main() {
 
       expect(api.lastPath, '/api/v1/b2b/orders/77');
       expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
-      expect(find.text('B2B-77'), findsOneWidget);
+      expect(find.text('#77'), findsOneWidget);
     },
   );
 
@@ -1663,12 +1663,12 @@ void main() {
 
       expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
       expect(find.byKey(const ValueKey('b2b-order-row-91')), findsOneWidget);
-      expect(find.text('B2B-91'), findsOneWidget);
+      expect(find.text('#91'), findsOneWidget);
       expect(find.text('FOODEX Wholesale'), findsOneWidget);
       expect(find.text('جاهز'), findsOneWidget);
       expect(find.text('KWD 42.5'), findsOneWidget);
 
-      await tester.tap(find.text('B2B-91'));
+      await tester.tap(find.text('#91'));
       await tester.pumpAndSettle();
 
       expect(api.lastPath, '/api/v1/b2b/orders/91');
@@ -1919,7 +1919,7 @@ void main() {
       expect(api.lastPath, '/api/v1/b2b/orders/78');
       expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
       expect(find.text('Order details'), findsOneWidget);
-      expect(find.text('B2B-78'), findsOneWidget);
+      expect(find.text('#78'), findsOneWidget);
       expect(find.text('Wholesale Store'), findsOneWidget);
       expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
       expect(
@@ -2327,7 +2327,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('B2B-77'), findsOneWidget);
+      expect(find.text('#77'), findsOneWidget);
       expect(api.lastPath, contains('store_id=7'));
 
       await tester.tap(
@@ -2416,7 +2416,7 @@ void main() {
             },
           ],
         },
-        expected: 'INV-31',
+        expected: '#31',
       ),
       (
         route: '/b2b/account-statement',
@@ -2435,7 +2435,7 @@ void main() {
             },
           ],
         },
-        expected: 'B2B-77',
+        expected: '#77',
       ),
       (
         route: '/b2b/cart?store=7',
@@ -2763,7 +2763,7 @@ void main() {
     expect(find.textContaining('5.000 KWD'), findsWidgets);
     expect(find.textContaining('15.000 KWD'), findsWidgets);
 
-    await tester.tap(find.text('INV-31'));
+    await tester.tap(find.text('#31'));
     await tester.pumpAndSettle();
 
     expect(find.text('/b2b/invoices/31'), findsNothing);
@@ -2877,7 +2877,7 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-settlement-strip')),
         findsOneWidget,
       );
-      expect(find.text('INV-31'), findsOneWidget);
+      expect(find.text('#31'), findsOneWidget);
       expect(find.textContaining('FOODEX Wholesale'), findsOneWidget);
       expect(find.textContaining('Buyer Co'), findsOneWidget);
       expect(

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -295,6 +296,7 @@ class B2bReportController extends Controller
             ->map(static fn (object $order): array => [
                 'id' => (int) $order->id,
                 'order_number' => (string) $order->order_number,
+                'display_order_number' => DisplayNumber::reference($order->id),
                 'store_id' => (int) $order->store_id,
                 'status' => (string) $order->status,
                 'currency' => (string) $order->currency,

@@ -29,20 +29,24 @@ final class B2bFinanceFilterExportTest extends TestCase
         [$legacyA, $customerA] = $this->customer('Alpha Buyer', 'Alpha Company');
         [$legacyB, $customerB] = $this->customer('Beta Buyer', 'Beta Company');
 
-        $this->invoice($principal, $legacyA, $customerA, 'INV-A-IN', '2026-10-02', 25, 10);
-        $this->invoice($principal, $legacyA, $customerA, 'INV-A-OLD', '2026-09-20', 15, 0);
-        $this->invoice($principal, $legacyB, $customerB, 'INV-B-IN', '2026-10-02', 40, 40);
-        $this->invoice($foreignStore, $legacyA, $customerA, 'INV-FOREIGN', '2026-10-02', 999, 999);
+        $invoiceAIn = $this->invoice($principal, $legacyA, $customerA, 'INV-A-IN', '2026-10-02', 25, 10);
+        $invoiceAOld = $this->invoice($principal, $legacyA, $customerA, 'INV-A-OLD', '2026-09-20', 15, 0);
+        $invoiceBIn = $this->invoice($principal, $legacyB, $customerB, 'INV-B-IN', '2026-10-02', 40, 40);
+        $invoiceForeign = $this->invoice($foreignStore, $legacyA, $customerA, 'INV-FOREIGN', '2026-10-02', 999, 999);
 
         $admin = $this->admin('finance-filter@example.test');
 
         $this->actingAs($admin)
             ->get('/admin/b2b/finance?from=2026-10-01&to=2026-10-03&customer_id='.$customerA)
             ->assertOk()
-            ->assertSee('INV-A-IN')
-            ->assertDontSee('INV-A-OLD')
-            ->assertDontSee('INV-B-IN')
-            ->assertDontSee('INV-FOREIGN')
+            ->assertViewHas('moduleData', function (array $data) use ($invoiceAIn): bool {
+                return collect($data['rows'] ?? [])
+                    ->pluck('_id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$invoiceAIn];
+            })
+            ->assertSee('#'.$invoiceAIn)
             ->assertSee('Alpha Company');
     }
 
@@ -52,8 +56,8 @@ final class B2bFinanceFilterExportTest extends TestCase
         [$legacyA, $customerA] = $this->customer('Alpha Export', 'Alpha Export Company');
         [$legacyB, $customerB] = $this->customer('Beta Export', 'Beta Export Company');
 
-        $this->invoice($principal, $legacyA, $customerA, 'INV-XLSX-KEEP', '2026-10-02', 75, 25);
-        $this->invoice($principal, $legacyB, $customerB, 'INV-XLSX-DROP', '2026-10-02', 80, 80);
+        $invoiceKeep = $this->invoice($principal, $legacyA, $customerA, 'INV-XLSX-KEEP', '2026-10-02', 75, 25);
+        $invoiceDrop = $this->invoice($principal, $legacyB, $customerB, 'INV-XLSX-DROP', '2026-10-02', 80, 80);
 
         $admin = $this->admin('finance-export@example.test', 'ar');
         $query = '?from=2026-10-01&to=2026-10-03&customer_id='.$customerA;
@@ -72,8 +76,8 @@ final class B2bFinanceFilterExportTest extends TestCase
         @unlink($path);
 
         $this->assertIsString($sheet);
-        $this->assertStringContainsString('INV-XLSX-KEEP', $sheet);
-        $this->assertStringNotContainsString('INV-XLSX-DROP', $sheet);
+        $this->assertStringContainsString('#'.$invoiceKeep, $sheet);
+        $this->assertStringNotContainsString('#'.$invoiceDrop, $sheet);
         $this->assertStringContainsString('75', $sheet);
         $this->assertStringContainsString('25', $sheet);
 
@@ -138,7 +142,7 @@ final class B2bFinanceFilterExportTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/b2b/finance?finance_tab=invoices')
             ->assertOk()
-            ->assertSee('INV-VAN-PAID')
+            ->assertSee('#'.$invoice)
             ->assertSee('Paid in full')
             ->assertSee('KWD 100.000')
             ->assertSee('KWD 0.000');
@@ -148,21 +152,21 @@ final class B2bFinanceFilterExportTest extends TestCase
     {
         $principal = app(WholesalePrincipal::class)->storeId();
         [$legacy, $customer] = $this->customer('Tabbed Buyer', 'Tabbed Company');
-        $this->invoice($principal, $legacy, $customer, 'INV-TABS-ONLY', '2026-10-02', 55, 0);
+        $invoice = $this->invoice($principal, $legacy, $customer, 'INV-TABS-ONLY', '2026-10-02', 55, 0);
         $admin = $this->admin('finance-tabs@example.test');
 
         $this->actingAs($admin)
             ->get('/admin/b2b/finance?finance_tab=invoices')
             ->assertOk()
             ->assertSee('Invoices &amp; settlement', false)
-            ->assertSee('INV-TABS-ONLY')
+            ->assertSee('#'.$invoice)
             ->assertDontSee('Collections, custody &amp; remittance', false);
 
         $this->actingAs($admin)
             ->get('/admin/b2b/finance?finance_tab=operations&ops_tab=collections')
             ->assertOk()
             ->assertSee('Collections, custody &amp; remittance', false)
-            ->assertDontSee('INV-TABS-ONLY');
+            ->assertDontSee('Tabbed Company');
     }
 
     /** @return array{0:int,1:int} */

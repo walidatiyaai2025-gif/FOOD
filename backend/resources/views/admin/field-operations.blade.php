@@ -242,7 +242,7 @@
                 </tr></thead><tbody>
                 @forelse($b2bOrders as $order)
                     <tr data-van-b2b-order="{{ $order->id }}">
-                        <td><strong>{{ $order->order_number }}</strong><div class="fieldops-muted">{{ $order->assigned_at }}</div></td>
+                        <td><strong>{{ \App\Support\DisplayNumber::reference($order->id) }}</strong><div class="fieldops-muted">{{ $order->assigned_at }}</div></td>
                         <td>{{ __('order_operations.business_labels.'.$order->order_status) }}</td>
                         <td>{{ __('order_operations.business_labels.'.$order->assignment_status) }} · {{ __('order_operations.business_labels.'.$order->source) }}</td>
                         <td>
@@ -393,13 +393,13 @@
             @forelse($visits as $visit)
                 @php($allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string)$visit->status))
                 @php($visitOrder=$visit->order_id ? $visitOrders->firstWhere('id',$visit->order_id) : null)
-                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ __('field_operations.customer_types.'.$visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder?->order_number ?: ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
+                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ __('field_operations.customer_types.'.$visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder ? \App\Support\DisplayNumber::reference($visitOrder->id) : ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
                     @if($canManageVan && $allowed !== [])
                     <details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                         <form method="post" action="{{ route('admin.field-operations.visits.transition',$visit) }}">@csrf
                             <select name="status">@foreach($allowed as $target)<option value="{{ $target }}">{{ __('field_operations.visit_statuses.'.$target) }}</option>@endforeach</select>
                             <select name="no_order_reason_id"><option value="">{{ __('field_operations.no_order_reason') }}</option>@foreach($reasons as $reason)<option value="{{ $reason->id }}">{{ $reason->localized_label }}</option>@endforeach</select>
-                            <select name="order_id" data-order-lookup><option value="">{{ __('field_operations.no_linked_order') }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ $order->order_number ?: __('field_operations.order') }} · {{ __('field_operations.order_statuses.'.$order->status) }}</option>@endforeach</select>
+                            <select name="order_id" data-order-lookup><option value="">{{ __('field_operations.no_linked_order') }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ \App\Support\DisplayNumber::reference($order->id) }} · {{ __('field_operations.order_statuses.'.$order->status) }}</option>@endforeach</select>
                             <button type="submit">{{ __('field_operations.apply') }}</button>
                         </form>
                     </div></details>

@@ -829,7 +829,8 @@ class DriverAssignmentLifecycleTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $secondId)
-            ->assertJsonPath('data.0.order.number', $order->order_number);
+            ->assertJsonPath('data.0.order.number', $order->order_number)
+            ->assertJsonPath('data.0.order.display_number', '#'.$order->id);
 
         Sanctum::actingAs($admin);
         $this->deleteJson('/api/v1/admin/deliveries/orders/'.$order->id, [
