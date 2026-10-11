@@ -1007,6 +1007,9 @@ class _OrderCard extends StatelessWidget {
                 Text(
                   '${context.tr('customer.orders.financial.balance_applied')}: ${foodexMoneyText(appliedCredit, order.currency)}',
                   key: ValueKey('customer-order-balance-applied-${order.id}'),
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
               if (onTap != null) ...[

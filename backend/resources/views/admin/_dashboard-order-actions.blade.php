@@ -191,11 +191,11 @@
                 </div>
             @endif
             @if($row['_payment'])
-                <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $paymentLabels[$row['_payment']['provider']] ?? str_replace('_',' ',$row['_payment']['provider']) }} · {{ $paymentLabels[$row['_payment']['status']] ?? $row['_payment']['status'] }} · {{ \App\Support\DisplayNumber::money($row['_payment']['amount'], $row['_payment']['currency']) }} {{ $row['_payment']['currency'] }}</div>
+                <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $paymentLabels[$row['_payment']['provider']] ?? str_replace('_',' ',$row['_payment']['provider']) }} · {{ $paymentLabels[$row['_payment']['status']] ?? __('customer_360.business_labels.unknown') }} · {{ \App\Support\DisplayNumber::money($row['_payment']['amount'], $row['_payment']['currency']) }} {{ $row['_payment']['currency'] }}</div>
             @endif
             @if($row['_invoice'])
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $stateLabels[$row['_invoice']['status']] ?? $row['_invoice']['status'] }} · {{ \App\Support\DisplayNumber::money($row['_invoice']['total'], $row['_invoice']['currency']) }} {{ $row['_invoice']['currency'] }}</span>
+                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $stateLabels[$row['_invoice']['status']] ?? __('customer_360.business_labels.unknown') }} · {{ \App\Support\DisplayNumber::money($row['_invoice']['total'], $row['_invoice']['currency']) }} {{ $row['_invoice']['currency'] }}</span>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id']]) }}">{{ app()->getLocale()==='ar'?'عرض':'View' }}</a>
                     <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$row['_invoice']['id'],'locale'=>app()->getLocale()]) }}">PDF</a>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id'],'print'=>1]) }}">{{ app()->getLocale()==='ar'?'طباعة':'Print' }}</a>
