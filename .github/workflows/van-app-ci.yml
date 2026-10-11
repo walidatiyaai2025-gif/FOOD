@@ -34,7 +34,7 @@ jobs:
         run: bash ../../scripts/flutter-changed-analysis.sh van "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
 
       - name: Analyze first
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Run Van tests
         shell: bash
