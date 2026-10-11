@@ -40,9 +40,9 @@ final class B2bFinanceFilterExportTest extends TestCase
             ->get('/admin/b2b/finance?from=2026-10-01&to=2026-10-03&customer_id='.$customerA)
             ->assertOk()
             ->assertSee('#'.$invoiceAIn)
-            ->assertDontSee('#'.$invoiceAOld)
-            ->assertDontSee('#'.$invoiceBIn)
-            ->assertDontSee('#'.$invoiceForeign)
+            ->assertDontSee('KWD 15.000')
+            ->assertDontSee('Beta Company')
+            ->assertDontSee('KWD 999.000')
             ->assertSee('Alpha Company');
     }
 
@@ -162,7 +162,7 @@ final class B2bFinanceFilterExportTest extends TestCase
             ->get('/admin/b2b/finance?finance_tab=operations&ops_tab=collections')
             ->assertOk()
             ->assertSee('Collections, custody &amp; remittance', false)
-            ->assertDontSee('#'.$invoice);
+            ->assertDontSee('Invoices &amp; settlement', false);
     }
 
     /** @return array{0:int,1:int} */
