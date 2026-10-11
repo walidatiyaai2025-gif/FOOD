@@ -205,37 +205,25 @@ final class StorefrontController extends Controller
             ->all();
 
         $retailContexts = $customers->entitledRetailStoreIds($user);
-        $hasDirectB2b = DB::table('b2b_customers')
+        $principalCandidateId = app(WholesalePrincipal::class)->storeId();
+        $directB2bQuery = DB::table('b2b_customers')
             ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->where('b2b_customers.user_id', $user->getKey())
-            ->where('b2b_accounts.status', 'active')
-            ->whereNotNull('b2b_accounts.price_tier_id')
-            ->exists();
+            ->where('b2b_accounts.status', 'active');
+        if (app(B2bPricingMode::class)->tiersEnabled($principalCandidateId)) {
+            $directB2bQuery->whereNotNull('b2b_accounts.price_tier_id');
+        }
+        $hasDirectB2b = $directB2bQuery->exists();
 
         $support = $user->hasRole('SUPER_ADMIN') && $request->boolean('support');
         $wholesaleStores = [];
         $principalWholesaleStoreId = null;
         if ($hasDirectB2b || $retailContexts !== [] || $support) {
+            $principalWholesaleStoreId = $principalCandidateId;
             $wholesaleQuery = DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->where('stores.is_active', true)
                 ->where('store_types.code', 'B2B');
-
-            $configuredCode = trim((string) config('foodex.platform_wholesale_store_code', ''));
-            $principalWholesaleStoreId = $configuredCode !== ''
-                ? (clone $wholesaleQuery)
-                    ->where('stores.code', $configuredCode)
-                    ->value('stores.id')
-                : (clone $wholesaleQuery)
-                    ->orderBy('stores.id')
-                    ->value('stores.id');
-
-            abort_if(
-                $principalWholesaleStoreId === null,
-                503,
-                'Principal Wholesale store is not available.',
-            );
-            $principalWholesaleStoreId = (int) $principalWholesaleStoreId;
 
             $wholesaleStores = $wholesaleQuery
                 ->where('stores.id', $principalWholesaleStoreId)

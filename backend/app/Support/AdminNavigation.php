@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Services\B2bPricingMode;
+use App\Services\WholesalePrincipal;
 use Illuminate\Support\Facades\Route;
 
 class AdminNavigation
@@ -33,6 +35,8 @@ class AdminNavigation
     {
         $channels = $this->for($user);
         $isSuperAdmin = $user->hasRole('SUPER_ADMIN');
+        $wholesalePricingEnabled = isset($channels['b2b'])
+            && app(B2bPricingMode::class)->tiersEnabled(app(WholesalePrincipal::class)->storeId());
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
@@ -56,7 +60,9 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_workspace.modules.products', 'catalog.view'),
                 $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_workspace.modules.inventory', 'inventory.view'),
-                $this->module($user, $channels, 'b2b', 'pricing', 'admin.b2b_workspace.modules.pricing', 'b2b.pricing.view'),
+                $wholesalePricingEnabled
+                    ? $this->module($user, $channels, 'b2b', 'pricing', 'admin.b2b_workspace.modules.pricing', 'b2b.pricing.view')
+                    : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')

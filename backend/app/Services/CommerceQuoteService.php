@@ -133,7 +133,7 @@ final class CommerceQuoteService
         }
 
         $b2bContext = $channel === 'b2b'
-            ? $this->b2bContext($customer)
+            ? $this->b2bContext($customer, $storeId)
             : ['account' => null, 'tier' => null];
 
         $lines = [];
@@ -547,7 +547,7 @@ final class CommerceQuoteService
     }
 
     /** @return array{account:B2bAccount|null,tier:B2bPriceTier|null} */
-    private function b2bContext(B2bCustomer $customer): array
+    private function b2bContext(B2bCustomer $customer, int $storeId): array
     {
         $account = B2bAccount::query()
             ->where('b2b_customer_id', $customer->getKey())
@@ -555,6 +555,10 @@ final class CommerceQuoteService
             ->first();
 
         abort_unless($account instanceof B2bAccount, 403, 'An active B2B account is required.');
+
+        if (! app(B2bPricingMode::class)->tiersEnabled($storeId)) {
+            return ['account' => $account, 'tier' => null];
+        }
 
         $tier = $account->price_tier_id === null
             ? null

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\DB;
 
 final class ProductAvailabilityService
 {
+    public function __construct(private readonly WholesalePrincipal $principal) {}
+
     public const AVAILABLE = 'AVAILABLE';
 
     public const OUT_OF_STOCK = 'OUT_OF_STOCK';
@@ -13,12 +15,23 @@ final class ProductAvailabilityService
     /** @return array{available_quantity:float|null,is_available:bool,availability_state:string} */
     public function forStoreProduct(int $storeId, int $productId): array
     {
-        $rows = DB::table('inventories')
+        $query = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
             ->where('warehouses.store_id', $storeId)
             ->where('warehouses.is_active', true)
-            ->where('inventories.product_id', $productId)
-            ->get(['inventories.quantity', 'inventories.reserved_quantity']);
+            ->where('inventories.product_id', $productId);
+
+        $isWholesale = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('store_types.code', 'B2B')
+            ->exists();
+
+        if ($isWholesale) {
+            $query->where('warehouses.id', $this->principal->warehouseId());
+        }
+
+        $rows = $query->get(['inventories.quantity', 'inventories.reserved_quantity']);
 
         $available = $rows->isEmpty()
             ? null

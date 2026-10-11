@@ -95,12 +95,14 @@ class FoodexSectionHeader extends StatelessWidget {
     required this.title,
     required this.palette,
     this.action = 'عرض الكل',
+    this.onAction,
     super.key,
   });
 
   final String title;
   final String action;
   final FoodexPalette palette;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -117,14 +119,28 @@ class FoodexSectionHeader extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              action,
-              style: TextStyle(
-                color: palette.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+            if (onAction == null)
+              Text(
+                action,
+                style: TextStyle(
+                  color: palette.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            else
+              TextButton(
+                key: ValueKey('section-action-' + title),
+                onPressed: onAction,
+                child: Text(
+                  action,
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       );

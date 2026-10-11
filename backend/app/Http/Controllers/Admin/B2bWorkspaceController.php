@@ -24,6 +24,7 @@ use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\B2bCustomerService;
 use App\Services\B2bDashboardService;
+use App\Services\B2bPricingMode;
 use App\Services\B2bFinanceInvoiceService;
 use App\Services\CatalogOwnership;
 use App\Services\CollectionCustodyService;
@@ -80,6 +81,7 @@ class B2bWorkspaceController extends Controller
         private readonly LookupScopeService $lookups,
         private readonly AuditLogger $audit,
         private readonly WholesalePrincipal $principal,
+        private readonly B2bPricingMode $pricingMode,
     ) {}
 
     public function show(Request $request, string $module = 'dashboard'): View|Response
@@ -88,6 +90,10 @@ class B2bWorkspaceController extends Controller
         abort_unless(array_key_exists($module, self::MODULE_PERMISSIONS), 404);
         $this->authorizeModule($user, $module);
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
+
+        $principalStoreId = $this->principal->storeId();
+        $pricingTiersEnabled = $this->pricingMode->tiersEnabled($principalStoreId);
+        abort_if($module === 'pricing' && ! $pricingTiersEnabled, 404);
 
         $storeIds = $this->wholesaleStoreIds($user);
         if ($module === 'finance' && $request->filled('export')) {
@@ -126,7 +132,6 @@ class B2bWorkspaceController extends Controller
 
         $navGroups = $this->navigation->groupsFor($user);
         $navContext = 'b2b_'.$module;
-        $principalStoreId = $this->principal->storeId();
         $canViewDriverTracking = $module === 'dashboard'
             && in_array(
                 $principalStoreId,
@@ -181,7 +186,8 @@ class B2bWorkspaceController extends Controller
         }
         $visibleModules = array_values(array_filter(
             array_keys(self::MODULE_PERMISSIONS),
-            fn (string $candidate): bool => $this->canOpenModule($user, $candidate),
+            fn (string $candidate): bool => $this->canOpenModule($user, $candidate)
+                && ($candidate !== 'pricing' || $pricingTiersEnabled),
         ));
 
         return view('admin.b2b-workspace', compact(
@@ -434,6 +440,7 @@ class B2bWorkspaceController extends Controller
     {
         $actor = $this->actor($request);
         $storeId = $this->principal->storeId();
+        abort_unless($this->pricingMode->tiersEnabled($storeId), 409, 'B2B pricing tiers are disabled.');
         $this->operationalScope->assertStore($actor, $storeId, 'b2b.pricing.manage', 'b2b');
         $request->merge(['store_id' => $storeId]);
 
@@ -514,11 +521,14 @@ class B2bWorkspaceController extends Controller
             'sku' => ['required', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'price' => ['nullable', 'numeric', 'gte:0'],
+            'price' => ['required', 'numeric', 'gte:0'],
+            'quantity' => ['required', 'numeric', 'gte:0'],
+            'low_stock_threshold' => ['required', 'numeric', 'gte:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $storeId = $this->principal->storeId();
+        $warehouseId = $this->principal->warehouseId();
         $this->operationalScope->assertStore($actor, $storeId, 'catalog.create', 'b2b');
         $catalog = $this->catalogs->defaultCatalogForStore($storeId, 'b2b');
         $categoryId = isset($data['category_id']) ? (int) $data['category_id'] : null;
@@ -533,7 +543,7 @@ class B2bWorkspaceController extends Controller
             throw ValidationException::withMessages(['sku' => [$this->msg('SKU مستخدم داخل كتالوج الجملة.', 'The SKU is already used in this wholesale catalog.')]]);
         }
 
-        $product = DB::transaction(function () use ($data, $request, $catalog, $categoryId, $brandId, $storeId): Product {
+        $product = DB::transaction(function () use ($data, $request, $catalog, $categoryId, $brandId, $storeId, $warehouseId): Product {
             $product = Product::query()->create([
                 'catalog_id' => $catalog->id,
                 'category_id' => $categoryId,
@@ -542,14 +552,24 @@ class B2bWorkspaceController extends Controller
                 'sku' => $data['sku'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
+                'low_stock_threshold' => $data['low_stock_threshold'],
                 'is_active' => $request->boolean('is_active', true),
             ]);
 
             DB::table('store_products')->insert([
                 'store_id' => $storeId,
                 'product_id' => $product->id,
-                'price' => $data['price'] ?? null,
+                'price' => $data['price'],
                 'is_active' => $request->boolean('is_active', true),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('inventories')->insert([
+                'warehouse_id' => $warehouseId,
+                'product_id' => $product->id,
+                'quantity' => $data['quantity'],
+                'reserved_quantity' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -560,10 +580,12 @@ class B2bWorkspaceController extends Controller
         $this->audit->record('b2b.product.created', $actor, $product, null, [
             ...$product->toArray(),
             'store_id' => $storeId,
-            'price' => $data['price'] ?? null,
+            'warehouse_id' => $warehouseId,
+            'price' => $data['price'],
+            'quantity' => $data['quantity'],
         ], $request);
 
-        return back()->with('status', $this->msg('تم إنشاء منتج الجملة.', 'Wholesale product created.'));
+        return back()->with('status', $this->msg('تم إنشاء منتج الجملة مع السعر والمخزون.', 'Wholesale product, price and stock created.'));
     }
 
     public function updateProduct(Request $request, Product $product): RedirectResponse
@@ -578,6 +600,7 @@ class B2bWorkspaceController extends Controller
         abort_unless($owner !== null, 404);
         $storeId = (int) $owner->store_id;
         abort_unless($storeId === $this->principal->storeId(), 404);
+        $warehouseId = $this->principal->warehouseId();
         $this->operationalScope->assertStore($actor, $storeId, 'catalog.edit', 'b2b');
 
         $data = $request->validate([
@@ -587,7 +610,9 @@ class B2bWorkspaceController extends Controller
             'sku' => ['required', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'price' => ['nullable', 'numeric', 'gte:0'],
+            'price' => ['required', 'numeric', 'gte:0'],
+            'quantity' => ['required', 'numeric', 'gte:0'],
+            'low_stock_threshold' => ['required', 'numeric', 'gte:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -609,7 +634,23 @@ class B2bWorkspaceController extends Controller
         }
 
         $before = $product->toArray();
-        DB::transaction(function () use ($product, $data, $request, $categoryId, $brandId, $storeId): void {
+        DB::transaction(function () use ($product, $data, $request, $categoryId, $brandId, $storeId, $warehouseId): void {
+            $inventory = DB::table('inventories')
+                ->where('warehouse_id', $warehouseId)
+                ->where('product_id', $product->id)
+                ->lockForUpdate()
+                ->first(['id', 'reserved_quantity']);
+
+            $reserved = (float) ($inventory->reserved_quantity ?? 0);
+            if ((float) $data['quantity'] + 0.0001 < $reserved) {
+                throw ValidationException::withMessages([
+                    'quantity' => [$this->msg(
+                        'لا يمكن أن تكون الكمية أقل من الكمية المحجوزة للطلبات الحالية.',
+                        'Quantity cannot be lower than stock reserved by current orders.',
+                    )],
+                ]);
+            }
+
             $product->update([
                 'category_id' => $categoryId,
                 'brand_id' => $brandId,
@@ -617,84 +658,106 @@ class B2bWorkspaceController extends Controller
                 'sku' => $data['sku'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
+                'low_stock_threshold' => $data['low_stock_threshold'],
                 'is_active' => $request->boolean('is_active'),
             ]);
             DB::table('store_products')->updateOrInsert(
                 ['store_id' => $storeId, 'product_id' => $product->id],
                 [
-                    'price' => $data['price'] ?? null,
+                    'price' => $data['price'],
                     'is_active' => $request->boolean('is_active'),
-                    'created_at' => now(),
                     'updated_at' => now(),
                 ],
             );
+
+            if ($inventory === null) {
+                DB::table('inventories')->insert([
+                    'warehouse_id' => $warehouseId,
+                    'product_id' => $product->id,
+                    'quantity' => $data['quantity'],
+                    'reserved_quantity' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('inventories')->where('id', $inventory->id)->update([
+                    'quantity' => $data['quantity'],
+                    'updated_at' => now(),
+                ]);
+            }
         });
         $product->refresh();
         $this->audit->record('b2b.product.updated', $actor, $product, [...$before, 'store_id' => $storeId], [
             ...$product->toArray(),
             'store_id' => $storeId,
-            'price' => $data['price'] ?? null,
+            'warehouse_id' => $warehouseId,
+            'price' => $data['price'],
+            'quantity' => $data['quantity'],
         ], $request);
 
-        return back()->with('status', $this->msg('تم تحديث منتج الجملة.', 'Wholesale product updated.'));
+        return back()->with('status', $this->msg('تم تحديث المنتج والسعر والمخزون.', 'Product, price and stock updated.'));
     }
 
     public function storeWarehouse(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
-        $data = $request->validate([
-            'code' => ['required', 'string', 'max:80', 'unique:warehouses,code'],
-            'name' => ['required', 'string', 'max:255'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
         $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'inventory.manage', 'b2b');
+        $this->principal->warehouseId();
 
-        $warehouseId = (int) DB::table('warehouses')->insertGetId([
-            'store_id' => $storeId,
-            'code' => $data['code'],
-            'name' => $data['name'],
-            'is_active' => $request->boolean('is_active', true),
-            'created_at' => now(),
-            'updated_at' => now(),
+        throw ValidationException::withMessages([
+            'warehouse' => [$this->msg(
+                'الجملة تستخدم مخزناً رئيسياً واحداً فقط. عدّل مخزون المنتج من شاشة المنتجات.',
+                'Wholesale uses one principal warehouse. Manage product stock from Products.',
+            )],
         ]);
-        $this->audit->record('b2b.warehouse.created', $actor, null, null, [
-            'id' => $warehouseId,
-            'store_id' => $storeId,
-            'code' => $data['code'],
-            'name' => $data['name'],
-        ], $request);
-
-        return back()->with('status', $this->msg('تم إنشاء مخزن الجملة.', 'Wholesale warehouse created.'));
     }
 
     public function ensureInventory(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
         $data = $request->validate([
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['required', 'numeric', 'gte:0'],
         ]);
 
-        $warehouse = DB::table('warehouses')->where('id', $data['warehouse_id'])->first(['id', 'store_id']);
-        abort_unless($warehouse !== null && $warehouse->store_id !== null, 404);
-        $storeId = (int) $warehouse->store_id;
-        abort_unless($storeId === $this->principal->storeId(), 404);
+        $storeId = $this->principal->storeId();
+        $warehouseId = $this->principal->warehouseId();
         $this->operationalScope->assertStore($actor, $storeId, 'inventory.manage', 'b2b');
         $this->operationalScope->assertProductOwnedByStore((int) $data['product_id'], $storeId);
 
-        DB::table('inventories')->updateOrInsert(
-            ['warehouse_id' => $warehouse->id, 'product_id' => $data['product_id']],
-            [
-                'quantity' => $data['quantity'],
-                'reserved_quantity' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+        DB::transaction(function () use ($warehouseId, $data): void {
+            $inventory = DB::table('inventories')
+                ->where('warehouse_id', $warehouseId)
+                ->where('product_id', $data['product_id'])
+                ->lockForUpdate()
+                ->first(['id', 'reserved_quantity']);
 
-        return back()->with('status', $this->msg('تم إنشاء/تحديث رصيد الجملة.', 'Wholesale inventory balance created/updated.'));
+            $reserved = (float) ($inventory->reserved_quantity ?? 0);
+            if ((float) $data['quantity'] + 0.0001 < $reserved) {
+                throw ValidationException::withMessages([
+                    'quantity' => ['Quantity cannot be lower than reserved stock.'],
+                ]);
+            }
+
+            if ($inventory === null) {
+                DB::table('inventories')->insert([
+                    'warehouse_id' => $warehouseId,
+                    'product_id' => $data['product_id'],
+                    'quantity' => $data['quantity'],
+                    'reserved_quantity' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('inventories')->where('id', $inventory->id)->update([
+                    'quantity' => $data['quantity'],
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        return back()->with('status', $this->msg('تم تحديث رصيد المخزن الرئيسي.', 'Principal warehouse balance updated.'));
     }
 
     public function adjustInventory(Request $request, int $inventory): RedirectResponse
@@ -745,6 +808,35 @@ class B2bWorkspaceController extends Controller
         });
 
         return back()->with('status', $this->msg('تم تعديل مخزون الجملة.', 'Wholesale inventory adjusted.'));
+    }
+
+    public function savePricingMode(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'settings.manage', 'b2b');
+        $enabled = (bool) $data['enabled'];
+
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $storeId, 'key' => B2bPricingMode::SETTING_KEY],
+            [
+                'value' => json_encode($enabled, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'updated_at' => now(),
+            ],
+        );
+        $this->audit->record('b2b.pricing_mode.updated', $actor, null, null, [
+            'store_id' => $storeId,
+            'enabled' => $enabled,
+        ], $request);
+
+        return back()->with('status', $this->msg(
+            $enabled ? 'تم تفعيل شرائح التسعير.' : 'تم إيقاف شرائح التسعير واعتماد سعر المنتج.',
+            $enabled ? 'Pricing tiers enabled.' : 'Pricing tiers disabled; product base price is authoritative.',
+        ));
     }
 
     public function saveSetting(Request $request): RedirectResponse
@@ -976,6 +1068,7 @@ class B2bWorkspaceController extends Controller
                     'value' => $this->displaySettingValue($row->value),
                 ])->all(),
             'actions' => $actions,
+            'pricing_tiers_enabled' => $this->pricingMode->tiersEnabled($this->principal->storeId()),
         ];
     }
 
@@ -993,8 +1086,10 @@ class B2bWorkspaceController extends Controller
 
     private function inventoryModuleData(array $storeIds): array
     {
+        $principalWarehouseId = $this->principal->warehouseId();
         $rows = DB::table('inventories')
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('warehouses.id', $principalWarehouseId)
             ->join('products', 'products.id', '=', 'inventories.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->whereIn('warehouses.store_id', $storeIds)
@@ -1026,6 +1121,7 @@ class B2bWorkspaceController extends Controller
             'columns' => ['warehouse', 'sku', 'product', 'quantity', 'reserved', 'available', 'actions'],
             'rows' => $rows,
             'warehouses' => DB::table('warehouses')
+                ->where('id', $principalWarehouseId)
                 ->whereIn('store_id', $storeIds)
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -1052,6 +1148,7 @@ class B2bWorkspaceController extends Controller
 
     private function productModuleData(array $storeIds, User $user): array
     {
+        $warehouseId = $this->principal->warehouseId();
         $rows = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->leftJoin('store_products', function ($join): void {
@@ -1072,16 +1169,17 @@ class B2bWorkspaceController extends Controller
                 'products.sku',
                 'products.name',
                 'products.description',
+                'products.low_stock_threshold',
                 'products.is_active',
                 'store_products.price',
             ])
-            ->map(function ($row): array {
-                $stock = DB::table('inventories')
-                    ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
-                    ->where('warehouses.store_id', $row->store_id)
-                    ->where('inventories.product_id', $row->product_id)
-                    ->selectRaw('COALESCE(SUM(inventories.quantity - inventories.reserved_quantity), 0) as available')
-                    ->value('available');
+            ->map(function ($row) use ($warehouseId): array {
+                $inventory = DB::table('inventories')
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('product_id', $row->product_id)
+                    ->first(['quantity', 'reserved_quantity']);
+                $quantity = (float) ($inventory->quantity ?? 0);
+                $reserved = (float) ($inventory->reserved_quantity ?? 0);
 
                 return [
                     '_id' => (int) $row->product_id,
@@ -1090,10 +1188,14 @@ class B2bWorkspaceController extends Controller
                     '_brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
                     '_unit_id' => (int) $row->unit_id,
                     '_description' => $row->description,
+                    '_quantity' => $quantity,
+                    '_reserved_quantity' => $reserved,
+                    '_low_stock_threshold' => (float) $row->low_stock_threshold,
                     'sku' => $row->sku,
                     'name' => $row->name,
                     'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
-                    'available' => number_format((float) $stock, 3),
+                    'available' => number_format(max(0, $quantity - $reserved), 3),
+                    'low_stock_threshold' => number_format((float) $row->low_stock_threshold, 3),
                     'status' => (bool) $row->is_active,
                     'actions' => true,
                 ];
@@ -1115,7 +1217,7 @@ class B2bWorkspaceController extends Controller
             ->all();
 
         return [
-            'columns' => ['sku', 'name', 'price', 'available', 'status', 'actions'],
+            'columns' => ['sku', 'name', 'price', 'available', 'low_stock_threshold', 'status', 'actions'],
             'rows' => $rows,
             'categories' => $categories,
             'brands' => DB::table('brands')

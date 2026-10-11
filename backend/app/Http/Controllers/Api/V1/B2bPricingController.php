@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Pricing\B2bPriceResolver;
 use App\Http\Controllers\Controller;
 use App\Models\B2bAccount;
 use App\Models\B2bPriceRule;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bPricingMode;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +18,11 @@ use Illuminate\Support\Facades\Gate;
 
 class B2bPricingController extends Controller
 {
-    public function __construct(private readonly ProductAvailabilityService $availability) {}
+    public function __construct(
+        private readonly ProductAvailabilityService $availability,
+        private readonly B2bPriceResolver $prices,
+        private readonly B2bPricingMode $pricingMode,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -43,6 +49,8 @@ class B2bPricingController extends Controller
             'retail_reference_price' => ['nullable', 'numeric', 'gte:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+        abort_unless($this->pricingMode->tiersEnabled((int) $data['store_id']), 409, 'B2B pricing tiers are disabled.');
+
         $ownedProduct = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('stores', 'stores.id', '=', 'catalogs.store_id')
@@ -80,68 +88,73 @@ class B2bPricingController extends Controller
         abort_unless($user instanceof User, 401, 'Unauthenticated.');
 
         $customer = app(CustomerDomainResolver::class)->b2bFromRequest($user, $request);
+        $validated = $request->validate([
+            'store_id' => ['required', 'integer', 'min:1'],
+        ]);
+        $storeId = (int) $validated['store_id'];
+        $tiersEnabled = $this->pricingMode->tiersEnabled($storeId);
 
         $account = B2bAccount::query()
             ->where('b2b_customer_id', $customer->getKey())
             ->where('status', 'active')
             ->first();
         abort_unless(
-            $account instanceof B2bAccount && $account->price_tier_id !== null,
+            $account instanceof B2bAccount && (! $tiersEnabled || $account->price_tier_id !== null),
             403,
             'Approved B2B pricing account is required.',
         );
 
-        $validated = $request->validate([
-            'store_id' => ['required', 'integer', 'min:1'],
-        ]);
-        $storeId = (int) $validated['store_id'];
-
-        $row = DB::table('b2b_price_rules')
-            ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+        $query = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')
-                    ->on('store_products.store_id', '=', 'b2b_price_rules.store_id');
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
             })
-            ->join('stores', 'stores.id', '=', 'b2b_price_rules.store_id')
+            ->join('stores', 'stores.id', '=', 'catalogs.store_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id')
-            ->where('b2b_price_rules.price_tier_id', $account->price_tier_id)
-            ->where('b2b_price_rules.store_id', $storeId)
-            ->where('b2b_price_rules.product_id', $product)
-            ->where('b2b_price_rules.is_active', true)
-            ->where('products.is_active', true)
+            ->where('products.id', $product)
             ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', 'b2b')
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
             ->where('store_products.is_active', true)
+            ->whereNotNull('store_products.price')
             ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2B')
-            ->first([
-                'products.id',
-                'products.sku',
-                'products.name',
-                'products.description',
-                'products.category_id',
-                'products.brand_id',
-                DB::raw('(select name from categories where categories.id = products.category_id limit 1) as category_name'),
-                DB::raw('(select image_path from categories where categories.id = products.category_id limit 1) as category_image_path'),
-                DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
-                DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
-                'store_products.price as base_wholesale_price',
-                'b2b_price_rules.unit_price',
-                'b2b_price_rules.retail_reference_price',
-                'b2b_price_rules.minimum_quantity',
-                'b2b_price_rules.ordering_increment',
-                'b2b_price_rules.pack_size',
-                'b2b_price_rules.case_size',
-                'b2b_price_rules.pack_label',
-                'b2b_price_tiers.code as price_tier',
-            ]);
+            ->where('store_types.code', 'B2B');
 
+        if ($tiersEnabled) {
+            $query
+                ->join('b2b_price_rules', function ($join) use ($account, $storeId): void {
+                    $join->on('b2b_price_rules.product_id', '=', 'products.id')
+                        ->where('b2b_price_rules.store_id', '=', $storeId)
+                        ->where('b2b_price_rules.price_tier_id', '=', (int) $account->price_tier_id)
+                        ->where('b2b_price_rules.is_active', '=', true);
+                })
+                ->join('b2b_price_tiers', 'b2b_price_tiers.id', '=', 'b2b_price_rules.price_tier_id');
+        }
+
+        $columns = [
+            'products.id',
+            'products.sku',
+            'products.name',
+            'products.description',
+            'products.category_id',
+            'products.brand_id',
+            DB::raw('(select name from categories where categories.id = products.category_id limit 1) as category_name'),
+            DB::raw('(select image_path from categories where categories.id = products.category_id limit 1) as category_image_path'),
+            DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
+            DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
+            'store_products.price as base_wholesale_price',
+        ];
+        if ($tiersEnabled) {
+            $columns[] = 'b2b_price_tiers.code as price_tier';
+        }
+
+        $row = $query->first($columns);
         abort_if($row === null, 404, 'B2B product is not available for this account and store.');
 
+        $pricing = $this->prices->resolve($customer, $storeId, $product);
         $availability = $this->availability->forStoreProduct($storeId, $product);
 
         $images = DB::table('product_images')
@@ -169,15 +182,18 @@ class B2bPricingController extends Controller
             'image_url' => $images[0] ?? null,
             'images' => $images,
             'store_id' => $storeId,
-            'base_wholesale_price' => $row->base_wholesale_price === null ? null : (float) $row->base_wholesale_price,
-            'account_price' => (float) $row->unit_price,
-            'retail_reference_price' => $row->retail_reference_price === null ? null : (float) $row->retail_reference_price,
-            'minimum_order_quantity' => (float) $row->minimum_quantity,
-            'ordering_increment' => (float) $row->ordering_increment,
-            'pack_size' => (float) $row->pack_size,
-            'case_size' => $row->case_size === null ? null : (float) $row->case_size,
-            'pack_label' => $row->pack_label,
-            'price_tier' => (string) $row->price_tier,
+            'base_wholesale_price' => (float) $row->base_wholesale_price,
+            'account_price' => $pricing['price'],
+            'unit_price' => $pricing['price'],
+            'retail_reference_price' => $pricing['retail_reference_price'],
+            'minimum_quantity' => $pricing['minimum_quantity'],
+            'minimum_order_quantity' => $pricing['minimum_quantity'],
+            'ordering_increment' => $pricing['ordering_increment'],
+            'pack_size' => $pricing['pack_size'],
+            'case_size' => $pricing['case_size'],
+            'pack_label' => $pricing['pack_label'],
+            'price_tier' => $tiersEnabled ? (string) ($row->price_tier ?? '') : null,
+            'pricing_tiers_enabled' => $tiersEnabled,
             ...$availability,
             'currency' => 'EGP',
         ]);
@@ -188,34 +204,43 @@ class B2bPricingController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401, 'Unauthenticated.');
         $customer = app(CustomerDomainResolver::class)->b2bFromRequest($user, $request);
-        $account = B2bAccount::query()->where('b2b_customer_id', $customer->getKey())->where('status', 'active')->first();
-        abort_unless($account instanceof B2bAccount && $account->price_tier_id !== null, 403, 'Approved B2B pricing account is required.');
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:120'],
             'category_id' => ['nullable', 'integer', 'min:1'],
+            'brand_id' => ['nullable', 'integer', 'min:1'],
         ]);
         $storeId = (int) $validated['store_id'];
         $search = trim((string) ($validated['q'] ?? ''));
         $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
+        $brandId = isset($validated['brand_id']) ? (int) $validated['brand_id'] : null;
+        $tiersEnabled = $this->pricingMode->tiersEnabled($storeId);
 
-        $query = DB::table('b2b_price_rules')
-            ->join('products', 'products.id', '=', 'b2b_price_rules.product_id')
+        $account = B2bAccount::query()
+            ->where('b2b_customer_id', $customer->getKey())
+            ->where('status', 'active')
+            ->first();
+        abort_unless(
+            $account instanceof B2bAccount && (! $tiersEnabled || $account->price_tier_id !== null),
+            403,
+            'Approved B2B pricing account is required.',
+        );
+
+        $query = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
-                $join->on('store_products.product_id', '=', 'products.id')->on('store_products.store_id', '=', 'b2b_price_rules.store_id');
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
             })
-            ->join('stores', 'stores.id', '=', 'b2b_price_rules.store_id')
+            ->join('stores', 'stores.id', '=', 'catalogs.store_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('b2b_price_rules.price_tier_id', $account->price_tier_id)
-            ->where('b2b_price_rules.store_id', $storeId)
-            ->where('b2b_price_rules.is_active', true)
-            ->where('products.is_active', true)
             ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', 'b2b')
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
             ->where('store_products.is_active', true)
+            ->whereNotNull('store_products.price')
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
@@ -224,9 +249,19 @@ class B2bPricingController extends Controller
                     ->orWhere('products.sku', 'like', $like)
                     ->orWhere('products.barcode', 'like', $like);
             }))
-            ->when($categoryId !== null, fn ($query) => $query->where('products.category_id', $categoryId));
+            ->when($categoryId !== null, fn ($query) => $query->where('products.category_id', $categoryId))
+            ->when($brandId !== null, fn ($query) => $query->where('products.brand_id', $brandId));
 
-        $rows = $query
+        if ($tiersEnabled) {
+            $query->join('b2b_price_rules', function ($join) use ($account, $storeId): void {
+                $join->on('b2b_price_rules.product_id', '=', 'products.id')
+                    ->where('b2b_price_rules.store_id', '=', $storeId)
+                    ->where('b2b_price_rules.price_tier_id', '=', (int) $account->price_tier_id)
+                    ->where('b2b_price_rules.is_active', '=', true);
+            });
+        }
+
+        $baseRows = $query
             ->orderBy('products.id')
             ->get([
                 'products.id',
@@ -235,48 +270,66 @@ class B2bPricingController extends Controller
                 'products.name',
                 'products.category_id',
                 'products.brand_id',
-                'b2b_price_rules.store_id',
+                'catalogs.store_id',
                 'store_products.price as base_wholesale_price',
-                'b2b_price_rules.unit_price',
-                'b2b_price_rules.retail_reference_price',
-                'b2b_price_rules.minimum_quantity',
-                'b2b_price_rules.ordering_increment',
-                'b2b_price_rules.pack_size',
-                'b2b_price_rules.case_size',
-                'b2b_price_rules.pack_label',
                 DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
                 DB::raw('(select name from categories where categories.id = products.category_id limit 1) as category_name'),
                 DB::raw('(select image_path from categories where categories.id = products.category_id limit 1) as category_image_path'),
                 DB::raw('(select name from brands where brands.id = products.brand_id limit 1) as brand_name'),
                 DB::raw('(select image_path from brands where brands.id = products.brand_id limit 1) as brand_image_path'),
-            ])
-            ->map(fn ($row): array => [
-                'id' => (int) $row->id,
-                'sku' => (string) $row->sku,
-                'barcode' => $row->barcode,
-                'name' => (string) $row->name,
-                'category_id' => $row->category_id === null ? null : (int) $row->category_id,
-                'category_name' => $row->category_name,
-                'category_image_url' => $this->assetUrl($row->category_image_path),
-                'brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
-                'brand_name' => $row->brand_name,
-                'brand_image_url' => $this->assetUrl($row->brand_image_path),
-                'store_id' => (int) $row->store_id,
-                'base_wholesale_price' => $row->base_wholesale_price === null ? null : (float) $row->base_wholesale_price,
-                'unit_price' => (float) $row->unit_price,
-                'account_price' => (float) $row->unit_price,
-                'retail_reference_price' => $row->retail_reference_price === null ? null : (float) $row->retail_reference_price,
-                'minimum_quantity' => (float) $row->minimum_quantity,
-                'minimum_order_quantity' => (float) $row->minimum_quantity,
-                'ordering_increment' => (float) $row->ordering_increment,
-                'pack_size' => (float) $row->pack_size,
-                'case_size' => $row->case_size === null ? null : (float) $row->case_size,
-                'pack_label' => $row->pack_label,
-                'image_url' => $this->assetUrl($row->primary_image_path),
-                ...$this->availability->forStoreProduct((int) $row->store_id, (int) $row->id),
             ]);
 
-        return response()->json(['data' => $rows, 'currency' => 'EGP']);
+        $resolved = $this->prices->resolveMany(
+            $customer,
+            $baseRows->map(fn ($row): array => [
+                'store_id' => (int) $row->store_id,
+                'product_id' => (int) $row->id,
+            ])->all(),
+        );
+
+        $rows = $baseRows
+            ->map(function ($row) use ($resolved, $tiersEnabled): ?array {
+                $key = ((int) $row->store_id).':'.((int) $row->id);
+                $pricing = $resolved[$key] ?? null;
+                if ($pricing === null) {
+                    return null;
+                }
+
+                return [
+                    'id' => (int) $row->id,
+                    'sku' => (string) $row->sku,
+                    'barcode' => $row->barcode,
+                    'name' => (string) $row->name,
+                    'category_id' => $row->category_id === null ? null : (int) $row->category_id,
+                    'category_name' => $row->category_name,
+                    'category_image_url' => $this->assetUrl($row->category_image_path),
+                    'brand_id' => $row->brand_id === null ? null : (int) $row->brand_id,
+                    'brand_name' => $row->brand_name,
+                    'brand_image_url' => $this->assetUrl($row->brand_image_path),
+                    'store_id' => (int) $row->store_id,
+                    'base_wholesale_price' => (float) $row->base_wholesale_price,
+                    'unit_price' => $pricing['price'],
+                    'account_price' => $pricing['price'],
+                    'retail_reference_price' => $pricing['retail_reference_price'],
+                    'minimum_quantity' => $pricing['minimum_quantity'],
+                    'minimum_order_quantity' => $pricing['minimum_quantity'],
+                    'ordering_increment' => $pricing['ordering_increment'],
+                    'pack_size' => $pricing['pack_size'],
+                    'case_size' => $pricing['case_size'],
+                    'pack_label' => $pricing['pack_label'],
+                    'pricing_tiers_enabled' => $tiersEnabled,
+                    'image_url' => $this->assetUrl($row->primary_image_path),
+                    ...$this->availability->forStoreProduct((int) $row->store_id, (int) $row->id),
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return response()->json([
+            'data' => $rows,
+            'currency' => 'EGP',
+            'pricing_tiers_enabled' => $tiersEnabled,
+        ]);
     }
 
     private function assetUrl(mixed $path): ?string

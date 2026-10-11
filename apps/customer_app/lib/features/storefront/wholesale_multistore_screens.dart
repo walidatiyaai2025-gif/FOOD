@@ -738,10 +738,12 @@ class _WholesaleCategoryGrid extends StatelessWidget {
   const _WholesaleCategoryGrid({
     required this.rows,
     required this.palette,
+    required this.storeId,
   });
 
   final List<Map<String, dynamic>> rows;
   final FoodexPalette palette;
+  final int storeId;
 
   @override
   Widget build(BuildContext context) {
@@ -771,10 +773,24 @@ class _WholesaleCategoryGrid extends StatelessWidget {
           final id = intValue(category['id']);
           final name = category['name']?.toString().trim();
           final imageUrl = category['image_url']?.toString().trim();
-          return SizedBox(
+          return InkWell(
             key: ValueKey('wholesale-category-$id'),
-            width: 76,
-            child: Column(
+            borderRadius: BorderRadius.circular(18),
+            onTap: storeId > 0
+                ? () => Navigator.of(context).pushNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                          'category_id': id.toString(),
+                        },
+                      ).toString(),
+                    )
+                : null,
+            child: SizedBox(
+              width: 76,
+              child: Column(
               children: [
                 Container(
                   width: 66,
@@ -821,6 +837,7 @@ class _WholesaleCategoryGrid extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           );
         },
       ),
@@ -832,10 +849,12 @@ class _WholesaleBrandRail extends StatelessWidget {
   const _WholesaleBrandRail({
     required this.rows,
     required this.palette,
+    required this.storeId,
   });
 
   final List<Map<String, dynamic>> rows;
   final FoodexPalette palette;
+  final int storeId;
 
   @override
   Widget build(BuildContext context) {

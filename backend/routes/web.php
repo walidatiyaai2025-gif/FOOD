@@ -224,6 +224,7 @@ Route::prefix('admin')
         Route::patch('/b2b/inventory/{inventory}/adjust', [B2bWorkspaceController::class, 'adjustInventory'])->whereNumber('inventory')->name('b2b.inventory.adjust');
         Route::post('/b2b/drivers', [B2bWorkspaceController::class, 'storeDriver'])->name('b2b.drivers.store');
         Route::patch('/b2b/drivers/{driver}/password', [B2bWorkspaceController::class, 'resetDriverPassword'])->whereNumber('driver')->name('b2b.drivers.password');
+        Route::put('/b2b/settings/pricing-tiers', [B2bWorkspaceController::class, 'savePricingMode'])->name('b2b.settings.pricing-tiers');
         Route::put('/b2b/settings', [B2bWorkspaceController::class, 'saveSetting'])->name('b2b.settings.save');
         Route::put('/b2b/storefront/settings', [StorefrontDraftEditorController::class, 'wholesaleSettings'])->name('b2b.storefront.settings');
         Route::post('/b2b/storefront/sections', [StorefrontDraftEditorController::class, 'wholesaleSectionStore'])->name('b2b.storefront.sections.store');
