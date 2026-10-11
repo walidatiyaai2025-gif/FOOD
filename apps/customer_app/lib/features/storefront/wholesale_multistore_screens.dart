@@ -345,7 +345,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
         if (rows.isNotEmpty && !hasProductSection) {
           content.add(
             FoodexSectionHeader(
-              title: 'المنتجات',
+              title: context.tr('customer.products.title'),
               palette: palette,
               onAction: storeId > 0 ? () => openCatalog() : null,
             ),
@@ -402,8 +402,10 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     textInputAction: TextInputAction.search,
                     onSubmitted: (value) =>
                         setState(() => future = _load(value)),
-                    decoration: const InputDecoration(
-                      hintText: 'البحث بالاسم أو SKU أو الباركود',
+                    decoration: InputDecoration(
+                      hintText: context.tr(
+                        'customer.products.search_name_sku_barcode',
+                      ),
                       prefixIcon: Icon(Icons.search_rounded),
                       suffixIcon: Icon(Icons.qr_code_scanner_rounded),
                     ),
@@ -2077,19 +2079,22 @@ class _WholesaleBottomNav extends StatelessWidget {
         );
       }
     },
-    destinations: const [
-      NavigationDestination(icon: Icon(Icons.home_outlined), label: 'الرئيسية'),
+    destinations: [
+      NavigationDestination(
+        icon: Icon(Icons.home_outlined),
+        label: context.tr('customer.nav.home'),
+      ),
       NavigationDestination(
         icon: Icon(Icons.grid_view_rounded),
-        label: 'الكتالوج',
+        label: context.tr('customer.nav.catalog'),
       ),
       NavigationDestination(
         icon: Icon(Icons.shopping_cart_outlined),
-        label: 'السلة',
+        label: context.tr('customer.nav.cart'),
       ),
       NavigationDestination(
         icon: Icon(Icons.receipt_long_outlined),
-        label: 'طلباتي',
+        label: context.tr('customer.profile.orders'),
       ),
     ],
   );
