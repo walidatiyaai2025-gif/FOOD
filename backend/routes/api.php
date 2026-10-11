@@ -174,6 +174,8 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.runtime-inspector.events');
 
         Route::prefix('van')->middleware(EnsureVanRuntimeAccess::class)->group(function (): void {
+            Route::post('/location/heartbeat', [FleetLocationController::class, 'vanRuntimeHeartbeat'])
+                ->middleware('throttle:120,1');
             Route::get('/customers', [VanVisitController::class, 'customers']);
             Route::get('/customers/{type}/{customer}', [VanVisitController::class, 'customer'])
                 ->whereIn('type', ['b2b', 'b2c'])
