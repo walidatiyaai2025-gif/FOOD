@@ -235,6 +235,22 @@ class _WholesaleHomeDesignScreenState
                   ]
                 : sections;
 
+            void openCatalog([
+              Map<String, String> filters = const <String, String>{},
+            ]) {
+              if (storeId <= 0) return;
+              Navigator.of(context).pushNamed(
+                Uri(
+                  path: CustomerRoutePaths.b2bProducts,
+                  queryParameters: <String, String>{
+                    'channel': 'wholesale',
+                    'store_id': storeId.toString(),
+                    ...filters,
+                  },
+                ).toString(),
+              );
+            }
+
             final content = <Widget>[];
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
@@ -252,17 +268,7 @@ class _WholesaleHomeDesignScreenState
                       cta: heroCta,
                       imageUrl: hero['image_url']?.toString(),
                       palette: palette,
-                      onCta: storeId > 0
-                          ? () => Navigator.of(context).pushNamed(
-                                Uri(
-                                  path: CustomerRoutePaths.b2bProducts,
-                                  queryParameters: <String, String>{
-                                    'channel': 'wholesale',
-                                    'store_id': storeId.toString(),
-                                  },
-                                ).toString(),
-                              )
-                          : null,
+                      onCta: storeId > 0 ? () => openCatalog() : null,
                     ),
                   );
                   break;
@@ -272,12 +278,18 @@ class _WholesaleHomeDesignScreenState
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      onAction: storeId > 0
+                          ? () => openCatalog(
+                                const <String, String>{'browse': 'categories'},
+                              )
+                          : null,
                     ),
                   );
                   content.add(
                     _WholesaleCategoryGrid(
                       rows: rows,
                       palette: palette,
+                      storeId: storeId,
                     ),
                   );
                   break;
@@ -286,16 +298,22 @@ class _WholesaleHomeDesignScreenState
                 case 'best_sellers':
                 case 'reorder':
                 case 'product_grid':
-                case 'product_carousel':
+                case 'product_carousel': {
+                  final sectionRows = _wholesaleRowsForSection(rows, section);
                   content.add(
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      onAction: storeId > 0
+                          ? () => openCatalog(
+                                _wholesaleSectionFilters(section),
+                              )
+                          : null,
                     ),
                   );
                   content.add(
                     _WholesaleProductGrid(
-                      rows: rows,
+                      rows: sectionRows,
                       gridMode: true,
                       storeId: storeId,
                       sourceLocation: widget.location,
@@ -304,20 +322,28 @@ class _WholesaleHomeDesignScreenState
                       pendingActionStore: widget.pendingActionStore,
                       palette: palette,
                       maxItems: 4,
+                      showCommerceActions: true,
                     ),
                   );
                   break;
+                }
                 case 'brands':
                   content.add(
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      onAction: storeId > 0
+                          ? () => openCatalog(
+                                const <String, String>{'browse': 'brands'},
+                              )
+                          : null,
                     ),
                   );
                   content.add(
                     _WholesaleBrandRail(
                       rows: rows,
                       palette: palette,
+                      storeId: storeId,
                     ),
                   );
                   break;
@@ -342,6 +368,7 @@ class _WholesaleHomeDesignScreenState
                 FoodexSectionHeader(
                   title: 'المنتجات',
                   palette: palette,
+                  onAction: storeId > 0 ? () => openCatalog() : null,
                 ),
               );
               content.add(
@@ -355,6 +382,7 @@ class _WholesaleHomeDesignScreenState
                   pendingActionStore: widget.pendingActionStore,
                   palette: palette,
                   maxItems: 4,
+                  showCommerceActions: true,
                 ),
               );
             }
@@ -884,46 +912,62 @@ class _WholesaleBrandRail extends StatelessWidget {
           final id = intValue(brand['id']);
           final name = brand['name']?.toString().trim() ?? '';
           final imageUrl = brand['image_url']?.toString().trim();
-          return SizedBox(
+          return InkWell(
             key: ValueKey('wholesale-brand-$id'),
-            width: 76,
-            child: Column(
-              children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: palette.soft),
-                  ),
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Icon(
+            borderRadius: BorderRadius.circular(16),
+            onTap: storeId > 0 && id > 0
+                ? () => Navigator.of(context).pushNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                          'brand_id': id.toString(),
+                          'browse': 'brands',
+                        },
+                      ).toString(),
+                    )
+                : null,
+            child: SizedBox(
+              width: 76,
+              child: Column(
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: palette.soft),
+                    ),
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.sell_outlined,
+                              color: palette.primary,
+                            ),
+                          )
+                        : Icon(
                             Icons.sell_outlined,
                             color: palette.primary,
                           ),
-                        )
-                      : Icon(
-                          Icons.sell_outlined,
-                          color: palette.primary,
-                        ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 5),
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -1072,18 +1116,10 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         quantity: minimum,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          key: ValueKey('wholesale-product-added-$id'),
-          content: Text(context.tr('b2b.catalog.added')),
-          action: SnackBarAction(
-            label: context.tr('b2b.catalog.open_cart'),
-            onPressed: () => Navigator.of(context).pushNamed(
-              '/b2b/cart?channel=wholesale&store_id=' +
-                  widget.storeId.toString(),
-            ),
-          ),
-        ),
+      _showWholesaleCartConfirmation(
+        context,
+        widget.storeId,
+        productId: id,
       );
     } catch (error) {
       if (mounted) {
@@ -1459,6 +1495,10 @@ class _WholesaleCatalogDesignScreenState
   late final int storeId = wholesaleStoreId(widget.location);
   late Future<Map<String, dynamic>> future = _load();
   int? selectedCategoryId;
+  int? selectedBrandId;
+  String? browseMode;
+  String? sectionFilter;
+  Set<int> productFilterIds = <int>{};
   String sortMode = 'default';
   bool gridMode = true;
   int visibleLimit = 24;
@@ -1468,6 +1508,19 @@ class _WholesaleCatalogDesignScreenState
   @override
   void initState() {
     super.initState();
+    final query = Uri.parse(widget.location).queryParameters;
+    final categoryId = int.tryParse(query['category_id'] ?? '');
+    final brandId = int.tryParse(query['brand_id'] ?? '');
+    selectedCategoryId = categoryId != null && categoryId > 0 ? categoryId : null;
+    selectedBrandId = brandId != null && brandId > 0 ? brandId : null;
+    browseMode = query['browse']?.trim();
+    sectionFilter = query['section']?.trim();
+    productFilterIds = (query['product_ids'] ?? '')
+        .split(',')
+        .map((value) => int.tryParse(value.trim()))
+        .whereType<int>()
+        .where((value) => value > 0)
+        .toSet();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -1692,14 +1745,41 @@ class _WholesaleCatalogDesignScreenState
             };
           }
           final categories = categoryMap.values.toList(growable: false);
+          final brandMap = <int, Map<String, dynamic>>{};
+          for (final row in categorySources) {
+            final id = intValue(row['brand_id']);
+            if (id <= 0 || brandMap.containsKey(id)) continue;
+            final name = row['brand_name']?.toString().trim();
+            brandMap[id] = {
+              'id': id,
+              'name': name?.isNotEmpty == true
+                  ? name
+                  : context.tr('b2b.catalog.brand') + ' $id',
+            };
+          }
+          final brands = brandMap.values.toList(growable: false);
 
-          var visibleRows = allRows
-              .where(
-                (row) =>
-                    selectedCategoryId == null ||
-                    intValue(row['category_id']) == selectedCategoryId,
-              )
-              .toList(growable: true);
+          var visibleRows = allRows.where((row) {
+            if (selectedCategoryId != null &&
+                intValue(row['category_id']) != selectedCategoryId) {
+              return false;
+            }
+            if (selectedBrandId != null &&
+                intValue(row['brand_id']) != selectedBrandId) {
+              return false;
+            }
+            if (productFilterIds.isNotEmpty &&
+                !productFilterIds.contains(intValue(row['id']))) {
+              return false;
+            }
+            if (productFilterIds.isEmpty &&
+                sectionFilter != null &&
+                sectionFilter!.isNotEmpty &&
+                !_wholesaleRowMatchesSection(row, sectionFilter!)) {
+              return false;
+            }
+            return true;
+          }).toList(growable: true);
 
           double priceOf(Map<String, dynamic> row) => doubleValue(
                 row['account_price'] ?? row['unit_price'] ?? row['price'],
@@ -1803,6 +1883,45 @@ class _WholesaleCatalogDesignScreenState
                                 onSelected: (_) => setState(() {
                                   selectedCategoryId =
                                       intValue(category['id']);
+                                  visibleLimit = 24;
+                                }),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  if (brands.isNotEmpty &&
+                      (browseMode == 'brands' || selectedBrandId != null))
+                    SizedBox(
+                      key: const ValueKey('wholesale-catalog-brands'),
+                      height: 48,
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 8),
+                            child: ChoiceChip(
+                              key: const ValueKey('wholesale-brand-all'),
+                              label: Text(context.tr('b2b.catalog.all')),
+                              selected: selectedBrandId == null,
+                              onSelected: (_) => setState(() {
+                                selectedBrandId = null;
+                                visibleLimit = 24;
+                              }),
+                            ),
+                          ),
+                          for (final brand in brands)
+                            Padding(
+                              padding: const EdgeInsetsDirectional.only(end: 8),
+                              child: ChoiceChip(
+                                key: ValueKey(
+                                  'wholesale-brand-filter-${brand['id']}',
+                                ),
+                                label: Text(brand['name']?.toString() ?? ''),
+                                selected: selectedBrandId == intValue(brand['id']),
+                                onSelected: (_) => setState(() {
+                                  selectedBrandId = intValue(brand['id']);
                                   visibleLimit = 24;
                                 }),
                               ),
@@ -1968,7 +2087,10 @@ class _WholesaleCatalogDesignScreenState
                     noResults: allRows.isNotEmpty &&
                         visibleRows.isEmpty &&
                         (search.text.trim().isNotEmpty ||
-                            selectedCategoryId != null),
+                            selectedCategoryId != null ||
+                            selectedBrandId != null ||
+                            productFilterIds.isNotEmpty ||
+                            (sectionFilter?.isNotEmpty ?? false)),
                     showCommerceActions: true,
                   ),
                   if (hasMore)
@@ -2039,6 +2161,116 @@ class _WholesaleBottomNav extends StatelessWidget {
           ),
         ],
       );
+}
+
+void _showWholesaleCartConfirmation(
+  BuildContext context,
+  int storeId, {
+  int? productId,
+  String? message,
+}) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.hideCurrentSnackBar();
+  final identity = productId ?? storeId;
+  messenger.showSnackBar(
+    SnackBar(
+      key: ValueKey('wholesale-cart-confirmation-$identity'),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 5),
+      content: Row(
+        children: [
+          Expanded(
+            child: Text(message ?? context.tr('b2b.catalog.added')),
+          ),
+          IconButton(
+            key: ValueKey('wholesale-cart-confirmation-close-$identity'),
+            tooltip: 'Close',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            padding: EdgeInsets.zero,
+            onPressed: messenger.hideCurrentSnackBar,
+            icon: const Icon(Icons.close_rounded, color: Colors.white, size: 19),
+          ),
+        ],
+      ),
+      action: SnackBarAction(
+        label: context.tr('b2b.catalog.open_cart'),
+        onPressed: () => Navigator.of(context).pushNamed(
+          '/b2b/cart?channel=wholesale&store_id=' + storeId.toString(),
+        ),
+      ),
+    ),
+  );
+}
+
+List<Map<String, dynamic>> _wholesaleRowsForSection(
+  List<Map<String, dynamic>> rows,
+  Map<String, dynamic> section,
+) {
+  final config = section['config'] is Map
+      ? Map<String, dynamic>.from(section['config'] as Map)
+      : const <String, dynamic>{};
+  final configuredIds = config['product_ids'] is List
+      ? (config['product_ids'] as List)
+          .map(intValue)
+          .where((id) => id > 0)
+          .toSet()
+      : <int>{};
+  if (configuredIds.isNotEmpty) {
+    return rows
+        .where((row) => configuredIds.contains(intValue(row['id'])))
+        .toList(growable: false);
+  }
+
+  final type = section['type']?.toString() ?? '';
+  final filtered = rows
+      .where((row) => _wholesaleRowMatchesSection(row, type))
+      .toList(growable: false);
+  return filtered.isEmpty ? rows : filtered;
+}
+
+Map<String, String> _wholesaleSectionFilters(Map<String, dynamic> section) {
+  final type = section['type']?.toString().trim() ?? '';
+  final config = section['config'] is Map
+      ? Map<String, dynamic>.from(section['config'] as Map)
+      : const <String, dynamic>{};
+  final ids = config['product_ids'] is List
+      ? (config['product_ids'] as List)
+          .map(intValue)
+          .where((id) => id > 0)
+          .toList(growable: false)
+      : const <int>[];
+  return <String, String>{
+    if (type.isNotEmpty) 'section': type,
+    if (ids.isNotEmpty) 'product_ids': ids.join(','),
+  };
+}
+
+bool _wholesaleRowMatchesSection(
+  Map<String, dynamic> row,
+  String type,
+) {
+  switch (type) {
+    case 'offers':
+      final promotion = row['promotion'];
+      return promotion is Map ||
+          (row['promotion_name']?.toString().trim().isNotEmpty ?? false) ||
+          doubleValue(row['discount_percent'] ?? row['discount_value']) > 0;
+    case 'featured_products':
+      return row['is_featured'] == true || row['featured'] == true;
+    case 'best_sellers':
+      return row['is_best_seller'] == true ||
+          row['best_seller'] == true ||
+          doubleValue(row['sales_count']) > 0;
+    case 'reorder':
+      return row['is_reorder'] == true || row['reorder_candidate'] == true;
+    case 'product_grid':
+    case 'product_carousel':
+    case '':
+      return true;
+    default:
+      return true;
+  }
 }
 
 FoodexPalette _wholesalePalette(Map<String, dynamic> theme) {
@@ -2355,9 +2587,10 @@ class _WholesaleProductDetailsDesignScreenState
         quantity: selectedQuantity,
       );
       if (mounted) {
-        Navigator.of(context).pushNamed(
-          '/b2b/cart?channel=wholesale&store_id=' +
-              storeId.toString(),
+        _showWholesaleCartConfirmation(
+          context,
+          storeId,
+          productId: productId,
         );
       }
     } catch (error) {
