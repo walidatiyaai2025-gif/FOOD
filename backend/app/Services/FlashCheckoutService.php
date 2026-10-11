@@ -351,7 +351,7 @@ final class FlashCheckoutService
 
         [$order, $created] = $result;
         if ($created) {
-            $this->notifier->orderCreated($order);
+            $this->notifier->orderCreated($order, 'customer_app');
         }
 
         return [$order, $created];

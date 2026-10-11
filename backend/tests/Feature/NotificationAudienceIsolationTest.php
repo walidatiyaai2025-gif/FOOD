@@ -295,6 +295,81 @@ class NotificationAudienceIsolationTest extends TestCase
         $this->assertSame($store, (int) $a->store_id);
     }
 
+    public function test_new_order_popup_feed_bootstraps_and_only_streams_customer_app_orders(): void
+    {
+        $store = $this->store('B2C', 'POPUP-RETAIL');
+        $admin = $this->retailAdmin($store, 'popup-retail@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, [
+            'name' => 'Popup Customer',
+        ]);
+
+        $oldOrder = $this->order(
+            $store,
+            'b2c',
+            (int) $customer->legacy_customer_id,
+            null,
+            (int) $customer->getKey(),
+            'POPUP-OLD-1001',
+        );
+        app(DashboardOperationalNotifier::class)->orderCreated($oldOrder, 'customer_app');
+
+        $bootstrap = $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/new-order-feed')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $cacheControl = (string) $bootstrap->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('must-revalidate', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
+
+        $cursor = (int) $bootstrap->json('meta.cursor');
+        $this->assertGreaterThan(0, $cursor);
+
+        $dashboardOrder = $this->order(
+            $store,
+            'b2c',
+            (int) $customer->legacy_customer_id,
+            null,
+            (int) $customer->getKey(),
+            'POPUP-DASH-1002',
+        );
+        app(DashboardOperationalNotifier::class)->orderCreated($dashboardOrder, 'dashboard');
+
+        $appOrder = $this->order(
+            $store,
+            'b2c',
+            (int) $customer->legacy_customer_id,
+            null,
+            (int) $customer->getKey(),
+            'POPUP-APP-1003',
+        );
+        app(DashboardOperationalNotifier::class)->orderCreated($appOrder, 'customer_app');
+
+        $response = $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/new-order-feed?after='.$cursor)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.order_id', $appOrder->id)
+            ->assertJsonPath('data.0.order_number', 'POPUP-APP-1003')
+            ->assertJsonPath('data.0.channel', 'b2c')
+            ->assertJsonPath('data.0.store_id', $store);
+
+        $this->assertStringContainsString(
+            '/admin/operations/orders?channel=b2c&order='.$appOrder->id,
+            (string) $response->json('data.0.url'),
+        );
+        $this->assertGreaterThan($cursor, (int) $response->json('meta.cursor'));
+
+        $notification = Notification::query()
+            ->where('user_id', $admin->id)
+            ->where('type', 'order.created')
+            ->where('data->order_id', $appOrder->id)
+            ->sole();
+        $this->assertSame('customer_app', $notification->data['source'] ?? null);
+    }
+
     private function store(string $typeCode, string $code): int
     {
         $typeId = (int) DB::table('store_types')->where('code', $typeCode)->value('id');

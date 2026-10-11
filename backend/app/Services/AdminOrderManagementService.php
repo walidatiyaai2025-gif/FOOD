@@ -332,7 +332,7 @@ final class AdminOrderManagementService
         }, 3);
 
         $this->routing->routeCreatedOrder($order, $actor, $source);
-        $this->notifier->orderCreated($order->fresh());
+        $this->notifier->orderCreated($order->fresh(), $source);
 
         return $order->fresh();
     }

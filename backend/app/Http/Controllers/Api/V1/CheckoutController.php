@@ -391,7 +391,7 @@ class CheckoutController extends Controller
         $routing->routeCreatedOrder($order, $user, 'customer');
 
         if ($created) {
-            $dashboardNotifier->orderCreated($order->fresh());
+            $dashboardNotifier->orderCreated($order->fresh(), 'customer_app');
         }
 
         return response()->json(
