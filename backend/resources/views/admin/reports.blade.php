@@ -30,6 +30,32 @@ $breakdownHeader = static function (string $key): string {
         ? $translated
         : ucwords(str_replace(['_', '-'], ' ', $key));
 };
+$moneyFields = [
+    'total', 'revenue', 'value', 'amount', 'gross_value',
+    'recognized_revenue', 'average_order_value', 'product_revenue',
+    'customer_value', 'invoice_total', 'paid', 'balance',
+    'opening_balance', 'period_debits', 'period_credits',
+    'closing_balance', 'current_balance', 'debit', 'credit',
+    'running_balance',
+];
+$quantityFields = [
+    'quantity', 'quantity_sold', 'inventory_quantity', 'reserved_quantity',
+];
+$reportValue = static function ($value, string $key) use ($data, $moneyFields, $quantityFields) {
+    if (! is_numeric($value)) {
+        return $value === null || $value === '' ? '—' : $value;
+    }
+
+    if (in_array($key, $moneyFields, true)) {
+        return \App\Support\DisplayNumber::money((float) $value, (string) ($data['currency'] ?? ''));
+    }
+
+    if (in_array($key, $quantityFields, true)) {
+        return \App\Support\DisplayNumber::quantity((float) $value);
+    }
+
+    return is_float($value) ? number_format($value, 3) : number_format((int) $value);
+};
 @endphp
 <div class="layout foodex-admin-layout" data-foodex-utility="reports">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'reports_center', 'user' => auth()->user()])</aside>
@@ -74,7 +100,7 @@ $breakdownHeader = static function (string $key): string {
 
         <div class="kpis">
             @foreach($data['kpis'] as $key => $value)
-                <div class="kpi"><span class="muted">{{ __("reports.kpis.$key") }}</span><strong>{{ is_float($value) ? number_format($value, 3) : number_format($value) }}</strong></div>
+                <div class="kpi"><span class="muted">{{ __("reports.kpis.$key") }}</span><strong>{{ $reportValue($value, (string) $key) }}</strong></div>
             @endforeach
         </div>
 
@@ -88,7 +114,7 @@ $breakdownHeader = static function (string $key): string {
                 <div class="empty">{{ __('reports.empty') }}</div>
             @else
                 <div class="table-wrap"><table data-pagination-required><thead><tr>@foreach($data['columns'] as $column)<th>{{ __("reports.columns.$column") }}</th>@endforeach</tr></thead><tbody>
-                @foreach($data['rows'] as $row)<tr>@foreach($data['columns'] as $column)<td>{{ $row[$column] ?? '—' }}</td>@endforeach</tr>@endforeach
+                @foreach($data['rows'] as $row)<tr>@foreach($data['columns'] as $column)<td>{{ $reportValue($row[$column] ?? null, (string) $column) }}</td>@endforeach</tr>@endforeach
                 </tbody></table></div>
                 {{ $rowsPaginator->links() }}
             @endif
@@ -116,7 +142,7 @@ $breakdownHeader = static function (string $key): string {
                                             @if(in_array($column, ['status','provider'], true))
                                                 {{ $reportLabel($value) }}
                                             @elseif(is_numeric($value))
-                                                {{ is_float($value) ? number_format($value, 3) : number_format((int) $value) }}
+                                                {{ $reportValue($value, (string) $column) }}
                                             @else
                                                 {{ $value === null || $value === '' ? '—' : $value }}
                                             @endif
