@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.69",
+  "target_version": "1.0.70",
   "minimum_current_version": "1.0.6",
-  "sha256": "ec9349ea7df11c185b34d70c99c06b2f560ef048971a27f4637d0c5b550f0014",
+  "sha256": "c670446573203dc0f88c328cbe250426de22f644ef7df8dbc622b203fd5cce48",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.69: Promote every authoritative main change merged after FOODEX 1.0.67 through #1255 into the synchronized FOODEX 1.0.69 production release. Ship B2B Van-only fulfillment convergence, Customer low-data/network-storm protection, Dashboard-local APK mirroring with mobile-version policy decoupling, and the one-push-green CI foundation. Ship Customer app-wide responsive hardening for 320px screens, enlarged system text and RTL/LTR navigation/footer behavior. Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.69 source commit with mobile identity `1.0.69+69`.",
+  "release_notes": "FOODEX 1.0.70: Promote the post-1.0.69 Dashboard order-notification work from Issue #1258 / PR #1259 into a new immutable FOODEX release version. Add the global Customer App new-order popup across authenticated Dashboard pages, with scoped incremental feed, queueing, session deduplication, direct order deep-linking, AR/EN support, visibility-aware polling and backoff. Preserve tenant/store/channel authorization and exclude orders created manually from Dashboard, Van or Integration sources from the Customer App popup. Synchronize repository/mobile source identities at FOODEX 1.0.70 / mobile build 1.0.70+70; the Dashboard Update ZIP remains independently deployable and does not overwrite APKs already installed on devices.",
   "dashboard_fields": {
-    "target_version": "1.0.69",
+    "target_version": "1.0.70",
     "minimum_current_version": "1.0.6",
-    "sha256": "ec9349ea7df11c185b34d70c99c06b2f560ef048971a27f4637d0c5b550f0014",
+    "sha256": "c670446573203dc0f88c328cbe250426de22f644ef7df8dbc622b203fd5cce48",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.69: Promote every authoritative main change merged after FOODEX 1.0.67 through #1255 into the synchronized FOODEX 1.0.69 production release. Ship B2B Van-only fulfillment convergence, Customer low-data/network-storm protection, Dashboard-local APK mirroring with mobile-version policy decoupling, and the one-push-green CI foundation. Ship Customer app-wide responsive hardening for 320px screens, enlarged system text and RTL/LTR navigation/footer behavior. Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.69 source commit with mobile identity `1.0.69+69`."
+    "release_notes": "FOODEX 1.0.70: Promote the post-1.0.69 Dashboard order-notification work from Issue #1258 / PR #1259 into a new immutable FOODEX release version. Add the global Customer App new-order popup across authenticated Dashboard pages, with scoped incremental feed, queueing, session deduplication, direct order deep-linking, AR/EN support, visibility-aware polling and backoff. Preserve tenant/store/channel authorization and exclude orders created manually from Dashboard, Van or Integration sources from the Customer App popup. Synchronize repository/mobile source identities at FOODEX 1.0.70 / mobile build 1.0.70+70; the Dashboard Update ZIP remains independently deployable and does not overwrite APKs already installed on devices."
   }
 }

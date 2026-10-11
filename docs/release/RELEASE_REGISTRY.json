@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.69",
+  "current_version": "1.0.70",
   "releases": [
     {
       "version": "1.0.40",
@@ -206,6 +206,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "ec9349ea7df11c185b34d70c99c06b2f560ef048971a27f4637d0c5b550f0014",
       "note": "FOODEX 1.0.69 synchronized release for Issue #1256 / PR #1257, promoting the authoritative post-1.0.67 main lineage through #1255 with B2B Van-only fulfillment, Customer low-data and responsive hardening, Dashboard-local APK mirroring, CI reliability improvements, and synchronized Dashboard/Customer/Driver/Van 1.0.69 identities."
+    },
+    {
+      "version": "1.0.70",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.70.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "c670446573203dc0f88c328cbe250426de22f644ef7df8dbc622b203fd5cce48",
+      "note": "FOODEX 1.0.70 post-1.0.69 release for Issue #1258 / PR #1259 and release PR #1260, adding the global Customer App new-order Dashboard popup, scoped incremental feed, queue/dedupe/deep-link behavior and synchronized 1.0.70 release identities."
     }
   ]
 }
