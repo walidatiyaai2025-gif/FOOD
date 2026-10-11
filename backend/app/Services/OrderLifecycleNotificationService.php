@@ -7,6 +7,7 @@ use App\Models\DriverAssignment;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderVanAssignment;
+use App\Support\DisplayNumber;
 use Illuminate\Support\Facades\DB;
 
 final class OrderLifecycleNotificationService
@@ -17,8 +18,8 @@ final class OrderLifecycleNotificationService
             $order,
             'order.created',
             'customer-order-created:'.$order->getKey(),
-            'تم استلام طلبك '.$order->order_number,
-            'Order received '.$order->order_number,
+            'تم استلام طلبك '.DisplayNumber::reference($order->getKey()),
+            'Order received '.DisplayNumber::reference($order->getKey()),
             'تم استلام طلبك بنجاح وسنبدأ متابعته.',
             'Your order was received successfully and is now being tracked.',
             ['status' => (string) $order->status],
@@ -68,15 +69,15 @@ final class OrderLifecycleNotificationService
                     $actionRequired ? 'van.action_required' : 'order.status_changed',
                     'van-'.$eventKey,
                     $actionRequired
-                        ? 'إجراء مطلوب للطلب '.$order->order_number
+                        ? 'إجراء مطلوب للطلب '.DisplayNumber::reference($order->getKey())
                         : ($to === 'cancelled'
-                            ? 'تم إلغاء الطلب '.$order->order_number
-                            : 'تحديث الطلب '.$order->order_number),
+                            ? 'تم إلغاء الطلب '.DisplayNumber::reference($order->getKey())
+                            : 'تحديث الطلب '.DisplayNumber::reference($order->getKey())),
                     $actionRequired
-                        ? 'Action required '.$order->order_number
+                        ? 'Action required '.DisplayNumber::reference($order->getKey())
                         : ($to === 'cancelled'
-                            ? 'Order cancelled '.$order->order_number
-                            : 'Order update '.$order->order_number),
+                            ? 'Order cancelled '.DisplayNumber::reference($order->getKey())
+                            : 'Order update '.DisplayNumber::reference($order->getKey())),
                     $actionRequired
                         ? 'تعذر إتمام التوصيل. افتح الطلب لمراجعة السبب والإجراء التالي.'
                         : ($to === 'cancelled'
@@ -116,11 +117,11 @@ final class OrderLifecycleNotificationService
                 'order.status_changed',
                 'driver-'.$eventKey,
                 $to === 'cancelled'
-                    ? 'تم إلغاء الطلب '.$order->order_number
-                    : 'تحديث الطلب '.$order->order_number,
+                    ? 'تم إلغاء الطلب '.DisplayNumber::reference($order->getKey())
+                    : 'تحديث الطلب '.DisplayNumber::reference($order->getKey()),
                 $to === 'cancelled'
-                    ? 'Order cancelled '.$order->order_number
-                    : 'Order update '.$order->order_number,
+                    ? 'Order cancelled '.DisplayNumber::reference($order->getKey())
+                    : 'Order update '.DisplayNumber::reference($order->getKey()),
                 $to === 'cancelled'
                     ? 'تم إلغاء الطلب ولم يعد متاحاً للتنفيذ.'
                     : 'حالة الطلب الآن: '.$to,
@@ -152,8 +153,8 @@ final class OrderLifecycleNotificationService
             (int) $assignment->driver_id,
             'delivery.assigned',
             'driver-assigned:'.$assignment->getKey(),
-            'طلب جديد للتوصيل '.$order->order_number,
-            'New delivery '.$order->order_number,
+            'طلب جديد للتوصيل '.DisplayNumber::reference($order->getKey()),
+            'New delivery '.DisplayNumber::reference($order->getKey()),
             'تم إسناد طلب جديد إليك. افتح الطلب لمراجعة تفاصيل التوصيل.',
             'A new order was assigned to you. Open it to review delivery details.',
             [
@@ -168,8 +169,8 @@ final class OrderLifecycleNotificationService
                 $previousDriverId,
                 'delivery.reassigned_away',
                 'driver-reassigned-away:'.$assignment->getKey().':'.$previousDriverId,
-                'تم سحب الطلب '.$order->order_number,
-                'Order reassigned '.$order->order_number,
+                'تم سحب الطلب '.DisplayNumber::reference($order->getKey()),
+                'Order reassigned '.DisplayNumber::reference($order->getKey()),
                 'تم نقل الطلب إلى سائق آخر ولم يعد متاحاً للتنفيذ من حسابك.',
                 'The order was reassigned to another driver and is no longer actionable for you.',
                 [
@@ -184,8 +185,8 @@ final class OrderLifecycleNotificationService
             $order,
             $previousDriverId === null ? 'delivery.assigned' : 'delivery.reassigned',
             'customer-driver-assigned:'.$assignment->getKey(),
-            'تم تعيين سائق للطلب '.$order->order_number,
-            'Driver assigned '.$order->order_number,
+            'تم تعيين سائق للطلب '.DisplayNumber::reference($order->getKey()),
+            'Driver assigned '.DisplayNumber::reference($order->getKey()),
             $previousDriverId === null
                 ? 'تم تعيين سائق لطلبك وسيظهر لك أي تحديث جديد فور حدوثه.'
                 : 'تم تغيير السائق المسؤول عن توصيل طلبك.',
@@ -217,8 +218,8 @@ final class OrderLifecycleNotificationService
             (int) $assignment->driver_id,
             'delivery.unassigned',
             $eventKey,
-            'تم سحب الطلب '.$order->order_number,
-            'Order removed '.$order->order_number,
+            'تم سحب الطلب '.DisplayNumber::reference($order->getKey()),
+            'Order removed '.DisplayNumber::reference($order->getKey()),
             'لم يعد هذا الطلب معيناً لك.',
             'This order is no longer assigned to you.',
             [
@@ -233,8 +234,8 @@ final class OrderLifecycleNotificationService
             $order,
             'delivery.unassigned',
             'customer-'.$eventKey,
-            'تحديث سائق الطلب '.$order->order_number,
-            'Driver update '.$order->order_number,
+            'تحديث سائق الطلب '.DisplayNumber::reference($order->getKey()),
+            'Driver update '.DisplayNumber::reference($order->getKey()),
             'تم إلغاء إسناد السائق الحالي للطلب وسيتم إشعارك عند تعيين سائق جديد.',
             'The current driver assignment was removed. You will be notified when a new driver is assigned.',
             [
@@ -267,8 +268,8 @@ final class OrderLifecycleNotificationService
 
         $copy = match ($to) {
             'accepted' => [
-                'title_ar' => 'السائق قبل الطلب '.$order->order_number,
-                'title_en' => 'Driver accepted '.$order->order_number,
+                'title_ar' => 'السائق قبل الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Driver accepted '.DisplayNumber::reference($order->getKey()),
                 'body_ar' => 'السائق قبل مهمة التوصيل.',
                 'body_en' => 'The driver accepted the delivery assignment.',
             ],
@@ -297,8 +298,8 @@ final class OrderLifecycleNotificationService
                 'body_en' => 'Delivery could not be completed. Open the order for the latest update.',
             ],
             default => [
-                'title_ar' => 'تحديث التوصيل '.$order->order_number,
-                'title_en' => 'Delivery update '.$order->order_number,
+                'title_ar' => 'تحديث التوصيل '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Delivery update '.DisplayNumber::reference($order->getKey()),
                 'body_ar' => 'حالة التوصيل الآن: '.$to,
                 'body_en' => 'Delivery status is now: '.$to,
             ],
@@ -337,11 +338,11 @@ final class OrderLifecycleNotificationService
             $reassigned ? 'van.delivery.reassigned' : 'van.delivery.assigned',
             ($reassigned ? 'van-reassigned:' : 'van-assigned:').$assignment->getKey(),
             $reassigned
-                ? 'تم نقل الطلب إلى المركبة الحالية '.$order->order_number
-                : 'طلب جديد للمركبة '.$order->order_number,
+                ? 'تم نقل الطلب إلى المركبة الحالية '.DisplayNumber::reference($order->getKey())
+                : 'طلب جديد للمركبة '.DisplayNumber::reference($order->getKey()),
             $reassigned
-                ? 'Order reassigned to this Van '.$order->order_number
-                : 'New Van delivery '.$order->order_number,
+                ? 'Order reassigned to this Van '.DisplayNumber::reference($order->getKey())
+                : 'New Van delivery '.DisplayNumber::reference($order->getKey()),
             'افتح الطلب لمراجعة تفاصيل العميل والتنفيذ.',
             'Open the order to review customer and execution details.',
             [
@@ -367,8 +368,8 @@ final class OrderLifecycleNotificationService
             $assignment,
             'van.delivery.reassigned_away',
             'van-revoked:'.$assignment->getKey().':'.(string) $assignment->updated_at,
-            'تم سحب الطلب '.$order->order_number,
-            'Order removed '.$order->order_number,
+            'تم سحب الطلب '.DisplayNumber::reference($order->getKey()),
+            'Order removed '.DisplayNumber::reference($order->getKey()),
             'لم يعد هذا الطلب تابعاً للمركبة الحالية.',
             'This order is no longer assigned to the current Van.',
             [
@@ -572,7 +573,7 @@ final class OrderLifecycleNotificationService
                 'data' => [
                     ...$extraData,
                     'order_id' => (int) $order->getKey(),
-                    'order_number' => (string) $order->order_number,
+                    'order_number' => (string) DisplayNumber::reference($order->getKey()),
                     'store_id' => $storeId,
                     'channel' => $targetChannel,
                     'status' => (string) $order->status,
@@ -711,22 +712,22 @@ final class OrderLifecycleNotificationService
     {
         return match ($status) {
             'pending' => [
-                'title_ar' => 'تم استلام طلبك '.$order->order_number,
-                'title_en' => 'Order received '.$order->order_number,
+                'title_ar' => 'تم استلام طلبك '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order received '.DisplayNumber::reference($order->getKey()),
                 'body_ar' => 'طلبك قيد المراجعة.',
                 'body_en' => 'Your order is being reviewed.',
             ],
             'confirmed' => [
-                'title_ar' => 'تم تأكيد الطلب '.$order->order_number,
-                'title_en' => 'Order confirmed '.$order->order_number,
+                'title_ar' => 'تم تأكيد الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order confirmed '.DisplayNumber::reference($order->getKey()),
                 'body_ar' => 'تم تأكيد طلبك بنجاح.',
                 'body_en' => 'Your order has been confirmed.',
             ],
             'preparing' => [
                 'title_ar' => 'جاري تجهيز طلبك',
                 'title_en' => 'Your order is being prepared',
-                'body_ar' => 'بدأ تجهيز الطلب '.$order->order_number.'.',
-                'body_en' => 'Preparation started for order '.$order->order_number.'.',
+                'body_ar' => 'بدأ تجهيز الطلب '.DisplayNumber::reference($order->getKey()).'.',
+                'body_en' => 'Preparation started for order '.DisplayNumber::reference($order->getKey()).'.',
             ],
             'ready' => [
                 'title_ar' => 'طلبك جاهز للتوصيل',
@@ -743,24 +744,24 @@ final class OrderLifecycleNotificationService
             'delivered' => [
                 'title_ar' => 'تم تسليم طلبك',
                 'title_en' => 'Order delivered',
-                'body_ar' => 'تم تسليم الطلب '.$order->order_number.' بنجاح.',
-                'body_en' => 'Order '.$order->order_number.' was delivered successfully.',
+                'body_ar' => 'تم تسليم الطلب '.DisplayNumber::reference($order->getKey()).' بنجاح.',
+                'body_en' => 'Order '.DisplayNumber::reference($order->getKey()).' was delivered successfully.',
             ],
             'cancelled' => [
-                'title_ar' => 'تم إلغاء الطلب '.$order->order_number,
-                'title_en' => 'Order cancelled '.$order->order_number,
+                'title_ar' => 'تم إلغاء الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order cancelled '.DisplayNumber::reference($order->getKey()),
                 'body_ar' => 'تم إلغاء الطلب. افتح التفاصيل لمعرفة آخر حالة.',
                 'body_en' => 'The order was cancelled. Open it for the latest details.',
             ],
             'failed' => [
                 'title_ar' => 'تعذر إتمام توصيل الطلب',
                 'title_en' => 'Delivery issue',
-                'body_ar' => 'تعذر إتمام التوصيل للطلب '.$order->order_number.'.',
-                'body_en' => 'Delivery could not be completed for order '.$order->order_number.'.',
+                'body_ar' => 'تعذر إتمام التوصيل للطلب '.DisplayNumber::reference($order->getKey()).'.',
+                'body_en' => 'Delivery could not be completed for order '.DisplayNumber::reference($order->getKey()).'.',
             ],
             default => [
-                'title_ar' => 'تحديث الطلب '.$order->order_number,
-                'title_en' => 'Order update '.$order->order_number,
+                'title_ar' => 'تحديث الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order update '.DisplayNumber::reference($order->getKey()),
                 'body_ar' => 'حالة الطلب الآن: '.$status,
                 'body_en' => 'Order status is now: '.$status,
             ],
