@@ -237,7 +237,8 @@ final class DriverOrderService
             'completed_at' => $assignment->completed_at,
             'available_statuses' => $this->availableStatuses($assignment, $order),
             'order' => [
-                'number' => DisplayNumber::reference($order->getKey()),
+                'number' => (string) $order->order_number,
+                'display_number' => DisplayNumber::reference($order->getKey()),
                 'internal_number' => (string) $order->order_number,
                 'status' => (string) $order->status,
                 'currency' => (string) $order->currency,
@@ -277,7 +278,8 @@ final class DriverOrderService
                 'items' => $items,
                 'invoice' => $invoice === null ? null : [
                     'id' => (int) $invoice->id,
-                    'number' => DisplayNumber::reference($invoice->id),
+                    'number' => (string) $invoice->invoice_number,
+                    'display_number' => DisplayNumber::reference($invoice->id),
                     'internal_number' => (string) $invoice->invoice_number,
                     'revision' => (int) ($invoice->revision ?? 1),
                     'status' => (string) $invoice->status,
@@ -320,7 +322,8 @@ final class DriverOrderService
             'completed_at' => $assignment->completed_at,
             'available_statuses' => [],
             'order' => [
-                'number' => DisplayNumber::reference($order->getKey()),
+                'number' => (string) $order->order_number,
+                'display_number' => DisplayNumber::reference($order->getKey()),
                 'internal_number' => (string) $order->order_number,
                 'status' => (string) $order->status,
                 'created_at' => $order->created_at,
