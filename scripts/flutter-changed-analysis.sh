@@ -31,7 +31,7 @@ collect_changed() {
 
 mapfile -t files < <(
   collect_changed \
-    | grep -E "^${prefix}/(lib|test)/.*\\.dart$" \
+    | grep -E "^${prefix}/(lib|test)/.*\.dart$" \
     | sed "s#^${prefix}/##" \
     || true
 )
@@ -53,14 +53,27 @@ if ! (
   exit 1
 fi
 
-for file in "${files[@]}"; do
-  full="$root/$prefix/$file"
-  [[ -f "$full" ]] || continue
-  if grep -En '//[[:space:]]*ignore(_for_file)?:.*(use_build_context_synchronously|cancel_subscriptions|close_sinks|unawaited_futures|avoid_void_async)' "$full" >/dev/null; then
-    echo "Do not suppress FOODEX Flutter lifecycle/async safety lints in changed files: $file" >&2
-    exit 1
-  fi
-done
+suppression_re='//[[:space:]]*ignore(_for_file)?:.*(use_build_context_synchronously|cancel_subscriptions|close_sinks|unawaited_futures|avoid_void_async)'
+if [[ "$head" == "WORKTREE" ]]; then
+  diff_text="$(git -C "$root" diff --unified=0 "$base" -- "$prefix/lib" "$prefix/test")"
+else
+  diff_text="$(git -C "$root" diff --unified=0 "$base" "$head" -- "$prefix/lib" "$prefix/test")"
+fi
+
+if grep -E "^\+[^+].*${suppression_re}" <<<"$diff_text" >/dev/null; then
+  echo "Do not add suppressions for FOODEX Flutter lifecycle/async safety lints; fix the cause or document an approved exception in the task contract." >&2
+  exit 1
+fi
+
+if [[ "$head" == "WORKTREE" ]]; then
+  while IFS= read -r untracked; do
+    [[ -n "$untracked" && -f "$root/$untracked" ]] || continue
+    if grep -En "$suppression_re" "$root/$untracked" >/dev/null; then
+      echo "Do not add suppressions for FOODEX Flutter lifecycle/async safety lints in new file: $untracked" >&2
+      exit 1
+    fi
+  done < <(git -C "$root" ls-files --others --exclude-standard -- "$prefix/lib" "$prefix/test" | grep -E "\.dart$" || true)
+fi
 
 (
   cd "$root/$prefix"
