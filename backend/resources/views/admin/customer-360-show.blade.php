@@ -145,7 +145,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div><small>{{ __('customer_360.finance.last_payment') }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
 <div><small>{{ __('customer_360.finance.last_transaction') }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
 @else
-<div><small>{{ __('customer_360.finance.credit_limit') }}</small><strong>{{ $wholesale['credit_limit']===null?'-':number_format($wholesale['credit_limit'],3) }}</strong></div>
+<div><small>{{ __('customer_360.finance.credit_limit') }}</small><strong>{{ $wholesale['credit_limit']===null?'-':\App\Support\DisplayNumber::money($wholesale['credit_limit'], 'EGP') }}</strong></div>
 @endif
 </div>
 @if($canManageFinance && $finance)
