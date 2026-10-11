@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.69 - 2026-10-11
+
+- Promote every authoritative main change merged after FOODEX 1.0.67 through #1255 into the synchronized FOODEX 1.0.69 production release.
+- Ship B2B Van-only fulfillment convergence, Customer low-data/network-storm protection, Dashboard-local APK mirroring with mobile-version policy decoupling, and the one-push-green CI foundation.
+- Ship Customer app-wide responsive hardening for 320px screens, enlarged system text and RTL/LTR navigation/footer behavior.
+- Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.69 source commit with mobile identity `1.0.69+69`.
+
+
 ## 1.0.67 - 2026-10-09
 
 - Publish the Van push-notification compatibility hotfix from #1166 so Driver-compatible Van sessions can register and receive authorized operational notifications without weakening Van/session isolation.
