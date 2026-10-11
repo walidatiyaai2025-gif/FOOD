@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ app()->getLocale()==='ar'?'فاتورة':'Invoice' }} {{ $invoice['invoice_number'] }} · FOODEX</title>
+    <title>{{ app()->getLocale()==='ar'?'فاتورة':'Invoice' }} {{ $invoice['display_invoice_number'] ?? $invoice['invoice_number'] }} · FOODEX</title>
     @include('admin._brand-components')
     <style>
         body{margin:0;background:var(--foodex-background);color:var(--foodex-text)}
@@ -61,8 +61,8 @@
     <section class="invoice-card foodex-card">
         <div class="head">
             <div>
-                <h1 style="margin:0 0 8px">{{ $isAr ? 'فاتورة' : 'Invoice' }} {{ $invoice['invoice_number'] }}</h1>
-                <div class="muted">{{ $isAr ? 'طلب' : 'Order' }}: {{ $invoice['order_number'] }} · {{ $invoice['store_name'] }} · {{ $channelLabel }}</div>
+                <h1 style="margin:0 0 8px">{{ $isAr ? 'فاتورة' : 'Invoice' }} {{ $invoice['display_invoice_number'] ?? $invoice['invoice_number'] }}</h1>
+                <div class="muted">{{ $isAr ? 'طلب' : 'Order' }}: {{ $invoice['display_order_number'] ?? $invoice['order_number'] }} · {{ $invoice['store_name'] }} · {{ $channelLabel }}</div>
             </div>
             <div class="actions">
                 <button class="foodex-primary" type="button" onclick="window.print()">{{ $isAr?'طباعة':'Print' }}</button>
