@@ -49,7 +49,8 @@ final class B2bFinanceInvoiceService
                 return [
                     '_id' => (int) $row->id,
                     '_invoice_status' => $invoiceStatus,
-                    'invoice' => (string) $row->invoice_number,
+                    'invoice' => DisplayNumber::reference($row->id),
+                    '_internal_invoice' => (string) $row->invoice_number,
                     'company' => $row->company_name ?: '-',
                     'client' => (string) $row->client_name,
                     'status' => $status,
@@ -142,7 +143,8 @@ final class B2bFinanceInvoiceService
                                 : 'unpaid')));
 
                 return [
-                    'invoice' => (string) $row->invoice_number,
+                    'invoice' => DisplayNumber::reference($row->id),
+                    '_internal_invoice' => (string) $row->invoice_number,
                     'company' => $row->company_name ?: '',
                     'client' => (string) $row->client_name,
                     'status' => $status,
