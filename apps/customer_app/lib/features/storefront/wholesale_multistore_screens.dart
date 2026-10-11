@@ -2184,7 +2184,7 @@ void _showWholesaleCartConfirmation(
           ),
           IconButton(
             key: ValueKey('wholesale-cart-confirmation-close-$identity'),
-            tooltip: 'Close',
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints.tightFor(width: 32, height: 32),
             padding: EdgeInsets.zero,
