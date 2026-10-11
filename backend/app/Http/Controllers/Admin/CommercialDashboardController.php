@@ -707,8 +707,7 @@ final class CommercialDashboardController extends Controller
             }
         }
 
-        $legacyCustomerIds = DB::table('b2c_customers')
-            ->where('store_id', $storeId)
+        $legacyCustomerIds = DB::table('b2b_customers')
             ->whereNotNull('legacy_customer_id')
             ->pluck('legacy_customer_id')
             ->map(static fn ($id): int => (int) $id)
