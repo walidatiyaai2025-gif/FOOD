@@ -37,6 +37,23 @@ final class DisplayNumberTest extends TestCase
         );
     }
 
+
+    public function test_document_reference_uses_short_numeric_id(): void
+    {
+        self::assertSame('#1234', DisplayNumber::reference(1234));
+        self::assertSame('#77', DisplayNumber::reference('077'));
+        self::assertSame('—', DisplayNumber::reference(null));
+        self::assertSame('—', DisplayNumber::reference('FDX-20261011-ABC'));
+    }
+
+    public function test_reference_id_accepts_plain_or_hash_prefixed_numbers(): void
+    {
+        self::assertSame(1234, DisplayNumber::referenceId('1234'));
+        self::assertSame(1234, DisplayNumber::referenceId('#1234'));
+        self::assertNull(DisplayNumber::referenceId('FDX-20261011-ABC'));
+        self::assertNull(DisplayNumber::referenceId('0'));
+    }
+
     public function test_invalid_precision_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);
