@@ -188,7 +188,8 @@
         "scripts/tests/test_one_push_green_contract.py",
         "scripts/tests/test_flutter_test_hermeticity.py",
         "scripts/tests/test_foodex_branch_policy.py",
-        "scripts/flutter-changed-analysis.sh"
+        "scripts/flutter-changed-analysis.sh",
+        "scripts/bootstrap-flutter.sh"
       ],
       "skills": [
         "ci-repair.md"
