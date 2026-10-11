@@ -18,6 +18,57 @@ permissions:
   contents: read
 
 jobs:
+  detect-mobile-scope:
+    name: Detect changed mobile apps
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: matrix
+        name: Build changed-app matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo 'matrix=[{"app":"customer","project":"foodex_customer_app","label":"Customer Android"},{"app":"driver","project":"foodex_driver_app","label":"Driver Android"},{"app":"van","project":"foodex_van_app","label":"Van Android"}]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, subprocess
+          base=os.environ["BASE"]
+          head=os.environ["HEAD"]
+          changed=subprocess.check_output(["git","diff","--name-only",base,head],text=True).splitlines()
+          apps=[]
+          specs={
+              "customer":("foodex_customer_app","Customer Android"),
+              "driver":("foodex_driver_app","Driver Android"),
+              "van":("foodex_van_app","Van Android"),
+          }
+          shared=any(p in {
+              "scripts/configure-mobile-native.py",
+              "scripts/configure-android-store-signing.py",
+              ".github/workflows/store-submission-readiness.yml",
+              ".github/workflows/mobile-build-validation.yml",
+          } for p in changed)
+          for app,(project,label) in specs.items():
+              prefix=f"apps/{app}_app/"
+              native=any(
+                  p.startswith(prefix+"android/")
+                  or p.startswith(prefix+"ios/")
+                  or p in {prefix+"pubspec.yaml", prefix+"pubspec.lock"}
+                  for p in changed
+              )
+              if native or shared:
+                  apps.append({"app":app,"project":project,"label":label})
+          print("matrix="+json.dumps(apps,separators=(",",":")))
+          PY
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+
   audit:
     name: Store readiness deterministic audit
     runs-on: ubuntu-latest
@@ -36,21 +87,14 @@ jobs:
 
   android-aab-validation:
     name: ${{ matrix.label }} release AAB validation
+    needs: detect-mobile-scope
+    if: ${{ needs.detect-mobile-scope.outputs.matrix != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - app: customer
-            project: foodex_customer_app
-            label: Customer Android
-          - app: driver
-            project: foodex_driver_app
-            label: Driver Android
-          - app: van
-            project: foodex_van_app
-            label: Van Android
+        include: ${{ fromJSON(needs.detect-mobile-scope.outputs.matrix) }}
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}_app
