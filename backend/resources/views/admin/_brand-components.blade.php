@@ -165,7 +165,7 @@
 
     @media(max-width:767px){
         html{scroll-padding-top:64px}
-        body{min-width:0;padding-block-start:56px!important}
+        body.foodex-mobile-web{min-width:0;padding-block-start:56px!important}
         .foodex-mobile-only{display:initial}
         .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{display:grid;grid-template-columns:minmax(0,1fr)!important}
         .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1!important;grid-row:1!important;min-width:0;padding:12px!important}
