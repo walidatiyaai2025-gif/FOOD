@@ -234,6 +234,7 @@
             .module-links,.module-actions{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px}
             .module-inline-form{display:grid;grid-template-columns:minmax(0,1fr);padding:10px}.module-inline-form select,.module-inline-form input,.module-inline-form button{width:100%;min-width:0}
         }
+        @media(max-width:620px){.profile strong{max-width:120px}}
         @media(max-width:359px){
             .date-control{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.date-control .foodex-filter-action{grid-column:1/-1;width:100%}
             .kpis{gap:8px}.kpi{padding:10px}.kpi-icon{width:32px;height:32px}.kpi-value{font-size:1.08rem}
