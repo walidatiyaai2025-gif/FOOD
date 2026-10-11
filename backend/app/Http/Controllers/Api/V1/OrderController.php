@@ -25,6 +25,7 @@ use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
 use App\Services\OrderLiveTrackingService;
 use App\Services\PlatformCustomerService;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -548,6 +549,7 @@ class OrderController extends Controller
         return [
             'id' => (int) $order->getKey(),
             'order_number' => (string) $order->order_number,
+            'display_order_number' => DisplayNumber::reference($order->getKey()),
             'store_id' => (int) $order->store_id,
             'store' => $store === null ? null : [
                 'id' => (int) $store->getKey(),
@@ -743,6 +745,7 @@ class OrderController extends Controller
             'invoice' => $invoice instanceof Invoice ? [
                 'id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
+                'display_invoice_number' => DisplayNumber::reference($invoice->getKey()),
                 'status' => (string) $invoice->status,
                 'total' => (float) $invoiceAmounts['invoice_total'],
                 'paid_amount' => (float) $invoiceAmounts['paid_amount'],
