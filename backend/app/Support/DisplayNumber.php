@@ -45,6 +45,36 @@ final class DisplayNumber
         return self::compact($number, $fractionDigits, $groupThousands);
     }
 
+    public static function reference(mixed $id): string
+    {
+        if (is_int($id) && $id > 0) {
+            return '#'.$id;
+        }
+
+        $raw = trim((string) $id);
+        if ($raw !== '' && ctype_digit($raw) && (int) $raw > 0) {
+            return '#'.(int) $raw;
+        }
+
+        return '—';
+    }
+
+    public static function referenceId(mixed $value): ?int
+    {
+        $raw = trim((string) $value);
+        if (str_starts_with($raw, '#')) {
+            $raw = substr($raw, 1);
+        }
+
+        if ($raw === '' || ! ctype_digit($raw)) {
+            return null;
+        }
+
+        $id = (int) $raw;
+
+        return $id > 0 ? $id : null;
+    }
+
     private static function compact(
         float $value,
         int $fractionDigits,
