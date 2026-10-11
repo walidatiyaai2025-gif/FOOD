@@ -32,9 +32,9 @@ class AdminMobileWebContractTest extends TestCase
         $this->assertStringContainsString('.foodex-mobile-filter-sheet', $shared);
         $this->assertStringContainsString('.foodex-mobile-sticky-actions', $shared);
         $this->assertStringContainsString('table[data-foodex-mobile-table-ready="1"] tbody tr', $shared);
-        $this->assertStringContainsString("table.dataset.foodexMobileTableReady = '1'", $shared);
-        $this->assertStringContainsString("table.dataset.foodexMobileTable === 'scroll'", $shared);
-        $this->assertStringContainsString("MutationObserver", $shared);
+        $this->assertStringContainsString('table.dataset.foodexMobileTableReady = \'1\'', $shared);
+        $this->assertStringContainsString('table.dataset.foodexMobileTable === \'scroll\'', $shared);
+        $this->assertStringContainsString('MutationObserver', $shared);
     }
 
     public function test_shared_sidebar_is_a_mobile_off_canvas_drawer_with_accessible_dismissal(): void
@@ -46,9 +46,9 @@ class AdminMobileWebContractTest extends TestCase
         $this->assertStringContainsString('.foodex-mobile-nav-launcher', $sidebar);
         $this->assertStringContainsString('.foodex-mobile-nav-backdrop', $sidebar);
         $this->assertStringContainsString('body.foodex-mobile-nav-open', $sidebar);
-        $this->assertStringContainsString("event.key === 'Escape'", $sidebar);
-        $this->assertStringContainsString("launcher.setAttribute('aria-expanded'", $sidebar);
-        $this->assertStringContainsString("setDrawer(false)", $sidebar);
-        $this->assertStringContainsString("matchMedia('(max-width:767px)')", $sidebar);
+        $this->assertStringContainsString('event.key === \'Escape\'', $sidebar);
+        $this->assertStringContainsString('launcher.setAttribute(\'aria-expanded\'', $sidebar);
+        $this->assertStringContainsString('setDrawer(false)', $sidebar);
+        $this->assertStringContainsString('matchMedia(\'(max-width:767px)\')', $sidebar);
     }
 }
