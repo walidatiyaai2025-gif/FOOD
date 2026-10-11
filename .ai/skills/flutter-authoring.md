@@ -27,10 +27,13 @@ Use the existing API/session/auth/storage/localization/navigation/theme/state co
 
 ## 6. Validate before push
 For every affected app:
-1. format changed Dart files;
-2. run `flutter analyze`;
-3. run focused tests when mapped;
-4. run the normal hermetic test set;
-5. run required visual/runtime evidence when the screen contract requires it.
+1. run `bash scripts/flutter-changed-analysis.sh <app> <base> WORKTREE` from the repository context (the worker preflight calls it automatically);
+2. keep changed Dart files canonically formatted;
+3. pass fatal-info analysis on each changed Dart file plus the app-wide `flutter analyze`;
+4. run focused tests when mapped;
+5. run the normal hermetic test set;
+6. run required visual/runtime evidence when the screen contract requires it.
+
+Do not add `ignore` / `ignore_for_file` suppressions for lifecycle/async safety rules to make a changed file pass. Fix the ownership/lifecycle/type problem or document a narrowly approved exception in the task contract.
 
 A worker must fix deterministic analyzer/test/format failures before pushing rather than using CI as the first discovery layer.
