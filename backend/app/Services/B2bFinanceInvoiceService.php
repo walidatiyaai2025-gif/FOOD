@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -52,9 +53,9 @@ final class B2bFinanceInvoiceService
                     'company' => $row->company_name ?: '-',
                     'client' => (string) $row->client_name,
                     'status' => $status,
-                    'amount' => (string) $row->currency.' '.\App\Support\DisplayNumber::money($total, $row->currency),
-                    'paid' => (string) $row->currency.' '.\App\Support\DisplayNumber::money($paid, $row->currency),
-                    'balance' => (string) $row->currency.' '.\App\Support\DisplayNumber::money($balance, $row->currency),
+                    'amount' => (string) $row->currency.' '.DisplayNumber::money($total, $row->currency),
+                    'paid' => (string) $row->currency.' '.DisplayNumber::money($paid, $row->currency),
+                    'balance' => (string) $row->currency.' '.DisplayNumber::money($balance, $row->currency),
                     'issued_at' => $row->issued_at === null ? '-' : (string) $row->issued_at,
                     'due' => $row->due_at === null ? '-' : (string) $row->due_at,
                     'actions' => [

@@ -36,6 +36,7 @@ use App\Services\ReportExportService;
 use App\Services\StorefrontDraftEditorService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
+use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -853,8 +854,8 @@ class B2bWorkspaceController extends Controller
             'columns' => ['orders', 'revenue', 'average', 'actions'],
             'rows' => [[
                 'orders' => (int) data_get($data, 'kpis.orders', 0),
-                'revenue' => 'EGP '.\App\Support\DisplayNumber::money((float) data_get($data, 'kpis.recognized_revenue', 0), 'EGP'),
-                'average' => 'EGP '.\App\Support\DisplayNumber::money((float) data_get($data, 'kpis.average_order_value', 0), 'EGP'),
+                'revenue' => 'EGP '.DisplayNumber::money((float) data_get($data, 'kpis.recognized_revenue', 0), 'EGP'),
+                'average' => 'EGP '.DisplayNumber::money((float) data_get($data, 'kpis.average_order_value', 0), 'EGP'),
                 'actions' => $actions,
             ]],
         ];
@@ -1016,9 +1017,9 @@ class B2bWorkspaceController extends Controller
                 'warehouse' => $row->warehouse,
                 'sku' => $row->sku,
                 'product' => $row->product,
-                'quantity' => \App\Support\DisplayNumber::quantity((float) $row->quantity),
-                'reserved' => \App\Support\DisplayNumber::quantity((float) $row->reserved_quantity),
-                'available' => \App\Support\DisplayNumber::quantity(max(0, (float) $row->quantity - (float) $row->reserved_quantity)),
+                'quantity' => DisplayNumber::quantity((float) $row->quantity),
+                'reserved' => DisplayNumber::quantity((float) $row->reserved_quantity),
+                'available' => DisplayNumber::quantity(max(0, (float) $row->quantity - (float) $row->reserved_quantity)),
                 'actions' => true,
             ])->all();
 
@@ -1092,8 +1093,8 @@ class B2bWorkspaceController extends Controller
                     '_description' => $row->description,
                     'sku' => $row->sku,
                     'name' => $row->name,
-                    'price' => $row->price === null ? '-' : \App\Support\DisplayNumber::money((float) $row->price, 'EGP').' EGP',
-                    'available' => \App\Support\DisplayNumber::quantity((float) $stock),
+                    'price' => $row->price === null ? '-' : DisplayNumber::money((float) $row->price, 'EGP').' EGP',
+                    'available' => DisplayNumber::quantity((float) $stock),
                     'status' => (bool) $row->is_active,
                     'actions' => true,
                 ];
@@ -1166,7 +1167,7 @@ class B2bWorkspaceController extends Controller
                         'client' => $row->client,
                         'store' => $row->store,
                         'status' => $row->status,
-                        'amount' => $row->currency.' '.\App\Support\DisplayNumber::money((float) $row->grand_total, $row->currency),
+                        'amount' => $row->currency.' '.DisplayNumber::money((float) $row->grand_total, $row->currency),
                         'created' => (string) $row->created,
                     ])->all(),
             ],
@@ -1328,8 +1329,8 @@ class B2bWorkspaceController extends Controller
                         'tier' => $row->tier,
                         'sku' => $row->sku,
                         'product' => $row->product,
-                        'unit_price' => \App\Support\DisplayNumber::money((float) $row->unit_price, 'EGP').' EGP',
-                        'minimum_quantity' => \App\Support\DisplayNumber::quantity((float) $row->minimum_quantity),
+                        'unit_price' => DisplayNumber::money((float) $row->unit_price, 'EGP').' EGP',
+                        'minimum_quantity' => DisplayNumber::quantity((float) $row->minimum_quantity),
                         'status' => (bool) $row->status,
                     ])->all(),
                 'tiers' => DB::table('b2b_price_tiers')
@@ -1650,7 +1651,7 @@ class B2bWorkspaceController extends Controller
                     'driver' => $activeAssignment?->driver_name ?: $this->msg('غير معين', 'Unassigned'),
                     'assignment_status' => $activeAssignment?->status ?: $this->msg('غير معين', 'Unassigned'),
                     'status' => $row->status,
-                    'amount' => $row->currency.' '.\App\Support\DisplayNumber::money((float) $row->grand_total, $row->currency),
+                    'amount' => $row->currency.' '.DisplayNumber::money((float) $row->grand_total, $row->currency),
                     'created' => (string) $row->created,
                     'actions' => true,
                 ];
