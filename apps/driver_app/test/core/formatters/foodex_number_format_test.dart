@@ -2,10 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 void main() {
-  test('EGP display drops redundant zeroes', () {
-    expect(foodexMoneyAmount(100, 'EGP'), '100');
-    expect(foodexMoneyAmount(100.5, 'EGP'), '100.5');
-    expect(foodexMoneyAmount(100.125, 'EGP'), '100.125');
+  test('EGP display always uses exactly two decimals', () {
+    expect(foodexMoneyAmount(100, 'EGP'), '100.00');
+    expect(foodexMoneyAmount(100.5, 'EGP'), '100.50');
+    expect(foodexMoneyAmount(100.50, 'egp'), '100.50');
+    expect(foodexMoneyAmount(100.567, ' EGP '), '100.57');
   });
 
   test('other currencies keep fixed precision', () {
