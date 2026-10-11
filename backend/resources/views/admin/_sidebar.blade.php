@@ -97,6 +97,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main,
     .layout>.foodex-admin-main,html[dir=ltr] .layout>.foodex-admin-main,
     .dashboard-layout>.dashboard-shell,html[dir=ltr] .dashboard-layout>.dashboard-shell,
+    .module-layout>main,html[dir=ltr] .module-layout>main,
     .shell>.main,html[dir=ltr] .shell>.main{grid-column:1!important;grid-row:1!important}
 }
 @media(prefers-reduced-motion:reduce){
