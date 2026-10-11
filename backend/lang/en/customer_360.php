@@ -16,6 +16,7 @@ return [
         'orders' => 'Recent orders',
         'invoices' => 'Invoices',
         'statement' => 'Account statement',
+        'reports' => 'Customer reports',
     ],
     'identity' => [
         'name' => 'Name',
@@ -93,6 +94,19 @@ return [
         'reversal_reason' => 'Reversal reason',
         'cancel' => 'Cancel',
         'xlsx' => 'XLSX',
+    ],
+    'reports' => [
+        'description' => 'Customer reports using the locked original FOODEX report layouts.',
+        'account_statement' => 'Customer account statement',
+        'item_detail' => 'Detailed customer item movement',
+        'item_summary' => 'Customer item movement summary',
+        'from' => 'From date',
+        'to' => 'To date',
+        'view' => 'View report',
+        'download_pdf' => 'Download PDF',
+        'print' => 'Print',
+        'back' => 'Back to customer',
+        'rows' => 'Rows',
     ],
     'addresses' => [
         'description' => 'Manage the customer saved addresses.',
