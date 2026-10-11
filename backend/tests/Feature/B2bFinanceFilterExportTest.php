@@ -39,10 +39,14 @@ final class B2bFinanceFilterExportTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/b2b/finance?from=2026-10-01&to=2026-10-03&customer_id='.$customerA)
             ->assertOk()
+            ->assertViewHas('moduleData', function (array $data) use ($invoiceAIn): bool {
+                return collect($data['rows'] ?? [])
+                    ->pluck('_id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$invoiceAIn];
+            })
             ->assertSee('#'.$invoiceAIn)
-            ->assertDontSee('KWD 15.000')
-            ->assertDontSee('Beta Company')
-            ->assertDontSee('KWD 999.000')
             ->assertSee('Alpha Company');
     }
 
