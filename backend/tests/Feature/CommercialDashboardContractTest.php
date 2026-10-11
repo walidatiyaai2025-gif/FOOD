@@ -295,8 +295,10 @@ class CommercialDashboardContractTest extends TestCase
 
     private function flashProduct(int $storeId, string $channel = 'b2c'): int
     {
+        $suffix = strtoupper($channel).'-'.$storeId;
+
         $unitId = (int) DB::table('units')->insertGetId([
-            'code' => 'COMM-FLASH-EA',
+            'code' => 'COMM-FLASH-EA-'.$suffix,
             'name' => 'Commercial Flash Each',
             'decimal_places' => 0,
             'created_at' => now(),
@@ -306,7 +308,7 @@ class CommercialDashboardContractTest extends TestCase
         $catalogId = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $storeId,
             'channel' => $channel,
-            'code' => 'commercial-flash',
+            'code' => 'commercial-flash-'.$channel,
             'name' => 'Commercial Flash',
             'is_active' => true,
             'is_migration_quarantine' => false,
@@ -317,7 +319,7 @@ class CommercialDashboardContractTest extends TestCase
         $categoryId = (int) DB::table('categories')->insertGetId([
             'catalog_id' => $catalogId,
             'name' => 'Flash',
-            'slug' => 'commercial-flash',
+            'slug' => 'commercial-flash-'.$channel,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -327,7 +329,7 @@ class CommercialDashboardContractTest extends TestCase
             'catalog_id' => $catalogId,
             'category_id' => $categoryId,
             'unit_id' => $unitId,
-            'sku' => 'COMM-FLASH-001',
+            'sku' => 'COMM-FLASH-001-'.$suffix,
             'name' => 'Flash Product',
             'is_active' => true,
             'created_at' => now(),
@@ -351,7 +353,7 @@ class CommercialDashboardContractTest extends TestCase
                 'name' => 'Piece',
                 'conversion_factor' => 1,
                 'price' => 10,
-                'sku' => 'COMM-FLASH-001',
+                'sku' => 'COMM-FLASH-001-'.$suffix,
                 'barcode' => null,
                 'is_base' => true,
                 'is_active' => true,
@@ -365,7 +367,7 @@ class CommercialDashboardContractTest extends TestCase
                 'name' => 'Carton',
                 'conversion_factor' => 10,
                 'price' => 90,
-                'sku' => 'COMM-FLASH-001-C',
+                'sku' => 'COMM-FLASH-001-C-'.$suffix,
                 'barcode' => null,
                 'is_base' => false,
                 'is_active' => true,
