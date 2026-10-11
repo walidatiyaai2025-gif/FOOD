@@ -4,6 +4,7 @@ import '../../../core/api/b2c_catalog_api.dart';
 import '../../../core/localization/app_translations.dart';
 import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef RetailProductsNavigation = void Function(
   BuildContext context, {
@@ -951,7 +952,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
                         if (product.price != null) ...[
                           const SizedBox(height: CustomerUiSpacing.md),
                           Text(
-                            '${product.price!.toStringAsFixed(3)} ${product.currency}',
+                            foodexMoneyText(product.price!, product.currency),
                             key: const ValueKey('retail-product-price'),
                             style: Theme.of(context)
                                 .textTheme
@@ -981,7 +982,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
                         ),
                         if (product.availableQuantity != null)
                           Text(
-                            product.availableQuantity!.toStringAsFixed(3),
+                            foodexQuantity(product.availableQuantity!),
                             key: const ValueKey(
                                 'retail-product-available-quantity'),
                             style:
@@ -1091,7 +1092,7 @@ class _BrowseProductCard extends StatelessWidget {
         : product.imageUrl;
     final priceLabel = product.price == null
         ? '—'
-        : '${product.price!.toStringAsFixed(3)} ${product.currency}';
+        : foodexMoneyText(product.price!, product.currency);
 
     return CustomerProductCard(
       key: ValueKey('retail-product-${product.id}'),
@@ -1342,7 +1343,7 @@ class _ProductTile extends StatelessWidget {
                     Text(product.sku),
                     if (product.price != null)
                       Text(
-                        '${product.price!.toStringAsFixed(3)} ${product.currency}',
+                        foodexMoneyText(product.price!, product.currency),
                       ),
                   ],
                 ),

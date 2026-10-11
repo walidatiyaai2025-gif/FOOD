@@ -8,6 +8,7 @@ import '../../shared/van_action_button.dart';
 import '../orders/van_order_contract.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_visit_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanVisitWorkspacePage extends StatefulWidget {
   const VanVisitWorkspacePage({
@@ -345,9 +346,7 @@ class _VanVisitWorkspacePageState extends State<VanVisitWorkspacePage>
                       DropdownMenuItem(
                         value: order.id,
                         child: Text(
-                          '${order.orderNumber} · '
-                          '${order.grandTotal.toStringAsFixed(3)} '
-                          '${order.currency}',
+                          '${order.orderNumber} · ${foodexMoneyText(order.grandTotal, order.currency)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

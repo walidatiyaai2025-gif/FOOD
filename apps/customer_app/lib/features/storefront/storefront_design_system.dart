@@ -3,6 +3,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class FoodexPalette {
   const FoodexPalette({
@@ -453,7 +454,7 @@ String compactNumber(double value) => value == value.roundToDouble()
 
 String money(Object? value, {String currency = 'EGP'}) {
   if (value == null) return '—';
-  return doubleValue(value).toStringAsFixed(2) + ' ' + currency;
+  return foodexMoneyText(doubleValue(value), currency);
 }
 
 int retailStoreId(String location) {

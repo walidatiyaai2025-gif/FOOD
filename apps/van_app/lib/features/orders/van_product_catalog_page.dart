@@ -6,6 +6,7 @@ import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanProductCatalogPage extends StatefulWidget {
   const VanProductCatalogPage({
@@ -294,8 +295,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${product.unitPrice.toStringAsFixed(3)} '
-                              '${product.currency}',
+                              foodexMoneyText(product.unitPrice, product.currency),
                               style: const TextStyle(
                                 color: FoodexVanTokens.green,
                                 fontWeight: FontWeight.w900,

@@ -7,6 +7,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../orders/van_order_contract.dart';
 import '../wallet/van_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanDashboardPage extends StatefulWidget {
   const VanDashboardPage({
@@ -195,7 +196,7 @@ class _VanDashboardPageState extends State<VanDashboardPage>
   }
 
   String _money(double value) =>
-      _currency.isEmpty ? value.toStringAsFixed(3) : '${value.toStringAsFixed(3)} $_currency';
+      _currency.isEmpty ? value.toStringAsFixed(3) : foodexMoneyText(value, _currency);
 
   @override
   Widget build(BuildContext context) {

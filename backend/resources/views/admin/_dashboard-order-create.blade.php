@@ -159,7 +159,14 @@ document.addEventListener('DOMContentLoaded', () => {
         duplicateProduct: @json($isArOrder ? 'لا يمكن إضافة نفس المنتج أكثر من مرة. عدّل الكمية في السطر الموجود.' : 'The same product cannot be added twice. Update the quantity on the existing line.'),
     };
 
-    const money = (value) => Number(value || 0).toFixed(3);
+    const money = (value, currency = 'EGP') => {
+        const amount = Number(value || 0);
+        if (!Number.isFinite(amount)) return '0';
+        const fixed = amount.toFixed(3);
+        return String(currency || '').trim().toUpperCase() === 'EGP'
+            ? fixed.replace(/\.?0+$/, '')
+            : fixed;
+    };
     const quoteBox = (form) => form.querySelector('.js-order-quote');
     const submitButton = (form) => form.querySelector('.js-submit-order');
 

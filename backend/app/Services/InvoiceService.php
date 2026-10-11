@@ -333,7 +333,7 @@ final class InvoiceService
     {
         $ar = $locale === 'ar';
         $e = static fn (mixed $value): string => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $money = static fn (mixed $value): string => number_format((float) $value, 3, '.', ',');
+        $money = static fn (mixed $value): string => \App\Support\DisplayNumber::money($value, (string) ($data['currency'] ?? ''));
         $labels = $ar ? [
             'title' => 'فاتورة', 'invoice' => 'رقم الفاتورة', 'order' => 'رقم الطلب', 'store' => 'المتجر',
             'customer' => 'العميل', 'date' => 'تاريخ الإصدار', 'item' => 'الصنف', 'qty' => 'الكمية',

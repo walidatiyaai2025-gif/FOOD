@@ -241,7 +241,7 @@ $businessLabel = static function ($value): string {
 <h3>{{ __('order_operations.detail.collection_timeline') }}</h3>
 <div class="timeline" data-van-collection-timeline>
 @forelse($detail['collections'] as $collection)
-<div class="timeline-item"><strong>{{ number_format($collection['amount'],3) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
+<div class="timeline-item"><strong>{{ \App\Support\DisplayNumber::money($collection['amount'], $collection['currency']) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
 @empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_collections') }}</div>@endforelse
 </div>
 </div>

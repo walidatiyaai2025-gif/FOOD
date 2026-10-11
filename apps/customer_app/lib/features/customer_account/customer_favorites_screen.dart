@@ -6,6 +6,7 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class CustomerFavoritesScreen extends StatefulWidget {
   const CustomerFavoritesScreen({
@@ -221,8 +222,9 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
 
   static String _priceLabel(Object? value, String? currency) {
     if (value == null) return '—';
-    final amount = value is num ? value.toStringAsFixed(3) : value.toString();
     final code = currency?.trim() ?? '';
+    if (value is num) return foodexMoneyText(value, code);
+    final amount = value.toString();
     return code.isEmpty ? amount : '$amount $code';
   }
 

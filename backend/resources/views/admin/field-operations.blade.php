@@ -254,7 +254,7 @@
                                 —
                             @endif
                         </td>
-                        <td>{{ number_format((float)$order->grand_total,3) }} {{ $order->currency }}</td>
+                        <td>{{ \App\Support\DisplayNumber::money((float)$order->grand_total, $order->currency) }} {{ $order->currency }}</td>
                         <td><a href="{{ route('admin.operations.orders.index',['channel'=>'b2b','order'=>$order->id]) }}">{{ __('order_operations.view_order') }}</a></td>
                     </tr>
                 @empty
@@ -357,7 +357,7 @@
                         @if(is_array($collectionContext))
                             <div><strong>Store #{{ $collectionContext['store_id'] }}</strong></div>
                             @forelse($collectionContext['outstanding_total_by_currency'] as $currency => $amount)
-                                <div class="fieldops-muted">{{ $currency }} {{ number_format((float) $amount, 3) }}</div>
+                                <div class="fieldops-muted">{{ $currency }} {{ \App\Support\DisplayNumber::money((float) $amount, $currency) }}</div>
                             @empty
                                 <div class="fieldops-muted">{{ __('field_operations.no_open_balance') }}</div>
                             @endforelse

@@ -273,7 +273,7 @@ final class B2bDashboardService
                 'key' => 'new_order',
                 'icon' => 'orders',
                 'title' => 'new_order',
-                'body' => $row['currency'].' '.number_format((float) $row['amount'], 3).' · '.$row['number'],
+                'body' => $row['currency'].' '.\App\Support\DisplayNumber::money((float) $row['amount'], $row['currency']).' · '.$row['number'],
                 'tone' => 'green',
                 'url' => route('admin.b2b.module', ['module' => 'orders']),
             ];
@@ -313,7 +313,7 @@ final class B2bDashboardService
                 'key' => 'overdue_invoice',
                 'icon' => 'revenue',
                 'title' => 'overdue_invoice',
-                'body' => $overdue->currency.' '.number_format((float) $overdue->total, 3).' · '.$overdue->invoice_number,
+                'body' => $overdue->currency.' '.\App\Support\DisplayNumber::money((float) $overdue->total, $overdue->currency).' · '.$overdue->invoice_number,
                 'tone' => 'orange',
                 'url' => route('admin.b2b.module', ['module' => 'finance']),
             ];

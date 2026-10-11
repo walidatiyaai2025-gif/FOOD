@@ -116,10 +116,10 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @if($wholesale)
 <div class="c360-kpis">
 @if($finance)
-<article class="c360-kpi primary"><small>{{ __('customer_360.finance.current_balance') }}</small><strong>{{ number_format(abs((float)$finance['balance']),3) }} {{ $finance['currency'] ?: '' }}</strong><span class="muted">@if($finance['balance_direction']==='customer_owes_company'){{ __('customer_360.finance.customer_owes_company') }}@elseif($finance['balance_direction']==='company_owes_customer'){{ __('customer_360.finance.company_owes_customer') }}@else{{ __('customer_360.finance.settled') }}@endif</span></article>
+<article class="c360-kpi primary"><small>{{ __('customer_360.finance.current_balance') }}</small><strong>{{ \App\Support\DisplayNumber::money(abs((float)$finance['balance']), $finance['currency']) }} {{ $finance['currency'] ?: '' }}</strong><span class="muted">@if($finance['balance_direction']==='customer_owes_company'){{ __('customer_360.finance.customer_owes_company') }}@elseif($finance['balance_direction']==='company_owes_customer'){{ __('customer_360.finance.company_owes_customer') }}@else{{ __('customer_360.finance.settled') }}@endif</span></article>
 <article class="c360-kpi">
 <small>{{ __('customer_360.finance.credit_limit') }}</small>
-<strong>{{ number_format((float)$finance['credit_limit'],3) }} {{ $finance['currency'] ?: '' }}</strong>
+<strong>{{ \App\Support\DisplayNumber::money((float)$finance['credit_limit'], $finance['currency']) }} {{ $finance['currency'] ?: '' }}</strong>
 @if($canManageFinance)
 <form method="post" action="{{ route('admin.customer-360.credit-limit.update',['platformCustomer'=>$customer->id]) }}" class="c360-credit-editor">
 @csrf @method('PATCH')
@@ -131,8 +131,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </form>
 @endif
 </article>
-<article class="c360-kpi"><small>{{ __('customer_360.finance.available_credit') }}</small><strong>{{ number_format((float)$finance['available_credit_line'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
-<article class="c360-kpi"><small>{{ __('customer_360.finance.purchasing_power') }}</small><strong>{{ number_format((float)$finance['purchasing_power'],3) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.finance.available_credit') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$finance['available_credit_line'], $finance['currency']) }} {{ $finance['currency'] ?: '' }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.finance.purchasing_power') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$finance['purchasing_power'], $finance['currency']) }} {{ $finance['currency'] ?: '' }}</strong></article>
 @endif
 </div>
 <div class="c360-finance-details">
@@ -140,8 +140,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div><small>{{ __('customer_360.finance.price_tier') }}</small><strong>{{ $wholesale['tier_name'] ?: '-' }}</strong></div>
 <div><small>{{ __('customer_360.finance.account_status') }}</small><strong>{{ $wholesale['status_label'] }}</strong></div>
 @if($finance)
-<div><small>{{ __('customer_360.finance.open_amount') }}</small><strong>{{ number_format((float)$finance['open_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
-<div><small>{{ __('customer_360.finance.overdue_amount') }}</small><strong>{{ number_format((float)$finance['overdue_amount'],3) }} {{ $finance['currency'] ?: '' }}</strong></div>
+<div><small>{{ __('customer_360.finance.open_amount') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$finance['open_amount'], $finance['currency']) }} {{ $finance['currency'] ?: '' }}</strong></div>
+<div><small>{{ __('customer_360.finance.overdue_amount') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$finance['overdue_amount'], $finance['currency']) }} {{ $finance['currency'] ?: '' }}</strong></div>
 <div><small>{{ __('customer_360.finance.last_payment') }}</small><strong>{{ $finance['last_payment']['occurred_at'] ?? '-' }}</strong></div>
 <div><small>{{ __('customer_360.finance.last_transaction') }}</small><strong>{{ $finance['last_transaction']['occurred_at'] ?? '-' }}</strong></div>
 @else
@@ -271,7 +271,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @else
 {{ __('order_operations.dispatch.driver') }}
 @endif
-</td><td>{{ number_format($order['total'],3) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ __('customer_360.records.manage_order') }}</a></td></tr>@endforeach
+</td><td>{{ \App\Support\DisplayNumber::money($order['total'], $order['currency']) }} {{ $order['currency'] }}</td><td>{{ $order['created_at'] }}</td><td><a class="foodex-action-secondary button secondary" href="{{ $order['url'] }}">{{ __('customer_360.records.manage_order') }}</a></td></tr>@endforeach
 </tbody></table></div>{{ $orders->links() }}@endif
 </div>
 </section>
@@ -281,7 +281,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="c360-section-head"><h2>{{ __('customer_360.tabs.invoices') }}</h2><span class="c360-badge">{{ $invoices->total() }}</span></div>
 @if($invoices->isEmpty())<div class="c360-empty">{{ __('customer_360.records.no_invoices') }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table" data-pagination-required><thead><tr><th>{{ __('customer_360.finance.invoice') }}</th><th>{{ __('customer_360.records.store') }}</th><th>{{ __('customer_360.records.channel') }}</th><th>{{ __('customer_360.records.status') }}</th><th>{{ __('customer_360.records.total') }}</th><th>{{ __('customer_360.finance.paid') }}</th><th>{{ __('customer_360.finance.outstanding') }}</th><th>{{ __('customer_360.records.issued') }}</th><th></th></tr></thead><tbody>
-@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $invoice['channel_label'] }}</span></td><td>{{ $invoice['status_label'] }}</td><td>{{ number_format($invoice['total'],3) }} {{ $invoice['currency'] }}</td><td>{{ number_format($invoice['paid_amount'],3) }} {{ $invoice['currency'] }}</td><td>{{ number_format($invoice['outstanding_amount'],3) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-secondary button secondary" href="{{ $invoice['pdf_url'] }}">PDF</a>@if($canManageFinance && $invoice['channel']==='b2b' && $invoice['outstanding_amount']>0.0005)<button type="button" class="foodex-action-primary" data-settlement-open data-invoice-id="{{ $invoice['id'] }}" data-invoice-number="{{ $invoice['number'] }}" data-outstanding="{{ number_format($invoice['outstanding_amount'],3,'.','') }}" data-currency="{{ $invoice['currency'] }}">{{ __('customer_360.finance.settle') }}</button>@endif</td></tr>@endforeach
+@foreach($invoices as $invoice)<tr><td><strong>{{ $invoice['number'] }}</strong></td><td>{{ $invoice['store'] }}</td><td><span class="c360-badge {{ $invoice['channel'] }}">{{ $invoice['channel_label'] }}</span></td><td>{{ $invoice['status_label'] }}</td><td>{{ \App\Support\DisplayNumber::money($invoice['total'], $invoice['currency']) }} {{ $invoice['currency'] }}</td><td>{{ \App\Support\DisplayNumber::money($invoice['paid_amount'], $invoice['currency']) }} {{ $invoice['currency'] }}</td><td>{{ \App\Support\DisplayNumber::money($invoice['outstanding_amount'], $invoice['currency']) }} {{ $invoice['currency'] }}</td><td>{{ $invoice['issued_at'] ?: '-' }}</td><td class="c360-actions"><a class="foodex-action-secondary button secondary" href="{{ $invoice['url'] }}">{{ __('customer_360.records.details') }}</a><a class="foodex-action-secondary button secondary" href="{{ $invoice['pdf_url'] }}">PDF</a>@if($canManageFinance && $invoice['channel']==='b2b' && $invoice['outstanding_amount']>0.0005)<button type="button" class="foodex-action-primary" data-settlement-open data-invoice-id="{{ $invoice['id'] }}" data-invoice-number="{{ $invoice['number'] }}" data-outstanding="{{ number_format($invoice['outstanding_amount'],3,'.','') }}" data-currency="{{ $invoice['currency'] }}">{{ __('customer_360.finance.settle') }}</button>@endif</td></tr>@endforeach
 </tbody></table></div>{{ $invoices->links() }}@endif
 </div>
 </section>
@@ -296,10 +296,10 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="wide c360-actions"><button class="foodex-action-primary" type="submit">{{ __('customer_360.statement.apply') }}</button><a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.statement.export',['platformCustomer'=>$customer->id,'from'=>$statementFilters['statement_from'] ?? null,'to'=>$statementFilters['statement_to'] ?? null,'format'=>'pdf','locale'=>app()->getLocale()]) }}">PDF</a><a class="foodex-action-secondary button secondary" href="{{ route('admin.customer-360.statement.export',['platformCustomer'=>$customer->id,'from'=>$statementFilters['statement_from'] ?? null,'to'=>$statementFilters['statement_to'] ?? null,'format'=>'xlsx','locale'=>app()->getLocale()]) }}">{{ __('customer_360.statement.xlsx') }}</a></div>
 </form>
 <div class="c360-kpis">
-<article class="c360-kpi"><small>{{ __('customer_360.statement.opening') }}</small><strong>{{ number_format((float)$statement['opening_balance'],3) }} {{ $statement['currency'] }}</strong></article>
-<article class="c360-kpi"><small>{{ __('customer_360.statement.debits') }}</small><strong>{{ number_format((float)$statement['period_debits'],3) }} {{ $statement['currency'] }}</strong></article>
-<article class="c360-kpi"><small>{{ __('customer_360.statement.credits') }}</small><strong>{{ number_format((float)$statement['period_credits'],3) }} {{ $statement['currency'] }}</strong></article>
-<article class="c360-kpi primary"><small>{{ __('customer_360.statement.closing') }}</small><strong>{{ number_format((float)$statement['closing_balance'],3) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.statement.opening') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$statement['opening_balance'], $statement['currency']) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.statement.debits') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$statement['period_debits'], $statement['currency']) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi"><small>{{ __('customer_360.statement.credits') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$statement['period_credits'], $statement['currency']) }} {{ $statement['currency'] }}</strong></article>
+<article class="c360-kpi primary"><small>{{ __('customer_360.statement.closing') }}</small><strong>{{ \App\Support\DisplayNumber::money((float)$statement['closing_balance'], $statement['currency']) }} {{ $statement['currency'] }}</strong></article>
 </div>
 @if(empty($statement['transactions']))<div class="c360-empty">{{ __('customer_360.statement.empty') }}</div>@else
 <div class="c360-table-wrap"><table class="c360-table"><thead><tr><th>{{ __('customer_360.finance.date') }}</th><th>{{ __('customer_360.statement.type') }}</th><th>{{ __('customer_360.finance.reference') }}</th><th>{{ __('customer_360.finance.description') }}</th><th>{{ __('customer_360.statement.debit') }}</th><th>{{ __('customer_360.statement.credit') }}</th><th>{{ __('customer_360.statement.running') }}</th><th></th></tr></thead><tbody>

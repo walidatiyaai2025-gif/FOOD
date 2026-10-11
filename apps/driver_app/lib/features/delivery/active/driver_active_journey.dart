@@ -10,6 +10,7 @@ import '../../../core/preview/driver_preview_context.dart';
 import '../../../core/theme/foodex_theme.dart';
 import '../driver_assignment_contract.dart';
 import '../../wallet/driver_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef DriverActiveAssignmentCallback = Future<void> Function(
   DriverAssignment assignment,
@@ -456,8 +457,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       } else {
         setState(() {
           _actionError =
-              '${context.tr('driver.collection.remaining')}: '
-              '${result.remainingAmount.toStringAsFixed(3)} ${result.currency}';
+              '${context.tr('driver.collection.remaining')}: ${foodexMoneyText(result.remainingAmount, result.currency)}';
         });
       }
       await _load();
@@ -1304,7 +1304,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       return translated == key ? value : translated;
     }
     String money(double amount, String currency) =>
-        '${amount.toStringAsFixed(3)} $currency';
+        foodexMoneyText(amount, currency);
 
     return ListView(
       key: Key('driver-active-detail-${assignment.id}'),
@@ -1501,8 +1501,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         ),
         _DetailRow(
           label: context.tr('driver.detail.total'),
-          value: '${assignment.currency} '
-              '${assignment.grandTotal.toStringAsFixed(3)}',
+          value: foodexMoneyText(assignment.grandTotal, assignment.currency, currencyFirst: true),
         ),
         _DetailRow(
           label: context.tr('driver.detail.note'),
@@ -1612,9 +1611,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                           if (item.lineTotal > 0) ...[
                             const SizedBox(height: 4),
                             Text(
-                              '${context.tr('driver.detail.item_total')}: '
-                              '${item.lineTotal.toStringAsFixed(3)} '
-                              '${assignment.currency}',
+                              '${context.tr('driver.detail.item_total')}: ${foodexMoneyText(item.lineTotal, assignment.currency)}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1682,9 +1679,7 @@ Future<void> _showInvoice(
                         ),
                       ),
                       Text(
-                        '${item.quantity.toStringAsFixed(3)} · '
-                        '${item.lineTotal.toStringAsFixed(3)} '
-                        '${invoice.currency}',
+                        '${foodexQuantity(item.quantity)} · ${foodexMoneyText(item.lineTotal, invoice.currency)}',
                       ),
                     ],
                   ),
@@ -1694,27 +1689,27 @@ Future<void> _showInvoice(
               _DetailRow(
                 label: context.tr('driver.invoice.subtotal'),
                 value:
-                    '${invoice.subtotal.toStringAsFixed(3)} ${invoice.currency}',
+                    foodexMoneyText(invoice.subtotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.discount'),
                 value:
-                    '${invoice.discountTotal.toStringAsFixed(3)} ${invoice.currency}',
+                    foodexMoneyText(invoice.discountTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.delivery'),
                 value:
-                    '${invoice.deliveryTotal.toStringAsFixed(3)} ${invoice.currency}',
+                    foodexMoneyText(invoice.deliveryTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.tax'),
                 value:
-                    '${invoice.taxTotal.toStringAsFixed(3)} ${invoice.currency}',
+                    foodexMoneyText(invoice.taxTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.total'),
                 value:
-                    '${invoice.grandTotal.toStringAsFixed(3)} ${invoice.currency}',
+                    foodexMoneyText(invoice.grandTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.payment'),

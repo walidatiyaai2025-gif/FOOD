@@ -120,8 +120,8 @@
                                 </td>
                                 <td data-label="{{ $ar?'الحالة':'Status' }}"><span class="c360-badge {{ $row['active']?'active':'' }}">{{ $row['active']?($ar?'نشط':'Active'):($ar?'غير نشط':'Inactive') }}</span></td>
                                 @if($access['mode']!=='b2c')<td data-label="{{ $ar?'شريحة الجملة':'Wholesale tier' }}">{{ $row['wholesale_tier'] ?: '-' }}</td>@endif
-                                <td data-label="{{ $ar?'الطلبات':'Orders' }}"><div class="c360-kpi"><strong>{{ number_format($row['orders_count']) }}</strong><small>{{ number_format($row['orders_total'],3) }} EGP</small></div></td>
-                                <td data-label="{{ $ar?'الفواتير':'Invoices' }}"><div class="c360-kpi"><strong>{{ number_format($row['invoices_count']) }}</strong><small>{{ number_format($row['invoices_total'],3) }} EGP</small></div></td>
+                                <td data-label="{{ $ar?'الطلبات':'Orders' }}"><div class="c360-kpi"><strong>{{ number_format($row['orders_count']) }}</strong><small>{{ \App\Support\DisplayNumber::money($row['orders_total'], 'EGP') }} EGP</small></div></td>
+                                <td data-label="{{ $ar?'الفواتير':'Invoices' }}"><div class="c360-kpi"><strong>{{ number_format($row['invoices_count']) }}</strong><small>{{ \App\Support\DisplayNumber::money($row['invoices_total'], 'EGP') }} EGP</small></div></td>
                                 <td data-label="{{ $ar?'التسجيل':'Registered' }}">{{ optional($row['registered_at'])->format('Y-m-d H:i') ?: '-' }}</td>
                                 <td><a class="foodex-action-primary" href="{{ $row['url'] }}">{{ $ar?'فتح 360':'Open 360' }}</a></td>
                             </tr>

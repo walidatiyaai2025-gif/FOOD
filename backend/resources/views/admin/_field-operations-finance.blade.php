@@ -122,7 +122,7 @@
                                 <td>{{ $row['id'] }}</td>
                                 <td>{{ $row['actor_type'] }} #{{ $row['actor_id'] }}</td>
                                 <td>{{ $row['store_name'] ?? ('#'.$row['store_id']) }}</td>
-                                <td>{{ $row['currency'] }} {{ number_format((float)$row['amount'],3) }}</td>
+                                <td>{{ $row['currency'] }} {{ \App\Support\DisplayNumber::money((float)$row['amount'], $row['currency']) }}</td>
                                 <td>{{ $row['source'] }}</td>
                                 <td>{{ $row['provider_reference'] ?: $row['idempotency_key'] }}</td>
                                 <td>{{ $opsStatusLabels[$row['status']] ?? $row['status'] }}</td>
@@ -133,7 +133,7 @@
                                 <td>{{ $row['id'] }}</td>
                                 <td>{{ $row['actor_type'] }} #{{ $row['actor_id'] }}</td>
                                 <td>{{ $row['store_name'] ?? ('#'.$row['store_id']) }}</td>
-                                <td>{{ $row['currency'] }} {{ number_format((float)$row['amount'],3) }}</td>
+                                <td>{{ $row['currency'] }} {{ \App\Support\DisplayNumber::money((float)$row['amount'], $row['currency']) }}</td>
                                 <td>{{ $row['method'] }}</td>
                                 <td>{{ $row['reference'] ?: '—' }}</td>
                                 <td>{{ $opsStatusLabels[$row['status']] ?? $row['status'] }}</td>

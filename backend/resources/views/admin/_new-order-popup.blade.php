@@ -82,8 +82,12 @@
 
     const formatTotal = (item) => {
         const amount = Number(item.grand_total || 0);
-        const number = Number.isFinite(amount) ? amount.toFixed(3) : '0.000';
-        return number + ' ' + String(item.currency || '');
+        const currency = String(item.currency || '');
+        const fixed = Number.isFinite(amount) ? amount.toFixed(3) : '0.000';
+        const number = currency.trim().toUpperCase() === 'EGP'
+            ? fixed.replace(/\.?0+$/, '')
+            : fixed;
+        return number + ' ' + currency;
     };
 
     const render = () => {

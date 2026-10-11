@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
 import 'driver_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class DriverWalletPage extends StatefulWidget {
   const DriverWalletPage({
@@ -274,7 +275,7 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                               Icons.receipt_long_outlined,
                                             ),
                                             title: Text(
-                                              '${row.amount.toStringAsFixed(3)} ${row.currency}',
+                                              foodexMoneyText(row.amount, row.currency),
                                             ),
                                             subtitle: Text(
                                               _transactionStatusLabel(row.status),
@@ -343,7 +344,7 @@ class _MoneyRow extends StatelessWidget {
           children: [
             Expanded(child: Text(label)),
             Text(
-              '${amount.toStringAsFixed(3)} $currency',
+              foodexMoneyText(amount, currency),
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ],

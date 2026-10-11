@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanWalletPage extends StatefulWidget {
   const VanWalletPage({
@@ -103,7 +104,7 @@ class _VanWalletPageState extends State<VanWalletPage>
   }
 
   String _money(double value, String currency) =>
-      '${value.toStringAsFixed(3)} $currency';
+      foodexMoneyText(value, currency);
 
   String _idempotencyKey(String operation) {
     return _pendingIdempotencyKeys.putIfAbsent(
@@ -460,12 +461,12 @@ class _WalletCard extends StatelessWidget {
                 _Metric(
                   label: _t('Custody', 'العهدة'),
                   value:
-                      '${account.custodyBalance.toStringAsFixed(3)} ${account.currency}',
+                      foodexMoneyText(account.custodyBalance, account.currency),
                 ),
                 _Metric(
                   label: _t('Available to remit', 'متاح للتوريد'),
                   value:
-                      '${account.availableToRemit.toStringAsFixed(3)} ${account.currency}',
+                      foodexMoneyText(account.availableToRemit, account.currency),
                 ),
                 _Metric(
                   label: _t('Pending remittances', 'توريدات معلقة'),
@@ -579,9 +580,7 @@ class _CollectionDialogState extends State<_CollectionDialog> {
                     (invoice) => DropdownMenuItem<int>(
                       value: invoice.id,
                       child: Text(
-                        '${invoice.number} · '
-                        '${invoice.outstandingAmount.toStringAsFixed(3)} '
-                        '${invoice.currency}',
+                        '${invoice.number} · ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
                       ),
                     ),
                   )

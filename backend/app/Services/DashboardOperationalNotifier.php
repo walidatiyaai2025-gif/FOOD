@@ -105,8 +105,8 @@ final class DashboardOperationalNotifier
             'orders.view',
             'طلب جديد '.$order->order_number,
             'New order '.$order->order_number,
-            'تم إنشاء طلب جديد بقيمة '.number_format((float) $order->grand_total, 3).' '.$order->currency,
-            'A new order was created for '.number_format((float) $order->grand_total, 3).' '.$order->currency,
+            'تم إنشاء طلب جديد بقيمة '.\App\Support\DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
+            'A new order was created for '.\App\Support\DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
             ['status' => (string) $order->status, 'source' => $source],
         );
 
@@ -266,8 +266,8 @@ final class DashboardOperationalNotifier
             'finance.view',
             $titlesAr[$event].$order->order_number,
             $titlesEn[$event].$order->order_number,
-            'الفاتورة '.$invoice->invoice_number.' · '.number_format((float) $invoice->total, 3).' '.$invoice->currency,
-            'Invoice '.$invoice->invoice_number.' · '.number_format((float) $invoice->total, 3).' '.$invoice->currency,
+            'الفاتورة '.$invoice->invoice_number.' · '.\App\Support\DisplayNumber::money((float) $invoice->total, $invoice->currency).' '.$invoice->currency,
+            'Invoice '.$invoice->invoice_number.' · '.\App\Support\DisplayNumber::money((float) $invoice->total, $invoice->currency).' '.$invoice->currency,
             [
                 'invoice_id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
