@@ -7,6 +7,7 @@ import 'core/auth/van_auth_persistence.dart';
 import 'core/auth/van_session.dart';
 import 'core/auth/van_session_store.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/location/van_location_tracking_service.dart';
 import 'core/theme/foodex_van_theme.dart';
 import 'core/push/firebase_push_service.dart';
 import 'features/auth/van_login_screen.dart';
@@ -22,6 +23,10 @@ import 'features/notifications/van_notification_contract.dart';
 import 'features/orders/http_van_order_repository.dart';
 import 'features/orders/van_order_contract.dart';
 import 'features/orders/van_order_detail_page.dart';
+
+typedef VanLocationTrackingFactory = VanLocationTrackingController Function(
+  VanSession session,
+);
 
 class FoodexVanApp extends StatefulWidget {
   const FoodexVanApp({
@@ -40,6 +45,7 @@ class FoodexVanApp extends StatefulWidget {
     this.orderRepository,
     this.pushService,
     this.pushAlerts,
+    this.locationTrackingFactory,
   });
 
   final Locale locale;
@@ -56,6 +62,7 @@ class FoodexVanApp extends StatefulWidget {
   final VanOrderRepository? orderRepository;
   final VanFirebasePushService? pushService;
   final Stream<VanPushAlert>? pushAlerts;
+  final VanLocationTrackingFactory? locationTrackingFactory;
 
   @override
   State<FoodexVanApp> createState() => _FoodexVanAppState();
@@ -73,6 +80,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
   VanSession? _session;
   bool _restoring = true;
   StreamSubscription<VanPushAlert>? _pushAlertSubscription;
+  VanLocationTrackingController? _locationTracking;
 
   @override
   void initState() {
@@ -89,6 +97,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     if (_session != null) {
       _restoring = false;
       unawaited(widget.pushService?.bindSession(_session!.token));
+      _configureLocationTracking(_session!);
     } else {
       _restoreAuthState();
     }
@@ -146,6 +155,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
 
     if (restoredSession != null) {
       unawaited(widget.pushService?.bindSession(restoredSession.token));
+      _configureLocationTracking(restoredSession);
     }
   }
 
@@ -170,6 +180,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     }
 
     unawaited(widget.pushService?.bindSession(session.token));
+    _configureLocationTracking(session);
 
     if (!mounted) return;
     setState(() {
@@ -187,6 +198,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
     } catch (_) {
       // Local logout must remain available when the network is unavailable.
     }
+    _disposeLocationTracking();
     await widget.pushService?.revokeSession();
     await _sessionStore.clear();
     await _authPreferenceStore.clear();
@@ -196,6 +208,21 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
       _preferences = const VanAuthPreferences();
       _session = null;
     });
+  }
+
+  void _configureLocationTracking(VanSession session) {
+    _disposeLocationTracking();
+    final factory = widget.locationTrackingFactory;
+    if (factory == null || !session.canUseVan) return;
+
+    final tracking = factory(session);
+    _locationTracking = tracking;
+    tracking.start();
+  }
+
+  void _disposeLocationTracking() {
+    _locationTracking?.dispose();
+    _locationTracking = null;
   }
 
   void _showPushAlert(VanPushAlert alert) {
@@ -264,6 +291,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
 
   @override
   void dispose() {
+    _disposeLocationTracking();
     unawaited(_pushAlertSubscription?.cancel());
     unawaited(widget.pushService?.dispose());
     super.dispose();
