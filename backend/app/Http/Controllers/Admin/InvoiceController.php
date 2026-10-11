@@ -49,7 +49,7 @@ final class InvoiceController extends Controller
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$model->invoice_number.'.pdf"',
+            'Content-Disposition' => 'attachment; filename="invoice-'.(int) $model->getKey().'.pdf"',
             'Cache-Control' => 'private, no-store',
         ]);
     }
