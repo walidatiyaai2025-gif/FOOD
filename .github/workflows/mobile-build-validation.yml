@@ -130,6 +130,13 @@ jobs:
         with:
           flutter-version: "3.47.5"
           cache: true
+      - name: Prepare Web target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f web/index.html ]]; then
+            flutter create --platforms=web --project-name "${{ inputs.project }}" .
+          fi
       - name: Resolve dependencies
         run: flutter pub get
       - name: Build shared preview runtime
