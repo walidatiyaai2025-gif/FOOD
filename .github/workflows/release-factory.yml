@@ -34,6 +34,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Validate synchronized release readiness
+        run: bash scripts/release-readiness.sh
       - id: plan
         shell: bash
         run: |
@@ -182,13 +184,20 @@ jobs:
         with:
           name: release-preview-driver-${{ github.sha }}
           path: backend/public/preview/driver
+      - name: Checkout pinned TCPDF runtime
+        uses: actions/checkout@v7
+        with:
+          repository: tecnickcom/TCPDF
+          ref: b18f6119161019916c5bb07cb8da5205ae5c1b63
+          path: .foodex-thirdparty/tcpdf-source
+          persist-credentials: false
       - name: Stage pinned TCPDF runtime
         shell: bash
         run: |
           set -euo pipefail
-          git clone --depth 1 https://github.com/tecnickcom/TCPDF.git /tmp/tcpdf
+          rm -rf backend/app/ThirdParty/tcpdf
           mkdir -p backend/app/ThirdParty/tcpdf
-          rsync -a --exclude='.git' --exclude='examples' --exclude='tests' --exclude='test' /tmp/tcpdf/ backend/app/ThirdParty/tcpdf/
+          rsync -a --exclude='.git' --exclude='examples' --exclude='tests' --exclude='test' .foodex-thirdparty/tcpdf-source/ backend/app/ThirdParty/tcpdf/
           test -f backend/app/ThirdParty/tcpdf/tcpdf.php
       - name: Build delta update
         shell: bash
@@ -287,9 +296,11 @@ jobs:
         run: |
           set -euo pipefail
           tag="v$CURRENT_VERSION"
-          if git rev-parse "$tag" >/dev/null 2>&1; then
-            published="$(git rev-list -n 1 "$tag")"
-            test "$published" = "$SOURCE_COMMIT"
+          git fetch --force origin "refs/tags/$tag:refs/tags/$tag" 2>/dev/null || true
+          published="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
+          if [[ -n "$published" && "$published" != "$SOURCE_COMMIT" ]]; then
+            echo "::error::FOODEX $CURRENT_VERSION is already published from $published; refusing to replace immutable artifacts from $SOURCE_COMMIT."
+            exit 1
           fi
           notes="FOODEX $CURRENT_VERSION synchronized release from $SOURCE_COMMIT"
           if gh release view "$tag" >/dev/null 2>&1; then
