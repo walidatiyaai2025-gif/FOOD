@@ -68,11 +68,17 @@ class B2bPriceResolver
             throw new HttpException(403, 'Approved B2B pricing account is required.');
         }
 
+        $tiersEnabledByStore = [];
+        foreach ($targets->pluck('store_id')->unique() as $storeId) {
+            $storeId = (int) $storeId;
+            $tiersEnabledByStore[$storeId] = $this->pricingMode->tiersEnabled($storeId);
+        }
+
         $baseTargets = $targets
-            ->filter(fn (array $target): bool => ! $this->pricingMode->tiersEnabled((int) $target['store_id']))
+            ->filter(fn (array $target): bool => ! ($tiersEnabledByStore[(int) $target['store_id']] ?? false))
             ->values();
         $tierTargets = $targets
-            ->filter(fn (array $target): bool => $this->pricingMode->tiersEnabled((int) $target['store_id']))
+            ->filter(fn (array $target): bool => $tiersEnabledByStore[(int) $target['store_id']] ?? false)
             ->values();
 
         $baseResolved = $this->platformFallbackMany($baseTargets->all());
