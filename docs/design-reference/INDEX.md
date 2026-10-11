@@ -5,6 +5,7 @@
 All Dashboard/Admin/business-facing UI work must follow:
 
 - [Dashboard UI/UX & Master-Data Contract](./DASHBOARD_UI_UX_CONTRACT.md)
+- [Dashboard Mobile Web Design Contract](./DASHBOARD_MOBILE_WEB_CONTRACT.md)
 
 This contract is authoritative for navigation, tabs, grids, FOODEX buttons, modal workflows, direct-record actions, Master Data lookups, map-first geography, Admin Hub structure, and Customer/Driver/Van application parity.
 
