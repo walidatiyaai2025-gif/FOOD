@@ -13,6 +13,7 @@ final class PdfDocumentFactory
         float $marginTop = 12,
         float $marginRight = 12,
         int $fontSize = 10,
+        string $orientation = 'P',
     ): TCPDF {
         if (! class_exists(TCPDF::class)) {
             $bundledRuntime = app_path('ThirdParty/tcpdf/tcpdf.php');
@@ -26,7 +27,8 @@ final class PdfDocumentFactory
             throw new RuntimeException('PDF generation is temporarily unavailable.');
         }
 
-        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $orientation = strtoupper($orientation) === 'L' ? 'L' : 'P';
+        $pdf = new TCPDF($orientation, 'mm', 'A4', true, 'UTF-8', false);
         $pdf->setPDFVersion('1.4');
         $pdf->SetCreator('FOODEX');
         $pdf->SetAuthor('FOODEX');
