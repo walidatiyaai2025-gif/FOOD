@@ -278,15 +278,13 @@ final class OrderOperationsController extends Controller
 
         foreach ($notifications as $notification) {
             $cursor = max($cursor, (int) $notification->getKey());
-            $payload = is_array($notification->data) ? $notification->data : [];
-
-            if (($payload['source'] ?? null) !== 'customer_app') {
+            if (data_get($notification->data, 'source') !== 'customer_app') {
                 continue;
             }
 
-            $channel = strtolower((string) ($payload['channel'] ?? ''));
-            $storeId = (int) ($payload['store_id'] ?? 0);
-            $orderId = (int) ($payload['order_id'] ?? 0);
+            $channel = strtolower((string) data_get($notification->data, 'channel', ''));
+            $storeId = (int) data_get($notification->data, 'store_id', 0);
+            $orderId = (int) data_get($notification->data, 'order_id', 0);
 
             if (! in_array($channel, ['b2b', 'b2c'], true) || $storeId <= 0 || $orderId <= 0) {
                 continue;
