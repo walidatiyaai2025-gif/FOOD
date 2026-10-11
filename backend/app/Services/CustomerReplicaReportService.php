@@ -175,7 +175,7 @@ final class CustomerReplicaReportService
         ];
     }
 
-    /** @return Collection<int,object> */
+    /** @return Collection<int,\stdClass> */
     private function itemRows(B2bCustomer $customer, string $from, string $to): Collection
     {
         $query = DB::table('invoices')
