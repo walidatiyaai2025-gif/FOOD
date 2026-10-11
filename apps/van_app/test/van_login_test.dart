@@ -110,7 +110,7 @@ void main() {
   });
 
   testWidgets(
-      'password login persists only after Remember Me is selected and can enable biometrics',
+      'remembered password login automatically enables biometric unlock when available',
       (tester) async {
     final store = _MemoryStore();
     final preferences = _PreferenceStore();
@@ -128,9 +128,9 @@ void main() {
 
     expect(find.text('Van App'), findsOneWidget);
 
-    await tester.ensureVisible(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.ensureVisible(find.byKey(const Key('van-login-remember')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.tap(find.byKey(const Key('van-login-remember')));
     await tester.pump();
     await tester.enterText(
       find.byKey(const Key('van-login-email')),
@@ -235,9 +235,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.ensureVisible(find.byKey(const Key('van-login-remember')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('van-login-biometric-toggle')));
+    await tester.tap(find.byKey(const Key('van-login-remember')));
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('van-login-email')),
       'van@example.test',
