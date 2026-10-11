@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.70",
+  "current_version": "1.0.71",
   "releases": [
     {
       "version": "1.0.40",
@@ -218,6 +218,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "c670446573203dc0f88c328cbe250426de22f644ef7df8dbc622b203fd5cce48",
       "note": "FOODEX 1.0.70 post-1.0.69 release for Issue #1258 / PR #1259 and release PR #1260, adding the global Customer App new-order Dashboard popup, scoped incremental feed, queue/dedupe/deep-link behavior and synchronized 1.0.70 release identities."
+    },
+    {
+      "version": "1.0.71",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.71.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "54aa630448d73dc1349a32317c4ed08ba8047148385feb4acc1dea6e8a317fb2",
+      "note": "FOODEX 1.0.71 Dashboard update release for #1261 / PR #1262 customer legacy report replicas and PR #1265 live Van map/GPS heartbeat repair, promoted through release PR #1266. Mobile source identities are synchronized at 1.0.71+71 while the Dashboard Update ZIP remains independently deployable."
     }
   ]
 }
