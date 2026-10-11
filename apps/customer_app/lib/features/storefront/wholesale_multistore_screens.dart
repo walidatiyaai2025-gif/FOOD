@@ -6349,14 +6349,7 @@ String _compactOrderAmount(Object? value, String currency) {
   final number =
       value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '');
   if (number == null) return currency + ' —';
-
-  final code = currency.trim().toUpperCase();
-  if (code == 'EGP') {
-    return foodexMoneyText(number, code, currencyFirst: true);
-  }
-
-  final amount = foodexCompactDecimal(number);
-  return code.isEmpty ? amount : '$code $amount';
+  return foodexMoneyText(number, currency, currencyFirst: true);
 }
 
 String paymentLabel(String method) {
