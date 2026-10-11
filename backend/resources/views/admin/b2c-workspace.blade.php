@@ -209,11 +209,11 @@
             .avatar{width:34px;height:34px}
             .top-actions{gap:8px}
             .content{padding:12px}
-            .dashboard-tabs{margin-bottom:12px;padding:4px}.dashboard-tab{min-height:38px;padding-inline:12px;font-size:.8rem}
+            .dashboard-tabs{margin-bottom:12px;padding:4px}.dashboard-tab{min-height:44px;padding-inline:12px;font-size:.8rem}
             .headline{align-items:stretch;flex-direction:column;gap:10px;margin-bottom:12px}
             .headline h1{font-size:1.35rem}.headline p{font-size:.8rem}
             .date-control{order:2;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:6px;padding:6px}
-            .date-control label{min-width:0}.date-control input{width:100%;min-width:0;font-size:14px!important}.date-control .foodex-filter-action{min-width:58px;padding-inline:10px}
+            .date-control label{min-width:0}.date-control input{width:100%;min-width:0;min-height:44px!important;font-size:16px!important}.date-control .foodex-filter-action{min-width:58px;min-height:44px;padding-inline:10px}
             .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
             .kpi{min-height:108px;padding:12px;border-radius:14px}
             .kpi-head{gap:8px;align-items:flex-start}.kpi-icon{width:36px;height:36px}.kpi-icon .foodex-svg-icon{width:19px;height:19px}
