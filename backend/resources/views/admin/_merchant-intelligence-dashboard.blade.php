@@ -327,7 +327,7 @@
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_qty') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }}</b></div>
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_equivalent') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_retail_equivalent',0),2) }}</b></div>
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.case_equivalent') }}</span><b>{{ data_get($row,'commercial.recommended_case_equivalent')===null?'—':number_format((float)data_get($row,'commercial.recommended_case_equivalent'),2) }}</b></div>
-                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ \App\Support\DisplayNumber::money((float)data_get($row,'recommendation.expected_cost',0), $dashboard['currency']) }}</b></div>
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</span><b>{{ number_format((float)($row['priority_score'] ?? 0),1) }}/100</b></div>
                     </div>
                 @empty

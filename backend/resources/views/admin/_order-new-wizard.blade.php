@@ -140,6 +140,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedText = (select) => select?.selectedOptions?.[0]?.textContent?.trim() || '—';
     const activeChannel = () => (source.channels || []).find((item) => item.code === channelSelect.value) || null;
     const activeStore = () => (activeChannel()?.stores || []).find((item) => String(item.id) === storeSelect.value) || null;
+    const money = (value, currency = 'EGP') => {
+        const amount = Number(value || 0);
+        if (!Number.isFinite(amount)) return '0';
+        return String(currency || '').trim().toUpperCase() === 'EGP'
+            ? amount.toFixed(2)
+            : amount.toFixed(3);
+    };
+    const quantity = (value) => {
+        const amount = Number(value || 0);
+        if (!Number.isFinite(amount)) return '0';
+        return amount.toFixed(3).replace(/\.?0+$/, '');
+    };
     const showError = (message = '') => { errorBox.textContent = message; errorBox.dataset.visible = message ? '1' : '0'; };
     const invalidateQuote = () => { quoteReady = false; createButton.disabled = true; };
 
@@ -219,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         productSelect.required = true;
         productSelect.appendChild(makeOption('', isAr ? 'اختر المنتج' : 'Select product'));
         (activeStore()?.products || []).forEach((item) => {
-            const price = item.price === null || item.price === undefined ? '' : ' · ' + Number(item.price).toFixed(3);
+            const price = item.price === null || item.price === undefined ? '' : ' · ' + money(item.price, 'EGP');
             productSelect.appendChild(makeOption(item.id, item.sku + ' · ' + item.name + price));
         });
         productLabel.append(productCaption, productSelect);
@@ -299,13 +311,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const lines = document.createElement('div');
         (quote.items || []).forEach((line) => {
             const item = document.createElement('div');
-            item.textContent = (line.is_available ? '✓ ' : '⚠ ') + (line.sku || '') + ' · ' + (line.name || '') + ' — ' + Number(line.quantity || 0).toFixed(3) + ' × ' + Number(line.unit_price || 0).toFixed(3) + ' = ' + Number(line.line_total || 0).toFixed(3) + ' ' + currency;
+            item.textContent = (line.is_available ? '✓ ' : '⚠ ') + (line.sku || '') + ' · ' + (line.name || '') + ' — ' + quantity(line.quantity) + ' × ' + money(line.unit_price, currency) + ' = ' + money(line.line_total, currency) + ' ' + currency;
             lines.appendChild(item);
         });
         const totals = document.createElement('div');
-        totals.textContent = t.subtotal + ': ' + Number(quote.subtotal || 0).toFixed(3) + ' ' + currency + ' · ' + t.discount + ': ' + Number(quote.discount_total || 0).toFixed(3) + ' ' + currency + ' · ' + t.delivery + ': ' + Number(quote.delivery_total || 0).toFixed(3) + ' ' + currency + ' · ' + t.tax + ': ' + Number(quote.tax_total || 0).toFixed(3) + ' ' + currency;
+        totals.textContent = t.subtotal + ': ' + money(quote.subtotal, currency) + ' ' + currency + ' · ' + t.discount + ': ' + money(quote.discount_total, currency) + ' ' + currency + ' · ' + t.delivery + ': ' + money(quote.delivery_total, currency) + ' ' + currency + ' · ' + t.tax + ': ' + money(quote.tax_total, currency) + ' ' + currency;
         const grand = document.createElement('strong');
-        grand.textContent = t.total + ': ' + Number(quote.grand_total || 0).toFixed(3) + ' ' + currency;
+        grand.textContent = t.total + ': ' + money(quote.grand_total, currency) + ' ' + currency;
         quoteBox.append(lines, totals, grand);
         quoteReady = !quote.has_unavailable_items;
         createButton.disabled = !quoteReady;

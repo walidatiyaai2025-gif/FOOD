@@ -101,7 +101,7 @@
                 </article>
                 <article class="fieldops-card">
                     <h2>{{ __('field_operations.overview.custody') }}</h2>
-                    <strong style="font-size:1.8rem">{{ number_format((float)($s['outstanding_collections'] ?? 0),3) }}</strong>
+                    <strong style="font-size:1.8rem">{{ \App\Support\DisplayNumber::money((float)($s['outstanding_collections'] ?? 0), 'EGP') }}</strong>
                     <p class="fieldops-muted">{{ __('field_operations.overview.custody_help') }}</p>
                     @if($overviewVisibility['finance'] ?? false)<a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.overview.open_finance') }}</a>@endif
                 </article>
