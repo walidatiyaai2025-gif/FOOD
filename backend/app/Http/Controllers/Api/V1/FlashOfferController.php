@@ -200,6 +200,7 @@ final class FlashOfferController extends Controller
                 'id' => (int) $order->getKey(),
                 'store_id' => (int) $order->store_id,
                 'order_number' => (string) $order->order_number,
+                'display_order_number' => \App\Support\DisplayNumber::reference($order->getKey()),
                 'status' => (string) $order->status,
             ], $created ? 201 : 200);
         }
