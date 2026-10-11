@@ -156,7 +156,114 @@
     @media(max-width:1023px){.foodex-ops-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:767px){.foodex-ops-toolbar,.foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)}.foodex-ops-grid .foodex-ops-hide-mobile{display:none}}
 
+
+    /* #1296 Dashboard Mobile Web foundation: shared by existing and future admin pages. */
+    .foodex-mobile-only,.foodex-mobile-web-bar,.foodex-mobile-nav-backdrop{display:none}
+    .foodex-mobile-action-rail{display:flex;align-items:center;gap:var(--foodex-space-2);min-width:0}
+    .foodex-mobile-filter-sheet{min-width:0}
+    .foodex-mobile-sticky-actions{display:flex;align-items:center;gap:var(--foodex-space-2)}
+
+    @media(max-width:767px){
+        html{scroll-padding-top:64px}
+        body{min-width:0;padding-block-start:56px!important}
+        .foodex-mobile-only{display:initial}
+        .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{display:grid;grid-template-columns:minmax(0,1fr)!important}
+        .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1!important;grid-row:1!important;min-width:0;padding:12px!important}
+        .foodex-admin-page{min-width:0;padding:12px!important}
+        .foodex-page-header{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:14px}
+        .foodex-page-header h1{font-size:clamp(1.25rem,6vw,1.55rem)}
+        .foodex-page-header p{font-size:.82rem;line-height:1.45}
+        .foodex-header-actions,.foodex-mobile-action-rail{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px;overscroll-behavior-inline:contain;scrollbar-width:none}
+        .foodex-header-actions::-webkit-scrollbar,.foodex-mobile-action-rail::-webkit-scrollbar{display:none}
+        .foodex-header-actions>*{flex:0 0 auto}
+        .foodex-tabs{margin-inline:-12px;padding-inline:12px;scrollbar-width:none}
+        .foodex-tabs::-webkit-scrollbar{display:none}
+        input:not([type="checkbox"]):not([type="radio"]),select,textarea,.foodex-control{max-width:100%;font-size:16px}
+        textarea{min-height:96px}
+        .foodex-form{padding:14px;gap:12px;margin-bottom:14px}
+        .foodex-form button{width:100%;justify-self:stretch}
+        .foodex-card,.panel,.card,.filters,.back{max-width:100%;min-width:0}
+        .table-wrap,.module-table-wrap,.foodex-table-wrap{overflow:visible}
+        .foodex-ops-toolbar{grid-template-columns:minmax(0,1fr)!important;gap:10px}
+        .foodex-ops-detail-grid{grid-template-columns:minmax(0,1fr)!important}
+        .foodex-modal-backdrop{padding:0;align-items:end;justify-items:stretch}
+        .foodex-modal,.foodex-operational-dialog-host .foodex-modal{width:100%;max-width:none;max-height:94dvh;border-radius:18px 18px 0 0;padding:16px}
+        .foodex-modal-header{position:sticky;top:0;z-index:1;background:var(--foodex-surface);padding-block:2px 8px}
+        .foodex-pagination{justify-content:center;gap:8px}
+        .foodex-pagination-summary{width:100%;text-align:center}
+        .foodex-pagination-pages,.foodex-pagination-controls{justify-content:center;flex-wrap:nowrap;max-width:100%;overflow-x:auto;scrollbar-width:none}
+        .foodex-pagination-pages::-webkit-scrollbar,.foodex-pagination-controls::-webkit-scrollbar{display:none}
+        .foodex-mobile-filter-sheet{position:fixed;z-index:10070;inset-inline:0;inset-block-end:0;max-height:min(82dvh,720px);overflow:auto;padding:16px;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:18px 18px 0 0;box-shadow:var(--foodex-shadow-raised)}
+        .foodex-mobile-sticky-actions{position:sticky;z-index:20;inset-block-end:0;margin:12px -12px -12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--foodex-border);backdrop-filter:blur(10px)}
+        .foodex-mobile-sticky-actions>*{flex:1 1 0}
+
+        table[data-foodex-mobile-table-ready="1"]{display:block;width:100%;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+        table[data-foodex-mobile-table-ready="1"] thead{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+        table[data-foodex-mobile-table-ready="1"] tbody{display:grid;gap:10px;width:100%}
+        table[data-foodex-mobile-table-ready="1"] tbody tr{display:grid;width:100%;min-width:0;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:14px;box-shadow:var(--foodex-shadow-sm);overflow:hidden}
+        table[data-foodex-mobile-table-ready="1"] tbody td{display:grid;grid-template-columns:minmax(92px,36%) minmax(0,1fr);align-items:start;gap:10px;width:100%;min-width:0;padding:10px 12px!important;border:0!important;border-bottom:1px solid var(--foodex-border)!important;text-align:start!important;white-space:normal!important;overflow-wrap:anywhere}
+        table[data-foodex-mobile-table-ready="1"] tbody td:last-child{border-bottom:0!important}
+        table[data-foodex-mobile-table-ready="1"] tbody td::before{content:attr(data-foodex-label);display:block;color:var(--foodex-muted);font-size:.75rem;font-weight:700;line-height:1.35}
+        table[data-foodex-mobile-table-ready="1"] tbody td[colspan]{grid-template-columns:minmax(0,1fr)}
+        table[data-foodex-mobile-table-ready="1"] tbody td[colspan]::before,
+        table[data-foodex-mobile-table-ready="1"] tbody td[data-foodex-label=""]::before{display:none}
+        table[data-foodex-mobile-table="scroll"]{min-width:max-content}
+        .foodex-table-wrap:has(>table[data-foodex-mobile-table="scroll"]),
+        .table-wrap:has(>table[data-foodex-mobile-table="scroll"]),
+        .module-table-wrap:has(>table[data-foodex-mobile-table="scroll"]){overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+    }
+
 </style>
+
+<script id="foodex-mobile-web-foundation">
+(() => {
+    const enhanceTable = (table) => {
+        if (!(table instanceof HTMLTableElement)) return;
+        if (table.dataset.foodexMobileTableReady === '1') return;
+        if (table.dataset.foodexMobileTable === 'scroll' || table.dataset.foodexMobileTable === 'off') return;
+        if (!table.matches('.foodex-table,.foodex-ops-grid')) return;
+
+        const headers = [...table.querySelectorAll(':scope > thead > tr:last-child > th')];
+        const rows = [...table.querySelectorAll(':scope > tbody > tr')];
+        if (headers.length < 2 || rows.length === 0) return;
+
+        const labels = headers.map((header) => (header.textContent || '').replace(/\s+/g, ' ').trim());
+        rows.forEach((row) => {
+            const cells = [...row.children].filter((cell) => cell instanceof HTMLTableCellElement);
+            let column = 0;
+            cells.forEach((cell) => {
+                const span = Math.max(1, Number(cell.colSpan || 1));
+                if (!cell.hasAttribute('data-foodex-label')) {
+                    cell.dataset.foodexLabel = span > 1 ? '' : (labels[column] || '');
+                }
+                column += span;
+            });
+        });
+        table.dataset.foodexMobileTableReady = '1';
+    };
+
+    const scan = (root = document) => {
+        if (root instanceof HTMLTableElement) enhanceTable(root);
+        root.querySelectorAll?.('.foodex-table,.foodex-ops-grid').forEach(enhanceTable);
+    };
+
+    const start = () => {
+        scan();
+        const observer = new MutationObserver((records) => {
+            records.forEach((record) => record.addedNodes.forEach((node) => {
+                if (node instanceof Element) scan(node);
+            }));
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, { once: true });
+    } else {
+        start();
+    }
+})();
+</script>
 <script id="foodex-operational-modal-runtime">
 (() => {
     const enhance = (details, index) => {
