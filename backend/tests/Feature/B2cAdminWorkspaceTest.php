@@ -131,7 +131,7 @@ class B2cAdminWorkspaceTest extends TestCase
 
         $this->actingAs($user)->get('/admin/b2c/products')->assertOk()->assertSee('Mine Product')->assertDontSee('Other Product');
         $this->actingAs($user)->get('/admin/b2c/inventory')->assertOk()->assertSee('Mine Warehouse')->assertSee('6')->assertDontSee('Other Warehouse');
-        $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('#'.$mineOrder)->assertSee('Mine Customer')->assertDontSee('#'.$otherOrder);
+        $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('#'.$mineOrder)->assertSee('Mine Customer')->assertDontSee('Other Customer');
         $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.00')->assertDontSee('Other Customer');
     }
 
@@ -230,13 +230,13 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('#'.$wholesaleOrderId)
             ->assertSee('Make available for sale')
             ->assertSee('Received in Retail inventory')
-            ->assertDontSee('#'.$retailOrderId);
+            ->assertDontSee('Retail Buyer');
 
         $this->actingAs($admin)
             ->get('/admin/b2c/orders')
             ->assertOk()
             ->assertSee('#'.$retailOrderId)
-            ->assertDontSee('#'.$wholesaleOrderId);
+            ->assertDontSee('WHOLESALE-MERCHANT-2001');
     }
 
     public function test_experience_modules_are_store_scoped_and_storefront_preview_is_compatible(): void
