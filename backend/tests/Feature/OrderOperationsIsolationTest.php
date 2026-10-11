@@ -40,7 +40,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders')
             ->assertOk()
             ->assertSee('#'.$mineOrder)
-            ->assertDontSee('#'.$foreignOrder);
+            ->assertDontSee('Foreign Buyer');
 
         $this->actingAs($admin)->get('/admin/operations/orders?store_id='.$foreign)->assertNotFound();
         $this->actingAs($admin)->get('/admin/operations/orders?order='.$foreignOrder)->assertNotFound();
@@ -267,7 +267,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertOk()
             ->assertSee('#'.$wholesaleOrder)
             ->assertDontSee('OPS-ROGUE-WHOLESALE-3001')
-            ->assertDontSee('#'.$retailOrder);
+            ->assertDontSee('Retail Buyer');
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c&store_id='.$retailStore)
@@ -474,7 +474,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=awaiting_dispatch')
             ->assertOk()
-            ->assertSee('OPS-DISPATCH-1001')
+            ->assertSee('#'.$order)
             ->assertSee('This order requires a Customer Service dispatch decision.');
     }
 
@@ -1005,15 +1005,15 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('data-order-status-tabs', false)
             ->assertSee('data-order-status-tab="pending"', false)
             ->assertSee('data-order-status-tab="delivered"', false)
-            ->assertDontSee('#'.$foreignDeliveredOrder);
+            ->assertDontSee('Foreign Tabs Buyer');
 
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&status=delivered')
             ->assertOk()
             ->assertSee('data-order-status-selected="delivered"', false)
             ->assertSee('#'.$deliveredOrder)
-            ->assertDontSee('#'.$pendingOrder)
-            ->assertDontSee('#'.$foreignDeliveredOrder);
+            ->assertDontSee('OPS-TABS-PENDING')
+            ->assertDontSee('Foreign Tabs Buyer');
     }
 
     public function test_dashboard_rejects_inactive_lookup_status_and_illegal_lifecycle_jump(): void
