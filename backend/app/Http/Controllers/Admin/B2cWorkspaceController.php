@@ -759,7 +759,12 @@ class B2cWorkspaceController extends Controller
                     ->orderByDesc('orders.id')
                     ->limit(100)
                     ->get(['orders.id', 'orders.store_id', 'orders.order_number'])
-                    ->map(fn ($row) => ['id' => (int) $row->id, 'store_id' => (int) $row->store_id, 'number' => $row->order_number])
+                    ->map(fn ($row) => [
+                        'id' => (int) $row->id,
+                        'store_id' => (int) $row->store_id,
+                        'number' => DisplayNumber::reference($row->id),
+                        'internal_number' => (string) $row->order_number,
+                    ])
                     ->all(),
                 'columns' => ['name', 'driver_type', 'order', 'assignment_status', 'availability'],
                 'rows' => DB::table('driver_assignments')
@@ -776,12 +781,14 @@ class B2cWorkspaceController extends Controller
                         'users.name',
                         'drivers.driver_type',
                         'drivers.is_available',
+                        'orders.id as order_id',
                         'orders.order_number as order_number',
                         'driver_assignments.status as assignment_status',
                     ])->map(fn ($row) => [
                         'name' => $row->name,
                         'driver_type' => app()->getLocale() === 'ar' ? 'التجزئة' : 'Retail',
-                        'order' => $row->order_number,
+                        'order' => DisplayNumber::reference($row->order_id),
+                        '_internal_order' => (string) $row->order_number,
                         'assignment_status' => $row->assignment_status,
                         'availability' => (bool) $row->is_available,
                     ])->all(),
@@ -821,7 +828,8 @@ class B2cWorkspaceController extends Controller
                             'order_id' => (int) $row->order_id,
                             'driver_id' => (int) $row->driver_id,
                             'store_id' => (int) $row->store_id,
-                            'order' => $row->order_number,
+                            'order' => DisplayNumber::reference($row->order_id),
+                            '_internal_order' => (string) $row->order_number,
                             'driver' => $row->driver_name,
                             'status' => $row->status,
                             'assigned_at' => (string) $row->assigned_at,
@@ -1141,7 +1149,8 @@ class B2cWorkspaceController extends Controller
 
                 return [
                     '_id' => (int) $row->id,
-                    'number' => $row->number,
+                    'number' => DisplayNumber::reference($row->id),
+                    '_internal_number' => (string) $row->number,
                     'store' => $row->store,
                     'status' => $row->status,
                     'amount' => $currency.' '.DisplayNumber::money((float) $row->grand_total, $currency),
@@ -1185,6 +1194,7 @@ class B2cWorkspaceController extends Controller
                 'invoices.currency',
                 'invoices.total',
                 'invoices.issued_at',
+                'orders.id as order_id',
                 'orders.order_number',
                 'b2c_customers.name as customer',
                 'stores.name as store',
@@ -1197,8 +1207,10 @@ class B2cWorkspaceController extends Controller
 
                 return [
                     '_id' => (int) $row->id,
-                    'invoice' => $row->invoice_number,
-                    'order' => $row->order_number ?: '-',
+                    'invoice' => DisplayNumber::reference($row->id),
+                    '_internal_invoice' => (string) $row->invoice_number,
+                    'order' => $row->order_id === null ? '-' : DisplayNumber::reference($row->order_id),
+                    '_internal_order' => $row->order_number === null ? null : (string) $row->order_number,
                     'customer' => $row->customer ?: '-',
                     'store' => $row->store ?: '-',
                     'status' => $row->status,
@@ -1369,12 +1381,14 @@ class B2cWorkspaceController extends Controller
                     '_driver_history' => $driverHistory,
                     '_invoice' => $invoice === null ? null : [
                         'id' => (int) $invoice->id,
-                        'number' => $invoice->invoice_number,
+                        'number' => DisplayNumber::reference($invoice->id),
+                        'internal_number' => (string) $invoice->invoice_number,
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,
                         'currency' => $invoice->currency,
                     ],
-                    'number' => $row->number,
+                    'number' => DisplayNumber::reference($row->id),
+                    '_internal_number' => (string) $row->number,
                     'customer' => $row->customer,
                     'store' => $row->store,
                     'driver' => $activeAssignment?->driver_name ?: $this->msg('غير معين', 'Unassigned'),
