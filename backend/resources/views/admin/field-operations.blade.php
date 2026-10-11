@@ -242,7 +242,7 @@
                 </tr></thead><tbody>
                 @forelse($b2bOrders as $order)
                     <tr data-van-b2b-order="{{ $order->id }}">
-                        <td><strong>{{ $order->order_number }}</strong><div class="fieldops-muted">{{ $order->assigned_at }}</div></td>
+                        <td><strong>{{ \App\Support\DisplayNumber::reference($order->id) }}</strong><div class="fieldops-muted">{{ $order->assigned_at }}</div></td>
                         <td>{{ __('order_operations.business_labels.'.$order->order_status) }}</td>
                         <td>{{ __('order_operations.business_labels.'.$order->assignment_status) }} · {{ __('order_operations.business_labels.'.$order->source) }}</td>
                         <td>
@@ -393,7 +393,7 @@
             @forelse($visits as $visit)
                 @php($allowed = \App\Services\VanVisitLifecycleService::allowedTransitions((string)$visit->status))
                 @php($visitOrder=$visit->order_id ? $visitOrders->firstWhere('id',$visit->order_id) : null)
-                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ __('field_operations.customer_types.'.$visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder?->order_number ?: ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
+                <tr><td>{{ $visit->created_at }}</td><td>{{ $visit->customer_display }}<div class="fieldops-muted">{{ __('field_operations.customer_types.'.$visit->customer_type) }}</div></td><td>{{ $visit->actor?->name ?: '—' }}</td><td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td><td><small>{{ $visit->planned_at ?: '—' }}<br>{{ $visit->started_at ?: '' }}<br>{{ $visit->completed_at ?: '' }}</small></td><td>{{ $visitOrder ? \App\Support\DisplayNumber::reference($visitOrder->id) : ($visit->noOrderReason?->label_en ?: '—') }}</td><td>
                     @if($canManageVan && $allowed !== [])
                     <details class="foodex-ops-actions"><summary>⋮</summary><div class="foodex-ops-menu">
                         <form method="post" action="{{ route('admin.field-operations.visits.transition',$visit) }}">@csrf
