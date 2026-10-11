@@ -2,18 +2,29 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.71",
-  "minimum_current_version": "1.0.70",
-  "sha256": "f65a82d700e35e07f73fe92829c755816729df751c84185eeae1d1a39d7e0dbb",
-  "contains_migrations": false,
+  "target_version": "1.0.72",
+  "minimum_current_version": "1.0.71",
+  "source_base": "96c741c766c890d120b134b7c334fe11360fc36c",
+  "source_commit": "ce0f8e24fb4f09a6f9afd1b0253a2b171a3c95bd",
+  "sha256": "cb6a06ee6679c12eae792271f8fb9e6b868e449087d00535f99e4ce2703e41b3",
+  "contains_migrations": true,
+  "migrations": [
+    "backend/database/migrations/2026_10_11_160000_add_product_low_stock_threshold.php"
+  ],
+  "delta": {
+    "file_count": 495,
+    "source_file_count": 395,
+    "files_manifest": "FOODEX-Update.files.txt"
+  },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "release: FOODEX 1.0.71 Dashboard update (#1266)",
+  "release_notes": "Promote all authoritative Dashboard/backend changes merged after FOODEX 1.0.71 through PR #1287 into the FOODEX 1.0.72 Dashboard update. Ship Wholesale/Retail commerce fixes from PRs #1268 and #1269, including optional Wholesale pricing, principal-stock behavior, Customer commerce UX hardening, and normalized EGP/unit display formatting. Improve Dashboard operations from PRs #1274, #1275, #1279 and #1285: customer-first order notifications, simplified B2B product/inventory navigation, short customer-facing order/invoice display numbers while preserving immutable internal references, and Sales Control moved to the authoritative B2B context. Include Van production fixes from PRs #1281 and #1283: remembered-session biometric unlock and authoritative Wholesale seller-store catalog resolution. Include engineering/release hardening from PRs #1271 and #1287, including safer Flutter authoring gates, CI-parity formatting validation, and path-aware Fast Release Pipeline v2. Synchronize Customer, Driver and Van source identities at 1.0.72+72 for the release contract; the Dashboard Update ZIP remains independently deployable and does not replace installed APKs unless mobile artifacts are explicitly published.",
   "dashboard_fields": {
-    "target_version": "1.0.71",
-    "minimum_current_version": "1.0.70",
-    "sha256": "f65a82d700e35e07f73fe92829c755816729df751c84185eeae1d1a39d7e0dbb",
-    "contains_migrations": false,
-    "release_notes": "release: FOODEX 1.0.71 Dashboard update (#1266)"
+    "target_version": "1.0.72",
+    "minimum_current_version": "1.0.71",
+    "source_commit": "ce0f8e24fb4f09a6f9afd1b0253a2b171a3c95bd",
+    "sha256": "cb6a06ee6679c12eae792271f8fb9e6b868e449087d00535f99e4ce2703e41b3",
+    "contains_migrations": true,
+    "release_notes": "Promote all authoritative Dashboard/backend changes merged after FOODEX 1.0.71 through PR #1287 into the FOODEX 1.0.72 Dashboard update. Ship Wholesale/Retail commerce fixes from PRs #1268 and #1269, including optional Wholesale pricing, principal-stock behavior, Customer commerce UX hardening, and normalized EGP/unit display formatting. Improve Dashboard operations from PRs #1274, #1275, #1279 and #1285: customer-first order notifications, simplified B2B product/inventory navigation, short customer-facing order/invoice display numbers while preserving immutable internal references, and Sales Control moved to the authoritative B2B context. Include Van production fixes from PRs #1281 and #1283: remembered-session biometric unlock and authoritative Wholesale seller-store catalog resolution. Include engineering/release hardening from PRs #1271 and #1287, including safer Flutter authoring gates, CI-parity formatting validation, and path-aware Fast Release Pipeline v2. Synchronize Customer, Driver and Van source identities at 1.0.72+72 for the release contract; the Dashboard Update ZIP remains independently deployable and does not replace installed APKs unless mobile artifacts are explicitly published."
   }
 }
