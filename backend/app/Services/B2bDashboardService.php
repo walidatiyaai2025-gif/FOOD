@@ -287,14 +287,14 @@ final class B2bDashboardService
             ->whereNotNull('b2b_customer_id')
             ->whereIn('status', ['delivered', 'completed'])
             ->latest('updated_at')
-            ->first(['order_number']);
+            ->first(['id', 'order_number']);
 
         if ($delivered !== null) {
             $alerts[] = [
                 'key' => 'delivered',
                 'icon' => 'delivery',
                 'title' => 'delivered',
-                'body' => (string) $delivered->order_number,
+                'body' => DisplayNumber::reference($delivered->id),
                 'tone' => 'green',
                 'url' => route('admin.b2b.module', ['module' => 'orders']),
             ];
