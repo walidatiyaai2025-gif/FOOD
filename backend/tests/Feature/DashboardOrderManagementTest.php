@@ -221,18 +221,6 @@ class DashboardOrderManagementTest extends TestCase
                 'updated_at' => now(),
             ],
         );
-        DB::table('settings')->updateOrInsert(
-            [
-                'store_id' => $store,
-                'key' => 'b2b.pricing_tiers_enabled',
-            ],
-            [
-                'value' => json_encode(true, JSON_THROW_ON_ERROR),
-                'is_secret' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
         [$product, $inventory] = $this->product($store, 'b2b', 'WHOLESALE-ORDER-SKU', 10, 20);
         $warehouse = (int) DB::table('inventories')->where('inventories.id', $inventory)
             ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
@@ -413,18 +401,6 @@ class DashboardOrderManagementTest extends TestCase
         $store = app(WholesalePrincipal::class)->storeId();
         DB::table('settings')->updateOrInsert(
             ['store_id' => $store, 'key' => 'b2b.pricing_tiers_enabled'],
-            [
-                'value' => json_encode(true, JSON_THROW_ON_ERROR),
-                'is_secret' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
-        DB::table('settings')->updateOrInsert(
-            [
-                'store_id' => $store,
-                'key' => 'b2b.pricing_tiers_enabled',
-            ],
             [
                 'value' => json_encode(true, JSON_THROW_ON_ERROR),
                 'is_secret' => false,
