@@ -72,9 +72,9 @@ class HttpVanOrderRepository implements VanOrderRepository {
             );
           })
           .toList(growable: false),
-      paymentMethods: _list(
-        data['payment_methods'],
-      ).map(_string).toList(growable: false),
+      paymentMethods: _list(data['payment_methods'])
+          .map(_string)
+          .toList(growable: false),
       defaultPaymentMethod: _string(data['default_payment_method']),
     );
   }
@@ -164,9 +164,9 @@ class HttpVanOrderRepository implements VanOrderRepository {
         'status=${Uri.encodeQueryComponent(status.trim())}',
     ];
     final decoded = _map(await api.getJson('van/orders?${params.join('&')}'));
-    return _list(
-      decoded['data'],
-    ).map((row) => _order(_map(row))).toList(growable: false);
+    return _list(decoded['data'])
+        .map((row) => _order(_map(row)))
+        .toList(growable: false);
   }
 
   @override
@@ -396,9 +396,10 @@ class HttpVanOrderRepository implements VanOrderRepository {
       orderId: _requiredInt(data['order_id']),
       orderStatus: _string(data['order_status']),
       status: _string(data['status']),
-      allowedActions: _list(
-        data['allowed_actions'],
-      ).map(_string).where((value) => value.isNotEmpty).toList(growable: false),
+      allowedActions: _list(data['allowed_actions'])
+          .map(_string)
+          .where((value) => value.isNotEmpty)
+          .toList(growable: false),
       proofRequiredForDelivered: data['proof_required_for_delivered'] == true,
       deliveryProofReady: data['delivery_proof_ready'] == true,
       failureReasonCode: _nullableString(data['failure_reason_code']),
