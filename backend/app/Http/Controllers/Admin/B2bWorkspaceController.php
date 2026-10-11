@@ -93,7 +93,7 @@ class B2bWorkspaceController extends Controller
 
         $principalStoreId = $this->principal->storeId();
         $pricingTiersEnabled = $this->pricingMode->tiersEnabled($principalStoreId);
-        abort_if($module === 'pricing' && ! $pricingTiersEnabled, 404);
+        abort_if($module === 'pricing' && !$pricingTiersEnabled, 404);
 
         $storeIds = $this->wholesaleStoreIds($user);
         if ($module === 'finance' && $request->filled('export')) {
