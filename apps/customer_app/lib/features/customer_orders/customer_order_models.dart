@@ -202,7 +202,9 @@ class CustomerOrderSummary {
 
     return CustomerOrderSummary(
       id: _int(json['id']),
-      orderNumber: json['order_number']?.toString() ?? '',
+      orderNumber: json['display_order_number']?.toString() ??
+          json['order_number']?.toString() ??
+          '',
       storeId: _int(json['store_id'] ?? store['id']),
       storeName: _nullableText(store['name']),
       storeLogoUrl: _nullableText(store['logo_url']),
