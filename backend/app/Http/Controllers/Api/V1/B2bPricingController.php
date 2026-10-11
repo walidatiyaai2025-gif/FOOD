@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\B2bPricingMode;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
+use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,15 +23,29 @@ class B2bPricingController extends Controller
         private readonly ProductAvailabilityService $availability,
         private readonly B2bPriceResolver $prices,
         private readonly B2bPricingMode $pricingMode,
+        private readonly WholesalePrincipal $principal,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('b2b.pricing.manage');
 
-        $rules = B2bPriceRule::query()->orderBy('id')->paginate(min(max($request->integer('per_page', 20), 1), 100));
+        $storeId = $this->principal->storeId();
+        abort_unless(
+            $this->pricingMode->tiersEnabled($storeId),
+            409,
+            'B2B pricing tiers are disabled.',
+        );
 
-        return response()->json(['data' => $rules->items(), 'meta' => ['total' => $rules->total()]]);
+        $rules = B2bPriceRule::query()
+            ->where('store_id', $storeId)
+            ->orderBy('id')
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
+
+        return response()->json([
+            'data' => $rules->items(),
+            'meta' => ['total' => $rules->total()],
+        ]);
     }
 
     public function upsert(Request $request): JsonResponse
