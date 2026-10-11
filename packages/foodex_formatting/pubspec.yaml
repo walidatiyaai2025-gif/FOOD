@@ -1,0 +1,7 @@
+name: foodex_formatting
+description: Shared FOODEX display-only numeric formatting helpers.
+publish_to: "none"
+version: 1.0.0
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"

@@ -51,12 +51,14 @@ class VanCommercialOffer {
     required this.priority,
     required this.reservationSeconds,
     required this.products,
+    this.currency = 'EGP',
     this.bodyAr,
     this.bodyEn,
   });
 
   final int id;
   final int storeId;
+  final String currency;
   final String titleAr;
   final String titleEn;
   final String? bodyAr;

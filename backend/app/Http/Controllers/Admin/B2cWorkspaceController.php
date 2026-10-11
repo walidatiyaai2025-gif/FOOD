@@ -20,6 +20,7 @@ use App\Services\StorefrontDraftEditorService;
 use App\Services\SuggestedWholesalePurchasePlanService;
 use App\Support\AdminNavigation;
 use App\Support\CommercialDashboardContract;
+use App\Support\DisplayNumber;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -693,8 +694,8 @@ class B2cWorkspaceController extends Controller
                         'name' => $row->name,
                         'category' => $row->category,
                         'store' => $row->store,
-                        'cost' => $row->cost_price === null ? '-' : number_format((float) $row->cost_price, 3).' EGP',
-                        'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
+                        'cost' => $row->cost_price === null ? '-' : DisplayNumber::money((float) $row->cost_price, 'EGP').' EGP',
+                        'price' => $row->price === null ? '-' : DisplayNumber::money((float) $row->price, 'EGP').' EGP',
                         'status' => (bool) $row->status,
                     ])->all(),
             ],
@@ -947,9 +948,9 @@ class B2cWorkspaceController extends Controller
                     'sku' => $row->sku,
                     'name' => $row->name,
                     'warehouse' => $row->warehouse,
-                    'quantity' => number_format((float) $row->quantity, 3),
-                    'reserved' => number_format((float) $row->reserved, 3),
-                    'available' => number_format((float) $row->quantity - (float) $row->reserved, 3),
+                    'quantity' => DisplayNumber::quantity((float) $row->quantity),
+                    'reserved' => DisplayNumber::quantity((float) $row->reserved),
+                    'available' => DisplayNumber::quantity((float) $row->quantity - (float) $row->reserved),
                 ])->all(),
         ];
     }
@@ -996,7 +997,7 @@ class B2cWorkspaceController extends Controller
                     'phone' => $row->phone ?: '-',
                     'email' => $row->email ?: '-',
                     'orders' => (int) $row->orders_count,
-                    'spent' => 'EGP '.number_format((float) $row->total_spent, 3),
+                    'spent' => 'EGP '.DisplayNumber::money((float) $row->total_spent, 'EGP'),
                     'last_order' => $row->last_order === null ? '-' : (string) $row->last_order,
                     'actions' => true,
                 ])->all(),
@@ -1143,11 +1144,11 @@ class B2cWorkspaceController extends Controller
                     'number' => $row->number,
                     'store' => $row->store,
                     'status' => $row->status,
-                    'amount' => $currency.' '.number_format((float) $row->grand_total, 3),
+                    'amount' => $currency.' '.DisplayNumber::money((float) $row->grand_total, $currency),
                     'created' => (string) $row->created,
                     'invoice' => $invoice?->invoice_number ?: '-',
-                    'paid' => $currency.' '.number_format($paid, 3),
-                    'balance' => $currency.' '.number_format(max(0, $invoiceTotal - $paid), 3),
+                    'paid' => $currency.' '.DisplayNumber::money($paid, $currency),
+                    'balance' => $currency.' '.DisplayNumber::money(max(0, $invoiceTotal - $paid), $currency),
                     'availability' => $saleAvailable
                         ? __('admin.b2c_workspace.purchase_status.available')
                         : ((string) $row->status === 'delivered'
@@ -1201,9 +1202,9 @@ class B2cWorkspaceController extends Controller
                     'customer' => $row->customer ?: '-',
                     'store' => $row->store ?: '-',
                     'status' => $row->status,
-                    'amount' => $row->currency.' '.number_format((float) $row->total, 3),
-                    'paid' => $row->currency.' '.number_format($paid, 3),
-                    'balance' => $row->currency.' '.number_format(max(0, (float) $row->total - $paid), 3),
+                    'amount' => $row->currency.' '.DisplayNumber::money((float) $row->total, $row->currency),
+                    'paid' => $row->currency.' '.DisplayNumber::money($paid, $row->currency),
+                    'balance' => $row->currency.' '.DisplayNumber::money(max(0, (float) $row->total - $paid), $row->currency),
                     'created' => $row->issued_at === null ? '-' : (string) $row->issued_at,
                     'actions' => [
                         ['label' => $this->msg('تفاصيل', 'Details'), 'url' => route('admin.invoices.show', ['invoice' => $row->id])],
@@ -1379,7 +1380,7 @@ class B2cWorkspaceController extends Controller
                     'driver' => $activeAssignment?->driver_name ?: $this->msg('غير معين', 'Unassigned'),
                     'assignment_status' => $activeAssignment?->status ?: $this->msg('غير معين', 'Unassigned'),
                     'status' => $row->status,
-                    'amount' => $row->currency.' '.number_format((float) $row->grand_total, 3),
+                    'amount' => $row->currency.' '.DisplayNumber::money((float) $row->grand_total, $row->currency),
                     'created' => (string) $row->created,
                     'actions' => true,
                 ];
@@ -1472,8 +1473,8 @@ class B2cWorkspaceController extends Controller
                 return [
                     'store' => $store->name,
                     'orders' => (int) data_get($data, 'kpis.orders', 0),
-                    'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
-                    'average' => 'EGP '.number_format((float) data_get($data, 'kpis.average_order_value', 0), 3),
+                    'revenue' => 'EGP '.DisplayNumber::money((float) data_get($data, 'kpis.recognized_revenue', 0), 'EGP'),
+                    'average' => 'EGP '.DisplayNumber::money((float) data_get($data, 'kpis.average_order_value', 0), 'EGP'),
                     'actions' => $actions,
                 ];
             })->all(),

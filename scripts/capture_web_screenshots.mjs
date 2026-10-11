@@ -183,7 +183,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
     throw new Error('Van Finance Support runtime shell was not rendered.');
   }
   const financeWalletText = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
-  for (const required of ['VAN-EVID-01', 'FOODEX-801', 'FOODEX Wholesale Evidence Branch', '87.500', '25.000', '62.500']) {
+  for (const required of ['VAN-EVID-01', 'FOODEX-801', 'FOODEX Wholesale Evidence Branch', '87.50', '25.00', '62.50']) {
     if (!financeWalletText.includes(required)) {
       throw new Error(`Van Finance Support wallet evidence missing ${required}: ${financeWalletText.slice(0, 1800)}`);
     }

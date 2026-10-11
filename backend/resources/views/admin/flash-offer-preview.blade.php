@@ -100,7 +100,7 @@
                             <td>{{ $product->product_name ?: __('commercial.preview.product_unavailable') }}<div class="muted">{{ $product->product_sku ?: '—' }}</div></td>
                             <td>{{ $product->selling_unit_name ?: __('commercial.preview.selling_unit_unavailable') }}</td>
                             <td>{{ number_format((float) $product->conversion_factor, 3) }}</td>
-                            <td>{{ number_format((float) $product->flash_price, 3) }}</td>
+                            <td>{{ \App\Support\DisplayNumber::money((float) $product->flash_price, 'EGP') }}</td>
                             <td>{{ $product->allocation_base === null ? '—' : number_format((float) $product->allocation_base, 3) }}</td>
                         </tr>
                     @empty

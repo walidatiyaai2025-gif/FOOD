@@ -100,7 +100,7 @@
                         >
                             {{ $product['sku'] }} · {{ $product['name'] }}
                             @if(array_key_exists('price',$product))
-                                · {{ number_format((float)$product['price'],3) }}
+                                · {{ \App\Support\DisplayNumber::money((float)$product['price'], 'EGP') }}
                             @endif
                         </option>
                     @endforeach
@@ -159,7 +159,18 @@ document.addEventListener('DOMContentLoaded', () => {
         duplicateProduct: @json($isArOrder ? 'لا يمكن إضافة نفس المنتج أكثر من مرة. عدّل الكمية في السطر الموجود.' : 'The same product cannot be added twice. Update the quantity on the existing line.'),
     };
 
-    const money = (value) => Number(value || 0).toFixed(3);
+    const money = (value, currency = 'EGP') => {
+        const amount = Number(value || 0);
+        if (!Number.isFinite(amount)) return '0';
+        return String(currency || '').trim().toUpperCase() === 'EGP'
+            ? amount.toFixed(2)
+            : amount.toFixed(3);
+    };
+    const quantity = (value) => {
+        const amount = Number(value || 0);
+        if (!Number.isFinite(amount)) return '0';
+        return amount.toFixed(3).replace(/\.?0+$/, '');
+    };
     const quoteBox = (form) => form.querySelector('.js-order-quote');
     const submitButton = (form) => form.querySelector('.js-submit-order');
 
@@ -285,20 +296,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const lines = (quote.items || []).map((line) => {
             const available = line.available_quantity === null || line.available_quantity === undefined
                 ? ''
-                : ` · ${labels.available}: ${money(line.available_quantity)}`;
+                : ` · ${labels.available}: ${quantity(line.available_quantity)}`;
             const state = line.is_available ? '✓' : '⚠';
-            return `<li>${state} ${line.sku || ''} · ${line.name || ''} — ${money(line.quantity)} × ${money(line.unit_price)} = ${money(line.line_total)} ${currency}${available}</li>`;
+            return `<li>${state} ${line.sku || ''} · ${line.name || ''} — ${quantity(line.quantity)} × ${money(line.unit_price, currency)} = ${money(line.line_total, currency)} ${currency}${available}</li>`;
         }).join('');
 
         box.innerHTML = `
             <div style="display:grid;gap:6px">
                 <strong>${quote.has_unavailable_items ? labels.unavailable : '✓ ' + (quote.pricing_source || '')}</strong>
                 <ul style="margin:0;padding-inline-start:20px">${lines}</ul>
-                <div><strong>${labels.subtotal}:</strong> ${money(quote.subtotal)} ${currency} ·
-                <strong>${labels.discount}:</strong> ${money(quote.discount_total)} ${currency} ·
-                <strong>${labels.delivery}:</strong> ${money(quote.delivery_total)} ${currency} ·
-                <strong>${labels.tax}:</strong> ${money(quote.tax_total)} ${currency}</div>
-                <div style="font-size:18px"><strong>${labels.total}: ${money(quote.grand_total)} ${currency}</strong></div>
+                <div><strong>${labels.subtotal}:</strong> ${money(quote.subtotal, currency)} ${currency} ·
+                <strong>${labels.discount}:</strong> ${money(quote.discount_total, currency)} ${currency} ·
+                <strong>${labels.delivery}:</strong> ${money(quote.delivery_total, currency)} ${currency} ·
+                <strong>${labels.tax}:</strong> ${money(quote.tax_total, currency)} ${currency}</div>
+                <div style="font-size:18px"><strong>${labels.total}: ${money(quote.grand_total, currency)} ${currency}</strong></div>
             </div>`;
 
         form.dataset.quoteReady = quote.has_unavailable_items ? '0' : '1';

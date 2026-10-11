@@ -6,6 +6,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanCustomer360Page extends StatefulWidget {
   const VanCustomer360Page({
@@ -194,6 +195,13 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
       0,
       (sum, invoice) => sum + invoice.outstandingAmount,
     );
+    final outstandingCurrencies = invoices
+        .map((invoice) => invoice.currency.trim().toUpperCase())
+        .where((currency) => currency.isNotEmpty)
+        .toSet();
+    final totalOutstandingText = outstandingCurrencies.length == 1
+        ? foodexMoneyText(totalOutstanding, outstandingCurrencies.single)
+        : foodexCompactDecimal(totalOutstanding);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -274,7 +282,7 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                     Text(
-                      totalOutstanding.toStringAsFixed(3),
+                      totalOutstandingText,
                       key: const ValueKey('van-customer-360-outstanding'),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: FoodexVanTokens.green,
@@ -328,7 +336,7 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
                       _text('Invoice balance', 'رصيد الفاتورة'),
                     ),
                     trailing: Text(
-                      '${invoice.outstandingAmount.toStringAsFixed(3)} ${invoice.currency}',
+                      foodexMoneyText(invoice.outstandingAmount, invoice.currency),
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),

@@ -85,19 +85,19 @@
                 <thead><tr><th>{{ $isAr?'الصنف':'Item' }}</th><th>SKU</th><th>{{ $isAr?'الكمية':'Qty' }}</th><th>{{ $isAr?'سعر الوحدة':'Unit price' }}</th><th>{{ $isAr?'الإجمالي':'Total' }}</th></tr></thead>
                 <tbody>
                 @foreach($invoice['items'] as $item)
-                    <tr><td>{{ $item['name'] }}</td><td>{{ $item['sku'] }}</td><td>{{ $item['quantity'] }}</td><td>{{ number_format($item['unit_price'],3) }}</td><td>{{ number_format($item['line_total'],3) }} {{ $invoice['currency'] }}</td></tr>
+                    <tr><td>{{ $item['name'] }}</td><td>{{ $item['sku'] }}</td><td>{{ $item['quantity'] }}</td><td>{{ \App\Support\DisplayNumber::money($item['unit_price'], $invoice['currency']) }}</td><td>{{ \App\Support\DisplayNumber::money($item['line_total'], $invoice['currency']) }} {{ $invoice['currency'] }}</td></tr>
                 @endforeach
                 </tbody>
             </table>
         </div>
 
         <div class="summary">
-            <div>{{ $isAr?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($invoice['subtotal'],3) }} {{ $invoice['currency'] }}</div>
-            <div>{{ $isAr?'الخصم':'Discount' }}: {{ number_format($invoice['discount_total'],3) }} {{ $invoice['currency'] }}</div>
-            <div>{{ $isAr?'التوصيل':'Delivery' }}: {{ number_format($invoice['delivery_total'],3) }} {{ $invoice['currency'] }}</div>
-            <div>{{ $isAr?'الضريبة':'Tax' }}: {{ number_format($invoice['tax_total'],3) }} {{ $invoice['currency'] }}</div>
-            <div class="grand">{{ $isAr?'الإجمالي':'Grand total' }}: {{ number_format($invoice['grand_total'],3) }} {{ $invoice['currency'] }}</div>
-            @if($amounts)<div>{{ $isAr?'المدفوع':'Paid' }}: {{ number_format($amounts['paid_amount'],3) }} {{ $invoice['currency'] }}</div><div><strong>{{ $isAr?'المتبقي':'Outstanding' }}: {{ number_format($amounts['outstanding_amount'],3) }} {{ $invoice['currency'] }}</strong></div>@endif
+            <div>{{ $isAr?'الإجمالي الفرعي':'Subtotal' }}: {{ \App\Support\DisplayNumber::money($invoice['subtotal'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>
+            <div>{{ $isAr?'الخصم':'Discount' }}: {{ \App\Support\DisplayNumber::money($invoice['discount_total'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>
+            <div>{{ $isAr?'التوصيل':'Delivery' }}: {{ \App\Support\DisplayNumber::money($invoice['delivery_total'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>
+            <div>{{ $isAr?'الضريبة':'Tax' }}: {{ \App\Support\DisplayNumber::money($invoice['tax_total'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>
+            <div class="grand">{{ $isAr?'الإجمالي':'Grand total' }}: {{ \App\Support\DisplayNumber::money($invoice['grand_total'], $invoice['currency']) }} {{ $invoice['currency'] }}</div>
+            @if($amounts)<div>{{ $isAr?'المدفوع':'Paid' }}: {{ \App\Support\DisplayNumber::money($amounts['paid_amount'], $invoice['currency']) }} {{ $invoice['currency'] }}</div><div><strong>{{ $isAr?'المتبقي':'Outstanding' }}: {{ \App\Support\DisplayNumber::money($amounts['outstanding_amount'], $invoice['currency']) }} {{ $invoice['currency'] }}</strong></div>@endif
         </div>
 
         @if($canManage && $amounts && $amounts['outstanding_amount'] > 0.0005 && strtolower((string)$invoice['channel'])==='b2b')

@@ -159,6 +159,8 @@ return [
         'status' => 'الحالة',
         'total' => 'الإجمالي',
         'order' => 'الطلب',
+        'orders' => 'الطلبات',
+        'invoices' => 'الفواتير',
         'issued' => 'الإصدار',
         'manage_order' => 'إدارة الطلب',
         'details' => 'التفاصيل',
