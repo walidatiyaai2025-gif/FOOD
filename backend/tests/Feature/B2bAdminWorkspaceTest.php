@@ -581,6 +581,11 @@ class B2bAdminWorkspaceTest extends TestCase
     {
         $admin = $this->user('B2B_ADMIN', 'en');
 
+        $this->actingAs($admin)
+            ->put('/admin/b2b/settings/pricing-tiers', ['enabled' => '1'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
         $this->actingAs($admin)->get('/admin/b2b/pricing-approvals')->assertOk()->assertSee('Pricing & Approvals');
         $this->actingAs($admin)->get('/admin/b2b/settings-permissions')->assertOk()->assertSee('Wholesale Settings');
 
@@ -601,6 +606,12 @@ class B2bAdminWorkspaceTest extends TestCase
     public function test_english_locale_renders_only_approved_wholesale_modules(): void
     {
         $admin = $this->user('SUPER_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->put('/admin/b2b/settings/pricing-tiers', ['enabled' => '1'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
         $response = $this->actingAs($admin)->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('dir="ltr"', false)
