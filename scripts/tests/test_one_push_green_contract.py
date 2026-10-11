@@ -63,6 +63,18 @@ class OnePushGreenContractTest(unittest.TestCase):
                 path.name,
             )
 
+    def test_full_tree_flutter_analysis_keeps_legacy_infos_nonfatal(self):
+        for path in (
+            ROOT / ".github/workflows/customer-app-ci.yml",
+            ROOT / ".github/workflows/driver-app-ci.yml",
+            ROOT / ".github/workflows/van-app-ci.yml",
+            ROOT / ".github/workflows/driver-preview-web-ci.yml",
+            ROOT / "scripts/worker-preflight.sh",
+            ROOT / "scripts/bootstrap-flutter.sh",
+        ):
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("flutter analyze --no-fatal-infos", text, str(path))
+
     def test_required_policy_executes_skill_router_regressions(self):
         text = (ROOT / ".github/workflows/required-ci-gate.yml").read_text(encoding="utf-8")
         self.assertIn("test_foodex_skill_router.py", text)
