@@ -752,3 +752,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 </script>
+@include('admin._new-order-popup')
