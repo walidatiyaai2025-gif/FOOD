@@ -2,18 +2,18 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.57",
+  "target_version": "1.0.69",
   "minimum_current_version": "1.0.6",
-  "sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
+  "sha256": "ec9349ea7df11c185b34d70c99c06b2f560ef048971a27f4637d0c5b550f0014",
   "contains_migrations": true,
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.57: Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior. Keep Arabic RTL and English LTR first-class, move remaining More/Profile labels into the existing localization resources, and render Dashboard timestamps through Flutter localization rather than raw ISO-derived text. Preserve store/backend-driven currency and all authoritative order, invoice, finance, pricing, permissions and API contracts while reducing overflow risk through controlled max-lines, ellipsis and compact responsive sizing. Make the Dashboard Driver map refresh silently after its initial load: keep the mounted map and last successful markers visible, suppress duplicate refreshes, preserve successful content on background failure, reserve status space to prevent layout shift, and dispose polling/network work when leaving the page. Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57 and publish through the existing cumulative Dashboard update mechanism.",
+  "release_notes": "FOODEX 1.0.69: Promote every authoritative main change merged after FOODEX 1.0.67 through #1255 into the synchronized FOODEX 1.0.69 production release. Ship B2B Van-only fulfillment convergence, Customer low-data/network-storm protection, Dashboard-local APK mirroring with mobile-version policy decoupling, and the one-push-green CI foundation. Ship Customer app-wide responsive hardening for 320px screens, enlarged system text and RTL/LTR navigation/footer behavior. Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.69 source commit with mobile identity `1.0.69+69`.",
   "dashboard_fields": {
-    "target_version": "1.0.57",
+    "target_version": "1.0.69",
     "minimum_current_version": "1.0.6",
-    "sha256": "8acc4231570c9297fb8ac64bf3e03e1428c299f98e3d780d6cca3c644933a91d",
+    "sha256": "ec9349ea7df11c185b34d70c99c06b2f560ef048971a27f4637d0c5b550f0014",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.57: Normalize the existing Customer client typography, spacing, badges, headers, order cards, financial summaries and contextual state surfaces in place without adding screens or changing routes/business behavior. Keep Arabic RTL and English LTR first-class, move remaining More/Profile labels into the existing localization resources, and render Dashboard timestamps through Flutter localization rather than raw ISO-derived text. Preserve store/backend-driven currency and all authoritative order, invoice, finance, pricing, permissions and API contracts while reducing overflow risk through controlled max-lines, ellipsis and compact responsive sizing. Make the Dashboard Driver map refresh silently after its initial load: keep the mounted map and last successful markers visible, suppress duplicate refreshes, preserve successful content on background failure, reserve status space to prevent layout shift, and dispose polling/network work when leaving the page. Add live-map regression coverage for silent refresh, preserved last-success content, duplicate-request suppression and page-leave cleanup; synchronize Dashboard, Customer and Driver identities at 1.0.57 / mobile build 1.0.57+57 and publish through the existing cumulative Dashboard update mechanism."
+    "release_notes": "FOODEX 1.0.69: Promote every authoritative main change merged after FOODEX 1.0.67 through #1255 into the synchronized FOODEX 1.0.69 production release. Ship B2B Van-only fulfillment convergence, Customer low-data/network-storm protection, Dashboard-local APK mirroring with mobile-version policy decoupling, and the one-push-green CI foundation. Ship Customer app-wide responsive hardening for 320px screens, enlarged system text and RTL/LTR navigation/footer behavior. Build synchronized Dashboard Update, Customer, Driver and Van Android artifacts from one FOODEX 1.0.69 source commit with mobile identity `1.0.69+69`."
   }
 }
