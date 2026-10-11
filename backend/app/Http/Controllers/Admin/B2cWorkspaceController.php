@@ -289,8 +289,8 @@ class B2cWorkspaceController extends Controller
         $order = $orders->create($request, $user, 'b2c', $storeId);
 
         return back()->with('status', app()->getLocale() === 'ar'
-            ? 'تم إنشاء الطلب '.$order->order_number.'.'
-            : 'Order '.$order->order_number.' created.');
+            ? 'تم إنشاء الطلب '.DisplayNumber::reference($order->getKey()).'.'
+            : 'Order '.DisplayNumber::reference($order->getKey()).' created.');
     }
 
     public function updateOrder(Request $request, int $order, AdminOrderManagementService $orders): RedirectResponse
@@ -1146,7 +1146,7 @@ class B2cWorkspaceController extends Controller
                     'status' => $row->status,
                     'amount' => $currency.' '.DisplayNumber::money((float) $row->grand_total, $currency),
                     'created' => (string) $row->created,
-                    'invoice' => $invoice?->invoice_number ?: '-',
+                    'invoice' => $invoice ? DisplayNumber::reference($invoice->id) : '-',
                     'paid' => $currency.' '.DisplayNumber::money($paid, $currency),
                     'balance' => $currency.' '.DisplayNumber::money(max(0, $invoiceTotal - $paid), $currency),
                     'availability' => $saleAvailable
