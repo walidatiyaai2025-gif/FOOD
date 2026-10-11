@@ -23,6 +23,7 @@ class PremiumDashboardAcceptanceTest extends TestCase
         $user = User::query()
             ->where('email', 'admin.demo@foodex.test')
             ->firstOrFail();
+        $demoOrderId = (int) DB::table('orders')->where('order_number', 'FOODEX-DEMO-1245')->value('id');
 
         $dashboard = app(B2cDashboardService::class)->build(
             $user,
@@ -87,7 +88,7 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->assertSee('@media(max-width:1279px)', false)
             ->assertSee('@media(max-width:1023px)', false)
             ->assertSee('@media(max-width:620px)', false)
-            ->assertSee('FOODEX-DEMO-1245');
+            ->assertSee('#'.$demoOrderId);
 
         $user->forceFill(['locale' => 'en'])->save();
 
