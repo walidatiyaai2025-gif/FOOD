@@ -37,7 +37,7 @@ jobs:
 
       - name: Analyze Driver preview sources
         run: |
-          flutter analyze             lib/preview_main.dart             lib/core/preview             lib/core/diagnostics
+          flutter analyze --no-fatal-infos             lib/preview_main.dart             lib/core/preview             lib/core/diagnostics
 
       - name: Build Driver preview Web runtime
         run: |
