@@ -142,6 +142,7 @@ class DriverInvoiceNotificationTest extends TestCase
         $this->getJson('/api/v1/driver/assignments/'.$assignmentId)
             ->assertOk()
             ->assertJsonPath('data.order.invoice.number', 'INV-DRV-1')
+            ->assertJsonPath('data.order.invoice.display_number', '#1')
             ->assertJsonPath('data.order.invoice.grand_total', 27)
             ->assertJsonPath('data.order.invoice.payment_method', 'cash_on_delivery')
             ->assertJsonPath('data.order.invoice.outstanding_amount', 27)
