@@ -104,16 +104,6 @@ class VanOrderControllerTest extends TestCase
             ],
         );
 
-        DB::table('settings')->updateOrInsert(
-            ['store_id' => $wholesaleStoreId, 'key' => 'b2b.pricing_tiers_enabled'],
-            [
-                'value' => json_encode(true, JSON_THROW_ON_ERROR),
-                'is_secret' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
-
         $this->getJson(
             '/api/v1/van/customers/b2b/'.$customer->id.'/catalog?store_id='.$wholesaleStoreId,
         )
