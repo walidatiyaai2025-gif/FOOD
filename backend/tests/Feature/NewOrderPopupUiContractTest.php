@@ -20,6 +20,10 @@ class NewOrderPopupUiContractTest extends TestCase
         $this->assertStringContainsString('visibilitychange', $popup);
         $this->assertStringContainsString('View order', $popup);
         $this->assertStringContainsString('فتح الطلب', $popup);
+        $this->assertStringContainsString('This order is from', $popup);
+        $this->assertStringContainsString('هذا الطلب من', $popup);
+        $this->assertStringContainsString('customer_phone', $popup);
+        $this->assertStringContainsString('if (customerPhone)', $popup);
         $this->assertStringContainsString('queue.shift()', $popup);
     }
 }

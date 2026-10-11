@@ -99,16 +99,31 @@ final class DashboardOperationalNotifier
             $source = 'legacy';
         }
 
+        $customerIdentity = $this->orderCustomerIdentity($order);
+        $customerNameAr = $customerIdentity['name'] ?? 'عميل غير معروف';
+        $customerNameEn = $customerIdentity['name'] ?? 'Unknown customer';
+        $phonePrefixAr = $customerIdentity['phone'] === null
+            ? ''
+            : 'الهاتف: '.$customerIdentity['phone'].' · ';
+        $phonePrefixEn = $customerIdentity['phone'] === null
+            ? ''
+            : 'Phone: '.$customerIdentity['phone'].' · ';
+
         $this->notifyOrderAudience(
             $order,
             'order.created',
             'order-created:'.$order->getKey(),
             'orders.view',
-            'طلب جديد '.$order->order_number,
-            'New order '.$order->order_number,
-            'تم إنشاء طلب جديد بقيمة '.DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
-            'A new order was created for '.DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
-            ['status' => (string) $order->status, 'source' => $source],
+            'هذا الطلب من: '.$customerNameAr,
+            'This order is from: '.$customerNameEn,
+            $phonePrefixAr.'طلب جديد '.$order->order_number.' · الإجمالي '.DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
+            $phonePrefixEn.'New order '.$order->order_number.' · Total '.DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
+            [
+                'status' => (string) $order->status,
+                'source' => $source,
+                'customer_name' => $customerIdentity['name'],
+                'customer_phone' => $customerIdentity['phone'],
+            ],
         );
 
         $this->lifecycle->customerOrderCreated($order);
@@ -367,6 +382,33 @@ final class DashboardOperationalNotifier
                 ],
             );
         }
+    }
+
+    /**
+     * @return array{name:?string,phone:?string}
+     */
+    private function orderCustomerIdentity(Order $order): array
+    {
+        $channel = strtolower((string) $order->channel);
+        $customerId = $channel === 'b2b'
+            ? (int) $order->b2b_customer_id
+            : (int) $order->b2c_customer_id;
+
+        if (! in_array($channel, ['b2b', 'b2c'], true) || $customerId <= 0) {
+            return ['name' => null, 'phone' => null];
+        }
+
+        $customer = DB::table($channel === 'b2b' ? 'b2b_customers' : 'b2c_customers')
+            ->where('id', $customerId)
+            ->first(['name', 'phone']);
+
+        $name = trim((string) ($customer?->name ?? ''));
+        $phone = trim((string) ($customer?->phone ?? ''));
+
+        return [
+            'name' => $name === '' ? null : $name,
+            'phone' => $phone === '' ? null : $phone,
+        ];
     }
 
     private function dashboardOperationalRecipients(
