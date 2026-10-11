@@ -53,7 +53,8 @@ class DriverPreviewReadBridgeTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $targetAssignment)
-            ->assertJsonPath('data.0.order.number', $targetOrder->order_number);
+            ->assertJsonPath('data.0.order.number', $targetOrder->order_number)
+            ->assertJsonPath('data.0.order.display_number', '#'.$targetOrder->id);
 
         $this->withHeader('X-Foodex-Preview-Token', $token)
             ->getJson('/api/v1/app-preview/driver/assignments/'.$targetAssignment)
