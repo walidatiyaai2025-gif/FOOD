@@ -91,7 +91,21 @@ final class OrderOperationsController extends Controller
             ->when(isset($data['to']), fn ($query) => $query->whereDate('created_at', '<=', $data['to']))
             ->when(
                 isset($data['order_number']) && trim((string) $data['order_number']) !== '',
-                fn ($query) => $query->where('order_number', 'like', '%'.trim((string) $data['order_number']).'%'),
+                function ($query) use ($data): void {
+                    $search = trim((string) $data['order_number']);
+                    $displayId = \App\Support\DisplayNumber::referenceId($search);
+
+                    $query->where(function ($nested) use ($search, $displayId): void {
+                        if ($displayId !== null) {
+                            $nested->where('id', $displayId)
+                                ->orWhere('order_number', 'like', '%'.$search.'%');
+
+                            return;
+                        }
+
+                        $nested->where('order_number', 'like', '%'.$search.'%');
+                    });
+                },
             )
             ->when(
                 isset($data['driver_id']),
@@ -1068,7 +1082,8 @@ final class OrderOperationsController extends Controller
 
         return [
             'id' => (int) $order->getKey(),
-            'number' => (string) $order->order_number,
+            'number' => \App\Support\DisplayNumber::reference($order->getKey()),
+            'internal_number' => (string) $order->order_number,
             'channel' => strtolower((string) $order->channel),
             'store_id' => (int) $order->store_id,
             'store' => $storeLabel,
