@@ -3385,16 +3385,8 @@ List<Map<Object?, Object?>> _reportRows(Object? value) => value is List
 double _reportDouble(Object? value) =>
     value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
-String _reportMoney(Object? value, String currency) {
-  final amount = _reportDouble(value);
-  final formatted = amount == amount.roundToDouble()
-      ? amount.toStringAsFixed(0)
-      : amount.toStringAsFixed(3).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
-            RegExp(r'\.$'),
-            '',
-          );
-  return currency.trim().isEmpty ? formatted : '$formatted $currency';
-}
+String _reportMoney(Object? value, String currency) =>
+    foodexMoneyText(_reportDouble(value), currency);
 
 String _reportCompactNumber(double value) {
   if (value.abs() >= 1000000) {
