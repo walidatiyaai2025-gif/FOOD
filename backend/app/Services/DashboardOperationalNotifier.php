@@ -91,8 +91,13 @@ final class DashboardOperationalNotifier
         }
     }
 
-    public function orderCreated(Order $order): void
+    public function orderCreated(Order $order, string $source = 'legacy'): void
     {
+        $source = strtolower(trim($source));
+        if (! in_array($source, ['customer_app', 'dashboard', 'van', 'integration', 'legacy'], true)) {
+            $source = 'legacy';
+        }
+
         $this->notifyOrderAudience(
             $order,
             'order.created',
@@ -102,7 +107,7 @@ final class DashboardOperationalNotifier
             'New order '.$order->order_number,
             'تم إنشاء طلب جديد بقيمة '.number_format((float) $order->grand_total, 3).' '.$order->currency,
             'A new order was created for '.number_format((float) $order->grand_total, 3).' '.$order->currency,
-            ['status' => (string) $order->status],
+            ['status' => (string) $order->status, 'source' => $source],
         );
 
         $this->lifecycle->customerOrderCreated($order);
