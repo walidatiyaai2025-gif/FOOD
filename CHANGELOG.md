@@ -5,7 +5,7 @@
 - Promote the post-1.0.70 Dashboard changes merged through PR #1265 into a new immutable FOODEX Dashboard release.
 - Add the three locked Customer 360 legacy-report replicas from Issue #1261 / PR #1262: customer statement, detailed item withdrawals and item withdrawals, with authoritative B2B data, exact Arabic layout conventions, browser preview/print and real PDF download.
 - Fix Dashboard live Van visibility from PR #1265 by accepting authenticated Van GPS heartbeats, inheriting assignment/store scope, and keeping authorized Van runtime presence visible on the fleet map.
-- Keep mobile release policy independent: Customer, Driver and Van installed APK versions remain on their existing Android release policy while the Dashboard advances to 1.0.71.
+- Synchronize Customer, Driver and Van source identities at 1.0.71+71 for the release contract while keeping Android publication/installed-APK policy unchanged; the Dashboard Update ZIP does not replace installed APKs.
 
 ## 1.0.70 - 2026-10-11
 
