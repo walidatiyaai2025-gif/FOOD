@@ -287,7 +287,7 @@ class DriverAssignmentController extends Controller
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$invoice->invoice_number.'.pdf"',
+            'Content-Disposition' => 'attachment; filename="invoice-'.(int) $invoice->getKey().'.pdf"',
             'Cache-Control' => 'private, no-store',
         ]);
     }
