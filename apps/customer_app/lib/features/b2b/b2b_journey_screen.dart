@@ -3204,9 +3204,7 @@ class _PurchaseReportRemoteStateState
                 runSpacing: 8,
                 children: [
                   Text(
-                    context.tr('b2b.purchase_reports.page') +
-                        ' ' +
-                        currentPage.toString(),
+                    "${context.tr('b2b.purchase_reports.page')} $currentPage",
                   ),
                   Wrap(
                     spacing: 6,
