@@ -4,7 +4,6 @@ name: FOODEX Trial Distribution Bundle
 on:
   push:
     branches:
-      - main
       - "release/**"
     paths:
       - ".github/workflows/trial-distribution.yml"
