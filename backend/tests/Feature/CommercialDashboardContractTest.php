@@ -186,8 +186,8 @@ class CommercialDashboardContractTest extends TestCase
 
     public function test_sales_control_uses_premium_dashboard_shell_instead_of_legacy_standalone_surface(): void
     {
-        [$manager, $storeId] = $this->retailManager();
-        $this->flashProduct($storeId);
+        [$manager, $storeId] = $this->wholesaleManager();
+        $this->flashProduct($storeId, 'b2b');
 
         $response = $this->actingAs($manager)
             ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]));
@@ -223,10 +223,33 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('قواعد الاستهداف والحصص');
     }
 
+    public function test_sales_control_is_b2b_scoped_and_legacy_b2c_url_redirects(): void
+    {
+        [$wholesaleManager, $wholesaleStoreId] = $this->wholesaleManager();
+        $wholesaleProductId = $this->flashProduct($wholesaleStoreId, 'b2b');
+
+        [$retailManager, $retailStoreId] = $this->retailManager();
+        $retailProductId = $this->flashProduct($retailStoreId);
+
+        $this->actingAs($wholesaleManager)
+            ->get(route('admin.commercial.sales-control', ['store_id' => $wholesaleStoreId]))
+            ->assertOk()
+            ->assertSee('Flash Product')
+            ->assertSee('action="'.route('admin.commercial.sales-control.save', ['product' => $wholesaleProductId, 'store_id' => $wholesaleStoreId]).'"', false);
+
+        $this->actingAs($retailManager)
+            ->get('/admin/b2c/commercial/sales-control')
+            ->assertRedirect('/admin/b2b/commercial/sales-control');
+
+        $this->actingAs($wholesaleManager)
+            ->put(route('admin.commercial.sales-control.save', ['product' => $retailProductId, 'store_id' => $wholesaleStoreId]), [])
+            ->assertNotFound();
+    }
+
     public function test_platform_admin_keeps_advanced_json_behind_privileged_section(): void
     {
-        [, $storeId] = $this->retailManager();
-        $this->flashProduct($storeId);
+        [, $storeId] = $this->wholesaleManager();
+        $this->flashProduct($storeId, 'b2b');
 
         $superAdmin = User::query()->create([
             'name' => 'Commercial Platform Advanced',
@@ -251,23 +274,26 @@ class CommercialDashboardContractTest extends TestCase
 
     public function test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring(): void
     {
-        [$manager, $storeId] = $this->retailManager();
-        $this->flashProduct($storeId);
+        [$wholesaleManager, $wholesaleStoreId] = $this->wholesaleManager();
+        $this->flashProduct($wholesaleStoreId, 'b2b');
 
-        $this->actingAs($manager)
-            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+        $this->actingAs($wholesaleManager)
+            ->get(route('admin.commercial.sales-control', ['store_id' => $wholesaleStoreId]))
             ->assertOk()
             ->assertSee('data-commercial-channel-picker', false)
             ->assertSee('value="van" data-commercial-channel', false);
 
-        $this->actingAs($manager)
-            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+        [$retailManager, $retailStoreId] = $this->retailManager();
+        $this->flashProduct($retailStoreId);
+
+        $this->actingAs($retailManager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $retailStoreId]))
             ->assertOk()
             ->assertSee('name="channels[]" value="van"', false)
             ->assertSee('data-flash-product-builder', false);
     }
 
-    private function flashProduct(int $storeId): int
+    private function flashProduct(int $storeId, string $channel = 'b2c'): int
     {
         $unitId = (int) DB::table('units')->insertGetId([
             'code' => 'COMM-FLASH-EA',
@@ -279,7 +305,7 @@ class CommercialDashboardContractTest extends TestCase
 
         $catalogId = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $storeId,
-            'channel' => 'b2c',
+            'channel' => $channel,
             'code' => 'commercial-flash',
             'name' => 'Commercial Flash',
             'is_active' => true,
@@ -850,6 +876,30 @@ class CommercialDashboardContractTest extends TestCase
         ]);
 
         return [$customerId, $groupId, 'Hawalli', 'ROUTE-A'];
+    }
+
+    /** @return array{0:User, 1:int} */
+    private function wholesaleManager(): array
+    {
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'COMMERCIAL-B2B',
+            'name' => 'Commercial Wholesale Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $manager = User::query()->create([
+            'name' => 'Commercial B2B Manager',
+            'email' => 'commercial-b2b@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $manager->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+
+        return [$manager, $storeId];
     }
 
     /** @return array{0:User, 1:int} */
