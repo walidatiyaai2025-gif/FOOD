@@ -399,7 +399,7 @@
                         <form method="post" action="{{ route('admin.field-operations.visits.transition',$visit) }}">@csrf
                             <select name="status">@foreach($allowed as $target)<option value="{{ $target }}">{{ __('field_operations.visit_statuses.'.$target) }}</option>@endforeach</select>
                             <select name="no_order_reason_id"><option value="">{{ __('field_operations.no_order_reason') }}</option>@foreach($reasons as $reason)<option value="{{ $reason->id }}">{{ $reason->localized_label }}</option>@endforeach</select>
-                            <select name="order_id" data-order-lookup><option value="">{{ __('field_operations.no_linked_order') }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ $order->order_number ?: __('field_operations.order') }} · {{ __('field_operations.order_statuses.'.$order->status) }}</option>@endforeach</select>
+                            <select name="order_id" data-order-lookup><option value="">{{ __('field_operations.no_linked_order') }}</option>@foreach($visitOrders as $order)<option value="{{ $order->id }}">{{ \App\Support\DisplayNumber::reference($order->id) }} · {{ __('field_operations.order_statuses.'.$order->status) }}</option>@endforeach</select>
                             <button type="submit">{{ __('field_operations.apply') }}</button>
                         </form>
                     </div></details>
