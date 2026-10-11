@@ -195,6 +195,13 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
       0,
       (sum, invoice) => sum + invoice.outstandingAmount,
     );
+    final outstandingCurrencies = invoices
+        .map((invoice) => invoice.currency.trim().toUpperCase())
+        .where((currency) => currency.isNotEmpty)
+        .toSet();
+    final totalOutstandingText = outstandingCurrencies.length == 1
+        ? foodexMoneyText(totalOutstanding, outstandingCurrencies.single)
+        : foodexCompactDecimal(totalOutstanding);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -275,7 +282,7 @@ class _VanCustomer360PageState extends State<VanCustomer360Page>
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                     Text(
-                      totalOutstanding.toStringAsFixed(3),
+                      totalOutstandingText,
                       key: const ValueKey('van-customer-360-outstanding'),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: FoodexVanTokens.green,
