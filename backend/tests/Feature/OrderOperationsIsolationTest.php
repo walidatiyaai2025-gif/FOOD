@@ -265,15 +265,26 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders')
             ->assertOk()
-            ->assertSee('#'.$wholesaleOrder)
-            ->assertDontSee('OPS-ROGUE-WHOLESALE-3001')
-            ->assertDontSee('Retail Buyer');
+            ->assertViewHas('rows', function (array $rows) use ($wholesaleOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$wholesaleOrder];
+            })
+            ->assertSee('#'.$wholesaleOrder);
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c&store_id='.$retailStore)
             ->assertOk()
-            ->assertSee('#'.$retailOrder)
-            ->assertDontSee('Wholesale Buyer');
+            ->assertViewHas('rows', function (array $rows) use ($retailOrder): bool {
+                return collect($rows)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all() === [$retailOrder];
+            })
+            ->assertSee('#'.$retailOrder);
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2c&order='.$wholesaleOrder)
