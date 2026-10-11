@@ -1,6 +1,6 @@
 # FOODEX 1.0.71 Release Notes
 
-Status: Dashboard update release candidate from current main.
+Status: immutable production release registered through release PR #1266.
 
 ## Release identity
 
