@@ -37,6 +37,128 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($user)->get('/admin/b2b/stores')->assertNotFound();
     }
 
+    public function test_pricing_workspace_is_hidden_until_tiers_are_enabled(): void
+    {
+        $admin = $this->user('B2B_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/pricing')
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->put('/admin/b2b/settings/pricing-tiers', ['enabled' => '1'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $this->assertDatabaseHas('settings', [
+            'store_id' => $storeId,
+            'key' => 'b2b.pricing_tiers_enabled',
+            'value' => 'true',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2b/pricing')
+            ->assertOk();
+    }
+
+    public function test_product_create_and_edit_own_price_stock_and_low_stock_threshold(): void
+    {
+        $admin = $this->user('B2B_ADMIN', 'en');
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $warehouseId = app(WholesalePrincipal::class)->warehouseId();
+        $unitId = $this->unit();
+
+        $this->actingAs($admin)->post('/admin/b2b/products', [
+            'unit_id' => $unitId,
+            'sku' => 'OWNED-STOCK-1267',
+            'name' => 'Owned Stock Product',
+            'description' => 'Created from product form',
+            'price' => 10.500,
+            'quantity' => 12,
+            'low_stock_threshold' => 3,
+            'is_active' => '1',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $productId = (int) DB::table('products')
+            ->where('sku', 'OWNED-STOCK-1267')
+            ->value('id');
+
+        $this->assertGreaterThan(0, $productId);
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'low_stock_threshold' => 3.000,
+        ]);
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 10.500,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 12.000,
+            'reserved_quantity' => 0.000,
+        ]);
+
+        DB::table('inventories')
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId)
+            ->update(['reserved_quantity' => 4, 'updated_at' => now()]);
+
+        $this->actingAs($admin)
+            ->patch('/admin/b2b/products/'.$productId, [
+                'unit_id' => $unitId,
+                'sku' => 'OWNED-STOCK-1267',
+                'name' => 'Owned Stock Product Updated',
+                'description' => 'Updated from product form',
+                'price' => 11.750,
+                'quantity' => 6,
+                'low_stock_threshold' => 2,
+                'is_active' => '1',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'name' => 'Owned Stock Product Updated',
+            'low_stock_threshold' => 2.000,
+        ]);
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 11.750,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 6.000,
+            'reserved_quantity' => 4.000,
+        ]);
+
+        $this->actingAs($admin)
+            ->from('/admin/b2b/products')
+            ->patch('/admin/b2b/products/'.$productId, [
+                'unit_id' => $unitId,
+                'sku' => 'OWNED-STOCK-1267',
+                'name' => 'Owned Stock Product Updated',
+                'price' => 11.750,
+                'quantity' => 3,
+                'low_stock_threshold' => 2,
+                'is_active' => '1',
+            ])
+            ->assertRedirect('/admin/b2b/products')
+            ->assertSessionHasErrors('quantity');
+
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 6.000,
+            'reserved_quantity' => 4.000,
+        ]);
+    }
+
     public function test_b2b_dashboard_accepts_open_date_ranges_beyond_31_days(): void
     {
         $admin = $this->user('B2B_ADMIN', 'ar');
