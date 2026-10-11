@@ -8,6 +8,7 @@ import '../../core/network/customer_data_mode.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_order_models.dart';
 import 'customer_orders_api.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class CustomerOrdersScreen extends StatefulWidget {
   const CustomerOrdersScreen({
@@ -1004,9 +1005,11 @@ class _OrderCard extends StatelessWidget {
               if (appliedCredit != null && appliedCredit > 0) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '${context.tr('customer.orders.financial.balance_applied')}: '
-                  '${appliedCredit.toStringAsFixed(3)} ${order.currency}',
+                  '${context.tr('customer.orders.financial.balance_applied')}: ${foodexMoneyText(appliedCredit, order.currency)}',
                   key: ValueKey('customer-order-balance-applied-${order.id}'),
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
               if (onTap != null) ...[
@@ -1180,7 +1183,7 @@ class _OrderCard extends StatelessWidget {
                       Directionality(
                         textDirection: TextDirection.ltr,
                         child: Text(
-                          '${order.currency} ${order.grandTotal.toStringAsFixed(3)}',
+                          foodexMoneyText(order.grandTotal, order.currency, currencyFirst: true),
                           textAlign: TextAlign.left,
                           maxLines: 1,
                           style:
@@ -1347,7 +1350,7 @@ class _OrderHeader extends StatelessWidget {
             ),
             const SizedBox(height: CustomerUiSpacing.lg),
             Text(
-              '${order.grandTotal.toStringAsFixed(3)} ${order.currency}',
+              foodexMoneyText(order.grandTotal, order.currency),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: CustomerUiColors.lime,
                     fontWeight: FontWeight.w800,
@@ -1542,7 +1545,7 @@ class _OrderItems extends StatelessWidget {
                 '${context.tr('customer.cart.quantity')}: ${_quantity(item.quantity)}',
               ),
               trailing: Text(
-                '${item.lineTotal.toStringAsFixed(3)} ${details.summary.currency}',
+                foodexMoneyText(item.lineTotal, details.summary.currency),
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -1620,7 +1623,7 @@ class _PaymentSummary extends StatelessWidget {
             title: Text(paymentProviderLabel!),
             subtitle: Text(paymentStatusLabel!),
             trailing: Text(
-              '${payment.amount.toStringAsFixed(3)} ${payment.currency}',
+              foodexMoneyText(payment.amount, payment.currency),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -1631,7 +1634,7 @@ class _PaymentSummary extends StatelessWidget {
             leading: const Icon(Icons.account_balance_wallet_outlined),
             title: Text(context.tr('customer.order.payment.remaining')),
             trailing: Text(
-              '${outstanding.toStringAsFixed(3)} ${details.summary.currency}',
+              foodexMoneyText(outstanding, details.summary.currency),
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
@@ -1662,7 +1665,7 @@ class _PaymentSummary extends StatelessWidget {
                 ].join(' · '),
               ),
               trailing: Text(
-                '${receipt.amount.toStringAsFixed(3)} ${receipt.currency}',
+                foodexMoneyText(receipt.amount, receipt.currency),
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -1978,7 +1981,7 @@ String _financialText(BuildContext context, CustomerOrderSummary order) {
     return context.tr('customer.orders.financial.unavailable');
   }
 
-  final amount = '${outstanding.toStringAsFixed(3)} ${order.currency}';
+  final amount = foodexMoneyText(outstanding, order.currency);
   switch (order.remainderMethod?.trim().toLowerCase()) {
     case 'account_debt':
     case 'account':

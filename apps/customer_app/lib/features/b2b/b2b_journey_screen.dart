@@ -23,6 +23,7 @@ import 'dashboard_single_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class B2bJourneyScreen extends StatelessWidget {
   const B2bJourneyScreen({
@@ -858,7 +859,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   String _money(Object? value, String currency) {
     final amount = double.tryParse(value?.toString() ?? '');
     if (amount == null) return '—';
-    return '${amount.toStringAsFixed(3)} $currency';
+    return foodexMoneyText(amount, currency);
   }
 
   Widget _metric(
@@ -3384,16 +3385,8 @@ List<Map<Object?, Object?>> _reportRows(Object? value) => value is List
 double _reportDouble(Object? value) =>
     value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
-String _reportMoney(Object? value, String currency) {
-  final amount = _reportDouble(value);
-  final formatted = amount == amount.roundToDouble()
-      ? amount.toStringAsFixed(0)
-      : amount.toStringAsFixed(3).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
-            RegExp(r'\.$'),
-            '',
-          );
-  return currency.trim().isEmpty ? formatted : '$formatted $currency';
-}
+String _reportMoney(Object? value, String currency) =>
+    foodexMoneyText(_reportDouble(value), currency);
 
 String _reportCompactNumber(double value) {
   if (value.abs() >= 1000000) {
@@ -4597,7 +4590,7 @@ class _FinanceCard extends StatelessWidget {
       value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
 
   String _money(double value, String currency) =>
-      '${value.toStringAsFixed(3)}${currency.trim().isEmpty ? '' : ' ${currency.trim()}'}';
+      foodexMoneyText(value, currency);
 
   @override
   Widget build(BuildContext context) => Container(
@@ -5113,8 +5106,7 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
       value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
   String _money(double value, String currency) {
-    final suffix = currency.isEmpty ? '' : ' $currency';
-    return '${value.toStringAsFixed(3)}$suffix';
+    return foodexMoneyText(value, currency);
   }
 }
 
@@ -5746,8 +5738,7 @@ class _B2bAccountStatementRemoteStateState
 
   static String _money(Object? value, String currency) {
     final amount = _amount(value);
-    final suffix = currency.isEmpty ? '' : ' $currency';
-    return '${amount.toStringAsFixed(3)}$suffix';
+    return foodexMoneyText(amount, currency);
   }
 
   static String _shortDate(String? value) {
@@ -5863,8 +5854,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
   String _money(Object? value, String currency) {
     final amount = double.tryParse(value?.toString() ?? '');
     if (amount == null) return '—';
-    final suffix = currency.isEmpty ? '' : ' $currency';
-    return '${amount.toStringAsFixed(3)}$suffix';
+    return foodexMoneyText(amount, currency);
   }
 
   String _displayDate(Object? value) {
@@ -6720,7 +6710,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
 
   String _money(Object? value, String currency) {
     final amount = double.tryParse(value?.toString() ?? '') ?? 0;
-    return '${amount.toStringAsFixed(3)} $currency'.trim();
+    return foodexMoneyText(amount, currency).trim();
   }
 
   String _date(DateTime date) =>

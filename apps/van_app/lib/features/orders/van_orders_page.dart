@@ -8,6 +8,7 @@ import '../../core/theme/foodex_van_theme.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
 import 'van_order_detail_page.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanOrdersPage extends StatefulWidget {
   const VanOrdersPage({
@@ -220,7 +221,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                 child: Text(
                   _ordersCurrency.isEmpty
                       ? _ordersValue.toStringAsFixed(3)
-                      : '${_ordersValue.toStringAsFixed(3)} $_ordersCurrency',
+                      : foodexMoneyText(_ordersValue, _ordersCurrency),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
@@ -389,8 +390,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${order.grandTotal.toStringAsFixed(3)} '
-                          '${order.currency}',
+                          foodexMoneyText(order.grandTotal, order.currency),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:

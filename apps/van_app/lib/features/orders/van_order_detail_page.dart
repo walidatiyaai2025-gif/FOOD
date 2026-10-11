@@ -12,6 +12,7 @@ import '../wallet/van_wallet_contract.dart';
 import 'van_delivery_evidence_sheet.dart';
 import 'van_order_contract.dart';
 import 'van_order_proof_picker.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef VanOrderNavigationLauncher = Future<bool> Function(
   double latitude,
@@ -432,6 +433,15 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
     }
   }
 
+  String _collectionStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
+        'posted' || 'completed' => _text('Completed', 'مكتمل'),
+        'pending' || 'processing' => _text('Processing', 'قيد المعالجة'),
+        'reversed' || 'voided' => _text('Reversed', 'معكوس'),
+        'failed' => _text('Failed', 'فشل'),
+        _ => _text('Collection status', 'حالة التحصيل'),
+      };
+
   String _actionLabel(String value) {
     switch (value) {
       case 'accepted':
@@ -532,7 +542,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
       );
 
   Widget _money(String currency, double amount) => Text(
-        '${amount.toStringAsFixed(3)} $currency',
+        foodexMoneyText(amount, currency),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
@@ -782,7 +792,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Text(
-                              '${item.sku} · ${item.quantity.toStringAsFixed(3)}',
+                              '${item.sku} · ${foodexQuantity(item.quantity)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -803,9 +813,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     Text(
-                      '${_text('Outstanding', 'المتبقي')}: '
-                      '${invoice.outstandingAmount.toStringAsFixed(3)} '
-                      '${invoice.currency}',
+                      '${_text('Outstanding', 'المتبقي')}: ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
                     ),
                     if (_hasCashOutstanding) ...[
                       const SizedBox(height: 10),
@@ -858,8 +866,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                   ),
                   for (final collection in detail.collections)
                     Text(
-                      '${collection.amount.toStringAsFixed(3)} '
-                      '${collection.currency} · ${collection.status}',
+                      '${foodexMoneyText(collection.amount, collection.currency)} · ${_collectionStatusLabel(collection.status)}',
                     ),
                   if (_lastCollectionResult != null) ...[
                     const SizedBox(height: 10),
@@ -879,8 +886,8 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                             Expanded(
                               child: Text(
                                 _text(
-                                  'Receipt #${_lastCollectionResult!.receipt.id} posted · remaining ${_lastCollectionResult!.remainingOutstanding.toStringAsFixed(3)} ${_lastCollectionResult!.receipt.currency}',
-                                  'تم تسجيل الإيصال #${_lastCollectionResult!.receipt.id} · المتبقي ${_lastCollectionResult!.remainingOutstanding.toStringAsFixed(3)} ${_lastCollectionResult!.receipt.currency}',
+                                  'Receipt #${_lastCollectionResult!.receipt.id} posted · remaining ${foodexMoneyText(_lastCollectionResult!.remainingOutstanding, _lastCollectionResult!.receipt.currency)}',
+                                  'تم تسجيل الإيصال #${_lastCollectionResult!.receipt.id} · المتبقي ${foodexMoneyText(_lastCollectionResult!.remainingOutstanding, _lastCollectionResult!.receipt.currency)}',
                                 ),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,

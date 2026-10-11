@@ -78,7 +78,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertSee('نظرة عامة على المبيعات')
             ->assertSee('المساعد الذكي')
             ->assertSee('إجمالي الطلبات')
-            ->assertSee('EGP 20.000')
+            ->assertSee('EGP 20.00')
             ->assertDontSee('KWD')
             ->assertSee('زيت زيتون عضوي')
             ->assertSee('#1245')
@@ -128,9 +128,9 @@ class B2cAdminWorkspaceTest extends TestCase
         ]);
 
         $this->actingAs($user)->get('/admin/b2c/products')->assertOk()->assertSee('Mine Product')->assertDontSee('Other Product');
-        $this->actingAs($user)->get('/admin/b2c/inventory')->assertOk()->assertSee('Mine Warehouse')->assertSee('6.000')->assertDontSee('Other Warehouse');
+        $this->actingAs($user)->get('/admin/b2c/inventory')->assertOk()->assertSee('Mine Warehouse')->assertSee('6')->assertDontSee('Other Warehouse');
         $this->actingAs($user)->get('/admin/b2c/orders')->assertOk()->assertSee('MINE-ORDER')->assertSee('Mine Customer')->assertDontSee('OTHER-ORDER');
-        $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.000')->assertDontSee('Other Customer');
+        $this->actingAs($user)->get('/admin/b2c/customers')->assertOk()->assertSee('Mine Customer')->assertSee('EGP 5.00')->assertDontSee('Other Customer');
     }
 
     public function test_retail_wholesale_purchases_shows_linked_b2b_orders_and_keeps_customer_orders_separate(): void
@@ -295,7 +295,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->get('/admin/b2c/reports')
             ->assertOk()
             ->assertSee('Reports Store')
-            ->assertSee('EGP 12.000')
+            ->assertSee('EGP 12.00')
             ->assertSee('Open reports')
             ->assertSee('XLSX')
             ->assertSee('PDF');

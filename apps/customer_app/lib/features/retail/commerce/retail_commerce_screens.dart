@@ -4,6 +4,7 @@ import '../../../core/api/b2c_account_api.dart';
 import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'retail_commerce_api.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 enum RetailAuthIntent { login, register }
 
@@ -324,7 +325,7 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                                   ),
                                 ),
                                 Text(
-                                  '${cart.grandTotal.toStringAsFixed(3)} ${cart.currency}',
+                                  foodexMoneyText(cart.grandTotal, cart.currency),
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleLarge
@@ -816,7 +817,7 @@ class _CartItemCard extends StatelessWidget {
                       ),
                       const SizedBox(height: CustomerUiSpacing.xxs),
                       Text(
-                        '${item.lineTotal.toStringAsFixed(3)} $currency',
+                        foodexMoneyText(item.lineTotal, currency),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: CustomerUiColors.deepGreenStrong,
                               fontWeight: FontWeight.w700,

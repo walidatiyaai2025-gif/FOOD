@@ -140,12 +140,12 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <td class="catalog-col-category">{{ $p->category ?: '—' }}</td>
 <td>
 @if($assignment && $assignment->price !== null)
-<span class="catalog-money">{{ number_format((float)$assignment->price,3) }}@if($currency)<span class="catalog-currency">{{ $currency }}</span>@endif</span>
+<span class="catalog-money">{{ \App\Support\DisplayNumber::money((float)$assignment->price, $currency) }}@if($currency)<span class="catalog-currency">{{ $currency }}</span>@endif</span>
 @else<span class="muted">—</span>@endif
 </td>
 <td>
 @if($p->is_available)
-<span class="catalog-stock" data-availability-state="AVAILABLE"><span class="catalog-stock-dot"></span>{{ number_format((float)$p->available_quantity,3) }}</span>
+<span class="catalog-stock" data-availability-state="AVAILABLE"><span class="catalog-stock-dot"></span>{{ \App\Support\DisplayNumber::quantity((float)$p->available_quantity) }}</span>
 @else
 <span class="catalog-stock out" data-availability-state="OUT_OF_STOCK"><span class="catalog-stock-dot"></span>{{ app()->getLocale()==='ar'?'نفد':'Out' }}</span>
 @endif

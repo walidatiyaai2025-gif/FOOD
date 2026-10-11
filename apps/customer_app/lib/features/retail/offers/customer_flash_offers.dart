@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/config/foodex_environment.dart';
 import '../commerce/retail_commerce_api.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class CustomerFlashSellingUnit {
   const CustomerFlashSellingUnit({
@@ -512,7 +513,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                       Row(
                         children: [
                           Text(
-                            '${offer.flashPrice.toStringAsFixed(3)} ${offer.currency}',
+                            foodexMoneyText(offer.flashPrice, offer.currency),
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -520,7 +521,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                           if (offer.normalPrice > offer.flashPrice) ...[
                             const SizedBox(width: 10),
                             Text(
-                              '${offer.normalPrice.toStringAsFixed(3)} ${offer.currency}',
+                              foodexMoneyText(offer.normalPrice, offer.currency),
                               style: const TextStyle(
                                 decoration: TextDecoration.lineThrough,
                               ),

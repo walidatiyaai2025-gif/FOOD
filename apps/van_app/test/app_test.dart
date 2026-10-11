@@ -170,7 +170,10 @@ void main() {
     expect(find.byKey(const ValueKey('van-customer-360')), findsOneWidget);
     expect(find.text('Acme Grocery'), findsWidgets);
     expect(find.text('INV-42'), findsOneWidget);
-    expect(find.text('12.500 KWD'), findsOneWidget);
+    final outstanding = tester.widget<Text>(
+      find.byKey(const ValueKey('van-customer-360-outstanding')),
+    );
+    expect(outstanding.data, '12.500 KWD');
   });
 
 

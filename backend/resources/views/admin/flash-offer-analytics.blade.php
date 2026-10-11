@@ -58,8 +58,8 @@
 
         <div class="analytics-grid">
             <section class="metric"><span>{{ __('commercial.analytics.reservations') }}</span><strong>{{ $reservationCount }}</strong></section>
-            <section class="metric"><span>{{ __('commercial.analytics.live_reserved_base') }}</span><strong>{{ number_format($liveReservedBase, 3) }}</strong></section>
-            <section class="metric"><span>{{ __('commercial.analytics.confirmed_base') }}</span><strong>{{ number_format($confirmedBase, 3) }}</strong></section>
+            <section class="metric"><span>{{ __('commercial.analytics.live_reserved_base') }}</span><strong>{{ \App\Support\DisplayNumber::quantity($liveReservedBase) }}</strong></section>
+            <section class="metric"><span>{{ __('commercial.analytics.confirmed_base') }}</span><strong>{{ \App\Support\DisplayNumber::quantity($confirmedBase) }}</strong></section>
             <section class="metric"><span>{{ __('commercial.analytics.flash_events') }}</span><strong>{{ $eventCount }}</strong></section>
             <section class="metric"><span>{{ __('commercial.analytics.allocation_utilization') }}</span><strong>{{ $utilization === null ? '—' : number_format($utilization, 1).'%' }}</strong></section>
         </div>
@@ -72,7 +72,7 @@
                     <tbody>
                     @forelse($reservationStats as $stat)
                         @php($statusKey = 'commercial.analytics.reservation_statuses.'.$stat->status)
-                        <tr><td>{{ __($statusKey) === $statusKey ? __('commercial.analytics.unknown_status') : __($statusKey) }}</td><td>{{ $stat->reservations_count }}</td><td>{{ number_format((float) $stat->base_quantity, 3) }}</td></tr>
+                        <tr><td>{{ __($statusKey) === $statusKey ? __('commercial.analytics.unknown_status') : __($statusKey) }}</td><td>{{ $stat->reservations_count }}</td><td>{{ \App\Support\DisplayNumber::quantity((float) $stat->base_quantity) }}</td></tr>
                     @empty
                         <tr><td colspan="3">{{ __('commercial.analytics.no_reservations') }}</td></tr>
                     @endforelse
