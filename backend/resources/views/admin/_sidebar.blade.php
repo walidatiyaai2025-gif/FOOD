@@ -55,6 +55,54 @@ html[dir=ltr] .layout:has(>.sidebar.foodex-sidebar-collapsed){grid-template-colu
 .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:minmax(0,1fr) 82px}
 html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:82px minmax(0,1fr)}
 @media(max-width:1023px){aside.foodex-sidebar-collapsed,aside.foodex-sidebar-expanded{width:100%!important;min-width:0!important}.foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed),html[dir=ltr] .foodex-admin-layout:has(>.sidebar.foodex-sidebar-collapsed),.layout:has(>.sidebar.foodex-sidebar-collapsed),html[dir=ltr] .layout:has(>.sidebar.foodex-sidebar-collapsed),.dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed),html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed){grid-template-columns:1fr}.foodex-sidebar-shell{min-height:auto}}
+
+.foodex-mobile-web-bar,.foodex-mobile-nav-backdrop{display:none}
+.foodex-mobile-web-brand{display:inline-flex;align-items:center;min-height:44px;color:var(--foodex-green-dark);font-weight:800;text-decoration:none}
+.foodex-mobile-nav-launcher{width:44px;height:44px;display:grid;place-items:center;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);color:var(--foodex-green-dark);font:inherit;font-size:20px;cursor:pointer}
+@media(max-width:767px){
+    .foodex-mobile-web-bar{position:fixed;z-index:10110;inset-block-start:0;inset-inline:0;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--foodex-border);box-shadow:0 4px 16px rgba(16,24,40,.05);backdrop-filter:blur(10px)}
+    .foodex-mobile-nav-backdrop{position:fixed;z-index:10090;inset:56px 0 0;display:none;width:100%;height:auto;border:0;background:rgba(15,23,42,.42);padding:0;cursor:pointer}
+    body.foodex-mobile-nav-open{overflow:hidden}
+    body.foodex-mobile-nav-open .foodex-mobile-nav-backdrop{display:block}
+    aside.sidebar,aside.dashboard-sidebar,.shell-sidebar,
+    aside.foodex-sidebar-collapsed,aside.foodex-sidebar-expanded{
+        position:fixed!important;z-index:10100!important;inset-block-start:56px!important;inset-block-end:0!important;inset-inline-end:0!important;inset-inline-start:auto!important;
+        width:min(88vw,340px)!important;min-width:0!important;max-width:340px!important;height:auto!important;min-height:0!important;max-height:none!important;
+        overflow:auto!important;padding:12px!important;background:var(--foodex-surface)!important;border:0!important;border-inline-start:1px solid var(--foodex-border)!important;
+        box-shadow:-18px 0 44px rgba(15,23,42,.16)!important;transform:translateX(105%);transition:transform .2s ease;overscroll-behavior:contain
+    }
+    html[dir=ltr] aside.sidebar,html[dir=ltr] aside.dashboard-sidebar,html[dir=ltr] .shell-sidebar,
+    html[dir=ltr] aside.foodex-sidebar-collapsed,html[dir=ltr] aside.foodex-sidebar-expanded{
+        inset-inline-start:0!important;inset-inline-end:auto!important;border-inline-start:0!important;border-inline-end:1px solid var(--foodex-border)!important;
+        box-shadow:18px 0 44px rgba(15,23,42,.16)!important;transform:translateX(-105%)
+    }
+    body.foodex-mobile-nav-open aside.sidebar,
+    body.foodex-mobile-nav-open aside.dashboard-sidebar,
+    body.foodex-mobile-nav-open .shell-sidebar,
+    body.foodex-mobile-nav-open aside.foodex-sidebar-collapsed,
+    body.foodex-mobile-nav-open aside.foodex-sidebar-expanded{transform:translateX(0)}
+    .foodex-sidebar-shell{height:100%;min-height:0;overflow:auto;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+    aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
+    aside.foodex-sidebar-collapsed .foodex-sidebar-search,
+    aside.foodex-sidebar-collapsed .foodex-nav-label,
+    aside.foodex-sidebar-collapsed .foodex-nav-chevron,
+    aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2){display:initial!important}
+    aside.foodex-sidebar-collapsed .foodex-sidebar-search{display:block!important}
+    aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:space-between;flex-wrap:nowrap}
+    aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:flex-start;width:auto}
+    aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:40px}
+    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:24px minmax(0,1fr) 18px;place-items:initial;padding:8px 10px}
+    aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:grid}
+    aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:22px minmax(0,1fr);place-items:initial;padding:7px 9px}
+    .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main,
+    .layout>.foodex-admin-main,html[dir=ltr] .layout>.foodex-admin-main,
+    .dashboard-layout>.dashboard-shell,html[dir=ltr] .dashboard-layout>.dashboard-shell,
+    .shell>.main,html[dir=ltr] .shell>.main{grid-column:1!important;grid-row:1!important}
+}
+@media(prefers-reduced-motion:reduce){
+    aside.sidebar,aside.dashboard-sidebar,.shell-sidebar{transition:none!important}
+}
+
 </style>
 
 <div class="foodex-sidebar-shell" data-foodex-brand="v1">
@@ -103,20 +151,90 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const search = shell.querySelector('[data-foodex-nav-search]');
     const stateKey = 'foodex.sidebar.expanded.{{ $user->id ?? 'guest' }}';
 
-    const setExpanded = (expanded) => {
+    const setExpanded = (expanded, persist = true) => {
         shell.classList.toggle('foodex-sidebar-expanded', expanded);
         shell.classList.toggle('foodex-sidebar-collapsed', !expanded);
-        toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        localStorage.setItem(stateKey, expanded ? '1' : '0');
+        if (!matchMedia('(max-width:767px)').matches) {
+            toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+        if (persist) localStorage.setItem(stateKey, expanded ? '1' : '0');
     };
 
-    const mobile = matchMedia('(max-width:1023px)').matches;
-    setExpanded(mobile || localStorage.getItem(stateKey) === '1');
-    toggle?.addEventListener('click', () => setExpanded(shell.classList.contains('foodex-sidebar-collapsed')));
+    const compactMedia = matchMedia('(max-width:1023px)');
+    const mobileMedia = matchMedia('(max-width:767px)');
+    setExpanded(compactMedia.matches || localStorage.getItem(stateKey) === '1', false);
+
+    const brand = shell.querySelector('.foodex-sidebar-brand');
+    const bar = document.createElement('div');
+    bar.className = 'foodex-mobile-web-bar';
+    bar.setAttribute('data-foodex-mobile-web-bar', '1');
+
+    const launcher = document.createElement('button');
+    launcher.type = 'button';
+    launcher.className = 'foodex-mobile-nav-launcher';
+    launcher.setAttribute('aria-label', toggle?.getAttribute('aria-label') || 'Navigation');
+    launcher.setAttribute('aria-expanded', 'false');
+    launcher.textContent = '☰';
+
+    const mobileBrand = document.createElement('a');
+    mobileBrand.className = 'foodex-mobile-web-brand';
+    mobileBrand.href = brand?.getAttribute('href') || '#';
+    mobileBrand.textContent = 'FOODEX';
+
+    const spacer = document.createElement('span');
+    spacer.setAttribute('aria-hidden', 'true');
+    spacer.style.width = '44px';
+    bar.append(launcher, mobileBrand, spacer);
+
+    const backdrop = document.createElement('button');
+    backdrop.type = 'button';
+    backdrop.className = 'foodex-mobile-nav-backdrop';
+    backdrop.setAttribute('aria-label', document.documentElement.dir === 'rtl' ? 'إغلاق القائمة' : 'Close navigation');
+
+    document.body.append(backdrop, bar);
+
+    const setDrawer = (open) => {
+        const enabled = mobileMedia.matches;
+        document.body.classList.toggle('foodex-mobile-nav-open', enabled && open);
+        launcher.setAttribute('aria-expanded', enabled && open ? 'true' : 'false');
+        if (enabled) {
+            toggle?.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (toggle) toggle.textContent = open ? '×' : '☰';
+        } else if (toggle) {
+            toggle.textContent = '☰';
+        }
+    };
+
+    const syncViewport = () => {
+        const compact = compactMedia.matches;
+        const mobile = mobileMedia.matches;
+        document.body.classList.toggle('foodex-mobile-web', mobile);
+        if (!mobile) setDrawer(false);
+        setExpanded(compact ? true : localStorage.getItem(stateKey) === '1', false);
+    };
+
+    launcher.addEventListener('click', () => setDrawer(!document.body.classList.contains('foodex-mobile-nav-open')));
+    backdrop.addEventListener('click', () => setDrawer(false));
+    toggle?.addEventListener('click', () => {
+        if (mobileMedia.matches) {
+            setDrawer(false);
+            return;
+        }
+        setExpanded(shell.classList.contains('foodex-sidebar-collapsed'));
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && document.body.classList.contains('foodex-mobile-nav-open')) setDrawer(false);
+    });
+    nav?.addEventListener('click', (event) => {
+        if (mobileMedia.matches && event.target.closest('a.foodex-nav-link')) setDrawer(false);
+    });
+    compactMedia.addEventListener?.('change', syncViewport);
+    mobileMedia.addEventListener?.('change', syncViewport);
+    syncViewport();
 
     const groups = [...(nav?.querySelectorAll('[data-group]') || [])];
     groups.forEach(group => {
-        if (!group.querySelector('[aria-current="page"]') && !mobile) group.open = false;
+        if (!group.querySelector('[aria-current="page"]') && !compactMedia.matches) group.open = false;
     });
 
     search?.addEventListener('input', () => {
