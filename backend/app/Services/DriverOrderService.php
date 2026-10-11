@@ -8,6 +8,7 @@ use App\Models\DriverAssignment;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -236,7 +237,7 @@ final class DriverOrderService
             'completed_at' => $assignment->completed_at,
             'available_statuses' => $this->availableStatuses($assignment, $order),
             'order' => [
-                'number' => \App\Support\DisplayNumber::reference($order->getKey()),
+                'number' => DisplayNumber::reference($order->getKey()),
                 'internal_number' => (string) $order->order_number,
                 'status' => (string) $order->status,
                 'currency' => (string) $order->currency,
@@ -276,7 +277,7 @@ final class DriverOrderService
                 'items' => $items,
                 'invoice' => $invoice === null ? null : [
                     'id' => (int) $invoice->id,
-                    'number' => \App\Support\DisplayNumber::reference($invoice->id),
+                    'number' => DisplayNumber::reference($invoice->id),
                     'internal_number' => (string) $invoice->invoice_number,
                     'revision' => (int) ($invoice->revision ?? 1),
                     'status' => (string) $invoice->status,
@@ -319,7 +320,7 @@ final class DriverOrderService
             'completed_at' => $assignment->completed_at,
             'available_statuses' => [],
             'order' => [
-                'number' => \App\Support\DisplayNumber::reference($order->getKey()),
+                'number' => DisplayNumber::reference($order->getKey()),
                 'internal_number' => (string) $order->order_number,
                 'status' => (string) $order->status,
                 'created_at' => $order->created_at,

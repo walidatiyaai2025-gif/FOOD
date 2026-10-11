@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Invoice;
+use App\Support\DisplayNumber;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -56,7 +57,7 @@ final class VanCustomerCollectionContextService
             ->map(function (Invoice $invoice) use ($type): array {
                 return [
                     'id' => (int) $invoice->getKey(),
-                    'number' => \App\Support\DisplayNumber::reference($invoice->getKey()),
+                    'number' => DisplayNumber::reference($invoice->getKey()),
                     'internal_number' => (string) $invoice->invoice_number,
                     'currency' => $this->normalizeCurrency((string) $invoice->currency),
                     'total' => round((float) $invoice->total, 3),

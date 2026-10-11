@@ -25,6 +25,7 @@ use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -448,7 +449,7 @@ class CheckoutController extends Controller
         return [
             'id' => (int) $order->getKey(),
             'order_number' => (string) $order->order_number,
-            'display_order_number' => \App\Support\DisplayNumber::reference($order->getKey()),
+            'display_order_number' => DisplayNumber::reference($order->getKey()),
             'store_id' => (int) $order->store_id,
             'address_id' => $order->address_id === null ? null : (int) $order->address_id,
             'delivery_address' => app(OrderDeliveryAddressSnapshotService::class)->payload($order),
@@ -477,7 +478,7 @@ class CheckoutController extends Controller
             'invoice' => $invoice === null ? null : [
                 'id' => (int) $invoice->id,
                 'invoice_number' => (string) $invoice->invoice_number,
-                'display_invoice_number' => \App\Support\DisplayNumber::reference($invoice->id),
+                'display_invoice_number' => DisplayNumber::reference($invoice->id),
                 'status' => (string) $invoice->status,
             ],
             'created_at' => $order->created_at?->toAtomString(),

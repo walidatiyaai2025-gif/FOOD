@@ -37,7 +37,6 @@ final class DisplayNumberTest extends TestCase
         );
     }
 
-
     public function test_document_reference_uses_short_numeric_id(): void
     {
         self::assertSame('#1234', DisplayNumber::reference(1234));

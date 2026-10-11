@@ -94,7 +94,7 @@ final class OrderOperationsController extends Controller
                 isset($data['order_number']) && trim((string) $data['order_number']) !== '',
                 function ($query) use ($data): void {
                     $search = trim((string) $data['order_number']);
-                    $displayId = \App\Support\DisplayNumber::referenceId($search);
+                    $displayId = DisplayNumber::referenceId($search);
 
                     $query->where(function ($nested) use ($search, $displayId): void {
                         if ($displayId !== null) {
@@ -1084,7 +1084,7 @@ final class OrderOperationsController extends Controller
 
         return [
             'id' => (int) $order->getKey(),
-            'number' => \App\Support\DisplayNumber::reference($order->getKey()),
+            'number' => DisplayNumber::reference($order->getKey()),
             'internal_number' => (string) $order->order_number,
             'channel' => strtolower((string) $order->channel),
             'store_id' => (int) $order->store_id,

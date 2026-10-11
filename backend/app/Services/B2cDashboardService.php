@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Support\DisplayNumber;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;

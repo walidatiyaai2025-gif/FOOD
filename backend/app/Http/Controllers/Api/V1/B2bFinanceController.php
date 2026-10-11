@@ -14,6 +14,7 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerDomainResolver;
 use App\Services\InvoiceService;
 use App\Services\ReportExportService;
+use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -53,7 +54,7 @@ class B2bFinanceController extends Controller
             ->when($filters['to'] ?? null, fn ($query, string $to) => $query->whereDate('issued_at', '<=', $to))
             ->when($search !== '', function ($query) use ($search): void {
                 $needle = '%'.addcslashes($search, '%_\\').'%';
-                $displayId = \App\Support\DisplayNumber::referenceId($search);
+                $displayId = DisplayNumber::referenceId($search);
 
                 $query->where(function ($nested) use ($needle, $displayId): void {
                     if ($displayId !== null) {
@@ -328,7 +329,7 @@ class B2bFinanceController extends Controller
         $payload = [
             'id' => (int) $invoice->getKey(),
             'invoice_number' => (string) $invoice->invoice_number,
-            'display_invoice_number' => \App\Support\DisplayNumber::reference($invoice->getKey()),
+            'display_invoice_number' => DisplayNumber::reference($invoice->getKey()),
             'status' => (string) $invoice->status,
             'display_status' => $displayStatus,
             'currency' => (string) $invoice->currency,
@@ -345,7 +346,7 @@ class B2bFinanceController extends Controller
             'store_id' => $invoice->store_id === null ? null : (int) $invoice->store_id,
             'order_id' => $invoice->order_id === null ? null : (int) $invoice->order_id,
             'order_number' => $invoice->order_number_snapshot,
-            'display_order_number' => $invoice->order_id === null ? '—' : \App\Support\DisplayNumber::reference($invoice->order_id),
+            'display_order_number' => $invoice->order_id === null ? '—' : DisplayNumber::reference($invoice->order_id),
             'issued_at' => $invoice->issued_at,
             'due_at' => $invoice->due_at,
             'payment_method' => $invoice->payment_method_snapshot,

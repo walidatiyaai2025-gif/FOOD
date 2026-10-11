@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -164,7 +165,7 @@ final class ManagementReportService
             ->limit($limit)
             ->get()
             ->map(fn (object $row): array => [
-                'order_number' => \App\Support\DisplayNumber::reference($row->id),
+                'order_number' => DisplayNumber::reference($row->id),
                 'internal_order_number' => (string) $row->order_number,
                 'date' => $this->localDateTime($row->created_at),
                 'store' => (string) $row->store,

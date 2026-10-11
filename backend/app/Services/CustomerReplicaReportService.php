@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Support\DisplayNumber;
 use App\Models\B2bCustomer;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;

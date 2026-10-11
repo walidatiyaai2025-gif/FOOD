@@ -258,8 +258,8 @@ class B2bWorkspaceController extends Controller
         $order = $orders->create($request, $actor, 'b2b', $storeId);
 
         return back()->with('status', $this->msg(
-            'تم إنشاء الطلب '.\App\Support\DisplayNumber::reference($order->getKey()).'.',
-            'Order '.\App\Support\DisplayNumber::reference($order->getKey()).' created.',
+            'تم إنشاء الطلب '.DisplayNumber::reference($order->getKey()).'.',
+            'Order '.DisplayNumber::reference($order->getKey()).' created.',
         ));
     }
 
@@ -1751,7 +1751,7 @@ class B2bWorkspaceController extends Controller
                     '_driver_history' => $driverHistory,
                     '_invoice' => $invoice === null ? null : [
                         'id' => (int) $invoice->id,
-                        'number' => \App\Support\DisplayNumber::reference($invoice->id),
+                        'number' => DisplayNumber::reference($invoice->id),
                         'internal_number' => (string) $invoice->invoice_number,
                         'status' => $invoice->status,
                         'total' => (float) $invoice->total,

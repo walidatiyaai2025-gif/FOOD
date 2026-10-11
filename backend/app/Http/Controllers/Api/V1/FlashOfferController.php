@@ -12,6 +12,7 @@ use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\FlashCheckoutService;
 use App\Services\FlashOfferService;
+use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -200,7 +201,7 @@ final class FlashOfferController extends Controller
                 'id' => (int) $order->getKey(),
                 'store_id' => (int) $order->store_id,
                 'order_number' => (string) $order->order_number,
-                'display_order_number' => \App\Support\DisplayNumber::reference($order->getKey()),
+                'display_order_number' => DisplayNumber::reference($order->getKey()),
                 'status' => (string) $order->status,
             ], $created ? 201 : 200);
         }
