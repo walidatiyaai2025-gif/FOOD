@@ -115,6 +115,33 @@ class ManagementReportingSuiteTest extends TestCase
         ]);
     }
 
+    public function test_egp_report_surfaces_and_exports_use_two_decimal_money_display(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $query = '?report=orders&store_id='.$this->storeA
+            .'&from=2026-09-01&to=2026-09-30';
+
+        $this->actingAs($admin)->get('/admin/reports'.$query)
+            ->assertOk()
+            ->assertSee('40.00')
+            ->assertDontSee('40.000');
+
+        $docx = $this->actingAs($admin)->get(
+            '/admin/reports/export'.$query.'&format=docx',
+        )->assertOk()->getContent();
+        $docxXml = $this->zipEntry($docx, 'word/document.xml');
+        $this->assertStringContainsString('40.00', $docxXml);
+        $this->assertStringNotContainsString('40.000', $docxXml);
+
+        $xlsx = $this->actingAs($admin)->get(
+            '/admin/reports/export'.$query.'&format=xlsx',
+        )->assertOk()->getContent();
+        $styles = $this->zipEntry($xlsx, 'xl/styles.xml');
+        $sheet = $this->zipEntry($xlsx, 'xl/worksheets/sheet1.xml');
+        $this->assertStringContainsString('numFmtId="4"', $styles);
+        $this->assertStringContainsString('s="1"', $sheet);
+    }
+
     public function test_formula_injection_is_neutralized(): void
     {
         $exports = app(ReportExportService::class);
@@ -122,6 +149,23 @@ class ManagementReportingSuiteTest extends TestCase
         $this->assertSame("'=2+2", $exports->sanitizeSpreadsheetValue('=2+2'));
         $this->assertSame("'+SUM(A1:A2)", $exports->sanitizeSpreadsheetValue('+SUM(A1:A2)'));
         $this->assertSame('Normal', $exports->sanitizeSpreadsheetValue('Normal'));
+    }
+
+    private function zipEntry(string $content, string $entry): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'foodex-test-export-');
+        $this->assertNotFalse($path);
+        file_put_contents($path, $content);
+
+        $zip = new \ZipArchive;
+        $this->assertSame(true, $zip->open($path));
+        $value = $zip->getFromName($entry);
+        $zip->close();
+        @unlink($path);
+
+        $this->assertIsString($value);
+
+        return $value;
     }
 
     private function seedReportingFixture(): void
