@@ -164,7 +164,8 @@ final class ManagementReportService
             ->limit($limit)
             ->get()
             ->map(fn (object $row): array => [
-                'order_number' => (string) $row->order_number,
+                'order_number' => \App\Support\DisplayNumber::reference($row->id),
+                'internal_order_number' => (string) $row->order_number,
                 'date' => $this->localDateTime($row->created_at),
                 'store' => (string) $row->store,
                 'channel' => $this->channelLabel((string) $row->channel),
