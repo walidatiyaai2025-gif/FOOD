@@ -316,8 +316,8 @@ final class OrderOperationsController extends Controller
                     ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->first(['name', 'phone'])
                     : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->first(['name', 'phone']);
 
-                $customerName = trim((string) ($customer?->name ?? ''));
-                $customerPhone = trim((string) ($customer?->phone ?? ''));
+                $customerName = trim((string) data_get($customer, 'name', ''));
+                $customerPhone = trim((string) data_get($customer, 'phone', ''));
             }
 
             $storeName = DB::table('stores')->where('id', $storeId)->value('name');

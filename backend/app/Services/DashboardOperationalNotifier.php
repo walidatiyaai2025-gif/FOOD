@@ -402,8 +402,8 @@ final class DashboardOperationalNotifier
             ->where('id', $customerId)
             ->first(['name', 'phone']);
 
-        $name = trim((string) ($customer?->name ?? ''));
-        $phone = trim((string) ($customer?->phone ?? ''));
+        $name = trim((string) data_get($customer, 'name', ''));
+        $phone = trim((string) data_get($customer, 'phone', ''));
 
         return [
             'name' => $name === '' ? null : $name,
