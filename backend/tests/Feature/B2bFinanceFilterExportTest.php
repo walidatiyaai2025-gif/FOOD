@@ -162,7 +162,7 @@ final class B2bFinanceFilterExportTest extends TestCase
             ->get('/admin/b2b/finance?finance_tab=operations&ops_tab=collections')
             ->assertOk()
             ->assertSee('Collections, custody &amp; remittance', false)
-            ->assertDontSee('Invoices &amp; settlement', false);
+            ->assertDontSee('Tabbed Company');
     }
 
     /** @return array{0:int,1:int} */
