@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use InvalidArgumentException;
+use RuntimeException;
 use TCPDF;
 use Throwable;
 
@@ -25,14 +27,14 @@ final class CustomerReplicaReportPdfService
             CustomerReplicaReportService::ACCOUNT_STATEMENT => $this->accountStatement($pdf, $report),
             CustomerReplicaReportService::ITEM_DETAIL => $this->itemDetail($pdf, $report),
             CustomerReplicaReportService::ITEM_SUMMARY => $this->itemSummary($pdf, $report),
-            default => throw new \InvalidArgumentException('Unsupported customer replica report.'),
+            default => throw new InvalidArgumentException('Unsupported customer replica report.'),
         };
 
         $this->stampFooters($pdf, $type);
         $content = (string) $pdf->Output('', 'S');
 
         if (! str_starts_with($content, '%PDF-')) {
-            throw new \RuntimeException('Unable to generate customer replica PDF.');
+            throw new RuntimeException('Unable to generate customer replica PDF.');
         }
 
         return $content;
@@ -372,7 +374,7 @@ final class CustomerReplicaReportPdfService
     }
 
     /** @param array<int,int>|null $fill
-     *  @param array<int,int> $text
+     * @param  array<int,int>  $text
      */
     private function cell(
         TCPDF $pdf,
