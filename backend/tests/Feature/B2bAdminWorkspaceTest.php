@@ -471,9 +471,13 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertSee('dir="ltr"', false)
             ->assertDontSee('Wholesale Stores');
 
-        foreach (['B2B Clients', 'Wholesale Catalog', 'Warehouses & Inventory', 'Orders', 'Drivers & Delivery', 'Pricing & Approvals', 'Finance & Invoices', 'Reports'] as $label) {
+        foreach (['Product Management', 'Inventory Management', 'Orders', 'Drivers & Delivery', 'Finance & Invoices', 'Reports'] as $label) {
             $response->assertSee($label);
         }
+
+        $response
+            ->assertDontSee('B2B Clients')
+            ->assertDontSee('Pricing & Approvals');
     }
 
     public function test_b2b_workspace_inherits_premium_shared_visual_primitives(): void
