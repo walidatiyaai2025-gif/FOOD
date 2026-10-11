@@ -17,12 +17,22 @@ String foodexCompactDecimal(num value, {int maxFractionDigits = 3}) {
       .replaceFirst(RegExp(r'\.$'), '');
 }
 
-/// Formats only the numeric amount. EGP is compacted for display while other
-/// currencies retain their requested fixed precision.
+/// Formats only the numeric amount.
+///
+/// EGP is always rendered with exactly two decimal places. Other currencies
+/// retain the requested fixed precision.
 String foodexMoneyAmount(num value, String currency, {int fractionDigits = 3}) {
+  if (fractionDigits < 0) {
+    throw ArgumentError.value(
+      fractionDigits,
+      'fractionDigits',
+      'must be zero or greater',
+    );
+  }
+
   final normalized = currency.trim().toUpperCase();
   if (normalized == 'EGP') {
-    return foodexCompactDecimal(value, maxFractionDigits: fractionDigits);
+    return value.toStringAsFixed(2);
   }
   return value.toStringAsFixed(fractionDigits);
 }
