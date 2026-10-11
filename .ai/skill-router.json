@@ -6,9 +6,36 @@
     "backend/public/assets/admin/",
     "apps/customer_app/lib/",
     "apps/driver_app/lib/",
-    "apps/van_app/lib/"
+    "apps/van_app/lib/",
+    "apps/customer_app/test/",
+    "apps/driver_app/test/",
+    "apps/van_app/test/"
   ],
   "routes": [
+    {
+      "id": "flutter-core",
+      "paths": [
+        "apps/customer_app/lib/**",
+        "apps/customer_app/test/**",
+        "apps/driver_app/lib/**",
+        "apps/driver_app/test/**",
+        "apps/van_app/lib/**",
+        "apps/van_app/test/**",
+        "apps/customer_app/analysis_options.yaml",
+        "apps/driver_app/analysis_options.yaml",
+        "apps/van_app/analysis_options.yaml"
+      ],
+      "skills": [
+        "flutter-authoring.md",
+        "flutter-state-safety.md",
+        "flutter-test-authoring.md"
+      ],
+      "gates": [
+        "flutter-authoring",
+        "flutter-analysis",
+        "flutter-tests"
+      ]
+    },
     {
       "id": "dashboard-ui",
       "paths": [
@@ -160,7 +187,9 @@
         "scripts/tests/test_ci_*.py",
         "scripts/tests/test_one_push_green_contract.py",
         "scripts/tests/test_flutter_test_hermeticity.py",
-        "scripts/tests/test_foodex_branch_policy.py"
+        "scripts/tests/test_foodex_branch_policy.py",
+        "scripts/flutter-changed-analysis.sh",
+        "scripts/bootstrap-flutter.sh"
       ],
       "skills": [
         "ci-repair.md"
@@ -221,10 +250,7 @@
     {
       "id": "high-growth-live-ui",
       "route_ids": [
-        "dashboard-ui",
-        "customer-ui",
-        "driver-ui",
-        "van-ui"
+        "dashboard-ui"
       ],
       "added_regex": "(?i)(<table\\b|\\bDataTable\\s*\\(|\\bListView(?:\\.|\\s*\\()|\\bGridView(?:\\.|\\s*\\()|\\bpaginate\\s*\\(|\\bpagination\\b|\\bsearch\\b|\\bTimer\\.periodic\\b|\\bpoll(?:ing)?\\b|\\bStreamBuilder\\s*<)",
       "skills": [
@@ -232,6 +258,71 @@
       ],
       "gates": [
         "performance"
+      ]
+    },
+    {
+      "id": "flutter-async-lifecycle",
+      "route_ids": [
+        "flutter-core"
+      ],
+      "added_regex": "(?i)(\\bawait\\b|\\bFuture(?:<|\\.|\\s)|\\bTimer(?:\\.|\\s*\\()|\\bStream(?:Subscription|Builder|Controller)?(?:<|\\.|\\s*\\()|\\b(?:Animation|TextEditing|Scroll|Page|Tab)Controller\\s*\\(|\\bFocusNode\\s*\\(|\\b(?:Change|Value)Notifier(?:<|\\s*\\())",
+      "skills": [
+        "flutter-async-lifecycle.md"
+      ],
+      "gates": [
+        "flutter-lifecycle-safety"
+      ]
+    },
+    {
+      "id": "flutter-api-model",
+      "route_ids": [
+        "flutter-core"
+      ],
+      "added_regex": "(?i)(\\bhttp\\.|\\bClient\\s*\\(|\\bUri\\.|\\bjson(?:Decode|Encode)\\s*\\(|\\b(?:fromJson|toJson)\\s*\\(|\\bstatusCode\\b|\\bResponse\\b|\\bheaders\\b)",
+      "skills": [
+        "flutter-api-model-contract.md"
+      ],
+      "gates": [
+        "flutter-api-contract"
+      ]
+    },
+    {
+      "id": "flutter-navigation",
+      "route_ids": [
+        "flutter-core"
+      ],
+      "added_regex": "(?i)(\\bNavigator(?:\\.|\\s)|\\bshowDialog\\s*\\(|\\bshowModalBottomSheet\\s*\\(|\\bScaffoldMessenger(?:\\.|\\s)|\\bBuildContext\\b)",
+      "skills": [
+        "flutter-navigation-safety.md"
+      ],
+      "gates": [
+        "flutter-navigation-safety"
+      ]
+    },
+    {
+      "id": "flutter-localization",
+      "route_ids": [
+        "flutter-core"
+      ],
+      "added_regex": "(?i)(\\bText\\s*\\(|\\b(?:labelText|hintText|helperText|errorText|tooltip|semanticLabel|title|subtitle)\\s*:|\\bSnackBar\\s*\\(|\\bAlertDialog\\s*\\()",
+      "skills": [
+        "flutter-localization-code.md"
+      ],
+      "gates": [
+        "localization"
+      ]
+    },
+    {
+      "id": "flutter-performance",
+      "route_ids": [
+        "flutter-core"
+      ],
+      "added_regex": "(?i)(\\bListView(?:\\.|\\s*\\()|\\bGridView(?:\\.|\\s*\\()|\\bCustomScrollView\\s*\\(|\\bStreamBuilder\\s*<|\\bTimer\\.periodic\\b|\\bImage(?:\\.|\\s*\\()|\\bsearch\\b|\\bpoll(?:ing)?\\b)",
+      "skills": [
+        "flutter-performance-code.md"
+      ],
+      "gates": [
+        "flutter-performance"
       ]
     }
   ]

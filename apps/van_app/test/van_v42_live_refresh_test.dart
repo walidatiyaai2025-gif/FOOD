@@ -63,7 +63,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(wallet.walletCalls, 1);
-    expect(find.text('10.000 EGP'), findsNWidgets(2));
+    expect(find.text('10.00 EGP'), findsNWidgets(2));
 
     wallet.failNext = true;
     tester.binding.handleAppLifecycleStateChanged(
@@ -76,7 +76,7 @@ void main() {
 
     expect(wallet.walletCalls, 2);
     expect(find.byKey(const Key('van-wallet-stale-banner')), findsOneWidget);
-    expect(find.text('10.000 EGP'), findsNWidgets(2));
+    expect(find.text('10.00 EGP'), findsNWidgets(2));
   });
 }
 

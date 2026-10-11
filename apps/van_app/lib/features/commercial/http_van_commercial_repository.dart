@@ -112,6 +112,9 @@ class HttpVanCommercialRepository implements VanCommercialRepository {
     return VanCommercialOffer(
       id: _requiredInt(data['id']),
       storeId: _requiredInt(data['store_id']),
+      currency: _string(data['currency']).trim().isEmpty
+          ? 'EGP'
+          : _string(data['currency']).trim().toUpperCase(),
       titleAr: _string(data['title_ar']),
       titleEn: _string(data['title_en']),
       bodyAr: _nullableString(data['body_ar']),

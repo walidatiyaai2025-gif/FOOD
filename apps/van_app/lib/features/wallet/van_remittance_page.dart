@@ -6,6 +6,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import 'van_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanRemittancePage extends StatefulWidget {
   const VanRemittancePage({
@@ -295,8 +296,7 @@ class _VanRemittancePageState extends State<VanRemittancePage>
                 DropdownMenuItem(
                   value: item,
                   child: Text(
-                    '#${item.id} · ${item.availableToRemit.toStringAsFixed(3)} '
-                    '${item.currency}',
+                    '#${item.id} · ${foodexMoneyText(item.availableToRemit, item.currency)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -320,8 +320,7 @@ class _VanRemittancePageState extends State<VanRemittancePage>
             child: ListTile(
               title: Text(_text('Available to remit', 'المتاح للتوريد')),
               trailing: Text(
-                '${account.availableToRemit.toStringAsFixed(3)} '
-                '${account.currency}',
+                foodexMoneyText(account.availableToRemit, account.currency),
                 key: const ValueKey('van-remittance-available'),
                 style: const TextStyle(
                   color: FoodexVanTokens.green,
@@ -413,12 +412,8 @@ class _VanRemittancePageState extends State<VanRemittancePage>
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   _text(
-                    'Remittance accepted. Available balance: '
-                        '${_lastResult!.availableToRemit.toStringAsFixed(3)} '
-                        '${_lastResult!.currency}',
-                    'تم قبول التوريد. الرصيد المتاح: '
-                        '${_lastResult!.availableToRemit.toStringAsFixed(3)} '
-                        '${_lastResult!.currency}',
+                    'Remittance accepted. Available balance: ${foodexMoneyText(_lastResult!.availableToRemit, _lastResult!.currency)}',
+                    'تم قبول التوريد. الرصيد المتاح: ${foodexMoneyText(_lastResult!.availableToRemit, _lastResult!.currency)}',
                   ),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),

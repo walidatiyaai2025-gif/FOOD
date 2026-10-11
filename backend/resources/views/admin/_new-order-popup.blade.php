@@ -6,6 +6,9 @@
 .foodex-new-order-popup-title{display:flex;align-items:center;gap:9px;font-size:1.05rem;font-weight:800}
 .foodex-new-order-popup-dot{width:10px;height:10px;border-radius:999px;background:var(--foodex-green);box-shadow:0 0 0 6px rgba(21,138,58,.12)}
 .foodex-new-order-popup-close{border:0;background:transparent;color:var(--foodex-muted);font:inherit;font-size:22px;line-height:1;cursor:pointer;padding:2px 6px}
+.foodex-new-order-popup-identity{display:grid;gap:4px;padding:10px 12px;border-radius:12px;background:var(--foodex-soft);border:1px solid var(--foodex-border)}
+.foodex-new-order-popup-identity strong{font-size:1rem;color:var(--foodex-ink)}
+.foodex-new-order-popup-identity span{font-size:.9rem;color:var(--foodex-muted);direction:ltr;text-align:start}
 .foodex-new-order-popup-number{font-size:1.15rem;font-weight:800;direction:ltr;text-align:start}
 .foodex-new-order-popup-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;font-size:.9rem}
 .foodex-new-order-popup-meta span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foodex-muted)}
@@ -28,7 +31,8 @@
         close: 'إغلاق',
         channel: 'القناة',
         store: 'المتجر',
-        customer: 'العميل',
+        from: 'هذا الطلب من',
+        phone: 'الهاتف',
         total: 'الإجمالي',
         queued: 'طلبات أخرى بالانتظار'
     } : {
@@ -38,7 +42,8 @@
         close: 'Close',
         channel: 'Channel',
         store: 'Store',
-        customer: 'Customer',
+        from: 'This order is from',
+        phone: 'Phone',
         total: 'Total',
         queued: 'more orders waiting'
     };
@@ -82,8 +87,11 @@
 
     const formatTotal = (item) => {
         const amount = Number(item.grand_total || 0);
-        const number = Number.isFinite(amount) ? amount.toFixed(3) : '0.000';
-        return number + ' ' + String(item.currency || '');
+        const currency = String(item.currency || '');
+        const number = Number.isFinite(amount)
+            ? (currency.trim().toUpperCase() === 'EGP' ? amount.toFixed(2) : amount.toFixed(3))
+            : (currency.trim().toUpperCase() === 'EGP' ? '0.00' : '0.000');
+        return number + ' ' + currency;
     };
 
     const render = () => {
@@ -110,13 +118,20 @@
         });
         head.append(title, close);
 
+        const customerName = String(item.customer_name || '').trim() || '—';
+        const customerPhone = String(item.customer_phone || '').trim();
+        const identity = create('div', 'foodex-new-order-popup-identity');
+        identity.append(create('strong', '', labels.from + ': ' + customerName));
+        if (customerPhone) {
+            identity.append(create('span', '', labels.phone + ': ' + customerPhone));
+        }
+
         const number = create('div', 'foodex-new-order-popup-number', item.order_number || ('#' + item.order_id));
         const meta = create('div', 'foodex-new-order-popup-meta');
         const channel = create('span', '', labels.channel + ': ' + String(item.channel || '').toUpperCase());
         const store = create('span', '', labels.store + ': ' + (item.store_name || ('#' + item.store_id)));
-        const customer = create('span', '', labels.customer + ': ' + (item.customer_name || '—'));
         const time = create('span', '', formatTime(item.created_at));
-        meta.append(channel, store, customer, time);
+        meta.append(channel, store, time);
 
         const total = create('div', 'foodex-new-order-popup-total', labels.total + ': ' + formatTotal(item));
         const actions = create('div', 'foodex-new-order-popup-actions');
@@ -138,7 +153,7 @@
             ));
         }
 
-        popup.append(head, number, meta, total, actions);
+        popup.append(head, identity, number, meta, total, actions);
     };
 
     const enqueue = (items) => {

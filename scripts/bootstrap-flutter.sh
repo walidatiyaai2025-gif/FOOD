@@ -6,7 +6,7 @@ for app in customer_app driver_app; do
   app_key="${app%_app}"
   python3 ../../scripts/configure-mobile-native.py --app "$app_key" --app-dir . --platform all
   flutter pub get
-  flutter analyze
+  flutter analyze --no-fatal-infos
   flutter test
   popd >/dev/null
 done

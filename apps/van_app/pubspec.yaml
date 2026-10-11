@@ -1,11 +1,13 @@
 name: foodex_van_app
 description: FOODEX Van field operations Wave-0 scaffold.
 publish_to: "none"
-version: 1.0.70+70
+version: 1.0.71+71
 environment:
   sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
+  foodex_formatting:
+    path: ../../packages/foodex_formatting
   flutter:
     sdk: flutter
   foodex_visualization:
@@ -21,6 +23,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
+  geolocator: 14.0.2
 
 dev_dependencies:
   flutter_test:

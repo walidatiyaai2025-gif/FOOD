@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
@@ -452,9 +453,9 @@ class _VanOffersPageState extends State<VanOffersPage>
                         Expanded(
                           child: Text(
                             _text(
-                              'Product #${product.productId} · ${product.flashPrice.toStringAsFixed(3)}'
+                              'Product #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
                               '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
-                              'منتج #${product.productId} · ${product.flashPrice.toStringAsFixed(3)}'
+                              'منتج #${product.productId} · ${foodexMoneyText(product.flashPrice, offer.currency, currencyFirst: true)}'
                               '${product.sellingUnitCode == null ? '' : ' · ${product.sellingUnitCode}'}',
                             ),
                           ),

@@ -6,6 +6,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import 'van_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanCollectionPage extends StatefulWidget {
   const VanCollectionPage({
@@ -431,9 +432,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
                   DropdownMenuItem(
                     value: invoice,
                     child: Text(
-                      '${invoice.number} · '
-                      '${invoice.outstandingAmount.toStringAsFixed(3)} '
-                      '${invoice.currency}',
+                      '${invoice.number} · ${foodexMoneyText(invoice.outstandingAmount, invoice.currency)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -483,16 +482,12 @@ class _VanCollectionPageState extends State<VanCollectionPage>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '#${_lastResult!.receipt.id} · '
-                      '${_lastResult!.receipt.amount.toStringAsFixed(3)} '
-                      '${_lastResult!.receipt.currency}',
+                      '#${_lastResult!.receipt.id} · ${foodexMoneyText(_lastResult!.receipt.amount, _lastResult!.receipt.currency)}',
                     ),
                     Text(
                       _text(
-                        'Remaining: ${_lastResult!.remainingOutstanding.toStringAsFixed(3)} '
-                            '${_lastResult!.receipt.currency}',
-                        'المتبقي: ${_lastResult!.remainingOutstanding.toStringAsFixed(3)} '
-                            '${_lastResult!.receipt.currency}',
+                        'Remaining: ${foodexMoneyText(_lastResult!.remainingOutstanding, _lastResult!.receipt.currency)}',
+                        'المتبقي: ${foodexMoneyText(_lastResult!.remainingOutstanding, _lastResult!.receipt.currency)}',
                       ),
                     ),
                     if (widget.onOpenReceipt != null ||

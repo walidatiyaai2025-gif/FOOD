@@ -101,7 +101,7 @@
                 </article>
                 <article class="fieldops-card">
                     <h2>{{ __('field_operations.overview.custody') }}</h2>
-                    <strong style="font-size:1.8rem">{{ number_format((float)($s['outstanding_collections'] ?? 0),3) }}</strong>
+                    <strong style="font-size:1.8rem">{{ \App\Support\DisplayNumber::money((float)($s['outstanding_collections'] ?? 0), 'EGP') }}</strong>
                     <p class="fieldops-muted">{{ __('field_operations.overview.custody_help') }}</p>
                     @if($overviewVisibility['finance'] ?? false)<a href="{{ route('admin.field-operations.finance') }}">{{ __('field_operations.overview.open_finance') }}</a>@endif
                 </article>
@@ -254,7 +254,7 @@
                                 —
                             @endif
                         </td>
-                        <td>{{ number_format((float)$order->grand_total,3) }} {{ $order->currency }}</td>
+                        <td>{{ \App\Support\DisplayNumber::money((float)$order->grand_total, $order->currency) }} {{ $order->currency }}</td>
                         <td><a href="{{ route('admin.operations.orders.index',['channel'=>'b2b','order'=>$order->id]) }}">{{ __('order_operations.view_order') }}</a></td>
                     </tr>
                 @empty
@@ -357,7 +357,7 @@
                         @if(is_array($collectionContext))
                             <div><strong>Store #{{ $collectionContext['store_id'] }}</strong></div>
                             @forelse($collectionContext['outstanding_total_by_currency'] as $currency => $amount)
-                                <div class="fieldops-muted">{{ $currency }} {{ number_format((float) $amount, 3) }}</div>
+                                <div class="fieldops-muted">{{ $currency }} {{ \App\Support\DisplayNumber::money((float) $amount, $currency) }}</div>
                             @empty
                                 <div class="fieldops-muted">{{ __('field_operations.no_open_balance') }}</div>
                             @endforelse

@@ -1,11 +1,13 @@
 name: foodex_customer_app
 description: FOODEX Customer bootstrap foundation.
 publish_to: "none"
-version: 1.0.70+70
+version: 1.0.71+71
 environment:
   sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
+  foodex_formatting:
+    path: ../../packages/foodex_formatting
   flutter:
     sdk: flutter
   foodex_visualization:

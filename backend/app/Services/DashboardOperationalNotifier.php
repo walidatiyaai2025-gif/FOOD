@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PlatformCustomer;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Illuminate\Support\Facades\DB;
 
 final class DashboardOperationalNotifier
@@ -98,16 +99,31 @@ final class DashboardOperationalNotifier
             $source = 'legacy';
         }
 
+        $customerIdentity = $this->orderCustomerIdentity($order);
+        $customerNameAr = $customerIdentity['name'] ?? 'عميل غير معروف';
+        $customerNameEn = $customerIdentity['name'] ?? 'Unknown customer';
+        $phonePrefixAr = $customerIdentity['phone'] === null
+            ? ''
+            : 'الهاتف: '.$customerIdentity['phone'].' · ';
+        $phonePrefixEn = $customerIdentity['phone'] === null
+            ? ''
+            : 'Phone: '.$customerIdentity['phone'].' · ';
+
         $this->notifyOrderAudience(
             $order,
             'order.created',
             'order-created:'.$order->getKey(),
             'orders.view',
-            'طلب جديد '.$order->order_number,
-            'New order '.$order->order_number,
-            'تم إنشاء طلب جديد بقيمة '.number_format((float) $order->grand_total, 3).' '.$order->currency,
-            'A new order was created for '.number_format((float) $order->grand_total, 3).' '.$order->currency,
-            ['status' => (string) $order->status, 'source' => $source],
+            'هذا الطلب من: '.$customerNameAr,
+            'This order is from: '.$customerNameEn,
+            $phonePrefixAr.'طلب جديد '.$order->order_number.' · الإجمالي '.DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
+            $phonePrefixEn.'New order '.$order->order_number.' · Total '.DisplayNumber::money((float) $order->grand_total, $order->currency).' '.$order->currency,
+            [
+                'status' => (string) $order->status,
+                'source' => $source,
+                'customer_name' => $customerIdentity['name'],
+                'customer_phone' => $customerIdentity['phone'],
+            ],
         );
 
         $this->lifecycle->customerOrderCreated($order);
@@ -266,8 +282,8 @@ final class DashboardOperationalNotifier
             'finance.view',
             $titlesAr[$event].$order->order_number,
             $titlesEn[$event].$order->order_number,
-            'الفاتورة '.$invoice->invoice_number.' · '.number_format((float) $invoice->total, 3).' '.$invoice->currency,
-            'Invoice '.$invoice->invoice_number.' · '.number_format((float) $invoice->total, 3).' '.$invoice->currency,
+            'الفاتورة '.$invoice->invoice_number.' · '.DisplayNumber::money((float) $invoice->total, $invoice->currency).' '.$invoice->currency,
+            'Invoice '.$invoice->invoice_number.' · '.DisplayNumber::money((float) $invoice->total, $invoice->currency).' '.$invoice->currency,
             [
                 'invoice_id' => (int) $invoice->getKey(),
                 'invoice_number' => (string) $invoice->invoice_number,
@@ -366,6 +382,33 @@ final class DashboardOperationalNotifier
                 ],
             );
         }
+    }
+
+    /**
+     * @return array{name:?string,phone:?string}
+     */
+    private function orderCustomerIdentity(Order $order): array
+    {
+        $channel = strtolower((string) $order->channel);
+        $customerId = $channel === 'b2b'
+            ? (int) $order->b2b_customer_id
+            : (int) $order->b2c_customer_id;
+
+        if (! in_array($channel, ['b2b', 'b2c'], true) || $customerId <= 0) {
+            return ['name' => null, 'phone' => null];
+        }
+
+        $customer = DB::table($channel === 'b2b' ? 'b2b_customers' : 'b2c_customers')
+            ->where('id', $customerId)
+            ->first(['name', 'phone']);
+
+        $name = trim((string) data_get($customer, 'name', ''));
+        $phone = trim((string) data_get($customer, 'phone', ''));
+
+        return [
+            'name' => $name === '' ? null : $name,
+            'phone' => $phone === '' ? null : $phone,
+        ];
     }
 
     private function dashboardOperationalRecipients(
