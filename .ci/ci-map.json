@@ -5,13 +5,13 @@
       "path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$)"
     },
     "customer": {
-      "path_regex": "^(apps/customer_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/customer-app-ci\\.yml$)"
+      "path_regex": "^(apps/customer_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/customer-app-ci\\.yml$)|scripts/mobile-ci-scope\\.py$|\\.github/workflows/(mobile-build-validation|mobile-release-build|release-factory)\\.yml$)$"
     },
     "driver": {
-      "path_regex": "^(apps/driver_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/driver-app-ci\\.yml$)"
+      "path_regex": "^(apps/driver_app/|packages/(design_tokens|foodex_visualization)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/driver-app-ci\\.yml$)|scripts/mobile-ci-scope\\.py$|\\.github/workflows/(mobile-build-validation|mobile-release-build|release-factory)\\.yml$)$"
     },
     "van": {
-      "path_regex": "^(apps/van_app/|packages/(design_tokens|foodex_visualization)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/van-app-ci\\.yml$)"
+      "path_regex": "^(apps/van_app/|packages/(design_tokens|foodex_visualization)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/van-app-ci\\.yml$)|scripts/mobile-ci-scope\\.py$|\\.github/workflows/(mobile-build-validation|mobile-release-build|release-factory)\\.yml$)$"
     },
     "dashboard_ui": {
       "path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/)"
@@ -44,6 +44,15 @@
       "path_regex": "^(\\.github/workflows/(release-validation|trial-distribution)\\.yml|\\.github/workflows/app-preview-acceptance-ci\\.yml|scripts/(release-readiness\\.sh|write-trial-bundle-manifest\\.py|validate_release_artifact_contract\\.py)|scripts/tests/test_release_artifact_contract\\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\\.md$)",
       "enable": [
         "backend",
+        "customer",
+        "driver",
+        "van"
+      ]
+    },
+    {
+      "id": "release-factory-v2",
+      "path_regex": "^(\\.github/workflows/(release-factory|mobile-release-build|mobile-build-validation|store-submission-readiness)\\.yml|scripts/(mobile-ci-scope|build-update-bundle)\\.py|scripts/tests/test_mobile_ci_scope\\.py)$",
+      "enable": [
         "customer",
         "driver",
         "van"
