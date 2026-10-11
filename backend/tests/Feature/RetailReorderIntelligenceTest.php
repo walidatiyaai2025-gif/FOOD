@@ -181,6 +181,18 @@ class RetailReorderIntelligenceTest extends TestCase
     ): array {
         $retailStore = $this->store('B2C', 'REORDER-RETAIL');
         $wholesaleStore = $this->store('B2B', 'REORDER-WHOLESALE');
+        DB::table('settings')->updateOrInsert(
+            [
+                'store_id' => $wholesaleStore,
+                'key' => 'b2b.pricing_tiers_enabled',
+            ],
+            [
+                'value' => json_encode(true, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
         $retailProduct = $this->product(
             $retailStore,
             'b2c',
