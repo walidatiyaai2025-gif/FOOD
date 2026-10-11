@@ -35,15 +35,15 @@ def resolve(app: str, paths: list[str]) -> dict[str, bool]:
         for p in paths
     )
 
-    dart_or_assets = any(
-        re.match(r"^(lib/|test/|assets/|pubspec\.ya?ml$)", p) for p in app_paths
+    runtime_or_assets = any(
+        re.match(r"^(lib/|assets/)", p) for p in app_paths
     )
     android_native = any(p.startswith("android/") for p in app_paths)
     ios_native = any(p.startswith("ios/") for p in app_paths)
     web_native = any(p.startswith("web/") for p in app_paths)
     dependency_change = any(p in {"pubspec.yaml", "pubspec.lock"} for p in app_paths)
 
-    android = dart_or_assets or android_native or dependency_change or shared_flutter or shared_native
+    android = runtime_or_assets or android_native or dependency_change or shared_flutter or shared_native
     ios = app in {"customer", "driver"} and (
         ios_native or dependency_change or shared_flutter or shared_native
     )
