@@ -11,7 +11,7 @@ final class VanCustomerCollectionContextService
 {
     public function __construct(private readonly B2bAccountLedgerService $ledger) {}
 
-    /** @return array{customer_type:string,customer_id:int,store_id:int,invoices:Collection<int,array{id:int,number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}>,outstanding_total_by_currency:Collection<string,float>} */
+    /** @return array{customer_type:string,customer_id:int,store_id:int,invoices:Collection<int,array{id:int,number:string,internal_number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}>,outstanding_total_by_currency:Collection<string,float>} */
     public function context(string $type, int $customer, int $storeId): array
     {
         $invoices = $this->openInvoices($type, $customer, $storeId);
@@ -41,7 +41,7 @@ final class VanCustomerCollectionContextService
         };
     }
 
-    /** @return Collection<int,array{id:int,number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}> */
+    /** @return Collection<int,array{id:int,number:string,internal_number:string,currency:string,total:float,outstanding_amount:float,due_at:string|null}> */
     public function openInvoices(string $type, int $customer, int $storeId): Collection
     {
         $column = $this->customerColumn($type);
