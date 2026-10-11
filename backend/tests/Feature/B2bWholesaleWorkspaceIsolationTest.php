@@ -157,6 +157,9 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
             'unit_id' => $unit,
             'sku' => 'FORGED-STORE-PRODUCT',
             'name' => 'Principal Owned Product',
+            'price' => 10,
+            'quantity' => 5,
+            'low_stock_threshold' => 1,
             'is_active' => 1,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
