@@ -240,7 +240,7 @@
       "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
-      "dashboard_update_sha256": "27a7a1863e46089d2749ac8db335cd510ede3852a830cde4cb8e17ab35c23cd4",
+      "dashboard_update_sha256": "2fad59f5887be91ff9e4922ab0e75d17a4cd07bf51596ffc212b2f266df318f5",
       "note": "FOODEX 1.0.72 Dashboard update release for post-1.0.71 main through PR #1287, including Wholesale/Retail commerce fixes, customer-first order notifications, B2B navigation and Sales Control correction, short customer-facing order/invoice numbers, Van biometric/catalog fixes, and Fast Release Pipeline v2. Promoted through release PR #1288; mobile source identities are synchronized at 1.0.72+72 while the Dashboard Update ZIP remains independently deployable."
     }
   ]
