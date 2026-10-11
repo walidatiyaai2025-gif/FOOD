@@ -17,9 +17,7 @@ Future<void> _scrollUntilBuilt(
   Finder scrollable,
   Finder target,
 ) async {
-  for (var attempt = 0;
-      attempt < 12 && target.evaluate().isEmpty;
-      attempt++) {
+  for (var attempt = 0; attempt < 12 && target.evaluate().isEmpty; attempt++) {
     await tester.drag(scrollable, const Offset(0, -350));
     await tester.pumpAndSettle();
   }
@@ -28,7 +26,8 @@ Future<void> _scrollUntilBuilt(
 void main() {
   const b2b = CustomerSession.authenticated(CustomerChannel.b2b);
 
-  testWidgets('B2B unauthenticated protected route hides internal redirect details',
+  testWidgets(
+      'B2B unauthenticated protected route hides internal redirect details',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/b2b/dashboard'),
@@ -50,10 +49,14 @@ void main() {
     );
   });
 
-  testWidgets('B2B approved customer dashboard is RTL and exposes finance areas', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/dashboard'));
+  testWidgets(
+      'B2B approved customer dashboard is RTL and exposes finance areas',
+      (tester) async {
+    await tester.pumpWidget(
+        const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/dashboard'));
     await tester.pumpAndSettle();
-    expect(Directionality.of(tester.element(find.text('لوحة الأعمال'))), TextDirection.rtl);
+    expect(Directionality.of(tester.element(find.text('لوحة الأعمال'))),
+        TextDirection.rtl);
     expect(find.text('المشتريات'), findsOneWidget);
     expect(find.text('الفواتير'), findsWidgets);
     expect(find.text('كشف الحساب'), findsOneWidget);
@@ -349,8 +352,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final shopping =
-        find.byKey(const ValueKey('b2b-dashboard-shopping'));
+    final shopping = find.byKey(const ValueKey('b2b-dashboard-shopping'));
     expect(shopping, findsOneWidget);
 
     await tester.tap(shopping);
@@ -359,7 +361,9 @@ void main() {
     expect(storefront.selectionCalls, 1);
     expect(storefront.lastStoreId, 70);
     expect(
-      api.paths.where((path) => path.startsWith('/api/v1/b2b/dashboard')).length,
+      api.paths
+          .where((path) => path.startsWith('/api/v1/b2b/dashboard'))
+          .length,
       1,
     );
   });
@@ -462,8 +466,7 @@ void main() {
           accessToken: 'token',
           platformWide: true,
         ),
-        initialRoute:
-            '/b2b/profile?channel=wholesale&store_id=7',
+        initialRoute: '/b2b/profile?channel=wholesale&store_id=7',
         b2bApi: api,
       ),
     );
@@ -501,7 +504,9 @@ void main() {
     expect(find.text('company_name'), findsNothing);
   });
 
-  testWidgets('B2B storefront keeps server branding and enforces green theme on mobile', (tester) async {
+  testWidgets(
+      'B2B storefront keeps server branding and enforces green theme on mobile',
+      (tester) async {
     final storefront = _FakeWholesaleStorefrontApi();
     await tester.pumpWidget(
       FoodexCustomerApp(
@@ -673,8 +678,7 @@ void main() {
     grid = tester.widget<GridView>(
       find.byKey(const ValueKey('wholesale-product-grid')),
     );
-    delegate =
-        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
     expect(delegate.crossAxisCount, 2);
 
     expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
@@ -748,8 +752,7 @@ void main() {
 
     await tester.pumpWidget(
       FoodexCustomerApp(
-        initialRoute:
-            '/b2b/products/42?channel=wholesale&store_id=7',
+        initialRoute: '/b2b/products/42?channel=wholesale&store_id=7',
         b2bApi: b2bApi,
         storefrontApi: _FakeWholesaleStorefrontApi(),
         actionApi: actionApi,
@@ -886,7 +889,9 @@ void main() {
     expect(find.text('Product added to cart'), findsOneWidget);
   });
 
-  testWidgets('B2B product details render authoritative account pricing and inventory', (tester) async {
+  testWidgets(
+      'B2B product details render authoritative account pricing and inventory',
+      (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -923,12 +928,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
-    expect(find.byKey(const ValueKey('b2b-product-detail-data')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-product-detail-data')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-product-gallery')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-product-detail-header')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-product-detail-hero')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-detail-header')),
+        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-product-detail-hero')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-product-price')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-product-commerce-strip')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-product-commerce-strip')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-product-meta')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-product-description-section')),
@@ -1155,7 +1164,8 @@ void main() {
   });
 
   testWidgets('B2B cart exposes authoritative checkout action', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
+    await tester.pumpWidget(const FoodexCustomerApp(
+        session: b2b, initialRoute: '/b2b/cart', b2bApi: _StaticB2bApi()));
     await tester.pumpAndSettle();
     expect(find.text('سلة الجملة'), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
@@ -1605,7 +1615,6 @@ void main() {
     expect(find.text('B2B-77'), findsOneWidget);
   });
 
-
   testWidgets(
       'B2B wholesale orders list renders seller state and opens exact detail',
       (tester) async {
@@ -1765,7 +1774,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.calls, 2);
-    expect(find.byKey(const ValueKey('b2b-timeline-1-delivered')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-timeline-1-delivered')), findsOneWidget);
     expect(find.text('تم التسليم'), findsWidgets);
     expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
   });
@@ -1927,8 +1937,7 @@ void main() {
     );
     expect(find.text('تفاصيل الطلب'), findsNothing);
 
-    final scrollable =
-        find.byKey(const ValueKey('b2b-order-detail'));
+    final scrollable = find.byKey(const ValueKey('b2b-order-detail'));
 
     await _scrollUntilBuilt(
       tester,
@@ -1987,16 +1996,23 @@ void main() {
     expect(find.text('Leave at gate'), findsOneWidget);
   });
 
-  testWidgets('legacy channel-scoped session cannot enter B2B protected journey', (tester) async {
-    await tester.pumpWidget(const FoodexCustomerApp(session: CustomerSession.authenticated(CustomerChannel.b2c), initialRoute: '/b2b/invoices'));
+  testWidgets(
+      'legacy channel-scoped session cannot enter B2B protected journey',
+      (tester) async {
+    await tester.pumpWidget(const FoodexCustomerApp(
+        session: CustomerSession.authenticated(CustomerChannel.b2c),
+        initialRoute: '/b2b/invoices'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('unified-customer-auth-screen')), findsNothing);
+    expect(find.byKey(const ValueKey('unified-customer-auth-screen')),
+        findsNothing);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.text('الفواتير'), findsNothing);
   });
 
-  testWidgets('B2B top products expose current catalog state, sort and product navigation', (tester) async {
+  testWidgets(
+      'B2B top products expose current catalog state, sort and product navigation',
+      (tester) async {
     final api = _FakeB2bApi({
       'data': [
         {
@@ -2033,7 +2049,8 @@ void main() {
     await tester.pumpWidget(
       FoodexCustomerApp(
         session: b2b,
-        initialRoute: '/b2b/products/top?store_id=7&from=2026-09-01&to=2026-09-30',
+        initialRoute:
+            '/b2b/products/top?store_id=7&from=2026-09-01&to=2026-09-30',
         b2bApi: api,
       ),
     );
@@ -2043,7 +2060,8 @@ void main() {
       api.lastPath,
       '/api/v1/b2b/products/top?store_id=7&from=2026-09-01&to=2026-09-30',
     );
-    expect(find.byKey(const ValueKey('b2b-top-products-filters')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-top-products-filters')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-top-products-data')), findsOneWidget);
     expect(find.textContaining('Top Product'), findsOneWidget);
     expect(find.textContaining('144.5 KWD'), findsOneWidget);
@@ -2080,8 +2098,7 @@ void main() {
     expect(sortedUri.queryParameters['page'], '1');
     expect(sortedUri.queryParameters['per_page'], '20');
 
-    final openProduct =
-        find.byKey(const ValueKey('b2b-top-product-open-1'));
+    final openProduct = find.byKey(const ValueKey('b2b-top-product-open-1'));
     await tester.ensureVisible(openProduct);
     await tester.pumpAndSettle();
     await tester.tap(openProduct);
@@ -2090,7 +2107,8 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/products/42?store_id=7');
   });
 
-  testWidgets('C13 Screen 4 period presets match purchases report semantics', (tester) async {
+  testWidgets('C13 Screen 4 period presets match purchases report semantics',
+      (tester) async {
     final api = _FakeB2bApi({
       'data': [
         {
@@ -2135,7 +2153,8 @@ void main() {
       find.byKey(const ValueKey('b2b-top-products-previous-period')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('b2b-top-product-rank-1')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-top-product-rank-1')), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey('b2b-top-products-current-period')),
@@ -2172,7 +2191,9 @@ void main() {
     expect(uri.queryParameters['store_id'], '7');
   });
 
-  testWidgets('B2B top products visibly disable repurchase when authoritative stock is empty', (tester) async {
+  testWidgets(
+      'B2B top products visibly disable repurchase when authoritative stock is empty',
+      (tester) async {
     final api = _FakeB2bApi({
       'data': [
         {
@@ -2211,10 +2232,13 @@ void main() {
 
     expect(find.text('غير متاح حالياً — نفد المخزون'), findsOneWidget);
     expect(find.textContaining('7.25 EGP'), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-top-product-open-1')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-top-product-open-1')), findsOneWidget);
   });
 
-  testWidgets('C13 Screen 3 renders period summary trend categories and drill-through', (tester) async {
+  testWidgets(
+      'C13 Screen 3 renders period summary trend categories and drill-through',
+      (tester) async {
     tester.view.physicalSize = const Size(320, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -2307,7 +2331,8 @@ void main() {
     expect((toRect.center.dy - refreshRect.center.dy).abs(), lessThan(1));
     expect(find.byKey(const ValueKey('b2b-purchases-summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-purchases-categories')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-purchases-categories')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-purchases-category-donut')),
       findsOneWidget,
@@ -2344,7 +2369,8 @@ void main() {
     expect(currentUri.queryParameters['per_page'], '5');
   });
 
-  testWidgets('B2B remote routes visibly render authoritative payload fields', (tester) async {
+  testWidgets('B2B remote routes visibly render authoritative payload fields',
+      (tester) async {
     final cases = <({String route, Object? payload, String expected})>[
       (
         route: '/b2b/dashboard',
@@ -2492,16 +2518,19 @@ void main() {
         findsNothing,
         reason: item.route,
       );
-      expect(find.textContaining(item.expected), findsWidgets, reason: item.route);
+      expect(find.textContaining(item.expected), findsWidgets,
+          reason: item.route);
       expect(
-        Directionality.of(tester.element(find.textContaining(item.expected).first)),
+        Directionality.of(
+            tester.element(find.textContaining(item.expected).first)),
         TextDirection.rtl,
         reason: item.route,
       );
     }
   });
 
-  testWidgets('C13 Screen 6 reconciles statement totals, direction and references',
+  testWidgets(
+      'C13 Screen 6 reconciles statement totals, direction and references',
       (tester) async {
     final api = _FakeB2bApi({
       'data': {
@@ -2558,14 +2587,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('b2b-statement-data')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-statement-summary-opening')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-statement-summary-closing')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-statement-direction-chip')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-statement-current-direction')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-summary-opening')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-summary-closing')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-direction-chip')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-current-direction')),
+        findsOneWidget);
     expect(find.textContaining('50.000 EGP'), findsWidgets);
     expect(find.textContaining('عليك'), findsWidgets);
-    expect(find.byKey(const ValueKey('b2b-statement-export-pdf')), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-statement-export-xlsx')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('b2b-statement-export-pdf')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-statement-export-xlsx')),
+        findsOneWidget);
     expect(
       find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
       findsOneWidget,
@@ -2706,7 +2741,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('B2B collections expose approved detail navigation', (tester) async {
+  testWidgets('B2B collections expose approved detail navigation',
+      (tester) async {
     final api = _FakeB2bApi({
       'data': [
         {
@@ -2720,8 +2756,7 @@ void main() {
           'credit_amount': 0.0,
           'store_id': 7,
           'issued_at': '2026-10-01T10:00:00Z',
-          'pdf_path':
-              '/api/v1/invoices/31/download?channel=b2b&store_id=7',
+          'pdf_path': '/api/v1/invoices/31/download?channel=b2b&store_id=7',
         },
       ],
       'summary': {
@@ -2768,8 +2803,8 @@ void main() {
     expect(api.lastPath, '/api/v1/b2b/invoices/31?store_id=7');
   });
 
-
-  testWidgets('C13 Screen 9 renders reconciled invoice detail and visible actions',
+  testWidgets(
+      'C13 Screen 9 renders reconciled invoice detail and visible actions',
       (tester) async {
     tester.view.physicalSize = const Size(900, 2400);
     tester.view.devicePixelRatio = 1;
@@ -2924,9 +2959,11 @@ void main() {
     expect(find.textContaining('/api/v1/invoices/31/download'), findsNothing);
   });
 
-  testWidgets('B2B remote journey renders loading and empty states', (tester) async {
+  testWidgets('B2B remote journey renders loading and empty states',
+      (tester) async {
     final api = _FakeB2bApi(const {'data': []});
-    await tester.pumpWidget(FoodexCustomerApp(session: b2b, initialRoute: '/b2b/invoices', b2bApi: api));
+    await tester.pumpWidget(FoodexCustomerApp(
+        session: b2b, initialRoute: '/b2b/invoices', b2bApi: api));
     expect(find.byKey(const ValueKey('b2b-loading')), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('b2b-empty')), findsOneWidget);
@@ -3000,8 +3037,7 @@ void main() {
     expect(find.text('Recovered Product'), findsOneWidget);
   });
 
-  testWidgets(
-      'B2B More header stays usable at 320px with 1.3 text scaling',
+  testWidgets('B2B More header stays usable at 320px with 1.3 text scaling',
       (tester) async {
     tester.view.physicalSize = const Size(320, 760);
     tester.view.devicePixelRatio = 1;
@@ -3087,8 +3123,7 @@ void main() {
   });
 }
 
-class _DelayedQuantityWholesaleCommerceApi
-    implements WholesaleCommerceApi {
+class _DelayedQuantityWholesaleCommerceApi implements WholesaleCommerceApi {
   _DelayedQuantityWholesaleCommerceApi({required this.cartValue});
 
   final Map<String, dynamic> cartValue;
@@ -3108,9 +3143,7 @@ class _DelayedQuantityWholesaleCommerceApi
     if (items is List) {
       snapshot['items'] = items
           .map(
-            (raw) => raw is Map
-                ? Map<String, dynamic>.from(raw)
-                : raw,
+            (raw) => raw is Map ? Map<String, dynamic>.from(raw) : raw,
           )
           .toList(growable: false);
     }
@@ -3212,9 +3245,7 @@ class _C13WholesaleCommerceApi implements WholesaleCommerceApi {
     if (items is List) {
       snapshot['items'] = items
           .where(
-            (raw) =>
-                raw is! Map ||
-                !removedItemIds.contains(raw['id']),
+            (raw) => raw is! Map || !removedItemIds.contains(raw['id']),
           )
           .toList(growable: false);
     }
@@ -3489,7 +3520,6 @@ class _FakeB2bApi implements B2bApi {
   }
 }
 
-
 class _PathB2bApi implements B2bApi {
   _PathB2bApi(this.responses);
 
@@ -3572,7 +3602,6 @@ class _StatusFailingB2bApi implements B2bApi {
     );
   }
 }
-
 
 class _CountingCustomerActionApi implements CustomerActionApi {
   int addCalls = 0;
