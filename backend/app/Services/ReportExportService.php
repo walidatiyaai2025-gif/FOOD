@@ -20,6 +20,7 @@ final class ReportExportService
     private const QUANTITY_FIELDS = [
         'quantity', 'quantity_sold', 'inventory_quantity', 'reserved_quantity',
     ];
+
     /**
      * @param  array<string, mixed>  $report
      * @return array{content:string,mime:string,extension:string}
