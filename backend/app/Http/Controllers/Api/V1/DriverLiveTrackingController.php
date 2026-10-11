@@ -155,7 +155,8 @@ class DriverLiveTrackingController extends Controller
                     'tracking_required' => $row->active_assignment_id !== null,
                     'order' => $row->order_id === null ? null : [
                         'id' => (int) $row->order_id,
-                        'number' => (string) $row->order_number,
+                        'number' => \App\Support\DisplayNumber::reference($row->order_id),
+                        'internal_number' => (string) $row->order_number,
                     ],
                 ];
             })
