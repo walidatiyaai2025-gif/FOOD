@@ -3143,8 +3143,9 @@ class _PurchaseReportRemoteStateState
                 final id = int.tryParse(row['id']?.toString() ?? '');
                 final storeId =
                     int.tryParse(row['store_id']?.toString() ?? '');
-                final orderNumber = row['display_order_number']?.toString() ??
-                    (id == null ? '—' : '#$id');
+                final orderNumber =
+                    row['display_order_number']?.toString() ??
+                        (id == null ? '—' : '#$id');
                 final rowCurrency = row['currency']?.toString();
                 final displayCurrency = rowCurrency == null ||
                         rowCurrency.trim().isEmpty
@@ -5910,8 +5911,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
 
     final path =
         '$rawPath${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
-    final number = data['display_invoice_number']?.toString() ??
-        (data['id'] == null ? 'invoice' : 'invoice-${data['id']}');
+    final number =
+        data['display_invoice_number']?.toString() ??
+            (data['id'] == null ? 'invoice' : 'invoice-${data['id']}');
     setState(() => _sharingPdf = true);
     try {
       final bytes = await (documentApi as B2bDocumentApi).getBytes(path);
@@ -6655,8 +6657,9 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
     if (rawPath.isEmpty) return;
     final path =
         '$rawPath${rawPath.contains('?') ? '&' : '?'}locale=${ar ? 'ar' : 'en'}';
-    final number = row['display_invoice_number']?.toString() ??
-        (row['id'] == null ? 'invoice' : 'invoice-${row['id']}');
+    final number =
+        row['display_invoice_number']?.toString() ??
+            (row['id'] == null ? 'invoice' : 'invoice-${row['id']}');
     setState(() => _sharingPdf = true);
     try {
       final bytes = await (documentApi as B2bDocumentApi).getBytes(path);
