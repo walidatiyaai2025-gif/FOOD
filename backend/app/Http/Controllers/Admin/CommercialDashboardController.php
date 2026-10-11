@@ -30,7 +30,9 @@ final class CommercialDashboardController extends Controller
 
         $products = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
             ->orderBy('products.name')
             ->limit(200)
             ->get(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
@@ -74,7 +76,16 @@ final class CommercialDashboardController extends Controller
     public function saveSalesControl(Request $request, int $product): RedirectResponse
     {
         [$user, $storeId] = $this->authorizedStore($request, 'catalog.manage', false, 'b2b');
-        abort_unless(DB::table('store_products')->where('store_id', $storeId)->where('product_id', $product)->exists(), 404);
+        abort_unless(
+            DB::table('store_products')
+                ->join('products', 'products.id', '=', 'store_products.product_id')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->where('store_products.store_id', $storeId)
+                ->where('store_products.product_id', $product)
+                ->where('catalogs.channel', 'b2b')
+                ->exists(),
+            404,
+        );
 
         $data = $request->validate([
             'status' => ['required', 'in:OPEN,RESTRICTED,CLOSED'],
