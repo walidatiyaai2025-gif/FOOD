@@ -270,7 +270,7 @@ def main() -> int:
 
     source_commit = run_git("rev-parse", "HEAD").strip()
     manifest = {
-        "schema_version": 2,
+        "schema_version": 1,
         "available": True,
         "package": package.name,
         "target_version": args.target_version,
