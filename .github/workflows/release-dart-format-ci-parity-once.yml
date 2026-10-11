@@ -1,0 +1,41 @@
+name: FOODEX Release Dart Format CI Parity Once
+
+on:
+  push:
+    branches:
+      - release/1.0.72-update
+    paths:
+      - .github/workflows/release-dart-format-ci-parity-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Match CI package config and format release-touched Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          pushd apps/customer_app
+          flutter pub get
+          dart format lib/app.dart
+          popd
+          pushd apps/driver_app
+          flutter pub get
+          dart format lib/app.dart
+          popd
+          git rm .github/workflows/release-dart-format-ci-parity-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/customer_app/lib/app.dart apps/driver_app/lib/app.dart
+          git commit -m "release: CI-parity dart format for 1.0.72"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
