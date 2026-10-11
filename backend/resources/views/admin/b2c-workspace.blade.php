@@ -315,7 +315,7 @@
                     <article class="kpi">
                         <div class="kpi-head"><span class="kpi-icon {{ $item['class'] }}">@include('admin._premium-icon',['name'=>$item['icon']])</span><span class="kpi-label">{{ __('admin.b2c_dashboard.kpis.'.$item['label']) }}@if(app()->getLocale()==='en')<small lang="en">{{ __('admin.b2c_dashboard.kpis.'.$item['label'].'_en') }}</small>@endif</span></div>
                         <div class="kpi-value foodex-number">
-                            @if($item['key']==='revenue') {{ $dashboard['currency'] }} {{ number_format($metric['value'],3) }}
+                            @if($item['key']==='revenue') {{ $dashboard['currency'] }} {{ \App\Support\DisplayNumber::money($metric['value'], $dashboard['currency']) }}
                             @else {{ number_format($metric['value'], $item['key']==='products_sold' ? 0 : 0) }} @endif
                         </div>
                         @if($item['key']==='active_users')
@@ -403,7 +403,7 @@
                     <div class="recent-list">
                         <div class="recent header"><span>#</span><span>{{ __('admin.b2c_dashboard.customer') }}</span><span>{{ __('admin.b2c_dashboard.items') }}</span><span>{{ __('admin.b2c_dashboard.amount') }}</span><span>{{ __('admin.b2c_dashboard.status_label') }}</span><span>{{ __('admin.b2c_dashboard.time') }}</span></div>
                         @forelse($dashboard['recent_orders'] as $order)
-                            <div class="recent"><strong>{{ $order['number'] }}</strong><span>{{ $order['customer'] }}</span><span>{{ $order['items'] }}</span><span>{{ $order['currency'] }} {{ number_format($order['amount'],3) }}</span><span><i class="badge {{ $order['status'] }}">{{ __('admin.b2c_dashboard.status.'.$order['status']) }}</i></span><small>{{ \Carbon\Carbon::parse($order['created_at'])->locale(app()->getLocale())->diffForHumans() }}</small></div>
+                            <div class="recent"><strong>{{ $order['number'] }}</strong><span>{{ $order['customer'] }}</span><span>{{ $order['items'] }}</span><span>{{ $order['currency'] }} {{ \App\Support\DisplayNumber::money($order['amount'], $order['currency']) }}</span><span><i class="badge {{ $order['status'] }}">{{ __('admin.b2c_dashboard.status.'.$order['status']) }}</i></span><small>{{ \Carbon\Carbon::parse($order['created_at'])->locale(app()->getLocale())->diffForHumans() }}</small></div>
                         @empty <div class="empty">{{ __('admin.b2c_dashboard.no_orders') }}</div> @endforelse
                     </div>
                 </article>

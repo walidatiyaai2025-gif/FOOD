@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_wallet_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanReceiptsPage extends StatefulWidget {
   const VanReceiptsPage({
@@ -250,8 +251,7 @@ class _VanReceiptsPageState extends State<VanReceiptsPage>
                     overflow: TextOverflow.ellipsis,
                   ),
                   trailing: Text(
-                    '${row.receipt.amount.toStringAsFixed(3)} '
-                    '${row.receipt.currency}',
+                    foodexMoneyText(row.receipt.amount, row.receipt.currency),
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),

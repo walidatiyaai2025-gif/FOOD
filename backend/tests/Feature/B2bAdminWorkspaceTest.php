@@ -270,8 +270,8 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)->get('/admin/b2b/products')
             ->assertOk()
             ->assertSee('B2B Product')
-            ->assertSee('17.000')
-            ->assertSee('12.500 EGP')
+            ->assertSee('17')
+            ->assertSee('12.50 EGP')
             ->assertDontSee('Wholesale store');
     }
 
@@ -506,7 +506,7 @@ class B2bAdminWorkspaceTest extends TestCase
         $admin = $this->user('B2B_ADMIN', 'en');
         $this->actingAs($admin)->get('/admin/b2b/reports')
             ->assertOk()
-            ->assertSee('EGP 18.000')
+            ->assertSee('EGP 18.00')
             ->assertSee('Open reports')
             ->assertDontSee('Wholesale store');
 

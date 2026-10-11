@@ -80,7 +80,7 @@
         <a class="merchant-kpi foodex-viz-card" href="#merchant-recommendations"><strong>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.reorder_now') }}</strong><b>{{ number_format((int)($summary['reorder_now'] ?? 0)) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.reorder_now_help') }}</small></a>
         <a class="merchant-kpi foodex-viz-card" href="#merchant-recommendations"><strong>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.reorder_soon') }}</strong><b>{{ number_format((int)($summary['reorder_soon'] ?? 0)) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.reorder_soon_help') }}</small></a>
         <a class="merchant-kpi foodex-viz-card" href="#merchant-blockers"><strong>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.needs_attention') }}</strong><b>{{ number_format((int)($summary['blocked'] ?? 0)) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.needs_attention_help') }}</small></a>
-        <a class="merchant-kpi foodex-viz-card" href="#suggested-purchase-plan"><strong>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.expected_spend') }}</strong><b>{{ number_format((float)($summary['expected_reorder_spend'] ?? 0),3) }}</b><small>{{ data_get($account,'finance.currency',$dashboard['currency']) }}</small></a>
+        <a class="merchant-kpi foodex-viz-card" href="#suggested-purchase-plan"><strong>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.expected_spend') }}</strong><b>{{ \App\Support\DisplayNumber::money((float)($summary['expected_reorder_spend'] ?? 0), $dashboard['currency']) }}</b><small>{{ data_get($account,'finance.currency',$dashboard['currency']) }}</small></a>
         <a class="merchant-kpi foodex-viz-card" href="#merchant-slow-movers"><strong>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.do_not_reorder') }}</strong><b>{{ number_format((int)($summary['do_not_reorder'] ?? 0)) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.summary.do_not_reorder_help') }}</small></a>
     </div>
 
@@ -129,7 +129,7 @@
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.days_cover') }}</span><b>{{ data_get($row,'inventory.days_of_cover')===null ? '—' : number_format((float)data_get($row,'inventory.days_of_cover'),1) }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_stockout') }}</span><b>{{ $stockoutLabel }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.qty_cases') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }} / {{ $caseEquivalent===null ? '—' : number_format((float)$caseEquivalent,2) }}</b></div>
-                            <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
+                            <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_cost') }}</span><b>{{ \App\Support\DisplayNumber::money((float)data_get($row,'recommendation.expected_cost',0), $dashboard['currency']) }}</b></div>
                         </div>
                         <div class="merchant-rec-actions">
                             <a class="foodex-action-secondary" href="{{ $inventoryUrl }}">{{ __('admin.b2c_dashboard.merchant_intelligence.open_inventory') }}</a>
@@ -178,10 +178,10 @@
                 <p class="empty">{{ __('admin.b2c_dashboard.merchant_intelligence.price_tier') }}: {{ $account['price_tier'] ?? __('admin.b2c_dashboard.merchant_intelligence.not_configured') }} · {{ __('admin.b2c_dashboard.merchant_intelligence.status') }}: {{ __('admin.b2c_dashboard.merchant_intelligence.account_status.'.$accountStatusKey) }}</p>
                 @if(data_get($account,'finance_status')==='available')
                     <div class="merchant-account-grid">
-                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.purchasing_power') }}</span><b>{{ data_get($account,'finance.currency') }} {{ number_format((float)data_get($account,'finance.purchasing_power'),3) }}</b></div>
-                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.available_credit') }}</span><b>{{ data_get($account,'finance.currency') }} {{ number_format((float)data_get($account,'finance.available_credit_line'),3) }}</b></div>
-                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.open_amount') }}</span><b>{{ data_get($account,'finance.currency') }} {{ number_format((float)data_get($account,'finance.open_amount'),3) }}</b></div>
-                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.overdue') }}</span><b>{{ data_get($account,'finance.currency') }} {{ number_format((float)data_get($account,'finance.overdue_amount'),3) }}</b></div>
+                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.purchasing_power') }}</span><b>{{ data_get($account,'finance.currency') }} {{ \App\Support\DisplayNumber::money((float)data_get($account,'finance.purchasing_power'), data_get($account,'finance.currency')) }}</b></div>
+                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.available_credit') }}</span><b>{{ data_get($account,'finance.currency') }} {{ \App\Support\DisplayNumber::money((float)data_get($account,'finance.available_credit_line'), data_get($account,'finance.currency')) }}</b></div>
+                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.open_amount') }}</span><b>{{ data_get($account,'finance.currency') }} {{ \App\Support\DisplayNumber::money((float)data_get($account,'finance.open_amount'), data_get($account,'finance.currency')) }}</b></div>
+                        <div class="merchant-account-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.overdue') }}</span><b>{{ data_get($account,'finance.currency') }} {{ \App\Support\DisplayNumber::money((float)data_get($account,'finance.overdue_amount'), data_get($account,'finance.currency')) }}</b></div>
                     </div>
                 @else
                     <div class="foodex-viz-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.finance_unavailable') }}</div>
@@ -199,7 +199,7 @@
             @if($compareSeries->isNotEmpty())
                 <div class="merchant-compare" role="img" aria-label="{{ __('admin.b2c_dashboard.merchant_intelligence.retail_vs_wholesale_aria') }}">
                     @foreach($compareSeries as $day)
-                        <div class="merchant-compare-day" title="{{ $day['label'] }} · {{ number_format((float)$day['retail_sales'],3) }} / {{ number_format((float)$day['wholesale_purchases'],3) }}">
+                        <div class="merchant-compare-day" title="{{ $day['label'] }} · {{ \App\Support\DisplayNumber::money((float)$day['retail_sales'], $dashboard['currency']) }} / {{ \App\Support\DisplayNumber::money((float)$day['wholesale_purchases'], $dashboard['currency']) }}">
                             <i style="height:{{ max(2,round((float)$day['retail_sales']/$compareMax*126)) }}px"></i>
                             <i style="height:{{ max(2,round((float)$day['wholesale_purchases']/$compareMax*126)) }}px"></i>
                             <small>{{ $day['label'] }}</small>
@@ -234,7 +234,7 @@
                     ['key'=>'availability_limited','label'=>__('admin.b2c_dashboard.merchant_intelligence.availability_limited'),'class'=>'info'],
                 ] as $bar)
                     @php $barValue=(float)($spend[$bar['key']] ?? 0); @endphp
-                    <div class="merchant-simple-row {{ $bar['class'] }}"><span>{{ $bar['label'] }}</span><span class="merchant-simple-track"><i style="width:{{ round($barValue/$spendMax*100,1) }}%"></i></span><b>{{ number_format($barValue,3) }}</b></div>
+                    <div class="merchant-simple-row {{ $bar['class'] }}"><span>{{ $bar['label'] }}</span><span class="merchant-simple-track"><i style="width:{{ round($barValue/$spendMax*100,1) }}%"></i></span><b>{{ \App\Support\DisplayNumber::money($barValue, $dashboard['currency']) }}</b></div>
                 @endforeach
             </div>
         </article>
@@ -271,7 +271,7 @@
         <article class="foodex-viz-card">
             <div class="foodex-viz-header"><div><h3 class="foodex-viz-title">{{ __('admin.b2c_dashboard.merchant_intelligence.lost_sales_title') }}</h3><p class="foodex-viz-subtitle">{{ __('admin.b2c_dashboard.merchant_intelligence.lost_sales_subtitle') }}</p></div></div>
             <div style="display:grid;place-items:center;min-height:170px;text-align:center">
-                <div><strong style="font-size:1.8rem">{{ data_get($account,'finance.currency',$dashboard['currency']) }} {{ number_format((float)($summary['lost_sales_risk_revenue'] ?? 0),3) }}</strong><p class="empty">{{ __('admin.b2c_dashboard.merchant_intelligence.lost_sales_help') }}</p></div>
+                <div><strong style="font-size:1.8rem">{{ data_get($account,'finance.currency',$dashboard['currency']) }} {{ \App\Support\DisplayNumber::money((float)($summary['lost_sales_risk_revenue'] ?? 0), $dashboard['currency']) }}</strong><p class="empty">{{ __('admin.b2c_dashboard.merchant_intelligence.lost_sales_help') }}</p></div>
             </div>
         </article>
     </div>
@@ -283,12 +283,12 @@
                 @csrf
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
                 <div class="merchant-plan-budget">
-                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.purchasing_power') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)data_get($purchasePlan,'purchasing_power',0),3) }}</b></div>
-                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.existing_cart_cost') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)data_get($purchasePlan,'existing_cart_cost',0),3) }}</b></div>
-                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.available_plan_budget') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)data_get($purchasePlan,'available_plan_budget',0),3) }}</b></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.purchasing_power') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)data_get($purchasePlan,'purchasing_power',0), data_get($purchasePlan,'currency','EGP')) }}</b></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.existing_cart_cost') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)data_get($purchasePlan,'existing_cart_cost',0), data_get($purchasePlan,'currency','EGP')) }}</b></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.available_plan_budget') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)data_get($purchasePlan,'available_plan_budget',0), data_get($purchasePlan,'currency','EGP')) }}</b></div>
                     <div><label><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.budget') }}</span><input name="budget" type="number" min="0" step="0.001" max="{{ number_format((float)data_get($purchasePlan,'available_plan_budget',0),3,'.','') }}" value="{{ number_format((float)data_get($purchasePlan,'effective_budget',0),3,'.','') }}" @disabled($cartReviewRequired)></label></div>
-                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.allocated') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)data_get($purchasePlan,'allocated_cost',0),3) }}</b></div>
-                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.remaining') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)data_get($purchasePlan,'remaining_budget',0),3) }}</b></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.allocated') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)data_get($purchasePlan,'allocated_cost',0), data_get($purchasePlan,'currency','EGP')) }}</b></div>
+                    <div><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.remaining') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)data_get($purchasePlan,'remaining_budget',0), data_get($purchasePlan,'currency','EGP')) }}</b></div>
                 </div>
                 @if($cartReviewRequired)
                     <div class="flash err" role="alert">{{ __('admin.b2c_dashboard.merchant_intelligence.plan.cart_review_required') }}</div>
@@ -304,8 +304,8 @@
                             <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.full_need') }}</span><b>{{ number_format((float)$row['full_need_quantity'],2) }}</b></div>
                             <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.live_executable') }}</span><b>{{ number_format((float)$row['availability_executable_quantity'],2) }}</b>@if($row['availability_limited'])<small class="merchant-plan-limit">{{ __('admin.b2c_dashboard.merchant_intelligence.plan.availability_limited') }}</small>@endif</div>
                             <div class="merchant-plan-cell"><label><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.review_qty') }}</span><input class="merchant-plan-qty" name="quantities[{{ (int)$row['retail_product_id'] }}]" type="number" min="0" step="{{ number_format((float)$row['ordering_increment'],3,'.','') }}" max="{{ number_format((float)$row['availability_executable_quantity'],3,'.','') }}" value="{{ number_format((float)$row['budget_executable_quantity'],3,'.','') }}" @disabled($cartReviewRequired)></label>@if($row['credit_limited'])<small class="merchant-plan-limit">{{ __('admin.b2c_dashboard.merchant_intelligence.plan.credit_limited') }}</small>@endif</div>
-                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.unit_price') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)$row['unit_price'],3) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.moq_increment',['moq'=>number_format((float)$row['minimum_quantity'],2),'increment'=>number_format((float)$row['ordering_increment'],2)]) }}</small></div>
-                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ number_format((float)$row['budget_executable_cost'],3) }}</b><small>{{ number_format((float)$row['priority_score'],1) }}/100 {{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</small></div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.unit_price') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)$row['unit_price'], data_get($purchasePlan,'currency','EGP')) }}</b><small>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.moq_increment',['moq'=>number_format((float)$row['minimum_quantity'],2),'increment'=>number_format((float)$row['ordering_increment'],2)]) }}</small></div>
+                            <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ data_get($purchasePlan,'currency','EGP') }} {{ \App\Support\DisplayNumber::money((float)$row['budget_executable_cost'], data_get($purchasePlan,'currency','EGP')) }}</b><small>{{ number_format((float)$row['priority_score'],1) }}/100 {{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</small></div>
                         </div>
                     @empty
                         <div class="foodex-viz-empty">{{ __('admin.b2c_dashboard.merchant_intelligence.no_executable_plan') }}</div>
@@ -327,7 +327,7 @@
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.wholesale_qty') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }}</b></div>
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.retail_equivalent') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_retail_equivalent',0),2) }}</b></div>
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.case_equivalent') }}</span><b>{{ data_get($row,'commercial.recommended_case_equivalent')===null?'—':number_format((float)data_get($row,'commercial.recommended_case_equivalent'),2) }}</b></div>
-                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
+                        <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.expected_cost') }}</span><b>{{ \App\Support\DisplayNumber::money((float)data_get($row,'recommendation.expected_cost',0), $dashboard['currency']) }}</b></div>
                         <div class="merchant-plan-cell"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.plan.priority') }}</span><b>{{ number_format((float)($row['priority_score'] ?? 0),1) }}/100</b></div>
                     </div>
                 @empty

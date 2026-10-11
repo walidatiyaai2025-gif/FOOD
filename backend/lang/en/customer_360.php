@@ -159,6 +159,8 @@ return [
         'status' => 'Status',
         'total' => 'Total',
         'order' => 'Order',
+        'orders' => 'Orders',
+        'invoices' => 'Invoices',
         'issued' => 'Issued',
         'manage_order' => 'Manage order',
         'details' => 'Details',

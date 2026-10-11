@@ -141,16 +141,16 @@
                 <strong>{{ app()->getLocale()==='ar'?'البنود':'Items' }}</strong>
                 <ul style="margin:6px 0">
                     @foreach($row['_items'] as $item)
-                        <li>{{ $item['sku'] }} · {{ $item['name'] }} — {{ number_format($item['quantity'],3) }} × {{ number_format($item['unit_price'],3) }} = {{ number_format($item['line_total'],3) }} {{ $row['_currency'] }}</li>
+                        <li>{{ $item['sku'] }} · {{ $item['name'] }} — {{ \App\Support\DisplayNumber::quantity($item['quantity']) }} × {{ \App\Support\DisplayNumber::money($item['unit_price'], $row['_currency']) }} = {{ \App\Support\DisplayNumber::money($item['line_total'], $row['_currency']) }} {{ $row['_currency'] }}</li>
                     @endforeach
                 </ul>
             </div>
             <div>
-                {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ number_format($row['_subtotal'],3) }} {{ $row['_currency'] }} ·
-                {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ number_format($row['_discount_total'],3) }} {{ $row['_currency'] }} ·
-                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ number_format($row['_delivery_total'],3) }} {{ $row['_currency'] }} ·
-                {{ app()->getLocale()==='ar'?'الضريبة':'Tax' }}: {{ number_format($row['_tax_total'] ?? 0,3) }} {{ $row['_currency'] }} ·
-                <strong>{{ app()->getLocale()==='ar'?'الإجمالي النهائي':'Grand total' }}: {{ number_format($row['_grand_total'],3) }} {{ $row['_currency'] }}</strong>
+                {{ app()->getLocale()==='ar'?'الإجمالي الفرعي':'Subtotal' }}: {{ \App\Support\DisplayNumber::money($row['_subtotal'], $row['_currency']) }} {{ $row['_currency'] }} ·
+                {{ app()->getLocale()==='ar'?'الخصم':'Discount' }}: {{ \App\Support\DisplayNumber::money($row['_discount_total'], $row['_currency']) }} {{ $row['_currency'] }} ·
+                {{ app()->getLocale()==='ar'?'التوصيل':'Delivery' }}: {{ \App\Support\DisplayNumber::money($row['_delivery_total'], $row['_currency']) }} {{ $row['_currency'] }} ·
+                {{ app()->getLocale()==='ar'?'الضريبة':'Tax' }}: {{ \App\Support\DisplayNumber::money($row['_tax_total'] ?? 0, $row['_currency']) }} {{ $row['_currency'] }} ·
+                <strong>{{ app()->getLocale()==='ar'?'الإجمالي النهائي':'Grand total' }}: {{ \App\Support\DisplayNumber::money($row['_grand_total'], $row['_currency']) }} {{ $row['_currency'] }}</strong>
             </div>
             @if($isB2bOrder && !empty($row['_settlement']))
                 @php($settlement = $row['_settlement'])
@@ -158,44 +158,44 @@
                     <strong>{{ app()->getLocale()==='ar'?'مراجعة التسوية المالية':'Financial settlement review' }}</strong>
                     <div>
                         {{ app()->getLocale()==='ar'?'إجمالي الطلب':'Order total' }}:
-                        <strong>{{ number_format($row['_grand_total'],3) }} {{ $settlement['currency'] }}</strong>
+                        <strong>{{ \App\Support\DisplayNumber::money($row['_grand_total'], $settlement['currency']) }} {{ $settlement['currency'] }}</strong>
                         · {{ app()->getLocale()==='ar'?'طريقة المتبقي':'Remainder method' }}:
                         <strong>{{ $settlement['remainder_method'] ? ($paymentLabels[$settlement['remainder_method']] ?? str_replace('_',' ',$settlement['remainder_method'])) : '—' }}</strong>
                     </div>
                     <div>
                         {{ app()->getLocale()==='ar'?'رصيد العميل المتاح':'Customer credit balance' }}:
-                        <strong>{{ $settlement['customer_credit_balance']===null?'—':number_format($settlement['customer_credit_balance'],3) }}</strong>
+                        <strong>{{ $settlement['customer_credit_balance']===null?'—':\App\Support\DisplayNumber::money($settlement['customer_credit_balance'], $settlement['currency']) }}</strong>
                         · {{ app()->getLocale()==='ar'?'إجمالي المديونية الحالية':'Aggregate outstanding' }}:
-                        <strong>{{ $settlement['aggregate_outstanding']===null?'—':number_format($settlement['aggregate_outstanding'],3) }}</strong>
+                        <strong>{{ $settlement['aggregate_outstanding']===null?'—':\App\Support\DisplayNumber::money($settlement['aggregate_outstanding'], $settlement['currency']) }}</strong>
                     </div>
                     <div>
                         {{ app()->getLocale()==='ar'?'حد الائتمان':'Credit limit' }}:
-                        <strong>{{ $settlement['credit_limit']===null?'—':number_format($settlement['credit_limit'],3) }}</strong>
+                        <strong>{{ $settlement['credit_limit']===null?'—':\App\Support\DisplayNumber::money($settlement['credit_limit'], $settlement['currency']) }}</strong>
                         · {{ app()->getLocale()==='ar'?'الحد المتاح':'Available credit line' }}:
-                        <strong>{{ $settlement['available_credit_line']===null?'—':number_format($settlement['available_credit_line'],3) }}</strong>
+                        <strong>{{ $settlement['available_credit_line']===null?'—':\App\Support\DisplayNumber::money($settlement['available_credit_line'], $settlement['currency']) }}</strong>
                     </div>
                     @if($settlement['balance_applied']!==null)
                     <div>
                         {{ app()->getLocale()==='ar'?'المخصوم من الرصيد':'Balance applied' }}:
-                        <strong>{{ number_format($settlement['balance_applied'],3) }}</strong>
+                        <strong>{{ \App\Support\DisplayNumber::money($settlement['balance_applied'], $settlement['currency']) }}</strong>
                         @if($settlement['remaining_after_balance']!==null)
                             · {{ app()->getLocale()==='ar'?'المتبقي بعد الرصيد':'Remaining after balance' }}:
-                            <strong>{{ number_format($settlement['remaining_after_balance'],3) }}</strong>
+                            <strong>{{ \App\Support\DisplayNumber::money($settlement['remaining_after_balance'], $settlement['currency']) }}</strong>
                         @endif
                     </div>
                     @endif
                     <div>
                         {{ app()->getLocale()==='ar'?'المتبقي على الفاتورة':'Invoice outstanding' }}:
-                        <strong>{{ $settlement['invoice_outstanding']===null?(app()->getLocale()==='ar'?'لم تصدر بعد':'Not issued yet'):number_format($settlement['invoice_outstanding'],3) }}</strong>
+                        <strong>{{ $settlement['invoice_outstanding']===null?(app()->getLocale()==='ar'?'لم تصدر بعد':'Not issued yet'):\App\Support\DisplayNumber::money($settlement['invoice_outstanding'], $settlement['currency']) }}</strong>
                     </div>
                 </div>
             @endif
             @if($row['_payment'])
-                <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $paymentLabels[$row['_payment']['provider']] ?? str_replace('_',' ',$row['_payment']['provider']) }} · {{ $paymentLabels[$row['_payment']['status']] ?? $row['_payment']['status'] }} · {{ number_format($row['_payment']['amount'],3) }} {{ $row['_payment']['currency'] }}</div>
+                <div>{{ app()->getLocale()==='ar'?'الدفع':'Payment' }}: {{ $paymentLabels[$row['_payment']['provider']] ?? str_replace('_',' ',$row['_payment']['provider']) }} · {{ $paymentLabels[$row['_payment']['status']] ?? __('customer_360.business_labels.unknown') }} · {{ \App\Support\DisplayNumber::money($row['_payment']['amount'], $row['_payment']['currency']) }} {{ $row['_payment']['currency'] }}</div>
             @endif
             @if($row['_invoice'])
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $stateLabels[$row['_invoice']['status']] ?? $row['_invoice']['status'] }} · {{ number_format($row['_invoice']['total'],3) }} {{ $row['_invoice']['currency'] }}</span>
+                    <span>{{ app()->getLocale()==='ar'?'الفاتورة':'Invoice' }}: {{ $row['_invoice']['number'] }} · {{ $stateLabels[$row['_invoice']['status']] ?? __('customer_360.business_labels.unknown') }} · {{ \App\Support\DisplayNumber::money($row['_invoice']['total'], $row['_invoice']['currency']) }} {{ $row['_invoice']['currency'] }}</span>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id']]) }}">{{ app()->getLocale()==='ar'?'عرض':'View' }}</a>
                     <a class="foodex-primary" href="{{ route('admin.invoices.download',['invoice'=>$row['_invoice']['id'],'locale'=>app()->getLocale()]) }}">PDF</a>
                     <a class="foodex-primary" target="_blank" rel="noopener" href="{{ route('admin.invoices.show',['invoice'=>$row['_invoice']['id'],'print'=>1]) }}">{{ app()->getLocale()==='ar'?'طباعة':'Print' }}</a>
@@ -306,7 +306,7 @@
                                         >
                                             {{ $product['sku'] }} · {{ $product['name'] }}
                                             @if(array_key_exists('price',$product))
-                                                · {{ number_format((float)$product['price'],3) }} {{ $row['_currency'] }}
+                                                · {{ \App\Support\DisplayNumber::money((float)$product['price'], $row['_currency']) }} {{ $row['_currency'] }}
                                             @endif
                                         </option>
                                     @endforeach

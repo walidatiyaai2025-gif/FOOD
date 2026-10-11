@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_order_contract.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanOrderBuilderPage extends StatefulWidget {
   const VanOrderBuilderPage({
@@ -146,8 +147,7 @@ class _VanOrderBuilderPageState extends State<VanOrderBuilderPage> {
                         Row(
                           children: [
                             Text(
-                              '${line.product.unitPrice.toStringAsFixed(3)} '
-                              '${line.product.currency}',
+                              foodexMoneyText(line.product.unitPrice, line.product.currency),
                             ),
                             const Spacer(),
                             IconButton.filledTonal(
@@ -233,7 +233,7 @@ class _Totals extends StatelessWidget {
         children: [
           Expanded(child: Text(label)),
           Text(
-            '${value.toStringAsFixed(3)} ${quote.currency}',
+            foodexMoneyText(value, quote.currency),
             style: TextStyle(
               fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
             ),

@@ -1194,9 +1194,9 @@ class B2bWorkspaceController extends Controller
                     '_low_stock_threshold' => (float) $row->low_stock_threshold,
                     'sku' => $row->sku,
                     'name' => $row->name,
-                    'price' => $row->price === null ? '-' : number_format((float) $row->price, 3).' EGP',
-                    'available' => number_format(max(0, $quantity - $reserved), 3),
-                    'low_stock_threshold' => number_format((float) $row->low_stock_threshold, 3),
+                    'price' => $row->price === null ? '-' : DisplayNumber::money((float) $row->price, 'EGP').' EGP',
+                    'available' => DisplayNumber::quantity(max(0, $quantity - $reserved)),
+                    'low_stock_threshold' => DisplayNumber::quantity((float) $row->low_stock_threshold),
                     'status' => (bool) $row->is_active,
                     'actions' => true,
                 ];

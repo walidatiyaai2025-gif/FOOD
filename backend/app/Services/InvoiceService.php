@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -333,7 +334,7 @@ final class InvoiceService
     {
         $ar = $locale === 'ar';
         $e = static fn (mixed $value): string => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $money = static fn (mixed $value): string => number_format((float) $value, 3, '.', ',');
+        $money = static fn (mixed $value): string => DisplayNumber::money($value, (string) ($data['currency'] ?? ''));
         $labels = $ar ? [
             'title' => 'فاتورة', 'invoice' => 'رقم الفاتورة', 'order' => 'رقم الطلب', 'store' => 'المتجر',
             'customer' => 'العميل', 'date' => 'تاريخ الإصدار', 'item' => 'الصنف', 'qty' => 'الكمية',

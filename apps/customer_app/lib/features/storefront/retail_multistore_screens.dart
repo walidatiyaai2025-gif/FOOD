@@ -12,6 +12,7 @@ import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef WholesaleContextCallback = void Function(int? retailStoreId);
 
@@ -1442,9 +1443,7 @@ class _RetailProductDetailsDesignScreenState
                     Text(
                       product.price == null
                           ? 'السعر غير متاح'
-                          : product.price!.toStringAsFixed(3) +
-                              ' ' +
-                              product.currency,
+                          : foodexMoneyText(product.price!, product.currency),
                       style: const TextStyle(
                         color: Color(0xFF078A43),
                         fontSize: 22,

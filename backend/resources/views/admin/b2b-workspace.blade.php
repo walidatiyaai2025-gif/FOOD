@@ -427,9 +427,9 @@
             @forelse(($moduleData['summary']['totals'] ?? []) as $total)
               <span style="display:inline-block;margin-inline-end:12px">
                 {{ $total['currency'] }}:
-                {{ app()->getLocale()==='ar'?'الإجمالي':'total' }} {{ number_format((float)$total['total'],3) }} ·
-                {{ app()->getLocale()==='ar'?'المدفوع':'paid' }} {{ number_format((float)$total['paid'],3) }} ·
-                {{ app()->getLocale()==='ar'?'الرصيد':'balance' }} {{ number_format((float)$total['balance'],3) }}
+                {{ app()->getLocale()==='ar'?'الإجمالي':'total' }} {{ \App\Support\DisplayNumber::money((float)$total['total'], $total['currency']) }} ·
+                {{ app()->getLocale()==='ar'?'المدفوع':'paid' }} {{ \App\Support\DisplayNumber::money((float)$total['paid'], $total['currency']) }} ·
+                {{ app()->getLocale()==='ar'?'الرصيد':'balance' }} {{ \App\Support\DisplayNumber::money((float)$total['balance'], $total['currency']) }}
               </span>
             @empty
               {{ app()->getLocale()==='ar'?'لا توجد فواتير تطابق الفلاتر الحالية.':'No invoices match the current filters.' }}

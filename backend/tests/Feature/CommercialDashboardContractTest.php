@@ -157,7 +157,8 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('Confirmed')
             ->assertSee('Reservation confirmed')
             ->assertSee('Customer')
-            ->assertSee('10.000')
+            ->assertSee('10')
+            ->assertDontSee('10.000')
             ->assertDontSee('reservation_confirmed')
             ->assertDontSee('Flash Analytics · #'.$offerId);
 

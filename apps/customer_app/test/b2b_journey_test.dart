@@ -2595,7 +2595,7 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-statement-current-direction')),
         findsOneWidget);
-    expect(find.textContaining('50.000 EGP'), findsWidgets);
+    expect(find.textContaining('50.00 EGP'), findsWidgets);
     expect(find.textContaining('عليك'), findsWidgets);
     expect(
         find.byKey(const ValueKey('b2b-statement-export-pdf')), findsOneWidget);
