@@ -122,7 +122,7 @@ class _DriverWalletPageState extends State<DriverWalletPage>
   Future<void> _submitRemittance(DriverWalletAccount account) async {
     if (_submitting || account.availableToRemit <= 0) return;
     final controller = TextEditingController(
-      text: account.availableToRemit.toStringAsFixed(3),
+      text: foodexMoneyAmount(account.availableToRemit, account.currency),
     );
     final amount = await showDialog<double>(
       context: context,
