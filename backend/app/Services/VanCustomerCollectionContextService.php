@@ -56,7 +56,8 @@ final class VanCustomerCollectionContextService
             ->map(function (Invoice $invoice) use ($type): array {
                 return [
                     'id' => (int) $invoice->getKey(),
-                    'number' => (string) $invoice->invoice_number,
+                    'number' => \App\Support\DisplayNumber::reference($invoice->getKey()),
+                    'internal_number' => (string) $invoice->invoice_number,
                     'currency' => $this->normalizeCurrency((string) $invoice->currency),
                     'total' => round((float) $invoice->total, 3),
                     'outstanding_amount' => $this->outstandingAmount($invoice, $type),
