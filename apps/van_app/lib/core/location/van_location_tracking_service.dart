@@ -50,7 +50,6 @@ class GeolocatorVanLocationSource implements VanLocationSource {
     final position = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 12),
       ),
     );
 
@@ -121,7 +120,7 @@ class VanLocationTrackingController {
   }
 
   Future<void> syncNow() async {
-    if (!_running && _timer != null) return;
+    if (!_running) return;
     if (_syncing) return;
 
     _syncing = true;
