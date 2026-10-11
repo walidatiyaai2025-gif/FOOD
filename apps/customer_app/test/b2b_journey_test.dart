@@ -3326,13 +3326,7 @@ class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
     int productId,
     double quantity,
   ) async {
-    addCalls.add(
-      storeId.toString() +
-          ':' +
-          productId.toString() +
-          ':' +
-          quantity.toString(),
-    );
+    addCalls.add('$storeId:$productId:$quantity');
     return null;
   }
 
