@@ -740,9 +740,10 @@ async function captureLocale(browser, locale) {
     `${baseUrl}/admin/operations/orders?channel=b2c&order_number=FOODEX-EVID-LOC-1`,
     { waitUntil: 'networkidle' },
   );
+  // The filter uses the immutable internal reference, while the UI intentionally
+  // renders the short customer-facing display number (#ID).
   const orderLocationLink = page.locator(
     'td a[href*="order="]',
-    { hasText: 'FOODEX-EVID-LOC-1' },
   ).first();
   if (await orderLocationLink.count() !== 1) {
     throw new Error('Deterministic delivery-location order evidence was not found.');
