@@ -173,7 +173,8 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const launcher = document.createElement('button');
     launcher.type = 'button';
     launcher.className = 'foodex-mobile-nav-launcher';
-    launcher.setAttribute('aria-label', toggle?.getAttribute('aria-label') || 'Navigation');
+    const mobileNavLabel = toggle?.getAttribute('aria-label') || 'FOODEX';
+    launcher.setAttribute('aria-label', mobileNavLabel);
     launcher.setAttribute('aria-expanded', 'false');
     launcher.textContent = '☰';
 
@@ -190,7 +191,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
     backdrop.className = 'foodex-mobile-nav-backdrop';
-    backdrop.setAttribute('aria-label', document.documentElement.dir === 'rtl' ? 'إغلاق القائمة' : 'Close navigation');
+    backdrop.setAttribute('aria-label', mobileNavLabel);
 
     document.body.append(backdrop, bar);
 
