@@ -100,7 +100,6 @@ class AdminShellTest extends TestCase
             '/admin/b2b/products',
             '/admin/b2b/orders',
             '/admin/b2b/drivers',
-            '/admin/b2b/pricing',
             '/admin/b2b/reports',
             '/admin/b2b/settings',
             '/admin/reports',
@@ -116,6 +115,10 @@ class AdminShellTest extends TestCase
                 ->get($uri)
                 ->assertOk();
         }
+
+        $this->actingAs($user)
+            ->get('/admin/b2b/pricing')
+            ->assertNotFound();
     }
 
     public function test_super_admin_sees_grouped_permission_aware_navigation(): void
