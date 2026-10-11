@@ -73,13 +73,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final commerceContext =
-        CustomerCommerceContext.tryParseLocation(location);
+    final commerceContext = CustomerCommerceContext.tryParseLocation(location);
 
-    Widget withFooter(
-      Widget child,
-      CustomerFooterDestination destination,
-    ) {
+    Widget withFooter(Widget child, CustomerFooterDestination destination) {
       if (commerceContext == null) return child;
       return CustomerPersistentFooterShell(
         commerceContext: commerceContext,
@@ -167,10 +163,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
         );
       case CustomerRoutePaths.b2bOrderDetails:
         return withFooter(
-          WholesaleOrderDetailsDesignScreen(
-            location: location,
-            api: b2bApi,
-          ),
+          WholesaleOrderDetailsDesignScreen(location: location, api: b2bApi),
           CustomerFooterDestination.orders,
         );
       default:
@@ -192,9 +185,7 @@ int retailStoreIdFromLocation(String location) {
 int wholesaleStoreIdFromLocation(String location) {
   final uri = Uri.parse(location);
   return int.tryParse(
-        uri.queryParameters['store_id'] ??
-            uri.queryParameters['store'] ??
-            '',
+        uri.queryParameters['store_id'] ?? uri.queryParameters['store'] ?? '',
       ) ??
       0;
 }

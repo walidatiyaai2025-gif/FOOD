@@ -67,28 +67,25 @@ class FoodexTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 52,
-        child: Row(
-          children: [
-            IconButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
-            ),
-            Expanded(
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            ...actions,
-            if (actions.isEmpty) const SizedBox(width: 48),
-          ],
+    height: 52,
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
         ),
-      );
+        Expanded(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+        ),
+        ...actions,
+        if (actions.isEmpty) const SizedBox(width: 48),
+      ],
+    ),
+  );
 }
 
 class FoodexSectionHeader extends StatelessWidget {
@@ -107,44 +104,44 @@ class FoodexSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 9),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: palette.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 9),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: palette.text,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        if (onAction == null)
+          Text(
+            action,
+            style: TextStyle(
+              color: palette.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          )
+        else
+          TextButton(
+            key: ValueKey('section-action-' + title),
+            onPressed: onAction,
+            child: Text(
+              action,
+              style: TextStyle(
+                color: palette.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            if (onAction == null)
-              Text(
-                action,
-                style: TextStyle(
-                  color: palette.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              )
-            else
-              TextButton(
-                key: ValueKey('section-action-' + title),
-                onPressed: onAction,
-                child: Text(
-                  action,
-                  style: TextStyle(
-                    color: palette.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
+          ),
+      ],
+    ),
+  );
 }
 
 class FoodexProductImage extends StatelessWidget {
@@ -159,41 +156,38 @@ class FoodexProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: palette.soft,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: url == null || url!.isEmpty
-            ? Center(
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  color: palette.primary,
-                  size: 52,
-                ),
-              )
-            : Image.network(
-                url!,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : const Center(child: CircularProgressIndicator()),
-                errorBuilder: (_, __, ___) => Center(
-                  child: Icon(
-                    Icons.inventory_2_outlined,
-                    color: palette.primary,
-                    size: 52,
-                  ),
-                ),
+    decoration: BoxDecoration(
+      color: palette.soft,
+      borderRadius: BorderRadius.circular(18),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: url == null || url!.isEmpty
+        ? Center(
+            child: Icon(
+              Icons.inventory_2_outlined,
+              color: palette.primary,
+              size: 52,
+            ),
+          )
+        : Image.network(
+            url!,
+            fit: BoxFit.cover,
+            loadingBuilder: (_, child, progress) => progress == null
+                ? child
+                : const Center(child: CircularProgressIndicator()),
+            errorBuilder: (_, __, ___) => Center(
+              child: Icon(
+                Icons.inventory_2_outlined,
+                color: palette.primary,
+                size: 52,
               ),
-      );
+            ),
+          ),
+  );
 }
 
 class FoodexGallery extends StatelessWidget {
-  const FoodexGallery({
-    required this.urls,
-    required this.palette,
-    super.key,
-  });
+  const FoodexGallery({required this.urls, required this.palette, super.key});
 
   final List<String> urls;
   final FoodexPalette palette;
@@ -244,52 +238,52 @@ class FoodexQuantityCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Container(
-            height: 52,
-            decoration: BoxDecoration(
-              color: palette.soft,
-              borderRadius: BorderRadius.circular(16),
+    children: [
+      Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: palette.soft,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed:
+                  onChanged != null && quantity - increment + .0001 >= minimum
+                  ? () => onChanged!(quantity - increment)
+                  : null,
+              icon: const Icon(Icons.remove_rounded),
             ),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: onChanged != null &&
-                          quantity - increment + .0001 >= minimum
-                      ? () => onChanged!(quantity - increment)
-                      : null,
-                  icon: const Icon(Icons.remove_rounded),
-                ),
-                SizedBox(
-                  width: 44,
-                  child: Text(
-                    compactNumber(quantity),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                IconButton(
-                  onPressed: onChanged == null ? null : () => onChanged!(quantity + increment),
-                  icon: const Icon(Icons.add_rounded),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: palette.primary,
-                ),
-                onPressed: onPressed,
-                child: Text(label),
+            SizedBox(
+              width: 44,
+              child: Text(
+                compactNumber(quantity),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
+            IconButton(
+              onPressed: onChanged == null
+                  ? null
+                  : () => onChanged!(quantity + increment),
+              icon: const Icon(Icons.add_rounded),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: SizedBox(
+          height: 52,
+          child: FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: palette.primary),
+            onPressed: onPressed,
+            child: Text(label),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 class FoodexLoading extends StatelessWidget {
@@ -316,31 +310,31 @@ class FoodexErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                size: 46,
-                color: Color(0xFFB42318),
-              ),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-              if (onRetry != null) ...[
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  key: retryKey,
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(retryLabel),
-                ),
-              ],
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 46,
+            color: Color(0xFFB42318),
           ),
-        ),
-      );
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          if (onRetry != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: retryKey,
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(retryLabel),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 class FoodexEmptyState extends StatelessWidget {
@@ -355,33 +349,29 @@ class FoodexEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE7E8EA)),
+    padding: const EdgeInsets.all(16),
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE7E8EA)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.inbox_outlined, size: 40, color: Color(0xFF6B7785)),
+          const SizedBox(height: 10),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF6B7785)),
           ),
-          child: Column(
-            children: [
-              const Icon(
-                Icons.inbox_outlined,
-                size: 40,
-                color: Color(0xFF6B7785),
-              ),
-              const SizedBox(height: 10),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF6B7785)),
-              ),
-            ],
-          ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class FoodexDetailAccordion extends StatelessWidget {
@@ -396,31 +386,25 @@ class FoodexDetailAccordion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: 12),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+    tilePadding: EdgeInsets.zero,
+    childrenPadding: const EdgeInsets.only(bottom: 12),
+    title: Text(
+      title,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+    ),
+    children: [
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          body,
+          style: const TextStyle(color: Color(0xFF6B7785), height: 1.6),
         ),
-        children: [
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Text(
-              body,
-              style: const TextStyle(
-                color: Color(0xFF6B7785),
-                height: 1.6,
-              ),
-            ),
-          ),
-        ],
-      );
+      ),
+    ],
+  );
 }
 
-Future<void> showOperationalError(
-  BuildContext context,
-  Object error,
-) =>
+Future<void> showOperationalError(BuildContext context, Object error) =>
     showDialog<void>(
       context: context,
       builder: (dialogContext) => Directionality(
@@ -431,9 +415,7 @@ Future<void> showOperationalError(
             color: Color(0xFFB42318),
           ),
           title: const Text('تعذر تنفيذ العملية'),
-          content: Text(
-            error.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -461,8 +443,9 @@ List<Map<String, dynamic>> dataRows(Object? value) {
 int intValue(Object? value) =>
     value is num ? value.toInt() : int.tryParse(value.toString()) ?? 0;
 
-double doubleValue(Object? value, [double fallback = 0]) =>
-    value is num ? value.toDouble() : double.tryParse(value.toString()) ?? fallback;
+double doubleValue(Object? value, [double fallback = 0]) => value is num
+    ? value.toDouble()
+    : double.tryParse(value.toString()) ?? fallback;
 
 String compactNumber(double value) => value == value.roundToDouble()
     ? value.toInt().toString()
