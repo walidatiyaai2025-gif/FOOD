@@ -129,7 +129,7 @@
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.days_cover') }}</span><b>{{ data_get($row,'inventory.days_of_cover')===null ? '—' : number_format((float)data_get($row,'inventory.days_of_cover'),1) }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_stockout') }}</span><b>{{ $stockoutLabel }}</b></div>
                             <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.qty_cases') }}</span><b>{{ number_format((float)data_get($row,'recommendation.recommended_wholesale_quantity',0),2) }} / {{ $caseEquivalent===null ? '—' : number_format((float)$caseEquivalent,2) }}</b></div>
-                            <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_cost') }}</span><b>{{ number_format((float)data_get($row,'recommendation.expected_cost',0),3) }}</b></div>
+                            <div class="merchant-rec-metric"><span>{{ __('admin.b2c_dashboard.merchant_intelligence.metrics.expected_cost') }}</span><b>{{ \App\Support\DisplayNumber::money((float)data_get($row,'recommendation.expected_cost',0), $dashboard['currency']) }}</b></div>
                         </div>
                         <div class="merchant-rec-actions">
                             <a class="foodex-action-secondary" href="{{ $inventoryUrl }}">{{ __('admin.b2c_dashboard.merchant_intelligence.open_inventory') }}</a>
@@ -199,7 +199,7 @@
             @if($compareSeries->isNotEmpty())
                 <div class="merchant-compare" role="img" aria-label="{{ __('admin.b2c_dashboard.merchant_intelligence.retail_vs_wholesale_aria') }}">
                     @foreach($compareSeries as $day)
-                        <div class="merchant-compare-day" title="{{ $day['label'] }} · {{ number_format((float)$day['retail_sales'],3) }} / {{ number_format((float)$day['wholesale_purchases'],3) }}">
+                        <div class="merchant-compare-day" title="{{ $day['label'] }} · {{ \App\Support\DisplayNumber::money((float)$day['retail_sales'], $dashboard['currency']) }} / {{ \App\Support\DisplayNumber::money((float)$day['wholesale_purchases'], $dashboard['currency']) }}">
                             <i style="height:{{ max(2,round((float)$day['retail_sales']/$compareMax*126)) }}px"></i>
                             <i style="height:{{ max(2,round((float)$day['wholesale_purchases']/$compareMax*126)) }}px"></i>
                             <small>{{ $day['label'] }}</small>
