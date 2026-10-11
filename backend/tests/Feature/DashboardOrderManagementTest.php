@@ -158,7 +158,7 @@ class DashboardOrderManagementTest extends TestCase
         $this->actingAs($adminA)
             ->get('/admin/invoices/'.$invoice->id)
             ->assertOk()
-            ->assertSee($invoice->invoice_number);
+            ->assertSee('#'.$invoice->id);
 
         $this->actingAs($adminA)
             ->get('/admin/invoices/'.$invoice->id.'/download?locale=ar')
