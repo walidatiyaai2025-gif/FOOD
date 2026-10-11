@@ -35,6 +35,18 @@ Tabs select sibling functions inside the current business domain. On narrow layo
 ### Cards / surface
 Prefer/reuse the existing FOODEX card/panel patterns from `_brand-components.blade.php` and the nearest production page. Do not introduce a page-local Bootstrap visual language.
 
+### Mobile Web primitives
+All Laravel Dashboard pages also inherit `docs/design-reference/DASHBOARD_MOBILE_WEB_CONTRACT.md`.
+
+Prefer/reuse:
+- shared off-canvas Sidebar mobile chrome from `_sidebar.blade.php`;
+- automatic mobile record-card enhancement for `.foodex-table` and `.foodex-ops-grid`;
+- `.foodex-mobile-action-rail`;
+- `.foodex-mobile-filter-sheet`;
+- `.foodex-mobile-sticky-actions`.
+
+Use `data-foodex-mobile-table="scroll"` only for a genuinely matrix/analytic table whose meaning would be damaged by the default mobile record-card layout. Do not build page-local mobile shells or table converters.
+
 ### Tables / operational grids
 Prefer/reuse:
 - `.foodex-table`
