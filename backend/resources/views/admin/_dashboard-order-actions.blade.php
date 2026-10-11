@@ -164,29 +164,29 @@
                     </div>
                     <div>
                         {{ app()->getLocale()==='ar'?'رصيد العميل المتاح':'Customer credit balance' }}:
-                        <strong>{{ $settlement['customer_credit_balance']===null?'—':number_format($settlement['customer_credit_balance'],3) }}</strong>
+                        <strong>{{ $settlement['customer_credit_balance']===null?'—':\\App\\Support\\DisplayNumber::money($settlement['customer_credit_balance'], $settlement['currency']) }}</strong>
                         · {{ app()->getLocale()==='ar'?'إجمالي المديونية الحالية':'Aggregate outstanding' }}:
-                        <strong>{{ $settlement['aggregate_outstanding']===null?'—':number_format($settlement['aggregate_outstanding'],3) }}</strong>
+                        <strong>{{ $settlement['aggregate_outstanding']===null?'—':\\App\\Support\\DisplayNumber::money($settlement['aggregate_outstanding'], $settlement['currency']) }}</strong>
                     </div>
                     <div>
                         {{ app()->getLocale()==='ar'?'حد الائتمان':'Credit limit' }}:
-                        <strong>{{ $settlement['credit_limit']===null?'—':number_format($settlement['credit_limit'],3) }}</strong>
+                        <strong>{{ $settlement['credit_limit']===null?'—':\\App\\Support\\DisplayNumber::money($settlement['credit_limit'], $settlement['currency']) }}</strong>
                         · {{ app()->getLocale()==='ar'?'الحد المتاح':'Available credit line' }}:
-                        <strong>{{ $settlement['available_credit_line']===null?'—':number_format($settlement['available_credit_line'],3) }}</strong>
+                        <strong>{{ $settlement['available_credit_line']===null?'—':\\App\\Support\\DisplayNumber::money($settlement['available_credit_line'], $settlement['currency']) }}</strong>
                     </div>
                     @if($settlement['balance_applied']!==null)
                     <div>
                         {{ app()->getLocale()==='ar'?'المخصوم من الرصيد':'Balance applied' }}:
-                        <strong>{{ number_format($settlement['balance_applied'],3) }}</strong>
+                        <strong>{{ \\App\\Support\\DisplayNumber::money($settlement['balance_applied'], $settlement['currency']) }}</strong>
                         @if($settlement['remaining_after_balance']!==null)
                             · {{ app()->getLocale()==='ar'?'المتبقي بعد الرصيد':'Remaining after balance' }}:
-                            <strong>{{ number_format($settlement['remaining_after_balance'],3) }}</strong>
+                            <strong>{{ \\App\\Support\\DisplayNumber::money($settlement['remaining_after_balance'], $settlement['currency']) }}</strong>
                         @endif
                     </div>
                     @endif
                     <div>
                         {{ app()->getLocale()==='ar'?'المتبقي على الفاتورة':'Invoice outstanding' }}:
-                        <strong>{{ $settlement['invoice_outstanding']===null?(app()->getLocale()==='ar'?'لم تصدر بعد':'Not issued yet'):number_format($settlement['invoice_outstanding'],3) }}</strong>
+                        <strong>{{ $settlement['invoice_outstanding']===null?(app()->getLocale()==='ar'?'لم تصدر بعد':'Not issued yet'):\\App\\Support\\DisplayNumber::money($settlement['invoice_outstanding'], $settlement['currency']) }}</strong>
                     </div>
                 </div>
             @endif
