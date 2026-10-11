@@ -59,7 +59,7 @@
         <div class="analytics-grid">
             <section class="metric"><span>{{ __('commercial.analytics.reservations') }}</span><strong>{{ $reservationCount }}</strong></section>
             <section class="metric"><span>{{ __('commercial.analytics.live_reserved_base') }}</span><strong>{{ \App\Support\DisplayNumber::quantity($liveReservedBase) }}</strong></section>
-            <section class="metric"><span>{{ __('commercial.analytics.confirmed_base') }}</span><strong>{{ number_format($confirmedBase, 3) }}</strong></section>
+            <section class="metric"><span>{{ __('commercial.analytics.confirmed_base') }}</span><strong>{{ \App\Support\DisplayNumber::quantity($confirmedBase) }}</strong></section>
             <section class="metric"><span>{{ __('commercial.analytics.flash_events') }}</span><strong>{{ $eventCount }}</strong></section>
             <section class="metric"><span>{{ __('commercial.analytics.allocation_utilization') }}</span><strong>{{ $utilization === null ? '—' : number_format($utilization, 1).'%' }}</strong></section>
         </div>
