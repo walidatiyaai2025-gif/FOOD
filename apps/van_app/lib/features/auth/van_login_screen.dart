@@ -168,10 +168,12 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
         email: _email.text.trim(),
         password: _password.text,
       );
+      final useBiometricUnlock =
+          _rememberMe && _biometricAvailable;
       await widget.onAuthenticated(
         session,
         _rememberMe,
-        _rememberMe && _enableBiometrics,
+        useBiometricUnlock,
       );
     } on VanAuthenticationException {
       if (mounted) {
