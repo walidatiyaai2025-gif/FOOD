@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\MirrorMobileReleaseArtifacts;
 use App\Models\Role;
 use App\Models\SystemVersion;
 use App\Models\User;
@@ -123,7 +122,7 @@ class VanControlPlaneParityTest extends TestCase
             ->assertSee('0.1.0');
     }
 
-    public function test_van_download_uses_current_release_authority(): void
+    public function test_van_download_defers_release_mirroring_to_the_administration_hub(): void
     {
         Queue::fake();
         $admin = $this->admin();
@@ -137,10 +136,7 @@ class VanControlPlaneParityTest extends TestCase
             ->get(route('admin.mobile-apps.van.download'))
             ->assertRedirect(route('admin.administration.index', ['download_app' => 'van']));
 
-        Queue::assertPushed(
-            MirrorMobileReleaseArtifacts::class,
-            fn (MirrorMobileReleaseArtifacts $job): bool => $job->version === '9.8.7',
-        );
+        Queue::assertNothingPushed();
     }
 
     public function test_preview_center_exposes_real_van_runtime_contract_without_fake_impersonation(): void
