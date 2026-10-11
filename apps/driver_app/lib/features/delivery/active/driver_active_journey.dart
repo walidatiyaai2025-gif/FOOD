@@ -395,7 +395,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final collectionRepository = repository as DriverCollectionRepository;
 
     final amountController = TextEditingController(
-      text: settlement.amountToCollectNow.toStringAsFixed(3),
+      text: foodexMoneyAmount(settlement.amountToCollectNow, settlement.currency),
     );
     final amount = await showDialog<double>(
       context: context,
