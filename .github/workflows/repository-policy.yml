@@ -26,7 +26,8 @@ jobs:
           bash -n scripts/worker-preflight.sh
           bash -n scripts/detect-changed-areas.sh
           bash -n scripts/validate-premerge-release-version.sh
-          python3 -m py_compile scripts/ci-plan.py scripts/ci-failure-registry.py scripts/foodex-branch-policy.py scripts/flutter-test-hermeticity.py
+          bash -n scripts/validate-fresh-setup.sh
+          python3 -m py_compile scripts/ci-plan.py scripts/ci-failure-registry.py scripts/foodex-branch-policy.py scripts/flutter-test-hermeticity.py scripts/mobile-ci-scope.py
           python3 scripts/ci-plan.py --validate
           python3 scripts/ci-failure-registry.py --validate
           python3 scripts/flutter-test-hermeticity.py
@@ -35,6 +36,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_foodex_branch_policy.py'
           python3 -m unittest discover -s scripts/tests -p 'test_flutter_test_hermeticity.py'
           python3 -m unittest discover -s scripts/tests -p 'test_one_push_green_contract.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_mobile_ci_scope.py'
           test -s docs/worker-rules/FIRST_RUN_GREEN.md
           test -s docs/worker-rules/CI_FAILURE_PATTERNS.md
       - name: Prevent post-merge main release failures

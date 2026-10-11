@@ -23,15 +23,22 @@ python3 - <<'PY'
 from pathlib import Path
 
 workflow = Path(".github/workflows/trial-distribution.yml").read_text(encoding="utf-8")
+fresh_setup = Path("scripts/validate-fresh-setup.sh")
+fresh_install_source = (
+    fresh_setup.read_text(encoding="utf-8")
+    if fresh_setup.exists()
+    else workflow
+)
+
 forbidden = "EFFECTIVE_FROM=\"$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')\""
-if forbidden in workflow:
+if forbidden in fresh_install_source:
     raise SystemExit(
         "Release policy violation: active/effective fresh-install fixtures must not use the exact current-time boundary. "
         "Use a deterministic past safety margin."
     )
 
-territory_create = workflow.find("/tmp/territory-post.html")
-assignment_create = workflow.find("/tmp/assignment-post.html")
+territory_create = fresh_install_source.find("/tmp/territory-post.html")
+assignment_create = fresh_install_source.find("/tmp/assignment-post.html")
 if territory_create < 0 or assignment_create < 0 or territory_create > assignment_create:
     raise SystemExit(
         "Release policy violation: fresh-install dependencies must be created before consumers "
@@ -39,7 +46,7 @@ if territory_create < 0 or assignment_create < 0 or territory_create > assignmen
     )
 
 side_effect_assertion = "Van assignment POST redirected but did not persist the expected FRESH-VAN-UI / FRESH-TERR assignment."
-if side_effect_assertion not in workflow:
+if side_effect_assertion not in fresh_install_source:
     raise SystemExit(
         "Release policy violation: HTTP 302 alone is not mutation evidence; "
         "the fresh-install Van Assignment POST must verify its persisted side effect."

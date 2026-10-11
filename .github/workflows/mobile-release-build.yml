@@ -1,0 +1,114 @@
+name: FOODEX Release Mobile Build
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: true
+        type: string
+      project:
+        required: true
+        type: string
+      display:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      build_number:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ inputs.display }} Android release artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/${{ inputs.app }}_app
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: release-gradle-${{ runner.os }}-${{ inputs.app }}-${{ hashFiles('apps/**/pubspec.yaml', 'packages/**/pubspec.yaml') }}
+          restore-keys: |
+            release-gradle-${{ runner.os }}-${{ inputs.app }}-
+            gradle-${{ runner.os }}-${{ inputs.app }}-
+      - name: Prepare native identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name "${{ inputs.project }}" .
+          python3 ../../scripts/configure-mobile-native.py --app "${{ inputs.app }}" --app-dir . --platform android
+          rm -f test/widget_test.dart
+          flutter pub get
+      - name: Build once
+        shell: bash
+        env:
+          CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_CUSTOMER_FIREBASE_API_KEY }}
+          CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_APP_ID }}
+          CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
+          CUSTOMER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_PROJECT_ID }}
+          DRIVER_FIREBASE_API_KEY: ${{ vars.FOODEX_DRIVER_FIREBASE_API_KEY }}
+          DRIVER_FIREBASE_APP_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_APP_ID }}
+          DRIVER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_MESSAGING_SENDER_ID }}
+          DRIVER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          defines=(--dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com)
+          if [[ "${{ inputs.app }}" == "customer" && -n "$CUSTOMER_FIREBASE_API_KEY" && -n "$CUSTOMER_FIREBASE_APP_ID" && -n "$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID" && -n "$CUSTOMER_FIREBASE_PROJECT_ID" ]]; then
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$CUSTOMER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$CUSTOMER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID")
+          fi
+          if [[ "${{ inputs.app }}" == "driver" && -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
+            defines+=(--dart-define=FOODEX_FIREBASE_API_KEY="$DRIVER_FIREBASE_API_KEY")
+            defines+=(--dart-define=FOODEX_FIREBASE_APP_ID="$DRIVER_FIREBASE_APP_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$DRIVER_FIREBASE_MESSAGING_SENDER_ID")
+            defines+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$DRIVER_FIREBASE_PROJECT_ID")
+          fi
+          flutter build apk --release --build-name="${{ inputs.version }}" --build-number="${{ inputs.build_number }}" "${defines[@]}"
+      - name: Verify artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-mobile-runtime-endpoint.py "$apk"
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          "$aapt_bin" dump badging "$apk" > build/release-factory-badging.txt
+          grep -F "versionCode='${{ inputs.build_number }}'" build/release-factory-badging.txt
+          grep -F "versionName='${{ inputs.version }}'" build/release-factory-badging.txt
+          case "${{ inputs.app }}" in
+            customer)
+              grep -F "package: name='com.fiftysolution.foodex.customer'" build/release-factory-badging.txt
+              ;;
+            driver)
+              grep -F "package: name='com.fiftysolution.foodex.driver'" build/release-factory-badging.txt
+              ;;
+            van)
+              grep -F "package: name='com.foodex.van'" build/release-factory-badging.txt
+              ;;
+          esac
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp "$apk" "$GITHUB_WORKSPACE/out/FOODEX-${{ inputs.display }}.apk"
+      - name: Upload immutable release input
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-mobile-${{ inputs.app }}-${{ github.sha }}
+          path: out/FOODEX-${{ inputs.display }}.apk
+          if-no-files-found: error
+          retention-days: 30
