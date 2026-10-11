@@ -3160,7 +3160,8 @@ class _DelayedQuantityWholesaleCommerceApi implements WholesaleCommerceApi {
     String? note,
     String? couponCode,
     required String idempotencyKey,
-  }) async => <String, Object?>{};
+  }) async =>
+      <String, Object?>{};
 }
 
 class _C13CheckoutStorefrontApi implements StorefrontApi {
@@ -3174,7 +3175,8 @@ class _C13CheckoutStorefrontApi implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) async => const {};
+  }) async =>
+      const {};
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
@@ -3260,7 +3262,8 @@ class _CheckoutStorefrontApi implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) async => const {};
+  }) async =>
+      const {};
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => const {};
@@ -3270,12 +3273,12 @@ class _CheckoutStorefrontApi implements StorefrontApi {
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => const {
-    'addresses': [
-      {'id': 1, 'label': 'المخزن', 'line1': 'شارع 1'},
-    ],
-    'delivery_dates': ['2026-09-30'],
-    'payment_methods': ['cash_on_delivery'],
-  };
+        'addresses': [
+          {'id': 1, 'label': 'المخزن', 'line1': 'شارع 1'},
+        ],
+        'delivery_dates': ['2026-09-30'],
+        'payment_methods': ['cash_on_delivery'],
+      };
 }
 
 class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
@@ -3327,7 +3330,8 @@ class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
     String? note,
     String? couponCode,
     required String idempotencyKey,
-  }) async => const <String, Object?>{};
+  }) async =>
+      const <String, Object?>{};
 }
 
 class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
@@ -3337,13 +3341,13 @@ class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
 
   @override
   Future<Object?> cart(int storeId) async => const {
-    'currency': 'KWD',
-    'subtotal': 25.5,
-    'grand_total': 25.5,
-    'items': [
-      {'name': 'Bulk Water', 'quantity': 2},
-    ],
-  };
+        'currency': 'KWD',
+        'subtotal': 25.5,
+        'grand_total': 25.5,
+        'items': [
+          {'name': 'Bulk Water', 'quantity': 2},
+        ],
+      };
 
   @override
   Future<Object?> addItem(int storeId, int productId, double quantity) async =>
@@ -3364,7 +3368,8 @@ class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
     String? note,
     String? couponCode,
     required String idempotencyKey,
-  }) async => checkoutResult;
+  }) async =>
+      checkoutResult;
 }
 
 class _FakeWholesaleStorefrontApi implements StorefrontApi {
@@ -3580,7 +3585,8 @@ class _CountingCustomerActionApi implements CustomerActionApi {
     String? paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => null;
+  }) async =>
+      null;
 }
 
 class _MemoryPendingActionStore implements CustomerPendingActionStore {
@@ -3640,5 +3646,6 @@ class _FakeCustomerActionApi implements CustomerActionApi {
     String? paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => {'id': 1};
+  }) async =>
+      {'id': 1};
 }
