@@ -70,6 +70,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_flutter_test_hermeticity.py'
           python3 -m unittest discover -s scripts/tests -p 'test_foodex_skill_router.py'
           python3 -m unittest discover -s scripts/tests -p 'test_one_push_green_contract.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_mobile_ci_scope.py'
 
       - name: Prevent post-merge main release failures
         shell: bash
