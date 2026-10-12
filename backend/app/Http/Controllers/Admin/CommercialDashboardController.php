@@ -599,13 +599,21 @@ final class CommercialDashboardController extends Controller
 
         $scope = app(OperationalTenantScope::class);
         $storeId = $request->integer('store_id');
+        $allowedStoreIds = $scope->allowedStoreIds($user, $permission, $channel);
 
         if ($storeId <= 0) {
-            $allowedStoreIds = $scope->allowedStoreIds($user, $permission, $channel);
-
             if ($allowedStoreIds !== []) {
                 $storeId = (int) $allowedStoreIds[0];
             } elseif ($allowEmptyStore && $user->hasRole('SUPER_ADMIN')) {
+                return [$user, 0];
+            }
+        } elseif ($allowEmptyStore && ! in_array($storeId, $allowedStoreIds, true)) {
+            if ($allowedStoreIds !== []) {
+                // Navigation can carry a store_id from the other commercial channel.
+                // Read-only commercial workspaces recover to the first authorized store
+                // instead of presenting a misleading 404. Mutations remain strict.
+                $storeId = (int) $allowedStoreIds[0];
+            } elseif ($user->hasRole('SUPER_ADMIN')) {
                 return [$user, 0];
             }
         }
