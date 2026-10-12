@@ -133,12 +133,16 @@ final class AssistantController extends Controller
             'locale' => ['nullable', Rule::in(['ar', 'en'])],
             'context' => ['nullable', 'array'],
         ]);
-        $locale = $this->locale($data['locale'] ?? $conversation->locale ?? $user->locale);
+        $message = trim((string) $data['message']);
+        $locale = $this->messageLocale(
+            $message,
+            $this->locale($data['locale'] ?? $conversation->locale ?? $user->locale),
+        );
         $context = $this->pageContext->resolve($user, (array) ($data['context'] ?? []));
         $correlationId = (string) Str::uuid();
 
         try {
-            $payload = DB::transaction(function () use ($user, $conversation, $data, $locale, $context, $correlationId): array {
+            $payload = DB::transaction(function () use ($user, $conversation, $message, $locale, $context, $correlationId): array {
                 $locked = AssistantConversation::query()
                     ->whereKey($conversation->getKey())
                     ->where('user_id', $user->getKey())
@@ -151,12 +155,12 @@ final class AssistantController extends Controller
                 AssistantMessage::query()->create([
                     'conversation_id' => $locked->getKey(),
                     'role' => AssistantMessage::ROLE_USER,
-                    'content' => trim((string) $data['message']),
+                    'content' => $message,
                     'correlation_id' => $correlationId,
                 ]);
 
                 $brainResult = $this->brain->respond(new AssistantBrainRequest(
-                    message: trim((string) $data['message']),
+                    message: $message,
                     locale: $locale,
                     context: $context,
                     state: $this->brainState($state),
@@ -205,7 +209,7 @@ final class AssistantController extends Controller
 
                 $locked->forceFill([
                     'locale' => $locale,
-                    'title' => $locked->title ?: Str::limit(trim((string) $data['message']), 120, ''),
+                    'title' => $locked->title ?: Str::limit($message, 120, ''),
                     'last_message_at' => now(),
                 ])->save();
 
@@ -337,7 +341,13 @@ final class AssistantController extends Controller
         array $context,
         string $locale,
     ): void {
+        $preserveContext = (bool) ($brainState['preserve_context'] ?? false);
         $authorized = is_array($context['authorized_entities'] ?? null) ? $context['authorized_entities'] : [];
+        $previousAuthorized = is_array($state?->last_authorized_entities) ? $state->last_authorized_entities : [];
+
+        if ($preserveContext && $authorized === []) {
+            $authorized = $previousAuthorized;
+        }
 
         if ($toolRequest?->storeId !== null) {
             $authorized['store_id'] = $toolRequest->storeId;
@@ -346,7 +356,9 @@ final class AssistantController extends Controller
             $authorized['channel'] = $toolRequest->channel;
         }
 
-        $references = $toolResult === null ? [] : $toolResult->references;
+        $references = $toolResult === null
+            ? ($preserveContext && is_array($state?->result_references) ? $state->result_references : [])
+            : $toolResult->references;
 
         foreach ($references as $reference) {
             $type = is_string($reference['type'] ?? null) ? $reference['type'] : null;
@@ -365,11 +377,15 @@ final class AssistantController extends Controller
         ($state ?? new AssistantConversationState(['conversation_id' => $conversation->getKey()]))
             ->forceFill([
                 'conversation_id' => $conversation->getKey(),
-                'last_intent' => $brainState['last_intent'] ?? null,
-                'last_period' => is_array($brainState['last_period'] ?? null) ? $brainState['last_period'] : null,
+                'last_intent' => $preserveContext ? $state?->last_intent : ($brainState['last_intent'] ?? null),
+                'last_period' => $preserveContext
+                    ? (is_array($state?->last_period) ? $state->last_period : null)
+                    : (is_array($brainState['last_period'] ?? null) ? $brainState['last_period'] : null),
                 'last_authorized_entities' => $authorized,
-                'last_tool' => $toolResult === null ? null : ($brainState['last_tool'] ?? $brainState['last_intent'] ?? null),
-                'result_references' => $toolResult === null ? [] : $toolResult->references,
+                'last_tool' => $preserveContext
+                    ? $state?->last_tool
+                    : ($toolResult === null ? null : ($brainState['last_tool'] ?? $brainState['last_intent'] ?? null)),
+                'result_references' => $references,
                 'pending_clarification_slots' => (bool) ($brainState['pending_clarification'] ?? false)
                     ? [['intent' => $brainState['last_intent'] ?? null]]
                     : [],
@@ -418,6 +434,7 @@ final class AssistantController extends Controller
         return $scalars === [] ? [] : [[
             'title' => $this->intentLabel($intent, $locale),
             'data' => $scalars,
+            'labels' => $this->cardLabels(array_keys($scalars), $locale),
         ]];
     }
 
@@ -426,8 +443,8 @@ final class AssistantController extends Controller
         $label = $this->intentLabel($intent, $locale);
 
         return $locale === 'ar'
-            ? 'تم تجهيز '.$label.' من بيانات FOODEX المعتمدة.'
-            : $label.' is ready from authoritative FOODEX data.';
+            ? 'تمام، جهزت لك '.$label.' من بيانات FOODEX الحالية.'
+            : 'Done — I prepared the '.$label.' from the current FOODEX data.';
     }
 
     private function intentLabel(?string $intent, string $locale): string
@@ -513,6 +530,88 @@ final class AssistantController extends Controller
     private function locale(mixed $value): string
     {
         return is_string($value) && strtolower($value) === 'en' ? 'en' : 'ar';
+    }
+
+    private function messageLocale(string $message, string $fallback): string
+    {
+        // Arabic script wins for mixed operational phrases such as "مبيعات B2B اليوم".
+        if (preg_match('/\\p{Arabic}/u', $message) === 1) {
+            return 'ar';
+        }
+
+        if (preg_match('/[A-Za-z]/', $message) === 1) {
+            return 'en';
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * @param  list<string|int>  $keys
+     * @return array<string, string>
+     */
+    private function cardLabels(array $keys, string $locale): array
+    {
+        $labels = [];
+
+        foreach ($keys as $key) {
+            $key = (string) $key;
+            $labels[$key] = $this->metricLabel($key, $locale);
+        }
+
+        return $labels;
+    }
+
+    private function metricLabel(string $key, string $locale): string
+    {
+        $arabic = [
+            'from' => 'من',
+            'to' => 'إلى',
+            'as_of' => 'حتى وقت',
+            'generated_at' => 'وقت التحديث',
+            'orders' => 'الطلبات',
+            'recognized_orders' => 'الطلبات المحتسبة',
+            'gross_value' => 'إجمالي القيمة',
+            'recognized_revenue' => 'الإيراد المعترف به',
+            'currency' => 'العملة',
+            'store_count' => 'عدد المتاجر',
+            'active_stores' => 'المتاجر النشطة',
+            'active_customers' => 'العملاء النشطون',
+            'selling_products' => 'المنتجات المباعة',
+            'quantity_sold' => 'الكمية المباعة',
+            'product_revenue' => 'إيراد المنتجات',
+            'late_after_minutes' => 'يُعد متأخرًا بعد (دقيقة)',
+            'late_orders' => 'الطلبات المتأخرة',
+            'cancelled_orders' => 'الطلبات الملغية',
+            'cancellation_rate_percent' => 'نسبة الإلغاء %',
+            'cancelled_value' => 'قيمة الطلبات الملغية',
+            'driver_count' => 'عدد السائقين',
+            'online' => 'متصلون',
+            'available' => 'متاحون',
+            'busy' => 'مشغولون',
+            'assignment_count' => 'عدد التكليفات',
+            'threshold' => 'حد التنبيه',
+            'alert_count' => 'عدد تنبيهات المخزون',
+            'found' => 'تم العثور',
+            'order_id' => 'رقم الطلب',
+            'order_number' => 'رقم الطلب الظاهر',
+            'store_id' => 'رقم المتجر',
+            'channel' => 'القناة',
+            'status' => 'الحالة',
+            'grand_total' => 'الإجمالي',
+            'customer_id' => 'رقم العميل',
+            'customer' => 'العميل',
+            'product_id' => 'رقم المنتج',
+            'sku' => 'SKU',
+            'revenue' => 'الإيراد',
+            'total' => 'الإجمالي',
+        ];
+
+        if ($locale === 'ar' && isset($arabic[$key])) {
+            return $arabic[$key];
+        }
+
+        return Str::headline($key);
     }
 
     private function channel(mixed $value): ?string
