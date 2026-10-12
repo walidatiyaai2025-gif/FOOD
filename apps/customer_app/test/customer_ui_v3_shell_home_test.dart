@@ -119,12 +119,11 @@ void main() {
 
       final mainScroll = find.byType(Scrollable).first;
       final bestSellersTitle = find.text('الأكثر مبيعاً');
-      await tester.scrollUntilVisible(
-        bestSellersTitle,
-        120,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: bestSellersTitle,
       );
-      await tester.pumpAndSettle();
       expect(bestSellersTitle, findsOneWidget);
 
       final bestGridFinder =
@@ -212,12 +211,11 @@ void main() {
 
       final mainScroll = find.byType(Scrollable).first;
       final bestSellersTitle = find.text('Best Sellers');
-      await tester.scrollUntilVisible(
-        bestSellersTitle,
-        120,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: bestSellersTitle,
       );
-      await tester.pumpAndSettle();
       expect(bestSellersTitle, findsOneWidget);
 
       final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
@@ -375,6 +373,21 @@ void main() {
     expect(uri.queryParameters['store_id'], '17');
     expect(uri.queryParameters['channel'], 'retail');
   });
+}
+
+Future<void> _dragUntilFound(
+  WidgetTester tester, {
+  required Finder scrollable,
+  required Finder target,
+}) async {
+  for (var attempt = 0; attempt < 12 && target.evaluate().isEmpty; attempt++) {
+    await tester.drag(scrollable, const Offset(0, -160));
+    await tester.pump();
+  }
+  if (target.evaluate().isNotEmpty) {
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
+  }
 }
 
 void _noopOpenProducts(
