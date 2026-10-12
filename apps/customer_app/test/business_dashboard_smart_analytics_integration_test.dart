@@ -4,6 +4,7 @@ import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
+import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/b2b/b2b_journey_screen.dart';
 import 'package:foodex_customer_app/features/b2b/business_dashboard_smart_analytics_launcher.dart';
 
@@ -202,6 +203,7 @@ Widget _app(
     (route) => route.pattern == CustomerRoutePaths.b2bDashboard,
   );
   return MaterialApp(
+    theme: FoodexTheme.light(fontFamily: 'sans'),
     home: AppTranslations(
       locale: locale,
       overrides: const <String, String>{},
@@ -286,7 +288,7 @@ void main() {
       expect(route.path, CustomerRoutePaths.b2bStoreAnalytics);
       expect(route.queryParameters, <String, String>{'retail_store_id': '22'});
 
-      await tester.pageBack();
+      Navigator.of(tester.element(find.text('Destination'))).pop();
       await _pumpRemote(tester);
       expect(
         api.paths.any(
