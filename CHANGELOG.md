@@ -2,7 +2,7 @@
 
 ## 1.0.74 - 2026-10-12
 
-- Promote the completed Customer VNext program from umbrella #1323 into the FOODEX 1.0.74 Dashboard update, including the unified Shopping Home, catalog/search/product details, cart/checkout/order success, orders/tracking, account/address/notifications/offers/settings, sanitized launch-data baseline, protected reset/reseed, production preflight/Launch gate, and independent final certification from #1333 / PR #1353.
+- Promote the completed Customer VNext program from umbrella #1323 into the FOODEX 1.0.74 Dashboard update, including the unified Shopping Home, catalog/search/product details, cart/checkout/order success, orders/tracking, account/address/notifications/offers/settings, sanitized launch-data baseline, protected reset/reseed, production preflight/Launch gate, and independent final certification from #1333 / PR #1353. The Dashboard package supports direct update from the currently published 1.0.73 release.
 - Include the integrated Mobile Smart Store Analytics mission #1354–#1359: authoritative Retail analytics in EGP, live Dashboard-managed store branding, compact mobile analytics UI, unread insight badge/pulse accessibility behavior, explicit Retail-vs-Wholesale context isolation, and final security/runtime/visual convergence through PR #1366.
 - Carry forward exact-head repository policy, localization, backend/MySQL, Customer validation, runtime screenshot, required mobile visual evidence, APP-PREVIEW parity and Platform Customer Commerce E2E gates from the merged integration lineage.
 - Preserve fail-closed production safeguards: Launch/reset still require the configured owner data, approved high-resolution assets, backup and green preflight evidence; this release does not bypass those controls.
