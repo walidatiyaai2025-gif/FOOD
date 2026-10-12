@@ -42,6 +42,7 @@ $submissionListText = static function ($value): string {
 <div class="layout foodex-admin-layout" data-foodex-utility="mobile-settings">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),'navContext'=>'mobile_settings','user'=>auth()->user()])</aside>
 <main class="main foodex-admin-main">
+@include('admin._admin-center-switcher',['active'=>'settings'])
 <header class="foodex-page-header"><div><h1>{{ __('mobile_settings.title') }}</h1><p class="muted">{{ __('mobile_settings.description') }}</p></div>@include('admin._live-notifications',['user'=>auth()->user()])</header>
 @if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="error foodex-state" role="alert">{{ $errors->first() }}</div>@endif
