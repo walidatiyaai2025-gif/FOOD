@@ -13,6 +13,7 @@ use App\Services\CatalogOwnership;
 use App\Services\CatalogZipImportService;
 use App\Services\LookupScopeService;
 use App\Services\ProductAvailabilityService;
+use App\Services\ProductSkuGenerator;
 use App\Services\RetailWholesaleAccountService;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
@@ -35,6 +36,7 @@ final class CatalogManagementController extends Controller
         private readonly TenantContextResolver $tenantContext,
         private readonly LookupScopeService $lookups,
         private readonly ProductAvailabilityService $availability,
+        private readonly ProductSkuGenerator $skuGenerator,
         private readonly CatalogImageService $images,
         private readonly CatalogZipImportService $catalogImports,
         private readonly RetailWholesaleAccountService $wholesaleAccounts,
@@ -349,7 +351,6 @@ final class CatalogManagementController extends Controller
     public function storeProduct(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'sku' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -369,12 +370,12 @@ final class CatalogManagementController extends Controller
         if (! empty($data['brand_id'])) {
             $this->lookups->assertAssignableToStore('brands', (int) $data['brand_id'], (int) $data['store_id']);
         }
-        $this->assertSkuAvailable((int) $catalog->id, (string) $data['sku']);
+        $sku = $this->skuGenerator->generate((int) $catalog->id, (int) $data['store_id']);
 
-        $id = DB::transaction(function () use ($data, $request, $catalog): int {
+        $id = DB::transaction(function () use ($data, $request, $catalog, $sku): int {
             $id = (int) DB::table('products')->insertGetId([
                 'catalog_id' => $catalog->id,
-                'sku' => $data['sku'],
+                'sku' => $sku,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'category_id' => $data['category_id'] ?? null,
@@ -410,6 +411,7 @@ final class CatalogManagementController extends Controller
             'product_id' => $id,
             'store_id' => (int) $data['store_id'],
             'image_count' => count($files),
+            'sku' => $sku,
         ], $request);
 
         return back()->with('status', $this->msg('تمت إضافة المنتج وصوره.', 'Product and images added.'));
@@ -421,7 +423,6 @@ final class CatalogManagementController extends Controller
         $this->authorizeCatalogAction($request, 'catalog.edit', (int) $owner->store_id, (string) $owner->channel);
 
         $data = $request->validate([
-            'sku' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
@@ -439,8 +440,6 @@ final class CatalogManagementController extends Controller
         $this->validateProductCategoryReference($categoryId, $owner);
         $this->validateProductLookupReference('units', $unitId, $owner);
         $this->validateProductLookupReference('brands', $brandId, $owner);
-        $this->assertSkuAvailable((int) $owner->catalog_id, (string) $data['sku'], $product);
-
         DB::table('products')->where('id', $product)->update([
             ...collect($data)->except(['is_active', 'images'])->all(),
             'is_active' => $request->boolean('is_active'),
