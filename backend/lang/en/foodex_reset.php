@@ -31,4 +31,7 @@ return [
     'failed' => 'The reset did not complete. Database changes were rolled back. Review the audit/server logs before trying again.',
     'success' => 'FOODEX was reset and the official catalog was reseeded successfully.',
     'expires' => 'This preview is valid for five minutes and one attempt.',
+    'confirmation_error' => 'Enter the displayed confirmation phrase exactly.',
+    'acknowledgment_error' => 'Review and acknowledge the reset impact.',
+    'password_required' => 'Enter your current password.',
 ];

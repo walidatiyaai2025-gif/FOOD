@@ -36,6 +36,11 @@ final class FoodexResetController extends Controller
             'confirmation' => ['required', 'in:'.__('foodex_reset.phrase')],
             'understood' => ['accepted'],
             'current_password' => ['required', 'string'],
+        ], [
+            'confirmation.required' => __('foodex_reset.confirmation_error'),
+            'confirmation.in' => __('foodex_reset.confirmation_error'),
+            'understood.accepted' => __('foodex_reset.acknowledgment_error'),
+            'current_password.required' => __('foodex_reset.password_required'),
         ]);
         if (! Hash::check((string) $request->input('current_password'), $actor->password)) {
             throw ValidationException::withMessages(['current_password' => __('foodex_reset.password_error')]);

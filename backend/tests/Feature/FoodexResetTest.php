@@ -2,14 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Updater\UpdateRuntime;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\FoodexResetService;
 use App\Services\LaunchCatalog;
 use Database\Seeders\CoreReferenceSeeder;
 use Database\Seeders\DashboardDemoSeeder;
+use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -122,6 +125,27 @@ class FoodexResetTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 0);
     }
 
+    public function test_successful_operation_cannot_be_replayed_from_the_same_preview(): void
+    {
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasErrors('reset');
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+    }
+
+    public function test_arabic_confirmation_errors_do_not_fall_back_to_english(): void
+    {
+        $owner = $this->superAdmin('ar');
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', [])->assertSessionHasErrors([
+            'confirmation' => 'اكتب عبارة التأكيد المعروضة كما هي.',
+            'understood' => 'راجع تأثير التهيئة وأكّد فهمك له.',
+            'current_password' => 'أدخل كلمة مرورك الحالية.',
+        ]);
+    }
+
     public function test_unknown_dependency_is_blocked_without_disabling_foreign_keys(): void
     {
         $this->bindCatalog();
@@ -143,6 +167,47 @@ class FoodexResetTest extends TestCase
         $this->assertFalse($preview['production_ready']);
         $this->assertFalse($preview['ready']);
         $this->app->instance('env', 'testing');
+    }
+
+    public function test_failed_actual_production_backup_leaves_every_row_intact(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
+        $before = DB::table('orders')->count();
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $maintenance = \Mockery::mock(MaintenanceMode::class);
+        $maintenance->shouldReceive('active')->andReturnTrue();
+        $this->app->instance(MaintenanceMode::class, $maintenance);
+        $backup = \Mockery::mock(UpdateRuntime::class);
+        $backup->shouldReceive('backupDatabase')->once()->with(true)->andThrow(new \RuntimeException('Backup unavailable'));
+        $this->app->instance(UpdateRuntime::class, $backup);
+        $path = tempnam(sys_get_temp_dir(), 'foodex-reset-');
+        file_put_contents($path, json_encode([
+            'ready' => true,
+            'database' => DB::connection()->getDatabaseName(),
+            'catalog_fingerprint' => 'test-contract',
+            'checked_at' => now()->timestamp,
+        ], JSON_THROW_ON_ERROR));
+        config(['foodex_reset.production_enabled' => true, 'foodex_reset.preflight_path' => $path]);
+        $this->app->instance('env', 'production');
+        try {
+            $reset = app(FoodexResetService::class);
+            $preview = $reset->preview();
+            $this->assertTrue($preview['production_ready']);
+            $request = Request::create('/admin/settings/foodex-reset', 'POST');
+            $request->setLaravelSession($this->app['session']->driver());
+            try {
+                $reset->execute($preview, $owner, $request);
+                $this->fail('Backup failure must prevent deletion.');
+            } catch (\RuntimeException $exception) {
+                $this->assertSame('Backup unavailable', $exception->getMessage());
+            }
+            $this->assertDatabaseCount('orders', $before);
+            $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+        } finally {
+            $this->app->instance('env', 'testing');
+            unlink($path);
+        }
     }
 
     private function confirmation(): array
