@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ProductionLaunchPreflight;
 use Database\Seeders\CoreReferenceSeeder;
+use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -253,6 +254,69 @@ PHP);
         $this->assertArrayHasKey('version', $audit->after['release']);
         $this->assertArrayHasKey('source_commit', $audit->after['release']);
         $this->assertSame($owner->id, $audit->user_id);
+    }
+
+    public function test_real_settings_route_exposes_launch_gate_to_super_admin(): void
+    {
+        $owner = $this->superAdmin();
+
+        $this->actingAs($owner)
+            ->get('/admin/settings')
+            ->assertOk()
+            ->assertSee(route('admin.production-launch.index'), false);
+
+        $this->actingAs($owner)
+            ->get('/admin/settings/production-launch')
+            ->assertOk()
+            ->assertSee('data-foodex-production-launch="true"', false);
+    }
+
+    public function test_green_launch_gate_publishes_fresh_reset_preflight_contract(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'foodex-launch-reset-');
+        $this->assertIsString($path);
+        config(['foodex_reset.preflight_path' => $path]);
+
+        $fingerprint = hash('sha256', 'launch-reset-contract');
+        $this->app->instance(FoodexLaunchSeeder::class, new class($fingerprint)
+        {
+            public function __construct(private readonly string $fingerprint) {}
+
+            public function preflight(): array
+            {
+                return [
+                    'ready' => true,
+                    'fingerprint' => $this->fingerprint,
+                ];
+            }
+        });
+
+        $checks = [];
+        foreach (ProductionLaunchPreflight::REQUIRED_CHECKS as $code) {
+            $checks[$code] = [
+                'passed' => true,
+                'detail' => 'passed',
+                'source' => 'test-evidence',
+            ];
+        }
+
+        try {
+            $service = app(ProductionLaunchPreflight::class);
+            $service->publishResetPreflightEvidence($service->decide($checks));
+
+            $evidence = json_decode((string) file_get_contents($path), true);
+            $this->assertIsArray($evidence);
+            $this->assertTrue($evidence['ready']);
+            $this->assertSame(DB::connection()->getDatabaseName(), $evidence['database']);
+            $this->assertSame($fingerprint, $evidence['catalog_fingerprint']);
+            $this->assertIsInt($evidence['checked_at']);
+            $this->assertGreaterThanOrEqual(now()->subMinute()->timestamp, $evidence['checked_at']);
+            $this->assertLessThanOrEqual(now()->timestamp, $evidence['checked_at']);
+        } finally {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
     }
 
     private function superAdmin(string $locale = 'en'): User
