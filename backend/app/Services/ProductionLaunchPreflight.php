@@ -16,6 +16,7 @@ final class ProductionLaunchPreflight
     /** @var list<string> */
     public const REQUIRED_CHECKS = [
         'schema_migrations',
+        'environment_configuration',
         'official_seed',
         'product_image_quality',
         'clean_production_data',
@@ -73,6 +74,7 @@ final class ProductionLaunchPreflight
     {
         return $this->decide([
             'schema_migrations' => $this->schemaCheck(),
+            'environment_configuration' => $this->environmentCheck(),
             'official_seed' => [
                 'passed' => class_exists(FoodexLaunchSeeder::class),
                 'detail' => class_exists(FoodexLaunchSeeder::class)
@@ -240,22 +242,67 @@ final class ProductionLaunchPreflight
     }
 
     /** @return array{passed:bool,detail:string,source:string} */
+    private function environmentCheck(): array
+    {
+        $checks = [
+            'production_environment' => app()->environment('production'),
+            'app_key' => is_string(config('app.key')) && trim((string) config('app.key')) !== '',
+            'debug_disabled' => config('app.debug') === false,
+            'database_configured' => is_string(config('database.default'))
+                && trim((string) config('database.default')) !== '',
+        ];
+
+        $failed = array_keys(array_filter(
+            $checks,
+            static fn (bool $passed): bool => $passed === false,
+        ));
+
+        return [
+            'passed' => $failed === [],
+            'detail' => $failed === []
+                ? 'Required production environment safeguards are configured.'
+                : 'Missing production environment safeguards: '.implode(', ', $failed),
+            'source' => 'runtime configuration',
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
     private function productionDataCheck(): array
     {
         $demoOrders = Schema::hasTable('orders')
-            ? DB::table('orders')->where('order_number', 'like', 'FOODEX-DEMO-%')->count()
-            : 0;
-        $demoCustomers = Schema::hasTable('customers')
-            ? DB::table('customers')->where('email', 'like', '%@demo.foodex.test')->count()
+            ? DB::table('orders')
+                ->where(function ($query): void {
+                    $query->where('order_number', 'like', 'FOODEX-DEMO-%')
+                        ->orWhere('order_number', 'like', 'EVIDENCE-%');
+                })
+                ->count()
             : 0;
 
-        $count = $demoOrders + $demoCustomers;
+        $demoCustomers = Schema::hasTable('customers')
+            ? DB::table('customers')
+                ->where(function ($query): void {
+                    $query->where('email', 'like', '%@demo.foodex.test')
+                        ->orWhere('email', 'like', '%@example.test');
+                })
+                ->count()
+            : 0;
+
+        $demoUsers = Schema::hasTable('users')
+            ? DB::table('users')
+                ->where(function ($query): void {
+                    $query->where('email', 'like', '%@demo.foodex.test')
+                        ->orWhere('email', 'like', '%@example.test');
+                })
+                ->count()
+            : 0;
+
+        $count = $demoOrders + $demoCustomers + $demoUsers;
 
         return [
             'passed' => $count === 0,
             'detail' => $count === 0
-                ? 'No known FOODEX demo order/customer markers are present.'
-                : $count.' known demo rows are still present.',
+                ? 'No known FOODEX demo/test customer, user or transaction markers are present.'
+                : $count.' known demo/test rows are still present.',
             'source' => 'database scan',
         ];
     }
