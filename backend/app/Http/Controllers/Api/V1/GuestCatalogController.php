@@ -178,10 +178,40 @@ class GuestCatalogController extends Controller
             ->values()
             ->all();
 
+        $sellingUnits = DB::table('product_selling_units')
+            ->where('product_id', $item->id)
+            ->where('is_active', true)
+            ->orderByDesc('is_base')
+            ->orderBy('conversion_factor')
+            ->orderBy('id')
+            ->get([
+                'id',
+                'code',
+                'name',
+                'conversion_factor',
+                'price',
+                'sku',
+                'barcode',
+                'is_base',
+            ])
+            ->map(static fn ($unit): array => [
+                'id' => (int) $unit->id,
+                'code' => (string) $unit->code,
+                'name' => (string) $unit->name,
+                'conversion_factor' => (float) $unit->conversion_factor,
+                'price' => $unit->price === null ? null : (float) $unit->price,
+                'sku' => $unit->sku,
+                'barcode' => $unit->barcode,
+                'is_base' => (bool) $unit->is_base,
+            ])
+            ->values()
+            ->all();
+
         return response()->json([
             ...$this->productSummary($item, $price, $storeId),
             'description' => $item->description,
             'images' => $images,
+            'selling_units' => $sellingUnits,
         ]);
     }
 
