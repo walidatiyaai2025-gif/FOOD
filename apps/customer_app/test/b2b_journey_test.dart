@@ -3337,8 +3337,7 @@ class _DelayedQuantityWholesaleCommerceApi implements WholesaleCommerceApi {
       <String, Object?>{};
 }
 
-class _CheckoutJourneyWholesaleCommerceApi
-    implements WholesaleCommerceApi {
+class _CheckoutJourneyWholesaleCommerceApi implements WholesaleCommerceApi {
   int checkoutCalls = 0;
 
   @override
