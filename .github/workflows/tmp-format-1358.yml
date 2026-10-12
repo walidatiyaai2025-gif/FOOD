@@ -20,14 +20,14 @@ jobs:
           cache: true
       - name: Canonically format changed Dart files
         run: |
-          dart format             apps/customer/lib/features/store_analytics/store_analytics_screen.dart             apps/customer/test/screenshot_evidence_test.dart             apps/customer/test/store_analytics_screen_test.dart
+          dart format             apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart             apps/customer_app/test/screenshot_evidence_test.dart             apps/customer_app/test/store_analytics_screen_test.dart
       - name: Stage formatted artifact
         run: |
-          mkdir -p /tmp/formatted/apps/customer/lib/features/store_analytics
-          mkdir -p /tmp/formatted/apps/customer/test
-          cp apps/customer/lib/features/store_analytics/store_analytics_screen.dart /tmp/formatted/apps/customer/lib/features/store_analytics/
-          cp apps/customer/test/screenshot_evidence_test.dart /tmp/formatted/apps/customer/test/
-          cp apps/customer/test/store_analytics_screen_test.dart /tmp/formatted/apps/customer/test/
+          mkdir -p /tmp/formatted/apps/customer_app/lib/features/store_analytics
+          mkdir -p /tmp/formatted/apps/customer_app/test
+          cp apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart /tmp/formatted/apps/customer_app/lib/features/store_analytics/
+          cp apps/customer_app/test/screenshot_evidence_test.dart /tmp/formatted/apps/customer_app/test/
+          cp apps/customer_app/test/store_analytics_screen_test.dart /tmp/formatted/apps/customer_app/test/
       - uses: actions/upload-artifact@v4
         with:
           name: formatted-1358
