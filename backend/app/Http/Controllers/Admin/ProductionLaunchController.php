@@ -47,7 +47,6 @@ final class ProductionLaunchController extends Controller
         }
 
         $report = $preflight->runtimeReport();
-        $preflight->publishResetPreflightEvidence($report);
         $preflight->approve(
             $actor,
             $request,
@@ -55,6 +54,7 @@ final class ProductionLaunchController extends Controller
             $data['confirmation'],
             $audit,
         );
+        $preflight->publishResetPreflightEvidence($report);
 
         return redirect('/admin/settings/production-launch')
             ->with('status', __('production_launch.approved'));
