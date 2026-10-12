@@ -6132,7 +6132,7 @@ class _WholesaleOrdersHeader extends StatelessWidget {
                   button: true,
                   label: MaterialLocalizations.of(context).backButtonTooltip,
                   child: Tooltip(
-                    message: MaterialLocalizations.of(context).backButtonTooltip,
+                    message:\n                        MaterialLocalizations.of(context).backButtonTooltip,
                     child: Material(
                       color: CustomerUiColors.mintStrong.withOpacity(.45),
                       shape: const CircleBorder(),
