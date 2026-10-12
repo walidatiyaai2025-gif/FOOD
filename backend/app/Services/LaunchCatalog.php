@@ -20,10 +20,17 @@ class LaunchCatalog
             return ['ready' => false, 'fingerprint' => null];
         }
         $result = $callback();
+        $fingerprint = $result['fingerprint'] ?? null;
+        $hasSeedContract = is_string($fingerprint) && trim($fingerprint) !== '';
 
         return [
-            'ready' => ($result['ready'] ?? false) === true,
-            'fingerprint' => $result['fingerprint'] ?? null,
+            // #1330 deliberately makes production launch readiness stricter than
+            // non-production seedability. QA/test reset may seed a deterministic
+            // fixture while unresolved production-only image/source review remains.
+            'ready' => app()->environment('production')
+                ? ($result['ready'] ?? false) === true && $hasSeedContract
+                : $hasSeedContract,
+            'fingerprint' => $hasSeedContract ? $fingerprint : null,
         ];
     }
 
