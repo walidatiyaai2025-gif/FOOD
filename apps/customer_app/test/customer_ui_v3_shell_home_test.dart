@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
+import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
@@ -63,6 +64,7 @@ void main() {
                 child: RetailHomeV3Screen(
                   storeId: 7,
                   catalogApi: _FakeCatalogApi(),
+                  storefrontApi: const _FakeStorefrontApi(),
                   isAuthenticated: false,
                   navigation: navigation,
                   onAddToCart: ({
@@ -84,6 +86,19 @@ void main() {
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
+      expect(find.text('الأكثر مبيعاً'), findsOneWidget);
+      expect(find.text('عرض المزيد'), findsOneWidget);
+      expect(find.text('Weekend Offer'), findsNothing);
+
+      final bestGrid = tester.widget<GridView>(
+        find.byKey(const ValueKey('retail-best-sellers-grid')),
+      );
+      final bestDelegate = bestGrid.gridDelegate
+          as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(bestDelegate.crossAxisCount, 3);
+      expect(find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('retail-shell-nav-home')),
         findsOneWidget,
@@ -133,6 +148,47 @@ void main() {
       await tester.tap(add);
       await tester.pump();
       expect(addedProductId, 42);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Customer VNext Home keeps three-column geometry on standard LTR phone',
+    (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: CustomerRetailShell(
+            commerceContext: const CustomerCommerceContext(
+              channel: CustomerCommerceChannel.retail,
+              storeId: 7,
+            ),
+            activeDestination: CustomerRetailDestination.home,
+            isAuthenticated: true,
+            child: RetailHomeV3Screen(
+              storeId: 7,
+              catalogApi: _FakeCatalogApi(),
+              storefrontApi: const _FakeStorefrontApi(),
+              isAuthenticated: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Best Sellers'), findsOneWidget);
+      expect(find.text('View more'), findsOneWidget);
+      final allGrid = tester.widget<GridView>(
+        find.byKey(const ValueKey('retail-all-products-grid')),
+      );
+      final allDelegate = allGrid.gridDelegate
+          as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(allDelegate.crossAxisCount, 3);
       expect(tester.takeException(), isNull);
     },
   );
@@ -260,6 +316,54 @@ class _FakeCatalogApi implements B2cCatalogApi {
           currency: 'KWD',
           categoryId: 3,
         ),
+        B2cProduct(
+          id: 43,
+          name: 'Mango Pack',
+          sku: 'MAN-43',
+          price: 4.10,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 44,
+          name: 'Okra Pack',
+          sku: 'OKR-44',
+          price: 2.95,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 45,
+          name: 'French Fries',
+          sku: 'FRY-45',
+          price: 1.80,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 46,
+          name: 'Mozzarella',
+          sku: 'MOZ-46',
+          price: 5.30,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 47,
+          name: 'Chicken Strips',
+          sku: 'CHK-47',
+          price: 6.40,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 48,
+          name: 'Tomato Sauce',
+          sku: 'SAU-48',
+          price: 2.20,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
       ];
 
   @override
@@ -285,4 +389,39 @@ class _FakeCatalogApi implements B2cCatalogApi {
         sku: 'TOM-42',
         price: 3.25,
       );
+}
+
+
+class _FakeStorefrontApi implements StorefrontApi {
+  const _FakeStorefrontApi();
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async => {
+        'sections': [
+          {
+            'type': 'best_sellers',
+            'config': {
+              'product_ids': [44, 43, 42],
+              'limit': 3,
+            },
+          },
+        ],
+      };
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const <String, dynamic>{};
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
+      const <String, dynamic>{};
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
+      const <String, dynamic>{};
 }
