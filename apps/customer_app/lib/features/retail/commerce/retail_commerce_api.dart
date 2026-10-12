@@ -288,7 +288,10 @@ class RetailCreatedOrder {
       throw const RetailCommerceException('invalid_checkout_response');
     }
 
-    final payment = _asMap(map['payment']);
+    final rawPayment = map['payment'];
+    final payment = rawPayment is Map
+        ? Map<String, dynamic>.from(rawPayment)
+        : <String, dynamic>{};
     return RetailCreatedOrder(
       id: id,
       storeId: storeId,
