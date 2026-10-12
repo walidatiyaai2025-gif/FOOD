@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
+import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
@@ -63,6 +64,7 @@ void main() {
                 child: RetailHomeV3Screen(
                   storeId: 7,
                   catalogApi: _FakeCatalogApi(),
+                  storefrontApi: const _FakeStorefrontApi(),
                   isAuthenticated: false,
                   navigation: navigation,
                   onAddToCart: ({
@@ -82,8 +84,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
+      expect(find.text('Weekend Offer'), findsNothing);
       expect(
         find.byKey(const ValueKey('retail-shell-nav-home')),
         findsOneWidget,
@@ -113,15 +117,31 @@ void main() {
       await tester.pump();
       expect(capturedCategoryId, 3);
 
-      final product = find.byKey(const ValueKey('retail-product-42'));
-      final mainScroll = find.byType(Scrollable).first;
-      await tester.scrollUntilVisible(
-        product,
-        240,
+      final mainScroll = _homeVerticalScroll();
+      final bestGridFinder =
+          find.byKey(const ValueKey('retail-best-sellers-grid'));
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: bestGridFinder,
       );
-      await tester.drag(mainScroll, const Offset(0, -160));
-      await tester.pumpAndSettle();
+      final bestGrid = tester.widget<GridView>(bestGridFinder);
+      final bestDelegate =
+          bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(bestDelegate.crossAxisCount, 3);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
+
+      final product = find.byKey(const ValueKey('retail-product-42'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: product,
+      );
       await tester.tap(product);
       await tester.pump();
       expect(capturedProductId, 42);
@@ -133,9 +153,106 @@ void main() {
       await tester.tap(add);
       await tester.pump();
       expect(addedProductId, 42);
+
+      final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: viewMore,
+      );
+      await tester.tap(viewMore);
+      await tester.pump();
+      expect(searchStore, 7);
+      expect(capturedCategoryId, isNull);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'Customer VNext Home keeps three-column geometry on standard LTR phone',
+    (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: CustomerRetailShell(
+            commerceContext: const CustomerCommerceContext(
+              channel: CustomerCommerceChannel.retail,
+              storeId: 7,
+            ),
+            activeDestination: CustomerRetailDestination.home,
+            isAuthenticated: true,
+            child: RetailHomeV3Screen(
+              storeId: 7,
+              catalogApi: _FakeCatalogApi(),
+              storefrontApi: const _FakeStorefrontApi(),
+              isAuthenticated: true,
+              navigation: const RetailCatalogNavigation(
+                openProducts: _noopOpenProducts,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final mainScroll = _homeVerticalScroll();
+      final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: bestGrid,
+      );
+
+      final allGridFinder =
+          find.byKey(const ValueKey('retail-all-products-grid'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: allGridFinder,
+      );
+      final allGrid = tester.widget<GridView>(allGridFinder);
+      final allDelegate =
+          allGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(allDelegate.crossAxisCount, 3);
+
+      final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: viewMore,
+      );
+      expect(find.text('View more'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Customer VNext Home exposes an explicit retryable offline state',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailHomeV3Screen(
+          storeId: 7,
+          catalogApi: _OfflineCatalogApi(),
+          isAuthenticated: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('retail-home-offline')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.wifi_off_rounded), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
       'fixed footer reserves business-action space and Home returns to platform store switcher',
@@ -170,12 +287,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final actionBottom = tester.getBottomLeft(
-      find.byKey(const ValueKey('business-fixed-action')),
-    ).dy;
-    final footerTop = tester.getTopLeft(
-      find.byKey(const ValueKey('customer-persistent-footer')),
-    ).dy;
+    final actionBottom = tester
+        .getBottomLeft(
+          find.byKey(const ValueKey('business-fixed-action')),
+        )
+        .dy;
+    final footerTop = tester
+        .getTopLeft(
+          find.byKey(const ValueKey('customer-persistent-footer')),
+        )
+        .dy;
     expect(actionBottom, lessThanOrEqualTo(footerTop));
 
     await tester.tap(
@@ -185,8 +306,8 @@ void main() {
     expect(pushedRoute, CustomerRoutePaths.marketplace);
   });
 
-
-  testWidgets('floating navigation preserves authoritative Retail store context',
+  testWidgets(
+      'floating navigation preserves authoritative Retail store context',
       (tester) async {
     String? pushedRoute;
 
@@ -234,6 +355,42 @@ void main() {
   });
 }
 
+Finder _homeVerticalScroll() {
+  final homeList = find.byKey(const ValueKey('retail-home-scroll'));
+  return find
+      .descendant(
+        of: homeList,
+        matching: find.byType(Scrollable),
+      )
+      .first;
+}
+
+Future<void> _dragUntilFound(
+  WidgetTester tester, {
+  required Finder scrollable,
+  required Finder target,
+}) async {
+  for (var attempt = 0; attempt < 30 && target.evaluate().isEmpty; attempt++) {
+    await tester.drag(scrollable, const Offset(0, -220));
+    await tester.pump();
+  }
+  expect(
+    target,
+    findsOneWidget,
+    reason:
+        'Expected lazy Home content to become reachable by vertical scroll.',
+  );
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+}
+
+void _noopOpenProducts(
+  BuildContext context, {
+  required int storeId,
+  String? query,
+  int? categoryId,
+}) {}
+
 class _FakeCatalogApi implements B2cCatalogApi {
   @override
   Future<List<B2cStore>> stores() async => const <B2cStore>[];
@@ -257,6 +414,54 @@ class _FakeCatalogApi implements B2cCatalogApi {
           name: 'Tomato Box',
           sku: 'TOM-42',
           price: 3.25,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 43,
+          name: 'Mango Pack',
+          sku: 'MAN-43',
+          price: 4.10,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 44,
+          name: 'Okra Pack',
+          sku: 'OKR-44',
+          price: 2.95,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 45,
+          name: 'French Fries',
+          sku: 'FRY-45',
+          price: 1.80,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 46,
+          name: 'Mozzarella',
+          sku: 'MOZ-46',
+          price: 5.30,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 47,
+          name: 'Chicken Strips',
+          sku: 'CHK-47',
+          price: 6.40,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 48,
+          name: 'Tomato Sauce',
+          sku: 'SAU-48',
+          price: 2.20,
           currency: 'KWD',
           categoryId: 3,
         ),
@@ -285,4 +490,45 @@ class _FakeCatalogApi implements B2cCatalogApi {
         sku: 'TOM-42',
         price: 3.25,
       );
+}
+
+class _FakeStorefrontApi implements StorefrontApi {
+  const _FakeStorefrontApi();
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async => {
+        'sections': [
+          {
+            'type': 'best_sellers',
+            'config': {
+              'product_ids': [44, 43, 42],
+              'limit': 3,
+            },
+          },
+        ],
+      };
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const <String, dynamic>{};
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
+      const <String, dynamic>{};
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
+      const <String, dynamic>{};
+}
+
+class _OfflineCatalogApi extends _FakeCatalogApi {
+  @override
+  Future<List<B2cCategory>> categories(int storeId) async {
+    throw const B2cCatalogException(B2cCatalogException.networkUnavailable);
+  }
 }
