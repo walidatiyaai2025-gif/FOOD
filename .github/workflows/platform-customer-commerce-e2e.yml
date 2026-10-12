@@ -113,6 +113,49 @@ jobs:
           grep -Fq '/orders/101/track?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
           grep -Fq '/profile?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
 
+      - name: Verify Customer VNext final-certification structure
+        if: ${{ startsWith(github.head_ref, 'test/1333-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("docs/execution/FOODEX_CUSTOMER_VNEXT_REQUIREMENTS.json").read_text()
+          )
+          rows = payload["requirements"]
+          ids = [row["id"] for row in rows]
+          assert len(ids) == len(set(ids)), "Customer VNext requirement IDs must be unique"
+
+          for row in rows:
+              owner = row.get("owner_issue")
+              assert isinstance(owner, int) and 1324 <= owner <= 1333, (
+                  f"{row['id']}: invalid owner_issue {owner!r}"
+              )
+
+          qa_ids = {
+              row["id"] for row in rows if row.get("owner_issue") == 1333
+          }
+          assert qa_ids == {
+              "CVN-QA-ROUTES",
+              "CVN-QA-STATES",
+              "CVN-QA-JOURNEY",
+          }, f"unexpected #1333 ownership: {sorted(qa_ids)}"
+          PY
+
+          test -f apps/customer_app/lib/core/routing/customer_screen_registry.dart
+          test -f apps/customer_app/test/customer_screen_registry_test.dart
+          grep -Fq 'customerRouteDefinitions' apps/customer_app/test/customer_screen_registry_test.dart
+
+          grep -Fq "for (final locale in const [Locale('ar'), Locale('en')])" apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/home?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/products?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/cart?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/orders/101/track?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+          grep -Fq '/profile?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+
       - name: Verify Commerce Isolation A-H/J convergence evidence
         if: ${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
         shell: bash
