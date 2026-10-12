@@ -387,23 +387,45 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                               ),
                               const SizedBox(height: CustomerUiSpacing.sm),
                             ],
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    strings.total,
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
+                            CustomerCheckoutTotalsCard(
+                              key: const ValueKey('retail-cart-totals'),
+                              rows: [
+                                CustomerCheckoutTotalRow(
+                                  label: strings.subtotal,
+                                  value: foodexMoneyText(
+                                    cart.subtotal,
+                                    cart.currency,
                                   ),
                                 ),
-                                Text(
-                                  foodexMoneyText(cart.grandTotal, cart.currency),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge
-                                      ?.copyWith(
-                                        color: CustomerUiColors.deepGreenStrong,
-                                      ),
+                                if (cart.discountTotal > 0)
+                                  CustomerCheckoutTotalRow(
+                                    label: strings.discount,
+                                    value:
+                                        '-${foodexMoneyText(cart.discountTotal, cart.currency)}',
+                                  ),
+                                if (cart.deliveryTotal > 0)
+                                  CustomerCheckoutTotalRow(
+                                    label: strings.delivery,
+                                    value: foodexMoneyText(
+                                      cart.deliveryTotal,
+                                      cart.currency,
+                                    ),
+                                  ),
+                                if (cart.taxTotal > 0)
+                                  CustomerCheckoutTotalRow(
+                                    label: strings.tax,
+                                    value: foodexMoneyText(
+                                      cart.taxTotal,
+                                      cart.currency,
+                                    ),
+                                  ),
+                                CustomerCheckoutTotalRow(
+                                  label: strings.total,
+                                  value: foodexMoneyText(
+                                    cart.grandTotal,
+                                    cart.currency,
+                                  ),
+                                  emphasized: true,
                                 ),
                               ],
                             ),
