@@ -189,19 +189,20 @@ class CustomerCheckoutTotalsCard extends StatelessWidget {
             children: [
               for (var index = 0; index < rows.length; index++) ...[
                 if (index > 0) const SizedBox(height: CustomerUiSpacing.xs),
-                Row(
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: CustomerUiSpacing.sm,
+                  runSpacing: CustomerUiSpacing.xxs,
                   children: [
-                    Expanded(
-                      child: Text(
-                        rows[index].label,
-                        style: rows[index].emphasized
-                            ? Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                )
-                            : Theme.of(context).textTheme.bodyMedium,
-                      ),
+                    Text(
+                      rows[index].label,
+                      style: rows[index].emphasized
+                          ? Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              )
+                          : Theme.of(context).textTheme.bodyMedium,
                     ),
-                    const SizedBox(width: CustomerUiSpacing.sm),
                     Directionality(
                       textDirection: TextDirection.ltr,
                       child: Text(
