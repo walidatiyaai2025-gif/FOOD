@@ -1,0 +1,583 @@
+{
+  "schema_version": 1,
+  "source": {
+    "database": "solscool_foodex",
+    "generated_at_utc": "2026-10-12T13:06:00Z",
+    "server_version": "10.11.18-MariaDB-cll-lve",
+    "sha256": "dd8ad844f963ffe0317a4ba4346d61fae7ce0d02909b3d05394d9497ea2b9023",
+    "size_bytes": 2548349,
+    "counts": {
+      "products": 39,
+      "product_images": 39,
+      "product_selling_units": 36,
+      "categories": 17,
+      "stores": 3,
+      "store_products": 39,
+      "orders": 82,
+      "order_items": 150,
+      "payments": 93,
+      "translations": 566,
+      "users": 10,
+      "customers": 5
+    }
+  },
+  "stores": [
+    {
+      "source_id": 2,
+      "code": "FDX-QA-RETAIL-1",
+      "name": "سوبر ماركت - 1",
+      "channel": "b2c",
+      "has_catalog": true
+    },
+    {
+      "source_id": 3,
+      "code": "FDX-QA-RETAIL-2",
+      "name": "صيدلية العزبي",
+      "channel": "b2c",
+      "has_catalog": false
+    },
+    {
+      "source_id": 4,
+      "code": "FDX-QA-WHOLESALE",
+      "name": "FOODEX Wholesale",
+      "channel": "b2b",
+      "has_catalog": true
+    }
+  ],
+  "categories": [
+    {
+      "source_id": 1,
+      "name": "خضراوات طازجة",
+      "slug": "khdraoat-tazg-i8hde",
+      "store_source_id": 2
+    },
+    {
+      "source_id": 2,
+      "name": "اجبان",
+      "slug": "اجبان",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 3,
+      "name": "ألبان",
+      "slug": "البان",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 4,
+      "name": "خضراوات",
+      "slug": "ب",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 5,
+      "name": "مكرونات",
+      "slug": "مكرونات",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 16,
+      "name": "Beverages",
+      "slug": "cat-001",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 17,
+      "name": "Snacks",
+      "slug": "cat-002",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 18,
+      "name": "Dairy",
+      "slug": "cat-003",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 19,
+      "name": "Bakery",
+      "slug": "cat-004",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 20,
+      "name": "Personal Care",
+      "slug": "cat-005",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 21,
+      "name": "Home Care",
+      "slug": "cat-006",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 22,
+      "name": "Health & Wellness",
+      "slug": "cat-007",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 23,
+      "name": "Cooking Essentials",
+      "slug": "cat-008",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 24,
+      "name": "Tea & Coffee",
+      "slug": "cat-009",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 25,
+      "name": "Baby Care",
+      "slug": "cat-010",
+      "store_source_id": 4
+    },
+    {
+      "source_id": 26,
+      "name": "اجبان",
+      "slug": "اجبان",
+      "store_source_id": 2
+    },
+    {
+      "source_id": 27,
+      "name": "ألبان",
+      "slug": "البان",
+      "store_source_id": 2
+    }
+  ],
+  "products": [
+    {
+      "source_id": 1,
+      "category_source_id": null,
+      "unit_code": "BOX",
+      "name": "جبنة بيضاء قلقلة الدسم",
+      "store_source_id": 2,
+      "price": 25,
+      "cost_price": 40,
+      "qa_sku": "FDX-QA-P001"
+    },
+    {
+      "source_id": 2,
+      "category_source_id": null,
+      "unit_code": "BOX",
+      "name": "جبنة بيضاء قلقلة الدسم",
+      "store_source_id": 4,
+      "price": 50,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P002"
+    },
+    {
+      "source_id": 3,
+      "category_source_id": 3,
+      "unit_code": "L",
+      "name": "حليب كامل الدسم",
+      "store_source_id": 4,
+      "price": 50,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P003"
+    },
+    {
+      "source_id": 4,
+      "category_source_id": 4,
+      "unit_code": "BOX",
+      "name": "بطاطس",
+      "store_source_id": 4,
+      "price": 21,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P004"
+    },
+    {
+      "source_id": 5,
+      "category_source_id": 5,
+      "unit_code": "PACK",
+      "name": "مكرونة فودينا",
+      "store_source_id": 4,
+      "price": 40,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P005"
+    },
+    {
+      "source_id": 6,
+      "category_source_id": 2,
+      "unit_code": "BOX",
+      "name": "جبنة موزريلا",
+      "store_source_id": 4,
+      "price": 80,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P006"
+    },
+    {
+      "source_id": 67,
+      "category_source_id": 16,
+      "unit_code": "PC",
+      "name": "Coca-Cola 1.5L",
+      "store_source_id": 4,
+      "price": 28,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P007"
+    },
+    {
+      "source_id": 68,
+      "category_source_id": 16,
+      "unit_code": "PC",
+      "name": "Pepsi 330ml",
+      "store_source_id": 4,
+      "price": 12,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P008"
+    },
+    {
+      "source_id": 69,
+      "category_source_id": 16,
+      "unit_code": "PC",
+      "name": "Sprite 1.5L",
+      "store_source_id": 4,
+      "price": 27,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P009"
+    },
+    {
+      "source_id": 70,
+      "category_source_id": 16,
+      "unit_code": "PC",
+      "name": "Juhayna Orange Juice 1L",
+      "store_source_id": 4,
+      "price": 35,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P010"
+    },
+    {
+      "source_id": 71,
+      "category_source_id": 18,
+      "unit_code": "PC",
+      "name": "Nido Milk Powder 1800g",
+      "store_source_id": 4,
+      "price": 615,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P011"
+    },
+    {
+      "source_id": 72,
+      "category_source_id": 17,
+      "unit_code": "PC",
+      "name": "KitKat 4 Finger 41.5g",
+      "store_source_id": 4,
+      "price": 15,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P012"
+    },
+    {
+      "source_id": 73,
+      "category_source_id": 17,
+      "unit_code": "PC",
+      "name": "Lay's Classic 105g",
+      "store_source_id": 4,
+      "price": 32,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P013"
+    },
+    {
+      "source_id": 74,
+      "category_source_id": 17,
+      "unit_code": "PC",
+      "name": "Doritos Nacho Cheese 180g",
+      "store_source_id": 4,
+      "price": 34,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P014"
+    },
+    {
+      "source_id": 75,
+      "category_source_id": 17,
+      "unit_code": "PC",
+      "name": "Nutella 350g",
+      "store_source_id": 4,
+      "price": 145,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P015"
+    },
+    {
+      "source_id": 76,
+      "category_source_id": 23,
+      "unit_code": "PC",
+      "name": "Heinz Ketchup 570g",
+      "store_source_id": 4,
+      "price": 58,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P016"
+    },
+    {
+      "source_id": 77,
+      "category_source_id": 24,
+      "unit_code": "PC",
+      "name": "Lipton Yellow Label 100 Tea Bags",
+      "store_source_id": 4,
+      "price": 72,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P017"
+    },
+    {
+      "source_id": 78,
+      "category_source_id": 24,
+      "unit_code": "PC",
+      "name": "Nescafe Classic 200g",
+      "store_source_id": 4,
+      "price": 225,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P018"
+    },
+    {
+      "source_id": 79,
+      "category_source_id": 23,
+      "unit_code": "PC",
+      "name": "Al Doha Egyptian Rice 1kg",
+      "store_source_id": 4,
+      "price": 38,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P019"
+    },
+    {
+      "source_id": 80,
+      "category_source_id": 23,
+      "unit_code": "PC",
+      "name": "Crystal Sunflower Oil 1.5L",
+      "store_source_id": 4,
+      "price": 78,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P020"
+    },
+    {
+      "source_id": 81,
+      "category_source_id": 21,
+      "unit_code": "PC",
+      "name": "Ariel Powder 2.5kg",
+      "store_source_id": 4,
+      "price": 280,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P021"
+    },
+    {
+      "source_id": 82,
+      "category_source_id": 21,
+      "unit_code": "PC",
+      "name": "Fairy Dishwash 750ml",
+      "store_source_id": 4,
+      "price": 95,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P022"
+    },
+    {
+      "source_id": 83,
+      "category_source_id": 20,
+      "unit_code": "PC",
+      "name": "Pantene Shampoo 400ml",
+      "store_source_id": 4,
+      "price": 155,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P023"
+    },
+    {
+      "source_id": 84,
+      "category_source_id": 20,
+      "unit_code": "PC",
+      "name": "Dove Body Wash 500ml",
+      "store_source_id": 4,
+      "price": 120,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P024"
+    },
+    {
+      "source_id": 85,
+      "category_source_id": 25,
+      "unit_code": "PC",
+      "name": "Pampers Pants Size 4",
+      "store_source_id": 4,
+      "price": 310,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P025"
+    },
+    {
+      "source_id": 86,
+      "category_source_id": 20,
+      "unit_code": "PC",
+      "name": "Always Ultra 14 Pads",
+      "store_source_id": 4,
+      "price": 65,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P026"
+    },
+    {
+      "source_id": 87,
+      "category_source_id": 22,
+      "unit_code": "PC",
+      "name": "Dettol Handwash 200ml",
+      "store_source_id": 4,
+      "price": 62,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P027"
+    },
+    {
+      "source_id": 88,
+      "category_source_id": 20,
+      "unit_code": "PC",
+      "name": "Rexona Deodorant 150ml",
+      "store_source_id": 4,
+      "price": 85,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P028"
+    },
+    {
+      "source_id": 89,
+      "category_source_id": 22,
+      "unit_code": "PC",
+      "name": "Colgate Toothpaste 100ml",
+      "store_source_id": 4,
+      "price": 48,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P029"
+    },
+    {
+      "source_id": 90,
+      "category_source_id": 20,
+      "unit_code": "PC",
+      "name": "Head & Shoulders 400ml",
+      "store_source_id": 4,
+      "price": 175,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P030"
+    },
+    {
+      "source_id": 91,
+      "category_source_id": 20,
+      "unit_code": "PC",
+      "name": "Gillette Blue3 3 Blades",
+      "store_source_id": 4,
+      "price": 120,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P031"
+    },
+    {
+      "source_id": 92,
+      "category_source_id": 18,
+      "unit_code": "PC",
+      "name": "Juhayna Yogurt 105g",
+      "store_source_id": 4,
+      "price": 8,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P032"
+    },
+    {
+      "source_id": 93,
+      "category_source_id": 18,
+      "unit_code": "PC",
+      "name": "President Cheese 500g",
+      "store_source_id": 4,
+      "price": 150,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P033"
+    },
+    {
+      "source_id": 94,
+      "category_source_id": 19,
+      "unit_code": "PC",
+      "name": "Rich Bake Bread Slices 600g",
+      "store_source_id": 4,
+      "price": 32,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P034"
+    },
+    {
+      "source_id": 95,
+      "category_source_id": 23,
+      "unit_code": "PC",
+      "name": "Maggi Chicken Stock 24 Cubes",
+      "store_source_id": 4,
+      "price": 38,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P035"
+    },
+    {
+      "source_id": 96,
+      "category_source_id": 23,
+      "unit_code": "PC",
+      "name": "Afia Corn Flakes 500g",
+      "store_source_id": 4,
+      "price": 95,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P036"
+    },
+    {
+      "source_id": 97,
+      "category_source_id": 26,
+      "unit_code": "BOX",
+      "name": "جبنة موزريلا",
+      "store_source_id": 2,
+      "price": 60,
+      "cost_price": 50,
+      "qa_sku": "FDX-QA-P037"
+    },
+    {
+      "source_id": 98,
+      "category_source_id": 27,
+      "unit_code": "L",
+      "name": "حليب كامل الدسم",
+      "store_source_id": 2,
+      "price": 40,
+      "cost_price": 40,
+      "qa_sku": "FDX-QA-P038"
+    },
+    {
+      "source_id": 99,
+      "category_source_id": 4,
+      "unit_code": "BOX",
+      "name": "سبانخ",
+      "store_source_id": 4,
+      "price": 1000,
+      "cost_price": null,
+      "qa_sku": "FDX-QA-P039"
+    }
+  ],
+  "order_distribution": {
+    "channels": {
+      "b2b": 79,
+      "b2c": 3
+    },
+    "statuses": {
+      "confirmed": 11,
+      "cancelled": 1,
+      "failed": 1,
+      "pending": 31,
+      "delivered": 27,
+      "out_for_delivery": 5,
+      "preparing": 3,
+      "assigned": 2,
+      "accepted": 1
+    },
+    "payment_methods": {
+      "cash_on_delivery": 81,
+      "account_credit": 1
+    }
+  },
+  "payment_distribution": {
+    "cash_on_delivery": {
+      "pending": 63,
+      "paid": 18
+    },
+    "field_collection": {
+      "paid": 11
+    },
+    "account_credit": {
+      "pending": 1
+    }
+  },
+  "sanitization": {
+    "email_domain": "example.test",
+    "phone_prefix": "+9650000",
+    "address_label_prefix": "FOODEX QA Address",
+    "provider_references": null,
+    "private_source_rows_committed": false
+  }
+}
