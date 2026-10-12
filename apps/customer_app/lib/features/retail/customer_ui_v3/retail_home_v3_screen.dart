@@ -647,7 +647,8 @@ class _RetailHomeV3Data {
         : const <String, dynamic>{};
     final ids = config['product_ids'] is List
         ? (config['product_ids'] as List)
-            .map((value) =>\n                value is num ? value.toInt() : int.tryParse('$value'))
+            .map((value) =>
+                value is num ? value.toInt() : int.tryParse('$value'))
             .whereType<int>()
             .where((id) => id > 0)
             .toList(growable: false)
