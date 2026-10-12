@@ -141,8 +141,6 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/invoices/{invoice}', [CustomerInvoiceController::class, 'show'])->whereNumber('invoice');
             Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index']);
             Route::get('/store-selector', [StorefrontController::class, 'selector']);
-        Route::get('/mobile/store-analytics', StoreAnalyticsController::class)
-            ->name('api.mobile.store-analytics');
             Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show'])->whereNumber('store');
         });
 
@@ -240,6 +238,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/admin/app-preview/storefront-revisions/{revision}/publish', [StorefrontRevisionController::class, 'publish'])->whereUuid('revision');
         Route::post('/admin/app-preview/storefront-revisions/{revision}/rollback', [StorefrontRevisionController::class, 'rollback'])->whereUuid('revision');
         Route::get('/store-selector', [StorefrontController::class, 'selector']);
+        Route::get('/mobile/store-analytics', StoreAnalyticsController::class)
+            ->name('api.mobile.store-analytics');
         Route::get('/b2b/stores/{store}/storefront', [StorefrontController::class, 'showWholesale']);
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
         Route::get('/b2b/product-mappings', [RetailWholesaleProductMappingController::class, 'index']);
