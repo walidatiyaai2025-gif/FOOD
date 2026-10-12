@@ -188,8 +188,7 @@ class CustomerCheckoutTotalsCard extends StatelessWidget {
           child: Column(
             children: [
               for (var index = 0; index < rows.length; index++) ...[
-                if (index > 0)
-                  const SizedBox(height: CustomerUiSpacing.xs),
+                if (index > 0) const SizedBox(height: CustomerUiSpacing.xs),
                 Row(
                   children: [
                     Expanded(
