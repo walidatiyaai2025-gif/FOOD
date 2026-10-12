@@ -1064,7 +1064,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     );
   }
 
-
   Widget _dashboardIdentityImage(
     Map<Object?, Object?> customer,
     Map<Object?, Object?> account,
