@@ -45,13 +45,13 @@ $submissionListText = static function ($value): string {
 <main class="main foodex-admin-main foodex-settings-surface">
 @include('admin._admin-center-switcher',['active'=>'settings'])
 <header class="foodex-page-header"><div><h1>{{ __('mobile_settings.title') }}</h1><p class="muted">{{ __('mobile_settings.description') }}</p></div>@include('admin._live-notifications',['user'=>auth()->user()])</header>
-<nav class="mobile-settings-nav" aria-label="{{ $ar ? 'أقسام إعدادات الموبايل' : 'Mobile settings sections' }}" data-mobile-settings-nav>
-<a href="#runtime" data-mobile-section-link="runtime">{{ $ar ? 'تشغيل التطبيقات' : 'App runtime' }}</a>
-<a href="#location" data-mobile-section-link="location">{{ $ar ? 'موقع السائق' : 'Driver location' }}</a>
-<a href="#push" data-mobile-section-link="push">{{ $ar ? 'Push' : 'Push' }}</a>
-<a href="#push-test" data-mobile-section-link="push-test">{{ $ar ? 'اختبار Push' : 'Push test' }}</a>
-<a href="#publishing" data-mobile-section-link="publishing">{{ $ar ? 'النشر والمتاجر' : 'Publishing' }}</a>
-<a href="#reviewers" data-mobile-section-link="reviewers">{{ $ar ? 'حسابات المراجعة' : 'Reviewer accounts' }}</a>
+<nav class="mobile-settings-nav" aria-label="{{ __('admin.settings_center.mobile_sections_aria') }}" data-mobile-settings-nav>
+<a href="#runtime" data-mobile-section-link="runtime">{{ __('admin.settings_center.items.mobile') }}</a>
+<a href="#location" data-mobile-section-link="location">{{ __('admin.settings_center.items.driver_location') }}</a>
+<a href="#push" data-mobile-section-link="push">{{ __('admin.settings_center.items.push') }}</a>
+<a href="#push-test" data-mobile-section-link="push-test">{{ __('admin.settings_center.items.push_test') }}</a>
+<a href="#publishing" data-mobile-section-link="publishing">{{ __('admin.settings_center.items.publishing') }}</a>
+<a href="#reviewers" data-mobile-section-link="reviewers">{{ __('admin.settings_center.items.reviewers') }}</a>
 </nav>
 @if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="error foodex-state" role="alert">{{ $errors->first() }}</div>@endif
