@@ -52,6 +52,7 @@ class FoodexCustomerApp extends StatefulWidget {
     this.actionApi,
     this.storefrontApi,
     this.wholesaleCommerceApi,
+    this.retailCommerceApi,
     this.customerOrdersApi,
     this.locale = const Locale('ar'),
     this.translationOverrides = const {},
@@ -134,6 +135,7 @@ class FoodexCustomerApp extends StatefulWidget {
   final CustomerActionApi? actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleCommerceApi;
+  final RetailCommerceApi? retailCommerceApi;
   final CustomerOrdersApi? customerOrdersApi;
   final Locale locale;
   final Map<String, String> translationOverrides;
@@ -705,7 +707,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       );
     }
 
-    final retailCommerceApi = retailCommerceForToken(token);
+    final retailCommerceApi =
+        widget.retailCommerceApi ?? retailCommerceForToken(token);
     final customerOrdersApi = widget.customerOrdersApi ??
         (token == null || token.isEmpty
             ? null
@@ -731,7 +734,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       storefrontApi: storefrontApi,
       wholesaleApi: wholesaleCommerceApi,
       retailCommerceApi: retailCommerceApi,
-      retailCommerceForToken: (newToken) => retailCommerceForToken(newToken),
+      retailCommerceForToken: (newToken) =>
+          widget.retailCommerceApi ?? retailCommerceForToken(newToken),
       customerOrdersApi: customerOrdersApi,
       favoritesApi: favoritesApi,
       wholesaleFavoritesApi: wholesaleFavoritesApi,
