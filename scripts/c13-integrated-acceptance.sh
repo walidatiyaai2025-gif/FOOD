@@ -127,8 +127,8 @@ require_text "$driver_diagnostics" "central inspector keeps offline Driver failu
 
 # Exact integrated visual matrix: 13 B2B screens, both AR/RTL and EN/LTR, fixed phone viewport.
 test -f "$screenshots" || fail "C13 screenshot evidence matrix is missing"
-c13_screenshot_count="$(grep -c '01_Mobile/B2B_Customer/' "$screenshots")"
-[[ "$c13_screenshot_count" -eq 13 ]] || fail "C13 screenshot matrix must contain exactly 13 B2B capture cases (found $c13_screenshot_count)"
+c13_screenshot_count="$(grep -Ec '01_Mobile/B2B_Customer/(0[1-9]|1[0-3])_' "$screenshots")"
+[[ "$c13_screenshot_count" -eq 13 ]] || fail "C13 screenshot matrix must contain exactly the 13 canonical B2B capture cases (found $c13_screenshot_count)"
 require_text "$screenshots" "for (final locale in const [Locale('ar'), Locale('en')])"
 require_text "$screenshots" "tester.view.physicalSize = const Size(430, 932)"
 
