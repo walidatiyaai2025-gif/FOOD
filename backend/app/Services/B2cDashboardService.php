@@ -39,12 +39,18 @@ final class B2cDashboardService
 
         $orderCount = (clone $orders)->count('orders.id');
         $previousOrderCount = (clone $previousOrders)->count('orders.id');
-        $revenue = (float) (clone $orders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->sum('orders.grand_total');
-        $previousRevenue = (float) (clone $previousOrders)
-            ->whereNotIn('orders.status', ['cancelled', 'refunded'])
-            ->sum('orders.grand_total');
+        $revenueOrders = (clone $orders)
+            ->whereNotIn('orders.status', ['cancelled', 'refunded']);
+        $previousRevenueOrders = (clone $previousOrders)
+            ->whereNotIn('orders.status', ['cancelled', 'refunded']);
+        $revenueOrderCount = (clone $revenueOrders)->count('orders.id');
+        $previousRevenueOrderCount = (clone $previousRevenueOrders)->count('orders.id');
+        $revenue = (float) (clone $revenueOrders)->sum('orders.grand_total');
+        $previousRevenue = (float) (clone $previousRevenueOrders)->sum('orders.grand_total');
+        $averageOrderValue = $revenueOrderCount > 0 ? $revenue / $revenueOrderCount : 0.0;
+        $previousAverageOrderValue = $previousRevenueOrderCount > 0
+            ? $previousRevenue / $previousRevenueOrderCount
+            : 0.0;
 
         $sold = (float) DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
@@ -89,19 +95,28 @@ final class B2cDashboardService
                 ],
                 'orders' => [
                     'value' => $orderCount,
+                    'previous_value' => $previousOrderCount,
                     'delta' => $this->delta($orderCount, $previousOrderCount),
                 ],
                 'revenue' => [
                     'value' => round($revenue, 3),
+                    'previous_value' => round($previousRevenue, 3),
                     'delta' => $this->delta($revenue, $previousRevenue),
+                ],
+                'average_order_value' => [
+                    'value' => round($averageOrderValue, 3),
+                    'previous_value' => round($previousAverageOrderValue, 3),
+                    'delta' => $this->delta($averageOrderValue, $previousAverageOrderValue),
                 ],
                 'products_sold' => [
                     'value' => round($sold, 3),
+                    'previous_value' => round($previousSold, 3),
                     'delta' => $this->delta($sold, $previousSold),
                 ],
             ],
             'series' => $this->series($storeIds, $rangeFrom, $rangeTo),
             'distribution' => $this->distribution($orders),
+            'previous_distribution' => $this->distribution($previousOrders),
             'low_stock' => $this->lowStock($storeIds),
             'recent_orders' => $this->recentOrders($storeIds, $from, $to),
             'mobile_apps' => $this->mobileApps(),
