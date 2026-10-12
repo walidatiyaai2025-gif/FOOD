@@ -41,6 +41,40 @@ class PlatformCustomerMarketplaceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $retailUnitId = (int) DB::table('products')
+            ->where('id', $retailProduct)
+            ->value('unit_id');
+        DB::table('product_selling_units')->insert([
+            [
+                'product_id' => $retailProduct,
+                'unit_id' => $retailUnitId,
+                'code' => 'PC',
+                'name' => 'Piece',
+                'conversion_factor' => 1,
+                'price' => null,
+                'sku' => 'R-PLATFORM-1',
+                'barcode' => null,
+                'is_base' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $retailProduct,
+                'unit_id' => null,
+                'code' => 'CTN12',
+                'name' => 'Carton 12',
+                'conversion_factor' => 12,
+                'price' => 165.000,
+                'sku' => 'R-PLATFORM-1-CTN12',
+                'barcode' => null,
+                'is_base' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
         $wholesaleCategory = (int) DB::table('products')
             ->where('id', $wholesaleProduct)
             ->value('category_id');
@@ -115,7 +149,13 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertOk()
             ->assertJsonPath('available_quantity', 0)
             ->assertJsonPath('is_available', false)
-            ->assertJsonPath('availability_state', 'OUT_OF_STOCK');
+            ->assertJsonPath('availability_state', 'OUT_OF_STOCK')
+            ->assertJsonCount(2, 'selling_units')
+            ->assertJsonPath('selling_units.0.code', 'PC')
+            ->assertJsonPath('selling_units.0.is_base', true)
+            ->assertJsonPath('selling_units.1.code', 'CTN12')
+            ->assertJsonPath('selling_units.1.conversion_factor', 12)
+            ->assertJsonPath('selling_units.1.price', 165);
 
         DB::table('inventories')
             ->where('warehouse_id', $retailWarehouse)
