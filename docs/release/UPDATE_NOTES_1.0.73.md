@@ -1,6 +1,6 @@
 # FOODEX 1.0.73 Release Notes
 
-Release promotion tracked by Issue #1308.
+Release promotion tracked by Issue #1308 / PR #1309.
 
 ## Release identity
 
@@ -26,5 +26,5 @@ Release promotion tracked by Issue #1308.
 
 - Required CI, Repository Policy, Store Readiness and Update Bundle validation must pass on the exact release head.
 - The generated `FOODEX-Update.zip` must target `1.0.73`, remain cumulative from the supported updater boundary and report no full redeploy requirement.
-- The exact generated Dashboard package SHA-256 must be registered in the append-only release registry before merge to `main`.
+- Generated Dashboard package SHA-256: `3a7d74ad10d5328b225205852fa1848482ce6f825ca922607781cf118adcbf9f` (registered before merge).
 - The main VERSION promotion triggers the canonical Release Factory to build Customer, Driver and Van Android artifacts plus Dashboard/Setup assets from the same source commit.
