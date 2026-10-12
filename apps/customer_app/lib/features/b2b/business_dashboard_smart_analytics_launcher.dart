@@ -219,7 +219,6 @@ class _BusinessDashboardSmartAnalyticsLauncherState
   }
 }
 
-
 class BusinessDashboardStoreLogo extends StatelessWidget {
   const BusinessDashboardStoreLogo({
     required this.storeName,
