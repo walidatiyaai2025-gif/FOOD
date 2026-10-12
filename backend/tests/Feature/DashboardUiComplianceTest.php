@@ -165,10 +165,26 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertIsString($view);
         $this->assertStringContainsString('__(\'order_operations.title\')', $view);
-        $this->assertStringContainsString('__(\'order_operations.filters.channel\')', $view);
+        $this->assertStringNotContainsString('name="channel"', $view);
+        $this->assertStringNotContainsString('name="store_id"', $view);
+        $this->assertStringNotContainsString("__('order_operations.columns.store')", $view);
+        $this->assertStringNotContainsString("__('order_operations.columns.channel')", $view);
         $this->assertStringContainsString('__(\'order_operations.columns.actions\')', $view);
         $this->assertStringNotContainsString('$isAr?\'إدارة الطلبات\':\'Order Management\'', $view);
         $this->assertStringNotContainsString('$isAr?\'إجراءات الطلب\':\'Order actions\'', $view);
+    }
+
+    public function test_order_operations_fits_small_laptop_viewport_without_store_or_channel_columns(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed', $view);
+        $this->assertStringContainsString('@media(max-width:1500px) and (min-width:1001px)', $view);
+        $this->assertStringContainsString('.table-wrap{overflow:visible}', $view);
+        $this->assertStringContainsString('colspan="10"', $view);
+        $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.store\') }}</th>', $view);
+        $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.channel\') }}</th>', $view);
     }
 
     public function test_customer_360_shell_copy_uses_locale_catalog(): void
