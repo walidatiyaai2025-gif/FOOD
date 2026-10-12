@@ -2,10 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 
+import '../../core/api/store_analytics_api.dart' as analytics_api;
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 
 enum StoreAnalyticsStatus { loading, loaded, empty, error, noEntitlement }
+
+StoreAnalyticsStatus storeAnalyticsStatusFromConsumerState(
+  analytics_api.StoreAnalyticsConsumerState state,
+) {
+  return switch (state.status) {
+    analytics_api.StoreAnalyticsConsumerStatus.loading =>
+      StoreAnalyticsStatus.loading,
+    analytics_api.StoreAnalyticsConsumerStatus.ready ||
+    analytics_api.StoreAnalyticsConsumerStatus.stale =>
+      StoreAnalyticsStatus.loaded,
+    analytics_api.StoreAnalyticsConsumerStatus.empty =>
+      StoreAnalyticsStatus.empty,
+    analytics_api.StoreAnalyticsConsumerStatus.noEntitlement =>
+      StoreAnalyticsStatus.noEntitlement,
+    analytics_api.StoreAnalyticsConsumerStatus.error =>
+      StoreAnalyticsStatus.error,
+  };
+}
 
 enum StoreAnalyticsInsightTone { positive, warning, neutral }
 
@@ -36,6 +55,12 @@ class StoreAnalyticsCopy {
     required this.refresh,
     required this.storeLogo,
     required this.ordersUnit,
+    this.lastUpdated = '',
+    this.cancelledOrders = '',
+    this.stockAttention = '',
+    this.topProduct = '',
+    this.viewOrders = '',
+    this.viewProducts = '',
   });
 
   final String title;
@@ -63,6 +88,12 @@ class StoreAnalyticsCopy {
   final String refresh;
   final String storeLogo;
   final String ordersUnit;
+  final String lastUpdated;
+  final String cancelledOrders;
+  final String stockAttention;
+  final String topProduct;
+  final String viewOrders;
+  final String viewProducts;
 
   factory StoreAnalyticsCopy.fromContext(BuildContext context) =>
       StoreAnalyticsCopy(
@@ -98,6 +129,14 @@ class StoreAnalyticsCopy {
         refresh: context.tr('b2b.store_analytics.action.refresh'),
         storeLogo: context.tr('b2b.store_analytics.store'),
         ordersUnit: context.tr('b2b.store_analytics.kpi.orders'),
+        lastUpdated: context.tr('b2b.store_analytics.state.last_updated'),
+        cancelledOrders: context.tr('b2b.store_analytics.kpi.cancelled'),
+        stockAttention: context.tr(
+          'b2b.store_analytics.insights.stock_attention',
+        ),
+        topProduct: context.tr('b2b.store_analytics.insights.top_product'),
+        viewOrders: context.tr('b2b.store_analytics.action.view_orders'),
+        viewProducts: context.tr('b2b.store_analytics.action.view_products'),
       );
 }
 
@@ -168,6 +207,132 @@ class StoreAnalyticsData {
   final List<StoreAnalyticsDailyPoint> dailySeries;
   final List<StoreAnalyticsInsight> insights;
   final bool isStale;
+}
+
+StoreAnalyticsData storeAnalyticsDataFromReadModel(
+  analytics_api.StoreAnalyticsReadModel model, {
+  required StoreAnalyticsCopy copy,
+}) {
+  if (model.store.currency != 'EGP') {
+    throw StateError(
+      'Store Analytics requires the authoritative EGP currency contract.',
+    );
+  }
+
+  final sourceUpdatedAt =
+      model.freshness.sourceUpdatedAt ?? model.freshness.computedAt;
+  final freshnessLabel = copy.lastUpdated.isEmpty
+      ? sourceUpdatedAt
+      : '${copy.lastUpdated}: $sourceUpdatedAt';
+
+  final insights = model.insights
+      .map(
+        (insight) => _storeAnalyticsInsightFromReadModel(
+          insight,
+          retailStoreId: model.store.id,
+          copy: copy,
+        ),
+      )
+      .whereType<StoreAnalyticsInsight>()
+      .toList(growable: false);
+
+  return StoreAnalyticsData(
+    storeId: model.store.id,
+    storeName: model.store.name,
+    logoUrl: model.store.logoUrl,
+    currency: model.store.currency,
+    periodLabel: '${model.period.from} – ${model.period.to}',
+    freshnessLabel: freshnessLabel,
+    revenue: model.metrics.revenue.value,
+    orders: model.metrics.orders.value.toInt(),
+    averageOrderValue: model.metrics.averageOrderValue.value,
+    revenueDeltaPercent: model.metrics.revenue.deltaPercent,
+    dailySeries: model.dailySeries
+        .map(
+          (point) => StoreAnalyticsDailyPoint(
+            dateLabel: point.date,
+            sales: point.sales,
+            orders: point.orders,
+          ),
+        )
+        .toList(growable: false),
+    insights: insights,
+    isStale: model.isStale,
+  );
+}
+
+StoreAnalyticsInsight? _storeAnalyticsInsightFromReadModel(
+  analytics_api.StoreAnalyticsInsight insight, {
+  required int retailStoreId,
+  required StoreAnalyticsCopy copy,
+}) {
+  final facts = insight.facts;
+  final tone = switch (insight.severity) {
+    'positive' => StoreAnalyticsInsightTone.positive,
+    'warning' => StoreAnalyticsInsightTone.warning,
+    _ => StoreAnalyticsInsightTone.neutral,
+  };
+
+  switch (insight.code) {
+    case 'cancelled_orders_attention':
+      final cancelled = facts.cancelledOrders ?? 0;
+      final total = facts.orderCount;
+      return StoreAnalyticsInsight(
+        id: insight.id,
+        title: copy.cancelledOrders.isEmpty ? copy.orders : copy.cancelledOrders,
+        body: total == null
+            ? '$cancelled ${copy.ordersUnit}'
+            : '$cancelled / $total ${copy.ordersUnit}',
+        tone: tone,
+        actionLabel: copy.viewOrders.isEmpty ? null : copy.viewOrders,
+        targetRoute: '/orders?channel=retail&store_id=$retailStoreId',
+      );
+    case 'stock_attention_required':
+      final lowStock = facts.lowStockCount ?? 0;
+      final reorderNow = facts.reorderNowCount ?? 0;
+      return StoreAnalyticsInsight(
+        id: insight.id,
+        title: copy.stockAttention.isEmpty ? copy.insights : copy.stockAttention,
+        body: '$lowStock · $reorderNow',
+        tone: tone,
+        actionLabel: copy.viewProducts.isEmpty ? null : copy.viewProducts,
+        targetRoute: '/products?channel=retail&store_id=$retailStoreId',
+      );
+    case 'revenue_increased':
+    case 'revenue_decreased':
+    case 'revenue_flat':
+      return StoreAnalyticsInsight(
+        id: insight.id,
+        title: copy.comparison,
+        body: '${_displayPercent(facts.deltaPercent)} ${copy.vsPrevious}',
+        tone: tone,
+      );
+    case 'top_product_contribution':
+      final productId = facts.productId;
+      final name = facts.productName ?? copy.topProduct;
+      return StoreAnalyticsInsight(
+        id: insight.id,
+        title: copy.topProduct.isEmpty ? copy.insights : copy.topProduct,
+        body: '$name · ${_displayPercent(facts.contributionPercent)}',
+        tone: tone,
+        actionLabel: productId == null || copy.viewProducts.isEmpty
+            ? null
+            : copy.viewProducts,
+        targetRoute: productId == null
+            ? null
+            : '/products/$productId?channel=retail&store_id=$retailStoreId',
+      );
+    default:
+      return null;
+  }
+}
+
+String _displayPercent(double? value) {
+  if (value == null) {
+    return '—';
+  }
+  final whole = value == value.roundToDouble();
+  return '${value.toStringAsFixed(whole ? 0 : 1)}%';
 }
 
 class StoreAnalyticsScreen extends StatelessWidget {
