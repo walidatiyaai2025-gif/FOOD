@@ -83,19 +83,22 @@ void main() {
       CustomerRouteAuthority.multiStore,
     );
   });
-  test('every registered Customer route resolves to an explicit renderer authority', () {
-    for (final route in customerRouteDefinitions) {
-      final location = route.pattern
-          .replaceAll(':store', '7')
-          .replaceAll(':product', '42')
-          .replaceAll(':id', '42');
 
-      expect(
-        customerRouteAuthorityFor(route, location),
-        isNot(CustomerRouteAuthority.placeholder),
-        reason: 'Unowned Customer route: ${route.pattern}',
-      );
-    }
-  });
+  test(
+    'every registered Customer route resolves to an explicit renderer authority',
+    () {
+      for (final route in customerRouteDefinitions) {
+        final location = route.pattern
+            .replaceAll(':store', '7')
+            .replaceAll(':product', '42')
+            .replaceAll(':id', '42');
 
+        expect(
+          customerRouteAuthorityFor(route, location),
+          isNot(CustomerRouteAuthority.placeholder),
+          reason: 'Unowned Customer route: ${route.pattern}',
+        );
+      }
+    },
+  );
 }
