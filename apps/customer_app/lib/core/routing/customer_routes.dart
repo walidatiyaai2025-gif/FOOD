@@ -217,12 +217,18 @@ class CustomerStoreAnalyticsRouteContext {
 
   final int? retailStoreId;
 
-  String get location => Uri(
-        path: CustomerRoutePaths.b2bStoreAnalytics,
-        queryParameters: <String, String>{
-          if (retailStoreId != null) 'retail_store_id': '$retailStoreId',
-        },
-      ).toString();
+  String get location {
+    if (retailStoreId == null) {
+      return CustomerRoutePaths.b2bStoreAnalytics;
+    }
+
+    return Uri(
+      path: CustomerRoutePaths.b2bStoreAnalytics,
+      queryParameters: <String, String>{
+        'retail_store_id': '$retailStoreId',
+      },
+    ).toString();
+  }
 
   static CustomerStoreAnalyticsRouteContext? tryParse(String? location) {
     if (location == null || location.isEmpty || location != location.trim()) {
