@@ -9,6 +9,8 @@ use App\Services\FoodexResetService;
 use App\Services\LaunchCatalog;
 use Database\Seeders\CoreReferenceSeeder;
 use Database\Seeders\DashboardDemoSeeder;
+use Database\Seeders\FoodexCustomerVNextFixtureSeeder;
+use Database\Seeders\FoodexLaunchCatalogSeeder;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,19 +52,72 @@ class FoodexResetTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_reset_is_hard_blocked_until_authoritative_seed_contract_exists(): void
+    public function test_non_production_accepts_seedable_official_contract_without_production_image_readiness(): void
     {
+        $productionReadiness = app(FoodexLaunchCatalogSeeder::class)->readiness();
+        $this->assertFalse($productionReadiness['ready']);
+
+        $preview = app(FoodexResetService::class)->preview();
+
+        $this->assertTrue($preview['catalog_ready']);
+        $this->assertTrue($preview['references_ready']);
+        $this->assertTrue($preview['production_ready']);
+        $this->assertTrue($preview['ready']);
+        $this->assertIsString($preview['catalog_fingerprint']);
+        $this->assertNotSame('', $preview['catalog_fingerprint']);
+    }
+
+    public function test_dirty_database_resets_to_deterministic_official_seed_and_reruns(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
         $owner = $this->superAdmin();
 
-        $this->actingAs($owner)
-            ->get('/admin/settings/foodex-reset')->assertOk();
-        $this->actingAs($owner)
-            ->post('/admin/settings/foodex-reset', [
-                'confirmation' => FoodexResetService::CONFIRMATION,
-                'understood' => '1',
-                'current_password' => 'password',
-            ])
-            ->assertSessionHasErrors('reset');
+        $this->assertGreaterThan(0, DB::table('orders')->count());
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+            $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('admin.foodex-reset.index'));
+
+            $this->assertSame(
+                25,
+                DB::table('products')
+                    ->where('sku', 'like', FoodexLaunchCatalogSeeder::SKU_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                39,
+                DB::table('products')
+                    ->where('sku', 'like', FoodexCustomerVNextFixtureSeeder::PRODUCT_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                82,
+                DB::table('orders')
+                    ->where('order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                150,
+                DB::table('order_items')
+                    ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->where('orders.order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                93,
+                DB::table('payments')
+                    ->join('orders', 'orders.id', '=', 'payments.order_id')
+                    ->where('orders.order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                $attempt + 1,
+                DB::table('audit_logs')->where('event', 'system.launch_reset')->count(),
+            );
+            $this->assertTrue($owner->fresh()->hasRole('SUPER_ADMIN'));
+        }
     }
 
     public function test_complete_reset_preserves_identity_and_rbac_and_can_run_again(): void
