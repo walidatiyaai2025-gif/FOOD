@@ -99,6 +99,9 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     .layout>.main,html[dir=ltr] .layout>.main,
     .dashboard-layout>.dashboard-shell,html[dir=ltr] .dashboard-layout>.dashboard-shell,
     .module-layout>main,html[dir=ltr] .module-layout>main,
+    .catalog-layout>main,html[dir=ltr] .catalog-layout>main,
+    .lookup-layout>main,html[dir=ltr] .lookup-layout>main,
+    .page>main,html[dir=ltr] .page>main,
     .shell>.main,html[dir=ltr] .shell>.main{grid-column:1!important;grid-row:1!important}
 }
 @media(prefers-reduced-motion:reduce){
