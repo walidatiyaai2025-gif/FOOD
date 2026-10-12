@@ -364,6 +364,8 @@ void main() {
     final api = _FakeRetailCommerceApi();
     int? createdOrder;
     int? createdStore;
+    int? trackedOrder;
+    var continueCalls = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -375,6 +377,8 @@ void main() {
             createdOrder = orderId;
             createdStore = storeId;
           },
+          onTrackOrder: (orderId, _) => trackedOrder = orderId,
+          onContinueShopping: () => continueCalls++,
         ),
       ),
     );
@@ -394,6 +398,14 @@ void main() {
     );
     expect(find.text('Cash on delivery'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('retail-checkout-progress')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-checkout-review')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('retail-checkout-submit')));
     await tester.pumpAndSettle();
@@ -402,6 +414,67 @@ void main() {
     expect(api.lastPaymentMethod, 'cash_on_delivery');
     expect(createdOrder, 101);
     expect(createdStore, 7);
+    expect(
+      find.byKey(const ValueKey('retail-order-success-screen')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-order-success')),
+      findsOneWidget,
+    );
+    expect(find.text('FDX-TEST-101'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('customer-order-success-track')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-success-track')),
+    );
+    await tester.pump();
+    expect(trackedOrder, 101);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('customer-order-success-continue')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('customer-order-success-continue')),
+    );
+    await tester.pump();
+    expect(continueCalls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('created order preserves authoritative checkout summary', () {
+    final order = RetailCreatedOrder.fromPayload(
+      <String, dynamic>{
+        'id': 909,
+        'store_id': 7,
+        'order_number': 'FDX-20261012-REAL909',
+        'display_order_number': '#909',
+        'currency': 'KWD',
+        'subtotal': 12.5,
+        'discount_total': 1.25,
+        'delivery_total': 0.75,
+        'tax_total': 0.25,
+        'grand_total': 12.25,
+        'payment_method': 'knet',
+        'payment': <String, dynamic>{'status': 'pending'},
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 1},
+          <String, dynamic>{'id': 2},
+        ],
+      },
+      expectedStoreId: 7,
+    );
+
+    expect(order.reference, 'FDX-20261012-REAL909');
+    expect(order.grandTotal, 12.25);
+    expect(order.discountTotal, 1.25);
+    expect(order.deliveryTotal, .75);
+    expect(order.taxTotal, .25);
+    expect(order.paymentMethod, 'knet');
+    expect(order.paymentStatus, 'pending');
+    expect(order.itemCount, 2);
   });
 }
 
@@ -501,7 +574,21 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
     if (checkoutCompleter != null) {
       return checkoutCompleter!.future;
     }
-    return RetailCreatedOrder(id: 101, storeId: storeId);
+    return RetailCreatedOrder(
+      id: 101,
+      storeId: storeId,
+      orderNumber: 'FDX-TEST-101',
+      displayOrderNumber: '#101',
+      currency: 'KWD',
+      subtotal: 1.25,
+      discountTotal: .10,
+      deliveryTotal: .25,
+      taxTotal: .10,
+      grandTotal: 1.50,
+      paymentMethod: paymentMethod,
+      paymentStatus: 'pending',
+      itemCount: 1,
+    );
   }
 
   @override
