@@ -926,6 +926,7 @@ class CustomerCartItemCard extends StatelessWidget {
     required this.busy,
     required this.onMinus,
     required this.onPlus,
+    super.key,
   });
 
   final RetailCartItem item;
