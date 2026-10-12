@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Database\Seeders\FoodexCustomerVNextFixtureSeeder;
 use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -415,6 +416,7 @@ final class ProductionLaunchPreflight
             'launch_enabled' => config('foodex.launch.enabled', false) === true,
             'app_key' => is_string(config('app.key')) && trim((string) config('app.key')) !== '',
             'debug_disabled' => config('app.debug') === false,
+            'mobile_trial_username_login_disabled' => config('foodex.mobile_trial_username_login') === false,
             'database_configured' => is_string(config('database.default'))
                 && trim((string) config('database.default')) !== '',
         ];
@@ -460,7 +462,8 @@ final class ProductionLaunchPreflight
             ? DB::table('orders')
                 ->where(function ($query): void {
                     $query->where('order_number', 'like', 'FOODEX-DEMO-%')
-                        ->orWhere('order_number', 'like', 'EVIDENCE-%');
+                        ->orWhere('order_number', 'like', 'EVIDENCE-%')
+                        ->orWhere('order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%');
                 })
                 ->count()
             : 0;
@@ -483,13 +486,38 @@ final class ProductionLaunchPreflight
                 ->count()
             : 0;
 
-        $count = $demoOrders + $demoCustomers + $demoUsers;
+        $qaProducts = Schema::hasTable('products')
+            ? DB::table('products')
+                ->where('sku', 'like', FoodexCustomerVNextFixtureSeeder::PRODUCT_PREFIX.'%')
+                ->count()
+            : 0;
+        $qaStores = Schema::hasTable('stores')
+            ? DB::table('stores')
+                ->where('code', 'like', FoodexCustomerVNextFixtureSeeder::STORE_PREFIX.'%')
+                ->count()
+            : 0;
+        $qaTranslations = Schema::hasTable('translations')
+            ? DB::table('translations')
+                ->where('key', 'like', FoodexCustomerVNextFixtureSeeder::TRANSLATION_PREFIX.'%')
+                ->count()
+            : 0;
+        $qaCategories = Schema::hasTable('categories')
+            ? DB::table('categories')->where('slug', 'like', 'fdx-qa-c%')->count()
+            : 0;
+
+        $count = $demoOrders
+            + $demoCustomers
+            + $demoUsers
+            + $qaProducts
+            + $qaStores
+            + $qaTranslations
+            + $qaCategories;
 
         return [
             'passed' => $count === 0,
             'detail' => $count === 0
-                ? 'No known FOODEX demo/test customer, user or transaction markers are present.'
-                : $count.' known demo/test rows are still present.',
+                ? 'No known FOODEX demo/test identity, transaction or QA fixture markers are present.'
+                : $count.' known demo/test or QA fixture rows are still present.',
             'source' => 'database scan',
         ];
     }
