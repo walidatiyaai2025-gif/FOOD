@@ -25,4 +25,4 @@ Release promotion of the completed Customer VNext and Mobile Smart Store Analyti
 - Repository Policy, Required CI, release validation, localization, backend/MySQL, Customer/mobile validation, Update Bundle validation and fresh-install acceptance must pass on the exact release lineage.
 - The generated `FOODEX-Update.zip` must target `1.0.74`, remain cumulative from the supported updater boundary and report no full redeploy requirement.
 - The Release Factory must build the Dashboard update and Customer/Driver/Van APKs from one synchronized source commit.
-- Generated checksum and immutable release identity are recorded after the update package is produced.
+- Generated Dashboard package: 919 files; migrations included; no full redeploy required; SHA-256 `5c8a4f63f133ff4cd0e8f333adf3676f61d31ab217417cc84b7fae3ba1d66c44`.
