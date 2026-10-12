@@ -115,6 +115,7 @@ class B2bJourneyScreen extends StatelessWidget {
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
           body: CustomerCurvedHeaderSurface(
+            headerPadding: const EdgeInsetsDirectional.fromSTEB(12, 1, 12, 1),
             header: SizedBox(
               height: 44,
               child: Row(
