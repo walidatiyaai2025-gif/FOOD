@@ -113,6 +113,36 @@ class ProductionLaunchGateTest extends TestCase
             ->assertDontSee('Launch remains blocked.');
     }
 
+    public function test_pending_migration_keeps_schema_check_blocked(): void
+    {
+        $path = database_path('migrations/9999_12_31_235959_launch_gate_pending.php');
+        file_put_contents($path, <<<'PHP'
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+
+return new class extends Migration
+{
+    public function up(): void {}
+    public function down(): void {}
+};
+PHP);
+
+        try {
+            $report = app(ProductionLaunchPreflight::class)->runtimeReport();
+
+            $this->assertFalse($report['checks']['schema_migrations']['passed']);
+            $this->assertStringContainsString(
+                '9999_12_31_235959_launch_gate_pending',
+                $report['checks']['schema_migrations']['detail'],
+            );
+        } finally {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+    }
+
     public function test_attestation_must_match_exact_release_source_sha(): void
     {
         $buildInfoPath = base_path('../Release/BUILD_INFO.json');
