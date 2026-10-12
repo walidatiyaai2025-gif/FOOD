@@ -80,13 +80,7 @@ final class ProductionLaunchPreflight
             'schema_migrations' => $this->schemaCheck(),
             'environment_configuration' => $this->environmentCheck(),
             'release_lineage' => $this->releaseLineageCheck($release),
-            'official_seed' => [
-                'passed' => class_exists(FoodexLaunchSeeder::class),
-                'detail' => class_exists(FoodexLaunchSeeder::class)
-                    ? 'Authoritative FOODEX launch seed is installed.'
-                    : 'Authoritative FOODEX launch seed is not installed.',
-                'source' => '#1330',
-            ],
+            'official_seed' => $this->officialSeedCheck($sourceCommit),
             'product_image_quality' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/product-image-quality.json'),
                 '#1330',
@@ -248,6 +242,32 @@ final class ProductionLaunchPreflight
             'van_build_number' => is_numeric($buildInfo['van']['build_number'] ?? null)
                 ? (int) $buildInfo['van']['build_number']
                 : null,
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function officialSeedCheck(?string $expectedSourceSha): array
+    {
+        if (! class_exists(FoodexLaunchSeeder::class)) {
+            return [
+                'passed' => false,
+                'detail' => 'Authoritative FOODEX launch seed is not installed.',
+                'source' => '#1330',
+            ];
+        }
+
+        $attestation = $this->attestationCheck(
+            storage_path('app/private/launch-gate/official-seed.json'),
+            '#1330',
+            $expectedSourceSha,
+        );
+
+        return [
+            'passed' => $attestation['passed'],
+            'detail' => $attestation['passed']
+                ? 'Authoritative FOODEX seed completeness is attested for the exact release source.'
+                : 'FOODEX seed exists, but exact-release completeness evidence is missing or stale.',
+            'source' => '#1330',
         ];
     }
 
