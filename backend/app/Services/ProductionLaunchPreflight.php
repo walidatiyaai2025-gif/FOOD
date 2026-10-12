@@ -17,6 +17,7 @@ final class ProductionLaunchPreflight
     public const REQUIRED_CHECKS = [
         'schema_migrations',
         'environment_configuration',
+        'release_lineage',
         'official_seed',
         'product_image_quality',
         'clean_production_data',
@@ -72,9 +73,13 @@ final class ProductionLaunchPreflight
      */
     public function runtimeReport(): array
     {
+        $release = $this->releaseMetadata();
+        $sourceCommit = $release['source_commit'];
+
         return $this->decide([
             'schema_migrations' => $this->schemaCheck(),
             'environment_configuration' => $this->environmentCheck(),
+            'release_lineage' => $this->releaseLineageCheck($release),
             'official_seed' => [
                 'passed' => class_exists(FoodexLaunchSeeder::class),
                 'detail' => class_exists(FoodexLaunchSeeder::class)
@@ -85,19 +90,23 @@ final class ProductionLaunchPreflight
             'product_image_quality' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/product-image-quality.json'),
                 '#1330',
+                $sourceCommit,
             ),
             'clean_production_data' => $this->productionDataCheck(),
             'api_customer_contract' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/api-customer-contract.json'),
                 '#1324-#1329',
+                $sourceCommit,
             ),
             'customer_ar_en_registry' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/customer-ar-en-registry.json'),
                 '#1324-#1329',
+                $sourceCommit,
             ),
             'customer_e2e' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/customer-e2e.json'),
                 '#1325-#1329',
+                $sourceCommit,
             ),
             'provider_readiness' => [
                 'passed' => config('foodex.launch.provider_ready', false) === true,
@@ -109,14 +118,17 @@ final class ProductionLaunchPreflight
             'mobile_artifacts' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/mobile-artifacts.json'),
                 'release pipeline',
+                $sourceCommit,
             ),
             'backup_rollback' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/backup-rollback.json'),
                 'production operations',
+                $sourceCommit,
             ),
             'exact_head_required_ci' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/exact-head-required-ci.json'),
                 'GitHub Required CI',
+                $sourceCommit,
             ),
         ]);
     }
@@ -175,6 +187,7 @@ final class ProductionLaunchPreflight
     /**
      * @return array{
      *     version:?string,
+     *     build_info_version:?string,
      *     source_commit:?string,
      *     github_run_number:?string,
      *     customer_build_number:?int,
@@ -207,6 +220,9 @@ final class ProductionLaunchPreflight
 
         return [
             'version' => $version,
+            'build_info_version' => is_string($buildInfo['version'] ?? null)
+                ? trim($buildInfo['version'])
+                : null,
             'source_commit' => $sourceCommit,
             'github_run_number' => is_scalar($buildInfo['github_run_number'] ?? null)
                 ? (string) $buildInfo['github_run_number']
@@ -220,6 +236,46 @@ final class ProductionLaunchPreflight
             'van_build_number' => is_numeric($buildInfo['van']['build_number'] ?? null)
                 ? (int) $buildInfo['van']['build_number']
                 : null,
+        ];
+    }
+
+    /**
+     * @param array{
+     *     version:?string,
+     *     build_info_version:?string,
+     *     source_commit:?string,
+     *     github_run_number:?string,
+     *     customer_build_number:?int,
+     *     driver_build_number:?int,
+     *     van_build_number:?int
+     * } $release
+     * @return array{passed:bool,detail:string,source:string}
+     */
+    private function releaseLineageCheck(array $release): array
+    {
+        $versionMatches = is_string($release['version'])
+            && $release['version'] !== ''
+            && $release['version'] === $release['build_info_version'];
+        $hasSource = is_string($release['source_commit']) && $release['source_commit'] !== '';
+        $hasRun = is_string($release['github_run_number']) && $release['github_run_number'] !== '';
+        $builds = [
+            $release['customer_build_number'],
+            $release['driver_build_number'],
+            $release['van_build_number'],
+        ];
+        $hasBuilds = count(array_filter(
+            $builds,
+            static fn (?int $build): bool => is_int($build) && $build > 0,
+        )) === 3;
+
+        $passed = $versionMatches && $hasSource && $hasRun && $hasBuilds;
+
+        return [
+            'passed' => $passed,
+            'detail' => $passed
+                ? 'Release version, source commit, run and all three mobile builds share a valid lineage.'
+                : 'Release lineage metadata is missing, inconsistent or incomplete.',
+            'source' => 'Release/BUILD_INFO.json + VERSION',
         ];
     }
 
@@ -308,7 +364,11 @@ final class ProductionLaunchPreflight
     }
 
     /** @return array{passed:bool,detail:string,source:string} */
-    private function attestationCheck(string $path, string $source): array
+    private function attestationCheck(
+        string $path,
+        string $source,
+        ?string $expectedSourceSha = null,
+    ): array
     {
         if (is_file($path) === false) {
             return [
@@ -319,16 +379,21 @@ final class ProductionLaunchPreflight
         }
 
         $decoded = json_decode((string) file_get_contents($path), true);
+        $sourceSha = is_array($decoded) && is_string($decoded['source_sha'] ?? null)
+            ? $decoded['source_sha']
+            : null;
         $passed = is_array($decoded)
             && ($decoded['status'] ?? null) === 'passed'
-            && is_string($decoded['source_sha'] ?? null)
-            && preg_match('/^[a-f0-9]{40,64}$/', $decoded['source_sha']) === 1;
+            && is_string($sourceSha)
+            && preg_match('/^[a-f0-9]{40,64}$/', $sourceSha) === 1
+            && is_string($expectedSourceSha)
+            && hash_equals($expectedSourceSha, $sourceSha);
 
         return [
             'passed' => $passed,
             'detail' => $passed
-                ? 'Attestation passed for the recorded source SHA.'
-                : 'Attestation exists but is invalid, stale or incomplete.',
+                ? 'Attestation passed for the exact production release source SHA.'
+                : 'Attestation is missing, invalid, stale or belongs to a different source SHA.',
             'source' => $source,
         ];
     }
