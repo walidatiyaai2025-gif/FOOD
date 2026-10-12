@@ -160,7 +160,10 @@ void main() {
         scrollable: mainScroll,
         target: viewMore,
       );
-      expect(find.text('عرض المزيد'), findsOneWidget);
+      await tester.tap(viewMore);
+      await tester.pump();
+      expect(searchStore, 7);
+      expect(capturedCategoryId, isNull);
       expect(tester.takeException(), isNull);
     },
   );
