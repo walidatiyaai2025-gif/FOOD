@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
 import 'package:foodex_customer_app/core/routing/customer_route_authority.dart';
@@ -118,6 +120,46 @@ void main() {
         ),
         isNull,
       );
+    });
+
+    testWidgets('guest Store Analytics route hands off to unified auth',
+        (tester) async {
+      await tester.pumpWidget(
+        const FoodexCustomerApp(
+          initialRoute: '/b2b/store-analytics?retail_store_id=22',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('unified-customer-auth-screen')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('customer-route-shell')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('authenticated Business context reaches analytics authority',
+        (tester) async {
+      await tester.pumpWidget(
+        const FoodexCustomerApp(
+          session: CustomerSession.authenticated(CustomerChannel.b2b),
+          initialRoute: '/b2b/store-analytics?retail_store_id=22',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('unified-customer-auth-screen')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('customer-route-shell')),
+        findsOneWidget,
+      );
+      expect(find.text('Store analytics'), findsOneWidget);
     });
   });
 }
