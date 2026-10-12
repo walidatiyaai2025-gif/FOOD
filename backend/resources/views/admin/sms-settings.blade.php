@@ -5,7 +5,11 @@
 <style>
 body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 48px}.head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.card{background:#fff;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:20px;box-shadow:var(--foodex-shadow-sm);margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:7px}.full{grid-column:1/-1}label{font-weight:800}input,select,textarea{border:1px solid var(--foodex-border);border-radius:10px;padding:11px;background:#fff;color:inherit;width:100%;box-sizing:border-box}.switches{display:flex;flex-wrap:wrap;gap:16px}.switches label{display:flex;gap:8px;align-items:center}.switches input{width:auto}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer;background:var(--foodex-green);color:#fff;text-decoration:none}.btn.secondary{background:#fff;color:var(--foodex-green-dark);border:1px solid var(--foodex-border)}.notice{padding:12px 14px;border-radius:10px;margin-bottom:14px;background:#eef9f1}.error{background:#fff1f1;color:#9b1c1c}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:start;border-bottom:1px solid var(--foodex-border);padding:10px;font-size:.92rem}code{font-size:.82rem}dialog{border:0;border-radius:16px;padding:0;max-width:620px;width:calc(100% - 30px);box-shadow:0 20px 70px #0003}dialog::backdrop{background:#0007}.modal{padding:22px}.muted{color:var(--foodex-muted)}@media(max-width:720px){.grid{grid-template-columns:1fr}.head{flex-direction:column}.full{grid-column:auto}}
 </style>@include('admin._brand-components')
-</head><body><div class="wrap">
+</head><body>
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="sms-settings">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<main class="foodex-admin-main foodex-admin-page">
+<div class="wrap">
 <header class="head"><div><p class="muted">{{ __('sms.eyebrow') }}</p><h1>{{ __('sms.title') }}</h1><p class="muted">{{ __('sms.description') }}</p></div><a class="btn secondary" href="{{ route('admin.administration.index') }}">{{ __('sms.back') }}</a></header>
 @if(session('status'))<div class="notice">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="notice error"><strong>{{ $errors->first() }}</strong></div>@endif
@@ -36,6 +40,8 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 <tr><td><code>{{ $log->request_id }}</code></td><td>{{ $log->recipient_masked }}</td><td>{{ $log->purpose }}</td><td>{{ $log->status }}</td><td>{{ $log->attempts }}</td><td>{{ $log->latency_ms ?? '—' }} ms</td><td>{{ $log->status === 'sent' ? __('sms.provider.sent') : ($log->error_message ?: __('sms.provider.unknown_response')) }} @if($log->provider_response_code)<small>({{ $log->provider_response_code }})</small>@endif</td><td>{{ $log->created_at }}</td></tr>
 @empty<tr><td colspan="8">{{ __('sms.no_logs') }}</td></tr>@endforelse
 </tbody></table></div></section>
+</div>
+</main>
 </div>
 
 <dialog id="testSmsDialog"><form class="modal" method="post" action="{{ route('admin.sms-settings.test') }}">@csrf
