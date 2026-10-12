@@ -6145,7 +6145,7 @@ class _WholesaleOrdersHeader extends StatelessWidget {
                         child: const SizedBox.square(
                           dimension: 42,
                           child: IconTheme(
-                            data: const IconThemeData(
+                            data: IconThemeData(
                               size: 24,
                               color: CustomerUiColors.ink,
                             ),
