@@ -6,7 +6,9 @@ void main() {
   CustomerRouteDefinition definition(String pattern) =>
       customerRouteDefinitions.firstWhere((item) => item.pattern == pattern);
 
-  test('explicit retail store routes use the shared retail production authority', () {
+  test(
+    'explicit retail store routes use the shared retail production authority',
+    () {
     expect(
       customerRouteAuthorityFor(
         definition(CustomerRoutePaths.retailHome),
@@ -21,7 +23,8 @@ void main() {
       ),
       CustomerRouteAuthority.retailJourney,
     );
-  });
+    },
+  );
 
   test('legacy generic retail routes stay on one retail journey authority', () {
     expect(
