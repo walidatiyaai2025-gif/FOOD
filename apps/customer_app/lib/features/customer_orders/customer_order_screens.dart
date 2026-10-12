@@ -712,6 +712,7 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
   final CustomerDataModeController _dataMode =
       CustomerDataModeController.instance;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -737,6 +738,8 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
             widget.orderContext?.normalizedChannel) {
       _pollTimer?.cancel();
       _order = null;
+      _error = null;
+      _lastUpdatedAt = null;
       unawaited(_load());
     }
   }
@@ -791,6 +794,10 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
   }
 
   Future<void> _load({bool silent = false}) async {
+    final generation = ++_loadGeneration;
+    final orderId = widget.orderId;
+    final orderContext = widget.orderContext;
+
     if (!silent) {
       setState(() {
         _loading = true;
@@ -800,10 +807,10 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
 
     try {
       final order = await widget.api.order(
-        orderId: widget.orderId,
-        context: widget.orderContext,
+        orderId: orderId,
+        context: orderContext,
       );
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
 
       setState(() {
         _order = order;
@@ -813,7 +820,7 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
       });
       _schedulePolling(order.summary.status);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       setState(() {
         _error = error;
         _loading = false;
@@ -854,18 +861,41 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
             : 'customer-order-details-${widget.orderId}',
       ),
       backgroundColor: CustomerUiColors.mint,
-      appBar: AppBar(
-        title: Text(title),
-        actions: [
-          IconButton(
-            key: const ValueKey('customer-order-refresh'),
-            tooltip: context.tr('customer.orders.refresh'),
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
+      body: CustomerCurvedHeaderSurface(
+        header: Row(
+          children: [
+            CustomerOutlineIconButton(
+              key: const ValueKey('customer-order-back'),
+              icon: Icons.arrow_back_rounded,
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              semanticLabel:
+                  MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () =>
+                  unawaited(Navigator.of(context).maybePop()),
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: CustomerUiColors.white,
+                    ),
+              ),
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            CustomerOutlineIconButton(
+              key: const ValueKey('customer-order-refresh'),
+              icon: Icons.refresh_rounded,
+              tooltip: context.tr('customer.orders.refresh'),
+              semanticLabel: context.tr('customer.orders.refresh'),
+              onPressed: _loading ? null : () => unawaited(_load()),
+            ),
+          ],
+        ),
+        child: RefreshIndicator(onRefresh: _load, child: _body(context)),
       ),
-      body: RefreshIndicator(onRefresh: _load, child: _body(context)),
     );
   }
 
@@ -903,6 +933,14 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
       children: [
+        if (_error != null) ...[
+          _OrdersStaleBanner(
+            key: ValueKey('customer-order-details-stale-${order.summary.id}'),
+            errorText: _errorText(context, _error!),
+            lastSuccessfulAt: _lastUpdatedAt,
+          ),
+          const SizedBox(height: CustomerUiSpacing.sm),
+        ],
         _OrderHeader(details: order),
         if (_lastUpdatedAt != null) ...[
           const SizedBox(height: 8),
@@ -1142,15 +1180,26 @@ class _OrderCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      Text(
-                        store == null || store.isEmpty ? channel : store,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: CustomerUiColors.muted,
-                              fontSize: 13.5,
-                              height: 1.1,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              store == null || store.isEmpty ? channel : store,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: CustomerUiColors.muted,
+                                    fontSize: 13.5,
+                                    height: 1.1,
+                                  ),
                             ),
+                          ),
+                          const SizedBox(width: CustomerUiSpacing.xs),
+                          Flexible(child: _StatusChip(status: order.status)),
+                        ],
                       ),
                       if (order.createdAt != null) ...[
                         const SizedBox(height: 6),
@@ -1205,9 +1254,8 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                _StatusChip(status: order.status),
                 if (_hasQuickActions) ...[
+                  const SizedBox(width: 10),
                   const SizedBox(width: 8),
                   Semantics(
                     button: true,
