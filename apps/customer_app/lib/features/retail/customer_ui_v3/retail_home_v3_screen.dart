@@ -48,7 +48,6 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         (catalogApi is HttpB2cCatalogApi
             ? HttpStorefrontApi(
                 baseUrl: catalogApi.baseUrl,
-                token: catalogApi.token,
               )
             : null);
     _future = _load();
