@@ -97,44 +97,46 @@ class StoreAnalyticsCopy {
 
   factory StoreAnalyticsCopy.fromContext(
     BuildContext context,
-  ) => StoreAnalyticsCopy(
-    title: context.tr('b2b.store_analytics.title'),
-    revenue: context.tr('b2b.store_analytics.kpi.sales'),
-    orders: context.tr('b2b.store_analytics.kpi.orders'),
-    averageOrderValue: context.tr('b2b.store_analytics.kpi.aov'),
-    comparison: context.tr('b2b.store_analytics.kpi.change'),
-    vsPrevious: context.tr('b2b.store_analytics.period.previous'),
-    noComparison: '—',
-    salesTrend: context.tr('b2b.store_analytics.trend.title'),
-    ordersTrend: context.tr('b2b.store_analytics.trend.orders'),
-    trendSummary: context.tr('b2b.store_analytics.trend.title'),
-    insights: context.tr('b2b.store_analytics.insights.title'),
-    currencyEgp: context.tr('b2b.store_analytics.currency.egp'),
-    stale:
-        context.tr('b2b.store_analytics.state.stale') +
-        ' ' +
-        context.tr('b2b.store_analytics.state.stale_hint'),
-    storeSelector: context.tr('b2b.store_analytics.store'),
-    loadingLabel: context.tr('b2b.store_analytics.state.loading'),
-    emptyTitle: context.tr('b2b.store_analytics.state.empty'),
-    emptyMessage: context.tr('b2b.store_analytics.trend.empty'),
-    errorTitle: context.tr('b2b.store_analytics.state.error'),
-    errorMessage: context.tr('customer.error.offline'),
-    noEntitlementTitle: context.tr('b2b.store_analytics.state.no_entitlement'),
-    noEntitlementMessage: context.tr(
-      'b2b.store_analytics.state.no_entitlement_hint',
-    ),
-    retry: context.tr('b2b.store_analytics.state.retry'),
-    refresh: context.tr('b2b.store_analytics.action.refresh'),
-    storeLogo: context.tr('b2b.store_analytics.store'),
-    ordersUnit: context.tr('b2b.store_analytics.kpi.orders'),
-    lastUpdated: context.tr('b2b.store_analytics.state.last_updated'),
-    cancelledOrders: context.tr('b2b.store_analytics.kpi.cancelled'),
-    stockAttention: context.tr('b2b.store_analytics.insights.stock_attention'),
-    topProduct: context.tr('b2b.store_analytics.insights.top_product'),
-    viewOrders: context.tr('b2b.store_analytics.action.view_orders'),
-    viewProducts: context.tr('b2b.store_analytics.action.view_products'),
-  );
+  ) =>
+      StoreAnalyticsCopy(
+        title: context.tr('b2b.store_analytics.title'),
+        revenue: context.tr('b2b.store_analytics.kpi.sales'),
+        orders: context.tr('b2b.store_analytics.kpi.orders'),
+        averageOrderValue: context.tr('b2b.store_analytics.kpi.aov'),
+        comparison: context.tr('b2b.store_analytics.kpi.change'),
+        vsPrevious: context.tr('b2b.store_analytics.period.previous'),
+        noComparison: '—',
+        salesTrend: context.tr('b2b.store_analytics.trend.title'),
+        ordersTrend: context.tr('b2b.store_analytics.trend.orders'),
+        trendSummary: context.tr('b2b.store_analytics.trend.title'),
+        insights: context.tr('b2b.store_analytics.insights.title'),
+        currencyEgp: context.tr('b2b.store_analytics.currency.egp'),
+        stale: context.tr('b2b.store_analytics.state.stale') +
+            ' ' +
+            context.tr('b2b.store_analytics.state.stale_hint'),
+        storeSelector: context.tr('b2b.store_analytics.store'),
+        loadingLabel: context.tr('b2b.store_analytics.state.loading'),
+        emptyTitle: context.tr('b2b.store_analytics.state.empty'),
+        emptyMessage: context.tr('b2b.store_analytics.trend.empty'),
+        errorTitle: context.tr('b2b.store_analytics.state.error'),
+        errorMessage: context.tr('customer.error.offline'),
+        noEntitlementTitle:
+            context.tr('b2b.store_analytics.state.no_entitlement'),
+        noEntitlementMessage: context.tr(
+          'b2b.store_analytics.state.no_entitlement_hint',
+        ),
+        retry: context.tr('b2b.store_analytics.state.retry'),
+        refresh: context.tr('b2b.store_analytics.action.refresh'),
+        storeLogo: context.tr('b2b.store_analytics.store'),
+        ordersUnit: context.tr('b2b.store_analytics.kpi.orders'),
+        lastUpdated: context.tr('b2b.store_analytics.state.last_updated'),
+        cancelledOrders: context.tr('b2b.store_analytics.kpi.cancelled'),
+        stockAttention:
+            context.tr('b2b.store_analytics.insights.stock_attention'),
+        topProduct: context.tr('b2b.store_analytics.insights.top_product'),
+        viewOrders: context.tr('b2b.store_analytics.action.view_orders'),
+        viewProducts: context.tr('b2b.store_analytics.action.view_products'),
+      );
 }
 
 class StoreAnalyticsStoreOption {
@@ -276,9 +278,8 @@ StoreAnalyticsInsight? _storeAnalyticsInsightFromReadModel(
       final total = facts.orderCount;
       return StoreAnalyticsInsight(
         id: insight.id,
-        title: copy.cancelledOrders.isEmpty
-            ? copy.orders
-            : copy.cancelledOrders,
+        title:
+            copy.cancelledOrders.isEmpty ? copy.orders : copy.cancelledOrders,
         body: total == null
             ? '$cancelled ${copy.ordersUnit}'
             : '$cancelled / $total ${copy.ordersUnit}',
@@ -291,9 +292,8 @@ StoreAnalyticsInsight? _storeAnalyticsInsightFromReadModel(
       final reorderNow = facts.reorderNowCount ?? 0;
       return StoreAnalyticsInsight(
         id: insight.id,
-        title: copy.stockAttention.isEmpty
-            ? copy.insights
-            : copy.stockAttention,
+        title:
+            copy.stockAttention.isEmpty ? copy.insights : copy.stockAttention,
         body: '$lowStock · $reorderNow',
         tone: tone,
         actionLabel: copy.viewProducts.isEmpty ? null : copy.viewProducts,
@@ -350,9 +350,9 @@ class StoreAnalyticsScreen extends StatelessWidget {
     this.onDrillDown,
     super.key,
   }) : assert(
-         status != StoreAnalyticsStatus.loaded || data != null,
-         'Loaded Store Analytics requires data.',
-       );
+          status != StoreAnalyticsStatus.loaded || data != null,
+          'Loaded Store Analytics requires data.',
+        );
 
   final StoreAnalyticsCopy copy;
   final StoreAnalyticsStatus status;
@@ -387,8 +387,8 @@ class StoreAnalyticsScreen extends StatelessWidget {
                     ? Icons.arrow_forward_rounded
                     : Icons.arrow_back_rounded,
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                semanticLabel: MaterialLocalizations.of(context)
-                    .backButtonTooltip,
+                semanticLabel:
+                    MaterialLocalizations.of(context).backButtonTooltip,
                 onPressed: onBack ?? () => Navigator.of(context).maybePop(),
               ),
               const SizedBox(width: CustomerUiSpacing.xs),
@@ -401,9 +401,9 @@ class StoreAnalyticsScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: CustomerUiColors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
+                          color: CustomerUiColors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ),
               ),
@@ -431,44 +431,44 @@ class StoreAnalyticsScreen extends StatelessWidget {
     return switch (status) {
       StoreAnalyticsStatus.loading => _LoadingState(copy: copy),
       StoreAnalyticsStatus.empty => _StateList(
-        child: CustomerStateView(
-          kind: CustomerStateKind.empty,
-          title: copy.emptyTitle,
-          message: copy.emptyMessage,
-          actionLabel: onRefresh == null ? null : copy.refresh,
-          onAction: onRefresh == null
-              ? null
-              : () {
-                  onRefresh!();
-                },
+          child: CustomerStateView(
+            kind: CustomerStateKind.empty,
+            title: copy.emptyTitle,
+            message: copy.emptyMessage,
+            actionLabel: onRefresh == null ? null : copy.refresh,
+            onAction: onRefresh == null
+                ? null
+                : () {
+                    onRefresh!();
+                  },
+          ),
         ),
-      ),
       StoreAnalyticsStatus.error => _StateList(
-        child: CustomerStateView(
-          kind: CustomerStateKind.error,
-          title: copy.errorTitle,
-          message: copy.errorMessage,
-          actionLabel: onRetry == null ? null : copy.retry,
-          onAction: onRetry,
+          child: CustomerStateView(
+            kind: CustomerStateKind.error,
+            title: copy.errorTitle,
+            message: copy.errorMessage,
+            actionLabel: onRetry == null ? null : copy.retry,
+            onAction: onRetry,
+          ),
         ),
-      ),
       StoreAnalyticsStatus.noEntitlement => _StateList(
-        child: CustomerStateView(
-          kind: CustomerStateKind.empty,
-          title: copy.noEntitlementTitle,
-          message: copy.noEntitlementMessage,
-          icon: Icons.lock_outline_rounded,
+          child: CustomerStateView(
+            kind: CustomerStateKind.empty,
+            title: copy.noEntitlementTitle,
+            message: copy.noEntitlementMessage,
+            icon: Icons.lock_outline_rounded,
+          ),
         ),
-      ),
       StoreAnalyticsStatus.loaded => _LoadedState(
-        copy: copy,
-        data: data!,
-        storeOptions: storeOptions,
-        selectedStoreId: selectedStoreId ?? data!.storeId,
-        onStoreChanged: onStoreChanged,
-        onRefresh: onRefresh,
-        onDrillDown: onDrillDown,
-      ),
+          copy: copy,
+          data: data!,
+          storeOptions: storeOptions,
+          selectedStoreId: selectedStoreId ?? data!.storeId,
+          onStoreChanged: onStoreChanged,
+          onRefresh: onRefresh,
+          onDrillDown: onDrillDown,
+        ),
     };
   }
 }
@@ -480,13 +480,14 @@ class _StateList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-    key: const ValueKey('store-analytics-state-list'),
-    physics: const AlwaysScrollableScrollPhysics(),
-    padding: const EdgeInsets.all(CustomerUiSpacing.md),
-    children: [
-      SizedBox(height: MediaQuery.sizeOf(context).height * .62, child: child),
-    ],
-  );
+        key: const ValueKey('store-analytics-state-list'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(CustomerUiSpacing.md),
+        children: [
+          SizedBox(
+              height: MediaQuery.sizeOf(context).height * .62, child: child),
+        ],
+      );
 }
 
 class _LoadingState extends StatelessWidget {
@@ -496,51 +497,51 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: copy.loadingLabel,
-    liveRegion: true,
-    child: ListView(
-      key: const ValueKey('store-analytics-loading'),
-      padding: const EdgeInsets.all(CustomerUiSpacing.sm),
-      children: const [
-        Row(
-          children: [
-            CustomerSkeletonBox(height: 52, width: 52, radius: 16),
-            SizedBox(width: CustomerUiSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomerSkeletonBox(height: 16, radius: 8),
-                  SizedBox(height: CustomerUiSpacing.xs),
-                  CustomerSkeletonBox(height: 12, width: 150, radius: 6),
-                ],
-              ),
+        label: copy.loadingLabel,
+        liveRegion: true,
+        child: ListView(
+          key: const ValueKey('store-analytics-loading'),
+          padding: const EdgeInsets.all(CustomerUiSpacing.sm),
+          children: const [
+            Row(
+              children: [
+                CustomerSkeletonBox(height: 52, width: 52, radius: 16),
+                SizedBox(width: CustomerUiSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomerSkeletonBox(height: 16, radius: 8),
+                      SizedBox(height: CustomerUiSpacing.xs),
+                      CustomerSkeletonBox(height: 12, width: 150, radius: 6),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            SizedBox(height: CustomerUiSpacing.sm),
+            Row(
+              children: [
+                Expanded(child: CustomerSkeletonBox(height: 78)),
+                SizedBox(width: CustomerUiSpacing.xs),
+                Expanded(child: CustomerSkeletonBox(height: 78)),
+              ],
+            ),
+            SizedBox(height: CustomerUiSpacing.xs),
+            Row(
+              children: [
+                Expanded(child: CustomerSkeletonBox(height: 78)),
+                SizedBox(width: CustomerUiSpacing.xs),
+                Expanded(child: CustomerSkeletonBox(height: 78)),
+              ],
+            ),
+            SizedBox(height: CustomerUiSpacing.sm),
+            CustomerSkeletonBox(height: 222),
+            SizedBox(height: CustomerUiSpacing.sm),
+            CustomerSkeletonBox(height: 92),
           ],
         ),
-        SizedBox(height: CustomerUiSpacing.sm),
-        Row(
-          children: [
-            Expanded(child: CustomerSkeletonBox(height: 78)),
-            SizedBox(width: CustomerUiSpacing.xs),
-            Expanded(child: CustomerSkeletonBox(height: 78)),
-          ],
-        ),
-        SizedBox(height: CustomerUiSpacing.xs),
-        Row(
-          children: [
-            Expanded(child: CustomerSkeletonBox(height: 78)),
-            SizedBox(width: CustomerUiSpacing.xs),
-            Expanded(child: CustomerSkeletonBox(height: 78)),
-          ],
-        ),
-        SizedBox(height: CustomerUiSpacing.sm),
-        CustomerSkeletonBox(height: 222),
-        SizedBox(height: CustomerUiSpacing.sm),
-        CustomerSkeletonBox(height: 92),
-      ],
-    ),
-  );
+      );
 }
 
 class _LoadedState extends StatelessWidget {
@@ -595,9 +596,9 @@ class _LoadedState extends StatelessWidget {
             copy.insights,
             key: const ValueKey('store-analytics-insights-title'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: CustomerUiColors.ink,
-              fontWeight: FontWeight.w800,
-            ),
+                  color: CustomerUiColors.ink,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
           const SizedBox(height: CustomerUiSpacing.xs),
           for (final insight in data.insights.take(4))
@@ -631,73 +632,73 @@ class _StoreHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    key: const ValueKey('store-analytics-store-header'),
-    decoration: BoxDecoration(
-      color: CustomerUiColors.white,
-      borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-      border: Border.all(color: CustomerUiColors.border),
-      boxShadow: CustomerUiElevation.cardShadow,
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(CustomerUiSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StoreLogo(copy: copy, data: data),
-          const SizedBox(width: CustomerUiSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.storeName,
-                  key: const ValueKey('store-analytics-store-name'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: CustomerUiColors.ink,
-                    fontWeight: FontWeight.w800,
-                  ),
+        key: const ValueKey('store-analytics-store-header'),
+        decoration: BoxDecoration(
+          color: CustomerUiColors.white,
+          borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+          border: Border.all(color: CustomerUiColors.border),
+          boxShadow: CustomerUiElevation.cardShadow,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(CustomerUiSpacing.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _StoreLogo(copy: copy, data: data),
+              const SizedBox(width: CustomerUiSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.storeName,
+                      key: const ValueKey('store-analytics-store-name'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: CustomerUiColors.ink,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: CustomerUiSpacing.xxs),
+                    Text(
+                      data.periodLabel,
+                      key: const ValueKey('store-analytics-period'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: CustomerUiColors.inkSoft,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      data.freshnessLabel,
+                      key: const ValueKey('store-analytics-freshness'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: data.isStale
+                                ? CustomerUiColors.warning
+                                : CustomerUiColors.muted,
+                          ),
+                    ),
+                    if (storeOptions.length > 1) ...[
+                      const SizedBox(height: CustomerUiSpacing.xs),
+                      _StoreSelector(
+                        copy: copy,
+                        options: storeOptions,
+                        selectedStoreId: selectedStoreId,
+                        onChanged: onStoreChanged,
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: CustomerUiSpacing.xxs),
-                Text(
-                  data.periodLabel,
-                  key: const ValueKey('store-analytics-period'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: CustomerUiColors.inkSoft,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  data.freshnessLabel,
-                  key: const ValueKey('store-analytics-freshness'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: data.isStale
-                        ? CustomerUiColors.warning
-                        : CustomerUiColors.muted,
-                  ),
-                ),
-                if (storeOptions.length > 1) ...[
-                  const SizedBox(height: CustomerUiSpacing.xs),
-                  _StoreSelector(
-                    copy: copy,
-                    options: storeOptions,
-                    selectedStoreId: selectedStoreId,
-                    onChanged: onStoreChanged,
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
 
 class _StoreLogo extends StatelessWidget {
@@ -709,15 +710,15 @@ class _StoreLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget fallback() => Container(
-      key: const ValueKey('store-analytics-logo-fallback'),
-      alignment: Alignment.center,
-      color: CustomerUiColors.limeSoft,
-      child: const Icon(
-        Icons.storefront_rounded,
-        color: CustomerUiColors.deepGreenStrong,
-        size: 26,
-      ),
-    );
+          key: const ValueKey('store-analytics-logo-fallback'),
+          alignment: Alignment.center,
+          color: CustomerUiColors.limeSoft,
+          child: const Icon(
+            Icons.storefront_rounded,
+            color: CustomerUiColors.deepGreenStrong,
+            size: 26,
+          ),
+        );
 
     final logo = data.logoUrl?.trim();
     return Semantics(
@@ -736,18 +737,18 @@ class _StoreLogo extends StatelessWidget {
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, progress) =>
                         progress == null
-                        ? child
-                        : const ColoredBox(
-                            color: CustomerUiColors.limeSoft,
-                            child: Center(
-                              child: SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                            ? child
+                            : const ColoredBox(
+                                color: CustomerUiColors.limeSoft,
+                                child: Center(
+                                  child: SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
                     errorBuilder: (context, error, stackTrace) => fallback(),
                   ),
           ),
@@ -772,36 +773,36 @@ class _StoreSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: copy.storeSelector,
-    child: DropdownButtonFormField<int>(
-      key: const ValueKey('store-analytics-store-selector'),
-      initialValue: options.any((option) => option.id == selectedStoreId)
-          ? selectedStoreId
-          : null,
-      isExpanded: true,
-      decoration: InputDecoration(
-        isDense: true,
-        labelText: copy.storeSelector,
-        contentPadding: const EdgeInsetsDirectional.fromSTEB(12, 9, 8, 9),
-      ),
-      items: [
-        for (final option in options)
-          DropdownMenuItem<int>(
-            value: option.id,
-            child: Text(
-              option.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+        label: copy.storeSelector,
+        child: DropdownButtonFormField<int>(
+          key: const ValueKey('store-analytics-store-selector'),
+          initialValue: options.any((option) => option.id == selectedStoreId)
+              ? selectedStoreId
+              : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            isDense: true,
+            labelText: copy.storeSelector,
+            contentPadding: const EdgeInsetsDirectional.fromSTEB(12, 9, 8, 9),
           ),
-      ],
-      onChanged: onChanged == null
-          ? null
-          : (value) {
-              if (value != null) onChanged!(value);
-            },
-    ),
-  );
+          items: [
+            for (final option in options)
+              DropdownMenuItem<int>(
+                value: option.id,
+                child: Text(
+                  option.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          onChanged: onChanged == null
+              ? null
+              : (value) {
+                  if (value != null) onChanged!(value);
+                },
+        ),
+      );
 }
 
 class _StaleBanner extends StatelessWidget {
@@ -811,43 +812,43 @@ class _StaleBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    liveRegion: true,
-    child: DecoratedBox(
-      key: const ValueKey('store-analytics-stale'),
-      decoration: BoxDecoration(
-        color: CustomerUiColors.warning.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(CustomerUiRadii.md),
-        border: Border.all(
-          color: CustomerUiColors.warning.withValues(alpha: .45),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: CustomerUiSpacing.sm,
-          vertical: CustomerUiSpacing.xs,
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.schedule_rounded,
-              size: 18,
-              color: CustomerUiColors.warning,
+        liveRegion: true,
+        child: DecoratedBox(
+          key: const ValueKey('store-analytics-stale'),
+          decoration: BoxDecoration(
+            color: CustomerUiColors.warning.withValues(alpha: .10),
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+            border: Border.all(
+              color: CustomerUiColors.warning.withValues(alpha: .45),
             ),
-            const SizedBox(width: CustomerUiSpacing.xs),
-            Expanded(
-              child: Text(
-                copy.stale,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: CustomerUiColors.inkSoft,
-                  fontWeight: FontWeight.w700,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: CustomerUiSpacing.sm,
+              vertical: CustomerUiSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.schedule_rounded,
+                  size: 18,
+                  color: CustomerUiColors.warning,
                 ),
-              ),
+                const SizedBox(width: CustomerUiSpacing.xs),
+                Expanded(
+                  child: Text(
+                    copy.stale,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: CustomerUiColors.inkSoft,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class _KpiGrid extends StatelessWidget {
@@ -862,16 +863,16 @@ class _KpiGrid extends StatelessWidget {
     final deltaText = delta == null
         ? copy.noComparison
         : (delta > 0 ? '+' : '') +
-              foodexCompactDecimal(delta, maxFractionDigits: 1) +
-              '% ' +
-              copy.vsPrevious;
+            foodexCompactDecimal(delta, maxFractionDigits: 1) +
+            '% ' +
+            copy.vsPrevious;
     final deltaTone = delta == null
         ? CustomerUiColors.muted
         : delta > 0
-        ? CustomerUiColors.success
-        : delta < 0
-        ? CustomerUiColors.warning
-        : CustomerUiColors.muted;
+            ? CustomerUiColors.success
+            : delta < 0
+                ? CustomerUiColors.warning
+                : CustomerUiColors.muted;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -944,49 +945,51 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 82),
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        color: CustomerUiColors.white,
-        borderRadius: BorderRadius.circular(CustomerUiRadii.md),
-        border: Border.all(color: CustomerUiColors.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(CustomerUiSpacing.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
+        constraints: const BoxConstraints(minHeight: 82),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: CustomerUiColors.white,
+            borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+            border: Border.all(color: CustomerUiColors.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(CustomerUiSpacing.sm),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 16, color: CustomerUiColors.deepGreenSoft),
-                const SizedBox(width: CustomerUiSpacing.xxs),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelMedium
-                        ?.copyWith(color: CustomerUiColors.muted),
-                  ),
+                Row(
+                  children: [
+                    Icon(icon, size: 16, color: CustomerUiColors.deepGreenSoft),
+                    const SizedBox(width: CustomerUiSpacing.xxs),
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
+                            ?.copyWith(color: CustomerUiColors.muted),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CustomerUiSpacing.xxs),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: valueColor ?? CustomerUiColors.ink,
+                        fontWeight: FontWeight.w900,
+                      ),
                 ),
               ],
             ),
-            const SizedBox(height: CustomerUiSpacing.xxs),
-            Text(
-              value,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: valueColor ?? CustomerUiColors.ink,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class _TrendCard extends StatelessWidget {
@@ -1014,15 +1017,17 @@ class _TrendCard extends StatelessWidget {
             Text(
               copy.salesTrend,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: CustomerUiColors.ink,
-                fontWeight: FontWeight.w800,
-              ),
+                    color: CustomerUiColors.ink,
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
             const SizedBox(height: CustomerUiSpacing.xxs),
             Text(
               copy.trendSummary,
               key: const ValueKey('store-analytics-trend-summary'),
-              style: Theme.of(context).textTheme.bodySmall
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
                   ?.copyWith(color: CustomerUiColors.muted),
             ),
             const SizedBox(height: CustomerUiSpacing.xs),
@@ -1044,7 +1049,9 @@ class _TrendCard extends StatelessWidget {
                 const SizedBox(width: CustomerUiSpacing.xxs),
                 Text(
                   copy.ordersTrend,
-                  style: Theme.of(context).textTheme.labelMedium
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
                       ?.copyWith(color: CustomerUiColors.inkSoft),
                 ),
               ],
@@ -1078,8 +1085,7 @@ class _InsightCard extends StatelessWidget {
       StoreAnalyticsInsightTone.warning => CustomerUiColors.warning,
       StoreAnalyticsInsightTone.neutral => CustomerUiColors.deepGreenSoft,
     };
-    final canOpen =
-        insight.targetRoute?.trim().isNotEmpty == true &&
+    final canOpen = insight.targetRoute?.trim().isNotEmpty == true &&
         insight.actionLabel?.trim().isNotEmpty == true &&
         onDrillDown != null;
 
@@ -1109,8 +1115,8 @@ class _InsightCard extends StatelessWidget {
                     insight.tone == StoreAnalyticsInsightTone.warning
                         ? Icons.priority_high_rounded
                         : insight.tone == StoreAnalyticsInsightTone.positive
-                        ? Icons.trending_up_rounded
-                        : Icons.lightbulb_outline_rounded,
+                            ? Icons.trending_up_rounded
+                            : Icons.lightbulb_outline_rounded,
                     size: 18,
                     color: tone,
                   ),
@@ -1126,14 +1132,16 @@ class _InsightCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: CustomerUiColors.ink,
-                        fontWeight: FontWeight.w800,
-                      ),
+                            color: CustomerUiColors.ink,
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       insight.body,
-                      style: Theme.of(context).textTheme.bodySmall
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
                           ?.copyWith(color: CustomerUiColors.muted),
                     ),
                     if (canOpen) ...[
@@ -1169,19 +1177,17 @@ String _money(num value, String currency, StoreAnalyticsCopy copy) {
 String _trendSummary(StoreAnalyticsData data, StoreAnalyticsCopy copy) {
   if (data.dailySeries.isEmpty) return copy.trendSummary;
 
-  final points = data.dailySeries
-      .map((point) {
-        final sales = _money(point.sales, data.currency, copy);
-        final orders = foodexQuantity(point.orders, fractionDigits: 0);
-        return point.dateLabel +
-            ': ' +
-            sales +
-            ', ' +
-            orders +
-            ' ' +
-            copy.ordersUnit;
-      })
-      .join(' • ');
+  final points = data.dailySeries.map((point) {
+    final sales = _money(point.sales, data.currency, copy);
+    final orders = foodexQuantity(point.orders, fractionDigits: 0);
+    return point.dateLabel +
+        ': ' +
+        sales +
+        ', ' +
+        orders +
+        ' ' +
+        copy.ordersUnit;
+  }).join(' • ');
 
   return copy.trendSummary + '. ' + points;
 }

@@ -299,9 +299,8 @@ void main() {
         }
 
         await tester.runAsync(() async {
-          final boundary =
-              boundaryKey.currentContext!.findRenderObject()!
-                  as RenderRepaintBoundary;
+          final boundary = boundaryKey.currentContext!.findRenderObject()!
+              as RenderRepaintBoundary;
           final image = await boundary.toImage(pixelRatio: 1);
           final data = await image.toByteData(format: ui.ImageByteFormat.png);
           final file = File('../../ScreenShots/$path');
@@ -328,9 +327,8 @@ void main() {
             locale: locale,
             theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             home: Directionality(
-              textDirection: localeCode == 'ar'
-                  ? TextDirection.rtl
-                  : TextDirection.ltr,
+              textDirection:
+                  localeCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
               child: RetailCheckoutScreen(
                 storeId: 7,
                 api: const _EvidenceRetailCommerceApi(),
@@ -354,9 +352,8 @@ void main() {
       );
 
       await tester.runAsync(() async {
-        final boundary =
-            boundaryKey.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
+        final boundary = boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
         final image = await boundary.toImage(pixelRatio: 1);
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
         final file = File(
@@ -407,9 +404,8 @@ void main() {
       );
 
       await tester.runAsync(() async {
-        final boundary =
-            boundaryKey.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
+        final boundary = boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
         final image = await boundary.toImage(pixelRatio: 1);
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
         final file = File(
@@ -421,54 +417,50 @@ void main() {
       });
     });
 
-    for (final evidence
-        in <
-          ({
-            String suffix,
-            StoreAnalyticsStatus status,
-            bool stale,
-            bool longName,
-          })
-        >[
-          (
-            suffix: '15_تحليل_المتجر_الذكي__populated',
-            status: StoreAnalyticsStatus.loaded,
-            stale: false,
-            longName: false,
-          ),
-          (
-            suffix: '16_تحليل_المتجر_الذكي__stale',
-            status: StoreAnalyticsStatus.loaded,
-            stale: true,
-            longName: false,
-          ),
-          (
-            suffix: '17_تحليل_المتجر_الذكي__empty',
-            status: StoreAnalyticsStatus.empty,
-            stale: false,
-            longName: false,
-          ),
-          (
-            suffix: '18_تحليل_المتجر_الذكي__error',
-            status: StoreAnalyticsStatus.error,
-            stale: false,
-            longName: false,
-          ),
-          (
-            suffix: '19_تحليل_المتجر_الذكي__long_name_missing_logo',
-            status: StoreAnalyticsStatus.loaded,
-            stale: false,
-            longName: true,
-          ),
-        ]) {
+    for (final evidence in <({
+      String suffix,
+      StoreAnalyticsStatus status,
+      bool stale,
+      bool longName,
+    })>[
+      (
+        suffix: '15_تحليل_المتجر_الذكي__populated',
+        status: StoreAnalyticsStatus.loaded,
+        stale: false,
+        longName: false,
+      ),
+      (
+        suffix: '16_تحليل_المتجر_الذكي__stale',
+        status: StoreAnalyticsStatus.loaded,
+        stale: true,
+        longName: false,
+      ),
+      (
+        suffix: '17_تحليل_المتجر_الذكي__empty',
+        status: StoreAnalyticsStatus.empty,
+        stale: false,
+        longName: false,
+      ),
+      (
+        suffix: '18_تحليل_المتجر_الذكي__error',
+        status: StoreAnalyticsStatus.error,
+        stale: false,
+        longName: false,
+      ),
+      (
+        suffix: '19_تحليل_المتجر_الذكي__long_name_missing_logo',
+        status: StoreAnalyticsStatus.loaded,
+        stale: false,
+        longName: true,
+      ),
+    ]) {
       testWidgets(
         'capture Store Analytics ' + evidence.suffix + ' ' + localeCode,
         (tester) async {
           await _captureStoreAnalyticsEvidence(
             tester,
             locale: locale,
-            path:
-                '01_Mobile/B2B_Customer/' +
+            path: '01_Mobile/B2B_Customer/' +
                 evidence.suffix +
                 '__' +
                 localeCode +
@@ -521,9 +513,8 @@ void main() {
       );
 
       await tester.runAsync(() async {
-        final boundary =
-            boundaryKey.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
+        final boundary = boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
         final image = await boundary.toImage(pixelRatio: 1);
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
         final file = File(
@@ -599,9 +590,8 @@ Future<void> _captureStoreAnalyticsEvidence(
   expect(tester.takeException(), isNull);
 
   await tester.runAsync(() async {
-    final boundary =
-        boundaryKey.currentContext!.findRenderObject()!
-            as RenderRepaintBoundary;
+    final boundary = boundaryKey.currentContext!.findRenderObject()!
+        as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     final file = File('../../ScreenShots/' + path);
@@ -615,71 +605,72 @@ StoreAnalyticsData _storeAnalyticsEvidenceData({
   required bool arabic,
   required bool stale,
   required bool longName,
-}) => StoreAnalyticsData(
-  storeId: 7,
-  storeName: longName
-      ? (arabic
-            ? 'سوق فودكس المركزي للخضروات والفواكه والمواد الغذائية الطازجة'
-            : 'FOODEX Central Fresh Grocery, Produce and Daily Essentials Market')
-      : (arabic ? 'فودكس ماركت سموحة' : 'FOODEX Fresh Market'),
-  logoUrl: null,
-  currency: 'EGP',
-  periodLabel: arabic ? '6 - 12 أكتوبر 2026' : '6 - 12 Oct 2026',
-  freshnessLabel: stale
-      ? (arabic ? 'آخر تحديث منذ 26 ساعة' : 'Updated 26 hours ago')
-      : (arabic ? 'آخر تحديث منذ 5 دقائق' : 'Updated 5 minutes ago'),
-  revenue: 18425.75,
-  orders: 53,
-  averageOrderValue: 347.66,
-  revenueDeltaPercent: -8.4,
-  isStale: stale,
-  dailySeries: const [
-    StoreAnalyticsDailyPoint(dateLabel: '06', sales: 1900, orders: 6),
-    StoreAnalyticsDailyPoint(dateLabel: '07', sales: 2700, orders: 8),
-    StoreAnalyticsDailyPoint(dateLabel: '08', sales: 2310, orders: 7),
-    StoreAnalyticsDailyPoint(dateLabel: '09', sales: 3125, orders: 9),
-    StoreAnalyticsDailyPoint(dateLabel: '10', sales: 2880, orders: 8),
-    StoreAnalyticsDailyPoint(dateLabel: '11', sales: 2510, orders: 7),
-    StoreAnalyticsDailyPoint(dateLabel: '12', sales: 3000.75, orders: 8),
-  ],
-  insights: [
-    StoreAnalyticsInsight(
-      id: 'cancelled_orders',
-      title: arabic
-          ? 'طلبات ملغاة تحتاج مراجعة'
-          : 'Cancelled orders need review',
-      body: arabic
-          ? 'تم إلغاء 3 طلبات خلال الفترة المحددة.'
-          : '3 orders were cancelled in the selected period.',
-      tone: StoreAnalyticsInsightTone.warning,
-      actionLabel: arabic ? 'عرض الطلبات' : 'View orders',
-      targetRoute: '/orders?channel=retail&store_id=7',
-    ),
-    StoreAnalyticsInsight(
-      id: 'stock_attention',
-      title: arabic ? 'تنبيه مخزون' : 'Stock attention',
-      body: arabic
-          ? 'هناك منتجان يحتاجان متابعة المخزون.'
-          : 'Two products need stock attention.',
-      tone: StoreAnalyticsInsightTone.warning,
-    ),
-    StoreAnalyticsInsight(
-      id: 'revenue_change',
-      title: arabic ? 'تغير المبيعات' : 'Sales changed',
-      body: arabic
-          ? 'انخفضت المبيعات مقارنة بالفترة السابقة.'
-          : 'Sales decreased compared with the previous period.',
-    ),
-    StoreAnalyticsInsight(
-      id: 'top_product',
-      title: arabic ? 'المنتج الأقوى' : 'Top product',
-      body: arabic
-          ? 'الحليب الطازج حقق أعلى مساهمة في المبيعات.'
-          : 'Fresh Milk made the highest sales contribution.',
-      tone: StoreAnalyticsInsightTone.positive,
-    ),
-  ],
-);
+}) =>
+    StoreAnalyticsData(
+      storeId: 7,
+      storeName: longName
+          ? (arabic
+              ? 'سوق فودكس المركزي للخضروات والفواكه والمواد الغذائية الطازجة'
+              : 'FOODEX Central Fresh Grocery, Produce and Daily Essentials Market')
+          : (arabic ? 'فودكس ماركت سموحة' : 'FOODEX Fresh Market'),
+      logoUrl: null,
+      currency: 'EGP',
+      periodLabel: arabic ? '6 - 12 أكتوبر 2026' : '6 - 12 Oct 2026',
+      freshnessLabel: stale
+          ? (arabic ? 'آخر تحديث منذ 26 ساعة' : 'Updated 26 hours ago')
+          : (arabic ? 'آخر تحديث منذ 5 دقائق' : 'Updated 5 minutes ago'),
+      revenue: 18425.75,
+      orders: 53,
+      averageOrderValue: 347.66,
+      revenueDeltaPercent: -8.4,
+      isStale: stale,
+      dailySeries: const [
+        StoreAnalyticsDailyPoint(dateLabel: '06', sales: 1900, orders: 6),
+        StoreAnalyticsDailyPoint(dateLabel: '07', sales: 2700, orders: 8),
+        StoreAnalyticsDailyPoint(dateLabel: '08', sales: 2310, orders: 7),
+        StoreAnalyticsDailyPoint(dateLabel: '09', sales: 3125, orders: 9),
+        StoreAnalyticsDailyPoint(dateLabel: '10', sales: 2880, orders: 8),
+        StoreAnalyticsDailyPoint(dateLabel: '11', sales: 2510, orders: 7),
+        StoreAnalyticsDailyPoint(dateLabel: '12', sales: 3000.75, orders: 8),
+      ],
+      insights: [
+        StoreAnalyticsInsight(
+          id: 'cancelled_orders',
+          title: arabic
+              ? 'طلبات ملغاة تحتاج مراجعة'
+              : 'Cancelled orders need review',
+          body: arabic
+              ? 'تم إلغاء 3 طلبات خلال الفترة المحددة.'
+              : '3 orders were cancelled in the selected period.',
+          tone: StoreAnalyticsInsightTone.warning,
+          actionLabel: arabic ? 'عرض الطلبات' : 'View orders',
+          targetRoute: '/orders?channel=retail&store_id=7',
+        ),
+        StoreAnalyticsInsight(
+          id: 'stock_attention',
+          title: arabic ? 'تنبيه مخزون' : 'Stock attention',
+          body: arabic
+              ? 'هناك منتجان يحتاجان متابعة المخزون.'
+              : 'Two products need stock attention.',
+          tone: StoreAnalyticsInsightTone.warning,
+        ),
+        StoreAnalyticsInsight(
+          id: 'revenue_change',
+          title: arabic ? 'تغير المبيعات' : 'Sales changed',
+          body: arabic
+              ? 'انخفضت المبيعات مقارنة بالفترة السابقة.'
+              : 'Sales decreased compared with the previous period.',
+        ),
+        StoreAnalyticsInsight(
+          id: 'top_product',
+          title: arabic ? 'المنتج الأقوى' : 'Top product',
+          body: arabic
+              ? 'الحليب الطازج حقق أعلى مساهمة في المبيعات.'
+              : 'Fresh Milk made the highest sales contribution.',
+          tone: StoreAnalyticsInsightTone.positive,
+        ),
+      ],
+    );
 
 StoreAnalyticsCopy _storeAnalyticsEvidenceCopy(bool arabic) => arabic
     ? const StoreAnalyticsCopy(
@@ -1214,43 +1205,43 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
 
   @override
   Future<List<B2cStore>> stores() async => [
-    B2cStore(
-      id: 7,
-      name: _isEn ? 'FOODEX Premium Demo Store' : 'متجر FOODEX التجريبي',
-      code: 'FOODEX-DEMO-B2C',
-    ),
-  ];
+        B2cStore(
+          id: 7,
+          name: _isEn ? 'FOODEX Premium Demo Store' : 'متجر FOODEX التجريبي',
+          code: 'FOODEX-DEMO-B2C',
+        ),
+      ];
 
   @override
   Future<List<B2cCategory>> categories(int storeId) async => [
-    B2cCategory(id: 3, name: _isEn ? 'Vegetables' : 'خضروات'),
-    B2cCategory(id: 4, name: _isEn ? 'Pantry' : 'بقالة'),
-  ];
+        B2cCategory(id: 3, name: _isEn ? 'Vegetables' : 'خضروات'),
+        B2cCategory(id: 4, name: _isEn ? 'Pantry' : 'بقالة'),
+      ];
 
   @override
   Future<List<B2cOffer>> offers(int storeId) async => [
-    B2cOffer(
-      id: 9,
-      name: _isEn ? 'Weekend offer' : 'عرض نهاية الأسبوع',
-      type: 'percentage',
-      value: 10,
-    ),
-    B2cOffer(
-      id: 10,
-      name: _isEn ? 'FOODEX offer' : 'عرض FOODEX',
-      type: 'fixed',
-      value: 2,
-    ),
-  ];
+        B2cOffer(
+          id: 9,
+          name: _isEn ? 'Weekend offer' : 'عرض نهاية الأسبوع',
+          type: 'percentage',
+          value: 10,
+        ),
+        B2cOffer(
+          id: 10,
+          name: _isEn ? 'FOODEX offer' : 'عرض FOODEX',
+          type: 'fixed',
+          value: 2,
+        ),
+      ];
 
   @override
   Future<List<B2cBanner>> banners(int storeId) async => [
-    B2cBanner(
-      id: 11,
-      title: _isEn ? 'FOODEX offer today' : 'عرض فودكس اليوم',
-      targetUrl: '/offers',
-    ),
-  ];
+        B2cBanner(
+          id: 11,
+          title: _isEn ? 'FOODEX offer today' : 'عرض فودكس اليوم',
+          targetUrl: '/offers',
+        ),
+      ];
 
   @override
   Future<List<B2cProduct>> products(
@@ -1259,20 +1250,21 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => [
-    B2cProduct(
-      id: 42,
-      name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
-      sku: 'TOM-42',
-      price: 3.25,
-    ),
-    B2cProduct(
-      id: 43,
-      name: _isEn ? 'Organic olive oil' : 'زيت زيتون عضوي',
-      sku: 'OLV-43',
-      price: 18.5,
-    ),
-  ];
+  }) async =>
+      [
+        B2cProduct(
+          id: 42,
+          name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+          sku: 'TOM-42',
+          price: 3.25,
+        ),
+        B2cProduct(
+          id: 43,
+          name: _isEn ? 'Organic olive oil' : 'زيت زيتون عضوي',
+          sku: 'OLV-43',
+          price: 18.5,
+        ),
+      ];
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>
@@ -1296,117 +1288,118 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
 
   @override
   Future<Object?> cart({int? storeId}) async => {
-    'id': 1,
-    'store_id': storeId ?? 7,
-    'currency': 'KWD',
-    'items': [
-      {
-        'id': 5,
-        'product': {
-          'id': 42,
-          'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
-        },
-        'quantity': 2,
-        'unit_price': 3.25,
-        'line_total': 6.5,
-      },
-    ],
-    'subtotal': 6.5,
-  };
+        'id': 1,
+        'store_id': storeId ?? 7,
+        'currency': 'KWD',
+        'items': [
+          {
+            'id': 5,
+            'product': {
+              'id': 42,
+              'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+            },
+            'quantity': 2,
+            'unit_price': 3.25,
+            'line_total': 6.5,
+          },
+        ],
+        'subtotal': 6.5,
+      };
 
   @override
   Future<Object?> updateCartItem(int itemId, double quantity) async => {
-    'id': itemId,
-    'quantity': quantity,
-  };
+        'id': itemId,
+        'quantity': quantity,
+      };
 
   @override
   Future<void> removeCartItem(int itemId) async {}
 
   @override
   Future<Object?> order(int orderId) async => {
-    'id': orderId,
-    'order_number': 'FOODEX-$orderId',
-    'status': 'out_for_delivery',
-    'currency': 'KWD',
-    'grand_total': 18.5,
-    'driver_name': _isEn ? 'Nasser · FOODEX driver' : 'ناصر · سائق FOODEX',
-  };
+        'id': orderId,
+        'order_number': 'FOODEX-$orderId',
+        'status': 'out_for_delivery',
+        'currency': 'KWD',
+        'grand_total': 18.5,
+        'driver_name': _isEn ? 'Nasser · FOODEX driver' : 'ناصر · سائق FOODEX',
+      };
 
   @override
   Future<Object?> orders() async => {
-    'data': [
-      {
-        'id': 101,
-        'order_number': 'FOODEX-101',
-        'status': 'out_for_delivery',
-        'grand_total': 18.5,
-        'currency': 'KWD',
-      },
-    ],
-  };
+        'data': [
+          {
+            'id': 101,
+            'order_number': 'FOODEX-101',
+            'status': 'out_for_delivery',
+            'grand_total': 18.5,
+            'currency': 'KWD',
+          },
+        ],
+      };
 
   @override
   Future<Object?> profile() async => {
-    'name': _isEn ? 'FOODEX Demo Customer' : 'عميل FOODEX التجريبي',
-    'email': 'customer@foodex.test',
-    'phone': '+96555500000',
-  };
+        'name': _isEn ? 'FOODEX Demo Customer' : 'عميل FOODEX التجريبي',
+        'email': 'customer@foodex.test',
+        'phone': '+96555500000',
+      };
 
   @override
   Future<Object?> updateProfile(Map<String, dynamic> values) async => values;
 
   @override
   Future<Object?> addresses() async => {
-    'data': [
-      {
-        'id': 8,
-        'label': _isEn ? 'Home' : 'المنزل',
-        'line1': _isEn ? 'Block 1, Demo Street' : 'قطعة 1 شارع تجريبي',
-        'area': _isEn ? 'Bayan' : 'بيان',
-        'city': _isEn ? 'Kuwait City' : 'مدينة الكويت',
-        'country_code': 'KW',
-        'latitude': 29.3031,
-        'longitude': 48.0489,
-        'location_accuracy_meters': 6.0,
-        'location_source': 'map_pin',
-        'landmark': _isEn ? 'Near the co-op' : 'قرب الجمعية',
-        'is_default': true,
-      },
-    ],
-  };
+        'data': [
+          {
+            'id': 8,
+            'label': _isEn ? 'Home' : 'المنزل',
+            'line1': _isEn ? 'Block 1, Demo Street' : 'قطعة 1 شارع تجريبي',
+            'area': _isEn ? 'Bayan' : 'بيان',
+            'city': _isEn ? 'Kuwait City' : 'مدينة الكويت',
+            'country_code': 'KW',
+            'latitude': 29.3031,
+            'longitude': 48.0489,
+            'location_accuracy_meters': 6.0,
+            'location_source': 'map_pin',
+            'landmark': _isEn ? 'Near the co-op' : 'قرب الجمعية',
+            'is_default': true,
+          },
+        ],
+      };
 
   @override
   Future<Object?> createAddress(Map<String, dynamic> values) async => {
-    'id': 9,
-    ...values,
-  };
+        'id': 9,
+        ...values,
+      };
 
   @override
   Future<Object?> updateAddress(
     int addressId,
     Map<String, dynamic> values,
-  ) async => {'id': addressId, ...values};
+  ) async =>
+      {'id': addressId, ...values};
 
   @override
   Future<Object?> setDefaultAddress(int addressId) async => {
-    'id': addressId,
-    'is_default': true,
-  };
+        'id': addressId,
+        'is_default': true,
+      };
 
   @override
   Future<void> removeAddress(int addressId) async {}
 
   @override
   Future<Object?> favorites() async => {
-    'data': [
-      {
-        'id': 42,
-        'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
-        'sku': 'TOM-42',
-      },
-    ],
-  };
+        'data': [
+          {
+            'id': 42,
+            'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+            'sku': 'TOM-42',
+          },
+        ],
+      };
 
   @override
   Future<void> addFavorite(int productId) async {}
@@ -1416,17 +1409,17 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
 
   @override
   Future<Object?> favoritesForStore(int storeId) async => {
-    'data': [
-      {
-        'id': 42,
-        'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
-        'sku': 'TOM-42',
-        'store_id': storeId,
-        'price': 3.25,
-        'currency': 'KWD',
-      },
-    ],
-  };
+        'data': [
+          {
+            'id': 42,
+            'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+            'sku': 'TOM-42',
+            'store_id': storeId,
+            'price': 3.25,
+            'currency': 'KWD',
+          },
+        ],
+      };
 
   @override
   Future<void> addFavoriteForStore(int storeId, int productId) async {}
@@ -1436,25 +1429,25 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
 
   @override
   Future<Object?> accountDeletionStatus() async => {
-    'data': {'status': 'NONE'},
-  };
+        'data': {'status': 'NONE'},
+      };
 
   @override
   Future<Object?> requestAccountDeletion(String password) async => {
-    'data': {'status': 'COMPLETED'},
-  };
+        'data': {'status': 'COMPLETED'},
+      };
 
   @override
   Future<Object?> notifications({String locale = 'ar'}) async => {
-    'data': [
-      {
-        'id': 4,
-        'title': locale == 'en' ? 'Order update' : 'تحديث الطلب',
-        'body': locale == 'en' ? 'On the way' : 'في الطريق',
-        'read_at': null,
-      },
-    ],
-  };
+        'data': [
+          {
+            'id': 4,
+            'title': locale == 'en' ? 'Order update' : 'تحديث الطلب',
+            'body': locale == 'en' ? 'On the way' : 'في الطريق',
+            'read_at': null,
+          },
+        ],
+      };
 
   @override
   Future<void> markNotificationRead(int notificationId) async {}
@@ -1490,73 +1483,75 @@ class _EvidenceOrdersApi implements CustomerOrdersApi {
     String? status,
     String? channel,
     CustomerOrderContext? context,
-  }) async => CustomerOrderPage(
-    orders: [
-      _summary(101, channel: channel ?? context?.normalizedChannel ?? 'b2c'),
-    ],
-    currentPage: page,
-    perPage: perPage,
-    total: 1,
-    scope:
-        channel ??
-        (context == null
-            ? 'all'
-            : '${context.normalizedChannel}:${context.storeId}'),
-  );
+  }) async =>
+      CustomerOrderPage(
+        orders: [
+          _summary(101,
+              channel: channel ?? context?.normalizedChannel ?? 'b2c'),
+        ],
+        currentPage: page,
+        perPage: perPage,
+        total: 1,
+        scope: channel ??
+            (context == null
+                ? 'all'
+                : '${context.normalizedChannel}:${context.storeId}'),
+      );
 
   @override
   Future<CustomerOrderDetails> order({
     required int orderId,
     CustomerOrderContext? context,
-  }) async => CustomerOrderDetails(
-    summary: _summary(orderId),
-    subtotal: 16.5,
-    discountTotal: 0,
-    deliveryTotal: 2,
-    paymentMethod: 'cash_on_delivery',
-    deliveryAddress: {
-      'label': _isEn ? 'Home' : 'المنزل',
-      'line1': _isEn ? 'Block 1, Demo Street' : 'قطعة 1 شارع تجريبي',
-      'area': _isEn ? 'Bayan' : 'بيان',
-      'city': _isEn ? 'Kuwait City' : 'مدينة الكويت',
-      'country_code': 'KW',
-    },
-    items: [
-      CustomerOrderItem(
-        id: 1,
-        productId: 42,
-        sku: 'TOM-42',
-        name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
-        quantity: 2,
-        unitPrice: 8.25,
-        lineTotal: 16.5,
-      ),
-    ],
-    history: [
-      CustomerOrderHistoryEntry(
-        id: 1,
-        fromStatus: 'confirmed',
-        toStatus: 'preparing',
-        note: null,
-        createdAt: DateTime.utc(2026, 10, 1, 10, 35),
-      ),
-      CustomerOrderHistoryEntry(
-        id: 2,
-        fromStatus: 'preparing',
-        toStatus: 'out_for_delivery',
-        note: _isEn ? 'FOODEX driver assigned' : 'تم تعيين سائق FOODEX',
-        createdAt: DateTime.utc(2026, 10, 1, 11),
-      ),
-    ],
-    payment: const CustomerOrderPayment(
-      id: 1,
-      provider: 'cash',
-      status: 'pending',
-      amount: 18.5,
-      currency: 'KWD',
-    ),
-    requestedDeliveryDate: '2026-10-01',
-  );
+  }) async =>
+      CustomerOrderDetails(
+        summary: _summary(orderId),
+        subtotal: 16.5,
+        discountTotal: 0,
+        deliveryTotal: 2,
+        paymentMethod: 'cash_on_delivery',
+        deliveryAddress: {
+          'label': _isEn ? 'Home' : 'المنزل',
+          'line1': _isEn ? 'Block 1, Demo Street' : 'قطعة 1 شارع تجريبي',
+          'area': _isEn ? 'Bayan' : 'بيان',
+          'city': _isEn ? 'Kuwait City' : 'مدينة الكويت',
+          'country_code': 'KW',
+        },
+        items: [
+          CustomerOrderItem(
+            id: 1,
+            productId: 42,
+            sku: 'TOM-42',
+            name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+            quantity: 2,
+            unitPrice: 8.25,
+            lineTotal: 16.5,
+          ),
+        ],
+        history: [
+          CustomerOrderHistoryEntry(
+            id: 1,
+            fromStatus: 'confirmed',
+            toStatus: 'preparing',
+            note: null,
+            createdAt: DateTime.utc(2026, 10, 1, 10, 35),
+          ),
+          CustomerOrderHistoryEntry(
+            id: 2,
+            fromStatus: 'preparing',
+            toStatus: 'out_for_delivery',
+            note: _isEn ? 'FOODEX driver assigned' : 'تم تعيين سائق FOODEX',
+            createdAt: DateTime.utc(2026, 10, 1, 11),
+          ),
+        ],
+        payment: const CustomerOrderPayment(
+          id: 1,
+          provider: 'cash',
+          status: 'pending',
+          amount: 18.5,
+          currency: 'KWD',
+        ),
+        requestedDeliveryDate: '2026-10-01',
+      );
 }
 
 class _EvidenceActionApi implements CustomerActionApi {
@@ -1574,11 +1569,12 @@ class _EvidenceActionApi implements CustomerActionApi {
     required int storeId,
     required int productId,
     required double quantity,
-  }) async => {
-    'store_id': storeId,
-    'product_id': productId,
-    'quantity': quantity,
-  };
+  }) async =>
+      {
+        'store_id': storeId,
+        'product_id': productId,
+        'quantity': quantity,
+      };
 
   @override
   Future<Object?> checkout({
@@ -1587,24 +1583,25 @@ class _EvidenceActionApi implements CustomerActionApi {
     String? paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => {
-    'id': 101,
-    'order_number': 'FDX-EVIDENCE-101',
-    'display_order_number': '#101',
-    'store_id': storeId ?? 7,
-    'status': 'confirmed',
-    'currency': 'KWD',
-    'subtotal': 6.5,
-    'discount_total': 0.5,
-    'delivery_total': 0.75,
-    'tax_total': 0.25,
-    'grand_total': 7.0,
-    'payment_method': paymentMethod ?? 'cash_on_delivery',
-    'payment': {'status': 'pending'},
-    'items': [
-      {'id': 5},
-    ],
-  };
+  }) async =>
+      {
+        'id': 101,
+        'order_number': 'FDX-EVIDENCE-101',
+        'display_order_number': '#101',
+        'store_id': storeId ?? 7,
+        'status': 'confirmed',
+        'currency': 'KWD',
+        'subtotal': 6.5,
+        'discount_total': 0.5,
+        'delivery_total': 0.75,
+        'tax_total': 0.25,
+        'grand_total': 7.0,
+        'payment_method': paymentMethod ?? 'cash_on_delivery',
+        'payment': {'status': 'pending'},
+        'items': [
+          {'id': 5},
+        ],
+      };
 }
 
 class _EvidenceRetailCommerceApi implements RetailCommerceApi {
@@ -1660,39 +1657,43 @@ class _EvidenceRetailCommerceApi implements RetailCommerceApi {
     required String paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => RetailCreatedOrder(
-    id: 101,
-    storeId: storeId,
-    orderNumber: 'FDX-EVIDENCE-101',
-    displayOrderNumber: '#101',
-    currency: 'KWD',
-    subtotal: 6.5,
-    discountTotal: .5,
-    deliveryTotal: .75,
-    taxTotal: .25,
-    grandTotal: 7,
-    paymentMethod: paymentMethod,
-    paymentStatus: 'pending',
-    itemCount: 1,
-  );
+  }) async =>
+      RetailCreatedOrder(
+        id: 101,
+        storeId: storeId,
+        orderNumber: 'FDX-EVIDENCE-101',
+        displayOrderNumber: '#101',
+        currency: 'KWD',
+        subtotal: 6.5,
+        discountTotal: .5,
+        deliveryTotal: .75,
+        taxTotal: .25,
+        grandTotal: 7,
+        paymentMethod: paymentMethod,
+        paymentStatus: 'pending',
+        itemCount: 1,
+      );
 
   @override
   Future<RetailCartSnapshot> mergeGuestCartAfterAuthentication({
     required int storeId,
-  }) => loadCart(storeId: storeId);
+  }) =>
+      loadCart(storeId: storeId);
 
   @override
   Future<RetailCartSnapshot> removeItem({
     required int storeId,
     required int itemId,
-  }) => loadCart(storeId: storeId);
+  }) =>
+      loadCart(storeId: storeId);
 
   @override
   Future<RetailCartSnapshot> updateQuantity({
     required int storeId,
     required int itemId,
     required double quantity,
-  }) => loadCart(storeId: storeId);
+  }) =>
+      loadCart(storeId: storeId);
 }
 
 class _EvidenceStorefrontApi implements StorefrontApi {
@@ -1704,39 +1705,40 @@ class _EvidenceStorefrontApi implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) async => {
-    'retail_stores': [
+  }) async =>
       {
-        'id': 7,
-        'code': 'GROCERY-7',
-        'name': 'FOODEX Fresh Market',
-        'theme_code': 'retail_grocery',
-        'address': 'سموحة · توصيل سريع',
-      },
-      {
-        'id': 8,
-        'code': 'PHARMACY-8',
-        'name': 'FOODEX Pharmacy',
-        'theme_code': 'retail_pharmacy',
-        'address': 'صيدلية · خدمة 24 ساعة',
-      },
-    ],
-    'wholesale_stores': [
-      {
-        'id': 70,
-        'code': 'WHOLESALE-70',
-        'name': 'FOODEX Wholesale',
-        'theme_code': 'wholesale_b2b',
-        'retail_context_ids': [7],
-        'is_platform_principal': true,
-      },
-    ],
-    'entitlements': {
-      'retail_context_ids': [7],
-      'direct_b2b': true,
-      'principal_wholesale_store_id': 70,
-    },
-  };
+        'retail_stores': [
+          {
+            'id': 7,
+            'code': 'GROCERY-7',
+            'name': 'FOODEX Fresh Market',
+            'theme_code': 'retail_grocery',
+            'address': 'سموحة · توصيل سريع',
+          },
+          {
+            'id': 8,
+            'code': 'PHARMACY-8',
+            'name': 'FOODEX Pharmacy',
+            'theme_code': 'retail_pharmacy',
+            'address': 'صيدلية · خدمة 24 ساعة',
+          },
+        ],
+        'wholesale_stores': [
+          {
+            'id': 70,
+            'code': 'WHOLESALE-70',
+            'name': 'FOODEX Wholesale',
+            'theme_code': 'wholesale_b2b',
+            'retail_context_ids': [7],
+            'is_platform_principal': true,
+          },
+        ],
+        'entitlements': {
+          'retail_context_ids': [7],
+          'direct_b2b': true,
+          'principal_wholesale_store_id': 70,
+        },
+      };
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async {
@@ -1775,64 +1777,64 @@ class _EvidenceStorefrontApi implements StorefrontApi {
 
   @override
   Future<Map<String, dynamic>> wholesaleHome(int storeId) async => {
-    'store': {
-      'id': storeId,
-      'code': 'WHOLESALE-$storeId',
-      'name': 'FOODEX Wholesale',
-      'theme_code': 'wholesale_b2b',
-    },
-    'theme': {
-      'code': 'wholesale_b2b',
-      'primary': '#5D2A91',
-      'primary_dark': '#35195E',
-      'accent': '#B983F0',
-      'background': '#FBFAFD',
-    },
-    'branding': {
-      'address': 'تغطية توريد الجملة',
-      'custom': {
-        'brand_title_ar': 'FOODEX جملة',
-        'brand_subtitle_ar': 'أفضل الأسعار لمتاجر التجزئة',
-        'hero_cta_ar': 'تصفح الكتالوج',
-      },
-    },
-    'hero': {'title': 'عرض الجملة', 'image_url': null},
-    'sections': [
-      {'key': 'hero', 'type': 'hero', 'sort_order': 10},
-      {
-        'key': 'categories',
-        'type': 'categories',
-        'title_ar': 'التصنيفات',
-        'sort_order': 20,
-      },
-      {
-        'key': 'offers',
-        'type': 'offers',
-        'title_ar': 'عروض الجملة',
-        'sort_order': 30,
-      },
-    ],
-  };
+        'store': {
+          'id': storeId,
+          'code': 'WHOLESALE-$storeId',
+          'name': 'FOODEX Wholesale',
+          'theme_code': 'wholesale_b2b',
+        },
+        'theme': {
+          'code': 'wholesale_b2b',
+          'primary': '#5D2A91',
+          'primary_dark': '#35195E',
+          'accent': '#B983F0',
+          'background': '#FBFAFD',
+        },
+        'branding': {
+          'address': 'تغطية توريد الجملة',
+          'custom': {
+            'brand_title_ar': 'FOODEX جملة',
+            'brand_subtitle_ar': 'أفضل الأسعار لمتاجر التجزئة',
+            'hero_cta_ar': 'تصفح الكتالوج',
+          },
+        },
+        'hero': {'title': 'عرض الجملة', 'image_url': null},
+        'sections': [
+          {'key': 'hero', 'type': 'hero', 'sort_order': 10},
+          {
+            'key': 'categories',
+            'type': 'categories',
+            'title_ar': 'التصنيفات',
+            'sort_order': 20,
+          },
+          {
+            'key': 'offers',
+            'type': 'offers',
+            'title_ar': 'عروض الجملة',
+            'sort_order': 30,
+          },
+        ],
+      };
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => {
-    'store_id': storeId,
-    'addresses': [
-      {
-        'id': 81,
-        'label': 'المتجر',
-        'line1': 'سموحة - شارع FOODEX',
-        'area': 'سموحة',
-        'city': 'الإسكندرية',
-        'country_code': 'EG',
-        'is_default': true,
-      },
-    ],
-    'delivery_dates': ['2026-09-29', '2026-09-30', '2026-10-01'],
-    'payment_methods': ['cash_on_delivery', 'account_credit'],
-    'credit_limit': 5000,
-    'currency': 'EGP',
-  };
+        'store_id': storeId,
+        'addresses': [
+          {
+            'id': 81,
+            'label': 'المتجر',
+            'line1': 'سموحة - شارع FOODEX',
+            'area': 'سموحة',
+            'city': 'الإسكندرية',
+            'country_code': 'EG',
+            'is_default': true,
+          },
+        ],
+        'delivery_dates': ['2026-09-29', '2026-09-30', '2026-10-01'],
+        'payment_methods': ['cash_on_delivery', 'account_credit'],
+        'credit_limit': 5000,
+        'currency': 'EGP',
+      };
 }
 
 class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
@@ -1840,24 +1842,24 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
 
   @override
   Future<Object?> cart(int storeId) async => {
-    'store_id': storeId,
-    'subtotal': 725.0,
-    'currency': 'EGP',
-    'items': [
-      {
-        'id': 501,
-        'product_id': 42,
-        'name': 'كرتونة طماطم FOODEX',
-        'quantity': 10,
-        'unit_price': 72.5,
-        'line_total': 725.0,
-        'minimum_order_quantity': 5,
-        'ordering_increment': 5,
-        'pack_size': 12,
-        'pack_label': 'كرتونة 12',
-      },
-    ],
-  };
+        'store_id': storeId,
+        'subtotal': 725.0,
+        'currency': 'EGP',
+        'items': [
+          {
+            'id': 501,
+            'product_id': 42,
+            'name': 'كرتونة طماطم FOODEX',
+            'quantity': 10,
+            'unit_price': 72.5,
+            'line_total': 725.0,
+            'minimum_order_quantity': 5,
+            'ordering_increment': 5,
+            'pack_size': 12,
+            'pack_label': 'كرتونة 12',
+          },
+        ],
+      };
 
   @override
   Future<Object?> addItem(int storeId, int productId, double quantity) async =>
@@ -1865,9 +1867,9 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
 
   @override
   Future<Object?> updateItem(int itemId, double quantity) async => {
-    'id': itemId,
-    'quantity': quantity,
-  };
+        'id': itemId,
+        'quantity': quantity,
+      };
 
   @override
   Future<void> removeItem(int itemId) async {}
@@ -1881,12 +1883,13 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
     String? note,
     String? couponCode,
     required String idempotencyKey,
-  }) async => {
-    'id': 990,
-    'order_number': 'B2B-990',
-    'store_id': storeId,
-    'status': 'pending',
-    'currency': 'EGP',
-    'grand_total': 725.0,
-  };
+  }) async =>
+      {
+        'id': 990,
+        'order_number': 'B2B-990',
+        'store_id': storeId,
+        'status': 'pending',
+        'currency': 'EGP',
+        'grand_total': 725.0,
+      };
 }

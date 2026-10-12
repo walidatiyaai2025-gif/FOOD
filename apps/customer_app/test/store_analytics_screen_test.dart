@@ -85,179 +85,181 @@ StoreAnalyticsData _data({
   String? logoUrl,
   String storeName =
       'Downtown Grocery and Fresh Food Market with a deliberately long name',
-}) => StoreAnalyticsData(
-  storeId: 7,
-  storeName: storeName,
-  logoUrl: logoUrl,
-  currency: 'EGP',
-  periodLabel: '06 Oct - 12 Oct 2026',
-  freshnessLabel: stale ? 'Updated 26 hours ago' : 'Updated 5 minutes ago',
-  revenue: 18425.75,
-  orders: 53,
-  averageOrderValue: 347.66,
-  revenueDeltaPercent: -8.4,
-  isStale: stale,
-  dailySeries: const [
-    StoreAnalyticsDailyPoint(dateLabel: '06 Oct', sales: 1900, orders: 6),
-    StoreAnalyticsDailyPoint(dateLabel: '07 Oct', sales: 2700, orders: 8),
-    StoreAnalyticsDailyPoint(dateLabel: '08 Oct', sales: 2310, orders: 7),
-    StoreAnalyticsDailyPoint(dateLabel: '09 Oct', sales: 3125, orders: 9),
-    StoreAnalyticsDailyPoint(dateLabel: '10 Oct', sales: 2880, orders: 8),
-    StoreAnalyticsDailyPoint(dateLabel: '11 Oct', sales: 2510, orders: 7),
-    StoreAnalyticsDailyPoint(dateLabel: '12 Oct', sales: 3000.75, orders: 8),
-  ],
-  insights: const [
-    StoreAnalyticsInsight(
-      id: 'cancelled_orders',
-      title: 'Cancellation attention',
-      body: '3 cancelled orders in the selected period.',
-      tone: StoreAnalyticsInsightTone.warning,
-      actionLabel: 'Open orders',
-      targetRoute: '/orders?channel=retail&store_id=7',
-    ),
-    StoreAnalyticsInsight(
-      id: 'stock_attention',
-      title: 'Stock attention',
-      body: 'Two products need stock attention.',
-      tone: StoreAnalyticsInsightTone.warning,
-    ),
-    StoreAnalyticsInsight(
-      id: 'revenue_change',
-      title: 'Revenue changed',
-      body: 'Revenue changed compared with the previous period.',
-    ),
-    StoreAnalyticsInsight(
-      id: 'top_product',
-      title: 'Top contribution',
-      body: 'Fresh Milk contributed the most revenue.',
-      tone: StoreAnalyticsInsightTone.positive,
-    ),
-    StoreAnalyticsInsight(
-      id: 'ignored_fifth',
-      title: 'Fifth item',
-      body: 'The compact surface must cap visible insights at four.',
-    ),
-  ],
-);
+}) =>
+    StoreAnalyticsData(
+      storeId: 7,
+      storeName: storeName,
+      logoUrl: logoUrl,
+      currency: 'EGP',
+      periodLabel: '06 Oct - 12 Oct 2026',
+      freshnessLabel: stale ? 'Updated 26 hours ago' : 'Updated 5 minutes ago',
+      revenue: 18425.75,
+      orders: 53,
+      averageOrderValue: 347.66,
+      revenueDeltaPercent: -8.4,
+      isStale: stale,
+      dailySeries: const [
+        StoreAnalyticsDailyPoint(dateLabel: '06 Oct', sales: 1900, orders: 6),
+        StoreAnalyticsDailyPoint(dateLabel: '07 Oct', sales: 2700, orders: 8),
+        StoreAnalyticsDailyPoint(dateLabel: '08 Oct', sales: 2310, orders: 7),
+        StoreAnalyticsDailyPoint(dateLabel: '09 Oct', sales: 3125, orders: 9),
+        StoreAnalyticsDailyPoint(dateLabel: '10 Oct', sales: 2880, orders: 8),
+        StoreAnalyticsDailyPoint(dateLabel: '11 Oct', sales: 2510, orders: 7),
+        StoreAnalyticsDailyPoint(
+            dateLabel: '12 Oct', sales: 3000.75, orders: 8),
+      ],
+      insights: const [
+        StoreAnalyticsInsight(
+          id: 'cancelled_orders',
+          title: 'Cancellation attention',
+          body: '3 cancelled orders in the selected period.',
+          tone: StoreAnalyticsInsightTone.warning,
+          actionLabel: 'Open orders',
+          targetRoute: '/orders?channel=retail&store_id=7',
+        ),
+        StoreAnalyticsInsight(
+          id: 'stock_attention',
+          title: 'Stock attention',
+          body: 'Two products need stock attention.',
+          tone: StoreAnalyticsInsightTone.warning,
+        ),
+        StoreAnalyticsInsight(
+          id: 'revenue_change',
+          title: 'Revenue changed',
+          body: 'Revenue changed compared with the previous period.',
+        ),
+        StoreAnalyticsInsight(
+          id: 'top_product',
+          title: 'Top contribution',
+          body: 'Fresh Milk contributed the most revenue.',
+          tone: StoreAnalyticsInsightTone.positive,
+        ),
+        StoreAnalyticsInsight(
+          id: 'ignored_fifth',
+          title: 'Fifth item',
+          body: 'The compact surface must cap visible insights at four.',
+        ),
+      ],
+    );
 
 Map<String, dynamic> _authoritativeReadModelJson() => <String, dynamic>{
-  'store': <String, dynamic>{
-    'id': 7,
-    'name': 'Downtown Grocery',
-    'logo_url': 'https://cdn.foodex.test/store.png',
-    'currency': 'EGP',
-  },
-  'period': <String, dynamic>{
-    'from': '2026-10-06',
-    'to': '2026-10-12',
-    'days': 7,
-  },
-  'previous_period': <String, dynamic>{
-    'from': '2026-09-29',
-    'to': '2026-10-05',
-    'days': 7,
-  },
-  'metrics': <String, dynamic>{
-    'revenue': <String, dynamic>{
-      'value': 18425.75,
-      'previous_value': 20115.45,
-      'delta_percent': -8.4,
-    },
-    'orders': <String, dynamic>{
-      'value': 53,
-      'previous_value': 57,
-      'delta_percent': -7.0,
-    },
-    'average_order_value': <String, dynamic>{
-      'value': 347.66,
-      'previous_value': 352.9,
-      'delta_percent': -1.5,
-    },
-  },
-  'order_facts': <String, dynamic>{
-    'completed': <String, dynamic>{'value': 50, 'previous_value': 54},
-    'cancelled': <String, dynamic>{'value': 3, 'previous_value': 3},
-    'late': <String, dynamic>{
-      'supported': false,
-      'value': null,
-      'previous_value': null,
-    },
-  },
-  'daily_series': <Map<String, dynamic>>[
-    <String, dynamic>{'date': '2026-10-12', 'sales': 3000.75, 'orders': 8},
-  ],
-  'top_products': const <Map<String, dynamic>>[],
-  'peak_activity': <String, dynamic>{
-    'hourly': const <Map<String, dynamic>>[],
-    'peak_window': null,
-  },
-  'attention': <String, dynamic>{
-    'low_stock': const <Map<String, dynamic>>[],
-    'merchant_summary': const <String, dynamic>{},
-    'merchant_attention': const <Map<String, dynamic>>[],
-  },
-  'insights': <Map<String, dynamic>>[
-    <String, dynamic>{
-      'id': 'cancelled_orders',
-      'code': 'cancelled_orders_attention',
-      'severity': 'warning',
-      'priority': 90,
-      'facts': <String, dynamic>{
-        'cancelled_orders': 3,
-        'order_count': 53,
-        'cancelled_percent': 5.7,
-      },
-    },
-    <String, dynamic>{
-      'id': 'stock_attention',
-      'code': 'stock_attention_required',
-      'severity': 'warning',
-      'priority': 80,
-      'facts': <String, dynamic>{
-        'low_stock_count': 2,
-        'reorder_now_count': 1,
-        'first_product_id': 42,
-      },
-    },
-    <String, dynamic>{
-      'id': 'revenue_change',
-      'code': 'revenue_decreased',
-      'severity': 'warning',
-      'priority': 70,
-      'facts': <String, dynamic>{'delta_percent': -8.4},
-    },
-    <String, dynamic>{
-      'id': 'top_product',
-      'code': 'top_product_contribution',
-      'severity': 'positive',
-      'priority': 40,
-      'facts': <String, dynamic>{
-        'product_id': 42,
-        'name': 'Fresh Milk',
-        'contribution_percent': 28.5,
+      'store': <String, dynamic>{
+        'id': 7,
+        'name': 'Downtown Grocery',
+        'logo_url': 'https://cdn.foodex.test/store.png',
         'currency': 'EGP',
       },
-    },
-  ],
-  'freshness': <String, dynamic>{
-    'computed_at': '2026-10-12T21:30:00+03:00',
-    'source_updated_at': '2026-10-10T20:00:00+03:00',
-    'stale_after_seconds': 86400,
-    'is_stale': true,
-    'state': 'stale',
-  },
-  'insight_state': <String, dynamic>{
-    'version': List<String>.filled(64, 'b').join(),
-    'has_new_insights': true,
-    'unread_count': 4,
-    'lifecycle': <String, dynamic>{
-      'mode': 'client_version_echo',
-      'request_parameter': 'seen_insight_version',
-      'clear_when_seen_version_matches_current': true,
-    },
-  },
-  'data_state': 'stale',
-};
+      'period': <String, dynamic>{
+        'from': '2026-10-06',
+        'to': '2026-10-12',
+        'days': 7,
+      },
+      'previous_period': <String, dynamic>{
+        'from': '2026-09-29',
+        'to': '2026-10-05',
+        'days': 7,
+      },
+      'metrics': <String, dynamic>{
+        'revenue': <String, dynamic>{
+          'value': 18425.75,
+          'previous_value': 20115.45,
+          'delta_percent': -8.4,
+        },
+        'orders': <String, dynamic>{
+          'value': 53,
+          'previous_value': 57,
+          'delta_percent': -7.0,
+        },
+        'average_order_value': <String, dynamic>{
+          'value': 347.66,
+          'previous_value': 352.9,
+          'delta_percent': -1.5,
+        },
+      },
+      'order_facts': <String, dynamic>{
+        'completed': <String, dynamic>{'value': 50, 'previous_value': 54},
+        'cancelled': <String, dynamic>{'value': 3, 'previous_value': 3},
+        'late': <String, dynamic>{
+          'supported': false,
+          'value': null,
+          'previous_value': null,
+        },
+      },
+      'daily_series': <Map<String, dynamic>>[
+        <String, dynamic>{'date': '2026-10-12', 'sales': 3000.75, 'orders': 8},
+      ],
+      'top_products': const <Map<String, dynamic>>[],
+      'peak_activity': <String, dynamic>{
+        'hourly': const <Map<String, dynamic>>[],
+        'peak_window': null,
+      },
+      'attention': <String, dynamic>{
+        'low_stock': const <Map<String, dynamic>>[],
+        'merchant_summary': const <String, dynamic>{},
+        'merchant_attention': const <Map<String, dynamic>>[],
+      },
+      'insights': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 'cancelled_orders',
+          'code': 'cancelled_orders_attention',
+          'severity': 'warning',
+          'priority': 90,
+          'facts': <String, dynamic>{
+            'cancelled_orders': 3,
+            'order_count': 53,
+            'cancelled_percent': 5.7,
+          },
+        },
+        <String, dynamic>{
+          'id': 'stock_attention',
+          'code': 'stock_attention_required',
+          'severity': 'warning',
+          'priority': 80,
+          'facts': <String, dynamic>{
+            'low_stock_count': 2,
+            'reorder_now_count': 1,
+            'first_product_id': 42,
+          },
+        },
+        <String, dynamic>{
+          'id': 'revenue_change',
+          'code': 'revenue_decreased',
+          'severity': 'warning',
+          'priority': 70,
+          'facts': <String, dynamic>{'delta_percent': -8.4},
+        },
+        <String, dynamic>{
+          'id': 'top_product',
+          'code': 'top_product_contribution',
+          'severity': 'positive',
+          'priority': 40,
+          'facts': <String, dynamic>{
+            'product_id': 42,
+            'name': 'Fresh Milk',
+            'contribution_percent': 28.5,
+            'currency': 'EGP',
+          },
+        },
+      ],
+      'freshness': <String, dynamic>{
+        'computed_at': '2026-10-12T21:30:00+03:00',
+        'source_updated_at': '2026-10-10T20:00:00+03:00',
+        'stale_after_seconds': 86400,
+        'is_stale': true,
+        'state': 'stale',
+      },
+      'insight_state': <String, dynamic>{
+        'version': List<String>.filled(64, 'b').join(),
+        'has_new_insights': true,
+        'unread_count': 4,
+        'lifecycle': <String, dynamic>{
+          'mode': 'client_version_echo',
+          'request_parameter': 'seen_insight_version',
+          'clear_when_seen_version_matches_current': true,
+        },
+      },
+      'data_state': 'stale',
+    };
 
 Widget _app({
   required Size size,
