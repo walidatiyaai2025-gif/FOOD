@@ -47,6 +47,7 @@ final class ProductionLaunchController extends Controller
         }
 
         $report = $preflight->runtimeReport();
+        $preflight->publishResetPreflightEvidence($report);
         $preflight->approve(
             $actor,
             $request,
