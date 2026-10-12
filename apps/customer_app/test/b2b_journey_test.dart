@@ -1201,7 +1201,7 @@ void main() {
   });
 
   testWidgets(
-    'B2B checkout with order id navigates to B2B details and uses B2B API',
+    'B2B checkout confirms order before explicit tracking navigation',
     (tester) async {
       final api = _FakeB2bApi({
         'id': 4,
@@ -1227,7 +1227,16 @@ void main() {
           initialRoute: '/b2b/checkout?store=7',
           b2bApi: api,
           storefrontApi: const _CheckoutStorefrontApi(),
-          wholesaleCommerceApi: const _FakeWholesaleCommerceApi({'id': 4}),
+          wholesaleCommerceApi: const _FakeWholesaleCommerceApi({
+            'id': 4,
+            'order_number': 'FDX-B2B-4',
+            'currency': 'KWD',
+            'subtotal': 25.5,
+            'discount_total': 0.0,
+            'delivery_total': 0.0,
+            'tax_total': 0.0,
+            'grand_total': 25.5,
+          }),
         ),
       );
       await tester.pumpAndSettle();
@@ -1238,6 +1247,21 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.tap(find.text('تأكيد الطلب'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-order-success')),
+        findsOneWidget,
+      );
+      expect(find.text('FDX-B2B-4'), findsOneWidget);
+      expect(api.lastPath, isNot('/api/v1/b2b/orders/4'));
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('customer-order-success-track')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('customer-order-success-track')),
+      );
       await tester.pumpAndSettle();
 
       expect(api.lastPath, '/api/v1/b2b/orders/4');
@@ -1254,7 +1278,7 @@ void main() {
     },
   );
 
-  testWidgets('B2B checkout without usable order id falls back to B2B orders', (
+  testWidgets('B2B checkout rejects missing authoritative order reference', (
     tester,
   ) async {
     final api = _FakeB2bApi(const {'data': <Object>[]});
@@ -1280,8 +1304,15 @@ void main() {
     await tester.tap(find.text('تأكيد الطلب'));
     await tester.pumpAndSettle();
 
-    expect(api.lastPath, '/api/v1/b2b/orders');
-    expect(find.byKey(const ValueKey('b2b-empty')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-order-success')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-checkout-data')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('b2b-empty')), findsNothing);
   });
 
   testWidgets(
