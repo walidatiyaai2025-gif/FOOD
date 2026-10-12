@@ -27,6 +27,11 @@ import 'customer_route_authority.dart';
 import 'customer_pending_action.dart';
 import 'customer_routes.dart';
 
+typedef CustomerStoreAnalyticsRouteBuilder = Widget Function(
+  BuildContext context,
+  String location,
+);
+
 class CustomerAppRouter {
   const CustomerAppRouter(
     this.session, {
@@ -62,6 +67,7 @@ class CustomerAppRouter {
     this.currentSession,
     this.currentCommerceContext,
     this.onCommerceContextChanged,
+    this.storeAnalyticsBuilder,
   });
 
   final CustomerSession session;
@@ -76,6 +82,7 @@ class CustomerAppRouter {
   final CustomerSession Function()? currentSession;
   final CustomerCommerceContext? Function()? currentCommerceContext;
   final ValueChanged<CustomerCommerceContext>? onCommerceContextChanged;
+  final CustomerStoreAnalyticsRouteBuilder? storeAnalyticsBuilder;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -274,7 +281,7 @@ class CustomerAppRouter {
   }) {
     return MaterialPageRoute<void>(
       settings: settings,
-      builder: (_) {
+      builder: (context) {
         final authority = customerRouteAuthorityFor(
           definition,
           requestedLocation,
@@ -400,6 +407,17 @@ class CustomerAppRouter {
             onLocaleChanged: onLocaleChanged,
             marketplaceClient: marketplaceClient,
             marketplaceBarcodeScanner: marketplaceBarcodeScanner,
+          );
+        }
+
+        if (authority == CustomerRouteAuthority.storeAnalytics) {
+          final analyticsBuilder = storeAnalyticsBuilder;
+          if (analyticsBuilder != null) {
+            return analyticsBuilder(context, requestedLocation);
+          }
+          return CustomerRoutePlaceholder(
+            definition: definition,
+            location: requestedLocation,
           );
         }
 
