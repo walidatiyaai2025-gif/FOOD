@@ -9,20 +9,20 @@ void main() {
   test(
     'explicit retail store routes use the shared retail production authority',
     () {
-    expect(
-      customerRouteAuthorityFor(
-        definition(CustomerRoutePaths.retailHome),
-        '/retail/7/home',
-      ),
-      CustomerRouteAuthority.retailJourney,
-    );
-    expect(
-      customerRouteAuthorityFor(
-        definition(CustomerRoutePaths.retailProductDetails),
-        '/retail/7/products/42',
-      ),
-      CustomerRouteAuthority.retailJourney,
-    );
+      expect(
+        customerRouteAuthorityFor(
+          definition(CustomerRoutePaths.retailHome),
+          '/retail/7/home',
+        ),
+        CustomerRouteAuthority.retailJourney,
+      );
+      expect(
+        customerRouteAuthorityFor(
+          definition(CustomerRoutePaths.retailProductDetails),
+          '/retail/7/products/42',
+        ),
+        CustomerRouteAuthority.retailJourney,
+      );
     },
   );
 
