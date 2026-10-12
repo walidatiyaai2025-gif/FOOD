@@ -36,6 +36,7 @@ const b2c = [
   ['15_مركز_الإدارة', '/admin/administration'],
   ['16_مركز_الإعدادات', '/admin/settings'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
+  ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
 ];
 
 async function ensureDir(dir) {
@@ -81,17 +82,17 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
     ['tablet-768', 768, 900],
     ['mobile-390', 390, 844],
   ];
-  if (name === 'foodex-reset') viewports.push(['small-320', 320, 844]);
+  if (['foodex-reset', 'production-launch'].includes(name)) viewports.push(['small-320', 320, 844]);
   for (const [state, width, height] of viewports) {
     await page.setViewportSize({ width, height });
     await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
     if (page.url().includes('/login')) throw new Error(`Unexpected auth redirect for responsive ${route}`);
     await assertNoPageOverflow(page, `${channel}/${route}/${locale}/${state}`);
-    if (name === 'foodex-reset' && width < 768) {
+    if (['foodex-reset', 'production-launch'].includes(name) && width < 768) {
       const sidebar = page.locator('aside.sidebar');
       const closed = await sidebar.boundingBox();
       if (closed && closed.x < width - 1 && closed.x + closed.width > 1) {
-        throw new Error(`Closed mobile drawer covers reset content: ${locale}/${width}`);
+        throw new Error(`Closed mobile drawer covers protected settings content: ${name}/${locale}/${width}`);
       }
       await page.locator('.foodex-mobile-nav-launcher').click();
       await page.waitForFunction(({ locale, width }) => {
@@ -106,7 +107,7 @@ async function captureResponsiveRoute(page, locale, channel, name, route) {
       for (const field of ['confirmation', 'current_password']) {
         const placeholder = await page.locator(`input[name="${field}"]`).getAttribute('placeholder');
         if (!placeholder || placeholder.includes(field)) {
-          throw new Error(`Unlocalized reset placeholder: ${locale}/${field}`);
+          throw new Error(`Unlocalized protected-operation placeholder: ${name}/${locale}/${field}`);
         }
       }
     }
@@ -701,6 +702,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'foodex-reset',
     '/admin/settings/foodex-reset',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'production-launch',
+    '/admin/settings/production-launch',
   );
 
   const customer360Response = await page.goto(
