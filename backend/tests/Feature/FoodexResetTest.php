@@ -1,0 +1,363 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Updater\UpdateRuntime;
+use App\Http\Controllers\Admin\FoodexResetController;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\FoodexResetService;
+use App\Services\LaunchCatalog;
+use Database\Seeders\CoreReferenceSeeder;
+use Database\Seeders\DashboardDemoSeeder;
+use Database\Seeders\FoodexCustomerVNextFixtureSeeder;
+use Database\Seeders\FoodexLaunchCatalogSeeder;
+use Illuminate\Contracts\Foundation\MaintenanceMode;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
+use Tests\TestCase;
+
+class FoodexResetTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(CoreReferenceSeeder::class);
+    }
+
+    public function test_only_super_admin_can_open_reset_surface(): void
+    {
+        $owner = $this->superAdmin();
+
+        $this->actingAs($owner)
+            ->get('/admin/settings/foodex-reset')
+            ->assertOk()
+            ->assertSee('data-foodex-reset="true"', false)
+            ->assertSee('RESET FOODEX DATA');
+
+        $regular = User::query()->create([
+            'name' => 'Regular Admin',
+            'email' => 'regular-reset@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($regular)
+            ->get('/admin/settings/foodex-reset')
+            ->assertForbidden();
+    }
+
+    public function test_non_production_accepts_seedable_official_contract_without_production_image_readiness(): void
+    {
+        $productionReadiness = app(FoodexLaunchCatalogSeeder::class)->readiness();
+        $this->assertFalse($productionReadiness['ready']);
+
+        $preview = app(FoodexResetService::class)->preview();
+
+        $this->assertTrue($preview['catalog_ready']);
+        $this->assertTrue($preview['references_ready']);
+        $this->assertTrue($preview['production_ready']);
+        $this->assertTrue($preview['ready']);
+        $this->assertIsString($preview['catalog_fingerprint']);
+        $this->assertNotSame('', $preview['catalog_fingerprint']);
+    }
+
+    public function test_dirty_database_resets_to_deterministic_official_seed_and_reruns(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
+        $owner = $this->superAdmin();
+
+        $this->assertGreaterThan(0, DB::table('orders')->count());
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+            $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('admin.foodex-reset.index'));
+
+            $this->assertSame(
+                25,
+                DB::table('products')
+                    ->where('sku', 'like', FoodexLaunchCatalogSeeder::SKU_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                39,
+                DB::table('products')
+                    ->where('sku', 'like', FoodexCustomerVNextFixtureSeeder::PRODUCT_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                82,
+                DB::table('orders')
+                    ->where('order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                150,
+                DB::table('order_items')
+                    ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                    ->where('orders.order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                93,
+                DB::table('payments')
+                    ->join('orders', 'orders.id', '=', 'payments.order_id')
+                    ->where('orders.order_number', 'like', FoodexCustomerVNextFixtureSeeder::ORDER_PREFIX.'%')
+                    ->count(),
+            );
+            $this->assertSame(
+                $attempt + 1,
+                DB::table('audit_logs')->where('event', 'system.launch_reset')->count(),
+            );
+            $this->assertTrue($owner->fresh()->hasRole('SUPER_ADMIN'));
+        }
+    }
+
+    public function test_complete_reset_preserves_identity_and_rbac_and_can_run_again(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
+        $owner = $this->superAdmin();
+        $users = DB::table('users')->count();
+        $stores = DB::table('stores')->count();
+        $this->bindCatalog();
+        $this->assertTrue(app(FoodexResetService::class)->preview()['references_ready']);
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+            $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())
+                ->assertSessionHasNoErrors()->assertRedirect(route('admin.foodex-reset.index'));
+            $this->assertDatabaseCount('orders', 0);
+            $this->assertDatabaseCount('order_items', 0);
+            $this->assertDatabaseCount('invoices', 0);
+            $this->assertDatabaseCount('payments', 0);
+            $this->assertDatabaseCount('products', 0);
+            $this->assertDatabaseCount('users', $users);
+            $this->assertDatabaseCount('stores', $stores);
+            $this->assertTrue($owner->fresh()->hasRole('SUPER_ADMIN'));
+        }
+        $this->assertSame(2, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+    }
+
+    public function test_seed_failure_rolls_back_deletions_and_no_completion_is_audited(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
+        $before = DB::table('orders')->count();
+        $this->bindCatalog(true);
+        $owner = $this->superAdmin();
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasErrors('reset');
+        $this->assertDatabaseCount('orders', $before);
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+    }
+
+    public function test_same_count_data_change_invalidates_preview_and_double_submit_is_rejected(): void
+    {
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        DB::table('units')->where('id', DB::table('units')->value('id'))->update(['name' => 'Changed after preview']);
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasErrors('reset');
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasErrors('reset');
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+    }
+
+    public function test_expired_preview_and_wrong_password_cannot_reset(): void
+    {
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', array_replace($this->confirmation(), ['current_password' => 'wrong']))
+            ->assertSessionHasErrors('current_password');
+        $this->travel(6)->minutes();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasErrors('reset');
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_successful_operation_cannot_be_replayed_from_the_same_preview(): void
+    {
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', $this->confirmation())->assertSessionHasErrors('reset');
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+    }
+
+    public function test_arabic_confirmation_errors_do_not_fall_back_to_english(): void
+    {
+        $owner = $this->superAdmin('ar');
+        $this->actingAs($owner)->get('/admin/settings/foodex-reset')->assertOk();
+        $this->actingAs($owner)->post('/admin/settings/foodex-reset', [])->assertSessionHasErrors([
+            'confirmation' => 'اكتب عبارة التأكيد المعروضة كما هي.',
+            'understood' => 'راجع تأثير التهيئة وأكّد فهمك له.',
+            'current_password' => 'أدخل كلمة مرورك الحالية.',
+        ]);
+    }
+
+    public function test_unknown_dependency_is_blocked_without_disabling_foreign_keys(): void
+    {
+        $this->bindCatalog();
+        Schema::create('reset_unknown_dependents', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('unit_id')->constrained('units');
+        });
+        DB::table('reset_unknown_dependents')->insert(['unit_id' => DB::table('units')->value('id')]);
+        $this->assertFalse(app(FoodexResetService::class)->preview()['references_ready']);
+        Schema::drop('reset_unknown_dependents');
+    }
+
+    public function test_production_requires_secondary_typed_confirmation_before_execution(): void
+    {
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $maintenance = \Mockery::mock(MaintenanceMode::class);
+        $maintenance->shouldReceive('active')->andReturnTrue();
+        $this->app->instance(MaintenanceMode::class, $maintenance);
+        // Operators reach this screen through the authorized maintenance bypass;
+        // bypass only the HTTP middleware here while keeping maintenance active
+        // for the reset service's production readiness check.
+        $this->withoutMiddleware(PreventRequestsDuringMaintenance::class);
+        $path = tempnam(sys_get_temp_dir(), 'foodex-reset-');
+        file_put_contents($path, json_encode([
+            'ready' => true,
+            'database' => DB::connection()->getDatabaseName(),
+            'catalog_fingerprint' => 'test-contract',
+            'checked_at' => now()->timestamp,
+        ], JSON_THROW_ON_ERROR));
+        config([
+            'app.env' => 'production',
+            'foodex_reset.production_enabled' => true,
+            'foodex_reset.preflight_path' => $path,
+        ]);
+        $this->app->instance('env', 'production');
+
+        try {
+            $this->actingAs($owner)
+                ->get('/admin/settings/foodex-reset')
+                ->assertOk()
+                ->assertSee(FoodexResetService::PRODUCTION_CONFIRMATION);
+
+            $request = Request::create('/admin/settings/foodex-reset', 'POST', $this->confirmation());
+            $request->setUserResolver(static fn (): User => $owner);
+
+            try {
+                app(FoodexResetController::class)->store($request, app(FoodexResetService::class));
+                $this->fail('Production reset must require the secondary typed confirmation.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('production_confirmation', $exception->errors());
+            }
+
+            $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+        } finally {
+            config(['app.env' => 'testing']);
+            $this->app->instance('env', 'testing');
+            unlink($path);
+        }
+    }
+
+    public function test_production_cannot_be_enabled_by_confirmation_or_backup_text(): void
+    {
+        $this->bindCatalog();
+        config(['app.env' => 'production', 'foodex_reset.production_enabled' => false]);
+        $this->app->instance('env', 'production');
+        $preview = app(FoodexResetService::class)->preview();
+        $this->assertFalse($preview['production_ready']);
+        $this->assertFalse($preview['ready']);
+        config(['app.env' => 'testing']);
+        $this->app->instance('env', 'testing');
+    }
+
+    public function test_failed_actual_production_backup_leaves_every_row_intact(): void
+    {
+        $this->seed(DashboardDemoSeeder::class);
+        $before = DB::table('orders')->count();
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $maintenance = \Mockery::mock(MaintenanceMode::class);
+        $maintenance->shouldReceive('active')->andReturnTrue();
+        $this->app->instance(MaintenanceMode::class, $maintenance);
+        $backup = \Mockery::mock(UpdateRuntime::class);
+        $backup->shouldReceive('backupDatabase')->once()->with(true)->andThrow(new \RuntimeException('Backup unavailable'));
+        $this->app->instance(UpdateRuntime::class, $backup);
+        $path = tempnam(sys_get_temp_dir(), 'foodex-reset-');
+        file_put_contents($path, json_encode([
+            'ready' => true,
+            'database' => DB::connection()->getDatabaseName(),
+            'catalog_fingerprint' => 'test-contract',
+            'checked_at' => now()->timestamp,
+        ], JSON_THROW_ON_ERROR));
+        config(['foodex_reset.production_enabled' => true, 'foodex_reset.preflight_path' => $path]);
+        $this->app->instance('env', 'production');
+        try {
+            $reset = app(FoodexResetService::class);
+            $preview = $reset->preview();
+            $this->assertTrue($preview['production_ready']);
+            $request = Request::create('/admin/settings/foodex-reset', 'POST');
+            $request->setLaravelSession($this->app['session']->driver());
+            try {
+                $reset->execute($preview, $owner, $request);
+                $this->fail('Backup failure must prevent deletion.');
+            } catch (\RuntimeException $exception) {
+                $this->assertSame('Backup unavailable', $exception->getMessage());
+            }
+            $this->assertDatabaseCount('orders', $before);
+            $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+        } finally {
+            $this->app->instance('env', 'testing');
+            unlink($path);
+        }
+    }
+
+    private function confirmation(): array
+    {
+        return ['confirmation' => FoodexResetService::CONFIRMATION, 'understood' => '1', 'current_password' => 'password'];
+    }
+
+    /** Test-only adapter exercises the transaction; it is not official catalog evidence. */
+    private function bindCatalog(bool $fail = false): void
+    {
+        $catalog = \Mockery::mock(LaunchCatalog::class);
+        $catalog->shouldReceive('preflight')->andReturn(['ready' => true, 'fingerprint' => 'test-contract']);
+        if ($fail) {
+            $catalog->shouldReceive('reseed')->andThrow(new \RuntimeException('Test seed failure'));
+        } else {
+            $catalog->shouldReceive('reseed')->andReturnNull();
+        }
+        $this->app->instance(LaunchCatalog::class, $catalog);
+    }
+
+    public function test_arabic_reset_surface_is_rtl_and_localized(): void
+    {
+        $owner = $this->superAdmin('ar');
+
+        $this->actingAs($owner)
+            ->get('/admin/settings/foodex-reset')
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('إعادة ضبط وتهيئة FOODEX');
+    }
+
+    private function superAdmin(string $locale = 'en'): User
+    {
+        $user = User::query()->create([
+            'name' => 'FOODEX Reset Owner',
+            'email' => 'reset-owner-'.uniqid().'@example.test',
+            'password' => 'password',
+            'locale' => $locale,
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        return $user;
+    }
+}

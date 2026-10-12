@@ -1,0 +1,41 @@
+<?php
+
+return [
+    'source' => [
+        'document_sha256' => '1333292c13e6bbddacc26f728485021459f914964af29ec589894086241cc523',
+        'product_count' => 25,
+        'minimum_launch_image_px' => 800,
+    ],
+    'category' => [
+        'slug' => 'foodex-products',
+        'name_ar' => 'منتجات فوديكس',
+        'name_en' => 'FOODEX Products',
+    ],
+    'products' => [
+        ['name_ar'=>'فراولة فرست تشويس','name_en'=>'First Choice Strawberry','package_ar'=>'1 كجم','package_en'=>'1 kg','carton_count'=>10,'price'=>575,'source_image'=>'image3.png','source_width'=>400,'source_height'=>383],
+        ['name_ar'=>'مانجا فرست تشويس','name_en'=>'First Choice Mango','package_ar'=>'1 كجم','package_en'=>'1 kg','carton_count'=>10,'price'=>750,'source_image'=>'image4.jpeg','source_width'=>402,'source_height'=>402],
+        ['name_ar'=>'ملوخية فرست تشويس','name_en'=>'First Choice Molokhia','package_ar'=>'400 جم','package_en'=>'400 g','carton_count'=>20,'price'=>200,'source_image'=>'image5.png','source_width'=>422,'source_height'=>404],
+        ['name_ar'=>'بامية زيرو فرست تشويس','name_en'=>'First Choice Zero Okra','package_ar'=>'400 جم','package_en'=>'400 g','carton_count'=>20,'price'=>700,'source_image'=>'image6.jpeg','source_width'=>394,'source_height'=>394],
+        ['name_ar'=>'بامية ممتاز فرست تشويس','name_en'=>'First Choice Premium Okra','package_ar'=>'400 جم','package_en'=>'400 g','carton_count'=>20,'price'=>700,'source_image'=>'image7.jpeg','source_width'=>364,'source_height'=>364],
+        ['name_ar'=>'بطاطس فرست تشويس بوم فريت 12.5 كجم','name_en'=>'First Choice Pommes Frites 12.5 kg','package_ar'=>'2.5 كجم','package_en'=>'2.5 kg','carton_count'=>5,'price'=>660,'source_image'=>'image8.jpeg','source_width'=>389,'source_height'=>389],
+        ['name_ar'=>'بطاطس فرست تشويس الوميت 12.5 كجم','name_en'=>'First Choice Allumette Fries 12.5 kg','package_ar'=>'2.5 كجم','package_en'=>'2.5 kg','carton_count'=>5,'price'=>675,'source_image'=>'image8.jpeg','source_width'=>389,'source_height'=>389],
+        ['name_ar'=>'بطاطس فوديكس كرنكل صوابع وشرائح 12.5 ك','name_en'=>'FOODEX Crinkle Fries Fingers and Slices 12.5 kg','package_ar'=>'2.5 كجم','package_en'=>'2.5 kg','carton_count'=>5,'price'=>660,'source_image'=>'image8.jpeg','source_width'=>389,'source_height'=>389,'brand'=>'FOODEX'],
+        ['name_ar'=>'موتزريلا فرست تشويس طبيعي','name_en'=>'First Choice Natural Mozzarella','package_ar'=>'1 كجم','package_en'=>'1 kg','carton_count'=>10,'price'=>1560,'source_image'=>'image11.jpeg','source_width'=>368,'source_height'=>368],
+        ['name_ar'=>'موتزريلا فرست تشويس انالوج','name_en'=>'First Choice Analogue Mozzarella','package_ar'=>'1 كجم','package_en'=>'1 kg','carton_count'=>10,'price'=>1200,'source_image'=>'image12.jpeg','source_width'=>361,'source_height'=>361],
+        ['name_ar'=>'موتزريلا فرست تشويس بريميوم اصفر بيتزا','name_en'=>'First Choice Premium Yellow Pizza Mozzarella','package_ar'=>'1 كجم','package_en'=>'1 kg','carton_count'=>10,'price'=>1250,'source_image'=>'image13.jpeg','source_width'=>367,'source_height'=>367],
+        ['name_ar'=>'موتزريلا فرست تشويس انالوج','name_en'=>'First Choice Analogue Mozzarella 400 g','package_ar'=>'400 جم','package_en'=>'400 g','carton_count'=>20,'price'=>1200,'source_image'=>'image14.jpeg','source_width'=>340,'source_height'=>340],
+        ['name_ar'=>'كاتشب فرست تشويس جار 10 ك درجة اولى','name_en'=>'First Choice Ketchup Jar 10 kg Grade 1','package_ar'=>'10 كجم','package_en'=>'10 kg','carton_count'=>1,'price'=>360,'source_image'=>'image15.jpeg','source_width'=>396,'source_height'=>396],
+        ['name_ar'=>'كاتشب فرست تشويس جار 10 كجم','name_en'=>'First Choice Ketchup Jar 10 kg','package_ar'=>'10 كجم','package_en'=>'10 kg','carton_count'=>1,'price'=>215,'source_image'=>'image16.jpeg','source_width'=>322,'source_height'=>322],
+        ['name_ar'=>'كاتشب فرست تشويس الظرف 7 جم','name_en'=>'First Choice Ketchup Sachet 7 g','package_ar'=>'7 جم','package_en'=>'7 g','carton_count'=>1000,'price'=>325,'source_image'=>'image17.jpeg','source_width'=>376,'source_height'=>376],
+        ['name_ar'=>'مايونيز فرست تشويس جار 10 كجم','name_en'=>'First Choice Mayonnaise Jar 10 kg','package_ar'=>'10 كجم','package_en'=>'10 kg','carton_count'=>1,'price'=>250,'source_image'=>'image18.jpeg','source_width'=>376,'source_height'=>376,'image_review_required'=>true],
+        ['name_ar'=>'مستردة فرست تشويس جار 5 كجم','name_en'=>'First Choice Mustard Jar 5 kg','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>150,'source_image'=>null],
+        ['name_ar'=>'باربيكيو فرست تشويس جار 5 كجم','name_en'=>'First Choice Barbecue Sauce Jar 5 kg','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>180,'source_image'=>'image19.jpeg','source_width'=>344,'source_height'=>344],
+        ['name_ar'=>'هريسة شطة فرست تشويس جار','name_en'=>'First Choice Harissa Chili Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>185,'source_image'=>'image20.jpeg','source_width'=>388,'source_height'=>388],
+        ['name_ar'=>'هوت صوص فرست تشويس جار','name_en'=>'First Choice Hot Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>150,'source_image'=>null],
+        ['name_ar'=>'بيتزا صوص فرست تشويس جار','name_en'=>'First Choice Pizza Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>165,'source_image'=>null],
+        ['name_ar'=>'سويت شيلي صوص فرست تشويس جار','name_en'=>'First Choice Sweet Chili Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>null,'source_image'=>null,'review_required'=>['price']],
+        ['name_ar'=>'استربس فرست تشويس 900 جم','name_en'=>'First Choice Strips 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>null,'carton_options'=>[9,12],'price'=>null,'price_options'=>[1485,1980],'source_image'=>'image22.jpeg','source_width'=>402,'source_height'=>402,'review_required'=>['carton_count','price']],
+        ['name_ar'=>'بانيه فرست تشويس 900 جم','name_en'=>'First Choice Pane 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>null,'price'=>30,'source_image'=>null,'review_required'=>['carton_count']],
+        ['name_ar'=>'شيش طاووك فرست تشويس 900 جم','name_en'=>'First Choice Shish Tawook 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>null,'price'=>null,'source_image'=>null,'review_required'=>['carton_count','price']],
+    ],
+];

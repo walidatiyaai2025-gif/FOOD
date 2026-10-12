@@ -124,7 +124,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('NEW Retail home hides unwired controls instead of silent buttons',
+  testWidgets(
+      'NEW Retail home hides unwired controls instead of silent buttons',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -173,8 +174,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.drag(
+      find.byKey(const ValueKey('retail-product-scroll')),
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
     final plus = find.byKey(const ValueKey('retail-product-plus'));
     await tester.ensureVisible(plus);
+    await tester.pumpAndSettle();
     await tester.tap(plus);
     await tester.pump();
     final add = find.byKey(const ValueKey('retail-product-add-cart'));
@@ -200,6 +207,24 @@ void main() {
               'name': 'Tomato Box',
               'sku': 'TOM-42',
               'price': 3.25,
+              'currency': 'KWD',
+              'selling_units': [
+                {
+                  'id': 1,
+                  'code': 'PC',
+                  'name': 'Piece',
+                  'conversion_factor': 1,
+                  'is_base': true,
+                },
+                {
+                  'id': 2,
+                  'code': 'CTN12',
+                  'name': 'Carton',
+                  'conversion_factor': 12,
+                  'price': 35.0,
+                  'is_base': false,
+                },
+              ],
             }),
             200,
           );
@@ -212,7 +237,12 @@ void main() {
     await api.products(7, query: 'tomato', categoryId: 3);
     await api.offers(7);
     await api.banners(7);
-    await api.product(42, storeId: 7);
+    final product = await api.product(42, storeId: 7);
+
+    expect(product.sellingUnits, hasLength(2));
+    expect(product.sellingUnits.last.name, 'Carton');
+    expect(product.sellingUnits.last.conversionFactor, 12);
+    expect(product.sellingUnits.last.price, 35);
 
     expect(requests, hasLength(5));
     for (final request in requests) {
@@ -233,6 +263,23 @@ void main() {
 
     await expectLater(api.products(0), throwsArgumentError);
     await expectLater(api.product(42, storeId: -1), throwsArgumentError);
+  });
+
+  test('HTTP catalog API normalizes transport failures as offline state',
+      () async {
+    final api = HttpB2cCatalogApi(
+      baseUrl: 'https://foodex.example',
+      client: MockClient((request) async {
+        throw http.ClientException('offline', request.url);
+      }),
+    );
+
+    try {
+      await api.products(7);
+      fail('Expected an offline catalog exception.');
+    } on B2cCatalogException catch (error) {
+      expect(error.isNetworkUnavailable, isTrue);
+    }
   });
 }
 
