@@ -26,7 +26,7 @@ final class FoodexResetController extends Controller
             'operation' => (string) Str::uuid(),
         ]);
 
-        return view('admin.foodex-reset', ['preview' => $preview]);
+        return view('admin.foodex-reset', ['preview' => $preview, 'production' => $reset->isProduction()]);
     }
 
     public function store(Request $request, FoodexResetService $reset): RedirectResponse
@@ -43,7 +43,7 @@ final class FoodexResetController extends Controller
             'understood.accepted' => __('foodex_reset.acknowledgment_error'),
             'current_password.required' => __('foodex_reset.password_required'),
         ];
-        if (app()->environment('production')) {
+        if ($reset->isProduction()) {
             $rules['production_confirmation'] = ['required', 'in:'.FoodexResetService::PRODUCTION_CONFIRMATION];
             $messages['production_confirmation.required'] = __('foodex_reset.production_confirmation_error');
             $messages['production_confirmation.in'] = __('foodex_reset.production_confirmation_error');
