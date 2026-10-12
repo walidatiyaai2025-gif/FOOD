@@ -3825,26 +3825,12 @@ class _CartLine extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _MiniStep(
-                      key: ValueKey('b2b-cart-minus-$itemId'),
-                      icon: Icons.remove,
-                      onTap: onMinus,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 9),
-                      child: Text(
-                        compactNumber(quantity),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    _MiniStep(
-                      key: ValueKey('b2b-cart-plus-$itemId'),
-                      icon: Icons.add,
-                      onTap: onPlus,
-                    ),
-                  ],
+                CustomerQuantityStepper(
+                  valueText: compactNumber(quantity),
+                  decreaseKey: ValueKey('b2b-cart-minus-$itemId'),
+                  increaseKey: ValueKey('b2b-cart-plus-$itemId'),
+                  onDecrease: onMinus,
+                  onIncrease: onPlus,
                 ),
               ],
             ),
@@ -3853,24 +3839,6 @@ class _CartLine extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MiniStep extends StatelessWidget {
-  const _MiniStep({required this.icon, required this.onTap, super.key});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Color(0xFFF1F8F4),
-        borderRadius: BorderRadius.circular(9),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(9),
-          child: SizedBox(width: 32, height: 32, child: Icon(icon, size: 17)),
-        ),
-      );
 }
 
 class _CartTotalPanel extends StatelessWidget {
@@ -4733,71 +4701,6 @@ class _SummaryRow extends StatelessWidget {
             ),
           ],
         ),
-      );
-}
-
-class _CheckoutStepper extends StatelessWidget {
-  const _CheckoutStepper();
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(
-            child: _StepDot(
-              number: '1',
-              label: context.tr('b2b.checkout.selected_address'),
-              active: true,
-            ),
-          ),
-          const Expanded(child: Divider(color: Color(0xFF92D853))),
-          Expanded(
-            child: _StepDot(
-              number: '2',
-              label: context.tr('b2b.checkout.selected_delivery'),
-              active: true,
-            ),
-          ),
-          const Expanded(child: Divider(color: Color(0xFF92D853))),
-          Expanded(
-            child: _StepDot(
-              number: '3',
-              label: context.tr('b2b.checkout.selected_payment'),
-              active: false,
-            ),
-          ),
-        ],
-      );
-}
-
-class _StepDot extends StatelessWidget {
-  const _StepDot({
-    required this.number,
-    required this.label,
-    required this.active,
-  });
-
-  final String number;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor:
-                active ? Color(0xFF078A43) : const Color(0xFFE7E3EA),
-            child: Text(
-              number,
-              style: TextStyle(
-                color: active ? Colors.white : Color(0xFF6B7785),
-                fontSize: 11,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 9)),
-        ],
       );
 }
 
