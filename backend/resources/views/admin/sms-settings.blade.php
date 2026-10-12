@@ -7,7 +7,7 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 </style>@include('admin._brand-components')
 </head><body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="sms-settings">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page">
 <div class="wrap">
 <header class="head"><div><p class="muted">{{ __('sms.eyebrow') }}</p><h1>{{ __('sms.title') }}</h1><p class="muted">{{ __('sms.description') }}</p></div><a class="btn secondary" href="{{ route('admin.administration.index') }}">{{ __('sms.back') }}</a></header>
