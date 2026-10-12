@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
