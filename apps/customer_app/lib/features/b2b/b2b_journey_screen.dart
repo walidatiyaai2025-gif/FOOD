@@ -84,6 +84,13 @@ class B2bJourneyScreen extends StatelessWidget {
     final content = _contentFor(context, definition.pattern);
     final hasRemoteState = api != null && _endpoint() != null;
     final isProfile = definition.pattern == CustomerRoutePaths.b2bProfile;
+    final isSecondaryAccountRoute = switch (definition.pattern) {
+      CustomerRoutePaths.b2bPurchaseReports ||
+      CustomerRoutePaths.b2bInvoiceDetails ||
+      CustomerRoutePaths.b2bAccountStatement =>
+        true,
+      _ => false,
+    };
     final keepLocalActions =
         definition.pattern == CustomerRoutePaths.b2bProductDetails ||
             definition.pattern == CustomerRoutePaths.b2bCart;
@@ -107,31 +114,31 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          appBar: AppBar(
-            title: Text(context.tr('b2b.app.title')),
-            centerTitle: true,
-            toolbarHeight: 48,
-            backgroundColor: CustomerUiColors.deepGreen,
-            foregroundColor: CustomerUiColors.white,
-            leading: IconButton(
-              key: const ValueKey('b2b-dashboard-notifications'),
-              tooltip: context.tr('customer.nav.notifications'),
-              onPressed: () => Navigator.of(
-                context,
-              ).pushNamed(_scopedB2bRoute(CustomerRoutePaths.b2bNotifications)),
-              icon: const Icon(Icons.notifications_none_rounded),
+          body: CustomerCurvedHeaderSurface(
+            header: CustomerAccountHeader(
+              title: content.$1,
+              subtitle: content.$2,
+              trailing: CustomerOutlineIconButton(
+                key: const ValueKey('b2b-dashboard-notifications'),
+                icon: Icons.notifications_none_rounded,
+                tooltip: context.tr('customer.nav.notifications'),
+                semanticLabel: context.tr('customer.nav.notifications'),
+                onPressed: () => Navigator.of(context).pushNamed(
+                  _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+                ),
+              ),
             ),
-          ),
-          body: SafeArea(
-            top: false,
-            child: Padding(
-              // The existing app-level version/logout footer overlays routes.
-              // Wholesale's persistent dock already reserves that space.
-              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
-              child: _B2bDashboardRemoteState(
-                api: api!,
-                endpoint: _endpoint()!,
-                storefrontApi: storefrontApi,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                // The existing app-level version/logout footer overlays routes.
+                // Wholesale's persistent dock already reserves that space.
+                padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+                child: _B2bDashboardRemoteState(
+                  api: api!,
+                  endpoint: _endpoint()!,
+                  storefrontApi: storefrontApi,
+                ),
               ),
             ),
           ),
@@ -211,64 +218,103 @@ class B2bJourneyScreen extends StatelessWidget {
         Scaffold(
           key: const ValueKey('b2b-invoices-screen'),
           backgroundColor: CustomerUiColors.mint,
-          appBar: AppBar(
-            key: const ValueKey('b2b-invoices-app-bar'),
-            toolbarHeight: 58,
-            elevation: 0,
-            centerTitle: false,
-            titleSpacing: 0,
-            automaticallyImplyLeading: false,
-            backgroundColor: CustomerUiColors.deepGreen,
-            foregroundColor: CustomerUiColors.white,
-            leading: IconButton(
-              key: const ValueKey('b2b-invoices-back'),
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const BackButtonIcon(),
+          body: CustomerCurvedHeaderSurface(
+            header: KeyedSubtree(
+              key: const ValueKey('b2b-invoices-app-bar'),
+              child: Row(
+                key: const ValueKey('b2b-invoices-header-row'),
+                children: [
+                  CustomerOutlineIconButton(
+                    key: const ValueKey('b2b-invoices-back'),
+                    icon: Directionality.of(context) == TextDirection.rtl
+                        ? Icons.arrow_forward_rounded
+                        : Icons.arrow_back_rounded,
+                    tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      content.$1,
+                      key: const ValueKey('b2b-invoices-header-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: CustomerUiColors.white,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.sm),
+                  Container(
+                    width: CustomerUiStroke.hairline,
+                    height: 30,
+                    color: CustomerUiColors.white,
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      content.$2,
+                      key: const ValueKey('b2b-invoices-header-subtitle'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: CustomerUiColors.white,
+                            fontWeight: FontWeight.w500,
+                            height: 1,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            title: Row(
-              key: const ValueKey('b2b-invoices-header-row'),
-              children: [
-                Flexible(
-                  child: Text(
-                    content.$1,
-                    key: const ValueKey('b2b-invoices-header-title'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: CustomerUiColors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(width: 1, height: 30, color: CustomerUiColors.white),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    content.$2,
-                    key: const ValueKey('b2b-invoices-header-subtitle'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: CustomerUiColors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ],
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                key: const ValueKey('b2b-invoices-scroll'),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
+              ),
             ),
           ),
-          body: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              key: const ValueKey('b2b-invoices-scroll'),
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
+        ),
+        destination,
+      );
+    }
+
+    if (hasRemoteState && isSecondaryAccountRoute) {
+      final remote = switch (definition.pattern) {
+        CustomerRoutePaths.b2bPurchaseReports => _PurchaseReportRemoteState(
+            api: api!,
+            endpoint: _endpoint()!,
+          ),
+        CustomerRoutePaths.b2bInvoiceDetails => _InvoiceDetailRemoteState(
+            api: api!,
+            endpoint: _endpoint()!,
+          ),
+        CustomerRoutePaths.b2bAccountStatement =>
+          _B2bAccountStatementRemoteState(
+            api: api!,
+            endpoint: _endpoint()!,
+          ),
+        _ => const SizedBox.shrink(),
+      };
+
+      return withFooter(
+        Scaffold(
+          backgroundColor: CustomerUiColors.mint,
+          body: CustomerCurvedHeaderSurface(
+            header: CustomerAccountHeader(
+              title: content.$1,
+              subtitle: content.$2,
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                child: remote,
+              ),
             ),
           ),
         ),
