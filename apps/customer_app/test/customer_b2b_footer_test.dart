@@ -54,7 +54,10 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-footer-home')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
@@ -119,7 +122,10 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-footer-home')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
 
       await tester.tap(
