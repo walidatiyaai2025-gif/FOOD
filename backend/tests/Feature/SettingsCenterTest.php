@@ -75,7 +75,7 @@ class SettingsCenterTest extends TestCase
             $contents = file_get_contents(resource_path('views/admin/'.$view));
 
             $this->assertIsString($contents);
-            $this->assertStringContainsString("_admin-center-switcher", $contents);
+            $this->assertStringContainsString('_admin-center-switcher', $contents);
             $this->assertStringContainsString("'active'=>'settings'", $contents);
         }
     }
