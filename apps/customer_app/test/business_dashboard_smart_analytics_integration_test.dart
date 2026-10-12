@@ -108,10 +108,16 @@ Map<String, Object?> _analyticsPayload({
         },
         'insights': <Object?>[
           <String, Object?>{
+            'id': 'revenue-up',
             'code': 'revenue_up',
             'severity': 'positive',
-            'title': 'Revenue improved',
-            'detail': 'Revenue is above the previous period.',
+            'priority': 10,
+            'facts': <String, Object?>{
+              'delta_percent': 25,
+              'current_revenue': 100,
+              'previous_revenue': 80,
+              'currency': 'EGP',
+            },
           },
         ],
         'freshness': <String, Object?>{
