@@ -6,35 +6,38 @@ import 'package:foodex_customer_app/core/routing/customer_screen_registry.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
 void main() {
-  test('Customer VNext final certification owns every route with full evidence', () {
-    final expectedRoutes =
-        customerRouteDefinitions.map((route) => route.pattern).toSet();
-    final registryRoutes =
-        customerVNextScreenRegistry.map((entry) => entry.routePattern).toSet();
+  test(
+    'Customer VNext final certification owns every route with full evidence',
+    () {
+      final expectedRoutes =
+          customerRouteDefinitions.map((route) => route.pattern).toSet();
+      final registryRoutes =
+          customerVNextScreenRegistry.map((entry) => entry.routePattern).toSet();
 
-    expect(registryRoutes, expectedRoutes);
-    expect(registryRoutes.length, customerVNextScreenRegistry.length);
+      expect(registryRoutes, expectedRoutes);
+      expect(registryRoutes.length, customerVNextScreenRegistry.length);
 
-    const requiredEvidence = <CustomerScreenEvidence>{
-      CustomerScreenEvidence.ar,
-      CustomerScreenEvidence.en,
-      CustomerScreenEvidence.smallPhone,
-      CustomerScreenEvidence.largePhone,
-      CustomerScreenEvidence.loading,
-      CustomerScreenEvidence.empty,
-      CustomerScreenEvidence.error,
-      CustomerScreenEvidence.offline,
-      CustomerScreenEvidence.visual,
-    };
+      const requiredEvidence = <CustomerScreenEvidence>{
+        CustomerScreenEvidence.ar,
+        CustomerScreenEvidence.en,
+        CustomerScreenEvidence.smallPhone,
+        CustomerScreenEvidence.largePhone,
+        CustomerScreenEvidence.loading,
+        CustomerScreenEvidence.empty,
+        CustomerScreenEvidence.error,
+        CustomerScreenEvidence.offline,
+        CustomerScreenEvidence.visual,
+      };
 
-    for (final entry in customerVNextScreenRegistry) {
-      expect(
-        entry.evidence.containsAll(requiredEvidence),
-        isTrue,
-        reason: entry.routePattern,
-      );
-    }
-  });
+      for (final entry in customerVNextScreenRegistry) {
+        expect(
+          entry.evidence.containsAll(requiredEvidence),
+          isTrue,
+          reason: entry.routePattern,
+        );
+      }
+    },
+  );
 
   test('Customer VNext final matrix keeps one owner and explicit QA rows', () {
     final payload = jsonDecode(
