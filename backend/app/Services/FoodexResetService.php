@@ -43,6 +43,11 @@ class FoodexResetService
         private readonly UpdateRuntime $runtime,
     ) {}
 
+    public function isProduction(): bool
+    {
+        return app()->environment('production') || config('app.env') === 'production';
+    }
+
     public function preview(): array
     {
         $counts = [];
@@ -59,7 +64,7 @@ class FoodexResetService
 
         $catalog = $this->catalog->preflight();
         $blockedReferences = $this->blockedReferences(array_keys($counts));
-        $productionReady = ! app()->environment('production') || $this->productionReady();
+        $productionReady = ! $this->isProduction() || $this->productionReady();
 
         return [
             'counts' => $counts,
@@ -89,8 +94,8 @@ class FoodexResetService
             }
 
             // Production backups are made BEFORE the first write and must actually succeed.
-            $backup = app()->environment('production') ? $this->runtime->backupDatabase(true) : null;
-            if (app()->environment('production') && $backup === null) {
+            $backup = $this->isProduction() ? $this->runtime->backupDatabase(true) : null;
+            if ($this->isProduction() && $backup === null) {
                 throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
             }
 
