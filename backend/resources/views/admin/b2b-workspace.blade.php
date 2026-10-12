@@ -482,7 +482,7 @@
       @if($module==='products' && $user->hasPermission('catalog.create'))
       <form method="post" action="{{ route('admin.b2b.products.store') }}" class="links workspace-inline-form">
         @csrf
-        <input name="sku" required maxlength="120" placeholder="SKU">
+        <input value="{{ app()->getLocale()==='ar'?'يتم إنشاء SKU تلقائياً عند الحفظ':'SKU generated automatically on save' }}" readonly aria-readonly="true" data-auto-sku>
         <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
         <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}">{{ $category['name'] }}</option>@endforeach</select>
         <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'العلامة':'Brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}">{{ $brand['name'] }}</option>@endforeach</select>
@@ -606,7 +606,7 @@
           <details data-foodex-operational-modal><summary>{{ app()->getLocale()==='ar'?'تعديل':'Edit' }}</summary>
           <form method="post" action="{{ route('admin.b2b.products.update',['product'=>$row['_id']]) }}" class="links workspace-inline-form">
             @csrf @method('patch')
-            <input name="sku" value="{{ $row['sku'] }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required maxlength="120">
+            <input value="{{ $row['sku'] }}" readonly aria-readonly="true" data-auto-sku>
             <input name="name" value="{{ $row['name'] }}" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required maxlength="255">
             <select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'بدون تصنيف':'No category' }}</option>@foreach($moduleData['categories'] as $category)<option value="{{ $category['id'] }}" @selected($row['_category_id']===$category['id'])>{{ $category['name'] }}</option>@endforeach</select>
             <select name="brand_id"><option value="">{{ app()->getLocale()==='ar'?'بدون علامة':'No brand' }}</option>@foreach($moduleData['brands'] as $brand)<option value="{{ $brand['id'] }}" @selected($row['_brand_id']===$brand['id'])>{{ $brand['name'] }}</option>@endforeach</select>
