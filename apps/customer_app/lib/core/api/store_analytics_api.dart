@@ -65,16 +65,14 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
 
     late final http.Response response;
     try {
-      response = await _client
-          .get(
-            uri,
-            headers: <String, String>{
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $token',
-              'X-FOODEX-Customer-Domain': 'b2b',
-            },
-          )
-          .timeout(requestTimeout);
+      response = await _client.get(
+        uri,
+        headers: <String, String>{
+          'Accept': 'application/json',
+          'Authorization': '***',
+          'X-FOODEX-Customer-Domain': 'b2b',
+        },
+      ).timeout(requestTimeout);
     } on TimeoutException {
       throw const StoreAnalyticsApiException(
         StoreAnalyticsApiException.timeout,
@@ -120,9 +118,8 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
     }
 
     final envelope = _map(decoded);
-    final payload = envelope == null
-        ? null
-        : _map(envelope['data']) ?? envelope;
+    final payload =
+        envelope == null ? null : _map(envelope['data']) ?? envelope;
     if (payload == null) {
       throw const StoreAnalyticsApiException(
         StoreAnalyticsApiException.invalidResponse,
@@ -144,8 +141,7 @@ class StoreAnalyticsApiException implements Exception {
 
   static const noEntitlement = 'no_entitlement';
   static const notAuthenticated = 'not_authenticated';
-  static const retailStoreSelectionRequired =
-      'retail_store_selection_required';
+  static const retailStoreSelectionRequired = 'retail_store_selection_required';
   static const networkUnavailable = 'network_unavailable';
   static const timeout = 'timeout';
   static const invalidResponse = 'invalid_response';
@@ -356,8 +352,7 @@ class StoreAnalyticsOrderFact {
     Map<String, dynamic> json, {
     bool defaultSupported = true,
   }) {
-    final supported =
-        _bool(json['supported']) ?? defaultSupported;
+    final supported = _bool(json['supported']) ?? defaultSupported;
     final value = _nullableWholeNumber(json, 'value');
     final previousValue = _nullableWholeNumber(json, 'previous_value');
 
