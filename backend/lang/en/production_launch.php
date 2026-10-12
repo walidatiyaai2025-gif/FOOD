@@ -38,6 +38,10 @@ return [
             'title' => 'Schema and migrations',
             'description' => 'Required production database structures are present.',
         ],
+        'environment_configuration' => [
+            'title' => 'Production environment',
+            'description' => 'Production mode, application key, debug policy and database configuration meet launch safeguards.',
+        ],
         'official_seed' => [
             'title' => 'Official FOODEX seed',
             'description' => 'The authoritative launch catalog seeder is installed and available.',
