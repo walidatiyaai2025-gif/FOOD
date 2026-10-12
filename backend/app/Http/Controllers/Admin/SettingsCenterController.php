@@ -45,6 +45,7 @@ final class SettingsCenterController extends Controller
                 || $user->hasPermission('sms_settings.test'),
             'assistant' => $superAdmin || $canOperationalSettings,
             'translations' => $superAdmin || $user->hasPermission('translations.manage'),
+            'foodex_reset' => $superAdmin,
             'system_update' => $superAdmin || $user->hasPermission('system.update'),
             'lookups' => $superAdmin
                 || $user->hasPermission('lookups.view')
@@ -96,6 +97,7 @@ final class SettingsCenterController extends Controller
                 'title' => __('admin.settings_center.groups.platform'),
                 'description' => __('admin.settings_center.groups.platform_description'),
                 'items' => [
+                    ['key' => 'foodex_reset', 'icon' => 'RST', 'title' => __('foodex_reset.title'), 'description' => __('foodex_reset.description'), 'route' => 'admin.foodex-reset.index', 'params' => [], 'fragment' => null, 'allowed' => $access['foodex_reset']],
                     ['key' => 'system_update', 'icon' => 'UPD', 'title' => __('admin.settings_center.items.system_update'), 'description' => __('admin.settings_center.items.system_update_description'), 'route' => 'admin.system-update.index', 'params' => [], 'fragment' => null, 'allowed' => $access['system_update']],
                 ],
             ],
