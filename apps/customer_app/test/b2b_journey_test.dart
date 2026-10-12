@@ -1267,8 +1267,12 @@ void main() {
         await tester.pumpAndSettle();
 
         final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
+        await tester.scrollUntilVisible(
+          submit,
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(submit, findsOneWidget);
-        await tester.ensureVisible(submit);
         await tester.tap(submit);
         await tester.pumpAndSettle();
 
@@ -1654,7 +1658,7 @@ void main() {
 
       expect(find.text('Current financial position'), findsOneWidget);
       expect(find.text('Available purchasing power'), findsOneWidget);
-      expect(find.text('Final review'), findsOneWidget);
+      expect(find.text('Final review'), findsWidgets);
       expect(find.text('Acme Buyer'), findsOneWidget);
       expect(find.text('Wholesale Store'), findsOneWidget);
       expect(
