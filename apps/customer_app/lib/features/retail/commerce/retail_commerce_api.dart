@@ -304,8 +304,7 @@ class RetailCreatedOrder {
       taxTotal: _asDouble(map['tax_total']),
       grandTotal: _asDouble(map['grand_total']),
       paymentMethod: map['payment_method']?.toString(),
-      paymentStatus:
-          payment.isEmpty ? null : payment['status']?.toString(),
+      paymentStatus: payment.isEmpty ? null : payment['status']?.toString(),
       itemCount: _asList(map['items']).length,
     );
   }
