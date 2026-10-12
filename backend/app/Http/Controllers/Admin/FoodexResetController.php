@@ -32,16 +32,23 @@ final class FoodexResetController extends Controller
     public function store(Request $request, FoodexResetService $reset): RedirectResponse
     {
         $actor = $this->authorizeOperator($request);
-        $request->validate([
+        $rules = [
             'confirmation' => ['required', 'in:'.__('foodex_reset.phrase')],
             'understood' => ['accepted'],
             'current_password' => ['required', 'string'],
-        ], [
+        ];
+        $messages = [
             'confirmation.required' => __('foodex_reset.confirmation_error'),
             'confirmation.in' => __('foodex_reset.confirmation_error'),
             'understood.accepted' => __('foodex_reset.acknowledgment_error'),
             'current_password.required' => __('foodex_reset.password_required'),
-        ]);
+        ];
+        if (app()->environment('production')) {
+            $rules['production_confirmation'] = ['required', 'in:'.FoodexResetService::PRODUCTION_CONFIRMATION];
+            $messages['production_confirmation.required'] = __('foodex_reset.production_confirmation_error');
+            $messages['production_confirmation.in'] = __('foodex_reset.production_confirmation_error');
+        }
+        $request->validate($rules, $messages);
         if (! Hash::check((string) $request->input('current_password'), $actor->password)) {
             throw ValidationException::withMessages(['current_password' => __('foodex_reset.password_error')]);
         }

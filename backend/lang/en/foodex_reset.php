@@ -20,6 +20,8 @@ return [
     'confirm_title' => 'Protected confirmation',
     'phrase' => 'RESET FOODEX DATA',
     'confirmation' => 'Type the displayed phrase exactly',
+    'production_confirmation' => 'Type the production safety phrase exactly',
+    'production_secondary_warning' => 'Production reset requires a second typed safety phrase in addition to the normal confirmation.',
     'password' => 'Your current password',
     'password_error' => 'The current password is incorrect.',
     'understood' => 'I reviewed the impact and understand that the listed data will be permanently removed.',
@@ -32,6 +34,7 @@ return [
     'success' => 'FOODEX was reset and the official catalog was reseeded successfully.',
     'expires' => 'This preview is valid for five minutes and one attempt.',
     'confirmation_error' => 'Enter the displayed confirmation phrase exactly.',
+    'production_confirmation_error' => 'Enter the production safety phrase exactly.',
     'acknowledgment_error' => 'Review and acknowledge the reset impact.',
     'password_required' => 'Enter your current password.',
 ];

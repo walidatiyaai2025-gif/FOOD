@@ -62,6 +62,11 @@
             <p>{{ __('foodex_reset.expires') }}</p>
             <label for="reset-confirmation">{{ __('foodex_reset.confirmation') }}: <strong>{{ __('foodex_reset.phrase') }}</strong></label>
             <input id="reset-confirmation" name="confirmation" placeholder="{{ __('foodex_reset.confirmation') }}" autocomplete="off" required @disabled(!$preview['ready'])>
+            @if(app()->environment('production'))
+                <div class="foodex-alert" role="alert">{{ __('foodex_reset.production_secondary_warning') }}</div>
+                <label for="reset-production-confirmation">{{ __('foodex_reset.production_confirmation') }}: <strong>{{ \App\Services\FoodexResetService::PRODUCTION_CONFIRMATION }}</strong></label>
+                <input id="reset-production-confirmation" name="production_confirmation" placeholder="{{ __('foodex_reset.production_confirmation') }}" autocomplete="off" required @disabled(!$preview['ready'])>
+            @endif
             <label for="reset-password">{{ __('foodex_reset.password') }}</label>
             <input id="reset-password" type="password" name="current_password" placeholder="{{ __('foodex_reset.password') }}" autocomplete="current-password" required @disabled(!$preview['ready'])>
             <label class="launch-reset-accept"><input type="checkbox" name="understood" value="1" required @disabled(!$preview['ready'])><span>{{ __('foodex_reset.understood') }}</span></label>

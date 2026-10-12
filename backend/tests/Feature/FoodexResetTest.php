@@ -213,6 +213,40 @@ class FoodexResetTest extends TestCase
         Schema::drop('reset_unknown_dependents');
     }
 
+    public function test_production_requires_secondary_typed_confirmation_before_execution(): void
+    {
+        $this->bindCatalog();
+        $owner = $this->superAdmin();
+        $maintenance = \Mockery::mock(MaintenanceMode::class);
+        $maintenance->shouldReceive('active')->andReturnTrue();
+        $this->app->instance(MaintenanceMode::class, $maintenance);
+        $path = tempnam(sys_get_temp_dir(), 'foodex-reset-');
+        file_put_contents($path, json_encode([
+            'ready' => true,
+            'database' => DB::connection()->getDatabaseName(),
+            'catalog_fingerprint' => 'test-contract',
+            'checked_at' => now()->timestamp,
+        ], JSON_THROW_ON_ERROR));
+        config(['foodex_reset.production_enabled' => true, 'foodex_reset.preflight_path' => $path]);
+        $this->app->instance('env', 'production');
+
+        try {
+            $this->actingAs($owner)
+                ->get('/admin/settings/foodex-reset')
+                ->assertOk()
+                ->assertSee(FoodexResetService::PRODUCTION_CONFIRMATION);
+
+            $this->actingAs($owner)
+                ->post('/admin/settings/foodex-reset', $this->confirmation())
+                ->assertSessionHasErrors('production_confirmation');
+
+            $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
+        } finally {
+            $this->app->instance('env', 'testing');
+            unlink($path);
+        }
+    }
+
     public function test_production_cannot_be_enabled_by_confirmation_or_backup_text(): void
     {
         $this->bindCatalog();
