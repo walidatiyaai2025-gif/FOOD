@@ -188,13 +188,22 @@ void main() {
       find.byKey(const ValueKey('customer-persistent-footer')),
       findsOneWidget,
     );
-    for (final destination in ['products', 'orders', 'invoices', 'account']) {
+    for (final destination in [
+      'home',
+      'products',
+      'orders',
+      'invoices',
+      'account',
+    ]) {
       expect(
         find.byKey(ValueKey('customer-footer-$destination')),
         findsOneWidget,
       );
     }
-    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('customer-footer-home')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
