@@ -476,6 +476,139 @@ void main() {
     expect(order.paymentStatus, 'pending');
     expect(order.itemCount, 2);
   });
+  testWidgets(
+    'checkout VNext stays usable on small standard and large AR EN layouts',
+    (tester) async {
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      for (final locale in const [Locale('ar'), Locale('en')]) {
+        for (final size in const [
+          Size(320, 700),
+          Size(430, 932),
+          Size(1024, 900),
+        ]) {
+          tester.view.physicalSize = size;
+          tester.view.devicePixelRatio = 1;
+
+          await tester.pumpWidget(
+            MaterialApp(
+              locale: locale,
+              home: Directionality(
+                textDirection: locale.languageCode == 'ar'
+                    ? TextDirection.rtl
+                    : TextDirection.ltr,
+                child: RetailCheckoutScreen(
+                  storeId: 7,
+                  api: _FakeRetailCommerceApi(),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('retail-checkout-progress')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('retail-checkout-review')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('retail-checkout-submit')),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pump();
+        }
+      }
+    },
+  );
+
+  testWidgets('checkout exposes offline retry and recovers without duplication',
+      (tester) async {
+    final api = _FakeRetailCommerceApi()..checkoutFailures = 1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCheckoutScreen(
+          storeId: 7,
+          api: api,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('You are offline. Check your connection and try again.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-commerce-retry')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('retail-commerce-retry')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('retail-commerce-retry')),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(api.submitCalls, 2);
+    expect(
+      find.byKey(const ValueKey('customer-order-success')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('checkout surfaces payment decline as a recoverable payment state',
+      (tester) async {
+    final api = _FakeRetailCommerceApi()..checkoutErrorCode = 'payment_declined';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCheckoutScreen(
+          storeId: 7,
+          api: api,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Payment could not be completed. Try again or choose another payment method.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-commerce-retry')),
+      findsOneWidget,
+    );
+  });
 }
 
 class _FakeRetailCommerceApi implements RetailCommerceApi {
@@ -488,6 +621,7 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   int? lastSubmitStore;
   String? lastPaymentMethod;
   int checkoutFailures = 0;
+  String? checkoutErrorCode;
   Completer<RetailCreatedOrder>? checkoutCompleter;
   Completer<RetailCartSnapshot>? cartCompleter;
   final List<String> idempotencyKeys = <String>[];
@@ -570,6 +704,11 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
     if (checkoutFailures > 0) {
       checkoutFailures--;
       throw const RetailCommerceException('network_retry');
+    }
+    final explicitError = checkoutErrorCode;
+    if (explicitError != null) {
+      checkoutErrorCode = null;
+      throw RetailCommerceException(explicitError);
     }
     if (checkoutCompleter != null) {
       return checkoutCompleter!.future;
