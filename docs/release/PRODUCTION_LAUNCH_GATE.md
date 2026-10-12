@@ -9,6 +9,7 @@ Required check IDs:
 
 - schema_migrations
 - environment_configuration
+- release_lineage
 - official_seed
 - product_image_quality
 - clean_production_data
@@ -20,7 +21,7 @@ Required check IDs:
 - backup_rollback
 - exact_head_required_ci
 
-Evidence-producing lanes write server-side attestations under `storage/app/private/launch-gate/`. Those files are deployment artifacts, not repository fixtures. Each JSON attestation must have `status: "passed"` and a 40-64 character lowercase hexadecimal `source_sha` identifying the exact source/evidence lineage.
+Evidence-producing lanes write server-side attestations under `storage/app/private/launch-gate/`. Those files are deployment artifacts, not repository fixtures. Each JSON attestation must have `status: "passed"` and a 40-64 character lowercase hexadecimal `source_sha`. The SHA must equal the production source commit recorded by `Release/BUILD_INFO.json`; evidence from another commit is stale and blocks launch.
 
 The environment check is fail-closed and requires production mode, an application key, debug disabled, and a configured database connection. The clean-data scan blocks known demo/test user, customer and transaction markers. The gate never reads or displays provider secrets. Provider readiness is a boolean operational attestation. Exact-head Required CI is an evidence artifact from the release pipeline and must identify the exact promoted source SHA.
 
