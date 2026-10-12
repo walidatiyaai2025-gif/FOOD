@@ -174,6 +174,49 @@ final class ProductionLaunchPreflight
     }
 
     /**
+     * Publish the short-lived trusted pre-reset evidence consumed by #1331.
+     * This never performs a reset; #1331 keeps ownership of maintenance mode,
+     * backup and deletion safeguards.
+     *
+     * @param  array{ready:bool,checks:array<string,mixed>,blockers:list<string>}  $report
+     */
+    public function publishResetPreflightEvidence(array $report): void
+    {
+        $this->assertLaunchable($report);
+
+        $seed = app(FoodexLaunchSeeder::class)->preflight();
+        $fingerprint = $seed['fingerprint'] ?? null;
+        if (($seed['ready'] ?? false) !== true || ! is_string($fingerprint) || $fingerprint === '') {
+            throw ValidationException::withMessages([
+                'launch' => __('production_launch.errors.blocked'),
+            ]);
+        }
+
+        $path = (string) config('foodex_reset.preflight_path');
+        if ($path === '') {
+            throw ValidationException::withMessages([
+                'launch' => __('production_launch.errors.blocked'),
+            ]);
+        }
+
+        File::ensureDirectoryExists(dirname($path), 0750, true);
+        $written = File::put($path, json_encode([
+            'ready' => true,
+            'database' => DB::connection()->getDatabaseName(),
+            'catalog_fingerprint' => $fingerprint,
+            'checked_at' => now()->timestamp,
+        ], JSON_THROW_ON_ERROR));
+
+        if ($written === false) {
+            throw ValidationException::withMessages([
+                'launch' => __('production_launch.errors.blocked'),
+            ]);
+        }
+
+        File::chmod($path, 0600);
+    }
+
+    /**
      * @return array{
      *     version:?string,
      *     build_info_version:?string,
