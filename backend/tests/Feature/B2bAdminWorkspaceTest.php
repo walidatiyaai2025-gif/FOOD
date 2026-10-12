@@ -71,7 +71,6 @@ class B2bAdminWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->post('/admin/b2b/products', [
             'unit_id' => $unitId,
-            'sku' => 'OWNED-STOCK-1267',
             'name' => 'Owned Stock Product',
             'description' => 'Created from product form',
             'price' => 10.500,
@@ -80,10 +79,13 @@ class B2bAdminWorkspaceTest extends TestCase
             'is_active' => '1',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $productId = (int) DB::table('products')
-            ->where('sku', 'OWNED-STOCK-1267')
-            ->value('id');
-
+        $createdProduct = DB::table('products')
+            ->where('name', 'Owned Stock Product')
+            ->first(['id', 'sku']);
+        $this->assertNotNull($createdProduct);
+        $productId = (int) $createdProduct->id;
+        $generatedSku = (string) $createdProduct->sku;
+        $this->assertMatchesRegularExpression('/^SKU-'.$storeId.'-[A-Z0-9]{10}$/', $generatedSku);
         $this->assertGreaterThan(0, $productId);
         $this->assertDatabaseHas('products', [
             'id' => $productId,
@@ -109,7 +111,7 @@ class B2bAdminWorkspaceTest extends TestCase
         $this->actingAs($admin)
             ->patch('/admin/b2b/products/'.$productId, [
                 'unit_id' => $unitId,
-                'sku' => 'OWNED-STOCK-1267',
+                'sku' => 'USER-CANNOT-OVERRIDE',
                 'name' => 'Owned Stock Product Updated',
                 'description' => 'Updated from product form',
                 'price' => 11.750,
@@ -122,6 +124,7 @@ class B2bAdminWorkspaceTest extends TestCase
 
         $this->assertDatabaseHas('products', [
             'id' => $productId,
+            'sku' => $generatedSku,
             'name' => 'Owned Stock Product Updated',
             'low_stock_threshold' => 2.000,
         ]);
@@ -141,7 +144,6 @@ class B2bAdminWorkspaceTest extends TestCase
             ->from('/admin/b2b/products')
             ->patch('/admin/b2b/products/'.$productId, [
                 'unit_id' => $unitId,
-                'sku' => 'OWNED-STOCK-1267',
                 'name' => 'Owned Stock Product Updated',
                 'price' => 11.750,
                 'quantity' => 3,
