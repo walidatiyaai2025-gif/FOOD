@@ -439,8 +439,7 @@ final class ProductionLaunchPreflight
         string $path,
         string $source,
         ?string $expectedSourceSha = null,
-    ): array
-    {
+    ): array {
         if (is_file($path) === false) {
             return [
                 'passed' => false,
