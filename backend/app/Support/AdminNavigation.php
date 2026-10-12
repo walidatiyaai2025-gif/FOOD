@@ -107,7 +107,6 @@ class AdminNavigation
             ]),
             $this->group('administration', 'admin.nav_groups.administration', '⚙', [
                 $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index'),
-                $this->routeItemOpen('settings_center', 'admin.settings_center.title', 'admin.settings.index'),
             ]),
         ];
 
