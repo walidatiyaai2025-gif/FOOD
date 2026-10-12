@@ -9,27 +9,28 @@ Widget _app({
   required String label,
   required VoidCallback onTap,
   double width = 390,
-}) => MaterialApp(
-  home: MediaQuery(
-    data: MediaQueryData(
-      size: Size(width, 800),
-      disableAnimations: reducedMotion,
-    ),
-    child: Directionality(
-      textDirection: direction,
-      child: Scaffold(
-        body: Align(
-          alignment: Alignment.topCenter,
-          child: BusinessDashboardSmartAnalyticsLauncher(
-            semanticLabel: label,
-            hasNewInsights: hasNewInsights,
-            onTap: onTap,
+}) =>
+    MaterialApp(
+      home: MediaQuery(
+        data: MediaQueryData(
+          size: Size(width, 800),
+          disableAnimations: reducedMotion,
+        ),
+        child: Directionality(
+          textDirection: direction,
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: BusinessDashboardSmartAnalyticsLauncher(
+                semanticLabel: label,
+                hasNewInsights: hasNewInsights,
+                onTap: onTap,
+              ),
+            ),
           ),
         ),
       ),
-    ),
-  ),
-);
+    );
 
 void main() {
   testWidgets(

@@ -8,141 +8,142 @@ import 'package:foodex_customer_app/features/b2b/b2b_journey_screen.dart';
 import 'package:foodex_customer_app/features/b2b/business_dashboard_smart_analytics_launcher.dart';
 
 Map<String, Object?> _dashboardPayload() => <String, Object?>{
-  'customer': <String, Object?>{
-    'name': 'Merchant Owner',
-    'email': 'owner@example.test',
-  },
-  'account': <String, Object?>{'company_name': 'Merchant Company'},
-  'finance': <String, Object?>{
-    'currency': 'KWD',
-    'balance': 0,
-    'credit_limit': 1000,
-    'available_credit_line': 1000,
-    'customer_credit_balance': 0,
-    'open_amount': 0,
-    'overdue_amount': 0,
-  },
-  'operations': <String, Object?>{
-    'purchases_this_month': 120,
-    'payments_this_month': 90,
-    'invoice_count': 2,
-    'order_count': 3,
-    'active_orders': 1,
-  },
-  'freshness': <String, Object?>{
-    'generated_at': DateTime.now().toUtc().toIso8601String(),
-    'stale': false,
-  },
-  'purchase_total': 120,
-};
+      'customer': <String, Object?>{
+        'name': 'Merchant Owner',
+        'email': 'owner@example.test',
+      },
+      'account': <String, Object?>{'company_name': 'Merchant Company'},
+      'finance': <String, Object?>{
+        'currency': 'KWD',
+        'balance': 0,
+        'credit_limit': 1000,
+        'available_credit_line': 1000,
+        'customer_credit_balance': 0,
+        'open_amount': 0,
+        'overdue_amount': 0,
+      },
+      'operations': <String, Object?>{
+        'purchases_this_month': 120,
+        'payments_this_month': 90,
+        'invoice_count': 2,
+        'order_count': 3,
+        'active_orders': 1,
+      },
+      'freshness': <String, Object?>{
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+      'purchase_total': 120,
+    };
 
 Map<String, Object?> _analyticsPayload({
   required bool hasNewInsights,
   String? logoUrl = 'https://cdn.foodex.test/downtown-store.png',
-}) => <String, Object?>{
-  'data': <String, Object?>{
-    'store': <String, Object?>{
-      'id': 22,
-      'name': 'Downtown Store',
-      'logo_url': logoUrl,
-      'currency': 'EGP',
-    },
-    'period': <String, Object?>{
-      'from': '2026-10-06',
-      'to': '2026-10-12',
-      'days': 7,
-    },
-    'previous_period': <String, Object?>{
-      'from': '2026-09-29',
-      'to': '2026-10-05',
-      'days': 7,
-    },
-    'metrics': <String, Object?>{
-      'revenue': <String, Object?>{
-        'value': 100,
-        'previous_value': 80,
-        'delta_percent': 25,
-      },
-      'orders': <String, Object?>{
-        'value': 2,
-        'previous_value': 1,
-        'delta_percent': 100,
-      },
-      'average_order_value': <String, Object?>{
-        'value': 50,
-        'previous_value': 80,
-        'delta_percent': -37.5,
-      },
-    },
-    'order_facts': <String, Object?>{
-      'completed': <String, Object?>{'value': 1, 'previous_value': 1},
-      'cancelled': <String, Object?>{'value': 1, 'previous_value': 0},
-      'late': <String, Object?>{
-        'supported': false,
-        'value': null,
-        'previous_value': null,
-      },
-    },
-    'daily_series': <Object?>[],
-    'top_products': <Object?>[],
-    'peak_activity': <String, Object?>{
-      'hourly': <Object?>[],
-      'peak_window': null,
-    },
-    'attention': <String, Object?>{
-      'low_stock': <Object?>[],
-      'merchant_summary': <String, Object?>{
-        'reorder_now': 0,
-        'reorder_soon': 0,
-        'blocked': 0,
-        'expected_reorder_spend': 0,
-      },
-      'merchant_attention': <Object?>[],
-    },
-    'insights': <Object?>[
-      <String, Object?>{
-        'id': 'revenue-up',
-        'code': 'revenue_up',
-        'severity': 'positive',
-        'priority': 10,
-        'facts': <String, Object?>{
-          'delta_percent': 25,
-          'current_revenue': 100,
-          'previous_revenue': 80,
+}) =>
+    <String, Object?>{
+      'data': <String, Object?>{
+        'store': <String, Object?>{
+          'id': 22,
+          'name': 'Downtown Store',
+          'logo_url': logoUrl,
           'currency': 'EGP',
         },
+        'period': <String, Object?>{
+          'from': '2026-10-06',
+          'to': '2026-10-12',
+          'days': 7,
+        },
+        'previous_period': <String, Object?>{
+          'from': '2026-09-29',
+          'to': '2026-10-05',
+          'days': 7,
+        },
+        'metrics': <String, Object?>{
+          'revenue': <String, Object?>{
+            'value': 100,
+            'previous_value': 80,
+            'delta_percent': 25,
+          },
+          'orders': <String, Object?>{
+            'value': 2,
+            'previous_value': 1,
+            'delta_percent': 100,
+          },
+          'average_order_value': <String, Object?>{
+            'value': 50,
+            'previous_value': 80,
+            'delta_percent': -37.5,
+          },
+        },
+        'order_facts': <String, Object?>{
+          'completed': <String, Object?>{'value': 1, 'previous_value': 1},
+          'cancelled': <String, Object?>{'value': 1, 'previous_value': 0},
+          'late': <String, Object?>{
+            'supported': false,
+            'value': null,
+            'previous_value': null,
+          },
+        },
+        'daily_series': <Object?>[],
+        'top_products': <Object?>[],
+        'peak_activity': <String, Object?>{
+          'hourly': <Object?>[],
+          'peak_window': null,
+        },
+        'attention': <String, Object?>{
+          'low_stock': <Object?>[],
+          'merchant_summary': <String, Object?>{
+            'reorder_now': 0,
+            'reorder_soon': 0,
+            'blocked': 0,
+            'expected_reorder_spend': 0,
+          },
+          'merchant_attention': <Object?>[],
+        },
+        'insights': <Object?>[
+          <String, Object?>{
+            'id': 'revenue-up',
+            'code': 'revenue_up',
+            'severity': 'positive',
+            'priority': 10,
+            'facts': <String, Object?>{
+              'delta_percent': 25,
+              'current_revenue': 100,
+              'previous_revenue': 80,
+              'currency': 'EGP',
+            },
+          },
+        ],
+        'freshness': <String, Object?>{
+          'computed_at': '2026-10-12T21:30:00+03:00',
+          'source_updated_at': '2026-10-12T21:00:00+03:00',
+          'stale_after_seconds': 86400,
+          'is_stale': false,
+          'state': 'fresh',
+        },
+        'insight_state': <String, Object?>{
+          'version': List<String>.filled(64, 'b').join(),
+          'has_new_insights': hasNewInsights,
+          'unread_count': hasNewInsights ? 1 : 0,
+          'lifecycle': <String, Object?>{
+            'mode': 'client_version_echo',
+            'request_parameter': 'seen_insight_version',
+            'clear_when_seen_version_matches_current': true,
+          },
+        },
+        'data_state': 'ready',
       },
-    ],
-    'freshness': <String, Object?>{
-      'computed_at': '2026-10-12T21:30:00+03:00',
-      'source_updated_at': '2026-10-12T21:00:00+03:00',
-      'stale_after_seconds': 86400,
-      'is_stale': false,
-      'state': 'fresh',
-    },
-    'insight_state': <String, Object?>{
-      'version': List<String>.filled(64, 'b').join(),
-      'has_new_insights': hasNewInsights,
-      'unread_count': hasNewInsights ? 1 : 0,
-      'lifecycle': <String, Object?>{
-        'mode': 'client_version_echo',
-        'request_parameter': 'seen_insight_version',
-        'clear_when_seen_version_matches_current': true,
-      },
-    },
-    'data_state': 'ready',
-  },
-};
+    };
 
 class _RetailDashboardApi extends HttpB2bApi {
   _RetailDashboardApi({
     required this.hasNewInsights,
     this.logoUrl = 'https://cdn.foodex.test/downtown-store.png',
   }) : super(
-         baseUrl: 'https://api.foodex.test',
-         token: 'test-token',
-         retailStoreContextId: 22,
-       );
+          baseUrl: 'https://api.foodex.test',
+          token: 'test-token',
+          retailStoreContextId: 22,
+        );
 
   final bool hasNewInsights;
   final String? logoUrl;
@@ -152,8 +153,8 @@ class _RetailDashboardApi extends HttpB2bApi {
   Future<Object?> get(String path) async {
     paths.add(path);
     if (path.startsWith('/api/v1/mobile/store-analytics')) {
-      final seenVersion = Uri.parse(path)
-          .queryParameters['seen_insight_version'];
+      final seenVersion =
+          Uri.parse(path).queryParameters['seen_insight_version'];
       return _analyticsPayload(
         hasNewInsights: hasNewInsights && seenVersion == null,
         logoUrl: logoUrl,
@@ -178,7 +179,8 @@ class _Actions implements CustomerActionApi {
     required int storeId,
     required int productId,
     required double quantity,
-  }) async => null;
+  }) async =>
+      null;
 
   @override
   Future<Object?> checkout({
@@ -187,7 +189,8 @@ class _Actions implements CustomerActionApi {
     String? paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => null;
+  }) async =>
+      null;
 }
 
 Widget _app(
@@ -203,9 +206,8 @@ Widget _app(
       locale: locale,
       overrides: const <String, String>{},
       child: Directionality(
-        textDirection: locale.languageCode == 'ar'
-            ? TextDirection.rtl
-            : TextDirection.ltr,
+        textDirection:
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
         child: B2bJourneyScreen(
           definition: definition,
           location: CustomerRoutePaths.b2bDashboard,
@@ -304,7 +306,8 @@ void main() {
 
   for (final width in const <double>[320, 360, 390, 412, 430]) {
     for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
-      testWidgets('retail dashboard launcher is overflow-safe at width $width '
+      testWidgets(
+          'retail dashboard launcher is overflow-safe at width $width '
           '${locale.languageCode}', (tester) async {
         tester.view.physicalSize = Size(width, 844);
         tester.view.devicePixelRatio = 1;
