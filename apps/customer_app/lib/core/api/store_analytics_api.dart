@@ -4,7 +4,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 abstract interface class StoreAnalyticsApi {
-  Future<StoreAnalyticsReadModel> read({int? retailStoreId});
+  Future<StoreAnalyticsReadModel> read({
+    int? retailStoreId,
+    DateTime? from,
+    DateTime? to,
+    String? seenInsightVersion,
+  });
 }
 
 class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
@@ -15,7 +20,7 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
     http.Client? client,
   }) : _client = client ?? http.Client();
 
-  static const endpoint = '/api/v1/b2b/store-analytics';
+  static const endpoint = '/api/v1/mobile/store-analytics';
 
   final String baseUrl;
   final String token;
@@ -23,7 +28,12 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
   final http.Client _client;
 
   @override
-  Future<StoreAnalyticsReadModel> read({int? retailStoreId}) async {
+  Future<StoreAnalyticsReadModel> read({
+    int? retailStoreId,
+    DateTime? from,
+    DateTime? to,
+    String? seenInsightVersion,
+  }) async {
     if (retailStoreId != null && retailStoreId <= 0) {
       throw ArgumentError.value(
         retailStoreId,
@@ -31,23 +41,40 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
         'must be positive',
       );
     }
+    if (from != null && to != null && _dateOnly(from).isAfter(_dateOnly(to))) {
+      throw ArgumentError.value(from, 'from', 'must not be after to');
+    }
+    if (seenInsightVersion != null &&
+        !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(seenInsightVersion)) {
+      throw ArgumentError.value(
+        seenInsightVersion,
+        'seenInsightVersion',
+        'must be a 64-character hex digest',
+      );
+    }
 
     final uri = Uri.parse('$baseUrl$endpoint').replace(
       queryParameters: <String, String>{
         if (retailStoreId != null) 'retail_store_id': '$retailStoreId',
+        if (from != null) 'from': _formatDate(from),
+        if (to != null) 'to': _formatDate(to),
+        if (seenInsightVersion != null)
+          'seen_insight_version': seenInsightVersion.toLowerCase(),
       },
     );
 
     late final http.Response response;
     try {
-      response = await _client.get(
-        uri,
-        headers: <String, String>{
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-          'X-FOODEX-Customer-Domain': 'b2b',
-        },
-      ).timeout(requestTimeout);
+      response = await _client
+          .get(
+            uri,
+            headers: <String, String>{
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'X-FOODEX-Customer-Domain': 'b2b',
+            },
+          )
+          .timeout(requestTimeout);
     } on TimeoutException {
       throw const StoreAnalyticsApiException(
         StoreAnalyticsApiException.timeout,
@@ -77,6 +104,12 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
       throw const StoreAnalyticsApiException(
         StoreAnalyticsApiException.noEntitlement,
         statusCode: 403,
+      );
+    }
+    if (response.statusCode == 422 && _hasRetailStoreValidationError(decoded)) {
+      throw const StoreAnalyticsApiException(
+        StoreAnalyticsApiException.retailStoreSelectionRequired,
+        statusCode: 422,
       );
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -111,6 +144,8 @@ class StoreAnalyticsApiException implements Exception {
 
   static const noEntitlement = 'no_entitlement';
   static const notAuthenticated = 'not_authenticated';
+  static const retailStoreSelectionRequired =
+      'retail_store_selection_required';
   static const networkUnavailable = 'network_unavailable';
   static const timeout = 'timeout';
   static const invalidResponse = 'invalid_response';
@@ -121,104 +156,85 @@ class StoreAnalyticsApiException implements Exception {
   bool get isNoEntitlement => code == noEntitlement;
 }
 
+enum StoreAnalyticsDataState {
+  ready,
+  noData,
+  stale,
+}
+
 class StoreAnalyticsReadModel {
   const StoreAnalyticsReadModel({
     required this.store,
-    required this.kpis,
+    required this.period,
+    required this.previousPeriod,
+    required this.metrics,
+    required this.orderFacts,
     required this.dailySeries,
     required this.topProducts,
+    required this.peakActivity,
     required this.attention,
     required this.insights,
     required this.freshness,
-    this.period,
-    this.previousPeriod,
-    this.hasData,
+    required this.insightState,
+    required this.dataState,
   });
 
   final StoreAnalyticsStore store;
-  final StoreAnalyticsPeriod? period;
-  final StoreAnalyticsPeriod? previousPeriod;
-  final StoreAnalyticsKpis kpis;
+  final StoreAnalyticsPeriod period;
+  final StoreAnalyticsPeriod previousPeriod;
+  final StoreAnalyticsMetrics metrics;
+  final StoreAnalyticsOrderFacts orderFacts;
   final List<StoreAnalyticsSeriesPoint> dailySeries;
   final List<StoreAnalyticsTopProduct> topProducts;
-  final List<StoreAnalyticsAttentionItem> attention;
+  final StoreAnalyticsPeakActivity peakActivity;
+  final StoreAnalyticsAttention attention;
   final List<StoreAnalyticsInsight> insights;
   final StoreAnalyticsFreshness freshness;
+  final StoreAnalyticsInsightState insightState;
+  final StoreAnalyticsDataState dataState;
 
-  /// Null means the server did not make an explicit empty/non-empty assertion.
-  /// Consumers must not guess that a valid all-zero period is empty.
-  final bool? hasData;
-
-  bool get isExplicitlyEmpty => hasData == false;
-  bool get isStale => freshness.isStale == true;
-  bool get hasNewInsights => freshness.hasNewInsights == true;
+  bool get isExplicitlyEmpty => dataState == StoreAnalyticsDataState.noData;
+  bool get isStale =>
+      dataState == StoreAnalyticsDataState.stale || freshness.isStale;
+  bool get hasNewInsights => insightState.hasNewInsights;
 
   factory StoreAnalyticsReadModel.fromJson(Map<String, dynamic> json) {
-    final storeMap = _map(json['store']);
-    if (storeMap == null) {
-      throw const FormatException('store is required');
-    }
-
-    final kpiMap = _map(json['kpis']) ??
-        _map(json['metrics']) ??
-        const <String, dynamic>{};
-
-    final periodValue = json['period'];
-    final periodContainer = _map(periodValue);
-    final currentPeriodMap = _map(periodContainer?['current']) ??
-        (periodContainer != null &&
-                (periodContainer.containsKey('start') ||
-                    periodContainer.containsKey('start_date') ||
-                    periodContainer.containsKey('from'))
-            ? periodContainer
-            : null);
-    final previousPeriodMap = _map(json['previous_period']) ??
-        _map(periodContainer?['previous']);
-
-    final seriesValue = json['daily_series'] ??
-        json['series'] ??
-        json['daily'];
-    final seriesList = seriesValue is Map
-        ? seriesValue['daily'] ?? seriesValue['points']
-        : seriesValue;
-
-    final freshnessMap = _map(json['freshness']) ?? const <String, dynamic>{};
+    final store = _requiredMap(json, 'store');
+    final period = _requiredMap(json, 'period');
+    final previousPeriod = _requiredMap(json, 'previous_period');
+    final metrics = _requiredMap(json, 'metrics');
+    final orderFacts = _requiredMap(json, 'order_facts');
+    final peakActivity = _requiredMap(json, 'peak_activity');
+    final attention = _requiredMap(json, 'attention');
+    final freshness = _requiredMap(json, 'freshness');
+    final insightState = _requiredMap(json, 'insight_state');
+    final rawDataState = _requiredString(json, 'data_state');
 
     return StoreAnalyticsReadModel(
-      store: StoreAnalyticsStore.fromJson(storeMap),
-      period: currentPeriodMap == null
-          ? null
-          : StoreAnalyticsPeriod.fromJson(currentPeriodMap),
-      previousPeriod: previousPeriodMap == null
-          ? null
-          : StoreAnalyticsPeriod.fromJson(previousPeriodMap),
-      kpis: StoreAnalyticsKpis.fromJson(kpiMap),
-      dailySeries: _mapList(seriesList)
+      store: StoreAnalyticsStore.fromJson(store),
+      period: StoreAnalyticsPeriod.fromJson(period),
+      previousPeriod: StoreAnalyticsPeriod.fromJson(previousPeriod),
+      metrics: StoreAnalyticsMetrics.fromJson(metrics),
+      orderFacts: StoreAnalyticsOrderFacts.fromJson(orderFacts),
+      dailySeries: _mapList(json['daily_series'], 'daily_series')
           .map(StoreAnalyticsSeriesPoint.fromJson)
           .toList(growable: false),
-      topProducts: _mapList(json['top_products'])
+      topProducts: _mapList(json['top_products'], 'top_products')
           .map(StoreAnalyticsTopProduct.fromJson)
           .toList(growable: false),
-      attention: _mapList(
-        json['attention'] ?? json['merchant_attention'] ?? json['low_stock'],
-      )
-          .map(StoreAnalyticsAttentionItem.fromJson)
-          .toList(growable: false),
-      insights: _mapList(json['insights'])
+      peakActivity: StoreAnalyticsPeakActivity.fromJson(peakActivity),
+      attention: StoreAnalyticsAttention.fromJson(attention),
+      insights: _mapList(json['insights'], 'insights')
           .map(StoreAnalyticsInsight.fromJson)
           .toList(growable: false),
-      freshness: StoreAnalyticsFreshness.fromJson(
-        <String, dynamic>{
-          ...freshnessMap,
-          if (!freshnessMap.containsKey('is_stale') &&
-              json.containsKey('is_stale'))
-            'is_stale': json['is_stale'],
-          if (!freshnessMap.containsKey('has_new_insights') &&
-              json.containsKey('has_new_insights'))
-            'has_new_insights': json['has_new_insights'],
-        },
-      ),
-      hasData: _bool(json['has_data']),
+      freshness: StoreAnalyticsFreshness.fromJson(freshness),
+      insightState: StoreAnalyticsInsightState.fromJson(insightState),
+      dataState: switch (rawDataState) {
+        'ready' => StoreAnalyticsDataState.ready,
+        'no_data' => StoreAnalyticsDataState.noData,
+        'stale' => StoreAnalyticsDataState.stale,
+        _ => throw const FormatException('invalid analytics data state'),
+      },
     );
   }
 }
@@ -240,7 +256,6 @@ class StoreAnalyticsStore {
     final id = _positiveInt(json['id']);
     final name = _nonBlankString(json['name']);
     final currency = _nonBlankString(json['currency']);
-
     if (id == null || name == null || currency != 'EGP') {
       throw const FormatException('invalid store analytics identity');
     }
@@ -256,76 +271,130 @@ class StoreAnalyticsStore {
 
 class StoreAnalyticsPeriod {
   const StoreAnalyticsPeriod({
-    this.label,
-    this.start,
-    this.end,
+    required this.from,
+    required this.to,
+    required this.days,
   });
 
-  final String? label;
-  final String? start;
-  final String? end;
+  final String from;
+  final String to;
+  final int days;
 
-  factory StoreAnalyticsPeriod.fromJson(Map<String, dynamic> json) =>
-      StoreAnalyticsPeriod(
-        label: _nonBlankString(json['label']),
-        start: _nonBlankString(
-          json['start'] ?? json['start_date'] ?? json['from'],
+  factory StoreAnalyticsPeriod.fromJson(Map<String, dynamic> json) {
+    final from = _nonBlankString(json['from']);
+    final to = _nonBlankString(json['to']);
+    final days = _positiveInt(json['days']);
+    if (from == null || to == null || days == null) {
+      throw const FormatException('invalid analytics period');
+    }
+    return StoreAnalyticsPeriod(from: from, to: to, days: days);
+  }
+}
+
+class StoreAnalyticsMetric {
+  const StoreAnalyticsMetric({
+    required this.value,
+    required this.previousValue,
+    required this.deltaPercent,
+  });
+
+  final double value;
+  final double previousValue;
+  final double? deltaPercent;
+
+  factory StoreAnalyticsMetric.fromJson(Map<String, dynamic> json) {
+    final value = _number(json['value']);
+    final previousValue = _number(json['previous_value']);
+    if (value == null || previousValue == null) {
+      throw const FormatException('invalid analytics metric');
+    }
+    return StoreAnalyticsMetric(
+      value: value,
+      previousValue: previousValue,
+      deltaPercent: _nullableNumber(json, 'delta_percent'),
+    );
+  }
+}
+
+class StoreAnalyticsMetrics {
+  const StoreAnalyticsMetrics({
+    required this.revenue,
+    required this.orders,
+    required this.averageOrderValue,
+  });
+
+  final StoreAnalyticsMetric revenue;
+  final StoreAnalyticsMetric orders;
+  final StoreAnalyticsMetric averageOrderValue;
+
+  factory StoreAnalyticsMetrics.fromJson(Map<String, dynamic> json) =>
+      StoreAnalyticsMetrics(
+        revenue: StoreAnalyticsMetric.fromJson(
+          _requiredMap(json, 'revenue'),
         ),
-        end: _nonBlankString(
-          json['end'] ?? json['end_date'] ?? json['to'],
+        orders: StoreAnalyticsMetric.fromJson(
+          _requiredMap(json, 'orders'),
+        ),
+        averageOrderValue: StoreAnalyticsMetric.fromJson(
+          _requiredMap(json, 'average_order_value'),
         ),
       );
 }
 
-class StoreAnalyticsKpis {
-  const StoreAnalyticsKpis({
-    this.sales,
-    this.orders,
-    this.averageOrderValue,
-    this.completedOrders,
-    this.cancelledOrders,
-    this.lateOrders,
-    this.salesChangePercent,
-    this.ordersChangePercent,
-    this.averageOrderValueChangePercent,
+class StoreAnalyticsOrderFact {
+  const StoreAnalyticsOrderFact({
+    required this.supported,
+    required this.value,
+    required this.previousValue,
   });
 
-  final double? sales;
-  final int? orders;
-  final double? averageOrderValue;
-  final int? completedOrders;
-  final int? cancelledOrders;
-  final int? lateOrders;
-  final double? salesChangePercent;
-  final double? ordersChangePercent;
-  final double? averageOrderValueChangePercent;
+  final bool supported;
+  final int? value;
+  final int? previousValue;
 
-  factory StoreAnalyticsKpis.fromJson(Map<String, dynamic> json) =>
-      StoreAnalyticsKpis(
-        sales: _number(json['sales'] ?? json['revenue']),
-        orders: _wholeNumber(json['orders'] ?? json['order_count']),
-        averageOrderValue: _number(
-          json['average_order_value'] ?? json['aov'],
+  factory StoreAnalyticsOrderFact.fromJson(
+    Map<String, dynamic> json, {
+    bool defaultSupported = true,
+  }) {
+    final supported =
+        _bool(json['supported']) ?? defaultSupported;
+    final value = _nullableWholeNumber(json, 'value');
+    final previousValue = _nullableWholeNumber(json, 'previous_value');
+
+    if (supported && (value == null || previousValue == null)) {
+      throw const FormatException('supported order fact requires values');
+    }
+
+    return StoreAnalyticsOrderFact(
+      supported: supported,
+      value: value,
+      previousValue: previousValue,
+    );
+  }
+}
+
+class StoreAnalyticsOrderFacts {
+  const StoreAnalyticsOrderFacts({
+    required this.completed,
+    required this.cancelled,
+    required this.late,
+  });
+
+  final StoreAnalyticsOrderFact completed;
+  final StoreAnalyticsOrderFact cancelled;
+  final StoreAnalyticsOrderFact late;
+
+  factory StoreAnalyticsOrderFacts.fromJson(Map<String, dynamic> json) =>
+      StoreAnalyticsOrderFacts(
+        completed: StoreAnalyticsOrderFact.fromJson(
+          _requiredMap(json, 'completed'),
         ),
-        completedOrders: _wholeNumber(
-          json['completed_orders'] ?? json['completed'],
+        cancelled: StoreAnalyticsOrderFact.fromJson(
+          _requiredMap(json, 'cancelled'),
         ),
-        cancelledOrders: _wholeNumber(
-          json['cancelled_orders'] ?? json['cancelled'],
-        ),
-        lateOrders: _wholeNumber(json['late_orders'] ?? json['late']),
-        salesChangePercent: _number(
-          json['sales_change_percent'] ??
-              json['revenue_change_percent'] ??
-              json['sales_change'],
-        ),
-        ordersChangePercent: _number(
-          json['orders_change_percent'] ?? json['orders_change'],
-        ),
-        averageOrderValueChangePercent: _number(
-          json['average_order_value_change_percent'] ??
-              json['aov_change_percent'] ??
-              json['aov_change'],
+        late: StoreAnalyticsOrderFact.fromJson(
+          _requiredMap(json, 'late'),
+          defaultSupported: false,
         ),
       );
 }
@@ -333,133 +402,409 @@ class StoreAnalyticsKpis {
 class StoreAnalyticsSeriesPoint {
   const StoreAnalyticsSeriesPoint({
     required this.date,
-    this.sales,
-    this.orders,
+    required this.sales,
+    required this.orders,
   });
 
   final String date;
-  final double? sales;
-  final int? orders;
+  final double sales;
+  final int orders;
 
   factory StoreAnalyticsSeriesPoint.fromJson(Map<String, dynamic> json) {
-    final date = _nonBlankString(
-      json['date'] ?? json['day'] ?? json['bucket'],
-    );
-    if (date == null) {
-      throw const FormatException('analytics series date is required');
+    final date = _nonBlankString(json['date']);
+    final sales = _number(json['sales']);
+    final orders = _wholeNumber(json['orders']);
+    if (date == null || sales == null || orders == null) {
+      throw const FormatException('invalid analytics series point');
     }
-
     return StoreAnalyticsSeriesPoint(
       date: date,
-      sales: _number(json['sales'] ?? json['revenue']),
-      orders: _wholeNumber(json['orders'] ?? json['order_count']),
+      sales: sales,
+      orders: orders,
     );
   }
 }
 
 class StoreAnalyticsTopProduct {
   const StoreAnalyticsTopProduct({
-    required this.id,
+    required this.productId,
+    required this.sku,
     required this.name,
-    this.sales,
-    this.orders,
-    this.quantity,
-    this.contributionPercent,
+    required this.units,
+    required this.revenue,
+    required this.contributionPercent,
+    required this.currency,
   });
 
-  final int id;
+  final int productId;
+  final String sku;
   final String name;
-  final double? sales;
-  final int? orders;
-  final double? quantity;
-  final double? contributionPercent;
+  final double units;
+  final double revenue;
+  final double contributionPercent;
+  final String currency;
 
   factory StoreAnalyticsTopProduct.fromJson(Map<String, dynamic> json) {
-    final id = _positiveInt(json['id'] ?? json['product_id']);
-    final name = _nonBlankString(json['name'] ?? json['product_name']);
-    if (id == null || name == null) {
+    final productId = _positiveInt(json['product_id']);
+    final sku = _nonBlankString(json['sku']);
+    final name = _nonBlankString(json['name']);
+    final units = _number(json['units']);
+    final revenue = _number(json['revenue']);
+    final contributionPercent = _number(json['contribution_percent']);
+    final currency = _nonBlankString(json['currency']);
+
+    if (productId == null ||
+        sku == null ||
+        name == null ||
+        units == null ||
+        revenue == null ||
+        contributionPercent == null ||
+        currency != 'EGP') {
       throw const FormatException('invalid top product');
     }
 
     return StoreAnalyticsTopProduct(
-      id: id,
+      productId: productId,
+      sku: sku,
       name: name,
-      sales: _number(json['sales'] ?? json['revenue']),
-      orders: _wholeNumber(json['orders'] ?? json['order_count']),
-      quantity: _number(json['quantity'] ?? json['units']),
-      contributionPercent: _number(
-        json['contribution_percent'] ?? json['contribution'],
-      ),
+      units: units,
+      revenue: revenue,
+      contributionPercent: contributionPercent,
+      currency: currency,
     );
   }
 }
 
-class StoreAnalyticsAttentionItem {
-  const StoreAnalyticsAttentionItem({
-    required this.type,
-    this.productId,
-    this.title,
-    this.count,
-    this.quantity,
+class StoreAnalyticsHourlyActivity {
+  const StoreAnalyticsHourlyActivity({
+    required this.hour,
+    required this.orders,
+    required this.sales,
   });
 
-  final String type;
-  final int? productId;
-  final String? title;
-  final int? count;
-  final double? quantity;
+  final int hour;
+  final int orders;
+  final double sales;
 
-  factory StoreAnalyticsAttentionItem.fromJson(Map<String, dynamic> json) {
-    final type = _nonBlankString(json['type'] ?? json['kind']);
-    if (type == null) {
-      throw const FormatException('attention type is required');
+  factory StoreAnalyticsHourlyActivity.fromJson(Map<String, dynamic> json) {
+    final hour = _wholeNumber(json['hour']);
+    final orders = _wholeNumber(json['orders']);
+    final sales = _number(json['sales']);
+    if (hour == null ||
+        hour < 0 ||
+        hour > 23 ||
+        orders == null ||
+        orders < 0 ||
+        sales == null) {
+      throw const FormatException('invalid hourly analytics bucket');
     }
-
-    return StoreAnalyticsAttentionItem(
-      type: type,
-      productId: _positiveInt(json['product_id']),
-      title: _nonBlankString(
-        json['title'] ?? json['name'] ?? json['product_name'],
-      ),
-      count: _wholeNumber(json['count']),
-      quantity: _number(json['quantity'] ?? json['available_quantity']),
+    return StoreAnalyticsHourlyActivity(
+      hour: hour,
+      orders: orders,
+      sales: sales,
     );
   }
+}
+
+class StoreAnalyticsPeakWindow {
+  const StoreAnalyticsPeakWindow({
+    required this.startHour,
+    required this.endHour,
+    required this.windowHours,
+    required this.orders,
+    required this.sales,
+    required this.currency,
+    required this.source,
+  });
+
+  final int startHour;
+  final int endHour;
+  final int windowHours;
+  final int orders;
+  final double sales;
+  final String currency;
+  final String source;
+
+  factory StoreAnalyticsPeakWindow.fromJson(Map<String, dynamic> json) {
+    final startHour = _wholeNumber(json['start_hour']);
+    final endHour = _wholeNumber(json['end_hour']);
+    final windowHours = _positiveInt(json['window_hours']);
+    final orders = _wholeNumber(json['orders']);
+    final sales = _number(json['sales']);
+    final currency = _nonBlankString(json['currency']);
+    final source = _nonBlankString(json['source']);
+    if (startHour == null ||
+        startHour < 0 ||
+        startHour > 23 ||
+        endHour == null ||
+        endHour < 0 ||
+        endHour > 23 ||
+        windowHours == null ||
+        orders == null ||
+        orders < 0 ||
+        sales == null ||
+        currency != 'EGP' ||
+        source == null) {
+      throw const FormatException('invalid peak activity window');
+    }
+    return StoreAnalyticsPeakWindow(
+      startHour: startHour,
+      endHour: endHour,
+      windowHours: windowHours,
+      orders: orders,
+      sales: sales,
+      currency: currency,
+      source: source,
+    );
+  }
+}
+
+class StoreAnalyticsPeakActivity {
+  const StoreAnalyticsPeakActivity({
+    required this.hourly,
+    required this.peakWindow,
+  });
+
+  final List<StoreAnalyticsHourlyActivity> hourly;
+  final StoreAnalyticsPeakWindow? peakWindow;
+
+  factory StoreAnalyticsPeakActivity.fromJson(Map<String, dynamic> json) {
+    final peakWindowMap = _map(json['peak_window']);
+    return StoreAnalyticsPeakActivity(
+      hourly: _mapList(json['hourly'], 'peak_activity.hourly')
+          .map(StoreAnalyticsHourlyActivity.fromJson)
+          .toList(growable: false),
+      peakWindow: peakWindowMap == null
+          ? null
+          : StoreAnalyticsPeakWindow.fromJson(peakWindowMap),
+    );
+  }
+}
+
+class StoreAnalyticsLowStockItem {
+  const StoreAnalyticsLowStockItem({
+    required this.id,
+    required this.name,
+    required this.sku,
+    required this.available,
+    this.imagePath,
+  });
+
+  final int id;
+  final String name;
+  final String sku;
+  final double available;
+  final String? imagePath;
+
+  factory StoreAnalyticsLowStockItem.fromJson(Map<String, dynamic> json) {
+    final id = _positiveInt(json['id']);
+    final name = _nonBlankString(json['name']);
+    final sku = _nonBlankString(json['sku']);
+    final available = _number(json['available']);
+    if (id == null || name == null || sku == null || available == null) {
+      throw const FormatException('invalid low-stock item');
+    }
+    return StoreAnalyticsLowStockItem(
+      id: id,
+      name: name,
+      sku: sku,
+      available: available,
+      imagePath: _nonBlankString(json['image']),
+    );
+  }
+}
+
+class StoreAnalyticsMerchantSummary {
+  const StoreAnalyticsMerchantSummary({
+    this.reorderNow,
+    this.reorderSoon,
+    this.blocked,
+    this.expectedReorderSpend,
+  });
+
+  final int? reorderNow;
+  final int? reorderSoon;
+  final int? blocked;
+  final double? expectedReorderSpend;
+
+  factory StoreAnalyticsMerchantSummary.fromJson(Map<String, dynamic> json) =>
+      StoreAnalyticsMerchantSummary(
+        reorderNow: _wholeNumber(json['reorder_now']),
+        reorderSoon: _wholeNumber(json['reorder_soon']),
+        blocked: _wholeNumber(json['blocked']),
+        expectedReorderSpend: _number(json['expected_reorder_spend']),
+      );
+}
+
+class StoreAnalyticsMerchantAttentionItem {
+  const StoreAnalyticsMerchantAttentionItem({
+    required this.productId,
+    required this.sku,
+    required this.name,
+    required this.available,
+    required this.stockRisk,
+    required this.action,
+    required this.state,
+    required this.priorityScore,
+    this.daysOfCover,
+  });
+
+  final int productId;
+  final String sku;
+  final String name;
+  final double available;
+  final double? daysOfCover;
+  final String stockRisk;
+  final String action;
+  final String state;
+  final double priorityScore;
+
+  factory StoreAnalyticsMerchantAttentionItem.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final productId = _positiveInt(json['product_id']);
+    final sku = _nonBlankString(json['sku']);
+    final name = _nonBlankString(json['name']);
+    final available = _number(json['available']);
+    final stockRisk = _nonBlankString(json['stock_risk']);
+    final action = _nonBlankString(json['action']);
+    final state = _nonBlankString(json['state']);
+    final priorityScore = _number(json['priority_score']);
+    if (productId == null ||
+        sku == null ||
+        name == null ||
+        available == null ||
+        stockRisk == null ||
+        action == null ||
+        state == null ||
+        priorityScore == null) {
+      throw const FormatException('invalid merchant attention item');
+    }
+
+    return StoreAnalyticsMerchantAttentionItem(
+      productId: productId,
+      sku: sku,
+      name: name,
+      available: available,
+      daysOfCover: _number(json['days_of_cover']),
+      stockRisk: stockRisk,
+      action: action,
+      state: state,
+      priorityScore: priorityScore,
+    );
+  }
+}
+
+class StoreAnalyticsAttention {
+  const StoreAnalyticsAttention({
+    required this.lowStock,
+    required this.merchantSummary,
+    required this.merchantAttention,
+  });
+
+  final List<StoreAnalyticsLowStockItem> lowStock;
+  final StoreAnalyticsMerchantSummary merchantSummary;
+  final List<StoreAnalyticsMerchantAttentionItem> merchantAttention;
+
+  factory StoreAnalyticsAttention.fromJson(Map<String, dynamic> json) =>
+      StoreAnalyticsAttention(
+        lowStock: _mapList(json['low_stock'], 'attention.low_stock')
+            .map(StoreAnalyticsLowStockItem.fromJson)
+            .toList(growable: false),
+        merchantSummary: StoreAnalyticsMerchantSummary.fromJson(
+          _requiredMap(json, 'merchant_summary'),
+        ),
+        merchantAttention: _mapList(
+          json['merchant_attention'],
+          'attention.merchant_attention',
+        )
+            .map(StoreAnalyticsMerchantAttentionItem.fromJson)
+            .toList(growable: false),
+      );
+}
+
+class StoreAnalyticsInsightFacts {
+  const StoreAnalyticsInsightFacts({
+    this.cancelledOrders,
+    this.orderCount,
+    this.cancelledPercent,
+    this.lowStockCount,
+    this.reorderNowCount,
+    this.firstProductId,
+    this.deltaPercent,
+    this.currentRevenue,
+    this.previousRevenue,
+    this.productId,
+    this.productName,
+    this.revenue,
+    this.contributionPercent,
+    this.currency,
+  });
+
+  final int? cancelledOrders;
+  final int? orderCount;
+  final double? cancelledPercent;
+  final int? lowStockCount;
+  final int? reorderNowCount;
+  final int? firstProductId;
+  final double? deltaPercent;
+  final double? currentRevenue;
+  final double? previousRevenue;
+  final int? productId;
+  final String? productName;
+  final double? revenue;
+  final double? contributionPercent;
+  final String? currency;
+
+  factory StoreAnalyticsInsightFacts.fromJson(Map<String, dynamic> json) =>
+      StoreAnalyticsInsightFacts(
+        cancelledOrders: _wholeNumber(json['cancelled_orders']),
+        orderCount: _wholeNumber(json['order_count']),
+        cancelledPercent: _number(json['cancelled_percent']),
+        lowStockCount: _wholeNumber(json['low_stock_count']),
+        reorderNowCount: _wholeNumber(json['reorder_now_count']),
+        firstProductId: _positiveInt(json['first_product_id']),
+        deltaPercent: _number(json['delta_percent']),
+        currentRevenue: _number(json['current_revenue']),
+        previousRevenue: _number(json['previous_revenue']),
+        productId: _positiveInt(json['product_id']),
+        productName: _nonBlankString(json['name']),
+        revenue: _number(json['revenue']),
+        contributionPercent: _number(json['contribution_percent']),
+        currency: _nonBlankString(json['currency']),
+      );
 }
 
 class StoreAnalyticsInsight {
   const StoreAnalyticsInsight({
-    required this.kind,
-    this.id,
-    this.title,
-    this.message,
-    this.priority,
-    this.actionRoute,
+    required this.id,
+    required this.code,
+    required this.severity,
+    required this.priority,
+    required this.facts,
   });
 
-  final String kind;
-  final String? id;
-  final String? title;
-  final String? message;
-  final String? priority;
-  final String? actionRoute;
+  final String id;
+  final String code;
+  final String severity;
+  final int priority;
+  final StoreAnalyticsInsightFacts facts;
 
   factory StoreAnalyticsInsight.fromJson(Map<String, dynamic> json) {
-    final kind = _nonBlankString(json['kind'] ?? json['type']);
-    if (kind == null) {
-      throw const FormatException('insight kind is required');
+    final id = _nonBlankString(json['id']);
+    final code = _nonBlankString(json['code']);
+    final severity = _nonBlankString(json['severity']);
+    final priority = _wholeNumber(json['priority']);
+    if (id == null || code == null || severity == null || priority == null) {
+      throw const FormatException('invalid store insight');
     }
-
     return StoreAnalyticsInsight(
-      kind: kind,
-      id: _nonBlankString(json['id']),
-      title: _nonBlankString(json['title']),
-      message: _nonBlankString(
-        json['message'] ?? json['body'] ?? json['summary'],
-      ),
-      priority: _nonBlankString(json['priority']),
-      actionRoute: _nonBlankString(
-        json['action_route'] ?? json['route'],
+      id: id,
+      code: code,
+      severity: severity,
+      priority: priority,
+      facts: StoreAnalyticsInsightFacts.fromJson(
+        _requiredMap(json, 'facts'),
       ),
     );
   }
@@ -467,28 +812,103 @@ class StoreAnalyticsInsight {
 
 class StoreAnalyticsFreshness {
   const StoreAnalyticsFreshness({
-    this.generatedAt,
-    this.staleAt,
-    this.isStale,
-    this.hasNewInsights,
+    required this.computedAt,
+    required this.staleAfterSeconds,
+    required this.isStale,
+    required this.state,
+    this.sourceUpdatedAt,
   });
 
-  final String? generatedAt;
-  final String? staleAt;
-  final bool? isStale;
-  final bool? hasNewInsights;
+  final String computedAt;
+  final String? sourceUpdatedAt;
+  final int staleAfterSeconds;
+  final bool isStale;
+  final String state;
 
-  factory StoreAnalyticsFreshness.fromJson(Map<String, dynamic> json) =>
-      StoreAnalyticsFreshness(
-        generatedAt: _nonBlankString(
-          json['generated_at'] ?? json['updated_at'] ?? json['as_of'],
-        ),
-        staleAt: _nonBlankString(json['stale_at']),
-        isStale: _bool(json['is_stale'] ?? json['stale']),
-        hasNewInsights: _bool(
-          json['has_new_insights'] ?? json['unread_insights'],
-        ),
-      );
+  factory StoreAnalyticsFreshness.fromJson(Map<String, dynamic> json) {
+    final computedAt = _nonBlankString(json['computed_at']);
+    final staleAfterSeconds = _wholeNumber(json['stale_after_seconds']);
+    final isStale = _bool(json['is_stale']);
+    final state = _nonBlankString(json['state']);
+    if (computedAt == null ||
+        staleAfterSeconds == null ||
+        staleAfterSeconds < 0 ||
+        isStale == null ||
+        state == null) {
+      throw const FormatException('invalid freshness metadata');
+    }
+    return StoreAnalyticsFreshness(
+      computedAt: computedAt,
+      sourceUpdatedAt: _nonBlankString(json['source_updated_at']),
+      staleAfterSeconds: staleAfterSeconds,
+      isStale: isStale,
+      state: state,
+    );
+  }
+}
+
+class StoreAnalyticsInsightLifecycle {
+  const StoreAnalyticsInsightLifecycle({
+    required this.mode,
+    required this.requestParameter,
+    required this.clearWhenSeenVersionMatchesCurrent,
+  });
+
+  final String mode;
+  final String requestParameter;
+  final bool clearWhenSeenVersionMatchesCurrent;
+
+  factory StoreAnalyticsInsightLifecycle.fromJson(Map<String, dynamic> json) {
+    final mode = _nonBlankString(json['mode']);
+    final requestParameter = _nonBlankString(json['request_parameter']);
+    final clearWhenSeen = _bool(
+      json['clear_when_seen_version_matches_current'],
+    );
+    if (mode == null || requestParameter == null || clearWhenSeen == null) {
+      throw const FormatException('invalid insight lifecycle');
+    }
+    return StoreAnalyticsInsightLifecycle(
+      mode: mode,
+      requestParameter: requestParameter,
+      clearWhenSeenVersionMatchesCurrent: clearWhenSeen,
+    );
+  }
+}
+
+class StoreAnalyticsInsightState {
+  const StoreAnalyticsInsightState({
+    required this.version,
+    required this.hasNewInsights,
+    required this.unreadCount,
+    required this.lifecycle,
+  });
+
+  final String version;
+  final bool hasNewInsights;
+  final int unreadCount;
+  final StoreAnalyticsInsightLifecycle lifecycle;
+
+  factory StoreAnalyticsInsightState.fromJson(Map<String, dynamic> json) {
+    final version = _nonBlankString(json['version']);
+    final hasNewInsights = _bool(json['has_new_insights']);
+    final unreadCount = _wholeNumber(json['unread_count']);
+    if (version == null ||
+        !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(version) ||
+        hasNewInsights == null ||
+        unreadCount == null ||
+        unreadCount < 0) {
+      throw const FormatException('invalid insight state');
+    }
+
+    return StoreAnalyticsInsightState(
+      version: version.toLowerCase(),
+      hasNewInsights: hasNewInsights,
+      unreadCount: unreadCount,
+      lifecycle: StoreAnalyticsInsightLifecycle.fromJson(
+        _requiredMap(json, 'lifecycle'),
+      ),
+    );
+  }
 }
 
 enum StoreAnalyticsConsumerStatus {
@@ -545,10 +965,23 @@ class StoreAnalyticsConsumerState {
   final String? errorCode;
 }
 
-String? _serverErrorCode(Object? decoded) {
-  final map = _map(decoded);
-  final code = map == null ? null : _nonBlankString(map['code']);
-  return code;
+Map<String, dynamic> _requiredMap(
+  Map<String, dynamic> json,
+  String key,
+) {
+  final value = _map(json[key]);
+  if (value == null) {
+    throw FormatException('$key is required');
+  }
+  return value;
+}
+
+String _requiredString(Map<String, dynamic> json, String key) {
+  final value = _nonBlankString(json[key]);
+  if (value == null) {
+    throw FormatException('$key is required');
+  }
+  return value;
 }
 
 Map<String, dynamic>? _map(Object? value) {
@@ -556,22 +989,20 @@ Map<String, dynamic>? _map(Object? value) {
   return Map<String, dynamic>.from(value);
 }
 
-List<Map<String, dynamic>> _mapList(Object? value) {
-  if (value == null) return const <Map<String, dynamic>>[];
+List<Map<String, dynamic>> _mapList(Object? value, String key) {
   if (value is! List) {
-    throw const FormatException('expected a list');
+    throw FormatException('$key must be a list');
   }
   return value.map((item) {
     final map = _map(item);
     if (map == null) {
-      throw const FormatException('expected an object');
+      throw FormatException('$key must contain objects');
     }
     return map;
   }).toList(growable: false);
 }
 
 String? _nonBlankString(Object? value) {
-  if (value == null) return null;
   if (value is! String) return null;
   final trimmed = value.trim();
   return trimmed.isEmpty ? null : trimmed;
@@ -587,10 +1018,17 @@ int? _wholeNumber(Object? value) {
   if (value is num && value.isFinite && value == value.roundToDouble()) {
     return value.toInt();
   }
-  if (value is String) {
-    return int.tryParse(value);
-  }
+  if (value is String) return int.tryParse(value);
   return null;
+}
+
+int? _nullableWholeNumber(Map<String, dynamic> json, String key) {
+  if (!json.containsKey(key) || json[key] == null) return null;
+  final value = _wholeNumber(json[key]);
+  if (value == null) {
+    throw FormatException('$key must be an integer or null');
+  }
+  return value;
 }
 
 double? _number(Object? value) {
@@ -599,9 +1037,40 @@ double? _number(Object? value) {
   return null;
 }
 
+double? _nullableNumber(Map<String, dynamic> json, String key) {
+  if (!json.containsKey(key) || json[key] == null) return null;
+  final value = _number(json[key]);
+  if (value == null) {
+    throw FormatException('$key must be numeric or null');
+  }
+  return value;
+}
+
 bool? _bool(Object? value) {
   if (value is bool) return value;
   if (value == 1 || value == '1') return true;
   if (value == 0 || value == '0') return false;
   return null;
+}
+
+String? _serverErrorCode(Object? decoded) {
+  final map = _map(decoded);
+  return map == null ? null : _nonBlankString(map['code']);
+}
+
+bool _hasRetailStoreValidationError(Object? decoded) {
+  final map = _map(decoded);
+  final errors = map == null ? null : _map(map['errors']);
+  return errors?.containsKey('retail_store_id') == true;
+}
+
+DateTime _dateOnly(DateTime value) => DateTime(
+      value.year,
+      value.month,
+      value.day,
+    );
+
+String _formatDate(DateTime value) {
+  String two(int part) => part.toString().padLeft(2, '0');
+  return '${value.year}-${two(value.month)}-${two(value.day)}';
 }
