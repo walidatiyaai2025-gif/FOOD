@@ -391,7 +391,8 @@ Future<void> _dragUntilFound(
   expect(
     target,
     findsOneWidget,
-    reason: 'Expected lazy Home content to become reachable by vertical scroll.',
+    reason:
+        'Expected lazy Home content to become reachable by vertical scroll.',
   );
   await tester.ensureVisible(target);
   await tester.pumpAndSettle();
