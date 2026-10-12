@@ -124,7 +124,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('NEW Retail home hides unwired controls instead of silent buttons',
+  testWidgets(
+      'NEW Retail home hides unwired controls instead of silent buttons',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -258,7 +259,8 @@ void main() {
     await expectLater(api.product(42, storeId: -1), throwsArgumentError);
   });
 
-  test('HTTP catalog API normalizes transport failures as offline state', () async {
+  test('HTTP catalog API normalizes transport failures as offline state',
+      () async {
     final api = HttpB2cCatalogApi(
       baseUrl: 'https://foodex.example',
       client: MockClient((request) async {
@@ -273,7 +275,6 @@ void main() {
       expect(error.isNetworkUnavailable, isTrue);
     }
   });
-
 }
 
 class _FakeCatalogApi implements B2cCatalogApi {
