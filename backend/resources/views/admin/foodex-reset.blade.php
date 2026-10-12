@@ -10,7 +10,7 @@
         .launch-reset-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:var(--foodex-space-4);margin-block:var(--foodex-space-4)}
         .launch-reset-summary .foodex-card{padding:var(--foodex-space-4)}
         .launch-reset-summary strong{display:block;font-size:var(--foodex-text-xl)}
-        .launch-reset-form{max-width:720px}
+        .launch-reset-form{max-width:720px;grid-template-columns:minmax(0,1fr)}
         .launch-reset-form input:not([type=checkbox]){width:100%;min-width:0}
         .launch-reset-form .launch-reset-accept{display:flex;align-items:start;gap:var(--foodex-space-3)}
         .launch-reset-form button:disabled{opacity:.6;cursor:not-allowed}
@@ -61,9 +61,9 @@
             <h2>{{ __('foodex_reset.confirm_title') }}</h2>
             <p>{{ __('foodex_reset.expires') }}</p>
             <label for="reset-confirmation">{{ __('foodex_reset.confirmation') }}: <strong>{{ __('foodex_reset.phrase') }}</strong></label>
-            <input id="reset-confirmation" name="confirmation" autocomplete="off" required @disabled(!$preview['ready'])>
+            <input id="reset-confirmation" name="confirmation" placeholder="{{ __('foodex_reset.confirmation') }}" autocomplete="off" required @disabled(!$preview['ready'])>
             <label for="reset-password">{{ __('foodex_reset.password') }}</label>
-            <input id="reset-password" type="password" name="current_password" autocomplete="current-password" required @disabled(!$preview['ready'])>
+            <input id="reset-password" type="password" name="current_password" placeholder="{{ __('foodex_reset.password') }}" autocomplete="current-password" required @disabled(!$preview['ready'])>
             <label class="launch-reset-accept"><input type="checkbox" name="understood" value="1" required @disabled(!$preview['ready'])><span>{{ __('foodex_reset.understood') }}</span></label>
             <button class="foodex-primary" type="submit" @disabled(!$preview['ready'])>{{ __('foodex_reset.submit') }}</button>
             <a href="{{ route('admin.foodex-reset.index') }}">{{ __('foodex_reset.refresh') }}</a>

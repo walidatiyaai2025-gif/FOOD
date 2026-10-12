@@ -66,7 +66,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     body.foodex-mobile-nav-open .foodex-mobile-nav-backdrop{display:block}
     aside.sidebar,aside.dashboard-sidebar,.shell-sidebar,
     aside.foodex-sidebar-collapsed,aside.foodex-sidebar-expanded{
-        position:fixed!important;z-index:10100!important;inset-block-start:56px!important;inset-block-end:0!important;inset-inline-end:0!important;inset-inline-start:auto!important;
+        position:fixed!important;z-index:10100!important;inset-block-start:56px!important;inset-block-end:0!important;inset-inline-start:0!important;inset-inline-end:auto!important;
         width:min(88vw,340px)!important;min-width:0!important;max-width:340px!important;height:auto!important;min-height:0!important;max-height:none!important;
         overflow:auto!important;padding:12px!important;background:var(--foodex-surface)!important;border:0!important;border-inline-start:1px solid var(--foodex-border)!important;
         box-shadow:-18px 0 44px rgba(15,23,42,.16)!important;transform:translateX(105%);transition:transform .2s ease;overscroll-behavior:contain
