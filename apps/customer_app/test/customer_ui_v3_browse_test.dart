@@ -57,7 +57,8 @@ void main() {
 
       expect(find.byType(CustomerSearchPill), findsOneWidget);
       expect(find.byType(CustomerProductCard), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-products-grid')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-products-grid')), findsOneWidget);
       expect(api.lastStoreId, 19);
       expect(api.lastCategoryId, 3);
 
@@ -267,7 +268,6 @@ void main() {
     },
   );
 
-
   testWidgets(
     'VNext browse keeps three columns and covers typing suggestions filters sort and no-results',
     (tester) async {
@@ -374,8 +374,7 @@ void main() {
       );
       expect(find.byType(CustomerProductCard), findsNWidgets(2));
 
-      final secondImage =
-          find.byKey(const ValueKey('retail-product-image-1'));
+      final secondImage = find.byKey(const ValueKey('retail-product-image-1'));
       await tester.ensureVisible(secondImage);
       await tester.tap(secondImage);
       await tester.pump();
@@ -387,7 +386,6 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-
 }
 
 class _BrowseFakeApi implements B2cCatalogApi {
@@ -500,7 +498,8 @@ class _OutOfStockBrowseApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => const <B2cProduct>[
+  }) async =>
+      const <B2cProduct>[
         B2cProduct(
           id: 18,
           name: 'Sold Out Coffee',
@@ -526,7 +525,6 @@ class _OutOfStockBrowseApi implements B2cCatalogApi {
         availabilityState: 'OUT_OF_STOCK',
       );
 }
-
 
 class _InteractiveBrowseApi implements B2cCatalogApi {
   String? lastQuery;
@@ -596,7 +594,8 @@ class _RichDetailApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => const <B2cProduct>[
+  }) async =>
+      const <B2cProduct>[
         B2cProduct(
           id: 8,
           name: 'Coffee',
