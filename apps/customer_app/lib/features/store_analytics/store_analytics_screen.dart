@@ -599,7 +599,7 @@ class _StoreSelector extends StatelessWidget {
         label: copy.storeSelector,
         child: DropdownButtonFormField<int>(
           key: const ValueKey('store-analytics-store-selector'),
-          value: options.any((option) => option.id == selectedStoreId)
+          initialValue: options.any((option) => option.id == selectedStoreId)
               ? selectedStoreId
               : null,
           isExpanded: true,
