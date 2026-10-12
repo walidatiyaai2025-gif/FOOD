@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ $ar ?? (app()->getLocale() === 'ar') ? 'تحديث النظام' : 'System Update' }} · FOODEX</title>
+    <title>{{ app()->getLocale() === 'ar' ? 'تحديث النظام' : 'System Update' }} · FOODEX</title>
     <style>
         :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
