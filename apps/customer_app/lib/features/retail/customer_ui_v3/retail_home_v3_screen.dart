@@ -241,6 +241,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
+        key: const ValueKey('retail-home-scroll'),
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsetsDirectional.fromSTEB(
           CustomerUiSpacing.page,
