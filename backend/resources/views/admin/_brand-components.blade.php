@@ -165,7 +165,7 @@
 
     @media(max-width:767px){
         html{scroll-padding-top:64px}
-        body.foodex-mobile-web{min-width:0;padding-block-start:56px!important}
+        body.foodex-mobile-web{min-width:0;padding:56px 0 0!important}
         .foodex-mobile-only{display:initial}
         .foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{display:grid;grid-template-columns:minmax(0,1fr)!important}
         .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main{grid-column:1!important;grid-row:1!important;min-width:0;padding:12px!important}
@@ -220,7 +220,7 @@
         if (!(table instanceof HTMLTableElement)) return;
         if (table.dataset.foodexMobileTableReady === '1') return;
         if (table.dataset.foodexMobileTable === 'scroll' || table.dataset.foodexMobileTable === 'off') return;
-        if (!table.matches('.foodex-table,.foodex-ops-grid')) return;
+        if (!table.matches('table:not([data-foodex-mobile-table="scroll"]):not([data-foodex-mobile-table="off"])')) return;
 
         const headers = [...table.querySelectorAll(':scope > thead > tr:last-child > th')];
         const rows = [...table.querySelectorAll(':scope > tbody > tr')];
@@ -243,7 +243,7 @@
 
     const scan = (root = document) => {
         if (root instanceof HTMLTableElement) enhanceTable(root);
-        root.querySelectorAll?.('.foodex-table,.foodex-ops-grid').forEach(enhanceTable);
+        root.querySelectorAll?.('table:not([data-foodex-mobile-table="scroll"]):not([data-foodex-mobile-table="off"])').forEach(enhanceTable);
     };
 
     const start = () => {

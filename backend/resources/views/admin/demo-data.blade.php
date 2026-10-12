@@ -4,11 +4,14 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('admin.security.demo_data.title') }} · FOODEX</title>
 <style>
-:root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1100px;margin:auto;padding:28px}.top,.head,.actions{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:#64748b;line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.count{font-size:1.55rem;font-weight:800;margin-top:6px}.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:750;cursor:pointer}.success{background:#166534;color:#fff}.danger{background:#be123c;color:#fff}.badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:.78rem;background:#e2e8f0}.warning{background:#fff7ed;border:1px solid #fdba74;padding:12px 14px;border-radius:12px;margin:14px 0}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:10px 11px;width:100%}.actions{align-items:stretch;flex-wrap:wrap}.action-card{flex:1;min-width:280px}.action-card form{display:grid;gap:12px}@media(max-width:760px){.page{padding:16px}.top,.head,.actions{flex-direction:column}}
+:root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1100px;margin:auto;padding:28px}.top,.head,.actions{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:#64748b;line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.count{font-size:1.55rem;font-weight:800;margin-top:6px}.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:750;cursor:pointer}.success{background:#166534;color:#fff}.danger{background:#be123c;color:#fff}.badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:.78rem;background:#e2e8f0}.warning{background:#fff7ed;border:1px solid #fdba74;padding:12px 14px;border-radius:12px;margin:14px 0}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:10px 11px;width:100%}.actions{align-items:stretch;flex-wrap:wrap}.action-card{flex:1;min-width:280px}.action-card form{display:grid;gap:12px}@media(max-width:760px){.page{padding:12px}.top,.head{flex-direction:column}.actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.action-card{min-width:0;width:100%}.panel{padding:14px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:359px){.grid{grid-template-columns:1fr}}
 </style>
 @include('admin._brand-components')
 </head>
-<body><main class="page foodex-admin-page" data-foodex-utility="demo-data">
+<body>
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="demo-data">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+<main class="page foodex-admin-main foodex-admin-page" data-foodex-utility="demo-data">
 <header class="top foodex-page-header">
 <div><div class="muted">FOODEX · {{ __('admin.security.demo_data.eyebrow') }}</div><h1>{{ __('admin.security.demo_data.title') }}</h1><p class="muted">{{ __('admin.security.demo_data.description') }}</p></div>
 <a class="back" href="{{ route('admin.index') }}">{{ __('admin.security.back') }}</a>
@@ -46,4 +49,6 @@
 </form>
 </div>
 </section>
-</main></body></html>
+</main>
+</div>
+</body></html>

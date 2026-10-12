@@ -7,7 +7,7 @@
     <style>
         :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 28px; background: #f5f7fa; }
+        body { margin: 0; padding: 0; background: #f5f7fa; }
         .wrap { max-width: 1500px; margin: 0 auto; }
         .top { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:20px; }
         .back { color:#1d4ed8; text-decoration:none; font-weight:700; }
@@ -31,12 +31,15 @@
         label { display:block; font-size:.8rem; font-weight:700; margin-bottom:6px; color:#475569; }
         .empty { text-align:center; padding:30px; color:#64748b; }
         .pagination { margin-top:18px; }
-        @media(max-width:800px){ body{padding:16px}.filters{grid-template-columns:1fr}.langs{grid-template-columns:1fr}.top{flex-direction:column} }
+        @media(max-width:800px){ body{padding:0}.filters{grid-template-columns:1fr}.langs{grid-template-columns:1fr}.top{flex-direction:column}.card{padding:14px}.actions{flex-wrap:nowrap;overflow-x:auto;max-width:100%}.actions>*{flex:0 0 auto} }
     </style>
     @include('admin._brand-components')
 </head>
 <body>
-<div class="wrap foodex-admin-page" data-foodex-utility="translations">
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="translations">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="translations">
+<div class="wrap">
     <div class="top foodex-page-header">
         <div>
             <h1>{{ __('admin.translations.title') }}</h1>
@@ -100,6 +103,8 @@
     </div>
 
     <div class="pagination">{{ $translations->links() }}</div>
+</div>
+</main>
 </div>
 </body>
 </html>

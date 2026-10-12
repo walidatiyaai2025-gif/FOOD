@@ -96,8 +96,12 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:22px minmax(0,1fr);place-items:initial;padding:7px 9px}
     .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main,
     .layout>.foodex-admin-main,html[dir=ltr] .layout>.foodex-admin-main,
+    .layout>.main,html[dir=ltr] .layout>.main,
     .dashboard-layout>.dashboard-shell,html[dir=ltr] .dashboard-layout>.dashboard-shell,
     .module-layout>main,html[dir=ltr] .module-layout>main,
+    .catalog-layout>main,html[dir=ltr] .catalog-layout>main,
+    .lookup-layout>main,html[dir=ltr] .lookup-layout>main,
+    .page>main,html[dir=ltr] .page>main,
     .shell>.main,html[dir=ltr] .shell>.main{grid-column:1!important;grid-row:1!important}
 }
 @media(prefers-reduced-motion:reduce){

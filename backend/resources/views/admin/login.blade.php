@@ -25,7 +25,7 @@
         @media(max-width:820px){.page{grid-template-columns:1fr}.brand-pane{min-height:220px;padding:30px}.brand-copy h1{font-size:30px}.brand-copy p{font-size:14px}.secure{display:none}.form-pane{padding:20px;margin-top:-26px;position:relative;z-index:2}.card{border-radius:20px}}
     </style>
 </head>
-<body>
+<body data-foodex-mobile-web-exception="auth">
 <div class="page">
     <section class="brand-pane">
         <div class="brand">FOOD<span>EX</span></div>

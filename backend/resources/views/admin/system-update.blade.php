@@ -7,7 +7,7 @@
     <style>
         :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 32px; }
+        body { margin: 0; padding: 0; }
         main { max-width: 980px; margin: 0 auto; }
         .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
         .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -25,11 +25,14 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 10px; text-align: start; border-bottom: 1px solid #e2e8f0; }
         code { direction: ltr; unicode-bidi: embed; }
+        @media(max-width:767px){.header{align-items:flex-start;flex-direction:column}.card{padding:14px;margin-bottom:12px}button{width:100%;justify-self:stretch;min-height:44px}}
     </style>
     @include('admin._brand-components')
 </head>
 <body>
-<main class="foodex-admin-page" data-foodex-utility="system-update">
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="system-update">
     <div class="header foodex-page-header">
         <div>
             <a href="{{ route('admin.index') }}">← FOODEX Dashboard</a>
@@ -115,6 +118,7 @@
         {{ $historyRows->links() }}
     </section>
 </main>
+</div>
 <script>
 (() => {
     const form = document.querySelector('form[data-csrf-refresh-url]');
