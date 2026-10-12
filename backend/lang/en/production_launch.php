@@ -42,6 +42,10 @@ return [
             'title' => 'Production environment',
             'description' => 'Production mode, application key, debug policy and database configuration meet launch safeguards.',
         ],
+        'release_lineage' => [
+            'title' => 'Release lineage integrity',
+            'description' => 'VERSION, build metadata, source commit, release run and all three mobile builds are consistent.',
+        ],
         'official_seed' => [
             'title' => 'Official FOODEX seed',
             'description' => 'The authoritative launch catalog seeder is installed and available.',
