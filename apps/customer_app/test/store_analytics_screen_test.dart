@@ -369,10 +369,7 @@ void main() {
   for (final width in const [320.0, 360.0, 390.0, 412.0, 430.0]) {
     for (final arabic in const [true, false]) {
       testWidgets(
-        'Store Analytics fits width ' +
-            width.toInt().toString() +
-            ' in ' +
-            (arabic ? 'AR RTL' : 'EN LTR'),
+        'Store Analytics fits width ${width.toInt()} in ${arabic ? 'AR RTL' : 'EN LTR'}',
         (tester) async {
           final size = Size(width, width <= 360 ? 800 : 932);
           tester.view.physicalSize = size;
@@ -518,7 +515,7 @@ void main() {
     StoreAnalyticsStatus.error,
     StoreAnalyticsStatus.noEntitlement,
   ]) {
-    testWidgets('explicit Store Analytics state ' + status.name + ' renders', (
+    testWidgets('explicit Store Analytics state ${status.name} renders', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(320, 800);
