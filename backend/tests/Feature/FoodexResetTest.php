@@ -245,6 +245,7 @@ class FoodexResetTest extends TestCase
                 ->assertOk()
                 ->assertSee(FoodexResetService::PRODUCTION_CONFIRMATION);
 
+            $this->app->instance('env', 'production');
             $this->actingAs($owner)
                 ->post('/admin/settings/foodex-reset', $this->confirmation())
                 ->assertSessionHasErrors('production_confirmation');
