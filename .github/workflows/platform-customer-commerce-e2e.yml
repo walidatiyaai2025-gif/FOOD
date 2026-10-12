@@ -10,6 +10,27 @@ permissions:
   contents: read
 
 jobs:
+  customer-format-diagnostic:
+    name: Customer 1333 formatter diagnostic
+    if: ${{ startsWith(github.head_ref, 'test/1333-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Print canonical final-certification Dart
+        working-directory: apps/customer_app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format test/customer_vnext_final_certification_test.dart
+          echo '=====BEGIN_FORMATTED_1333====='
+          cat test/customer_vnext_final_certification_test.dart
+          echo '=====END_FORMATTED_1333====='
+
   backend-validation:
     name: Backend + MySQL commerce validation
     if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
