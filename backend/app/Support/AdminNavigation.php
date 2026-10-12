@@ -55,7 +55,6 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_sidebar.product_management', 'catalog.view'),
-                $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view'),
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
@@ -63,7 +62,6 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
-                $this->routeItemScoped($user, 'system_lookups', 'admin.system_lookups', 'admin.operations.lookups.index', 'lookups.view'),
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
                 $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),

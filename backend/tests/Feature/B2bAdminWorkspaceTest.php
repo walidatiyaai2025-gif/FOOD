@@ -617,11 +617,13 @@ class B2bAdminWorkspaceTest extends TestCase
             ->assertSee('dir="ltr"', false)
             ->assertDontSee('Wholesale Stores');
 
-        foreach (['Product Management', 'Inventory Management', 'Orders', 'Drivers & Delivery', 'Finance & Invoices', 'Reports'] as $label) {
+        foreach (['Product Management', 'Orders', 'Drivers & Delivery', 'Finance & Invoices', 'Reports'] as $label) {
             $response->assertSee($label);
         }
 
         $response
+            ->assertDontSee('Inventory Management')
+            ->assertDontSee('System Settings / Lookups')
             ->assertDontSee('B2B Clients')
             ->assertDontSee('Pricing & Approvals');
     }
