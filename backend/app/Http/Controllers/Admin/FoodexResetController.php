@@ -5,63 +5,72 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\FoodexResetService;
-use App\Support\AdminNavigation;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class FoodexResetController extends Controller
 {
-    public function __construct(
-        private readonly FoodexResetService $reset,
-        private readonly AdminNavigation $navigation,
-    ) {}
-
-    public function index(Request $request): View
+    public function index(Request $request, FoodexResetService $reset): View
     {
-        $actor = $this->actor($request);
-        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
-        $this->useActorLocale($actor);
-
-        return view('admin.foodex-reset', [
-            'user' => $actor,
-            'navGroups' => $this->navigation->groupsFor($actor),
-            'navContext' => 'administration_hub',
-            'preview' => $this->reset->preview(),
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $actor = $this->actor($request);
-        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
-        $this->useActorLocale($actor);
-
-        $validated = $request->validate([
-            'confirmation' => ['required', 'string', Rule::in([FoodexResetService::CONFIRMATION])],
-            'production_confirmation' => ['nullable', 'string', Rule::in([FoodexResetService::PRODUCTION_CONFIRMATION])],
-            'backup_reference' => ['nullable', 'string', 'max:255'],
+        $this->authorizeOperator($request);
+        $preview = $reset->preview();
+        $request->session()->put('launch_reset_preview', [
+            'fingerprint' => $preview['fingerprint'],
+            'expires_at' => now()->addMinutes(5)->timestamp,
+            'operation' => (string) Str::uuid(),
         ]);
 
-        $this->reset->execute($actor, $request, $validated);
-
-        return redirect()
-            ->route('admin.foodex-reset.index')
-            ->with('status', __('foodex_reset.completed'));
+        return view('admin.foodex-reset', ['preview' => $preview]);
     }
 
-    private function actor(Request $request): User
+    public function store(Request $request, FoodexResetService $reset): RedirectResponse
+    {
+        $actor = $this->authorizeOperator($request);
+        $request->validate([
+            'confirmation' => ['required', 'in:'.__('foodex_reset.phrase')],
+            'understood' => ['accepted'],
+            'current_password' => ['required', 'string'],
+        ]);
+        if (! Hash::check((string) $request->input('current_password'), $actor->password)) {
+            throw ValidationException::withMessages(['current_password' => __('foodex_reset.password_error')]);
+        }
+
+        // One preview authorizes one attempt. A timeout/error requires a fresh impact preview,
+        // never an unsafe blind retry. A double submission cannot consume the same preview.
+        $preview = $request->session()->pull('launch_reset_preview');
+        if (! is_array($preview) || ($preview['expires_at'] ?? 0) < now()->timestamp) {
+            throw ValidationException::withMessages(['reset' => __('foodex_reset.stale')]);
+        }
+        $request->session()->put('launch_reset_operation', $preview['operation']);
+
+        try {
+            $reset->execute($preview, $actor, $request);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (LockTimeoutException) {
+            throw ValidationException::withMessages(['reset' => __('foodex_reset.busy')]);
+        } catch (Throwable $exception) {
+            report($exception);
+            throw ValidationException::withMessages(['reset' => __('foodex_reset.failed')]);
+        } finally {
+            $request->session()->forget('launch_reset_operation');
+        }
+
+        return redirect()->route('admin.foodex-reset.index')->with('status', __('foodex_reset.success'));
+    }
+
+    private function authorizeOperator(Request $request): User
     {
         $actor = $request->user();
-        abort_unless($actor instanceof User, 401);
+        abort_unless($actor instanceof User && $actor->is_active && $actor->hasRole('SUPER_ADMIN'), 403);
+        app()->setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
 
         return $actor;
-    }
-
-    private function useActorLocale(User $actor): void
-    {
-        App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
     }
 }

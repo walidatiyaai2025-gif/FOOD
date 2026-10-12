@@ -1,74 +1,85 @@
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ __('foodex_reset.title') }} · FOODEX</title>
-@include('admin._brand-components')
-<style>
-.reset-wrap{max-width:980px;margin:0 auto}.reset-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.6fr);gap:16px}
-.reset-card{background:#fff;border:1px solid var(--foodex-border);border-radius:16px;padding:18px;box-shadow:var(--foodex-shadow-sm)}
-.reset-warning{border-inline-start:5px solid #b42318;background:#fff5f3}.reset-list{display:grid;gap:8px;margin:14px 0}
-.reset-row{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--foodex-border)}
-.reset-form{display:grid;gap:12px}.reset-form label{font-weight:900}.reset-form input{min-height:44px;border:1px solid var(--foodex-border);border-radius:10px;padding:0 12px;font:inherit;width:100%;box-sizing:border-box}
-.reset-button{min-height:46px;border:0;border-radius:10px;background:#b42318;color:#fff;font:inherit;font-weight:900;padding:0 16px;cursor:pointer}
-.reset-button[disabled]{opacity:.5;cursor:not-allowed}.reset-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;direction:ltr;unicode-bidi:embed}
-.reset-badge{display:inline-flex;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:900}
-.reset-badge.blocked{background:#fff0ed;color:#b42318}
-@media(max-width:760px){.reset-grid{grid-template-columns:1fr}.reset-card{padding:14px}.reset-row{align-items:flex-start}}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ __('foodex_reset.title') }} · FOODEX</title>
+    @include('admin._brand-components')
+    <style>
+        body{margin:0}
+        .launch-reset-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:var(--foodex-space-4);margin-block:var(--foodex-space-4)}
+        .launch-reset-summary .foodex-card{padding:var(--foodex-space-4)}
+        .launch-reset-summary strong{display:block;font-size:var(--foodex-text-xl)}
+        .launch-reset-form{max-width:720px}
+        .launch-reset-form input:not([type=checkbox]){width:100%;min-width:0}
+        .launch-reset-form .launch-reset-accept{display:flex;align-items:start;gap:var(--foodex-space-3)}
+        .launch-reset-form button:disabled{opacity:.6;cursor:not-allowed}
+    </style>
 </head>
 <body>
-<div class="foodex-admin-layout" data-foodex-reset="true">
-<aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
-<main class="foodex-admin-main foodex-admin-page">
-<div class="reset-wrap">
-@include('admin._admin-center-switcher',['active'=>'settings'])
-<header class="foodex-page-header">
-<div><span class="foodex-subtitle">FOODEX</span><h1>{{ __('foodex_reset.title') }}</h1><p>{{ __('foodex_reset.description') }}</p></div>
-@include('admin._live-notifications',['user'=>$user])
-</header>
-
-@if(session('status'))<div class="foodex-alert foodex-alert--success">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="foodex-alert foodex-alert--error">{{ $errors->first() }}</div>@endif
-
-<div class="reset-grid">
-<section class="reset-card">
-<h2>{{ __('foodex_reset.impact_title') }}</h2>
-<p>{{ __('foodex_reset.impact_description') }}</p>
-<div class="reset-list">
-@foreach($preview['tables'] as $table => $count)
-<div class="reset-row"><span class="reset-code">{{ $table }}</span><strong>{{ number_format($count) }}</strong></div>
-@endforeach
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="launch-reset">
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+    <main class="foodex-admin-main foodex-admin-page" data-foodex-reset="true">
+        @include('admin._admin-center-switcher',['active'=>'settings'])
+        <header class="foodex-page-header">
+            <div><h1>{{ __('foodex_reset.title') }}</h1><p>{{ __('foodex_reset.description') }}</p></div>
+            <div class="foodex-header-actions"><a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('foodex_reset.back') }}</a></div>
+        </header>
+        @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
+        @if($errors->any())
+            <div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+        @endif
+        <div class="foodex-alert" role="note">{{ __('foodex_reset.warning') }}</div>
+        <section aria-labelledby="reset-impact">
+            <h2 id="reset-impact">{{ __('foodex_reset.impact') }}</h2>
+            <p>{{ __('foodex_reset.preserved') }}</p>
+            @php
+                $commerceTables = ['orders', 'order_items', 'invoices', 'invoice_items', 'payments'];
+                $cartTables = ['carts', 'cart_items'];
+                $catalogTables = ['products', 'categories', 'brands', 'units', 'product_images', 'store_products', 'product_selling_units', 'inventories', 'stock_movements', 'banners'];
+                $sum = fn(array $tables) => array_sum(array_intersect_key($preview['counts'], array_flip($tables)));
+            @endphp
+            <div class="launch-reset-summary">
+                <div class="foodex-card"><span>{{ __('foodex_reset.total') }}</span><strong class="foodex-number">{{ $preview['total'] }}</strong></div>
+                <div class="foodex-card"><span>{{ __('foodex_reset.commerce') }}</span><strong class="foodex-number">{{ $sum($commerceTables) }}</strong></div>
+                <div class="foodex-card"><span>{{ __('foodex_reset.catalog') }}</span><strong class="foodex-number">{{ $sum($catalogTables) }}</strong></div>
+                <div class="foodex-card"><span>{{ __('foodex_reset.carts') }}</span><strong class="foodex-number">{{ $sum($cartTables) }}</strong></div>
+                <div class="foodex-card"><span>{{ __('foodex_reset.operations') }}</span><strong class="foodex-number">{{ $preview['total'] - $sum(array_merge($commerceTables, $catalogTables, $cartTables)) }}</strong></div>
+            </div>
+        </section>
+        @if(!$preview['ready'])
+            <div class="foodex-state" role="alert" data-reset-blocked="true">
+                @if(!$preview['catalog_ready'])<p>{{ __('foodex_reset.catalog_blocked') }}</p>@endif
+                @if(!$preview['references_ready'])<p>{{ __('foodex_reset.references_blocked') }}</p>@endif
+                @if(!$preview['production_ready'])<p>{{ __('foodex_reset.production_blocked') }}</p>@endif
+            </div>
+        @else
+            <div class="foodex-state" role="status">{{ __('foodex_reset.ready') }}</div>
+        @endif
+        <form class="foodex-form launch-reset-form" method="post" action="{{ route('admin.foodex-reset.store') }}" data-reset-form="true">
+            @csrf
+            <h2>{{ __('foodex_reset.confirm_title') }}</h2>
+            <p>{{ __('foodex_reset.expires') }}</p>
+            <label for="reset-confirmation">{{ __('foodex_reset.confirmation') }}: <strong>{{ __('foodex_reset.phrase') }}</strong></label>
+            <input id="reset-confirmation" name="confirmation" autocomplete="off" required @disabled(!$preview['ready'])>
+            <label for="reset-password">{{ __('foodex_reset.password') }}</label>
+            <input id="reset-password" type="password" name="current_password" autocomplete="current-password" required @disabled(!$preview['ready'])>
+            <label class="launch-reset-accept"><input type="checkbox" name="understood" value="1" required @disabled(!$preview['ready'])><span>{{ __('foodex_reset.understood') }}</span></label>
+            <button class="foodex-primary" type="submit" @disabled(!$preview['ready'])>{{ __('foodex_reset.submit') }}</button>
+            <a href="{{ route('admin.foodex-reset.index') }}">{{ __('foodex_reset.refresh') }}</a>
+        </form>
+    </main>
 </div>
-<div class="reset-row"><strong>{{ __('foodex_reset.total_rows') }}</strong><strong>{{ number_format($preview['total_rows']) }}</strong></div>
-<p><span class="reset-badge {{ $preview['seed_ready'] ? '' : 'blocked' }}">{{ $preview['seed_ready'] ? __('foodex_reset.seed_ready') : __('foodex_reset.seed_blocked') }}</span></p>
-<p>{{ __('foodex_reset.preserved') }}</p>
-</section>
-
-<section class="reset-card reset-warning">
-<h2>{{ __('foodex_reset.execute_title') }}</h2>
-<p>{{ __('foodex_reset.execute_description') }}</p>
-<form method="post" action="{{ route('admin.foodex-reset.store') }}" class="reset-form">
-@csrf
-<label for="confirmation">{{ __('foodex_reset.confirmation_label') }}</label>
-<p>{{ __('foodex_reset.type_exactly') }} <strong class="reset-code">{{ $preview['confirmation'] }}</strong></p>
-<input id="confirmation" name="confirmation" autocomplete="off" required value="{{ old('confirmation') }}">
-
-@if($preview['requires_backup'])
-<label for="backup_reference">{{ __('foodex_reset.backup_reference') }}</label>
-<input id="backup_reference" name="backup_reference" autocomplete="off" required value="{{ old('backup_reference') }}">
-<label for="production_confirmation">{{ __('foodex_reset.production_confirmation_label') }}</label>
-<p>{{ __('foodex_reset.type_exactly') }} <strong class="reset-code">{{ $preview['production_confirmation'] }}</strong></p>
-<input id="production_confirmation" name="production_confirmation" autocomplete="off" required value="{{ old('production_confirmation') }}">
-@endif
-
-<button class="reset-button" type="submit" {{ $preview['seed_ready'] ? '' : 'disabled' }}>{{ __('foodex_reset.execute') }}</button>
-</form>
-</section>
-</div>
-</div>
-</main>
-</div>
+<script>
+const resetForm = document.querySelector('[data-reset-form]');
+resetForm.addEventListener('submit', event => {
+    if (resetForm.dataset.busy === 'true') { event.preventDefault(); return; }
+    resetForm.dataset.busy = 'true';
+    resetForm.setAttribute('aria-busy', 'true');
+    const button = resetForm.querySelector('button[type=submit]');
+    button.disabled = true;
+    button.textContent = @json(__('foodex_reset.submitting'));
+});
+</script>
 </body>
 </html>

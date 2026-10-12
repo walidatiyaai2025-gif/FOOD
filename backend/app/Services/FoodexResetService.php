@@ -2,177 +2,191 @@
 
 namespace App\Services;
 
+use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
-use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
-final class FoodexResetService
+class FoodexResetService
 {
     public const CONFIRMATION = 'RESET FOODEX DATA';
 
     public const PRODUCTION_CONFIRMATION = 'RESET FOODEX PRODUCTION';
 
-    /**
-     * Child-first deletion order. Security identity, RBAC, provider credentials,
-     * stores and platform configuration are intentionally not reset here.
-     *
-     * @var list<string>
-     */
-    private const RESET_TABLES = [
-        'delivery_proofs',
-        'driver_assignments',
-        'payments',
-        'order_status_history',
-        'order_items',
-        'orders',
-        'cart_items',
-        'carts',
-        'notifications',
-        'stock_movements',
-        'inventories',
-        'coupons',
-        'promotions',
-        'banners',
-        'product_images',
-        'product_selling_units',
-        'store_products',
-        'products',
-        'categories',
+    /** Explicit allowlist: never discover additional deletion targets from foreign keys. */
+    public const TABLES = [
+        'cart_items', 'carts', 'order_van_execution_events', 'order_van_execution_states',
+        'order_van_assignments', 'order_dispatch_states', 'driver_assignments', 'delivery_proofs',
+        'order_status_history', 'b2b_van_cutover_snapshots', 'b2b_van_cutover_runs',
+        'retail_replenishment_items', 'retail_replenishments', 'customer_account_ledger_entries',
+        'collection_allocations', 'remittance_allocations', 'custody_ledger_entries',
+        'remittances', 'collection_transactions', 'payments', 'invoice_items', 'invoices',
+        'commercial_quota_reservations', 'commercial_quota_locks', 'marketing_coupon_redemptions',
+        'flash_offer_events', 'flash_reservations', 'order_items', 'orders',
+        'notification_reads', 'notification_campaign_popup_views', 'notification_campaign_runs',
+        'push_delivery_logs', 'notifications', 'van_visits', 'routing_decision_traces',
+        'sms_message_logs', 'driver_current_locations', 'fleet_current_locations',
+        'customer_favorites', 'stock_movements', 'inventories',
+        'retail_wholesale_product_mappings', 'flash_offer_products', 'flash_offers',
+        'product_commercial_rules', 'product_commercial_policies', 'product_availability_windows',
+        'product_selling_units', 'b2b_price_rules', 'store_products', 'product_images',
+        'products', 'categories', 'brands', 'units', 'banners',
     ];
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly LaunchCatalog $catalog,
+        private readonly AuditLogger $audit,
+        private readonly UpdateRuntime $runtime,
+    ) {}
 
-    /**
-     * @return array{
-     *   environment:string,
-     *   seed_ready:bool,
-     *   confirmation:string,
-     *   production_confirmation:string,
-     *   requires_backup:bool,
-     *   tables:array<string,int>,
-     *   total_rows:int
-     * }
-     */
     public function preview(): array
     {
-        $tables = [];
-        foreach (self::RESET_TABLES as $table) {
+        $counts = [];
+        $dataHash = hash_init('sha256');
+        foreach (self::TABLES as $table) {
             if (Schema::hasTable($table)) {
-                $tables[$table] = DB::table($table)->count();
+                $counts[$table] = DB::table($table)->count();
+                hash_update($dataHash, $table);
+                foreach (DB::table($table)->orderBy('id')->cursor() as $row) {
+                    hash_update($dataHash, json_encode($row, JSON_THROW_ON_ERROR));
+                }
             }
         }
 
+        $catalog = $this->catalog->preflight();
+        $blockedReferences = $this->blockedReferences(array_keys($counts));
+        $productionReady = ! app()->environment('production') || $this->productionReady();
+
         return [
-            'environment' => App::environment(),
-            'seed_ready' => class_exists(FoodexLaunchSeeder::class),
-            'confirmation' => self::CONFIRMATION,
-            'production_confirmation' => self::PRODUCTION_CONFIRMATION,
-            'requires_backup' => App::environment('production'),
-            'tables' => $tables,
-            'total_rows' => array_sum($tables),
+            'counts' => $counts,
+            'total' => array_sum($counts),
+            'catalog_ready' => $catalog['ready'] && is_string($catalog['fingerprint']),
+            'catalog_fingerprint' => $catalog['fingerprint'],
+            'references_ready' => $blockedReferences === [],
+            'production_ready' => $productionReady,
+            'ready' => $catalog['ready'] && is_string($catalog['fingerprint']) && $blockedReferences === [] && $productionReady,
+            'fingerprint' => hash('sha256', json_encode([$counts, hash_final($dataHash), $catalog, $blockedReferences], JSON_THROW_ON_ERROR)),
         ];
     }
 
-    /**
-     * @param array{confirmation:string,production_confirmation?:?string,backup_reference?:?string} $input
-     * @return array{before:array<string,mixed>,after:array<string,mixed>}
-     */
-    public function execute(User $actor, Request $request, array $input): array
+    public function execute(array $preview, User $actor, Request $request): array
     {
-        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
+        abort_unless($actor->is_active && $actor->hasRole('SUPER_ADMIN'), 403);
 
-        if (($input['confirmation'] ?? '') !== self::CONFIRMATION) {
-            throw ValidationException::withMessages([
-                'confirmation' => __('foodex_reset.errors.confirmation'),
-            ]);
-        }
-
-        if (! class_exists(FoodexLaunchSeeder::class)) {
-            throw ValidationException::withMessages([
-                'confirmation' => __('foodex_reset.errors.seed_not_ready'),
-            ]);
-        }
-
-        if (App::environment('production')) {
-            if (($input['production_confirmation'] ?? '') !== self::PRODUCTION_CONFIRMATION) {
-                throw ValidationException::withMessages([
-                    'production_confirmation' => __('foodex_reset.errors.production_confirmation'),
-                ]);
+        // Shared deployment cache is required for multi-node installs. No cache flush here:
+        // it would erase this lock and allow another destructive request concurrently.
+        return Cache::lock('foodex:launch-reset', 900)->block(1, function () use ($preview, $actor, $request): array {
+            $current = $this->preview();
+            if (! $current['ready']) {
+                throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
+            }
+            if (! hash_equals($preview['fingerprint'], $current['fingerprint'])) {
+                throw ValidationException::withMessages(['reset' => __('foodex_reset.stale')]);
             }
 
-            if (trim((string) ($input['backup_reference'] ?? '')) === '') {
-                throw ValidationException::withMessages([
-                    'backup_reference' => __('foodex_reset.errors.backup_required'),
-                ]);
+            // Production backups are made BEFORE the first write and must actually succeed.
+            $backup = app()->environment('production') ? $this->runtime->backupDatabase(true) : null;
+            if (app()->environment('production') && $backup === null) {
+                throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
             }
-        }
 
-        $before = $this->preview();
-
-        $this->audit->record(
-            'foodex.reset_reseed.started',
-            $actor,
-            null,
-            null,
-            [
-                'environment' => $before['environment'],
-                'row_counts' => $before['tables'],
-                'backup_reference' => $input['backup_reference'] ?? null,
-            ],
-            $request,
-        );
-
-        try {
-            Schema::disableForeignKeyConstraints();
-
-            DB::transaction(function (): void {
-                foreach (self::RESET_TABLES as $table) {
-                    if (Schema::hasTable($table)) {
-                        DB::table($table)->delete();
-                    }
+            return DB::transaction(function () use ($current, $actor, $request, $backup): array {
+                foreach ($this->deletionOrder(array_keys($current['counts'])) as $table) {
+                    DB::table($table)->delete();
                 }
+                $this->catalog->reseed();
+                $this->audit->record('system.launch_reset', $actor, null, $current['counts'], [
+                    'catalog_fingerprint' => $current['catalog_fingerprint'],
+                    'backup_created' => $backup !== null,
+                    'operation_id' => $request->session()->get('launch_reset_operation'),
+                ], $request);
 
-                Artisan::call('db:seed', [
-                    '--class' => FoodexLaunchSeeder::class,
-                    '--force' => true,
-                ]);
+                // Catalog reads are database-backed; external search/cache rebuild belongs
+                // to the canonical seeder. Advance only this namespace after successful commit.
+                DB::afterCommit(function (): void {
+                    try {
+                        Cache::forever('foodex:catalog-generation', (string) Str::uuid());
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                    }
+                });
+
+                return ['removed' => $current['total']];
             });
-        } catch (Throwable $exception) {
-            $this->audit->record(
-                'foodex.reset_reseed.failed',
-                $actor,
-                null,
-                ['row_counts' => $before['tables']],
-                ['error_class' => $exception::class],
-                $request,
-            );
+        });
+    }
 
-            throw $exception;
-        } finally {
-            Schema::enableForeignKeyConstraints();
+    private function productionReady(): bool
+    {
+        if (! config('foodex_reset.production_enabled') || ! app()->isDownForMaintenance()) {
+            return false;
+        }
+        $path = (string) config('foodex_reset.preflight_path');
+        if (! is_file($path)) {
+            return false;
+        }
+        $evidence = json_decode((string) file_get_contents($path), true);
+
+        return is_array($evidence)
+            && ($evidence['ready'] ?? false) === true
+            && ($evidence['database'] ?? null) === DB::connection()->getDatabaseName()
+            && ($evidence['catalog_fingerprint'] ?? null) === $this->catalog->preflight()['fingerprint']
+            && is_int($evidence['checked_at'] ?? null)
+            && $evidence['checked_at'] <= now()->timestamp
+            && $evidence['checked_at'] >= now()->subMinutes(5)->timestamp;
+    }
+
+    /** Refuse unowned, nonempty dependent tables even for cascading/nulling FKs. */
+    private function blockedReferences(array $targets): array
+    {
+        $blocked = [];
+        foreach (Schema::getTableListing(null, false) as $table) {
+            if (in_array($table, $targets, true)) {
+                continue;
+            }
+            foreach (Schema::getForeignKeys($table) as $foreignKey) {
+                if (in_array($foreignKey['foreign_table'], $targets, true)
+                    && DB::table($table)->whereNotNull($foreignKey['columns'][0])->exists()) {
+                    $blocked[] = $table;
+                    break;
+                }
+            }
         }
 
-        Artisan::call('cache:clear');
+        return $blocked;
+    }
 
-        $after = $this->preview();
-        $this->audit->record(
-            'foodex.reset_reseed.completed',
-            $actor,
-            null,
-            ['row_counts' => $before['tables']],
-            [
-                'row_counts' => $after['tables'],
-                'backup_reference' => $input['backup_reference'] ?? null,
-            ],
-            $request,
-        );
+    /** Children first; never disable FK checks or truncate (which implicitly commits on MySQL). */
+    private function deletionOrder(array $targets): array
+    {
+        $parents = [];
+        foreach ($targets as $table) {
+            $parents[$table] = [];
+            foreach (Schema::getForeignKeys($table) as $foreignKey) {
+                $parent = $foreignKey['foreign_table'];
+                if ($parent !== $table && in_array($parent, $targets, true)) {
+                    $parents[$table][] = $parent;
+                }
+            }
+        }
+        $order = [];
+        while ($targets !== []) {
+            $referenced = array_merge([], ...array_values($parents));
+            $leaves = array_values(array_diff($targets, $referenced));
+            if ($leaves === []) {
+                throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
+            }
+            foreach ($leaves as $leaf) {
+                $order[] = $leaf;
+                unset($parents[$leaf]);
+            }
+            $targets = array_values(array_diff($targets, $leaves));
+        }
 
-        return ['before' => $before, 'after' => $after];
+        return $order;
     }
 }
