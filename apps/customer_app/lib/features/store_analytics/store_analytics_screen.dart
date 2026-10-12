@@ -484,7 +484,9 @@ class _StateList extends StatelessWidget {
         padding: const EdgeInsets.all(CustomerUiSpacing.md),
         children: [
           SizedBox(
-              height: MediaQuery.sizeOf(context).height * .62, child: child),
+            height: MediaQuery.sizeOf(context).height * .62,
+            child: child,
+          ),
         ],
       );
 }
