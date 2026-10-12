@@ -40,19 +40,18 @@ final class ProductionLaunchPreflight
         foreach (self::REQUIRED_CHECKS as $code) {
             $candidate = $checks[$code] ?? null;
             $passed = is_array($candidate) && ($candidate['passed'] ?? false) === true;
-            $normalized[$code] = [
+            $normalizedEntry = [
                 'passed' => $passed,
                 'detail' => is_array($candidate) && is_string($candidate['detail'] ?? null)
                     ? $candidate['detail']
                     : 'Required evidence is missing.',
-                ...(
-                    is_array($candidate) && is_string($candidate['source'] ?? null)
-                        ? ['source' => $candidate['source']]
-                        : []
-                ),
             ];
+            if (is_array($candidate) && is_string($candidate['source'] ?? null)) {
+                $normalizedEntry['source'] = $candidate['source'];
+            }
+            $normalized[$code] = $normalizedEntry;
 
-            if (! $passed) {
+            if ($passed === false) {
                 $blockers[] = $code;
             }
         }
@@ -176,7 +175,7 @@ final class ProductionLaunchPreflight
         $required = ['migrations', 'users', 'stores', 'products', 'product_images', 'orders'];
         $missing = array_values(array_filter(
             $required,
-            static fn (string $table): bool => ! Schema::hasTable($table),
+            static fn (string $table): bool => Schema::hasTable($table) === false,
         ));
 
         return [
@@ -212,7 +211,7 @@ final class ProductionLaunchPreflight
     /** @return array{passed:bool,detail:string,source:string} */
     private function attestationCheck(string $path, string $source): array
     {
-        if (! is_file($path)) {
+        if (is_file($path) === false) {
             return [
                 'passed' => false,
                 'detail' => 'Required signed/generated attestation is missing.',
