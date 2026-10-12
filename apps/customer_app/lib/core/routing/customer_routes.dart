@@ -236,7 +236,7 @@ class CustomerStoreAnalyticsRouteContext {
         uri.hasAuthority ||
         uri.fragment.isNotEmpty ||
         uri.path != CustomerRoutePaths.b2bStoreAnalytics ||
-        uri.path.contains(r'\\')) {
+        uri.path.contains(r'\')) {
       return null;
     }
 
