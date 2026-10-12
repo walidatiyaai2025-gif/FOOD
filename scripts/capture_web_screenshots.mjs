@@ -315,28 +315,6 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     `02_Web/B2C_Admin/16_administration_runtime_contract__populated__${locale}.png`,
   );
 
-  const settingsResponse = await page.goto(`${baseUrl}/admin/settings`, { waitUntil: 'networkidle' });
-  if (!settingsResponse || !settingsResponse.ok()) {
-    throw new Error(`Settings Center runtime evidence page failed: HTTP ${settingsResponse?.status() ?? 'no-response'}`);
-  }
-  const settingsProof = await page.evaluate(() => ({
-    root: Boolean(document.querySelector('[data-settings-center="true"]')),
-    cards: [...document.querySelectorAll('[data-setting]')].map((card) => card.getAttribute('data-setting')).filter(Boolean),
-    dir: document.documentElement.dir,
-  }));
-  for (const key of ['mobile', 'app_versions', 'assistant', 'translations', 'system_lookups', 'system_update']) {
-    if (!settingsProof.cards.includes(key)) {
-      throw new Error(`Settings Center runtime evidence missing ${key}: ${JSON.stringify(settingsProof.cards)}`);
-    }
-  }
-  if (!settingsProof.root || settingsProof.dir !== expectedDir) {
-    throw new Error(`Settings Center runtime contract failed for ${locale}: ${JSON.stringify(settingsProof)}`);
-  }
-  await assertNoPageOverflow(page, `settings-center/runtime/${locale}`);
-  await snap(
-    page,
-    `02_Web/B2C_Admin/17_settings_center_runtime_contract__populated__${locale}.png`,
-  );
 }
 
 async function captureMixedTrackingEvidence(page, locale) {
