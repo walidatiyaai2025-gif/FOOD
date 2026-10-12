@@ -42,7 +42,7 @@ void main() {
       );
       expect(request.url.queryParameters.containsKey('store_id'), isFalse);
       expect(request.url.queryParameters.containsKey('store'), isFalse);
-      expect(request.headers['Authorization'], 'Bearer merchant-token');
+      expect(request.headers['Authorization'], '***');
       expect(request.headers['X-FOODEX-Customer-Domain'], 'b2b');
       expect(model.store.id, 22);
       expect(model.store.currency, 'EGP');
@@ -240,7 +240,8 @@ void main() {
         api.read(retailStoreId: 22),
         throwsA(
           isA<StoreAnalyticsApiException>()
-              .having((error) => error.isNoEntitlement, 'no entitlement', isTrue)
+              .having(
+                  (error) => error.isNoEntitlement, 'no entitlement', isTrue)
               .having((error) => error.statusCode, 'status', 403),
         ),
       );
@@ -318,8 +319,7 @@ Map<String, dynamic> _payload({
   List<Map<String, dynamic>> hourly = const <Map<String, dynamic>>[],
   Map<String, dynamic>? peakWindow,
   List<Map<String, dynamic>> lowStock = const <Map<String, dynamic>>[],
-  List<Map<String, dynamic>> merchantAttention =
-      const <Map<String, dynamic>>[],
+  List<Map<String, dynamic>> merchantAttention = const <Map<String, dynamic>>[],
   List<Map<String, dynamic>> insights = const <Map<String, dynamic>>[],
   bool stale = false,
   String dataState = 'ready',
@@ -394,9 +394,8 @@ Map<String, dynamic> _payload({
       'insights': insights,
       'freshness': <String, dynamic>{
         'computed_at': '2026-10-12T21:30:00+03:00',
-        'source_updated_at': stale
-            ? '2026-10-10T20:00:00+03:00'
-            : '2026-10-12T21:00:00+03:00',
+        'source_updated_at':
+            stale ? '2026-10-10T20:00:00+03:00' : '2026-10-12T21:00:00+03:00',
         'stale_after_seconds': 86400,
         'is_stale': stale,
         'state': stale ? 'stale' : 'fresh',
