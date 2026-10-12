@@ -120,12 +120,6 @@ class CustomerPersistentFooter extends StatelessWidget {
     final items = isWholesale
         ? <_FooterItem>[
             _FooterItem(
-              destination: CustomerFooterDestination.home,
-              label: context.tr('customer.nav.home'),
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            _FooterItem(
               destination: CustomerFooterDestination.products,
               label: context.tr('customer.nav.shopping'),
               icon: Icons.shopping_cart_outlined,
@@ -256,10 +250,7 @@ class CustomerPersistentFooter extends StatelessWidget {
         case CustomerFooterDestination.home:
           return CustomerRouteLocations.wholesaleHome(scope!);
         case CustomerFooterDestination.products:
-          return Uri(
-            path: CustomerRoutePaths.b2bProducts,
-            queryParameters: scope!.toQueryParameters(),
-          ).toString();
+          return CustomerRouteLocations.wholesaleHome(scope!);
         case CustomerFooterDestination.cart:
           return CustomerRouteLocations.wholesaleCart(scope!);
         case CustomerFooterDestination.orders:
@@ -278,7 +269,7 @@ class CustomerPersistentFooter extends StatelessWidget {
       case CustomerFooterDestination.home:
         return CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.products:
-        return CustomerRoutePaths.b2bProducts;
+        return CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.cart:
         return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
