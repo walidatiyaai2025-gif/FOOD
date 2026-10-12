@@ -13,6 +13,7 @@ use Database\Seeders\FoodexCustomerVNextFixtureSeeder;
 use Database\Seeders\FoodexLaunchCatalogSeeder;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -223,7 +224,7 @@ class FoodexResetTest extends TestCase
         // Operators reach this screen through the authorized maintenance bypass;
         // bypass only the HTTP middleware here while keeping maintenance active
         // for the reset service's production readiness check.
-        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance::class);
+        $this->withoutMiddleware(PreventRequestsDuringMaintenance::class);
         $path = tempnam(sys_get_temp_dir(), 'foodex-reset-');
         file_put_contents($path, json_encode([
             'ready' => true,
