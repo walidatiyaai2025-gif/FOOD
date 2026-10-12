@@ -26,6 +26,7 @@ abstract final class CustomerRoutePaths {
 
   static const b2bHome = '/b2b/home';
   static const b2bDashboard = '/b2b/dashboard';
+  static const b2bStoreAnalytics = '/b2b/store-analytics';
   static const b2bPurchaseReports = '/b2b/reports/purchases';
   static const b2bTopProducts = '/b2b/products/top';
   static const b2bProducts = '/b2b/products';
@@ -41,7 +42,6 @@ abstract final class CustomerRoutePaths {
   static const b2bAddresses = '/b2b/profile/addresses';
   static const b2bProfile = '/b2b/profile';
 }
-
 
 enum CustomerAuthEntry { login, register }
 
@@ -98,6 +98,19 @@ abstract final class CustomerRouteLocations {
   static String retailNotifications(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.retail);
     return _scoped(CustomerRoutePaths.notifications, context);
+  }
+
+  static String storeAnalytics({int? retailStoreId}) {
+    if (retailStoreId != null && retailStoreId <= 0) {
+      throw ArgumentError.value(
+        retailStoreId,
+        'retailStoreId',
+        'must be positive',
+      );
+    }
+    return CustomerStoreAnalyticsRouteContext(
+      retailStoreId: retailStoreId,
+    ).location;
   }
 
   static String wholesaleHome(CustomerCommerceContext context) {
@@ -198,6 +211,62 @@ abstract final class CustomerRouteLocations {
   }
 }
 
+class CustomerStoreAnalyticsRouteContext {
+  const CustomerStoreAnalyticsRouteContext({this.retailStoreId})
+      : assert(retailStoreId == null || retailStoreId > 0);
+
+  final int? retailStoreId;
+
+  String get location => Uri(
+        path: CustomerRoutePaths.b2bStoreAnalytics,
+        queryParameters: <String, String>{
+          if (retailStoreId != null) 'retail_store_id': '$retailStoreId',
+        },
+      ).toString();
+
+  static CustomerStoreAnalyticsRouteContext? tryParse(String? location) {
+    if (location == null || location.isEmpty || location != location.trim()) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(location);
+    if (uri == null ||
+        uri.hasScheme ||
+        uri.hasAuthority ||
+        uri.fragment.isNotEmpty ||
+        uri.path != CustomerRoutePaths.b2bStoreAnalytics ||
+        uri.path.contains(r'\')) {
+      return null;
+    }
+
+    const allowedKeys = <String>{'retail_store_id'};
+    if (uri.queryParametersAll.keys.any(
+      (key) => !allowedKeys.contains(key),
+    )) {
+      return null;
+    }
+
+    final retailStoreValues = uri.queryParametersAll['retail_store_id'];
+    if (retailStoreValues != null && retailStoreValues.length != 1) {
+      return null;
+    }
+
+    final rawRetailStoreId = retailStoreValues?.single;
+    final retailStoreId =
+        rawRetailStoreId == null ? null : int.tryParse(rawRetailStoreId);
+    if (rawRetailStoreId != null &&
+        (rawRetailStoreId.isEmpty ||
+            retailStoreId == null ||
+            retailStoreId <= 0)) {
+      return null;
+    }
+
+    return CustomerStoreAnalyticsRouteContext(
+      retailStoreId: retailStoreId,
+    );
+  }
+}
+
 class CustomerRouteDefinition {
   const CustomerRouteDefinition({
     required this.pattern,
@@ -241,7 +310,6 @@ class CustomerRouteDefinition {
   }
 }
 
-
 String? safeCustomerReturnLocation(
   String? value, {
   required CustomerChannel channel,
@@ -273,6 +341,11 @@ String? safeCustomerReturnLocation(
     return null;
   }
 
+  if (destination.pattern == CustomerRoutePaths.b2bStoreAnalytics &&
+      CustomerStoreAnalyticsRouteContext.tryParse(value) == null) {
+    return null;
+  }
+
   if (destination.pattern == CustomerRoutePaths.checkoutAuth) {
     return null;
   }
@@ -280,14 +353,12 @@ String? safeCustomerReturnLocation(
   return value;
 }
 
-
 String? safeCustomerContextReturnLocation(
   String? value, {
   required CustomerCommerceContext context,
 }) {
-  final channel = context.isWholesale
-      ? CustomerChannel.b2b
-      : CustomerChannel.b2c;
+  final channel =
+      context.isWholesale ? CustomerChannel.b2b : CustomerChannel.b2c;
   final safe = safeCustomerReturnLocation(value, channel: channel);
   if (safe == null) {
     return null;
@@ -419,6 +490,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bDashboard,
     label: 'B2B dashboard',
+    channel: CustomerChannel.b2b,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bStoreAnalytics,
+    label: 'b2b.store_analytics.title',
     channel: CustomerChannel.b2b,
     requiresAuth: true,
   ),

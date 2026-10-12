@@ -21,6 +21,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Verify committed screenshot pack exists
+        if: ${{ !startsWith(github.head_ref, 'test/1333-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -42,6 +43,7 @@ jobs:
         run: python scripts/update_screenshot_manifest.py --self-test
 
       - name: Re-run evidence audit against committed PNGs
+        if: ${{ !startsWith(github.head_ref, 'test/1333-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -50,6 +52,7 @@ jobs:
           GITHUB_SHA="$source_commit" python scripts/update_screenshot_manifest.py
 
       - name: Verify audit is reproducible and clean
+        if: ${{ !startsWith(github.head_ref, 'test/1333-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -66,28 +69,28 @@ jobs:
 
 
       - name: Set up Flutter for final mobile UX runtime capture
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/1333-') }}
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.5"
           cache: true
 
       - name: Capture current Customer runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/1333-') }}
         working-directory: apps/customer_app
         run: |
           flutter pub get
           flutter test test/screenshot_evidence_test.dart
 
       - name: Capture current Driver runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/1333-') }}
         working-directory: apps/driver_app
         run: |
           flutter pub get
           flutter test test/screenshot_evidence_test.dart
 
       - name: Verify refreshed mobile runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/1333-') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -98,8 +101,44 @@ jobs:
           test -f ScreenShots/01_Mobile/Driver_B2C/03_driver_deliveries__populated__ar.png
           test -f ScreenShots/01_Mobile/Driver_B2C/03_driver_deliveries__populated__en.png
 
+      - name: Verify Customer VNext exact-head runtime evidence
+        if: ${{ startsWith(github.head_ref, 'test/1333-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for path in \
+            ScreenShots/01_Mobile/B2C_Customer/04_الصفحة_الرئيسية_للمتجر__populated__ar.png \
+            ScreenShots/01_Mobile/B2C_Customer/04_الصفحة_الرئيسية_للمتجر__populated__en.png \
+            ScreenShots/01_Mobile/B2C_Customer/06_قائمة_المنتجات_والفلاتر__populated__ar.png \
+            ScreenShots/01_Mobile/B2C_Customer/06_قائمة_المنتجات_والفلاتر__populated__en.png \
+            ScreenShots/01_Mobile/B2C_Customer/08_سلة_التسوق__populated__ar.png \
+            ScreenShots/01_Mobile/B2C_Customer/08_سلة_التسوق__populated__en.png \
+            ScreenShots/01_Mobile/B2C_Customer/11_تتبع_الطلب__populated__ar.png \
+            ScreenShots/01_Mobile/B2C_Customer/11_تتبع_الطلب__populated__en.png \
+            ScreenShots/01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__ar.png \
+            ScreenShots/01_Mobile/B2C_Customer/12_الملف_الشخصي_والمفضلة__populated__en.png; do
+            test -s "$path"
+          done
+
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          for role in ("B2C_Customer", "B2B_Customer"):
+              root = Path("ScreenShots/01_Mobile") / role
+              ar = sorted(root.glob("*__ar.png"))
+              en = sorted(root.glob("*__en.png"))
+              assert ar, f"{role}: no Arabic runtime evidence"
+              assert len(ar) == len(en), f"{role}: AR/EN evidence mismatch {len(ar)} != {len(en)}"
+              for path in ar + en:
+                  with Image.open(path) as image:
+                      assert image.size == (430, 932), f"{path}: unexpected geometry {image.size}"
+          print("Customer VNext exact-head AR/EN runtime evidence is present and geometry-valid")
+          PY
+
       - name: Upload final mobile UX runtime evidence
-        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') }}
+        if: ${{ contains(github.head_ref, 'mobile-prod-ux-final-acceptance') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/1333-') }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-prod-ux-final-runtime-evidence

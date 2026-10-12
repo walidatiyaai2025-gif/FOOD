@@ -12,6 +12,7 @@ enum CustomerRouteAuthority {
   retailJourney,
   multiStore,
   b2bJourney,
+  storeAnalytics,
   placeholder,
 }
 
@@ -65,6 +66,9 @@ CustomerRouteAuthority customerRouteAuthorityFor(
     case CustomerRoutePaths.orderTracking:
     case CustomerRoutePaths.profile:
       return CustomerRouteAuthority.retailJourney;
+
+    case CustomerRoutePaths.b2bStoreAnalytics:
+      return CustomerRouteAuthority.storeAnalytics;
 
     case CustomerRoutePaths.b2bDashboard:
     case CustomerRoutePaths.b2bPurchaseReports:

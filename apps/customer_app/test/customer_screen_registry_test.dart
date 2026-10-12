@@ -19,7 +19,10 @@ void main() {
 
   test('Customer VNext registry keeps atomic child ownership fences', () {
     for (final entry in customerVNextScreenRegistry) {
-      expect(entry.ownerIssue, inInclusiveRange(1324, 1329));
+      expect(
+        entry.ownerIssue,
+        anyOf(inInclusiveRange(1324, 1329), 1356),
+      );
       expect(entry.evidence, contains(CustomerScreenEvidence.ar));
       expect(entry.evidence, contains(CustomerScreenEvidence.en));
       expect(entry.evidence, contains(CustomerScreenEvidence.smallPhone));
@@ -40,6 +43,7 @@ void main() {
       CustomerRoutePaths.b2bOrders: 1328,
       CustomerRoutePaths.profile: 1329,
       CustomerRoutePaths.b2bProfile: 1329,
+      CustomerRoutePaths.b2bStoreAnalytics: 1356,
       CustomerRoutePaths.diagnostics: 1324,
     };
 
