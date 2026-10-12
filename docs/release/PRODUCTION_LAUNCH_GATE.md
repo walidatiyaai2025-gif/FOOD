@@ -26,3 +26,8 @@ Evidence-producing lanes write server-side attestations under `storage/app/priva
 The environment check is fail-closed and requires production mode, `FOODEX_PRODUCTION_LAUNCH_ENABLED=true`, an application key, debug disabled, and a configured database connection. The clean-data scan blocks known demo/test user, customer and transaction markers. Provider readiness requires both `FOODEX_PRODUCTION_PROVIDER_READY=true` and `provider-readiness.json` bound to the exact release source SHA. The gate never reads or displays provider secrets. Provider readiness is a boolean operational attestation. Exact-head Required CI is an evidence artifact from the release pipeline and must identify the exact promoted source SHA.
 
 Owner approval requires SUPER_ADMIN and the exact typed phrase `LAUNCH FOODEX PRODUCTION`. Approval is audited. The Dashboard promotion wiring must call the same fail-closed service; it must not reimplement or weaken these checks.
+
+## Protected reset handoff (#1331)
+
+A successful owner Launch approval does not perform a reset. After every mandatory #1332 check is green, it publishes the short-lived trusted reset preflight record consumed by #1331 at the configured private `foodex_reset.preflight_path`. The record is bound to the active database, the canonical `FoodexLaunchSeeder::preflight()` fingerprint, and a fresh Unix timestamp. #1331 still independently requires maintenance mode, deployment opt-in, the second destructive confirmation, and a successful real database backup before any delete. A failed or stale Launch gate cannot mint reset authorization.
+
