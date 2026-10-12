@@ -95,49 +95,46 @@ class StoreAnalyticsCopy {
   final String viewOrders;
   final String viewProducts;
 
-  factory StoreAnalyticsCopy.fromContext(BuildContext context) =>
-      StoreAnalyticsCopy(
-        title: context.tr('b2b.store_analytics.title'),
-        revenue: context.tr('b2b.store_analytics.kpi.sales'),
-        orders: context.tr('b2b.store_analytics.kpi.orders'),
-        averageOrderValue: context.tr('b2b.store_analytics.kpi.aov'),
-        comparison: context.tr('b2b.store_analytics.kpi.change'),
-        vsPrevious: context.tr('b2b.store_analytics.period.previous'),
-        noComparison: '—',
-        salesTrend: context.tr('b2b.store_analytics.trend.title'),
-        ordersTrend: context.tr('b2b.store_analytics.trend.orders'),
-        trendSummary: context.tr('b2b.store_analytics.trend.title'),
-        insights: context.tr('b2b.store_analytics.insights.title'),
-        currencyEgp: context.tr('b2b.store_analytics.currency.egp'),
-        stale:
-            context.tr('b2b.store_analytics.state.stale') +
-            ' ' +
-            context.tr('b2b.store_analytics.state.stale_hint'),
-        storeSelector: context.tr('b2b.store_analytics.store'),
-        loadingLabel: context.tr('b2b.store_analytics.state.loading'),
-        emptyTitle: context.tr('b2b.store_analytics.state.empty'),
-        emptyMessage: context.tr('b2b.store_analytics.trend.empty'),
-        errorTitle: context.tr('b2b.store_analytics.state.error'),
-        errorMessage: context.tr('customer.error.offline'),
-        noEntitlementTitle: context.tr(
-          'b2b.store_analytics.state.no_entitlement',
-        ),
-        noEntitlementMessage: context.tr(
-          'b2b.store_analytics.state.no_entitlement_hint',
-        ),
-        retry: context.tr('b2b.store_analytics.state.retry'),
-        refresh: context.tr('b2b.store_analytics.action.refresh'),
-        storeLogo: context.tr('b2b.store_analytics.store'),
-        ordersUnit: context.tr('b2b.store_analytics.kpi.orders'),
-        lastUpdated: context.tr('b2b.store_analytics.state.last_updated'),
-        cancelledOrders: context.tr('b2b.store_analytics.kpi.cancelled'),
-        stockAttention: context.tr(
-          'b2b.store_analytics.insights.stock_attention',
-        ),
-        topProduct: context.tr('b2b.store_analytics.insights.top_product'),
-        viewOrders: context.tr('b2b.store_analytics.action.view_orders'),
-        viewProducts: context.tr('b2b.store_analytics.action.view_products'),
-      );
+  factory StoreAnalyticsCopy.fromContext(
+    BuildContext context,
+  ) => StoreAnalyticsCopy(
+    title: context.tr('b2b.store_analytics.title'),
+    revenue: context.tr('b2b.store_analytics.kpi.sales'),
+    orders: context.tr('b2b.store_analytics.kpi.orders'),
+    averageOrderValue: context.tr('b2b.store_analytics.kpi.aov'),
+    comparison: context.tr('b2b.store_analytics.kpi.change'),
+    vsPrevious: context.tr('b2b.store_analytics.period.previous'),
+    noComparison: '—',
+    salesTrend: context.tr('b2b.store_analytics.trend.title'),
+    ordersTrend: context.tr('b2b.store_analytics.trend.orders'),
+    trendSummary: context.tr('b2b.store_analytics.trend.title'),
+    insights: context.tr('b2b.store_analytics.insights.title'),
+    currencyEgp: context.tr('b2b.store_analytics.currency.egp'),
+    stale:
+        context.tr('b2b.store_analytics.state.stale') +
+        ' ' +
+        context.tr('b2b.store_analytics.state.stale_hint'),
+    storeSelector: context.tr('b2b.store_analytics.store'),
+    loadingLabel: context.tr('b2b.store_analytics.state.loading'),
+    emptyTitle: context.tr('b2b.store_analytics.state.empty'),
+    emptyMessage: context.tr('b2b.store_analytics.trend.empty'),
+    errorTitle: context.tr('b2b.store_analytics.state.error'),
+    errorMessage: context.tr('customer.error.offline'),
+    noEntitlementTitle: context.tr('b2b.store_analytics.state.no_entitlement'),
+    noEntitlementMessage: context.tr(
+      'b2b.store_analytics.state.no_entitlement_hint',
+    ),
+    retry: context.tr('b2b.store_analytics.state.retry'),
+    refresh: context.tr('b2b.store_analytics.action.refresh'),
+    storeLogo: context.tr('b2b.store_analytics.store'),
+    ordersUnit: context.tr('b2b.store_analytics.kpi.orders'),
+    lastUpdated: context.tr('b2b.store_analytics.state.last_updated'),
+    cancelledOrders: context.tr('b2b.store_analytics.kpi.cancelled'),
+    stockAttention: context.tr('b2b.store_analytics.insights.stock_attention'),
+    topProduct: context.tr('b2b.store_analytics.insights.top_product'),
+    viewOrders: context.tr('b2b.store_analytics.action.view_orders'),
+    viewProducts: context.tr('b2b.store_analytics.action.view_products'),
+  );
 }
 
 class StoreAnalyticsStoreOption {
@@ -279,7 +276,9 @@ StoreAnalyticsInsight? _storeAnalyticsInsightFromReadModel(
       final total = facts.orderCount;
       return StoreAnalyticsInsight(
         id: insight.id,
-        title: copy.cancelledOrders.isEmpty ? copy.orders : copy.cancelledOrders,
+        title: copy.cancelledOrders.isEmpty
+            ? copy.orders
+            : copy.cancelledOrders,
         body: total == null
             ? '$cancelled ${copy.ordersUnit}'
             : '$cancelled / $total ${copy.ordersUnit}',
@@ -292,7 +291,9 @@ StoreAnalyticsInsight? _storeAnalyticsInsightFromReadModel(
       final reorderNow = facts.reorderNowCount ?? 0;
       return StoreAnalyticsInsight(
         id: insight.id,
-        title: copy.stockAttention.isEmpty ? copy.insights : copy.stockAttention,
+        title: copy.stockAttention.isEmpty
+            ? copy.insights
+            : copy.stockAttention,
         body: '$lowStock · $reorderNow',
         tone: tone,
         actionLabel: copy.viewProducts.isEmpty ? null : copy.viewProducts,
