@@ -332,7 +332,7 @@ PHP);
         config(['foodex_reset.preflight_path' => $path]);
 
         $fingerprint = hash('sha256', 'launch-reset-contract');
-        $this->app->instance(FoodexLaunchSeeder::class, new class ($fingerprint) {
+        $this->app->instance(FoodexLaunchSeeder::class, new class($fingerprint) {
             public function __construct(private readonly string $fingerprint) {}
 
             public function preflight(): array
