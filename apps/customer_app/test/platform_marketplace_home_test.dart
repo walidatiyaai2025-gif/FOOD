@@ -665,12 +665,7 @@ void main() {
       find.byKey(const ValueKey('customer-persistent-footer')),
       findsOneWidget,
     );
-    for (final destination in [
-      'products',
-      'orders',
-      'invoices',
-      'account',
-    ]) {
+    for (final destination in ['products', 'orders', 'invoices', 'account']) {
       expect(
         find.byKey(ValueKey('customer-footer-$destination')),
         findsOneWidget,
