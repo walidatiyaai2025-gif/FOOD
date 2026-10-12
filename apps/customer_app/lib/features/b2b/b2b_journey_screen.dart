@@ -799,6 +799,8 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     with WidgetsBindingObserver {
   late Future<Object?> _future;
   late Future<StoreAnalyticsReadModel?> _analyticsFuture;
+  String? _seenInsightVersion;
+  String? _currentInsightVersion;
   bool _openingWholesale = false;
 
   @override
@@ -877,6 +879,8 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
       path: HttpStoreAnalyticsApi.endpoint,
       queryParameters: <String, String>{
         'retail_store_id': retailStoreId.toString(),
+        if (_seenInsightVersion != null)
+          'seen_insight_version': _seenInsightVersion!,
       },
     ).toString();
 
@@ -887,7 +891,9 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
       final nested = envelope['data'];
       final payload =
           nested is Map ? Map<String, dynamic>.from(nested) : envelope;
-      return StoreAnalyticsReadModel.fromJson(payload);
+      final analytics = StoreAnalyticsReadModel.fromJson(payload);
+      _currentInsightVersion = analytics.insightState.version;
+      return analytics;
     } catch (_) {
       // Analytics decorates the dashboard. A transient analytics failure must
       // not hide the authoritative B2B account dashboard.
@@ -898,6 +904,15 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   void _openStoreAnalytics() {
     final retailStoreId = _retailStoreContextId;
     if (retailStoreId == null || retailStoreId <= 0) return;
+
+    final currentVersion = _currentInsightVersion;
+    if (currentVersion != null && currentVersion.isNotEmpty) {
+      _seenInsightVersion = currentVersion;
+      setState(() {
+        _analyticsFuture = _loadStoreAnalytics();
+      });
+    }
+
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.storeAnalytics(retailStoreId: retailStoreId),
     );
