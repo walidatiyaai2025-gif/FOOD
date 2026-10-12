@@ -177,8 +177,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
 
     if (snapshot.hasError || !snapshot.hasData) {
       final error = snapshot.error;
-      if (error is B2cCatalogException &&
-          error.isSelfStorePurchaseNotAllowed) {
+      if (error is B2cCatalogException && error.isSelfStorePurchaseNotAllowed) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           Navigator.of(context).pushNamedAndRemoveUntil(
@@ -209,9 +208,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         key: ValueKey(isOffline ? 'retail-home-offline' : 'retail-home-error'),
         kind: CustomerStateKind.error,
         title: context.tr(
-          isOffline
-              ? 'customer.error.offline'
-              : 'customer.error.action_failed',
+          isOffline ? 'customer.error.offline' : 'customer.error.action_failed',
         ),
         actionLabel: context.tr('customer.action.retry'),
         onAction: _reload,
@@ -584,42 +581,42 @@ class _RetailHomeSkeleton extends StatelessWidget {
     final cardExtent = 304.0 + (scaledDelta * 210.0);
 
     return ListView(
-        padding: const EdgeInsets.all(CustomerUiSpacing.page),
-        children: [
-          const CustomerSkeletonBox(
-            height: 154,
-            radius: CustomerUiRadii.xl,
-          ),
-          const SizedBox(height: CustomerUiSpacing.xl),
-          const CustomerSkeletonBox(height: 24, width: 130, radius: 12),
-          const SizedBox(height: CustomerUiSpacing.sm),
-          SizedBox(
-            height: 144,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: 4,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: CustomerUiSpacing.xs),
-              itemBuilder: (_, __) => const CustomerCategorySkeleton(),
-            ),
-          ),
-          const SizedBox(height: CustomerUiSpacing.xl),
-          const CustomerSkeletonBox(height: 24, width: 150, radius: 12),
-          const SizedBox(height: CustomerUiSpacing.sm),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(CustomerUiSpacing.page),
+      children: [
+        const CustomerSkeletonBox(
+          height: 154,
+          radius: CustomerUiRadii.xl,
+        ),
+        const SizedBox(height: CustomerUiSpacing.xl),
+        const CustomerSkeletonBox(height: 24, width: 130, radius: 12),
+        const SizedBox(height: CustomerUiSpacing.sm),
+        SizedBox(
+          height: 144,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
             itemCount: 4,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: CustomerUiSpacing.xs,
-              mainAxisSpacing: CustomerUiSpacing.sm,
-              mainAxisExtent: cardExtent,
-            ),
-            itemBuilder: (_, __) => const CustomerProductCardSkeleton(),
+            separatorBuilder: (_, __) =>
+                const SizedBox(width: CustomerUiSpacing.xs),
+            itemBuilder: (_, __) => const CustomerCategorySkeleton(),
           ),
-        ],
-      );
+        ),
+        const SizedBox(height: CustomerUiSpacing.xl),
+        const CustomerSkeletonBox(height: 24, width: 150, radius: 12),
+        const SizedBox(height: CustomerUiSpacing.sm),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 4,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: CustomerUiSpacing.xs,
+            mainAxisSpacing: CustomerUiSpacing.sm,
+            mainAxisExtent: cardExtent,
+          ),
+          itemBuilder: (_, __) => const CustomerProductCardSkeleton(),
+        ),
+      ],
+    );
   }
 }
 

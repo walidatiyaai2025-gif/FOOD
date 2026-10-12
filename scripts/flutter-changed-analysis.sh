@@ -49,15 +49,7 @@ if ! (
   cd "$root/$prefix"
   dart format --output=none --set-exit-if-changed "${files[@]}"
 ); then
-  echo "Changed $app Dart files are not canonically formatted. Canonical formatter output follows." >&2
-  (
-    cd "$root/$prefix"
-    for file in "${files[@]}"; do
-      echo "=== FOODEX_DART_FORMAT_BEGIN:$file ==="
-      dart format --output=show "$file"
-      echo "=== FOODEX_DART_FORMAT_END:$file ==="
-    done
-  )
+  echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
   exit 1
 fi
 

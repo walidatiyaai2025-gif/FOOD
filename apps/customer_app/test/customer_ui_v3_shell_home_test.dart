@@ -85,8 +85,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-catalog-search')),
-          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
       expect(find.text('الأكثر مبيعاً'), findsOneWidget);
       expect(find.text('عرض المزيد'), findsOneWidget);
@@ -98,12 +98,12 @@ void main() {
       final bestDelegate =
           bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(bestDelegate.crossAxisCount, 3);
-      expect(find.byKey(const ValueKey('retail-best-seller-44')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-best-seller-43')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-best-seller-42')),
-          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('retail-shell-nav-home')),
         findsOneWidget,
@@ -254,12 +254,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final actionBottom = tester.getBottomLeft(
-      find.byKey(const ValueKey('business-fixed-action')),
-    ).dy;
-    final footerTop = tester.getTopLeft(
-      find.byKey(const ValueKey('customer-persistent-footer')),
-    ).dy;
+    final actionBottom = tester
+        .getBottomLeft(
+          find.byKey(const ValueKey('business-fixed-action')),
+        )
+        .dy;
+    final footerTop = tester
+        .getTopLeft(
+          find.byKey(const ValueKey('customer-persistent-footer')),
+        )
+        .dy;
     expect(actionBottom, lessThanOrEqualTo(footerTop));
 
     await tester.tap(
@@ -269,8 +273,8 @@ void main() {
     expect(pushedRoute, CustomerRoutePaths.marketplace);
   });
 
-
-  testWidgets('floating navigation preserves authoritative Retail store context',
+  testWidgets(
+      'floating navigation preserves authoritative Retail store context',
       (tester) async {
     String? pushedRoute;
 
@@ -419,7 +423,6 @@ class _FakeCatalogApi implements B2cCatalogApi {
       );
 }
 
-
 class _FakeStorefrontApi implements StorefrontApi {
   const _FakeStorefrontApi();
 
@@ -453,7 +456,6 @@ class _FakeStorefrontApi implements StorefrontApi {
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
       const <String, dynamic>{};
 }
-
 
 class _OfflineCatalogApi extends _FakeCatalogApi {
   @override
