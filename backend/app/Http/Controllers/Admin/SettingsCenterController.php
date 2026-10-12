@@ -37,7 +37,7 @@ final class SettingsCenterController extends Controller
         return view('admin.settings-center', [
             'user' => $user,
             'navGroups' => $navGroups,
-            'navContext' => 'administration_hub',
+            'navContext' => 'settings_center',
             'access' => [
                 'mobile' => $superAdmin
                     || $user->hasPermission('mobile_settings.manage')
