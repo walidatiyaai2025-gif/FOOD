@@ -294,18 +294,35 @@ final class ProductionLaunchPreflight
             ];
         }
 
+        try {
+            $runtime = app(FoodexLaunchSeeder::class)->preflight();
+        } catch (\Throwable) {
+            return [
+                'passed' => false,
+                'detail' => 'Authoritative FOODEX seed runtime preflight failed.',
+                'source' => '#1330',
+            ];
+        }
+
+        $fingerprint = is_string($runtime['fingerprint'] ?? null)
+            ? trim($runtime['fingerprint'])
+            : '';
+        $runtimeReady = ($runtime['ready'] ?? false) === true
+            && preg_match('/^[a-f0-9]{64}$/', $fingerprint) === 1;
+
         $attestation = $this->attestationCheck(
             storage_path('app/private/launch-gate/official-seed.json'),
             '#1330',
             $expectedSourceSha,
         );
+        $passed = $runtimeReady && $attestation['passed'];
 
         return [
-            'passed' => $attestation['passed'],
-            'detail' => $attestation['passed']
-                ? 'Authoritative FOODEX seed completeness is attested for the exact release source.'
-                : 'FOODEX seed exists, but exact-release completeness evidence is missing or stale.',
-            'source' => '#1330',
+            'passed' => $passed,
+            'detail' => $passed
+                ? 'Authoritative FOODEX seed runtime preflight and exact-release evidence both pass.'
+                : 'FOODEX seed runtime preflight is not ready or exact-release evidence is missing or stale.',
+            'source' => '#1330 runtime preflight + attestation',
         ];
     }
 

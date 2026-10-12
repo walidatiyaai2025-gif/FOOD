@@ -181,6 +181,60 @@ PHP);
         }
     }
 
+    public function test_official_seed_requires_runtime_readiness_even_with_matching_attestation(): void
+    {
+        $buildInfo = json_decode(
+            (string) file_get_contents(base_path('../Release/BUILD_INFO.json')),
+            true,
+        );
+        $this->assertIsArray($buildInfo);
+        $sourceSha = $buildInfo['source_commit'] ?? null;
+        $this->assertIsString($sourceSha);
+
+        $directory = storage_path('app/private/launch-gate');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+        $path = $directory.'/official-seed.json';
+
+        try {
+            file_put_contents($path, json_encode([
+                'status' => 'passed',
+                'source_sha' => $sourceSha,
+            ], JSON_THROW_ON_ERROR));
+
+            $this->app->instance(FoodexLaunchSeeder::class, new class {
+                public function preflight(): array
+                {
+                    return [
+                        'ready' => false,
+                        'fingerprint' => hash('sha256', 'not-ready'),
+                    ];
+                }
+            });
+
+            $blocked = app(ProductionLaunchPreflight::class)->runtimeReport();
+            $this->assertFalse($blocked['checks']['official_seed']['passed']);
+
+            $this->app->instance(FoodexLaunchSeeder::class, new class {
+                public function preflight(): array
+                {
+                    return [
+                        'ready' => true,
+                        'fingerprint' => hash('sha256', 'ready'),
+                    ];
+                }
+            });
+
+            $ready = app(ProductionLaunchPreflight::class)->runtimeReport();
+            $this->assertTrue($ready['checks']['official_seed']['passed']);
+        } finally {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+    }
+
     public function test_provider_readiness_requires_runtime_opt_in_and_exact_release_attestation(): void
     {
         $buildInfo = json_decode(
