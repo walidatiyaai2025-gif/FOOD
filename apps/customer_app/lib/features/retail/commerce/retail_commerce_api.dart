@@ -217,10 +217,38 @@ class RetailCreatedOrder {
   const RetailCreatedOrder({
     required this.id,
     required this.storeId,
+    this.orderNumber = '',
+    this.displayOrderNumber = '',
+    this.currency = 'KWD',
+    this.subtotal = 0,
+    this.discountTotal = 0,
+    this.deliveryTotal = 0,
+    this.taxTotal = 0,
+    this.grandTotal = 0,
+    this.paymentMethod,
+    this.paymentStatus,
+    this.itemCount = 0,
   });
 
   final int id;
   final int storeId;
+  final String orderNumber;
+  final String displayOrderNumber;
+  final String currency;
+  final double subtotal;
+  final double discountTotal;
+  final double deliveryTotal;
+  final double taxTotal;
+  final double grandTotal;
+  final String? paymentMethod;
+  final String? paymentStatus;
+  final int itemCount;
+
+  String get reference {
+    if (orderNumber.trim().isNotEmpty) return orderNumber.trim();
+    if (displayOrderNumber.trim().isNotEmpty) return displayOrderNumber.trim();
+    return '#$id';
+  }
 
   factory RetailCreatedOrder.fromPayload(
     Object? value, {
@@ -232,7 +260,24 @@ class RetailCreatedOrder {
     if (id <= 0 || storeId != expectedStoreId) {
       throw const RetailCommerceException('invalid_checkout_response');
     }
-    return RetailCreatedOrder(id: id, storeId: storeId);
+
+    final payment = _asMap(map['payment']);
+    return RetailCreatedOrder(
+      id: id,
+      storeId: storeId,
+      orderNumber: map['order_number']?.toString() ?? '',
+      displayOrderNumber: map['display_order_number']?.toString() ?? '',
+      currency: map['currency']?.toString() ?? 'KWD',
+      subtotal: _asDouble(map['subtotal']),
+      discountTotal: _asDouble(map['discount_total']),
+      deliveryTotal: _asDouble(map['delivery_total']),
+      taxTotal: _asDouble(map['tax_total']),
+      grandTotal: _asDouble(map['grand_total']),
+      paymentMethod: map['payment_method']?.toString(),
+      paymentStatus:
+          payment.isEmpty ? null : payment['status']?.toString(),
+      itemCount: _asList(map['items']).length,
+    );
   }
 }
 
