@@ -48,7 +48,6 @@ class CatalogImageManagementTest extends TestCase
         $this->actingAs($admin)->post(route('admin.catalog.products.store'), [
             'support_access' => 1,
             'store_id' => $storeId,
-            'sku' => 'IMG-001',
             'name' => 'Image Product',
             'description' => 'Product with gallery',
             'category_id' => $category->id,
@@ -61,8 +60,9 @@ class CatalogImageManagementTest extends TestCase
             ],
         ])->assertRedirect();
 
-        $product = DB::table('products')->where('sku', 'IMG-001')->first();
+        $product = DB::table('products')->where('name', 'Image Product')->first();
         $this->assertNotNull($product);
+        $this->assertMatchesRegularExpression('/^SKU-'.$storeId.'-[A-Z0-9]{10}$/', (string) $product->sku);
         $this->assertSame(2, DB::table('product_images')->where('product_id', $product->id)->count());
         $this->assertSame(1, DB::table('product_images')->where('product_id', $product->id)->where('is_primary', true)->count());
         foreach (DB::table('product_images')->where('product_id', $product->id)->pluck('path') as $storedImagePath) {
