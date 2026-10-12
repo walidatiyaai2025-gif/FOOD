@@ -60,6 +60,11 @@
           "authority": "B2bJourneyScreen"
         },
         {
+          "id": "customer.business.store_analytics",
+          "route": "/b2b/store-analytics + optional retail_store_id",
+          "authority": "CustomerRouteAuthority.storeAnalytics / CustomerAppRouter.storeAnalyticsBuilder"
+        },
+        {
           "id": "customer.auth",
           "route": "/entry,/auth/checkout",
           "authority": "UnifiedCustomerAuthScreen"

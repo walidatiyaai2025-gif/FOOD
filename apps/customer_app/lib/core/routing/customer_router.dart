@@ -12,6 +12,7 @@ import '../auth/customer_session.dart';
 import '../auth/customer_session_store.dart';
 import '../location/customer_location_service.dart';
 import '../location/customer_map_pin_selector.dart';
+import '../localization/app_translations.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/customer_orders/customer_orders_api.dart';
 import '../../features/auth/unified_customer_auth_screen.dart';
@@ -26,6 +27,11 @@ import 'customer_commerce_context.dart';
 import 'customer_route_authority.dart';
 import 'customer_pending_action.dart';
 import 'customer_routes.dart';
+
+typedef CustomerStoreAnalyticsRouteBuilder = Widget Function(
+  BuildContext context,
+  String location,
+);
 
 class CustomerAppRouter {
   const CustomerAppRouter(
@@ -62,6 +68,7 @@ class CustomerAppRouter {
     this.currentSession,
     this.currentCommerceContext,
     this.onCommerceContextChanged,
+    this.storeAnalyticsBuilder,
   });
 
   final CustomerSession session;
@@ -76,6 +83,7 @@ class CustomerAppRouter {
   final CustomerSession Function()? currentSession;
   final CustomerCommerceContext? Function()? currentCommerceContext;
   final ValueChanged<CustomerCommerceContext>? onCommerceContextChanged;
+  final CustomerStoreAnalyticsRouteBuilder? storeAnalyticsBuilder;
   final CustomerActionApi actionApi;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? wholesaleApi;
@@ -120,18 +128,17 @@ class CustomerAppRouter {
 
     final wholesaleAuthHandoff =
         requested.pattern == CustomerRoutePaths.checkoutAuth &&
-        safeCustomerReturnLocation(
-              Uri.tryParse(requestedLocation)?.queryParameters['next'],
-              channel: CustomerChannel.b2b,
-            ) !=
-            null;
+            safeCustomerReturnLocation(
+                  Uri.tryParse(requestedLocation)?.queryParameters['next'],
+                  channel: CustomerChannel.b2b,
+                ) !=
+                null;
 
     final requestedAuthority = customerRouteAuthorityFor(
       requested,
       requestedLocation,
     );
-    final shouldNormalizeRetail =
-        requested.channel == CustomerChannel.b2c &&
+    final shouldNormalizeRetail = requested.channel == CustomerChannel.b2c &&
         (requestedAuthority == CustomerRouteAuthority.retailJourney ||
             requestedAuthority == CustomerRouteAuthority.multiStore ||
             requested.pattern == CustomerRoutePaths.checkoutAuth);
@@ -206,9 +213,7 @@ class CustomerAppRouter {
       storeId = int.tryParse(parts[retailIndex + 1]);
     }
     storeId ??= int.tryParse(
-      uri.queryParameters['store_id'] ??
-          uri.queryParameters['store'] ??
-          '',
+      uri.queryParameters['store_id'] ?? uri.queryParameters['store'] ?? '',
     );
     if (storeId == null || storeId <= 0) return null;
 
@@ -234,8 +239,7 @@ class CustomerAppRouter {
     }
 
     if (session.channel != requested.channel && !session.platformWide) {
-      final entitledRetailManager =
-          requested.channel == CustomerChannel.b2b &&
+      final entitledRetailManager = requested.channel == CustomerChannel.b2b &&
           session.b2bRetailStoreId != null;
       if (!entitledRetailManager) {
         return definitionFor(CustomerRoutePaths.marketplace);
@@ -274,7 +278,7 @@ class CustomerAppRouter {
   }) {
     return MaterialPageRoute<void>(
       settings: settings,
-      builder: (_) {
+      builder: (context) {
         final authority = customerRouteAuthorityFor(
           definition,
           requestedLocation,
@@ -403,6 +407,18 @@ class CustomerAppRouter {
           );
         }
 
+        if (authority == CustomerRouteAuthority.storeAnalytics) {
+          final analyticsBuilder = storeAnalyticsBuilder;
+          if (analyticsBuilder != null) {
+            return analyticsBuilder(context, requestedLocation);
+          }
+          return CustomerRoutePlaceholder(
+            definition: definition,
+            location: requestedLocation,
+            label: context.tr('b2b.store_analytics.title'),
+          );
+        }
+
         if (authority == CustomerRouteAuthority.b2bJourney) {
           return B2bJourneyScreen(
             definition: definition,
@@ -429,11 +445,13 @@ class CustomerRoutePlaceholder extends StatelessWidget {
   const CustomerRoutePlaceholder({
     required this.definition,
     required this.location,
+    this.label,
     super.key,
   });
 
   final CustomerRouteDefinition definition;
   final String location;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +464,7 @@ class CustomerRoutePlaceholder extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                definition.label,
+                label ?? definition.label,
                 key: const ValueKey('customer-route-label'),
                 style: const TextStyle(
                   fontSize: 24,
