@@ -159,8 +159,10 @@ class _RetailDashboardApi extends HttpB2bApi {
   Future<Object?> get(String path) async {
     paths.add(path);
     if (path.startsWith('/api/v1/mobile/store-analytics')) {
+      final seenVersion =
+          Uri.parse(path).queryParameters['seen_insight_version'];
       return _analyticsPayload(
-        hasNewInsights: hasNewInsights,
+        hasNewInsights: hasNewInsights && seenVersion == null,
         logoUrl: logoUrl,
       );
     }
@@ -289,6 +291,23 @@ void main() {
       final route = Uri.parse(opened!);
       expect(route.path, CustomerRoutePaths.b2bStoreAnalytics);
       expect(route.queryParameters, <String, String>{'retail_store_id': '22'});
+
+      await tester.pageBack();
+      await _pumpRemote(tester);
+      expect(
+        api.paths.any(
+          (path) =>
+              Uri.parse(path).queryParameters['seen_insight_version'] ==
+              List<String>.filled(64, 'b').join(),
+        ),
+        isTrue,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('business-smart-analytics-launcher-badge'),
+        ),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     },
   );
