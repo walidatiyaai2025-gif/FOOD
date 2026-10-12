@@ -193,6 +193,9 @@ void main() {
               catalogApi: _FakeCatalogApi(),
               storefrontApi: const _FakeStorefrontApi(),
               isAuthenticated: true,
+              navigation: const RetailCatalogNavigation(
+                openProducts: _noopOpenProducts,
+              ),
             ),
           ),
         ),
@@ -357,6 +360,13 @@ void main() {
     expect(uri.queryParameters['channel'], 'retail');
   });
 }
+
+void _noopOpenProducts(
+  BuildContext context, {
+  required int storeId,
+  String? query,
+  int? categoryId,
+}) {}
 
 class _FakeCatalogApi implements B2cCatalogApi {
   @override
