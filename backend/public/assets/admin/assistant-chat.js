@@ -114,16 +114,17 @@
                 }
 
                 const values = card.data && typeof card.data === 'object' ? card.data : card;
+                const labels = card.labels && typeof card.labels === 'object' ? card.labels : {};
 
                 Object.entries(values).slice(0, 8).forEach(([key, value]) => {
-                    if (['title', 'label', 'name', 'data', 'actions'].includes(key)) return;
+                    if (['title', 'label', 'name', 'data', 'actions', 'labels'].includes(key)) return;
                     if (!['string', 'number', 'boolean'].includes(typeof value)) return;
 
                     const row = document.createElement('div');
                     row.className = 'foodex-assistant-card-row';
 
                     const rowLabel = document.createElement('span');
-                    rowLabel.textContent = key.replaceAll('_', ' ');
+                    rowLabel.textContent = String(labels[key] || key.replaceAll('_', ' '));
 
                     const rowValue = document.createElement('strong');
                     rowValue.textContent = String(value);
