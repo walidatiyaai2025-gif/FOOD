@@ -12,27 +12,27 @@ permissions:
 jobs:
   backend-validation:
     name: Backend + MySQL commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-') }}
     uses: ./.github/workflows/backend-ci.yml
 
   customer-validation:
     name: Customer Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-') }}
     uses: ./.github/workflows/customer-app-ci.yml
 
   driver-validation:
     name: Driver Android/iOS commerce validation
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
   runtime-evidence:
     name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-') }}
     uses: ./.github/workflows/screenshot-evidence.yml
 
   release-gate:
     name: Platform Customer commerce release gate
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-')) }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-')) }}
     needs:
       - backend-validation
       - customer-validation
@@ -155,6 +155,24 @@ jobs:
           grep -Fq '/cart?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
           grep -Fq '/orders/101/track?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
           grep -Fq '/profile?channel=retail&store_id=7' apps/customer_app/test/screenshot_evidence_test.dart
+
+      - name: Verify Mobile Smart Store Analytics final convergence evidence
+        if: ${{ startsWith(github.head_ref, 'test/1359-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f docs/execution/MOBILE_SMART_STORE_ANALYTICS_1359_GATE.md
+          test -f apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart
+          grep -Fq 'test_multi_store_context_is_explicit_and_cross_store_requests_are_forbidden' backend/tests/Feature/MobileStoreAnalyticsApiTest.php
+          grep -Fq 'test_legacy_wholesale_store_id_cannot_override_server_resolved_retail_context' backend/tests/Feature/MobileStoreAnalyticsApiTest.php
+          grep -Fq 'test_seen_insight_version_clears_new_badge_without_mutating_server_state' backend/tests/Feature/MobileStoreAnalyticsApiTest.php
+          grep -Fq 'retail dashboard consumes authoritative logo/unread state and opens canonical route' apps/customer_app/test/business_dashboard_smart_analytics_integration_test.dart
+          grep -Fq 'pulse changes softly in normal motion and stays static when reduced' apps/customer_app/test/business_dashboard_smart_analytics_launcher_test.dart
+          grep -Fq 'parser fails closed on Wholesale or ambiguous context keys' apps/customer_app/test/store_analytics_route_test.dart
+          grep -Fq 'maps forbidden response to no-entitlement state contract' apps/customer_app/test/store_analytics_api_test.dart
+          grep -Fq 'adapts authoritative W1/W2 analytics facts without recalculation' apps/customer_app/test/store_analytics_screen_test.dart
+          grep -Fq 'Store Analytics fits width' apps/customer_app/test/store_analytics_screen_test.dart
 
       - name: Verify Commerce Isolation A-H/J convergence evidence
         if: ${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
@@ -305,6 +323,8 @@ jobs:
             echo "corrective_customer_commerce_v4=${{ startsWith(github.head_ref, 'test/775-') }}"
             echo "corrective_release_target=1.0.48"
             echo "c13_integrated_e2e=${{ startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}"
+            echo "mobile_store_analytics_final=${{ startsWith(github.head_ref, 'test/1359-') }}"
+            echo "mobile_store_analytics_gate_issue=1359"
             echo "c13_parent_issue=858"
             echo "c13_gate_issue=873"
             echo "c13_integrated_main_sha=${{ github.event.pull_request.base.sha }}"
