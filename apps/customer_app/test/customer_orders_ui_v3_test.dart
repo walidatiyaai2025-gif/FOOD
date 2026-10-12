@@ -530,6 +530,150 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'order cards stay overflow-free on compact phones with larger text',
+    (tester) async {
+      final api = _FakeOrdersApi(
+        responder: (channel, page) async => _page(
+          channel: channel,
+          orderId: channel == 'b2b' ? 811 : 812,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _TestApp(
+          size: const Size(320, 700),
+          textScale: 1.4,
+          child: CustomerOrdersScreen(api: api, onOpenOrder: (_) {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('WH-811'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-order-actions-811')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'order details use the VNext header and label retained data stale',
+    (tester) async {
+      var failRefresh = false;
+      final api = _FakeOrdersApi(
+        responder: (channel, page) async => _page(
+          channel: channel,
+          orderId: 901,
+        ),
+        detailResponder: (orderId, context) async {
+          if (failRefresh) {
+            throw const CustomerOrdersException('network_unavailable');
+          }
+          return _details(
+            orderId: orderId,
+            channel: context?.normalizedChannel ?? 'b2b',
+          );
+        },
+      );
+
+      await tester.pumpWidget(
+        _TestApp(
+          child: CustomerOrderDetailsScreen(
+            api: api,
+            orderId: 901,
+            orderContext: const CustomerOrderContext(
+              storeId: 7,
+              channel: 'b2b',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CustomerCurvedHeaderSurface), findsOneWidget);
+      expect(find.byType(AppBar), findsNothing);
+      expect(
+        find.byKey(const ValueKey('customer-order-back')),
+        findsOneWidget,
+      );
+      expect(find.text('WH-901'), findsOneWidget);
+
+      failRefresh = true;
+      await tester.tap(
+        find.byKey(const ValueKey('customer-order-refresh')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('WH-901'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-order-details-stale-901')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('last confirmed orders'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'late detail responses cannot replace a newer order identity',
+    (tester) async {
+      final first = Completer<CustomerOrderDetails>();
+      final second = Completer<CustomerOrderDetails>();
+      final api = _FakeOrdersApi(
+        responder: (channel, page) async => _page(
+          channel: channel,
+          orderId: 911,
+        ),
+        detailResponder: (orderId, context) {
+          return orderId == 911 ? first.future : second.future;
+        },
+      );
+
+      await tester.pumpWidget(
+        _TestApp(
+          child: CustomerOrderDetailsScreen(
+            api: api,
+            orderId: 911,
+            orderContext: const CustomerOrderContext(
+              storeId: 7,
+              channel: 'b2b',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.pumpWidget(
+        _TestApp(
+          child: CustomerOrderDetailsScreen(
+            api: api,
+            orderId: 912,
+            orderContext: const CustomerOrderContext(
+              storeId: 7,
+              channel: 'b2b',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      second.complete(_details(orderId: 912));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('WH-912'), findsOneWidget);
+
+      first.complete(_details(orderId: 911));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('WH-912'), findsOneWidget);
+      expect(find.text('WH-911'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',
       (tester) async {
     final api = _FakeOrdersApi(
@@ -555,11 +699,13 @@ class _TestApp extends StatelessWidget {
     required this.child,
     this.textDirection = TextDirection.ltr,
     this.textScale = 1,
+    this.size = const Size(360, 800),
   });
 
   final Widget child;
   final TextDirection textDirection;
   final double textScale;
+  final Size size;
 
   @override
   Widget build(BuildContext context) => AppTranslations(
@@ -571,7 +717,7 @@ class _TestApp extends StatelessWidget {
           theme: FoodexTheme.light(fontFamily: 'sans'),
           home: MediaQuery(
             data: MediaQueryData(
-              size: const Size(360, 800),
+              size: size,
               textScaler: TextScaler.linear(textScale),
             ),
             child: Directionality(
@@ -631,10 +777,54 @@ CustomerOrderPage _page({
       scope: channel,
     );
 
+CustomerOrderDetails _details({
+  required int orderId,
+  String channel = 'b2b',
+  String status = 'delivered',
+}) =>
+    CustomerOrderDetails(
+      summary: CustomerOrderSummary(
+        id: orderId,
+        orderNumber: channel == 'b2b' ? 'WH-$orderId' : 'RT-$orderId',
+        storeId: 7,
+        storeName: channel == 'b2b' ? 'Wholesale A' : 'Retail A',
+        storeLogoUrl: null,
+        channel: channel,
+        status: status,
+        currency: 'KWD',
+        grandTotal: 12.5,
+        createdAt: DateTime.utc(2026, 10, 1, 10),
+      ),
+      subtotal: 10,
+      discountTotal: 0,
+      deliveryTotal: 2.5,
+      paymentMethod: 'cash_on_delivery',
+      deliveryAddress: null,
+      items: const <CustomerOrderItem>[],
+      history: [
+        CustomerOrderHistoryEntry(
+          id: 1,
+          fromStatus: status == 'delivered' ? 'out_for_delivery' : 'pending',
+          toStatus: status,
+          note: null,
+          createdAt: DateTime.utc(2026, 10, 1, 11),
+        ),
+      ],
+      payment: null,
+      requestedDeliveryDate: null,
+    );
+
 class _FakeOrdersApi implements CustomerOrdersApi {
-  _FakeOrdersApi({required this.responder});
+  _FakeOrdersApi({
+    required this.responder,
+    this.detailResponder,
+  });
 
   final Future<CustomerOrderPage> Function(String channel, int page) responder;
+  final Future<CustomerOrderDetails> Function(
+    int orderId,
+    CustomerOrderContext? context,
+  )? detailResponder;
   final List<String> calls = <String>[];
   final List<String> statusCalls = <String>[];
 
@@ -657,7 +847,9 @@ class _FakeOrdersApi implements CustomerOrdersApi {
     required int orderId,
     CustomerOrderContext? context,
   }) {
-    throw UnimplementedError();
+    final responder = detailResponder;
+    if (responder == null) throw UnimplementedError();
+    return responder(orderId, context);
   }
 }
 
