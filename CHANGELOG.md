@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.75 - 2026-10-12
+
+- Promote all authoritative main changes after FOODEX 1.0.73 through Customer VNext final certification PR #1353 and the authoritative mobile Store Analytics API #1355 into the synchronized FOODEX 1.0.75 release; version 1.0.74 is intentionally skipped.
+- Ship the completed Customer VNext experience across shared responsive foundation, Shopping Home, catalog/search/product detail, cart/checkout/order success, orders/detail/tracking, account/secondary surfaces and final route/state/visual certification.
+- Preserve authoritative Wholesale/Retail tenant, store, channel, cart, checkout and order isolation with Arabic RTL and English LTR acceptance, backed by the secure real-data VNext baseline.
+- Include post-1.0.73 Dashboard/backend work covering Administration and Settings redesign, Assistant localization, Flash Offers/SKU repair, protected reset/reseed, production launch preflight/gate, 14-inch order-management optimization, and server-authoritative mobile Store Analytics.
+- Synchronize Customer, Driver and Van source identities at 1.0.75+75 and publish the versioned Customer artifact `FOODEX-Customer-1.0.75.apk` from the exact authoritative main release commit.
+
 ## 1.0.73 - 2026-10-12
 
 - Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard.
