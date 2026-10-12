@@ -3421,95 +3421,6 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
             child: FutureBuilder<Object?>(
               future: future,
               builder: (context, snapshot) {
-                final success = createdOrder;
-                if (success != null) {
-                  final ar =
-                      Localizations.localeOf(context).languageCode == 'ar';
-                  final orderId = intValue(success['id']);
-                  final currency =
-                      success['currency']?.toString().trim().isNotEmpty == true
-                          ? success['currency'].toString()
-                          : 'KWD';
-                  final reference =
-                      success['order_number']?.toString().trim().isNotEmpty == true
-                          ? success['order_number'].toString().trim()
-                          : (success['display_order_number']
-                                      ?.toString()
-                                      .trim()
-                                      .isNotEmpty ==
-                                  true
-                              ? success['display_order_number']
-                                  .toString()
-                                  .trim()
-                              : '#$orderId');
-                  final subtotal = doubleValue(success['subtotal'], 0);
-                  final discount = doubleValue(success['discount_total'], 0);
-                  final delivery = doubleValue(success['delivery_total'], 0);
-                  final tax = doubleValue(success['tax_total'], 0);
-                  final total = doubleValue(success['grand_total'], 0);
-
-                  return CustomerOrderSuccessPanel(
-                    title: ar ? 'تم تأكيد طلبك' : 'Order confirmed',
-                    message: ar
-                        ? 'تم إنشاء الطلب بنجاح ويمكنك متابعة حالته الآن.'
-                        : 'Your order was created successfully and is ready to track.',
-                    orderReferenceLabel:
-                        ar ? 'رقم الطلب' : 'Order number',
-                    orderReference: reference,
-                    trackLabel: ar ? 'تتبع الطلب' : 'Track order',
-                    continueLabel:
-                        ar ? 'متابعة التسوق' : 'Continue shopping',
-                    onTrack: () => Navigator.of(context).pushReplacementNamed(
-                      Uri(
-                        path: '/b2b/orders/$orderId',
-                        queryParameters: <String, String>{
-                          'channel': 'wholesale',
-                          'store_id': storeId.toString(),
-                        },
-                      ).toString(),
-                    ),
-                    onContinue: () =>
-                        Navigator.of(context).pushReplacementNamed(
-                      Uri(
-                        path: CustomerRoutePaths.b2bProducts,
-                        queryParameters: <String, String>{
-                          'channel': 'wholesale',
-                          'store_id': storeId.toString(),
-                        },
-                      ).toString(),
-                    ),
-                    summary: CustomerCheckoutTotalsCard(
-                      rows: [
-                        CustomerCheckoutTotalRow(
-                          label: ar ? 'الإجمالي الفرعي' : 'Subtotal',
-                          value: foodexMoneyText(subtotal, currency),
-                        ),
-                        if (discount > 0)
-                          CustomerCheckoutTotalRow(
-                            label: ar ? 'الخصم' : 'Discount',
-                            value:
-                                '-${foodexMoneyText(discount, currency)}',
-                          ),
-                        if (delivery > 0)
-                          CustomerCheckoutTotalRow(
-                            label: ar ? 'التوصيل' : 'Delivery',
-                            value: foodexMoneyText(delivery, currency),
-                          ),
-                        if (tax > 0)
-                          CustomerCheckoutTotalRow(
-                            label: ar ? 'الضريبة' : 'Tax',
-                            value: foodexMoneyText(tax, currency),
-                          ),
-                        CustomerCheckoutTotalRow(
-                          label: ar ? 'الإجمالي' : 'Total',
-                          value: foodexMoneyText(total, currency),
-                          emphasized: true,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const FoodexLoading(key: ValueKey('b2b-loading'));
                 }
@@ -4066,6 +3977,95 @@ class _WholesaleCheckoutDesignScreenState
             child: FutureBuilder<_CheckoutPayload>(
               future: future,
               builder: (context, snapshot) {
+                final success = createdOrder;
+                if (success != null) {
+                  final ar =
+                      Localizations.localeOf(context).languageCode == 'ar';
+                  final orderId = intValue(success['id']);
+                  final currency =
+                      success['currency']?.toString().trim().isNotEmpty == true
+                          ? success['currency'].toString()
+                          : 'KWD';
+                  final reference =
+                      success['order_number']?.toString().trim().isNotEmpty == true
+                          ? success['order_number'].toString().trim()
+                          : (success['display_order_number']
+                                      ?.toString()
+                                      .trim()
+                                      .isNotEmpty ==
+                                  true
+                              ? success['display_order_number']
+                                  .toString()
+                                  .trim()
+                              : '#$orderId');
+                  final subtotal = doubleValue(success['subtotal'], 0);
+                  final discount = doubleValue(success['discount_total'], 0);
+                  final delivery = doubleValue(success['delivery_total'], 0);
+                  final tax = doubleValue(success['tax_total'], 0);
+                  final total = doubleValue(success['grand_total'], 0);
+
+                  return CustomerOrderSuccessPanel(
+                    title: ar ? 'تم تأكيد طلبك' : 'Order confirmed',
+                    message: ar
+                        ? 'تم إنشاء الطلب بنجاح ويمكنك متابعة حالته الآن.'
+                        : 'Your order was created successfully and is ready to track.',
+                    orderReferenceLabel:
+                        ar ? 'رقم الطلب' : 'Order number',
+                    orderReference: reference,
+                    trackLabel: ar ? 'تتبع الطلب' : 'Track order',
+                    continueLabel:
+                        ar ? 'متابعة التسوق' : 'Continue shopping',
+                    onTrack: () => Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: '/b2b/orders/$orderId',
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                        },
+                      ).toString(),
+                    ),
+                    onContinue: () =>
+                        Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                        },
+                      ).toString(),
+                    ),
+                    summary: CustomerCheckoutTotalsCard(
+                      rows: [
+                        CustomerCheckoutTotalRow(
+                          label: ar ? 'الإجمالي الفرعي' : 'Subtotal',
+                          value: foodexMoneyText(subtotal, currency),
+                        ),
+                        if (discount > 0)
+                          CustomerCheckoutTotalRow(
+                            label: ar ? 'الخصم' : 'Discount',
+                            value:
+                                '-${foodexMoneyText(discount, currency)}',
+                          ),
+                        if (delivery > 0)
+                          CustomerCheckoutTotalRow(
+                            label: ar ? 'التوصيل' : 'Delivery',
+                            value: foodexMoneyText(delivery, currency),
+                          ),
+                        if (tax > 0)
+                          CustomerCheckoutTotalRow(
+                            label: ar ? 'الضريبة' : 'Tax',
+                            value: foodexMoneyText(tax, currency),
+                          ),
+                        CustomerCheckoutTotalRow(
+                          label: ar ? 'الإجمالي' : 'Total',
+                          value: foodexMoneyText(total, currency),
+                          emphasized: true,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const FoodexLoading(
                       key: ValueKey('b2b-checkout-loading'));
