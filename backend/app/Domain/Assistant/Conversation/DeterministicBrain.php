@@ -23,6 +23,8 @@ final class DeterministicBrain implements AssistantBrainInterface
 
     private DialogueStateResolver $dialogueStateResolver;
 
+    private ConversationBasics $conversationBasics;
+
     public function __construct(
         private readonly AssistantToolRegistry $toolRegistry,
         ?TextNormalizer $normalizer = null,
@@ -30,18 +32,35 @@ final class DeterministicBrain implements AssistantBrainInterface
         ?EntityExtractor $entityExtractor = null,
         ?TimeWindowParser $timeWindowParser = null,
         ?DialogueStateResolver $dialogueStateResolver = null,
+        ?ConversationBasics $conversationBasics = null,
     ) {
         $this->normalizer = $normalizer ?? new TextNormalizer;
         $this->classifier = $classifier ?? new IntentClassifier($this->normalizer);
         $this->entityExtractor = $entityExtractor ?? new EntityExtractor($this->normalizer);
         $this->timeWindowParser = $timeWindowParser ?? new TimeWindowParser;
         $this->dialogueStateResolver = $dialogueStateResolver ?? new DialogueStateResolver;
+        $this->conversationBasics = $conversationBasics ?? new ConversationBasics($this->normalizer);
     }
 
     public function respond(AssistantBrainRequest $request): AssistantBrainResult
     {
         $normalized = $this->normalizer->normalize($request->message);
         $classification = $this->classifier->classify($normalized);
+
+        // Operational intents always win. Small talk only handles messages that are not business requests.
+        if ($classification['intent'] === null) {
+            $conversationReply = $this->conversationBasics->respond(
+                $request->message,
+                $normalized,
+                $request->locale,
+                $request->state,
+            );
+
+            if ($conversationReply !== null) {
+                return $conversationReply;
+            }
+        }
+
         $entities = $this->entityExtractor->extract($request->message, $normalized);
         $period = $this->timeWindowParser->parse($normalized);
         $resolved = $this->dialogueStateResolver->resolve(
