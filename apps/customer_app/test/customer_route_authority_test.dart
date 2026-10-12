@@ -6,22 +6,25 @@ void main() {
   CustomerRouteDefinition definition(String pattern) =>
       customerRouteDefinitions.firstWhere((item) => item.pattern == pattern);
 
-  test('explicit retail store routes use the shared retail production authority', () {
-    expect(
-      customerRouteAuthorityFor(
-        definition(CustomerRoutePaths.retailHome),
-        '/retail/7/home',
-      ),
-      CustomerRouteAuthority.retailJourney,
-    );
-    expect(
-      customerRouteAuthorityFor(
-        definition(CustomerRoutePaths.retailProductDetails),
-        '/retail/7/products/42',
-      ),
-      CustomerRouteAuthority.retailJourney,
-    );
-  });
+  test(
+    'explicit retail store routes use the shared retail production authority',
+    () {
+      expect(
+        customerRouteAuthorityFor(
+          definition(CustomerRoutePaths.retailHome),
+          '/retail/7/home',
+        ),
+        CustomerRouteAuthority.retailJourney,
+      );
+      expect(
+        customerRouteAuthorityFor(
+          definition(CustomerRoutePaths.retailProductDetails),
+          '/retail/7/products/42',
+        ),
+        CustomerRouteAuthority.retailJourney,
+      );
+    },
+  );
 
   test('legacy generic retail routes stay on one retail journey authority', () {
     expect(
@@ -83,4 +86,22 @@ void main() {
       CustomerRouteAuthority.multiStore,
     );
   });
+
+  test(
+    'every registered Customer route resolves to an explicit renderer authority',
+    () {
+      for (final route in customerRouteDefinitions) {
+        final location = route.pattern
+            .replaceAll(':store', '7')
+            .replaceAll(':product', '42')
+            .replaceAll(':id', '42');
+
+        expect(
+          customerRouteAuthorityFor(route, location),
+          isNot(CustomerRouteAuthority.placeholder),
+          reason: 'Unowned Customer route: ${route.pattern}',
+        );
+      }
+    },
+  );
 }
