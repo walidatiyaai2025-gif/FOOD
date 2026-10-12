@@ -10,7 +10,7 @@
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="security">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="page foodex-admin-main foodex-admin-page" data-foodex-utility="security">
 <header class="top foodex-page-header"><div><div class="muted">FOODEX · {{ __('admin.security.eyebrow') }}</div><h1>{{ __('admin.security.title') }}</h1><p class="muted">{{ __('admin.security.description') }}</p></div><a class="back" href="{{ route('admin.index') }}">{{ __('admin.security.back') }}</a></header>
 @if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
