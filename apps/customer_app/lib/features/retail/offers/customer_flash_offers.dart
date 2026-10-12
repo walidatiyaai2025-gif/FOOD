@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/foodex_environment.dart';
+import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
+import '../../customer_account/customer_account_v3_widgets.dart';
 import '../commerce/retail_commerce_api.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
@@ -437,18 +439,24 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-flash-offers-screen'),
-      appBar: AppBar(
-        title: Text(_ar ? 'العروض السريعة' : 'Flash Offers'),
-        actions: [
-          TextButton(
+      backgroundColor: CustomerUiColors.mint,
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: _ar ? 'العروض السريعة' : 'Flash Offers',
+          subtitle: _ar
+              ? 'عروض محدودة بوقت وكمية واضحة'
+              : 'Limited-time offers with clear availability',
+          trailing: TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: CustomerUiColors.white,
+            ),
             onPressed: widget.onOpenNormalOffers,
             child: Text(_ar ? 'العروض العادية' : 'Regular offers'),
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
+        ),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             if (_reservation != null)
@@ -460,20 +468,21 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
               ),
             if (_busy) const LinearProgressIndicator(),
             if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  _ar
-                      ? 'تعذر تحديث العروض. اسحب لإعادة المحاولة.'
-                      : 'Could not refresh offers. Pull to retry.',
-                ),
+              CustomerStateView(
+                kind: CustomerStateKind.error,
+                title: _ar
+                    ? 'تعذر تحديث العروض. اسحب لإعادة المحاولة.'
+                    : 'Could not refresh offers. Pull to retry.',
+                actionLabel: _ar ? 'إعادة المحاولة' : 'Retry',
+                onAction: _load,
               ),
             if (!_busy && _offers.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(
-                  child: Text(_ar ? 'لا توجد عروض سريعة الآن.' : 'No active Flash Offers right now.'),
-                ),
+              CustomerStateView(
+                kind: CustomerStateKind.empty,
+                title: _ar
+                    ? 'لا توجد عروض سريعة الآن.'
+                    : 'No active Flash Offers right now.',
+                icon: Icons.local_offer_outlined,
               ),
             ..._offers.map((offer) {
               final remaining = offer.remainingAfter(_serverClock.elapsed);
@@ -481,16 +490,15 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                   offer.remainingAllocation > 0 &&
                   offer.remainingCustomerLimit > 0 &&
                   remaining > Duration.zero;
-              return Card(
-                margin: const EdgeInsets.only(bottom: 14),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: CustomerUiSpacing.sm),
+                child: CustomerAccountSurfaceCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (offer.imageUrl != null && offer.imageUrl!.isNotEmpty)
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(CustomerUiRadii.md),
                           child: Image.network(
                             offer.imageUrl!,
                             height: 150,
@@ -580,7 +588,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -598,15 +607,34 @@ class _ActiveReservationBanner extends StatelessWidget {
   final VoidCallback onContinue;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: ListTile(
-          leading: const Icon(Icons.timer_outlined),
-          title: Text(isArabic ? 'لديك حجز عرض نشط' : 'Active Flash reservation'),
-          subtitle: Text(
-            '${isArabic ? 'الوقت المتبقي' : 'Time remaining'}: ${_duration(remaining)}',
-          ),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: onContinue,
+  Widget build(BuildContext context) => CustomerAccountSurfaceCard(
+        onTap: onContinue,
+        child: Row(
+          children: [
+            const Icon(
+              Icons.timer_outlined,
+              color: CustomerUiColors.deepGreen,
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isArabic
+                        ? 'لديك حجز عرض نشط'
+                        : 'Active Flash reservation',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    '${isArabic ? 'الوقت المتبقي' : 'Time remaining'}: ${_duration(remaining)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
         ),
       );
 }
@@ -744,10 +772,15 @@ class _CustomerFlashCheckoutScreenState
     final expired = _remaining == Duration.zero;
     return Scaffold(
       key: const ValueKey('customer-flash-checkout-screen'),
-      appBar: AppBar(
-        title: Text(_ar ? 'إتمام العرض السريع' : 'Flash checkout'),
-      ),
-      body: ListView(
+      backgroundColor: CustomerUiColors.mint,
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: _ar ? 'إتمام العرض السريع' : 'Flash checkout',
+          subtitle: _ar
+              ? 'راجع العنوان والدفع قبل تأكيد الحجز'
+              : 'Review delivery and payment before confirmation',
+        ),
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
@@ -832,7 +865,8 @@ class _CustomerFlashCheckoutScreenState
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
