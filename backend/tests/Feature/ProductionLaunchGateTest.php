@@ -180,6 +180,42 @@ PHP);
         }
     }
 
+    public function test_provider_readiness_requires_runtime_opt_in_and_exact_release_attestation(): void
+    {
+        $buildInfo = json_decode(
+            (string) file_get_contents(base_path('../Release/BUILD_INFO.json')),
+            true,
+        );
+        $this->assertIsArray($buildInfo);
+        $sourceSha = $buildInfo['source_commit'] ?? null;
+        $this->assertIsString($sourceSha);
+
+        $directory = storage_path('app/private/launch-gate');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+        $path = $directory.'/provider-readiness.json';
+
+        try {
+            file_put_contents($path, json_encode([
+                'status' => 'passed',
+                'source_sha' => $sourceSha,
+            ], JSON_THROW_ON_ERROR));
+
+            config(['foodex.launch.provider_ready' => false]);
+            $disabled = app(ProductionLaunchPreflight::class)->runtimeReport();
+            $this->assertFalse($disabled['checks']['provider_readiness']['passed']);
+
+            config(['foodex.launch.provider_ready' => true]);
+            $enabled = app(ProductionLaunchPreflight::class)->runtimeReport();
+            $this->assertTrue($enabled['checks']['provider_readiness']['passed']);
+        } finally {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+    }
+
     public function test_successful_owner_approval_audits_release_lineage(): void
     {
         $owner = $this->superAdmin();
