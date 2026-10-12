@@ -6,9 +6,8 @@ void main() {
   test(
     'Customer VNext registry owns every registered Customer route exactly once',
     () {
-      final expected = customerRouteDefinitions
-          .map((route) => route.pattern)
-          .toSet();
+      final expected =
+          customerRouteDefinitions.map((route) => route.pattern).toSet();
       final registered = customerVNextScreenRegistry
           .map((entry) => entry.routePattern)
           .toSet();
