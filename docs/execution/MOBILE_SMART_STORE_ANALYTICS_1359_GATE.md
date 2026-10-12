@@ -31,7 +31,7 @@ The W5 PR/Issue terminal record is the authority for the final W5 exact head and
 | Populated, empty, stale/error, no-logo, no-entitlement and multi-store states are explicit | backend empty/stale tests; Customer API no-entitlement/selector tests; W3 logo fallback; W4 presentation-state tests | PASS when W5 exact-head CI is green |
 | Exact drill-down context and return navigation remain Retail-scoped | W2 route/safe-return tests; W3 canonical launcher route; W4 exact drill-down callback tests | PASS when W5 exact-head CI is green |
 | No duplicate analytics fan-out contract is introduced | W3 integrated dashboard test records the canonical analytics request; W2/W4 consume one typed read model and no alternate endpoint | PASS when W5 exact-head CI is green |
-| Release/version and packaged mobile identity remain valid | FOODEX Required CI Gate Android release validation, Repository Policy, Store Submission Readiness and FOODEX Update Bundle on the exact W5 PR head | PASS only on exact W5 head |
+| Release/version and packaged mobile identity remain valid | W4 deployable source head `fcf689e4b91fe0366253b58b97990510fceb1fd7` passed Required CI Android release validation, Repository Policy, Store Submission Readiness and Update Bundle before merge; W5 exact head must pass Repository Policy, Required CI and full Platform Customer Commerce E2E because W5 changes only gate workflow/evidence | PASS when deployable-source release validation and exact W5 gate CI are both green |
 
 ## Final gate rule
 
@@ -40,8 +40,8 @@ W5 is complete only when:
 1. #1358 / #1362 is merged into protected `main`;
 2. this W5 branch is reconciled onto that resulting main lineage with no child implementation duplicated;
 3. the W5 PR diff contains only final convergence/evidence or integration-defect fixes owned by #1359;
-4. FOODEX Required CI Gate is green on the exact W5 head, including Customer Android release validation and required mobile visual evidence;
-5. Repository Policy, Store Submission Readiness and FOODEX Update Bundle are green on the same head;
+4. Repository Policy, FOODEX Required CI Gate and the full Platform Customer Commerce E2E are green on the exact W5 head;
+5. the latest deployable application source (#1358 validated head / resulting main) retains green Android release validation, required mobile visual evidence, Store Submission Readiness and Update Bundle; if W5 changes deployable app/backend source, those artifact gates must rerun on W5 instead of being inherited;
 6. the #1359 terminal Issue comment records the exact W5 head, child SHAs, PR number, CI conclusions and merge SHA.
 
 Any FAIL, UNKNOWN, skipped-required evidence, authorization leak, Retail/Wholesale context collision, non-EGP analytics identity, or stale child lineage blocks merge.
