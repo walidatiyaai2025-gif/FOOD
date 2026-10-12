@@ -62,7 +62,7 @@
             <p>{{ __('foodex_reset.expires') }}</p>
             <label for="reset-confirmation">{{ __('foodex_reset.confirmation') }}: <strong>{{ __('foodex_reset.phrase') }}</strong></label>
             <input id="reset-confirmation" name="confirmation" placeholder="{{ __('foodex_reset.confirmation') }}" autocomplete="off" required @disabled(!$preview['ready'])>
-            @if(app()->environment('production'))
+            @if($production)
                 <div class="foodex-alert" role="alert">{{ __('foodex_reset.production_secondary_warning') }}</div>
                 <label for="reset-production-confirmation">{{ __('foodex_reset.production_confirmation') }}: <strong>{{ \App\Services\FoodexResetService::PRODUCTION_CONFIRMATION }}</strong></label>
                 <input id="reset-production-confirmation" name="production_confirmation" placeholder="{{ __('foodex_reset.production_confirmation') }}" autocomplete="off" required @disabled(!$preview['ready'])>
