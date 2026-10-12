@@ -233,10 +233,6 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
       );
     }
 
-    final categoryNames = <int, String>{
-      for (final category in data.categories) category.id: category.name,
-    };
-
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
@@ -651,7 +647,7 @@ class _RetailHomeV3Data {
     final configuredLimit = config['limit'] is num
         ? (config['limit'] as num).toInt()
         : int.tryParse('${config['limit'] ?? ''}');
-    final limit = (configuredLimit ?? 3).clamp(1, 6);
+    final limit = (configuredLimit ?? 3).clamp(1, 6) as int;
 
     if (ids.isNotEmpty) {
       final byId = <int, B2cProduct>{for (final product in products) product.id: product};
