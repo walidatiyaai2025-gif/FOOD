@@ -316,6 +316,8 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                     if (_error != null)
                       _ErrorBanner(
                         message: _commerceErrorText(strings, _error!),
+                        retryLabel: strings.retry,
+                        onRetry: _reload,
                       ),
                     if (cart == null || cart.items.isEmpty)
                       CustomerStateView(
@@ -673,6 +675,8 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                   if (_error != null)
                     _ErrorBanner(
                       message: _commerceErrorText(strings, _error!),
+                      retryLabel: strings.retry,
+                      onRetry: _loadOptions,
                     ),
                   _CommerceSectionCard(
                     key: const ValueKey('retail-checkout-address-section'),
@@ -1075,9 +1079,15 @@ class _CheckoutLoadingSkeleton extends StatelessWidget {
 }
 
 class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
+  const _ErrorBanner({
+    required this.message,
+    this.onRetry,
+    this.retryLabel,
+  });
 
   final String message;
+  final VoidCallback? onRetry;
+  final String? retryLabel;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1106,6 +1116,16 @@ class _ErrorBanner extends StatelessWidget {
                     ),
               ),
             ),
+            if (onRetry != null) ...[
+              const SizedBox(width: CustomerUiSpacing.xs),
+              IconButton(
+                key: const ValueKey('retail-commerce-retry'),
+                tooltip: retryLabel,
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                color: CustomerUiColors.destructive,
+              ),
+            ],
           ],
         ),
       );
@@ -1120,6 +1140,16 @@ String _commerceErrorText(_RetailCommerceStrings strings, Object error) {
       'authentication_required' => strings.authRequired,
       'checkout_fields_required' => strings.completeCheckoutFields,
       'checkout_in_progress' => strings.checkoutInProgress,
+      'network_unavailable' ||
+      'network_retry' ||
+      'offline' =>
+        strings.offline,
+      'payment_failed' ||
+      'payment_declined' =>
+        strings.paymentFailed,
+      'payment_cancelled' ||
+      'payment_canceled' =>
+        strings.paymentCancelled,
       'cart_store_mismatch' ||
       'checkout_store_mismatch' =>
         strings.storeContextError,
@@ -1168,6 +1198,10 @@ class _RetailCommerceStrings {
     required this.checkoutInProgress,
     required this.storeContextError,
     required this.requestFailed,
+    required this.retry,
+    required this.offline,
+    required this.paymentFailed,
+    required this.paymentCancelled,
     required this.cashOnDelivery,
     required this.card,
     required this.ownStoreBlocked,
@@ -1204,6 +1238,10 @@ class _RetailCommerceStrings {
   final String checkoutInProgress;
   final String storeContextError;
   final String requestFailed;
+  final String retry;
+  final String offline;
+  final String paymentFailed;
+  final String paymentCancelled;
   final String cashOnDelivery;
   final String card;
   final String ownStoreBlocked;
@@ -1245,6 +1283,10 @@ class _RetailCommerceStrings {
     checkoutInProgress: 'جاري إرسال الطلب بالفعل.',
     storeContextError: 'تعذر الحفاظ على سياق المتجر. أعد فتح السلة من المتجر.',
     requestFailed: 'تعذر تنفيذ الطلب',
+    retry: 'إعادة المحاولة',
+    offline: 'لا يوجد اتصال بالإنترنت. تحقق من الشبكة ثم أعد المحاولة.',
+    paymentFailed: 'تعذر إتمام الدفع. اختر طريقة دفع أخرى أو أعد المحاولة.',
+    paymentCancelled: 'تم إلغاء عملية الدفع. يمكنك المحاولة مرة أخرى بأمان.',
     cashOnDelivery: 'الدفع عند الاستلام',
     card: 'بطاقة',
     ownStoreBlocked: 'لا يمكن الشراء من متجرك',
@@ -1285,6 +1327,10 @@ class _RetailCommerceStrings {
     storeContextError:
         'Store context was lost. Reopen the cart from the store.',
     requestFailed: 'Request failed',
+    retry: 'Retry',
+    offline: 'You are offline. Check your connection and try again.',
+    paymentFailed: 'Payment could not be completed. Try again or choose another payment method.',
+    paymentCancelled: 'Payment was cancelled. You can safely try again.',
     cashOnDelivery: 'Cash on delivery',
     card: 'Card',
     ownStoreBlocked: 'You cannot purchase from your own store',
