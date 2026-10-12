@@ -526,9 +526,7 @@ void main() {
             find.byKey(const ValueKey('retail-checkout-review')),
             findsOneWidget,
           );
-          final submit = find.byKey(
-            const ValueKey('retail-checkout-submit'),
-          );
+          final submit = find.byKey(const ValueKey('retail-checkout-submit'));
           await tester.scrollUntilVisible(
             submit,
             300,
