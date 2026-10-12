@@ -184,6 +184,18 @@ void main() {
 
     expect(api.calls, 1);
     expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-persistent-footer')),
+      findsOneWidget,
+    );
+    for (final destination in ['products', 'orders', 'invoices', 'account']) {
+      expect(
+        find.byKey(ValueKey('customer-footer-$destination')),
+        findsOneWidget,
+      );
+    }
+    expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+    expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -191,6 +203,12 @@ void main() {
 
     expect(api.calls, 2);
     expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('b2b-orders-back')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('b2b-orders-screen')), findsNothing);
+    expect(find.text('فودكس للأعمال'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
