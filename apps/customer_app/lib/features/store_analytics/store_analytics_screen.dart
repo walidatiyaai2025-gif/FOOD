@@ -111,9 +111,8 @@ class StoreAnalyticsCopy {
         trendSummary: context.tr('b2b.store_analytics.trend.title'),
         insights: context.tr('b2b.store_analytics.insights.title'),
         currencyEgp: context.tr('b2b.store_analytics.currency.egp'),
-        stale: context.tr('b2b.store_analytics.state.stale') +
-            ' ' +
-            context.tr('b2b.store_analytics.state.stale_hint'),
+        stale:
+            '${context.tr('b2b.store_analytics.state.stale')} ${context.tr('b2b.store_analytics.state.stale_hint')}',
         storeSelector: context.tr('b2b.store_analytics.store'),
         loadingLabel: context.tr('b2b.store_analytics.state.loading'),
         emptyTitle: context.tr('b2b.store_analytics.state.empty'),
@@ -723,7 +722,7 @@ class _StoreLogo extends StatelessWidget {
     final logo = data.logoUrl?.trim();
     return Semantics(
       image: true,
-      label: copy.storeLogo + ': ' + data.storeName,
+      label: '${copy.storeLogo}: ${data.storeName}',
       child: ExcludeSemantics(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(CustomerUiRadii.md),
@@ -862,10 +861,7 @@ class _KpiGrid extends StatelessWidget {
     final delta = data.revenueDeltaPercent;
     final deltaText = delta == null
         ? copy.noComparison
-        : (delta > 0 ? '+' : '') +
-            foodexCompactDecimal(delta, maxFractionDigits: 1) +
-            '% ' +
-            copy.vsPrevious;
+        : '${delta > 0 ? '+' : ''}${foodexCompactDecimal(delta, maxFractionDigits: 1)}% ${copy.vsPrevious}';
     final deltaTone = delta == null
         ? CustomerUiColors.muted
         : delta > 0
@@ -1091,9 +1087,9 @@ class _InsightCard extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: insight.title + '. ' + insight.body,
+      label: '${insight.title}. ${insight.body}',
       child: DecoratedBox(
-        key: ValueKey('store-analytics-insight-' + insight.id),
+        key: ValueKey('store-analytics-insight-${insight.id}'),
         decoration: BoxDecoration(
           color: CustomerUiColors.white,
           borderRadius: BorderRadius.circular(CustomerUiRadii.md),
@@ -1148,7 +1144,7 @@ class _InsightCard extends StatelessWidget {
                       const SizedBox(height: CustomerUiSpacing.xs),
                       TextButton.icon(
                         key: ValueKey(
-                          'store-analytics-insight-action-' + insight.id,
+                          'store-analytics-insight-action-${insight.id}',
                         ),
                         onPressed: () => onDrillDown!(insight.targetRoute!),
                         icon: const Icon(Icons.open_in_new_rounded, size: 16),
@@ -1171,7 +1167,7 @@ String _money(num value, String currency, StoreAnalyticsCopy copy) {
   final unit = currency.trim().toUpperCase() == 'EGP'
       ? copy.currencyEgp
       : currency.trim().toUpperCase();
-  return unit.isEmpty ? amount : amount + ' ' + unit;
+  return unit.isEmpty ? amount : '$amount $unit';
 }
 
 String _trendSummary(StoreAnalyticsData data, StoreAnalyticsCopy copy) {
@@ -1180,14 +1176,8 @@ String _trendSummary(StoreAnalyticsData data, StoreAnalyticsCopy copy) {
   final points = data.dailySeries.map((point) {
     final sales = _money(point.sales, data.currency, copy);
     final orders = foodexQuantity(point.orders, fractionDigits: 0);
-    return point.dateLabel +
-        ': ' +
-        sales +
-        ', ' +
-        orders +
-        ' ' +
-        copy.ordersUnit;
+    return '${point.dateLabel}: $sales, $orders ${copy.ordersUnit}';
   }).join(' • ');
 
-  return copy.trendSummary + '. ' + points;
+  return '${copy.trendSummary}. $points';
 }
