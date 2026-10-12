@@ -145,6 +145,7 @@ class AdminShellTest extends TestCase
             ->assertOk()
             ->assertSee('Product Management')
             ->assertDontSee('Inventory Management')
+            ->assertDontSee('System Settings / Lookups')
             ->assertDontSee('href="'.route('admin.b2b.module', ['module' => 'clients']).'"', false)
             ->assertDontSee('href="'.route('admin.b2b.module', ['module' => 'pricing']).'"', false);
 
@@ -154,7 +155,8 @@ class AdminShellTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertSee('إدارة المنتجات')
-            ->assertDontSee('إدارة المخزون');
+            ->assertDontSee('إدارة المخزون')
+            ->assertDontSee('إعدادات النظام / القيم المرجعية');
     }
 
     public function test_shared_shell_exposes_foodex_brand_contract(): void
