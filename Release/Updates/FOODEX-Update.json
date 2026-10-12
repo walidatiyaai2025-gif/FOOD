@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.72",
+  "target_version": "1.0.73",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "74662bd492f23cb692c1c0e19266c3e518c305f4",
-  "sha256": "2fad59f5887be91ff9e4922ab0e75d17a4cd07bf51596ffc212b2f266df318f5",
+  "source_commit": "b5ba42154c5d39716630d74788bbcc51041f6242",
+  "sha256": "3a7d74ad10d5328b225205852fa1848482ce6f825ca922607781cf118adcbf9f",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/2026_09_27_160800_add_brand_image_path.php",
@@ -82,13 +82,13 @@
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.72: Promote all authoritative Dashboard/backend changes merged after FOODEX 1.0.71 through PR #1287 into the FOODEX 1.0.72 Dashboard update. Ship Wholesale/Retail commerce fixes from PRs #1268 and #1269, including optional Wholesale pricing, principal-stock behavior, Customer commerce UX hardening, and normalized EGP/unit display formatting. Improve Dashboard operations from PRs #1274, #1275, #1279 and #1285: customer-first order notifications, simplified B2B product/inventory navigation, short customer-facing order/invoice display numbers while preserving immutable internal references, and Sales Control moved to the authoritative B2B context. Include Van production fixes from PRs #1281 and #1283: remembered-session biometric unlock and authoritative Wholesale seller-store catalog resolution. Include engineering/release hardening from PRs #1271 and #1287, including safer Flutter authoring gates, CI-parity formatting validation, and path-aware Fast Release Pipeline v2. Synchronize Customer, Driver and Van source identities at 1.0.72+72 for the release contract; the Dashboard Update ZIP remains independently deployable and does not replace installed APKs unless mobile artifacts are explicitly published.",
+  "release_notes": "FOODEX 1.0.73: Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard. Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px. Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality. Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage. Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff. Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice.",
   "dashboard_fields": {
-    "target_version": "1.0.72",
+    "target_version": "1.0.73",
     "minimum_current_version": "1.0.6",
-    "source_commit": "74662bd492f23cb692c1c0e19266c3e518c305f4",
-    "sha256": "2fad59f5887be91ff9e4922ab0e75d17a4cd07bf51596ffc212b2f266df318f5",
+    "source_commit": "b5ba42154c5d39716630d74788bbcc51041f6242",
+    "sha256": "3a7d74ad10d5328b225205852fa1848482ce6f825ca922607781cf118adcbf9f",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.72: Promote all authoritative Dashboard/backend changes merged after FOODEX 1.0.71 through PR #1287 into the FOODEX 1.0.72 Dashboard update. Ship Wholesale/Retail commerce fixes from PRs #1268 and #1269, including optional Wholesale pricing, principal-stock behavior, Customer commerce UX hardening, and normalized EGP/unit display formatting. Improve Dashboard operations from PRs #1274, #1275, #1279 and #1285: customer-first order notifications, simplified B2B product/inventory navigation, short customer-facing order/invoice display numbers while preserving immutable internal references, and Sales Control moved to the authoritative B2B context. Include Van production fixes from PRs #1281 and #1283: remembered-session biometric unlock and authoritative Wholesale seller-store catalog resolution. Include engineering/release hardening from PRs #1271 and #1287, including safer Flutter authoring gates, CI-parity formatting validation, and path-aware Fast Release Pipeline v2. Synchronize Customer, Driver and Van source identities at 1.0.72+72 for the release contract; the Dashboard Update ZIP remains independently deployable and does not replace installed APKs unless mobile artifacts are explicitly published."
+    "release_notes": "FOODEX 1.0.73: Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard. Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px. Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality. Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage. Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff. Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice."
   }
 }
