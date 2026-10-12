@@ -32,7 +32,7 @@ final class ProductionLaunchPreflight
     ];
 
     /**
-     * @param  array<string,array{passed:bool,detail:string,source?:string}>  $checks
+     * @param  array<string,mixed>  $checks
      * @return array{ready:bool,checks:array<string,array{passed:bool,detail:string,source?:string}>,blockers:list<string>}
      */
     public function decide(array $checks): array
@@ -125,7 +125,7 @@ final class ProductionLaunchPreflight
     /** @param array{ready:bool,checks:array<string,mixed>,blockers:list<string>} $report */
     public function assertLaunchable(array $report): void
     {
-        if (($report['ready'] ?? false) !== true || ($report['blockers'] ?? []) !== []) {
+        if ($report['ready'] !== true || $report['blockers'] !== []) {
             throw ValidationException::withMessages([
                 'launch' => __('production_launch.errors.blocked'),
             ]);
