@@ -38,6 +38,31 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(_loadEvidenceFont);
 
+  test('format probe for W4 exact Dart 3.13.4 output', () async {
+    const appPaths = <String>[
+      'lib/features/store_analytics/store_analytics_screen.dart',
+      'test/store_analytics_screen_test.dart',
+      'test/screenshot_evidence_test.dart',
+    ];
+    final format = await Process.run('dart', ['format', ...appPaths]);
+    expect(format.exitCode, 0, reason: format.stderr.toString());
+
+    final diff = await Process.run(
+      'git',
+      [
+        'diff',
+        '--',
+        'apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart',
+        'apps/customer_app/test/store_analytics_screen_test.dart',
+        'apps/customer_app/test/screenshot_evidence_test.dart',
+      ],
+      workingDirectory: '../..',
+    );
+    expect(diff.exitCode, 0, reason: diff.stderr.toString());
+    // Temporary exact formatter probe; removed immediately after harvesting CI.
+    print('W4_FORMAT_DIFF_BEGIN\n' + diff.stdout.toString() + '\nW4_FORMAT_DIFF_END');
+  });
+
   final cases = <_CaptureCase>[
     const _CaptureCase(
         '02_MultiStore/01_store_selection__ar.png', '/customer/store-selector',
