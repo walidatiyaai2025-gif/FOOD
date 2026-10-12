@@ -98,7 +98,7 @@ class RetailCartSnapshot {
       );
 
   RetailCartSnapshot applyPending(List<RetailCartMutation> mutations) {
-    var nextItems = items.toList(growable: true);
+    final nextItems = items.toList(growable: true);
     for (final mutation in mutations) {
       final index = nextItems.indexWhere((item) => item.id == mutation.itemId);
       if (mutation.operation == RetailCartMutationOperation.remove) {
