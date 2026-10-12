@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "umbrella_issue": 1323,
+  "final_qa_issue": 1333,
+  "requirements": [
+    {
+      "id": "CVN-REGISTRY",
+      "owner_issue": 1324,
+      "scope": "Every existing route/overlay has one owner, API and entry/back contract; no replacement V2 screens",
+      "expected_source": "Customer Screen Registry and FILE_OWNERSHIP",
+      "expected_automated_evidence": "Registry completeness and route-authority tests",
+      "expected_runtime_evidence": "All registered routes and overlays",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-TOKENS",
+      "owner_issue": 1324,
+      "scope": "One typography/spacing/color/radius/motion and RTL/LTR responsive contract",
+      "expected_source": "Customer shared theme, layout and primitives",
+      "expected_automated_evidence": "Design token/layout tests and arbitrary-style guard",
+      "expected_runtime_evidence": "Shared headers, forms, dialogs and sheets",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-CARDS",
+      "owner_issue": 1324,
+      "scope": "Canonical ProductCard, cart/quantity/order/address/status/state primitives; no competing screen-local shared components",
+      "expected_source": "Customer shared components and ownership map",
+      "expected_automated_evidence": "Shared component/golden tests",
+      "expected_runtime_evidence": "Shared primitives including long text and missing imagery",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-HOME-ENTRY",
+      "owner_issue": 1325,
+      "scope": "Successful login lands on existing Shopping Home; shopping-first journey",
+      "expected_source": "Existing Home and post-login route",
+      "expected_automated_evidence": "Login/navigation tests",
+      "expected_runtime_evidence": "Login to Home with correct store context",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-HOME-ORDER",
+      "owner_issue": 1325,
+      "scope": "Header, search, one managed hero, categories, Best Sellers, All Products, View More, bottom navigation; no second banner",
+      "expected_source": "Existing Home composition and Dashboard content APIs",
+      "expected_automated_evidence": "Home section/order/banner-count tests",
+      "expected_runtime_evidence": "Populated Home and View More interaction",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-HOME-GRID",
+      "owner_issue": 1325,
+      "scope": "Exactly three product cards per row; no ratings; retain approved Arabic proportions",
+      "expected_source": "Home using canonical ProductCard",
+      "expected_automated_evidence": "3-column/no-rating widget tests",
+      "expected_runtime_evidence": "Small and large phones, long names and out-of-stock",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-CATALOG",
+      "owner_issue": 1326,
+      "scope": "Existing categories/listing/filter/sort routes use shared 3-column cards and authoritative store APIs",
+      "expected_source": "Existing retail catalog renderers",
+      "expected_automated_evidence": "Category/filter/sort and store-isolation tests",
+      "expected_runtime_evidence": "Listing loaded/empty/error/offline and filtered views",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-SEARCH",
+      "owner_issue": 1326,
+      "scope": "Idle/typing/suggestions/results/no-results/filter/slow/error/offline states",
+      "expected_source": "Existing search renderer and API",
+      "expected_automated_evidence": "Search state/request-race tests",
+      "expected_runtime_evidence": "Actual search and retry interactions",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-DETAIL",
+      "owner_issue": 1326,
+      "scope": "Large gallery, price, availability, units/package, quantity/Add to Cart and related canonical cards",
+      "expected_source": "Existing Product Details and selling-unit contract",
+      "expected_automated_evidence": "Detail/gallery/stock/cart tests",
+      "expected_runtime_evidence": "Correct images, missing image, stock and quantity states",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-CART",
+      "owner_issue": 1327,
+      "scope": "Canonical cart rows/quantity/totals/discount/delivery with authoritative refresh",
+      "expected_source": "Existing Cart and commerce API",
+      "expected_automated_evidence": "Cart quantity/totals/isolation tests",
+      "expected_runtime_evidence": "Populated/empty/error/offline cart",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-CHECKOUT",
+      "owner_issue": 1327,
+      "scope": "Address, delivery, payment, review and Place Order; validation/retry/failure/cancel and idempotency",
+      "expected_source": "Existing Checkout/payment APIs",
+      "expected_automated_evidence": "Payment failure/cancel/duplicate/retry tests",
+      "expected_runtime_evidence": "AR/EN checkout interaction and failure recovery",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-SUCCESS",
+      "owner_issue": 1327,
+      "scope": "Order number/summary, Track Order and Continue Shopping",
+      "expected_source": "Existing Order Success route",
+      "expected_automated_evidence": "Add-to-cart to checkout to success E2E",
+      "expected_runtime_evidence": "Created order and both success navigation actions",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-ORDERS",
+      "owner_issue": 1328,
+      "scope": "Readable compact orders/details with canonical cards/status vocabulary and timeline",
+      "expected_source": "Existing Orders/details renderers",
+      "expected_automated_evidence": "Historical/channel/lifecycle tests",
+      "expected_runtime_evidence": "Orders/detail loaded/empty/error/offline",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-TRACKING",
+      "owner_issue": 1328,
+      "scope": "Authoritative lifecycle, back/deep links and truthful stale/offline tracking",
+      "expected_source": "Existing tracking routes and APIs",
+      "expected_automated_evidence": "Deep-link/back/state-transition tests",
+      "expected_runtime_evidence": "Actual tracking route; no invented live positions",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-ACCOUNT",
+      "owner_issue": 1329,
+      "scope": "Existing profile/account and address selection/edit flows share identity",
+      "expected_source": "Existing account/address renderers",
+      "expected_automated_evidence": "Profile/address permissions/validation tests",
+      "expected_runtime_evidence": "Account and address actions including overlays",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-SECONDARY",
+      "owner_issue": 1329,
+      "scope": "Notifications, Offers/Flash Offers, Favorites, language/settings/logout/session-expired and residual registered routes",
+      "expected_source": "Existing secondary renderers and registry",
+      "expected_automated_evidence": "Secondary navigation/session/localization tests",
+      "expected_runtime_evidence": "Every residual route and owned dialog/sheet",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-DATA-PRIVACY",
+      "owner_issue": 1330,
+      "scope": "Deterministic structurally faithful sanitized fixture; no raw dump, PII, tokens, credentials or unsafe payloads",
+      "expected_source": "Private verified source to public derivative",
+      "expected_automated_evidence": "Fingerprint/count/privacy/referential-integrity tests",
+      "expected_runtime_evidence": "Clean tester install with realistic relations; no production access",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-DATA-CATALOG",
+      "owner_issue": 1330,
+      "scope": "Official 25-product names/package/carton/source prices, categories/brands/units/store/banner seed; gaps explicit",
+      "expected_source": "Official DOCX-derived fixture and canonical FoodexLaunchSeeder",
+      "expected_automated_evidence": "Seed/rerun/source-value tests",
+      "expected_runtime_evidence": "Seeded products and unit/price presentations",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-DATA-IMAGES",
+      "owner_issue": 1330,
+      "scope": "Authoritative product mapping, approved originals/derivatives and missing/low-resolution checks; no stretched thumbnails",
+      "expected_source": "Product assets and image-quality pipeline",
+      "expected_automated_evidence": "Wrong/missing/low-resolution asset rejection",
+      "expected_runtime_evidence": "3-column grid and large Product Details reviewed against source",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-DATA-CONTRACT",
+      "owner_issue": 1330,
+      "scope": "One top-level FoodexLaunchSeeder with deterministic preflight readiness/fingerprint and transactional re-runnable invocation",
+      "expected_source": "Canonical seed orchestrator and tester commands",
+      "expected_automated_evidence": "Clean install, rerun, fingerprint/readiness tests",
+      "expected_runtime_evidence": "Tester baseline provisioned from repository-owned safe fixture",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-RESET-AUTH",
+      "owner_issue": 1331,
+      "scope": "Visible Settings operation, privilege, dry-run impact, destructive/secondary confirmation and audit",
+      "expected_source": "Canonical reset route/controller/service",
+      "expected_automated_evidence": "Auth/password/confirmation/preview/replay tests",
+      "expected_runtime_evidence": "Authorized Settings discovery and protected confirmation",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-RESET-DATA",
+      "owner_issue": 1331,
+      "scope": "Explicit transactional/catalog reset policy, preservation, official reseed and derived-data refresh",
+      "expected_source": "Reset allowlist and canonical seed adapter",
+      "expected_automated_evidence": "Dirty sanitized reset/reseed twice, rollback and FK tests",
+      "expected_runtime_evidence": "Dirty tester database becomes deterministic official baseline",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-RESET-PROD",
+      "owner_issue": 1331,
+      "scope": "Production opt-in, privileged confirmation, fresh preflight, actual backup and rollback safeguards",
+      "expected_source": "Reset production guard and backup integration",
+      "expected_automated_evidence": "Production block/backup failure/stale evidence tests",
+      "expected_runtime_evidence": "Protected production-mode workflow; no one-click wipe",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-LAUNCH-SCHEMA",
+      "owner_issue": 1332,
+      "scope": "Verify migrations/schema and required runtime configuration",
+      "expected_source": "Launch preflight checks",
+      "expected_automated_evidence": "Missing migration/config readiness tests",
+      "expected_runtime_evidence": "Visible truthful schema/config checks",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-LAUNCH-DATA",
+      "owner_issue": 1332,
+      "scope": "Verify official seed/images and no test/demo PII or transactions leak",
+      "expected_source": "Launch data/image/cleanliness checks",
+      "expected_automated_evidence": "Incomplete seed/image/dirty-data rejection",
+      "expected_runtime_evidence": "Real-data readiness and failed-check explanation",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-LAUNCH-JOURNEY",
+      "owner_issue": 1332,
+      "scope": "Verify API contract, AR/EN registry closure and full Customer E2E",
+      "expected_source": "Launch evidence aggregation",
+      "expected_automated_evidence": "Stale/missing/failed API/locale/registry/E2E evidence rejection",
+      "expected_runtime_evidence": "Actual preflight shows current journey evidence",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-LAUNCH-PROVIDERS",
+      "owner_issue": 1332,
+      "scope": "Payment/delivery/notifications readiness without secret exposure",
+      "expected_source": "Provider readiness checks",
+      "expected_automated_evidence": "Provider absent/failure/redaction tests",
+      "expected_runtime_evidence": "Visible readiness; no credentials displayed",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-LAUNCH-RELEASE",
+      "owner_issue": 1332,
+      "scope": "Customer/Driver/Van synchronized version/artifacts, backups/rollback and exact-head CI",
+      "expected_source": "Release and launch evidence identity",
+      "expected_automated_evidence": "Missing/mismatched/stale artifacts/backup/CI rejection",
+      "expected_runtime_evidence": "Preflight links exact accepted release lineage",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-LAUNCH-ACTION",
+      "owner_issue": 1332,
+      "scope": "Owner-controlled privileged typed Launch, blocked on any red/unknown check, audited build/version metadata",
+      "expected_source": "Canonical Launch action",
+      "expected_automated_evidence": "Unauthorized/duplicate/failed-check Launch tests",
+      "expected_runtime_evidence": "Owner Launch interaction and audit confirmation",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-QA-ROUTES",
+      "owner_issue": 1333,
+      "scope": "Independent full-registry review, no UNKNOWN/unowned/forgotten/mixed identity routes",
+      "expected_source": "Integrated main and requirement matrix",
+      "expected_automated_evidence": "Registry-to-source coverage and golden regression",
+      "expected_runtime_evidence": "Every route/overlay in AR/RTL and EN/LTR at small/standard/large widths",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-QA-STATES",
+      "owner_issue": 1333,
+      "scope": "Loading/empty/error/offline/slow API/long text/missing image/out-of-stock states",
+      "expected_source": "Integrated screen/state implementation",
+      "expected_automated_evidence": "State/golden and navigation regression",
+      "expected_runtime_evidence": "Real integrated runtime in every applicable state",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    },
+    {
+      "id": "CVN-QA-JOURNEY",
+      "owner_issue": 1333,
+      "scope": "Independent clean install, browse/search/category/detail/cart/checkout/order/tracking/account, reset and Launch certification",
+      "expected_source": "Integrated official fixture/runtime and exact source lineage",
+      "expected_automated_evidence": "Flutter/backend/OpenAPI/E2E/exact-head CI",
+      "expected_runtime_evidence": "Requirement-to-evidence final review, closes last",
+      "locale_responsive": "AR RTL + EN LTR; representative small/standard/large Customer phones or Dashboard 320/390/768/1024/1280 where UI applies. Data-only checks require no separate UI screenshot.",
+      "status": "OPEN"
+    }
+  ]
+}
