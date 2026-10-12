@@ -370,10 +370,12 @@ void main() {
 
 Finder _homeVerticalScroll() {
   final homeList = find.byKey(const ValueKey('retail-home-scroll'));
-  return find.descendant(
-    of: homeList,
-    matching: find.byType(Scrollable),
-  ).first;
+  return find
+      .descendant(
+        of: homeList,
+        matching: find.byType(Scrollable),
+      )
+      .first;
 }
 
 Future<void> _dragUntilFound(
