@@ -4359,13 +4359,16 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       ),
                     if (widget.onLogout != null) ...[
                       const SizedBox(height: 10),
-                      ListTile(
-                        key: const ValueKey('b2b-profile-security-action'),
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.security_outlined),
-                        title: Text(context.tr('b2b.profile.security')),
-                        trailing: const Icon(Icons.chevron_left_rounded),
-                        onTap: _showSettings,
+                      Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          key: const ValueKey('b2b-profile-security-action'),
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.security_outlined),
+                          title: Text(context.tr('b2b.profile.security')),
+                          trailing: const Icon(Icons.chevron_left_rounded),
+                          onTap: _showSettings,
+                        ),
                       ),
                       OutlinedButton.icon(
                         key: const ValueKey('b2b-profile-logout'),
