@@ -43,7 +43,6 @@ abstract final class CustomerRoutePaths {
   static const b2bProfile = '/b2b/profile';
 }
 
-
 enum CustomerAuthEntry { login, register }
 
 abstract final class CustomerRouteLocations {
@@ -254,9 +253,8 @@ class CustomerStoreAnalyticsRouteContext {
 
     final rawRetailStoreId =
         retailStoreValues == null ? null : retailStoreValues.single;
-    final retailStoreId = rawRetailStoreId == null
-        ? null
-        : int.tryParse(rawRetailStoreId);
+    final retailStoreId =
+        rawRetailStoreId == null ? null : int.tryParse(rawRetailStoreId);
     if (rawRetailStoreId != null &&
         (rawRetailStoreId.isEmpty ||
             retailStoreId == null ||
@@ -313,7 +311,6 @@ class CustomerRouteDefinition {
   }
 }
 
-
 String? safeCustomerReturnLocation(
   String? value, {
   required CustomerChannel channel,
@@ -357,14 +354,12 @@ String? safeCustomerReturnLocation(
   return value;
 }
 
-
 String? safeCustomerContextReturnLocation(
   String? value, {
   required CustomerCommerceContext context,
 }) {
-  final channel = context.isWholesale
-      ? CustomerChannel.b2b
-      : CustomerChannel.b2c;
+  final channel =
+      context.isWholesale ? CustomerChannel.b2b : CustomerChannel.b2c;
   final safe = safeCustomerReturnLocation(value, channel: channel);
   if (safe == null) {
     return null;
