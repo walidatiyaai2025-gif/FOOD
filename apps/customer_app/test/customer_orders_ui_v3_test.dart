@@ -489,7 +489,7 @@ void main() {
       expect(find.text('الجملة'), findsOneWidget);
       expect(find.text('التجزئة'), findsOneWidget);
       final arabicFilters = tester.element(
-        find.byKey(const ValueKey('customer-orders-status-filters-b2b')),
+        find.byKey(const ValueKey('customer-orders-status-filters-b2c')),
       );
       expect(Directionality.of(arabicFilters), TextDirection.rtl);
       expect(tester.takeException(), isNull);
