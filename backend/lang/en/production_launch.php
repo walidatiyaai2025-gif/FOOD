@@ -40,7 +40,7 @@ return [
         ],
         'environment_configuration' => [
             'title' => 'Production environment',
-            'description' => 'Production mode, application key, debug policy and database configuration meet launch safeguards.',
+            'description' => 'Production mode, explicit launch opt-in, application key, debug policy and database configuration meet launch safeguards.',
         ],
         'release_lineage' => [
             'title' => 'Release lineage integrity',
@@ -72,7 +72,7 @@ return [
         ],
         'provider_readiness' => [
             'title' => 'Production providers',
-            'description' => 'Payment, delivery and notification provider readiness is attested without exposing secrets.',
+            'description' => 'Payment, delivery and notification readiness requires explicit runtime approval plus exact-release evidence without exposing secrets.',
         ],
         'mobile_artifacts' => [
             'title' => 'Mobile release artifacts',
