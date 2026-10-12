@@ -27,7 +27,7 @@ final class SettingsCenterController extends Controller
         $superAdmin = $user->hasRole('SUPER_ADMIN');
         $navGroups = $this->navigation->groupsFor($user);
         $visibleNavigationKeys = collect($navGroups)
-            ->flatMap(fn (array $group): array => $group['children'] ?? [])
+            ->flatMap(fn (array $group): array => $group['children'])
             ->pluck('key');
 
         $canOperationalSettings = $superAdmin
