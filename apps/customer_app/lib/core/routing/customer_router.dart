@@ -128,18 +128,17 @@ class CustomerAppRouter {
 
     final wholesaleAuthHandoff =
         requested.pattern == CustomerRoutePaths.checkoutAuth &&
-        safeCustomerReturnLocation(
-              Uri.tryParse(requestedLocation)?.queryParameters['next'],
-              channel: CustomerChannel.b2b,
-            ) !=
-            null;
+            safeCustomerReturnLocation(
+                  Uri.tryParse(requestedLocation)?.queryParameters['next'],
+                  channel: CustomerChannel.b2b,
+                ) !=
+                null;
 
     final requestedAuthority = customerRouteAuthorityFor(
       requested,
       requestedLocation,
     );
-    final shouldNormalizeRetail =
-        requested.channel == CustomerChannel.b2c &&
+    final shouldNormalizeRetail = requested.channel == CustomerChannel.b2c &&
         (requestedAuthority == CustomerRouteAuthority.retailJourney ||
             requestedAuthority == CustomerRouteAuthority.multiStore ||
             requested.pattern == CustomerRoutePaths.checkoutAuth);
@@ -214,9 +213,7 @@ class CustomerAppRouter {
       storeId = int.tryParse(parts[retailIndex + 1]);
     }
     storeId ??= int.tryParse(
-      uri.queryParameters['store_id'] ??
-          uri.queryParameters['store'] ??
-          '',
+      uri.queryParameters['store_id'] ?? uri.queryParameters['store'] ?? '',
     );
     if (storeId == null || storeId <= 0) return null;
 
@@ -242,8 +239,7 @@ class CustomerAppRouter {
     }
 
     if (session.channel != requested.channel && !session.platformWide) {
-      final entitledRetailManager =
-          requested.channel == CustomerChannel.b2b &&
+      final entitledRetailManager = requested.channel == CustomerChannel.b2b &&
           session.b2bRetailStoreId != null;
       if (!entitledRetailManager) {
         return definitionFor(CustomerRoutePaths.marketplace);
