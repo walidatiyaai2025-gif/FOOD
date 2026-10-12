@@ -220,6 +220,10 @@ class FoodexResetTest extends TestCase
         $maintenance = \Mockery::mock(MaintenanceMode::class);
         $maintenance->shouldReceive('active')->andReturnTrue();
         $this->app->instance(MaintenanceMode::class, $maintenance);
+        // Operators reach this screen through the authorized maintenance bypass;
+        // bypass only the HTTP middleware here while keeping maintenance active
+        // for the reset service's production readiness check.
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance::class);
         $path = tempnam(sys_get_temp_dir(), 'foodex-reset-');
         file_put_contents($path, json_encode([
             'ready' => true,
