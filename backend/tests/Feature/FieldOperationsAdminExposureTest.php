@@ -78,12 +78,12 @@ class FieldOperationsAdminExposureTest extends TestCase
             'field_ops_customers',
             'field_ops_visits',
             'field_ops_territories',
-            'field_ops_address_quality',
             'field_ops_routing',
             'field_ops_finance',
         ] as $key) {
             $this->assertStringContainsString("'{$key}'", $navigation);
         }
+        $this->assertStringNotContainsString("'field_ops_address_quality'", $navigation);
         $this->assertStringNotContainsString("'field_ops_commercial_rules'", $navigation);
         $this->assertStringNotContainsString("'field_ops_van_offers'", $navigation);
         $this->assertSame(1, substr_count($navigation, "'commercial_sales_control'"));
