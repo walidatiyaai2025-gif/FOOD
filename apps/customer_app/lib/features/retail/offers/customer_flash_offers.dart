@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/foodex_environment.dart';
+import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
+import '../../customer_account/customer_account_v3_widgets.dart';
 import '../commerce/retail_commerce_api.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
@@ -183,7 +185,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     if (rows is! List) return const <CustomerFlashOffer>[];
     return rows
         .whereType<Map>()
-        .map((row) => CustomerFlashOffer.fromMap(Map<String, dynamic>.from(row)))
+        .map(
+            (row) => CustomerFlashOffer.fromMap(Map<String, dynamic>.from(row)))
         .where((offer) => offer.id > 0)
         .toList(growable: false);
   }
@@ -415,7 +418,9 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         offerId: offer.id,
         quantity: 1,
         sellingUnitId: _selectedUnits[offer.id] ??
-            (offer.sellingUnits.isNotEmpty ? offer.sellingUnits.first.id : null),
+            (offer.sellingUnits.isNotEmpty
+                ? offer.sellingUnits.first.id
+                : null),
       );
       if (!mounted) return;
       setState(() => _reservation = reservation);
@@ -437,147 +442,164 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('customer-flash-offers-screen'),
-      appBar: AppBar(
-        title: Text(_ar ? 'العروض السريعة' : 'Flash Offers'),
-        actions: [
-          TextButton(
+      backgroundColor: CustomerUiColors.mint,
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: _ar ? 'العروض السريعة' : 'Flash Offers',
+          subtitle: _ar
+              ? 'عروض محدودة بوقت وكمية واضحة'
+              : 'Limited-time offers with clear availability',
+          trailing: TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: CustomerUiColors.white,
+            ),
             onPressed: widget.onOpenNormalOffers,
             child: Text(_ar ? 'العروض العادية' : 'Regular offers'),
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_reservation != null)
-              _ActiveReservationBanner(
-                reservation: _reservation!,
-                remaining: _reservation!.remainingAfter(_serverClock.elapsed),
-                isArabic: _ar,
-                onContinue: () => _openCheckout(_reservation!),
-              ),
-            if (_busy) const LinearProgressIndicator(),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  _ar
+        ),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (_reservation != null)
+                _ActiveReservationBanner(
+                  reservation: _reservation!,
+                  remaining: _reservation!.remainingAfter(_serverClock.elapsed),
+                  isArabic: _ar,
+                  onContinue: () => _openCheckout(_reservation!),
+                ),
+              if (_busy) const LinearProgressIndicator(),
+              if (_error != null)
+                CustomerStateView(
+                  kind: CustomerStateKind.error,
+                  title: _ar
                       ? 'تعذر تحديث العروض. اسحب لإعادة المحاولة.'
                       : 'Could not refresh offers. Pull to retry.',
+                  actionLabel: _ar ? 'إعادة المحاولة' : 'Retry',
+                  onAction: _load,
                 ),
-              ),
-            if (!_busy && _offers.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(
-                  child: Text(_ar ? 'لا توجد عروض سريعة الآن.' : 'No active Flash Offers right now.'),
+              if (!_busy && _offers.isEmpty)
+                CustomerStateView(
+                  kind: CustomerStateKind.empty,
+                  title: _ar
+                      ? 'لا توجد عروض سريعة الآن.'
+                      : 'No active Flash Offers right now.',
+                  icon: Icons.local_offer_outlined,
                 ),
-              ),
-            ..._offers.map((offer) {
-              final remaining = offer.remainingAfter(_serverClock.elapsed);
-              final canBuy = offer.eligible &&
-                  offer.remainingAllocation > 0 &&
-                  offer.remainingCustomerLimit > 0 &&
-                  remaining > Duration.zero;
-              return Card(
-                margin: const EdgeInsets.only(bottom: 14),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (offer.imageUrl != null && offer.imageUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Image.network(
-                            offer.imageUrl!,
-                            height: 150,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                          ),
-                        ),
-                      const SizedBox(height: 10),
-                      Text(
-                        offer.title,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
+              ..._offers.map((offer) {
+                final remaining = offer.remainingAfter(_serverClock.elapsed);
+                final canBuy = offer.eligible &&
+                    offer.remainingAllocation > 0 &&
+                    offer.remainingCustomerLimit > 0 &&
+                    remaining > Duration.zero;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: CustomerUiSpacing.sm),
+                  child: CustomerAccountSurfaceCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (offer.imageUrl != null &&
+                            offer.imageUrl!.isNotEmpty)
+                          ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(CustomerUiRadii.md),
+                            child: Image.network(
+                              offer.imageUrl!,
+                              height: 150,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
                             ),
-                      ),
-                      if (offer.body.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(offer.body),
-                      ],
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Text(
-                            foodexMoneyText(offer.flashPrice, offer.currency),
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                ),
                           ),
-                          if (offer.normalPrice > offer.flashPrice) ...[
-                            const SizedBox(width: 10),
-                            Text(
-                              foodexMoneyText(offer.normalPrice, offer.currency),
-                              style: const TextStyle(
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                          ],
-                          const Spacer(),
-                          Text(_duration(remaining)),
-                        ],
-                      ),
-                      if (offer.sellingUnits.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<int>(
-                          initialValue: _selectedUnits[offer.id] ??
-                              offer.sellingUnits.first.id,
-                          decoration: InputDecoration(
-                            labelText: _ar ? 'وحدة البيع' : 'Selling unit',
-                          ),
-                          items: offer.sellingUnits
-                              .map(
-                                (unit) => DropdownMenuItem<int>(
-                                  value: unit.id,
-                                  child: Text(
-                                    unit.label.isEmpty
-                                        ? (_ar ? 'وحدة' : 'Unit')
-                                        : unit.label,
+                        const SizedBox(height: 10),
+                        Text(
+                          offer.title,
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
                                   ),
+                        ),
+                        if (offer.body.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(offer.body),
+                        ],
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Text(
+                              foodexMoneyText(offer.flashPrice, offer.currency),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                            if (offer.normalPrice > offer.flashPrice) ...[
+                              const SizedBox(width: 10),
+                              Text(
+                                foodexMoneyText(
+                                    offer.normalPrice, offer.currency),
+                                style: const TextStyle(
+                                  decoration: TextDecoration.lineThrough,
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: _busy
-                              ? null
-                              : (value) {
-                                  if (value == null) return;
-                                  setState(() => _selectedUnits[offer.id] = value);
-                                },
+                              ),
+                            ],
+                            const Spacer(),
+                            Text(_duration(remaining)),
+                          ],
+                        ),
+                        if (offer.sellingUnits.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int>(
+                            initialValue: _selectedUnits[offer.id] ??
+                                offer.sellingUnits.first.id,
+                            decoration: InputDecoration(
+                              labelText: _ar ? 'وحدة البيع' : 'Selling unit',
+                            ),
+                            items: offer.sellingUnits
+                                .map(
+                                  (unit) => DropdownMenuItem<int>(
+                                    value: unit.id,
+                                    child: Text(
+                                      unit.label.isEmpty
+                                          ? (_ar ? 'وحدة' : 'Unit')
+                                          : unit.label,
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: _busy
+                                ? null
+                                : (value) {
+                                    if (value == null) return;
+                                    setState(
+                                        () => _selectedUnits[offer.id] = value);
+                                  },
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          _ar
+                              ? 'المتبقي لك: ${offer.remainingCustomerLimit} · المتاح: ${offer.remainingAllocation}'
+                              : 'Your remaining limit: ${offer.remainingCustomerLimit} · Available: ${offer.remainingAllocation}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          key: ValueKey('flash-buy-now-${offer.id}'),
+                          onPressed:
+                              canBuy && !_busy ? () => _buyNow(offer) : null,
+                          child: Text(_ar ? 'اشترِ الآن' : 'BUY NOW'),
                         ),
                       ],
-                      const SizedBox(height: 8),
-                      Text(
-                        _ar
-                            ? 'المتبقي لك: ${offer.remainingCustomerLimit} · المتاح: ${offer.remainingAllocation}'
-                            : 'Your remaining limit: ${offer.remainingCustomerLimit} · Available: ${offer.remainingAllocation}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        key: ValueKey('flash-buy-now-${offer.id}'),
-                        onPressed: canBuy && !_busy ? () => _buyNow(offer) : null,
-                        child: Text(_ar ? 'اشترِ الآن' : 'BUY NOW'),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }),
-          ],
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
@@ -598,15 +620,32 @@ class _ActiveReservationBanner extends StatelessWidget {
   final VoidCallback onContinue;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: ListTile(
-          leading: const Icon(Icons.timer_outlined),
-          title: Text(isArabic ? 'لديك حجز عرض نشط' : 'Active Flash reservation'),
-          subtitle: Text(
-            '${isArabic ? 'الوقت المتبقي' : 'Time remaining'}: ${_duration(remaining)}',
-          ),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: onContinue,
+  Widget build(BuildContext context) => CustomerAccountSurfaceCard(
+        onTap: onContinue,
+        child: Row(
+          children: [
+            const Icon(
+              Icons.timer_outlined,
+              color: CustomerUiColors.deepGreen,
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isArabic ? 'لديك حجز عرض نشط' : 'Active Flash reservation',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    '${isArabic ? 'الوقت المتبقي' : 'Time remaining'}: ${_duration(remaining)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
         ),
       );
 }
@@ -637,8 +676,7 @@ class _CustomerFlashCheckoutScreenState
   bool _busy = true;
   bool _submitted = false;
   final Stopwatch _serverClock = Stopwatch();
-  late Duration _remaining =
-      widget.reservation.remainingAfter(Duration.zero);
+  late Duration _remaining = widget.reservation.remainingAfter(Duration.zero);
   Timer? _timer;
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
@@ -649,8 +687,7 @@ class _CustomerFlashCheckoutScreenState
     _serverClock.start();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      final next =
-          widget.reservation.remainingAfter(_serverClock.elapsed);
+      final next = widget.reservation.remainingAfter(_serverClock.elapsed);
       setState(() => _remaining = next);
       if (next == Duration.zero && !_submitted) {
         setState(() => _error =
@@ -689,13 +726,13 @@ class _CustomerFlashCheckoutScreenState
     final addressId = _addressId;
     final payment = _paymentMethod;
     if (_remaining == Duration.zero) {
-      setState(() => _error =
-          const RetailCommerceException('FLASH_RESERVATION_EXPIRED'));
+      setState(() =>
+          _error = const RetailCommerceException('FLASH_RESERVATION_EXPIRED'));
       return;
     }
     if (addressId == null || payment == null) {
-      setState(() => _error =
-          const RetailCommerceException('checkout_fields_required'));
+      setState(() =>
+          _error = const RetailCommerceException('checkout_fields_required'));
       return;
     }
 
@@ -744,93 +781,101 @@ class _CustomerFlashCheckoutScreenState
     final expired = _remaining == Duration.zero;
     return Scaffold(
       key: const ValueKey('customer-flash-checkout-screen'),
-      appBar: AppBar(
-        title: Text(_ar ? 'إتمام العرض السريع' : 'Flash checkout'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            _duration(_remaining),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _ar
-                ? 'يتم التحقق من الوقت والمخزون والأهلية مرة أخرى عند التأكيد.'
-                : 'Time, stock and eligibility are revalidated by the server at confirmation.',
-            textAlign: TextAlign.center,
-          ),
-          if (_busy) ...[
-            const SizedBox(height: 12),
-            const LinearProgressIndicator(),
-          ],
-          if (_error != null) ...[
-            const SizedBox(height: 12),
+      backgroundColor: CustomerUiColors.mint,
+      body: CustomerCurvedHeaderSurface(
+        header: CustomerAccountHeader(
+          title: _ar ? 'إتمام العرض السريع' : 'Flash checkout',
+          subtitle: _ar
+              ? 'راجع العنوان والدفع قبل تأكيد الحجز'
+              : 'Review delivery and payment before confirmation',
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
             Text(
-              expired
-                  ? (_ar ? 'انتهى الحجز.' : 'Reservation expired.')
-                  : (_ar ? 'تعذر إتمام العملية.' : 'Could not complete checkout.'),
+              _duration(_remaining),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
             ),
-          ],
-          if (options != null) ...[
-            const SizedBox(height: 20),
-            DropdownButtonFormField<int>(
-              initialValue: _addressId,
-              decoration: InputDecoration(
-                labelText: _ar ? 'عنوان التوصيل' : 'Delivery address',
+            const SizedBox(height: 8),
+            Text(
+              _ar
+                  ? 'يتم التحقق من الوقت والمخزون والأهلية مرة أخرى عند التأكيد.'
+                  : 'Time, stock and eligibility are revalidated by the server at confirmation.',
+              textAlign: TextAlign.center,
+            ),
+            if (_busy) ...[
+              const SizedBox(height: 12),
+              const LinearProgressIndicator(),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                expired
+                    ? (_ar ? 'انتهى الحجز.' : 'Reservation expired.')
+                    : (_ar
+                        ? 'تعذر إتمام العملية.'
+                        : 'Could not complete checkout.'),
               ),
-              items: options.addresses
-                  .map(
-                    (address) => DropdownMenuItem<int>(
-                      value: address.id,
-                      child: Text(
-                        [address.label, address.line1, address.city]
-                            .where((part) => part.trim().isNotEmpty)
-                            .join(' · '),
-                        overflow: TextOverflow.ellipsis,
+            ],
+            if (options != null) ...[
+              const SizedBox(height: 20),
+              DropdownButtonFormField<int>(
+                initialValue: _addressId,
+                decoration: InputDecoration(
+                  labelText: _ar ? 'عنوان التوصيل' : 'Delivery address',
+                ),
+                items: options.addresses
+                    .map(
+                      (address) => DropdownMenuItem<int>(
+                        value: address.id,
+                        child: Text(
+                          [address.label, address.line1, address.city]
+                              .where((part) => part.trim().isNotEmpty)
+                              .join(' · '),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: expired || _busy
-                  ? null
-                  : (value) => setState(() => _addressId = value),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _paymentMethod,
-              decoration: InputDecoration(
-                labelText: _ar ? 'طريقة الدفع' : 'Payment method',
+                    )
+                    .toList(growable: false),
+                onChanged: expired || _busy
+                    ? null
+                    : (value) => setState(() => _addressId = value),
               ),
-              items: options.paymentMethods
-                  .map(
-                    (method) => DropdownMenuItem<String>(
-                      value: method,
-                      child: Text(method),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: expired || _busy
-                  ? null
-                  : (value) => setState(() => _paymentMethod = value),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _paymentMethod,
+                decoration: InputDecoration(
+                  labelText: _ar ? 'طريقة الدفع' : 'Payment method',
+                ),
+                items: options.paymentMethods
+                    .map(
+                      (method) => DropdownMenuItem<String>(
+                        value: method,
+                        child: Text(method),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: expired || _busy
+                    ? null
+                    : (value) => setState(() => _paymentMethod = value),
+              ),
+            ],
+            const SizedBox(height: 20),
+            FilledButton(
+              key: const ValueKey('flash-confirm-order'),
+              onPressed: expired || _busy ? null : _confirm,
+              child: Text(_ar ? 'تأكيد الطلب' : 'Confirm order'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _busy ? null : _release,
+              child: Text(_ar ? 'إلغاء الحجز' : 'Release reservation'),
             ),
           ],
-          const SizedBox(height: 20),
-          FilledButton(
-            key: const ValueKey('flash-confirm-order'),
-            onPressed: expired || _busy ? null : _confirm,
-            child: Text(_ar ? 'تأكيد الطلب' : 'Confirm order'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: _busy ? null : _release,
-            child: Text(_ar ? 'إلغاء الحجز' : 'Release reservation'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -849,8 +894,9 @@ int _int(Object? value) =>
 List<Object?> _list(Object? value) =>
     value is List ? List<Object?>.from(value) : const <Object?>[];
 
-double _double(Object? value) =>
-    value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+double _double(Object? value) => value is num
+    ? value.toDouble()
+    : double.tryParse(value?.toString() ?? '') ?? 0;
 
 DateTime _date(Object? value) {
   final parsed = DateTime.tryParse(value?.toString() ?? '');
