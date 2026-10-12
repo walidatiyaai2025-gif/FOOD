@@ -25,6 +25,8 @@ jobs:
           cache: true
       - name: Canonically format Store Analytics screen
         run: dart format apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart
+      - name: Show canonical formatter diff
+        run: git diff -- apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart
       - name: Upload formatted screen
         uses: actions/upload-artifact@v4
         with:
