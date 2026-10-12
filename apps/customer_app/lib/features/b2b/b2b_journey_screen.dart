@@ -4338,9 +4338,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                   tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                   onPressed: () => Navigator.of(context).maybePop(),
                   icon: Icon(
-                    ar
-                        ? Icons.arrow_forward_rounded
-                        : Icons.arrow_back_rounded,
+                    ar ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
                     color: CustomerUiColors.white,
                   ),
                 ),
