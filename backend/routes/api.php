@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\RoutingPolicyController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\StorefrontController;
+use App\Http\Controllers\Api\V1\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TerritoryController;
 use App\Http\Controllers\Api\V1\TranslationController;
@@ -140,6 +141,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/invoices/{invoice}', [CustomerInvoiceController::class, 'show'])->whereNumber('invoice');
             Route::get('/notification-campaign-popups', [NotificationCampaignPopupController::class, 'index']);
             Route::get('/store-selector', [StorefrontController::class, 'selector']);
+        Route::get('/mobile/store-analytics', StoreAnalyticsController::class)
+            ->name('api.mobile.store-analytics');
             Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show'])->whereNumber('store');
         });
 
