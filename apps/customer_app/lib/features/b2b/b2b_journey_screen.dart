@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/api/customer_action_api.dart';
+import '../../core/api/store_analytics_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
@@ -20,6 +21,7 @@ import '../customer_account/customer_account_v3_widgets.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
+import 'business_dashboard_smart_analytics_launcher.dart';
 import 'dashboard_single_screen.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
@@ -796,6 +798,7 @@ class _B2bDashboardRemoteState extends StatefulWidget {
 class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     with WidgetsBindingObserver {
   late Future<Object?> _future;
+  late Future<StoreAnalyticsReadModel?> _analyticsFuture;
   bool _openingWholesale = false;
 
   @override
@@ -803,6 +806,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _future = _loadB2bRemote(widget.api, widget.endpoint);
+    _analyticsFuture = _loadStoreAnalytics();
   }
 
   @override
@@ -810,6 +814,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.api != widget.api || oldWidget.endpoint != widget.endpoint) {
       _future = _loadB2bRemote(widget.api, widget.endpoint);
+      _analyticsFuture = _loadStoreAnalytics();
     }
   }
 
@@ -830,6 +835,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     if (!mounted) return;
     setState(() {
       _future = _loadB2bRemote(widget.api, widget.endpoint);
+      _analyticsFuture = _loadStoreAnalytics();
     });
   }
 
@@ -856,6 +862,45 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   int? _positiveInt(Object? raw) {
     final value = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
     return value != null && value > 0 ? value : null;
+  }
+
+  int? get _retailStoreContextId {
+    final api = widget.api;
+    return api is HttpB2bApi ? api.retailStoreContextId : null;
+  }
+
+  Future<StoreAnalyticsReadModel?> _loadStoreAnalytics() async {
+    final retailStoreId = _retailStoreContextId;
+    if (retailStoreId == null || retailStoreId <= 0) return null;
+
+    final endpoint = Uri(
+      path: HttpStoreAnalyticsApi.endpoint,
+      queryParameters: <String, String>{
+        'retail_store_id': retailStoreId.toString(),
+      },
+    ).toString();
+
+    try {
+      final raw = await widget.api.get(endpoint);
+      if (raw is! Map) return null;
+      final envelope = Map<String, dynamic>.from(raw);
+      final nested = envelope['data'];
+      final payload =
+          nested is Map ? Map<String, dynamic>.from(nested) : envelope;
+      return StoreAnalyticsReadModel.fromJson(payload);
+    } catch (_) {
+      // Analytics decorates the dashboard. A transient analytics failure must
+      // not hide the authoritative B2B account dashboard.
+      return null;
+    }
+  }
+
+  void _openStoreAnalytics() {
+    final retailStoreId = _retailStoreContextId;
+    if (retailStoreId == null || retailStoreId <= 0) return;
+    Navigator.of(context).pushNamed(
+      CustomerRouteLocations.storeAnalytics(retailStoreId: retailStoreId),
+    );
   }
 
   Future<void> _openPrincipalWholesale() async {
@@ -1004,6 +1049,24 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     );
   }
 
+
+  Widget _dashboardIdentityImage(
+    Map<Object?, Object?> customer,
+    Map<Object?, Object?> account,
+    StoreAnalyticsReadModel? analytics,
+  ) {
+    if (_retailStoreContextId == null) {
+      return _ownerAvatar(customer, account);
+    }
+
+    final analyticsName = analytics?.store.name.trim() ?? '';
+    final companyName = account['company_name']?.toString().trim() ?? '';
+    return BusinessDashboardStoreLogo(
+      storeName: analyticsName.isNotEmpty ? analyticsName : companyName,
+      logoUrl: analytics?.store.logoUrl,
+    );
+  }
+
   Widget _hero(
     BuildContext context,
     Map<Object?, Object?> customer,
@@ -1013,6 +1076,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     Object? creditBalance,
     Object? purchaseValue,
     String currency,
+    StoreAnalyticsReadModel? analytics,
   ) =>
       Semantics(
         button: true,
@@ -1036,15 +1100,48 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                     textDirection: TextDirection.ltr,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ownerAvatar(customer, account),
+                      _dashboardIdentityImage(customer, account, analytics),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    context.tr('b2b.dashboard.title'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.start,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: CustomerUiColors.deepGreen,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                  ),
+                                ),
+                                if (_retailStoreContextId != null) ...[
+                                  const SizedBox(width: 4),
+                                  BusinessDashboardSmartAnalyticsLauncher(
+                                    semanticLabel: context.tr(
+                                      'b2b.store_analytics.accessibility.open',
+                                    ),
+                                    hasNewInsights:
+                                        analytics?.hasNewInsights ?? false,
+                                    onTap: _openStoreAnalytics,
+                                  ),
+                                ],
+                              ],
+                            ),
                             Text(
-                              account['company_name']?.toString() ?? '—',
-                              textAlign: TextAlign.right,
+                              analytics?.store.name ??
+                                  account['company_name']?.toString() ??
+                                  '—',
+                              textAlign: TextAlign.start,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context)
@@ -1059,7 +1156,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                             const SizedBox(height: 2),
                             Text(
                               customer['name']?.toString() ?? '—',
-                              textAlign: TextAlign.right,
+                              textAlign: TextAlign.start,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context)
@@ -1074,14 +1171,14 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                             if ((customer['email']?.toString() ?? '')
                                 .isNotEmpty)
                               Align(
-                                alignment: AlignmentDirectional.centerEnd,
+                                alignment: AlignmentDirectional.centerStart,
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  alignment: AlignmentDirectional.centerEnd,
+                                  alignment: AlignmentDirectional.centerStart,
                                   child: Text(
                                     customer['email'].toString(),
                                     textDirection: TextDirection.ltr,
-                                    textAlign: TextAlign.right,
+                                    textAlign: TextAlign.start,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall
@@ -1401,43 +1498,50 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
             ),
           ];
 
-          return DashboardSingleScreen(
-            hero: _hero(
-              context,
-              customer,
-              account,
-              generatedAt,
-              stale,
-              creditBalance,
-              purchaseValue,
-              currency,
-            ),
-            finance: DashboardPanel(
-              title: context.tr('b2b.dashboard.finance'),
-              icon: Icons.account_balance_outlined,
-              child: DashboardMetricGrid(
-                key: const ValueKey('b2b-dashboard-finance-grid'),
-                metrics: financeMetrics,
-              ),
-            ),
-            monthly: DashboardPanel(
-              title: context.tr('b2b.dashboard.monthly'),
-              icon: Icons.calendar_today_outlined,
-              child: DashboardMetricGrid(
-                columns: 1,
-                metrics: operationMetrics.take(2).toList(),
-              ),
-            ),
-            activity: DashboardPanel(
-              title: context.tr('b2b.dashboard.operations'),
-              icon: Icons.insights_rounded,
-              child: DashboardMetricGrid(
-                key: const ValueKey('b2b-dashboard-operations-grid'),
-                columns: 1,
-                metrics: operationMetrics.skip(2).toList(),
-              ),
-            ),
-            offers: _offers(context),
+          return FutureBuilder<StoreAnalyticsReadModel?>(
+            future: _analyticsFuture,
+            builder: (context, analyticsSnapshot) {
+              final analytics = analyticsSnapshot.data;
+              return DashboardSingleScreen(
+                hero: _hero(
+                  context,
+                  customer,
+                  account,
+                  generatedAt,
+                  stale,
+                  creditBalance,
+                  purchaseValue,
+                  currency,
+                  analytics,
+                ),
+                finance: DashboardPanel(
+                  title: context.tr('b2b.dashboard.finance'),
+                  icon: Icons.account_balance_outlined,
+                  child: DashboardMetricGrid(
+                    key: const ValueKey('b2b-dashboard-finance-grid'),
+                    metrics: financeMetrics,
+                  ),
+                ),
+                monthly: DashboardPanel(
+                  title: context.tr('b2b.dashboard.monthly'),
+                  icon: Icons.calendar_today_outlined,
+                  child: DashboardMetricGrid(
+                    columns: 1,
+                    metrics: operationMetrics.take(2).toList(),
+                  ),
+                ),
+                activity: DashboardPanel(
+                  title: context.tr('b2b.dashboard.operations'),
+                  icon: Icons.insights_rounded,
+                  child: DashboardMetricGrid(
+                    key: const ValueKey('b2b-dashboard-operations-grid'),
+                    columns: 1,
+                    metrics: operationMetrics.skip(2).toList(),
+                  ),
+                ),
+                offers: _offers(context),
+              );
+            },
           );
         },
       );
