@@ -638,12 +638,12 @@ class _RetailCatalogProductsScreenState
       TextEditingController(text: widget.initialQuery ?? '');
   late String? _query = _normalized(widget.initialQuery);
   late int? _categoryId = widget.categoryId;
+  _RetailSortOption _sortOption = _RetailSortOption.nameAsc;
   late Future<List<B2cProduct>> _future = _load();
   late Future<List<B2cCategory>> _categoriesFuture =
       widget.catalogApi.categories(widget.storeId);
   Timer? _searchDebounce;
   bool _typing = false;
-  _RetailSortOption _sortOption = _RetailSortOption.nameAsc;
 
   @override
   void initState() {
