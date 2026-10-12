@@ -114,31 +114,31 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          body: CustomerCurvedHeaderSurface(
-            header: CustomerAccountHeader(
-              title: content.$1,
-              subtitle: content.$2,
-              trailing: CustomerOutlineIconButton(
-                key: const ValueKey('b2b-dashboard-notifications'),
-                icon: Icons.notifications_none_rounded,
-                tooltip: context.tr('customer.nav.notifications'),
-                semanticLabel: context.tr('customer.nav.notifications'),
-                onPressed: () => Navigator.of(context).pushNamed(
-                  _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
-                ),
-              ),
+          appBar: AppBar(
+            title: Text(context.tr('b2b.app.title')),
+            centerTitle: true,
+            toolbarHeight: 48,
+            backgroundColor: CustomerUiColors.deepGreen,
+            foregroundColor: CustomerUiColors.white,
+            leading: IconButton(
+              key: const ValueKey('b2b-dashboard-notifications'),
+              tooltip: context.tr('customer.nav.notifications'),
+              onPressed: () => Navigator.of(
+                context,
+              ).pushNamed(_scopedB2bRoute(CustomerRoutePaths.b2bNotifications)),
+              icon: const Icon(Icons.notifications_none_rounded),
             ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                // The existing app-level version/logout footer overlays routes.
-                // Wholesale's persistent dock already reserves that space.
-                padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
-                child: _B2bDashboardRemoteState(
-                  api: api!,
-                  endpoint: _endpoint()!,
-                  storefrontApi: storefrontApi,
-                ),
+          ),
+          body: SafeArea(
+            top: false,
+            child: Padding(
+              // The existing app-level version/logout footer overlays routes.
+              // Wholesale's persistent dock already reserves that space.
+              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+              child: _B2bDashboardRemoteState(
+                api: api!,
+                endpoint: _endpoint()!,
+                storefrontApi: storefrontApi,
               ),
             ),
           ),
@@ -4287,6 +4287,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         backgroundColor: bg,
         body: CustomerCurvedHeaderSurface(
           header: CustomerAccountHeader(
+            key: const ValueKey('b2b-more-header-title'),
             title: context.tr('b2b.profile.title'),
             subtitle: context.tr('b2b.profile.hub_subtitle'),
             trailing: Row(
@@ -4311,6 +4312,17 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       dot: count != null && count > 0,
                     );
                   },
+                ),
+                const SizedBox(width: CustomerUiSpacing.xs),
+                CustomerOutlineIconButton(
+                  key: const ValueKey('b2b-more-back'),
+                  icon: ar
+                      ? Icons.arrow_forward_rounded
+                      : Icons.arrow_back_rounded,
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  semanticLabel:
+                      MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: () => Navigator.of(context).maybePop(),
                 ),
               ],
             ),
