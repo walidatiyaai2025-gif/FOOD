@@ -48,7 +48,7 @@ return [
         ],
         'official_seed' => [
             'title' => 'Official FOODEX seed',
-            'description' => 'The authoritative launch catalog seeder is installed and available.',
+            'description' => 'The authoritative launch catalog is installed and its completeness is attested for this exact release source.',
         ],
         'product_image_quality' => [
             'title' => 'Product image quality',
