@@ -17,7 +17,8 @@
         .correction{margin-top:24px;display:flex;gap:8px;flex-wrap:wrap}
         .correction input{min-width:320px;flex:1}
         a{text-decoration:none}
-        @media(max-width:640px){.wrap{padding:14px}.invoice-card{padding:16px}.correction input{min-width:100%}}
+        @media(max-width:640px){.wrap{padding:0}.invoice-card{padding:16px}.correction input{min-width:100%}}
+        @media print{body{padding:0!important;background:#fff!important}.sidebar,.foodex-mobile-web-bar,.foodex-mobile-nav-backdrop{display:none!important}.foodex-admin-layout{display:block!important}.foodex-admin-main{padding:0!important}.wrap{max-width:none!important;margin:0!important;padding:0!important}.invoice-card{box-shadow:none!important;border:0!important;padding:0!important}}
     </style>
 </head>
 <body>
@@ -56,7 +57,10 @@
         default => $isAr ? 'حالة الفاتورة' : 'Invoice status',
     };
 @endphp
-<div class="wrap">
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="invoice">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'order_operations', 'user' => auth()->user()])</aside>
+<main class="foodex-admin-main">
+<div class="wrap foodex-admin-page">
     <div style="margin-bottom:12px"><a href="javascript:history.back()">← {{ $isAr?'رجوع':'Back' }}</a></div>
     <section class="invoice-card foodex-card">
         <div class="head">
@@ -122,6 +126,8 @@
         </form>
         @endif
     </section>
+</div>
+</main>
 </div>
 @if(request()->boolean('print'))
 <script>window.addEventListener('load',()=>window.print());</script>
