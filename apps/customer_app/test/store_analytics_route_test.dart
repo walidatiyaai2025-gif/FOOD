@@ -12,7 +12,8 @@ void main() {
       );
 
   group('Store Analytics route contract', () {
-    test('uses explicit Retail merchant context without Wholesale store_id', () {
+    test('uses explicit Retail merchant context without Wholesale store_id',
+        () {
       expect(
         CustomerRouteLocations.storeAnalytics(),
         CustomerRoutePaths.b2bStoreAnalytics,
