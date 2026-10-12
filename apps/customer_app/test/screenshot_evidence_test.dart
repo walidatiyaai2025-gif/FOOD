@@ -705,12 +705,48 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
           name: 'صندوق طماطم طازج',
           sku: 'TOM-42',
           price: 3.25,
+          currency: 'KWD',
+          categoryId: 3,
         ),
         B2cProduct(
           id: 43,
           name: 'زيت زيتون عضوي',
           sku: 'OLV-43',
           price: 18.5,
+          currency: 'KWD',
+          categoryId: 4,
+        ),
+        B2cProduct(
+          id: 44,
+          name: 'قهوة عربية',
+          sku: 'COF-44',
+          price: 4.75,
+          currency: 'KWD',
+          categoryId: 4,
+        ),
+        B2cProduct(
+          id: 45,
+          name: 'أرز بسمتي',
+          sku: 'RIC-45',
+          price: 6.2,
+          currency: 'KWD',
+          categoryId: 4,
+        ),
+        B2cProduct(
+          id: 46,
+          name: 'خيار طازج',
+          sku: 'CUC-46',
+          price: 1.35,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 47,
+          name: 'فلفل ملون',
+          sku: 'PEP-47',
+          price: 2.1,
+          currency: 'KWD',
+          categoryId: 3,
         ),
       ];
 
@@ -724,7 +760,26 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
         name: 'صندوق طماطم طازج',
         sku: 'TOM-42',
         price: 3.25,
+        currency: 'KWD',
+        categoryId: 3,
+        availableQuantity: 240,
         description: 'منتج FOODEX تجريبي آمن لصور المنتج.',
+        sellingUnits: [
+          B2cSellingUnit(
+            id: 1,
+            code: 'PC',
+            name: 'قطعة',
+            conversionFactor: 1,
+            isBase: true,
+          ),
+          B2cSellingUnit(
+            id: 2,
+            code: 'BOX12',
+            name: 'عبوة 12',
+            conversionFactor: 12,
+            price: 36,
+          ),
+        ],
       );
 }
 
