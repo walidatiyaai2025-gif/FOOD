@@ -1069,8 +1069,8 @@ class _OrderCard extends StatelessWidget {
 
     return Material(
       key: ValueKey('customer-order-${order.id}'),
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      color: CustomerUiColors.white,
+      borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -1078,8 +1078,8 @@ class _OrderCard extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 108),
           padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            color: CustomerUiColors.white,
+            borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
             border: Border.all(color: CustomerUiColors.border),
             boxShadow: const [
               BoxShadow(
@@ -1142,20 +1142,15 @@ class _OrderCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      Directionality(
-                        textDirection: TextDirection.ltr,
-                        child: Text(
-                          store == null || store.isEmpty ? channel : store,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: CustomerUiColors.muted,
-                                    fontSize: 13.5,
-                                    height: 1.1,
-                                  ),
-                        ),
+                      Text(
+                        store == null || store.isEmpty ? channel : store,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.muted,
+                              fontSize: 13.5,
+                              height: 1.1,
+                            ),
                       ),
                       if (order.createdAt != null) ...[
                         const SizedBox(height: 6),
@@ -1191,7 +1186,11 @@ class _OrderCard extends StatelessWidget {
                       Directionality(
                         textDirection: TextDirection.ltr,
                         child: Text(
-                          foodexMoneyText(order.grandTotal, order.currency, currencyFirst: true),
+                          foodexMoneyText(
+                            order.grandTotal,
+                            order.currency,
+                            currencyFirst: true,
+                          ),
                           textAlign: TextAlign.left,
                           maxLines: 1,
                           style:
