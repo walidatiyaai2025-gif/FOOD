@@ -870,8 +870,7 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
               tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               semanticLabel:
                   MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: () =>
-                  unawaited(Navigator.of(context).maybePop()),
+              onPressed: () => unawaited(Navigator.of(context).maybePop()),
             ),
             const SizedBox(width: CustomerUiSpacing.sm),
             Expanded(
