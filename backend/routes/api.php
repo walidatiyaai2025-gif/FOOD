@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\RetailCheckoutOptionsController;
 use App\Http\Controllers\Api\V1\RetailWholesaleProductMappingController;
 use App\Http\Controllers\Api\V1\RoutingPolicyController;
 use App\Http\Controllers\Api\V1\SecurityController;
+use App\Http\Controllers\Api\V1\StoreAnalyticsController;
 use App\Http\Controllers\Api\V1\StorefrontController;
 use App\Http\Controllers\Api\V1\StorefrontRevisionController;
 use App\Http\Controllers\Api\V1\TerritoryController;
@@ -237,6 +238,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/admin/app-preview/storefront-revisions/{revision}/publish', [StorefrontRevisionController::class, 'publish'])->whereUuid('revision');
         Route::post('/admin/app-preview/storefront-revisions/{revision}/rollback', [StorefrontRevisionController::class, 'rollback'])->whereUuid('revision');
         Route::get('/store-selector', [StorefrontController::class, 'selector']);
+        Route::get('/mobile/store-analytics', StoreAnalyticsController::class)
+            ->name('api.mobile.store-analytics');
         Route::get('/b2b/stores/{store}/storefront', [StorefrontController::class, 'showWholesale']);
         Route::get('/b2b/checkout/options', [StorefrontController::class, 'b2bCheckoutOptions']);
         Route::get('/b2b/product-mappings', [RetailWholesaleProductMappingController::class, 'index']);

@@ -37,6 +37,8 @@ tags:
     description: Platform and mobile application version policy.
   - name: Mobile Runtime
     description: Customer and Driver runtime/store configuration without provider secrets.
+  - name: Store Analytics
+    description: Authenticated Retail merchant analytics sourced from authoritative B2C dashboard facts.
   - name: Push Devices
     description: Authenticated mobile push-device registration and revocation.
   - name: Management Reporting
@@ -572,6 +574,66 @@ paths:
           description: Logged out
         "401":
           $ref: "#/components/responses/Unauthenticated"
+
+  /mobile/store-analytics:
+    get:
+      tags: [Store Analytics]
+      summary: Get authoritative Store Analytics for an entitled Retail merchant
+      description: >
+        Returns deterministic Retail B2C analytics for the authenticated user's exact authorized
+        Retail store context. retail_store_id is the only explicit store selector for this endpoint;
+        the legacy Wholesale store_id query parameter is not used. When the user has exactly one
+        entitled Retail context the server resolves it automatically. Multi-store users must send
+        retail_store_id. Money is always reported as EGP.
+      operationId: getMobileStoreAnalytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: retail_store_id
+          required: false
+          description: Explicit authorized B2C Retail store context. Required when the user has multiple entitled Retail stores.
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: from
+          required: false
+          description: Inclusive local date in Asia/Kuwait. Defaults to six days before to.
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          required: false
+          description: Inclusive local date in Asia/Kuwait. Defaults to today. Maximum range is 31 days.
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: seen_insight_version
+          required: false
+          description: >
+            Last insight version rendered by the client. When it matches the current deterministic
+            version, has_new_insights is false and unread_count is zero without a server-side mutation.
+          schema:
+            type: string
+            pattern: '^[A-Fa-f0-9]{64}$'
+      responses:
+        "200":
+          description: Authorized Retail store analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileStoreAnalyticsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /profile:
     get:
@@ -2592,6 +2654,329 @@ components:
         pattern: '^[A-Za-z0-9._:-]+$'
 
   schemas:
+    MobileStoreAnalyticsResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/MobileStoreAnalytics"
+
+    MobileStoreAnalytics:
+      type: object
+      additionalProperties: false
+      required:
+        - store
+        - period
+        - previous_period
+        - metrics
+        - order_facts
+        - daily_series
+        - top_products
+        - peak_activity
+        - attention
+        - insights
+        - freshness
+        - insight_state
+        - data_state
+      properties:
+        store:
+          $ref: "#/components/schemas/MobileStoreAnalyticsStore"
+        period:
+          $ref: "#/components/schemas/MobileStoreAnalyticsPeriod"
+        previous_period:
+          $ref: "#/components/schemas/MobileStoreAnalyticsPeriod"
+        metrics:
+          type: object
+          additionalProperties: false
+          required: [revenue, orders, average_order_value]
+          properties:
+            revenue:
+              $ref: "#/components/schemas/MobileStoreAnalyticsMetric"
+            orders:
+              $ref: "#/components/schemas/MobileStoreAnalyticsMetric"
+            average_order_value:
+              $ref: "#/components/schemas/MobileStoreAnalyticsMetric"
+        order_facts:
+          type: object
+          additionalProperties: false
+          required: [completed, cancelled, late]
+          properties:
+            completed:
+              $ref: "#/components/schemas/MobileStoreAnalyticsCountFact"
+            cancelled:
+              $ref: "#/components/schemas/MobileStoreAnalyticsCountFact"
+            late:
+              type: object
+              additionalProperties: false
+              required: [supported, value, previous_value]
+              properties:
+                supported:
+                  type: boolean
+                  const: false
+                value:
+                  type: "null"
+                previous_value:
+                  type: "null"
+        daily_series:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [date, sales, orders]
+            properties:
+              date:
+                type: string
+                format: date
+              sales:
+                type: number
+              orders:
+                type: integer
+                minimum: 0
+        top_products:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required: [product_id, sku, name, units, revenue, contribution_percent, currency]
+            properties:
+              product_id:
+                type: integer
+                minimum: 1
+              sku:
+                type: string
+              name:
+                type: string
+              units:
+                type: number
+              revenue:
+                type: number
+              contribution_percent:
+                type: number
+                minimum: 0
+              currency:
+                type: string
+                const: EGP
+        peak_activity:
+          type: object
+          additionalProperties: false
+          required: [hourly, peak_window]
+          properties:
+            hourly:
+              type: array
+              minItems: 24
+              maxItems: 24
+              items:
+                type: object
+                additionalProperties: false
+                required: [hour, orders, sales]
+                properties:
+                  hour:
+                    type: integer
+                    minimum: 0
+                    maximum: 23
+                  orders:
+                    type: integer
+                    minimum: 0
+                  sales:
+                    type: number
+            peak_window:
+              oneOf:
+                - type: "null"
+                - type: object
+                  additionalProperties: false
+                  required: [start_hour, end_hour, window_hours, orders, sales, currency, source]
+                  properties:
+                    start_hour:
+                      type: integer
+                      minimum: 0
+                      maximum: 23
+                    end_hour:
+                      type: integer
+                      minimum: 0
+                      maximum: 23
+                    window_hours:
+                      type: integer
+                      const: 1
+                    orders:
+                      type: integer
+                      minimum: 1
+                    sales:
+                      type: number
+                    currency:
+                      type: string
+                      const: EGP
+                    source:
+                      type: string
+                      const: orders.created_at
+        attention:
+          type: object
+          additionalProperties: false
+          required: [low_stock, merchant_summary, merchant_attention]
+          properties:
+            low_stock:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            merchant_summary:
+              type: object
+              additionalProperties: true
+            merchant_attention:
+              type: array
+              maxItems: 5
+              items:
+                type: object
+                additionalProperties: false
+                required: [product_id, sku, name, available, days_of_cover, stock_risk, action, state, priority_score]
+                properties:
+                  product_id:
+                    type: integer
+                    minimum: 1
+                  sku:
+                    type: string
+                  name:
+                    type: string
+                  available:
+                    type: number
+                  days_of_cover:
+                    type: [number, "null"]
+                  stock_risk:
+                    type: string
+                  action:
+                    type: string
+                  state:
+                    type: string
+                  priority_score:
+                    type: number
+        insights:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, code, severity, priority, facts]
+            properties:
+              id:
+                type: string
+              code:
+                type: string
+              severity:
+                type: string
+                enum: [positive, neutral, warning]
+              priority:
+                type: integer
+              facts:
+                type: object
+                additionalProperties: true
+        freshness:
+          type: object
+          additionalProperties: false
+          required: [computed_at, source_updated_at, stale_after_seconds, is_stale, state]
+          properties:
+            computed_at:
+              type: string
+              format: date-time
+            source_updated_at:
+              type: [string, "null"]
+              format: date-time
+            stale_after_seconds:
+              type: integer
+              minimum: 1
+            is_stale:
+              type: boolean
+            state:
+              type: string
+              enum: [fresh, stale, no_data]
+        insight_state:
+          type: object
+          additionalProperties: false
+          required: [version, has_new_insights, unread_count, lifecycle]
+          properties:
+            version:
+              type: string
+              pattern: '^[a-f0-9]{64}$'
+            has_new_insights:
+              type: boolean
+            unread_count:
+              type: integer
+              minimum: 0
+            lifecycle:
+              type: object
+              additionalProperties: false
+              required: [mode, request_parameter, clear_when_seen_version_matches_current]
+              properties:
+                mode:
+                  type: string
+                  const: client_version_echo
+                request_parameter:
+                  type: string
+                  const: seen_insight_version
+                clear_when_seen_version_matches_current:
+                  type: boolean
+                  const: true
+        data_state:
+          type: string
+          enum: [ready, stale, no_data]
+
+    MobileStoreAnalyticsStore:
+      type: object
+      additionalProperties: false
+      required: [id, name, logo_url, currency]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        logo_url:
+          type: [string, "null"]
+          format: uri
+        currency:
+          type: string
+          const: EGP
+
+    MobileStoreAnalyticsPeriod:
+      type: object
+      additionalProperties: false
+      required: [from, to, days]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        days:
+          type: integer
+          minimum: 1
+          maximum: 31
+
+    MobileStoreAnalyticsMetric:
+      type: object
+      additionalProperties: false
+      required: [value, previous_value, delta_percent]
+      properties:
+        value:
+          type: number
+        previous_value:
+          type: number
+        delta_percent:
+          type: [number, "null"]
+
+    MobileStoreAnalyticsCountFact:
+      type: object
+      additionalProperties: false
+      required: [value, previous_value]
+      properties:
+        value:
+          type: integer
+          minimum: 0
+        previous_value:
+          type: integer
+          minimum: 0
+
     ApiVersion:
       type: object
       required: [version]
