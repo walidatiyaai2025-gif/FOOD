@@ -118,6 +118,15 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final mainScroll = find.byType(Scrollable).first;
+      final bestSellersTitle = find.text('الأكثر مبيعاً');
+      await tester.scrollUntilVisible(
+        bestSellersTitle,
+        120,
+        scrollable: mainScroll,
+      );
+      await tester.pumpAndSettle();
+      expect(bestSellersTitle, findsOneWidget);
+
       final bestGridFinder =
           find.byKey(const ValueKey('retail-best-sellers-grid'));
       await tester.scrollUntilVisible(
@@ -126,7 +135,6 @@ void main() {
         scrollable: mainScroll,
       );
       await tester.pumpAndSettle();
-      expect(find.text('الأكثر مبيعاً'), findsOneWidget);
       final bestGrid = tester.widget<GridView>(bestGridFinder);
       final bestDelegate =
           bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
@@ -203,6 +211,15 @@ void main() {
       await tester.pumpAndSettle();
 
       final mainScroll = find.byType(Scrollable).first;
+      final bestSellersTitle = find.text('Best Sellers');
+      await tester.scrollUntilVisible(
+        bestSellersTitle,
+        120,
+        scrollable: mainScroll,
+      );
+      await tester.pumpAndSettle();
+      expect(bestSellersTitle, findsOneWidget);
+
       final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
       await tester.scrollUntilVisible(
         bestGrid,
@@ -210,7 +227,6 @@ void main() {
         scrollable: mainScroll,
       );
       await tester.pumpAndSettle();
-      expect(find.text('Best Sellers'), findsOneWidget);
 
       final allGridFinder =
           find.byKey(const ValueKey('retail-all-products-grid'));
