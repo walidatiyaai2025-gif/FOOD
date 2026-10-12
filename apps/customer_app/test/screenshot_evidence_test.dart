@@ -196,18 +196,40 @@ void main() {
               session: item.session ?? const CustomerSession.guest(),
               initialRoute: item.route,
               b2bApi: const _EvidenceB2bApi(),
-              b2cCatalogApi: const _EvidenceCatalogApi(),
-              b2cAccountApi: const _EvidenceAccountApi(),
+              b2cCatalogApi: _EvidenceCatalogApi(localeCode),
+              b2cAccountApi: _EvidenceAccountApi(localeCode),
               actionApi: const _EvidenceActionApi(),
               storefrontApi: const _EvidenceStorefrontApi(),
               wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
-              customerOrdersApi: const _EvidenceOrdersApi(),
+              retailCommerceApi: _EvidenceRetailCommerceApi(localeCode),
+              customerOrdersApi: _EvidenceOrdersApi(localeCode),
               locale: locale,
             ),
           ),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 150));
+
+        if (item.route == '/cart?channel=retail&store_id=7' ||
+            item.route ==
+                '/checkout/address-payment?channel=retail&store_id=7') {
+          await tester.pumpAndSettle();
+        }
+
+        if (item.route == '/cart?channel=retail&store_id=7') {
+          expect(
+            find.byKey(const ValueKey('retail-cart-summary')),
+            findsOneWidget,
+          );
+        }
+
+        if (item.route ==
+            '/checkout/address-payment?channel=retail&store_id=7') {
+          expect(
+            find.byKey(const ValueKey('retail-checkout-progress')),
+            findsOneWidget,
+          );
+        }
 
         if (item.route == '/b2b/account-statement') {
           expect(
@@ -882,39 +904,48 @@ class _EvidenceB2bApi implements B2bApi {
 }
 
 class _EvidenceCatalogApi implements B2cCatalogApi {
-  const _EvidenceCatalogApi();
+  const _EvidenceCatalogApi([this.localeCode = 'ar']);
+
+  final String localeCode;
+
+  bool get _isEn => localeCode == 'en';
 
   @override
-  Future<List<B2cStore>> stores() async => const [
+  Future<List<B2cStore>> stores() async => [
         B2cStore(
           id: 7,
-          name: 'FOODEX Premium Demo Store',
+          name: _isEn ? 'FOODEX Premium Demo Store' : 'متجر FOODEX التجريبي',
           code: 'FOODEX-DEMO-B2C',
         ),
       ];
 
   @override
-  Future<List<B2cCategory>> categories(int storeId) async => const [
-        B2cCategory(id: 3, name: 'خضروات'),
-        B2cCategory(id: 4, name: 'بقالة'),
+  Future<List<B2cCategory>> categories(int storeId) async => [
+        B2cCategory(id: 3, name: _isEn ? 'Vegetables' : 'خضروات'),
+        B2cCategory(id: 4, name: _isEn ? 'Pantry' : 'بقالة'),
       ];
 
   @override
-  Future<List<B2cOffer>> offers(int storeId) async => const [
+  Future<List<B2cOffer>> offers(int storeId) async => [
         B2cOffer(
           id: 9,
-          name: 'عرض نهاية الأسبوع',
+          name: _isEn ? 'Weekend offer' : 'عرض نهاية الأسبوع',
           type: 'percentage',
           value: 10,
         ),
-        B2cOffer(id: 10, name: 'عرض FOODEX', type: 'fixed', value: 2),
+        B2cOffer(
+          id: 10,
+          name: _isEn ? 'FOODEX offer' : 'عرض FOODEX',
+          type: 'fixed',
+          value: 2,
+        ),
       ];
 
   @override
-  Future<List<B2cBanner>> banners(int storeId) async => const [
+  Future<List<B2cBanner>> banners(int storeId) async => [
         B2cBanner(
           id: 11,
-          title: 'عرض فودكس اليوم',
+          title: _isEn ? 'FOODEX offer today' : 'عرض فودكس اليوم',
           targetUrl: '/offers',
         ),
       ];
@@ -927,16 +958,16 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
     String? sort,
     String? direction,
   }) async =>
-      const [
+      [
         B2cProduct(
           id: 42,
-          name: 'صندوق طماطم طازج',
+          name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
           sku: 'TOM-42',
           price: 3.25,
         ),
         B2cProduct(
           id: 43,
-          name: 'زيت زيتون عضوي',
+          name: _isEn ? 'Organic olive oil' : 'زيت زيتون عضوي',
           sku: 'OLV-43',
           price: 18.5,
         ),
@@ -947,17 +978,23 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
     int productId, {
     required int storeId,
   }) async =>
-      const B2cProduct(
+      B2cProduct(
         id: 42,
-        name: 'صندوق طماطم طازج',
+        name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
         sku: 'TOM-42',
         price: 3.25,
-        description: 'منتج FOODEX تجريبي آمن لصور المنتج.',
+        description: _isEn
+            ? 'A safe FOODEX demo product for runtime evidence.'
+            : 'منتج FOODEX تجريبي آمن لصور المنتج.',
       );
 }
 
 class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
-  const _EvidenceAccountApi();
+  const _EvidenceAccountApi([this.localeCode = 'ar']);
+
+  final String localeCode;
+
+  bool get _isEn => localeCode == 'en';
 
   @override
   Future<Object?> cart({int? storeId}) async => {
@@ -967,7 +1004,10 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
         'items': [
           {
             'id': 5,
-            'product': {'id': 42, 'name': 'صندوق طماطم طازج'},
+            'product': {
+              'id': 42,
+              'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+            },
             'quantity': 2,
             'unit_price': 3.25,
             'line_total': 6.5,
@@ -990,7 +1030,7 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
         'status': 'out_for_delivery',
         'currency': 'KWD',
         'grand_total': 18.5,
-        'driver_name': 'ناصر · سائق FOODEX',
+        'driver_name': _isEn ? 'Nasser · FOODEX driver' : 'ناصر · سائق FOODEX',
       };
 
   @override
@@ -1008,7 +1048,7 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
 
   @override
   Future<Object?> profile() async => {
-        'name': 'عميل FOODEX التجريبي',
+        'name': _isEn ? 'FOODEX Demo Customer' : 'عميل FOODEX التجريبي',
         'email': 'customer@foodex.test',
         'phone': '+96555500000',
       };
@@ -1021,16 +1061,16 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
         'data': [
           {
             'id': 8,
-            'label': 'المنزل',
-            'line1': 'قطعة 1 شارع تجريبي',
-            'area': 'بيان',
-            'city': 'Kuwait City',
+            'label': _isEn ? 'Home' : 'المنزل',
+            'line1': _isEn ? 'Block 1, Demo Street' : 'قطعة 1 شارع تجريبي',
+            'area': _isEn ? 'Bayan' : 'بيان',
+            'city': _isEn ? 'Kuwait City' : 'مدينة الكويت',
             'country_code': 'KW',
             'latitude': 29.3031,
             'longitude': 48.0489,
             'location_accuracy_meters': 6.0,
             'location_source': 'map_pin',
-            'landmark': 'قرب الجمعية',
+            'landmark': _isEn ? 'Near the co-op' : 'قرب الجمعية',
             'is_default': true,
           }
         ],
@@ -1057,7 +1097,11 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
   @override
   Future<Object?> favorites() async => {
         'data': [
-          {'id': 42, 'name': 'صندوق طماطم طازج', 'sku': 'TOM-42'}
+          {
+            'id': 42,
+            'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
+            'sku': 'TOM-42',
+          }
         ],
       };
 
@@ -1072,7 +1116,7 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
         'data': [
           {
             'id': 42,
-            'name': 'صندوق طماطم طازج',
+            'name': _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
             'sku': 'TOM-42',
             'store_id': storeId,
             'price': 3.25,
@@ -1114,7 +1158,11 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
 }
 
 class _EvidenceOrdersApi implements CustomerOrdersApi {
-  const _EvidenceOrdersApi();
+  const _EvidenceOrdersApi([this.localeCode = 'ar']);
+
+  final String localeCode;
+
+  bool get _isEn => localeCode == 'en';
 
   CustomerOrderSummary _summary(
     int orderId, {
@@ -1124,8 +1172,9 @@ class _EvidenceOrdersApi implements CustomerOrdersApi {
         id: orderId,
         orderNumber: 'FOODEX-$orderId',
         storeId: channel == 'b2b' ? 70 : 7,
-        storeName:
-            channel == 'b2b' ? 'FOODEX Wholesale' : 'FOODEX Fresh Market',
+        storeName: channel == 'b2b'
+            ? (_isEn ? 'FOODEX Wholesale' : 'فوديكس جملة')
+            : (_isEn ? 'FOODEX Fresh Market' : 'سوق فوديكس الطازج'),
         storeLogoUrl: null,
         channel: channel,
         status: 'out_for_delivery',
@@ -1169,19 +1218,19 @@ class _EvidenceOrdersApi implements CustomerOrdersApi {
         discountTotal: 0,
         deliveryTotal: 2,
         paymentMethod: 'cash_on_delivery',
-        deliveryAddress: const {
-          'label': 'المنزل',
-          'line1': 'قطعة 1 شارع تجريبي',
-          'area': 'بيان',
-          'city': 'Kuwait City',
+        deliveryAddress: {
+          'label': _isEn ? 'Home' : 'المنزل',
+          'line1': _isEn ? 'Block 1, Demo Street' : 'قطعة 1 شارع تجريبي',
+          'area': _isEn ? 'Bayan' : 'بيان',
+          'city': _isEn ? 'Kuwait City' : 'مدينة الكويت',
           'country_code': 'KW',
         },
-        items: const [
+        items: [
           CustomerOrderItem(
             id: 1,
             productId: 42,
             sku: 'TOM-42',
-            name: 'صندوق طماطم طازج',
+            name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
             quantity: 2,
             unitPrice: 8.25,
             lineTotal: 16.5,
@@ -1199,7 +1248,7 @@ class _EvidenceOrdersApi implements CustomerOrdersApi {
             id: 2,
             fromStatus: 'preparing',
             toStatus: 'out_for_delivery',
-            note: 'FOODEX Driver assigned',
+            note: _isEn ? 'FOODEX driver assigned' : 'تم تعيين سائق FOODEX',
             createdAt: DateTime.utc(2026, 10, 1, 11),
           ),
         ],
@@ -1259,18 +1308,22 @@ class _EvidenceActionApi implements CustomerActionApi {
 }
 
 class _EvidenceRetailCommerceApi implements RetailCommerceApi {
-  const _EvidenceRetailCommerceApi();
+  const _EvidenceRetailCommerceApi([this.localeCode = 'ar']);
+
+  final String localeCode;
+
+  bool get _isEn => localeCode == 'en';
 
   @override
   Future<RetailCartSnapshot> loadCart({required int storeId}) async =>
       RetailCartSnapshot(
         storeId: storeId,
         currency: 'KWD',
-        items: const [
+        items: [
           RetailCartItem(
             id: 5,
             productId: 42,
-            name: 'FOODEX Fresh Tomatoes',
+            name: _isEn ? 'Fresh tomato box' : 'صندوق طماطم طازج',
             quantity: 2,
             lineTotal: 6.5,
             isAvailable: true,
@@ -1288,12 +1341,12 @@ class _EvidenceRetailCommerceApi implements RetailCommerceApi {
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) async =>
       RetailCheckoutOptions(
         storeId: storeId,
-        addresses: const [
+        addresses: [
           RetailCheckoutAddress(
             id: 81,
-            label: 'Home',
-            line1: 'FOODEX Street 1',
-            city: 'Kuwait City',
+            label: _isEn ? 'Home' : 'المنزل',
+            line1: _isEn ? 'FOODEX Street 1' : 'شارع FOODEX 1',
+            city: _isEn ? 'Kuwait City' : 'مدينة الكويت',
             isDefault: true,
           ),
         ],

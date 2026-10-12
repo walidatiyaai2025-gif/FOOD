@@ -333,7 +333,7 @@ jobs:
 
   required-ci-gate:
     name: required-ci-gate
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     needs:
       - changes
       - repository-policy

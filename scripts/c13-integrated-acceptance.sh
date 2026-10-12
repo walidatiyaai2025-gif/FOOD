@@ -24,6 +24,7 @@ footer="apps/customer_app/test/customer_b2b_footer_test.dart"
 marketplace="apps/customer_app/test/platform_marketplace_home_test.dart"
 profile_screen="apps/customer_app/lib/features/b2b/business_account_profile.dart"
 dashboard_orders="backend/tests/Feature/DashboardOrderManagementTest.php"
+manual_dispatch="backend/tests/Feature/OrderManualDispatchServiceTest.php"
 driver_lifecycle="backend/tests/Feature/DriverAssignmentLifecycleTest.php"
 driver_invoice="backend/tests/Feature/DriverInvoiceNotificationTest.php"
 driver_journey="apps/driver_app/test/driver_active_journey_test.dart"
@@ -99,17 +100,19 @@ require_text "$pricing" "test_wholesale_order_keeps_tier_and_price_snapshot_afte
 require_text "$navigation" "entry route renders the C13 business login without Marketplace bypass"
 require_text "$navigation" "successful C13 login lands on Screen 2 dashboard"
 require_text "$journey" "B2B dashboard Store icon resolves principal Wholesale and opens canonical home"
-require_text "$footer" "Wholesale footer has four destinations and active Shopping returns home"
+require_text "$footer" "Wholesale footer has four destinations and Shopping opens Wholesale home"
 require_text "$marketplace" "signed-in marketplace keeps store switcher open and management routes follow origin store"
 require_text "$marketplace" "stale owned Retail context is rejected by marketplace header and footer"
 require_text "$profile_screen" "Wholesale / Retail"
 
-# Customer-Service approval is mandatory before Driver fulfillment, and rejection must reverse settlement once.
+# Customer-Service remains authoritative for B2B approval/dispatch. After the Van cutover,
+# B2B fulfillment is Van-only and must never fall back to Driver assignment.
 require_text "$dashboard_orders" "test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity"
 require_text "$dashboard_orders" "test_b2b_rejection_reverses_checkout_settlement_once_without_touching_manual_ledger"
-require_text "$driver_lifecycle" "test_pending_b2b_order_cannot_be_assigned_before_customer_service_approval"
+require_text "$manual_dispatch" "test_customer_service_can_assign_b2b_van_idempotently_initialize_execution_state_and_clear"
+require_text "$driver_lifecycle" "test_b2b_order_cannot_be_assigned_to_driver_after_van_cutover"
 
-# Driver must receive the authoritative invoice/payment/collection contract after approval.
+# Historical Driver invoice/payment/collection contracts remain auditable after the Van cutover.
 require_text "$driver_invoice" "test_assigned_driver_receives_safe_invoice_and_note_timeline_only_for_own_assignment"
 require_text "$driver_invoice" "test_checkout_settlement_snapshot_controls_driver_collection_instruction"
 require_text "$driver_journey" "new detail preserves assigned invoice access"
@@ -124,8 +127,8 @@ require_text "$driver_diagnostics" "central inspector keeps offline Driver failu
 
 # Exact integrated visual matrix: 13 B2B screens, both AR/RTL and EN/LTR, fixed phone viewport.
 test -f "$screenshots" || fail "C13 screenshot evidence matrix is missing"
-c13_screenshot_count="$(grep -c '01_Mobile/B2B_Customer/' "$screenshots")"
-[[ "$c13_screenshot_count" -eq 13 ]] || fail "C13 screenshot matrix must contain exactly 13 B2B capture cases (found $c13_screenshot_count)"
+c13_screenshot_count="$(grep -Ec '01_Mobile/B2B_Customer/(0[1-9]|1[0-3])_' "$screenshots")"
+[[ "$c13_screenshot_count" -eq 13 ]] || fail "C13 screenshot matrix must contain exactly the 13 canonical B2B capture cases (found $c13_screenshot_count)"
 require_text "$screenshots" "for (final locale in const [Locale('ar'), Locale('en')])"
 require_text "$screenshots" "tester.view.physicalSize = const Size(430, 932)"
 
