@@ -1140,16 +1140,9 @@ String _commerceErrorText(_RetailCommerceStrings strings, Object error) {
       'authentication_required' => strings.authRequired,
       'checkout_fields_required' => strings.completeCheckoutFields,
       'checkout_in_progress' => strings.checkoutInProgress,
-      'network_unavailable' ||
-      'network_retry' ||
-      'offline' =>
-        strings.offline,
-      'payment_failed' ||
-      'payment_declined' =>
-        strings.paymentFailed,
-      'payment_cancelled' ||
-      'payment_canceled' =>
-        strings.paymentCancelled,
+      'network_unavailable' || 'network_retry' || 'offline' => strings.offline,
+      'payment_failed' || 'payment_declined' => strings.paymentFailed,
+      'payment_cancelled' || 'payment_canceled' => strings.paymentCancelled,
       'cart_store_mismatch' ||
       'checkout_store_mismatch' =>
         strings.storeContextError,
@@ -1312,7 +1305,8 @@ class _RetailCommerceStrings {
     discount: 'Discount',
     tax: 'Tax',
     orderSuccess: 'Order confirmed',
-    orderSuccessMessage: 'Your order was created successfully and is ready to track.',
+    orderSuccessMessage:
+        'Your order was created successfully and is ready to track.',
     orderReference: 'Order number',
     trackOrder: 'Track order',
     continueShopping: 'Continue shopping',
@@ -1329,7 +1323,8 @@ class _RetailCommerceStrings {
     requestFailed: 'Request failed',
     retry: 'Retry',
     offline: 'You are offline. Check your connection and try again.',
-    paymentFailed: 'Payment could not be completed. Try again or choose another payment method.',
+    paymentFailed:
+        'Payment could not be completed. Try again or choose another payment method.',
     paymentCancelled: 'Payment was cancelled. You can safely try again.',
     cashOnDelivery: 'Cash on delivery',
     card: 'Card',
