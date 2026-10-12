@@ -10,6 +10,7 @@ import 'package:foodex_customer_app/features/customer_orders/customer_order_scre
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 import 'package:foodex_customer_app/shared/customer_ui_v3/customer_ui_v3.dart';
 
+// Regression coverage for the Customer VNext orders and tracking surface.
 void main() {
   testWidgets(
     'orders loading keeps independent V3 skeleton state per channel',
