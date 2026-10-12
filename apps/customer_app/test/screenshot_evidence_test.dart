@@ -16,6 +16,8 @@ import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_order_models.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
+import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
+import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_screens.dart';
 
 const _b2b = CustomerSession.authenticated(
   CustomerChannel.b2b,
@@ -139,6 +141,113 @@ void main() {
         });
       });
     }
+
+    testWidgets('capture retail order success $localeCode', (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: boundaryKey,
+          child: MaterialApp(
+            locale: locale,
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            home: Directionality(
+              textDirection:
+                  localeCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+              child: RetailCheckoutScreen(
+                storeId: 7,
+                api: const _EvidenceRetailCommerceApi(),
+                onTrackOrder: (_, __) {},
+                onContinueShopping: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('retail-checkout-submit')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-order-success')),
+        findsOneWidget,
+      );
+
+      await tester.runAsync(() async {
+        final boundary = boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 1);
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File(
+          '../../ScreenShots/01_Mobile/B2C_Customer/20_تأكيد_نجاح_الطلب__populated__$localeCode.png',
+        );
+        file.parent.createSync(recursive: true);
+        file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+        expect(file.lengthSync(), greaterThan(1000));
+      });
+    });
+
+    testWidgets('capture wholesale order success $localeCode', (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: boundaryKey,
+          child: FoodexCustomerApp(
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            session: _b2b,
+            initialRoute: '/b2b/checkout?store_id=70',
+            storefrontApi: const _EvidenceStorefrontApi(),
+            wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
+            b2bApi: const _EvidenceB2bApi(),
+            locale: locale,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('b2b-checkout-submit')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('b2b-checkout-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-order-success')),
+        findsOneWidget,
+      );
+
+      await tester.runAsync(() async {
+        final boundary = boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 1);
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File(
+          '../../ScreenShots/01_Mobile/B2B_Customer/14_تأكيد_نجاح_الطلب__populated__$localeCode.png',
+        );
+        file.parent.createSync(recursive: true);
+        file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+        expect(file.lengthSync(), greaterThan(1000));
+      });
+    });
 
     testWidgets('capture My Addresses edit with location $localeCode', (tester) async {
       tester.view.physicalSize = const Size(430, 932);
@@ -1002,9 +1111,114 @@ class _EvidenceActionApi implements CustomerActionApi {
 
   @override
   Future<Object?> checkout({required int addressId, int? storeId, String? paymentMethod, String? couponCode, required String idempotencyKey}) async =>
-      {'id': 101, 'status': 'confirmed'};
+      {
+        'id': 101,
+        'order_number': 'FDX-EVIDENCE-101',
+        'display_order_number': '#101',
+        'store_id': storeId ?? 7,
+        'status': 'confirmed',
+        'currency': 'KWD',
+        'subtotal': 6.5,
+        'discount_total': 0.5,
+        'delivery_total': 0.75,
+        'tax_total': 0.25,
+        'grand_total': 7.0,
+        'payment_method': paymentMethod ?? 'cash_on_delivery',
+        'payment': {'status': 'pending'},
+        'items': [
+          {'id': 5}
+        ],
+      };
 }
 
+
+class _EvidenceRetailCommerceApi implements RetailCommerceApi {
+  const _EvidenceRetailCommerceApi();
+
+  @override
+  Future<RetailCartSnapshot> loadCart({required int storeId}) async =>
+      RetailCartSnapshot(
+        storeId: storeId,
+        currency: 'KWD',
+        items: const [
+          RetailCartItem(
+            id: 5,
+            productId: 42,
+            name: 'FOODEX Fresh Tomatoes',
+            quantity: 2,
+            lineTotal: 6.5,
+            isAvailable: true,
+          ),
+        ],
+        subtotal: 6.5,
+        discountTotal: .5,
+        deliveryTotal: .75,
+        taxTotal: .25,
+        grandTotal: 7,
+        hasUnavailableItems: false,
+      );
+
+  @override
+  Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) async =>
+      RetailCheckoutOptions(
+        storeId: storeId,
+        addresses: const [
+          RetailCheckoutAddress(
+            id: 81,
+            label: 'Home',
+            line1: 'FOODEX Street 1',
+            city: 'Kuwait City',
+            isDefault: true,
+          ),
+        ],
+        paymentMethods: const ['cash_on_delivery', 'knet'],
+      );
+
+  @override
+  Future<RetailCreatedOrder> submitCheckout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      RetailCreatedOrder(
+        id: 101,
+        storeId: storeId,
+        orderNumber: 'FDX-EVIDENCE-101',
+        displayOrderNumber: '#101',
+        currency: 'KWD',
+        subtotal: 6.5,
+        discountTotal: .5,
+        deliveryTotal: .75,
+        taxTotal: .25,
+        grandTotal: 7,
+        paymentMethod: paymentMethod,
+        paymentStatus: 'pending',
+        itemCount: 1,
+      );
+
+  @override
+  Future<RetailCartSnapshot> mergeGuestCartAfterAuthentication({
+    required int storeId,
+  }) =>
+      loadCart(storeId: storeId);
+
+  @override
+  Future<RetailCartSnapshot> removeItem({
+    required int storeId,
+    required int itemId,
+  }) =>
+      loadCart(storeId: storeId);
+
+  @override
+  Future<RetailCartSnapshot> updateQuantity({
+    required int storeId,
+    required int itemId,
+    required double quantity,
+  }) =>
+      loadCart(storeId: storeId);
+}
 
 class _EvidenceStorefrontApi implements StorefrontApi {
   const _EvidenceStorefrontApi();
