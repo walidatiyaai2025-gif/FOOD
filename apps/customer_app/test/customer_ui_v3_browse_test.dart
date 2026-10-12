@@ -378,16 +378,6 @@ void main() {
       );
       expect(find.text('Carton'), findsOneWidget);
       expect(find.text('× 12'), findsOneWidget);
-      final relatedGrid =
-          find.byKey(const ValueKey('retail-product-related-grid'));
-      await tester.dragUntilVisible(
-        relatedGrid,
-        find.byKey(const ValueKey('retail-product-scroll')),
-        const Offset(0, -300),
-      );
-      expect(relatedGrid, findsOneWidget);
-      expect(find.byType(CustomerProductCard), findsNWidgets(2));
-
       final secondImage = find.byKey(const ValueKey('retail-product-image-1'));
       await tester.ensureVisible(secondImage);
       await tester.tap(secondImage);
@@ -397,6 +387,16 @@ void main() {
         find.byKey(const ValueKey('retail-product-gallery-main')),
       );
       expect(mainImage.imageUrl, 'https://foodex.test/coffee-2.jpg');
+
+      final relatedGrid =
+          find.byKey(const ValueKey('retail-product-related-grid'));
+      await tester.dragUntilVisible(
+        relatedGrid,
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, -300),
+      );
+      expect(relatedGrid, findsOneWidget);
+      expect(find.byType(CustomerProductCard), findsNWidgets(2));
       expect(tester.takeException(), isNull);
     },
   );
