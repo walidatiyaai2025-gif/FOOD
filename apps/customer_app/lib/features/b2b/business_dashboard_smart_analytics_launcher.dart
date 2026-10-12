@@ -260,7 +260,8 @@ class BusinessDashboardStoreLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalizedUrl = logoUrl?.trim() ?? '';
-    final provider = imageProvider ??
+    final provider =
+        imageProvider ??
         (normalizedUrl.isEmpty ? null : NetworkImage(normalizedUrl));
     if (provider == null) return _fallback();
 

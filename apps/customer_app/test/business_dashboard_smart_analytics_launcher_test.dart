@@ -9,28 +9,27 @@ Widget _app({
   required String label,
   required VoidCallback onTap,
   double width = 390,
-}) =>
-    MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(
-          size: Size(width, 800),
-          disableAnimations: reducedMotion,
-        ),
-        child: Directionality(
-          textDirection: direction,
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: BusinessDashboardSmartAnalyticsLauncher(
-                semanticLabel: label,
-                hasNewInsights: hasNewInsights,
-                onTap: onTap,
-              ),
-            ),
+}) => MaterialApp(
+  home: MediaQuery(
+    data: MediaQueryData(
+      size: Size(width, 800),
+      disableAnimations: reducedMotion,
+    ),
+    child: Directionality(
+      textDirection: direction,
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: BusinessDashboardSmartAnalyticsLauncher(
+            semanticLabel: label,
+            hasNewInsights: hasNewInsights,
+            onTap: onTap,
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   testWidgets(
@@ -48,27 +47,18 @@ void main() {
       );
 
       final target = tester.getSize(
-        find.byKey(
-          const ValueKey('business-smart-analytics-launcher-target'),
-        ),
+        find.byKey(const ValueKey('business-smart-analytics-launcher-target')),
       );
       expect(target.width, greaterThanOrEqualTo(44));
       expect(target.height, greaterThanOrEqualTo(44));
       expect(
-        find.byKey(
-          const ValueKey('business-smart-analytics-launcher-badge'),
-        ),
+        find.byKey(const ValueKey('business-smart-analytics-launcher-badge')),
         findsOneWidget,
       );
-      expect(
-        find.bySemanticsLabel('Smart Store Analytics'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('Smart Store Analytics'), findsOneWidget);
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('business-smart-analytics-launcher'),
-        ),
+        find.byKey(const ValueKey('business-smart-analytics-launcher')),
       );
       expect(taps, 1);
 
@@ -82,15 +72,10 @@ void main() {
         ),
       );
       expect(
-        find.byKey(
-          const ValueKey('business-smart-analytics-launcher-badge'),
-        ),
+        find.byKey(const ValueKey('business-smart-analytics-launcher-badge')),
         findsNothing,
       );
-      expect(
-        find.bySemanticsLabel('التحليل الذكي للمتجر'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('التحليل الذكي للمتجر'), findsOneWidget);
     },
   );
 
@@ -99,9 +84,7 @@ void main() {
     (tester) async {
       double scale() {
         final widget = tester.widget<Transform>(
-          find.byKey(
-            const ValueKey('business-smart-analytics-launcher-pulse'),
-          ),
+          find.byKey(const ValueKey('business-smart-analytics-launcher-pulse')),
         );
         return widget.transform.getMaxScaleOnAxis();
       }
