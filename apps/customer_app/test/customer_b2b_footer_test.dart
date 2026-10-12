@@ -42,7 +42,13 @@ void main() {
         ),
       );
 
-      for (final destination in ['home', 'products', 'orders', 'invoices', 'account']) {
+      for (final destination in [
+        'home',
+        'products',
+        'orders',
+        'invoices',
+        'account',
+      ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
           findsOneWidget,
@@ -101,7 +107,13 @@ void main() {
         ),
       );
 
-      for (final destination in ['home', 'products', 'orders', 'invoices', 'account']) {
+      for (final destination in [
+        'home',
+        'products',
+        'orders',
+        'invoices',
+        'account',
+      ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
           findsOneWidget,
@@ -171,10 +183,11 @@ void main() {
           findsOneWidget,
         );
         for (final destination in [
+          'home',
           'products',
           'orders',
           'invoices',
-          'account'
+          'account',
         ]) {
           expect(
             find.byKey(ValueKey('customer-footer-$destination')),
@@ -183,7 +196,7 @@ void main() {
         }
         expect(
           find.byKey(const ValueKey('customer-footer-home')),
-          findsNothing,
+          findsOneWidget,
         );
         expect(
           tester
