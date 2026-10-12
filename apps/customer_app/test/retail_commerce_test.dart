@@ -68,7 +68,6 @@ void main() {
     expect(options.paymentMethods, ['cash_on_delivery', 'knet']);
   });
 
-
   test(
     'authenticated merge hydrates persisted guest token and retires it once',
     () async {
@@ -105,7 +104,8 @@ void main() {
     },
   );
 
-  test('idempotency key is reused after retry and changes with payload', () async {
+  test('idempotency key is reused after retry and changes with payload',
+      () async {
     final api = _FakeRetailCommerceApi();
     var generated = 0;
     final guard = RetailCheckoutSubmissionGuard(
@@ -200,7 +200,8 @@ void main() {
     expect(find.byKey(const ValueKey('retail-cart-summary')), findsOneWidget);
   });
 
-  testWidgets('cart refreshes authoritative snapshot on resume', (tester) async {
+  testWidgets('cart refreshes authoritative snapshot on resume',
+      (tester) async {
     final api = _FakeRetailCommerceApi();
 
     await tester.pumpWidget(
@@ -225,7 +226,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('cart V3 fits narrow RTL layout with larger text', (tester) async {
+  testWidgets('cart V3 fits narrow RTL layout with larger text',
+      (tester) async {
     final api = _FakeRetailCommerceApi();
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -265,7 +267,8 @@ void main() {
     );
   });
 
-  testWidgets('guest auth handoff preserves store and merges once', (tester) async {
+  testWidgets('guest auth handoff preserves store and merges once',
+      (tester) async {
     final guestApi = _FakeRetailCommerceApi();
     final authenticatedApi = _FakeRetailCommerceApi();
     int? checkoutStore;
@@ -578,9 +581,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('checkout surfaces payment decline as a recoverable payment state',
+  testWidgets(
+      'checkout surfaces payment decline as a recoverable payment state',
       (tester) async {
-    final api = _FakeRetailCommerceApi()..checkoutErrorCode = 'payment_declined';
+    final api = _FakeRetailCommerceApi()
+      ..checkoutErrorCode = 'payment_declined';
 
     await tester.pumpWidget(
       MaterialApp(
@@ -779,8 +784,9 @@ class _RecordingB2cAccountApi implements B2cAccountApi {
   Future<Object?> cart({int? storeId}) async {
     cartCalls++;
     lastStoreId = storeId;
-    guestTokenSeen =
-        storeId == null ? guestSession.token : guestSession.tokenForStore(storeId);
+    guestTokenSeen = storeId == null
+        ? guestSession.token
+        : guestSession.tokenForStore(storeId);
     return {
       'store_id': storeId,
       'currency': 'KWD',
@@ -810,4 +816,3 @@ class _NoopCheckoutOptionsApi implements RetailCheckoutOptionsApi {
     throw UnimplementedError();
   }
 }
-
