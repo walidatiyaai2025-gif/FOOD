@@ -24,7 +24,8 @@ class CustomerFavoritesScreen extends StatefulWidget {
   final ValueChanged<int>? onOpenProduct;
 
   @override
-  State<CustomerFavoritesScreen> createState() => _CustomerFavoritesScreenState();
+  State<CustomerFavoritesScreen> createState() =>
+      _CustomerFavoritesScreenState();
 }
 
 class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
@@ -107,7 +108,9 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                     key: const ValueKey('customer-favorites-error'),
                     child: CustomerStateView(
                       kind: CustomerStateKind.error,
-                      title: context.tr(customerAccountErrorKey(snapshot.error)),
+                      title: context.tr(
+                        customerAccountErrorKey(snapshot.error),
+                      ),
                       actionLabel: context.tr('customer.action.retry'),
                       onAction: _reload,
                     ),
@@ -172,7 +175,8 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
 
                         final card = CustomerProductCard(
                           key: ValueKey(
-                            'customer-favorite-' + (id?.toString() ?? 'unknown'),
+                            'customer-favorite-' +
+                                (id?.toString() ?? 'unknown'),
                           ),
                           title: name,
                           priceLabel: _priceLabel(price, currency),
@@ -200,7 +204,9 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
                                 ),
                                 icon: Icons.favorite_rounded,
                                 selected: true,
-                                tooltip: context.tr('customer.addresses.delete'),
+                                tooltip: context.tr(
+                                  'customer.addresses.delete',
+                                ),
                                 semanticLabel:
                                     context.tr('customer.profile.favorites'),
                                 onPressed: () => _remove(id),
