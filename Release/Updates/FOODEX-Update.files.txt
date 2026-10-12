@@ -17,6 +17,7 @@ backend/app/Domain/Assistant/Business/AssistantBusinessTool.php
 backend/app/Domain/Assistant/Business/AssistantBusinessToolSet.php
 backend/app/Domain/Assistant/Contracts/AssistantBrainInterface.php
 backend/app/Domain/Assistant/Contracts/AssistantToolInterface.php
+backend/app/Domain/Assistant/Conversation/ConversationBasics.php
 backend/app/Domain/Assistant/Conversation/DeterministicBrain.php
 backend/app/Domain/Assistant/Conversation/DialogueStateResolver.php
 backend/app/Domain/Assistant/Conversation/EntityExtractor.php
@@ -59,6 +60,7 @@ backend/app/Http/Controllers/Admin/CouponManagementController.php
 backend/app/Http/Controllers/Admin/Customer360Controller.php
 backend/app/Http/Controllers/Admin/DriverLiveTrackingDashboardController.php
 backend/app/Http/Controllers/Admin/FieldOperationsController.php
+backend/app/Http/Controllers/Admin/FoodexResetController.php
 backend/app/Http/Controllers/Admin/InvoiceController.php
 backend/app/Http/Controllers/Admin/LiveAdController.php
 backend/app/Http/Controllers/Admin/LookupManagementController.php
@@ -66,6 +68,7 @@ backend/app/Http/Controllers/Admin/MobileAppDownloadController.php
 backend/app/Http/Controllers/Admin/MobileSettingsController.php
 backend/app/Http/Controllers/Admin/NotificationController.php
 backend/app/Http/Controllers/Admin/OrderOperationsController.php
+backend/app/Http/Controllers/Admin/ProductionLaunchController.php
 backend/app/Http/Controllers/Admin/PromotionalNotificationCampaignController.php
 backend/app/Http/Controllers/Admin/ReportController.php
 backend/app/Http/Controllers/Admin/RetailStoreProvisioningController.php
@@ -116,6 +119,7 @@ backend/app/Http/Controllers/Api/V1/RetailCheckoutOptionsController.php
 backend/app/Http/Controllers/Api/V1/RetailWholesaleProductMappingController.php
 backend/app/Http/Controllers/Api/V1/RoutingPolicyController.php
 backend/app/Http/Controllers/Api/V1/SecurityController.php
+backend/app/Http/Controllers/Api/V1/StoreAnalyticsController.php
 backend/app/Http/Controllers/Api/V1/StorefrontController.php
 backend/app/Http/Controllers/Api/V1/StorefrontRevisionController.php
 backend/app/Http/Controllers/Api/V1/TerritoryController.php
@@ -242,12 +246,15 @@ backend/app/Services/FlashOfferAudienceService.php
 backend/app/Services/FlashOfferNotificationDispatcher.php
 backend/app/Services/FlashOfferService.php
 backend/app/Services/FleetLocationService.php
+backend/app/Services/FoodexResetService.php
 backend/app/Services/FulfillmentActorPolicy.php
 backend/app/Services/InvoiceService.php
+backend/app/Services/LaunchCatalog.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
 backend/app/Services/MarketingImageService.php
 backend/app/Services/MobileReleaseArtifactMirror.php
+backend/app/Services/MobileStoreAnalyticsService.php
 backend/app/Services/NotificationAudience.php
 backend/app/Services/NotificationCampaignDispatcher.php
 backend/app/Services/OperationalLookupService.php
@@ -261,6 +268,8 @@ backend/app/Services/OrderTerritoryRoutingService.php
 backend/app/Services/PdfDocumentFactory.php
 backend/app/Services/PlatformCustomerService.php
 backend/app/Services/ProductAvailabilityService.php
+backend/app/Services/ProductSkuGenerator.php
+backend/app/Services/ProductionLaunchPreflight.php
 backend/app/Services/PushDeliveryService.php
 backend/app/Services/RbacManager.php
 backend/app/Services/ReportExportService.php
@@ -527,6 +536,7 @@ backend/config/app_preview.php
 backend/config/assistant.php
 backend/config/driver_location.php
 backend/config/foodex.php
+backend/config/foodex_reset.php
 backend/config/permissions.php
 backend/config/sms.php
 backend/config/ui_translations.php
@@ -598,9 +608,14 @@ backend/database/migrations/2026_10_11_160000_add_product_low_stock_threshold.ph
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
 backend/database/seeders/FieldOperationsScreenshotEvidenceSeeder.php
+backend/database/seeders/FoodexCustomerVNextFixtureSeeder.php
+backend/database/seeders/FoodexLaunchCatalogSeeder.php
+backend/database/seeders/FoodexLaunchSeeder.php
 backend/database/seeders/ProductDemoSeeder.php
 backend/database/seeders/RefreshTimeSensitiveVisualEvidenceSeeder.php
 backend/database/seeders/ScreenshotEvidenceSeeder.php
+backend/database/seeders/fixtures/foodex-customer-vnext-baseline.json
+backend/database/seeders/fixtures/foodex-launch-catalog.php
 backend/lang/ar/admin.php
 backend/lang/ar/admin_login.php
 backend/lang/ar/app_versions.php
@@ -608,11 +623,13 @@ backend/lang/ar/commercial.php
 backend/lang/ar/coupons.php
 backend/lang/ar/customer_360.php
 backend/lang/ar/field_operations.php
+backend/lang/ar/foodex_reset.php
 backend/lang/ar/live_ads.php
 backend/lang/ar/mobile_settings.php
 backend/lang/ar/notifications.php
 backend/lang/ar/order_operations.php
 backend/lang/ar/pagination.php
+backend/lang/ar/production_launch.php
 backend/lang/ar/reports.php
 backend/lang/ar/sms.php
 backend/lang/ar/van_finance_support.php
@@ -623,11 +640,13 @@ backend/lang/en/commercial.php
 backend/lang/en/coupons.php
 backend/lang/en/customer_360.php
 backend/lang/en/field_operations.php
+backend/lang/en/foodex_reset.php
 backend/lang/en/live_ads.php
 backend/lang/en/mobile_settings.php
 backend/lang/en/notifications.php
 backend/lang/en/order_operations.php
 backend/lang/en/pagination.php
+backend/lang/en/production_launch.php
 backend/lang/en/reports.php
 backend/lang/en/sms.php
 backend/lang/en/van_finance_support.php
@@ -778,6 +797,7 @@ backend/resources/views/admin/driver-live-tracking.blade.php
 backend/resources/views/admin/field-operations.blade.php
 backend/resources/views/admin/flash-offer-analytics.blade.php
 backend/resources/views/admin/flash-offer-preview.blade.php
+backend/resources/views/admin/foodex-reset.blade.php
 backend/resources/views/admin/invoice.blade.php
 backend/resources/views/admin/live-ads.blade.php
 backend/resources/views/admin/login.blade.php
@@ -786,6 +806,7 @@ backend/resources/views/admin/mobile-settings.blade.php
 backend/resources/views/admin/notification-campaigns.blade.php
 backend/resources/views/admin/notifications.blade.php
 backend/resources/views/admin/order-operations.blade.php
+backend/resources/views/admin/production-launch.blade.php
 backend/resources/views/admin/profile.blade.php
 backend/resources/views/admin/reports.blade.php
 backend/resources/views/admin/retail-stores.blade.php
