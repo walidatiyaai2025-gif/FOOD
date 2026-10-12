@@ -307,7 +307,8 @@ void main() {
       expect(route.path, CustomerRoutePaths.b2bStoreAnalytics);
       expect(route.queryParameters, <String, String>{'retail_store_id': '22'});
 
-      Navigator.of(tester.element(find.text('Destination'))).pop();
+      tester.state<NavigatorState>(find.byType(Navigator)).pop();
+      await tester.pump(const Duration(milliseconds: 350));
       await _pumpRemote(tester);
       expect(
         api.paths.any(
