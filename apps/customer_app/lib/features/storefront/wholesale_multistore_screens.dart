@@ -23,6 +23,7 @@ import '../../core/routing/customer_pending_action.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
+import '../checkout/customer_checkout_vnext_components.dart';
 import 'storefront_design_system.dart';
 
 class WholesaleHomeDesignScreen extends StatefulWidget {
@@ -3735,26 +3736,12 @@ class _CartLine extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _MiniStep(
-                      key: ValueKey('b2b-cart-minus-$itemId'),
-                      icon: Icons.remove,
-                      onTap: onMinus,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 9),
-                      child: Text(
-                        compactNumber(quantity),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    _MiniStep(
-                      key: ValueKey('b2b-cart-plus-$itemId'),
-                      icon: Icons.add,
-                      onTap: onPlus,
-                    ),
-                  ],
+                CustomerQuantityStepper(
+                  valueText: compactNumber(quantity),
+                  decreaseKey: ValueKey('b2b-cart-minus-$itemId'),
+                  increaseKey: ValueKey('b2b-cart-plus-$itemId'),
+                  onDecrease: onMinus,
+                  onIncrease: onPlus,
                 ),
               ],
             ),
@@ -3763,24 +3750,6 @@ class _CartLine extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MiniStep extends StatelessWidget {
-  const _MiniStep({required this.icon, required this.onTap, super.key});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Color(0xFFF1F8F4),
-        borderRadius: BorderRadius.circular(9),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(9),
-          child: SizedBox(width: 32, height: 32, child: Icon(icon, size: 17)),
-        ),
-      );
 }
 
 class _CartTotalPanel extends StatelessWidget {
@@ -3806,103 +3775,59 @@ class _CartTotalPanel extends StatelessWidget {
     final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF006736),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          _CartMoneyRow(
-            label: context.tr('b2b.cart.subtotal'),
-            value: money(subtotal, currency: currency),
-          ),
-          if (doubleValue(discount, 0) > 0)
-            _CartMoneyRow(
-              label: context.tr('b2b.cart.discount'),
-              value: '- ' + money(discount, currency: currency),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomerCheckoutTotalsCard(
+          key: const ValueKey('b2b-cart-totals'),
+          rows: [
+            CustomerCheckoutTotalRow(
+              label: context.tr('b2b.cart.subtotal'),
+              value: money(subtotal, currency: currency),
             ),
-          if (delivery != null)
-            _CartMoneyRow(
-              label: context.tr('b2b.cart.delivery'),
-              value: money(delivery, currency: currency),
-            ),
-          if (tax != null)
-            _CartMoneyRow(
-              label: context.tr('b2b.cart.tax'),
-              value: money(tax, currency: currency),
-            ),
-          const Divider(color: Colors.white24, height: 18),
-          _CartMoneyRow(
-            label: context.tr('b2b.cart.total'),
-            value: money(total, currency: currency),
-            strong: true,
-          ),
-          const SizedBox(height: 9),
-          Text(
-            context.tr('b2b.cart.revalidation'),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 13),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              key: const ValueKey('b2b-cart-checkout'),
-              onPressed: enabled ? onCheckout : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF006736),
+            if (doubleValue(discount, 0) > 0)
+              CustomerCheckoutTotalRow(
+                label: context.tr('b2b.cart.discount'),
+                value: '- ' + money(discount, currency: currency),
               ),
-              child: Text(context.tr('b2b.action.checkout')),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CartMoneyRow extends StatelessWidget {
-  const _CartMoneyRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: strong ? Colors.white : Colors.white70,
-                  fontWeight: strong ? FontWeight.w800 : FontWeight.w500,
-                ),
+            if (delivery != null)
+              CustomerCheckoutTotalRow(
+                label: context.tr('b2b.cart.delivery'),
+                value: money(delivery, currency: currency),
               ),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: strong ? 20 : 13,
-                fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+            if (tax != null)
+              CustomerCheckoutTotalRow(
+                label: context.tr('b2b.cart.tax'),
+                value: money(tax, currency: currency),
               ),
+            CustomerCheckoutTotalRow(
+              label: context.tr('b2b.cart.total'),
+              value: money(total, currency: currency),
+              emphasized: true,
             ),
           ],
         ),
-      );
+        const SizedBox(height: 9),
+        Text(
+          context.tr('b2b.cart.revalidation'),
+          style: const TextStyle(
+            color: Color(0xFF6B7785),
+            fontSize: 10,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 13),
+        SizedBox(
+          height: 52,
+          child: FilledButton(
+            key: const ValueKey('b2b-cart-checkout'),
+            onPressed: enabled ? onCheckout : null,
+            child: Text(context.tr('b2b.action.checkout')),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class WholesaleCheckoutDesignScreen extends StatefulWidget {
@@ -3931,6 +3856,7 @@ class _WholesaleCheckoutDesignScreenState
   String? deliveryDate;
   String? paymentMethod;
   bool submitting = false;
+  Map<String, dynamic>? createdOrder;
   final note = TextEditingController();
   final coupon = TextEditingController();
 
@@ -4023,9 +3949,15 @@ class _WholesaleCheckoutDesignScreenState
       );
       if (!mounted) return;
       final orderId = result is Map ? intValue(result['id']) : 0;
-      Navigator.of(context).pushReplacementNamed(
-        orderId > 0 ? '/b2b/orders/' + orderId.toString() : '/b2b/orders',
-      );
+      if (result is! Map || orderId <= 0) {
+        throw const WholesaleCommerceException(
+          'Checkout completed without a valid order reference.',
+        );
+      }
+      setState(() {
+        createdOrder = Map<String, dynamic>.from(result);
+        submitting = false;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() => submitting = false);
@@ -4045,6 +3977,93 @@ class _WholesaleCheckoutDesignScreenState
             child: FutureBuilder<_CheckoutPayload>(
               future: future,
               builder: (context, snapshot) {
+                final success = createdOrder;
+                if (success != null) {
+                  final ar =
+                      Localizations.localeOf(context).languageCode == 'ar';
+                  final orderId = intValue(success['id']);
+                  final currency =
+                      success['currency']?.toString().trim().isNotEmpty == true
+                          ? success['currency'].toString()
+                          : 'KWD';
+                  final reference = success['order_number']
+                              ?.toString()
+                              .trim()
+                              .isNotEmpty ==
+                          true
+                      ? success['order_number'].toString().trim()
+                      : (success['display_order_number']
+                                  ?.toString()
+                                  .trim()
+                                  .isNotEmpty ==
+                              true
+                          ? success['display_order_number'].toString().trim()
+                          : '#$orderId');
+                  final subtotal = doubleValue(success['subtotal'], 0);
+                  final discount = doubleValue(success['discount_total'], 0);
+                  final delivery = doubleValue(success['delivery_total'], 0);
+                  final tax = doubleValue(success['tax_total'], 0);
+                  final total = doubleValue(success['grand_total'], 0);
+
+                  return CustomerOrderSuccessPanel(
+                    title: ar ? 'تم تأكيد طلبك' : 'Order confirmed',
+                    message: ar
+                        ? 'تم إنشاء الطلب بنجاح ويمكنك متابعة حالته الآن.'
+                        : 'Your order was created successfully and is ready to track.',
+                    orderReferenceLabel: ar ? 'رقم الطلب' : 'Order number',
+                    orderReference: reference,
+                    trackLabel: ar ? 'تتبع الطلب' : 'Track order',
+                    continueLabel: ar ? 'متابعة التسوق' : 'Continue shopping',
+                    onTrack: () => Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: '/b2b/orders/$orderId',
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                        },
+                      ).toString(),
+                    ),
+                    onContinue: () =>
+                        Navigator.of(context).pushReplacementNamed(
+                      Uri(
+                        path: CustomerRoutePaths.b2bProducts,
+                        queryParameters: <String, String>{
+                          'channel': 'wholesale',
+                          'store_id': storeId.toString(),
+                        },
+                      ).toString(),
+                    ),
+                    summary: CustomerCheckoutTotalsCard(
+                      rows: [
+                        CustomerCheckoutTotalRow(
+                          label: ar ? 'الإجمالي الفرعي' : 'Subtotal',
+                          value: foodexMoneyText(subtotal, currency),
+                        ),
+                        if (discount > 0)
+                          CustomerCheckoutTotalRow(
+                            label: ar ? 'الخصم' : 'Discount',
+                            value: '-${foodexMoneyText(discount, currency)}',
+                          ),
+                        if (delivery > 0)
+                          CustomerCheckoutTotalRow(
+                            label: ar ? 'التوصيل' : 'Delivery',
+                            value: foodexMoneyText(delivery, currency),
+                          ),
+                        if (tax > 0)
+                          CustomerCheckoutTotalRow(
+                            label: ar ? 'الضريبة' : 'Tax',
+                            value: foodexMoneyText(tax, currency),
+                          ),
+                        CustomerCheckoutTotalRow(
+                          label: ar ? 'الإجمالي' : 'Total',
+                          value: foodexMoneyText(total, currency),
+                          emphasized: true,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const FoodexLoading(
                       key: ValueKey('b2b-checkout-loading'));
@@ -4133,7 +4152,27 @@ class _WholesaleCheckoutDesignScreenState
                   children: [
                     FoodexTopBar(title: context.tr('b2b.checkout.title')),
                     const SizedBox(height: 8),
-                    const _CheckoutStepper(),
+                    CustomerCheckoutProgress(
+                      key: const ValueKey('b2b-checkout-progress'),
+                      steps: [
+                        CustomerCheckoutStep(
+                          label: context.tr('b2b.checkout.address'),
+                          icon: Icons.location_on_outlined,
+                        ),
+                        CustomerCheckoutStep(
+                          label: context.tr('b2b.checkout.delivery_date'),
+                          icon: Icons.local_shipping_outlined,
+                        ),
+                        CustomerCheckoutStep(
+                          label: context.tr('b2b.checkout.payment_method'),
+                          icon: Icons.payments_outlined,
+                        ),
+                        CustomerCheckoutStep(
+                          label: context.tr('b2b.checkout.review'),
+                          icon: Icons.fact_check_outlined,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 14),
                     _CheckoutFinanceCard(data: data),
                     const SizedBox(height: 14),
@@ -4616,71 +4655,6 @@ class _SummaryRow extends StatelessWidget {
             ),
           ],
         ),
-      );
-}
-
-class _CheckoutStepper extends StatelessWidget {
-  const _CheckoutStepper();
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Expanded(
-            child: _StepDot(
-              number: '1',
-              label: context.tr('b2b.checkout.selected_address'),
-              active: true,
-            ),
-          ),
-          const Expanded(child: Divider(color: Color(0xFF92D853))),
-          Expanded(
-            child: _StepDot(
-              number: '2',
-              label: context.tr('b2b.checkout.selected_delivery'),
-              active: true,
-            ),
-          ),
-          const Expanded(child: Divider(color: Color(0xFF92D853))),
-          Expanded(
-            child: _StepDot(
-              number: '3',
-              label: context.tr('b2b.checkout.selected_payment'),
-              active: false,
-            ),
-          ),
-        ],
-      );
-}
-
-class _StepDot extends StatelessWidget {
-  const _StepDot({
-    required this.number,
-    required this.label,
-    required this.active,
-  });
-
-  final String number;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor:
-                active ? Color(0xFF078A43) : const Color(0xFFE7E3EA),
-            child: Text(
-              number,
-              style: TextStyle(
-                color: active ? Colors.white : Color(0xFF6B7785),
-                fontSize: 11,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 9)),
-        ],
       );
 }
 
