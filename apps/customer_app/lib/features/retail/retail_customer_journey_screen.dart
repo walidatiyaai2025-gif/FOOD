@@ -61,8 +61,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
   final CustomerLocationService locationService;
   final CustomerMapPinPicker mapPinPicker;
 
-  CustomerSession get _currentSession =>
-      currentSession?.call() ?? session;
+  CustomerSession get _currentSession => currentSession?.call() ?? session;
 
   CustomerCommerceContext? get _context {
     final parsed = CustomerCommerceContext.tryParseLocation(location);
@@ -91,8 +90,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
             path: CustomerRoutePaths.products,
             queryParameters: <String, String>{
               ...commerceContext.toQueryParameters(),
-              if (query != null && query.trim().isNotEmpty)
-                'q': query.trim(),
+              if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
               if (categoryId != null) 'category_id': '$categoryId',
             },
           ).toString(),
@@ -281,9 +279,14 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
                 CustomerRouteLocations.retailAddresses(commerceContext),
               );
             },
-            onOrderCreated: (orderId, _) {
+            onTrackOrder: (orderId, _) {
               Navigator.of(context).pushReplacementNamed(
                 _orderTrackingLocation(orderId, commerceContext),
+              );
+            },
+            onContinueShopping: () {
+              Navigator.of(context).pushReplacementNamed(
+                CustomerRouteLocations.retailHome(commerceContext),
               );
             },
           ),

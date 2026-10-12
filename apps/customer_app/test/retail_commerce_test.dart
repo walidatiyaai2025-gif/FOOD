@@ -68,7 +68,6 @@ void main() {
     expect(options.paymentMethods, ['cash_on_delivery', 'knet']);
   });
 
-
   test(
     'authenticated merge hydrates persisted guest token and retires it once',
     () async {
@@ -105,7 +104,8 @@ void main() {
     },
   );
 
-  test('idempotency key is reused after retry and changes with payload', () async {
+  test('idempotency key is reused after retry and changes with payload',
+      () async {
     final api = _FakeRetailCommerceApi();
     var generated = 0;
     final guard = RetailCheckoutSubmissionGuard(
@@ -200,7 +200,8 @@ void main() {
     expect(find.byKey(const ValueKey('retail-cart-summary')), findsOneWidget);
   });
 
-  testWidgets('cart refreshes authoritative snapshot on resume', (tester) async {
+  testWidgets('cart refreshes authoritative snapshot on resume',
+      (tester) async {
     final api = _FakeRetailCommerceApi();
 
     await tester.pumpWidget(
@@ -225,7 +226,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('cart V3 fits narrow RTL layout with larger text', (tester) async {
+  testWidgets('cart V3 fits narrow RTL layout with larger text',
+      (tester) async {
     final api = _FakeRetailCommerceApi();
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -265,7 +267,8 @@ void main() {
     );
   });
 
-  testWidgets('guest auth handoff preserves store and merges once', (tester) async {
+  testWidgets('guest auth handoff preserves store and merges once',
+      (tester) async {
     final guestApi = _FakeRetailCommerceApi();
     final authenticatedApi = _FakeRetailCommerceApi();
     int? checkoutStore;
@@ -364,6 +367,8 @@ void main() {
     final api = _FakeRetailCommerceApi();
     int? createdOrder;
     int? createdStore;
+    int? trackedOrder;
+    var continueCalls = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -375,6 +380,8 @@ void main() {
             createdOrder = orderId;
             createdStore = storeId;
           },
+          onTrackOrder: (orderId, _) => trackedOrder = orderId,
+          onContinueShopping: () => continueCalls++,
         ),
       ),
     );
@@ -394,14 +401,248 @@ void main() {
     );
     expect(find.text('Cash on delivery'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('retail-checkout-progress')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-checkout-review')),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.byKey(const ValueKey('retail-checkout-submit')));
+    final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(api.lastSubmitStore, 7);
     expect(api.lastPaymentMethod, 'cash_on_delivery');
     expect(createdOrder, 101);
     expect(createdStore, 7);
+    expect(
+      find.byKey(const ValueKey('retail-order-success-screen')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-order-success')),
+      findsOneWidget,
+    );
+    expect(find.text('FDX-TEST-101'), findsOneWidget);
+
+    final trackOrder =
+        find.byKey(const ValueKey('customer-order-success-track'));
+    await tester.scrollUntilVisible(
+      trackOrder,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(trackOrder);
+    await tester.pump();
+    expect(trackedOrder, 101);
+
+    final continueShopping =
+        find.byKey(const ValueKey('customer-order-success-continue'));
+    await tester.scrollUntilVisible(
+      continueShopping,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(continueShopping);
+    await tester.pump();
+    expect(continueCalls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('created order preserves authoritative checkout summary', () {
+    final order = RetailCreatedOrder.fromPayload(
+      <String, dynamic>{
+        'id': 909,
+        'store_id': 7,
+        'order_number': 'FDX-20261012-REAL909',
+        'display_order_number': '#909',
+        'currency': 'KWD',
+        'subtotal': 12.5,
+        'discount_total': 1.25,
+        'delivery_total': 0.75,
+        'tax_total': 0.25,
+        'grand_total': 12.25,
+        'payment_method': 'knet',
+        'payment': <String, dynamic>{'status': 'pending'},
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 1},
+          <String, dynamic>{'id': 2},
+        ],
+      },
+      expectedStoreId: 7,
+    );
+
+    expect(order.reference, 'FDX-20261012-REAL909');
+    expect(order.grandTotal, 12.25);
+    expect(order.discountTotal, 1.25);
+    expect(order.deliveryTotal, .75);
+    expect(order.taxTotal, .25);
+    expect(order.paymentMethod, 'knet');
+    expect(order.paymentStatus, 'pending');
+    expect(order.itemCount, 2);
+  });
+  testWidgets(
+    'checkout VNext stays usable on small standard and large AR EN layouts',
+    (tester) async {
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      for (final locale in const [Locale('ar'), Locale('en')]) {
+        for (final size in const [
+          Size(320, 700),
+          Size(430, 932),
+          Size(1024, 900),
+        ]) {
+          tester.view.physicalSize = size;
+          tester.view.devicePixelRatio = 1;
+
+          await tester.pumpWidget(
+            MaterialApp(
+              locale: locale,
+              home: Directionality(
+                textDirection: locale.languageCode == 'ar'
+                    ? TextDirection.rtl
+                    : TextDirection.ltr,
+                child: RetailCheckoutScreen(
+                  storeId: 7,
+                  api: _FakeRetailCommerceApi(),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('retail-checkout-progress')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('retail-checkout-review')),
+            findsOneWidget,
+          );
+          final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+          await tester.scrollUntilVisible(
+            submit,
+            300,
+            scrollable: find.byType(Scrollable).first,
+          );
+          expect(submit, findsOneWidget);
+          expect(tester.takeException(), isNull);
+
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pump();
+        }
+      }
+    },
+  );
+
+  testWidgets('checkout exposes offline retry and recovers without duplication',
+      (tester) async {
+    final api = _FakeRetailCommerceApi()..checkoutFailures = 1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCheckoutScreen(
+          storeId: 7,
+          api: api,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('You are offline. Check your connection and try again.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-commerce-retry')),
+      findsOneWidget,
+    );
+
+    final retry = find.byKey(const ValueKey('retail-commerce-retry'));
+    await tester.ensureVisible(retry);
+    await tester.pumpAndSettle();
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('retail-commerce-retry')),
+      findsNothing,
+    );
+
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(api.submitCalls, 2);
+    expect(
+      find.byKey(const ValueKey('customer-order-success')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'checkout surfaces payment decline as a recoverable payment state',
+      (tester) async {
+    final api = _FakeRetailCommerceApi()
+      ..checkoutErrorCode = 'payment_declined';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailCheckoutScreen(
+          storeId: 7,
+          api: api,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Payment could not be completed. Try again or choose another payment method.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-commerce-retry')),
+      findsOneWidget,
+    );
   });
 }
 
@@ -415,6 +656,7 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   int? lastSubmitStore;
   String? lastPaymentMethod;
   int checkoutFailures = 0;
+  String? checkoutErrorCode;
   Completer<RetailCreatedOrder>? checkoutCompleter;
   Completer<RetailCartSnapshot>? cartCompleter;
   final List<String> idempotencyKeys = <String>[];
@@ -498,10 +740,29 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
       checkoutFailures--;
       throw const RetailCommerceException('network_retry');
     }
+    final explicitError = checkoutErrorCode;
+    if (explicitError != null) {
+      checkoutErrorCode = null;
+      throw RetailCommerceException(explicitError);
+    }
     if (checkoutCompleter != null) {
       return checkoutCompleter!.future;
     }
-    return RetailCreatedOrder(id: 101, storeId: storeId);
+    return RetailCreatedOrder(
+      id: 101,
+      storeId: storeId,
+      orderNumber: 'FDX-TEST-101',
+      displayOrderNumber: '#101',
+      currency: 'KWD',
+      subtotal: 1.25,
+      discountTotal: .10,
+      deliveryTotal: .25,
+      taxTotal: .10,
+      grandTotal: 1.50,
+      paymentMethod: paymentMethod,
+      paymentStatus: 'pending',
+      itemCount: 1,
+    );
   }
 
   @override
@@ -553,8 +814,9 @@ class _RecordingB2cAccountApi implements B2cAccountApi {
   Future<Object?> cart({int? storeId}) async {
     cartCalls++;
     lastStoreId = storeId;
-    guestTokenSeen =
-        storeId == null ? guestSession.token : guestSession.tokenForStore(storeId);
+    guestTokenSeen = storeId == null
+        ? guestSession.token
+        : guestSession.tokenForStore(storeId);
     return {
       'store_id': storeId,
       'currency': 'KWD',
@@ -584,4 +846,3 @@ class _NoopCheckoutOptionsApi implements RetailCheckoutOptionsApi {
     throw UnimplementedError();
   }
 }
-

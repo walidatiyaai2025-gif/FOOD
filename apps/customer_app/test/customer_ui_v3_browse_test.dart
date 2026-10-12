@@ -57,7 +57,8 @@ void main() {
 
       expect(find.byType(CustomerSearchPill), findsOneWidget);
       expect(find.byType(CustomerProductCard), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-products-grid')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-products-grid')), findsOneWidget);
       expect(api.lastStoreId, 19);
       expect(api.lastCategoryId, 3);
 
@@ -249,6 +250,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, -360),
+      );
+      await tester.pumpAndSettle();
 
       expect(
         find.byKey(const ValueKey('retail-product-out-of-stock')),
@@ -267,6 +273,138 @@ void main() {
     },
   );
 
+  testWidgets(
+    'VNext browse keeps three columns and covers typing suggestions filters sort and no-results',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final api = _InteractiveBrowseApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCatalogProductsScreen(
+            storeId: 19,
+            catalogApi: api,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final grid = tester.widget<GridView>(
+        find.byKey(const ValueKey('retail-products-grid')),
+      );
+      final delegate =
+          grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(delegate.crossAxisCount, 3);
+
+      final searchField = find.descendant(
+        of: find.byKey(const ValueKey('retail-products-search')),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(searchField, 'co');
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('retail-products-typing')),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(api.lastQuery, 'co');
+      expect(
+        find.byKey(const ValueKey('retail-products-suggestions')),
+        findsOneWidget,
+      );
+
+      final teaCategory =
+          find.byKey(const ValueKey('retail-products-category-4'));
+      await tester.dragUntilVisible(
+        teaCategory,
+        find.byKey(const ValueKey('retail-products-category-filter')),
+        const Offset(-120, 0),
+      );
+      await tester.tap(teaCategory);
+      await tester.pumpAndSettle();
+      expect(api.lastCategoryId, 4);
+
+      await tester.tap(find.byKey(const ValueKey('retail-products-sort')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Price · Descending'));
+      await tester.pumpAndSettle();
+      expect(api.lastSort, 'price');
+      expect(api.lastDirection, 'desc');
+
+      await tester.enterText(searchField, 'no-such-product');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('retail-products-no-results')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'VNext detail exposes gallery selling units and canonical related product cards',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCatalogProductScreen(
+            storeId: 19,
+            productId: 8,
+            catalogApi: _RichDetailApi(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('retail-product-gallery-thumbnails')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('retail-product-selling-units')),
+        findsOneWidget,
+      );
+      expect(find.text('Carton'), findsOneWidget);
+      expect(find.text('× 12'), findsOneWidget);
+      final secondImage = find.byKey(const ValueKey('retail-product-image-1'));
+      await tester.ensureVisible(secondImage);
+      await tester.tap(secondImage);
+      await tester.pump();
+      await tester.drag(
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, 420),
+      );
+      await tester.pumpAndSettle();
+
+      final mainImage = tester.widget<CustomerProductImage>(
+        find.byKey(const ValueKey('retail-product-gallery-main')),
+      );
+      expect(mainImage.imageUrl, 'https://foodex.test/coffee-2.jpg');
+
+      final relatedGrid =
+          find.byKey(const ValueKey('retail-product-related-grid'));
+      await tester.dragUntilVisible(
+        relatedGrid,
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, -300),
+      );
+      expect(relatedGrid, findsOneWidget);
+      expect(find.byType(CustomerProductCard), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _BrowseFakeApi implements B2cCatalogApi {
@@ -379,7 +517,8 @@ class _OutOfStockBrowseApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => const <B2cProduct>[
+  }) async =>
+      const <B2cProduct>[
         B2cProduct(
           id: 18,
           name: 'Sold Out Coffee',
@@ -403,5 +542,130 @@ class _OutOfStockBrowseApi implements B2cCatalogApi {
         availableQuantity: 0,
         isAvailable: false,
         availabilityState: 'OUT_OF_STOCK',
+      );
+}
+
+class _InteractiveBrowseApi implements B2cCatalogApi {
+  String? lastQuery;
+  int? lastCategoryId;
+  String? lastSort;
+  String? lastDirection;
+
+  @override
+  Future<List<B2cStore>> stores() async => const <B2cStore>[];
+
+  @override
+  Future<List<B2cCategory>> categories(int storeId) async =>
+      const <B2cCategory>[
+        B2cCategory(id: 3, name: 'Coffee'),
+        B2cCategory(id: 4, name: 'Tea'),
+      ];
+
+  @override
+  Future<List<B2cOffer>> offers(int storeId) async => const <B2cOffer>[];
+
+  @override
+  Future<List<B2cBanner>> banners(int storeId) async => const <B2cBanner>[];
+
+  @override
+  Future<List<B2cProduct>> products(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+  }) async {
+    lastQuery = query;
+    lastCategoryId = categoryId;
+    lastSort = sort;
+    lastDirection = direction;
+    if (query == 'no-such-product') return const <B2cProduct>[];
+    return const <B2cProduct>[
+      B2cProduct(id: 8, name: 'Coffee', sku: 'COF-8', price: 2.5),
+      B2cProduct(id: 9, name: 'Coffee Beans', sku: 'COF-9', price: 3.5),
+      B2cProduct(id: 10, name: 'Coffee Pods', sku: 'COF-10', price: 4.5),
+    ];
+  }
+
+  @override
+  Future<B2cProduct> product(int productId, {required int storeId}) async =>
+      const B2cProduct(id: 8, name: 'Coffee', sku: 'COF-8');
+}
+
+class _RichDetailApi implements B2cCatalogApi {
+  @override
+  Future<List<B2cStore>> stores() async => const <B2cStore>[];
+
+  @override
+  Future<List<B2cCategory>> categories(int storeId) async =>
+      const <B2cCategory>[B2cCategory(id: 3, name: 'Coffee')];
+
+  @override
+  Future<List<B2cOffer>> offers(int storeId) async => const <B2cOffer>[];
+
+  @override
+  Future<List<B2cBanner>> banners(int storeId) async => const <B2cBanner>[];
+
+  @override
+  Future<List<B2cProduct>> products(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+  }) async =>
+      const <B2cProduct>[
+        B2cProduct(
+          id: 8,
+          name: 'Coffee',
+          sku: 'COF-8',
+          categoryId: 3,
+          price: 2.5,
+        ),
+        B2cProduct(
+          id: 9,
+          name: 'Coffee Beans',
+          sku: 'COF-9',
+          categoryId: 3,
+          price: 3.5,
+        ),
+        B2cProduct(
+          id: 10,
+          name: 'Coffee Pods',
+          sku: 'COF-10',
+          categoryId: 3,
+          price: 4.5,
+        ),
+      ];
+
+  @override
+  Future<B2cProduct> product(int productId, {required int storeId}) async =>
+      const B2cProduct(
+        id: 8,
+        name: 'Coffee',
+        sku: 'COF-8',
+        categoryId: 3,
+        price: 2.5,
+        currency: 'KWD',
+        images: [
+          'https://foodex.test/coffee-1.jpg',
+          'https://foodex.test/coffee-2.jpg',
+        ],
+        sellingUnits: [
+          B2cSellingUnit(
+            id: 1,
+            code: 'PC',
+            name: 'Piece',
+            conversionFactor: 1,
+            isBase: true,
+          ),
+          B2cSellingUnit(
+            id: 2,
+            code: 'CTN12',
+            name: 'Carton',
+            conversionFactor: 12,
+            price: 27,
+          ),
+        ],
       );
 }
