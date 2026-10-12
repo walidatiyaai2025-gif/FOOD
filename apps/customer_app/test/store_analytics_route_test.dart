@@ -19,10 +19,11 @@ void main() {
         CustomerRouteLocations.storeAnalytics(retailStoreId: 22),
         '/b2b/store-analytics?retail_store_id=22',
       );
-      expect(
+      final scoped = Uri.parse(
         CustomerRouteLocations.storeAnalytics(retailStoreId: 22),
-        isNot(contains('store_id=22')),
       );
+      expect(scoped.queryParameters.containsKey('store_id'), isFalse);
+      expect(scoped.queryParameters.containsKey('store'), isFalse);
       expect(
         () => CustomerRouteLocations.storeAnalytics(retailStoreId: 0),
         throwsArgumentError,
