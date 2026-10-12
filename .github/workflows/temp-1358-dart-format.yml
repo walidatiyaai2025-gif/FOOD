@@ -1,0 +1,30 @@
+name: Temp 1358 Dart Format
+
+on:
+  push:
+    branches:
+      - feat/1358-mobile-store-analytics-screen
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - name: Canonically format Store Analytics screen
+        run: dart format apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart
+      - name: Upload formatted screen
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-1358-dart-formatted
+          path: apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart
+          if-no-files-found: error
