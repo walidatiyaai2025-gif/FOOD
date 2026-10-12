@@ -369,14 +369,11 @@ void main() {
 }
 
 Finder _homeVerticalScroll() {
-  final candidates = find.descendant(
-    of: find.byKey(const ValueKey('retail-catalog-home')),
-    matching: find.byWidgetPredicate(
-      (widget) =>
-          widget is Scrollable && widget.axisDirection == AxisDirection.down,
-    ),
-  );
-  return candidates.first;
+  final homeList = find.byKey(const ValueKey('retail-home-scroll'));
+  return find.descendant(
+    of: homeList,
+    matching: find.byType(Scrollable),
+  ).first;
 }
 
 Future<void> _dragUntilFound(
