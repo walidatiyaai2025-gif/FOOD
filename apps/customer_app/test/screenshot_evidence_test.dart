@@ -206,8 +206,22 @@ void main() {
             ),
           ),
         );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pumpAndSettle();
+
+        if (item.route == '/cart?channel=retail&store_id=7') {
+          expect(
+            find.byKey(const ValueKey('retail-cart-summary')),
+            findsOneWidget,
+          );
+        }
+
+        if (item.route ==
+            '/checkout/address-payment?channel=retail&store_id=7') {
+          expect(
+            find.byKey(const ValueKey('retail-checkout-progress')),
+            findsOneWidget,
+          );
+        }
 
         if (item.route == '/b2b/account-statement') {
           expect(
