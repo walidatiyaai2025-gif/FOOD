@@ -396,6 +396,28 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('<html class="legacy-commercial-shell"', false);
     }
 
+    public function test_flash_offers_recovers_from_cross_channel_store_context(): void
+    {
+        [, $wholesaleStoreId] = $this->wholesaleManager();
+        [, $retailStoreId] = $this->retailManager();
+        $this->flashProduct($retailStoreId);
+
+        $superAdmin = User::query()->create([
+            'name' => 'Cross Channel Flash Admin',
+            'email' => 'cross-channel-flash@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $superAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $wholesaleStoreId]))
+            ->assertOk()
+            ->assertSee('Flash Product')
+            ->assertSee(route('admin.commercial.flash-offers.save', ['store_id' => $retailStoreId]), false);
+    }
+
     public function test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids(): void
     {
         [$manager, $storeId] = $this->retailManager();
