@@ -201,12 +201,20 @@ void main() {
               actionApi: const _EvidenceActionApi(),
               storefrontApi: const _EvidenceStorefrontApi(),
               wholesaleCommerceApi: const _EvidenceWholesaleCommerceApi(),
+              retailCommerceApi: const _EvidenceRetailCommerceApi(),
               customerOrdersApi: const _EvidenceOrdersApi(),
               locale: locale,
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
+
+        if (item.route == '/cart?channel=retail&store_id=7' ||
+            item.route ==
+                '/checkout/address-payment?channel=retail&store_id=7') {
+          await tester.pumpAndSettle();
+        }
 
         if (item.route == '/cart?channel=retail&store_id=7') {
           expect(
