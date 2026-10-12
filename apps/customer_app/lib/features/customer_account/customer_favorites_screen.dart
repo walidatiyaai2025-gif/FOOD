@@ -38,7 +38,6 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
     _future = _load();
   }
 
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -91,132 +90,132 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
             subtitle: context.tr('customer.favorites.subtitle'),
           ),
           child: RefreshIndicator(
-          onRefresh: () async {
-            _reload();
-            try {
-              await _future;
-            } catch (_) {}
-          },
-          child: FutureBuilder<Object?>(
-            future: _future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const _FavoritesSkeleton();
-              }
-              if (snapshot.hasError) {
-                return _ScrollableState(
-                  key: const ValueKey('customer-favorites-error'),
-                  child: CustomerStateView(
-                    kind: CustomerStateKind.error,
-                    title: context.tr(customerAccountErrorKey(snapshot.error)),
-                    actionLabel: context.tr('customer.action.retry'),
-                    onAction: _reload,
-                  ),
-                );
-              }
-
-              final rows = customerAccountRows(snapshot.data);
-              if (rows.isEmpty) {
-                return _ScrollableState(
-                  key: const ValueKey('customer-favorites-empty'),
-                  child: CustomerStateView(
-                    kind: CustomerStateKind.empty,
-                    title: context.tr('customer.favorites.empty'),
-                    icon: Icons.favorite_border_rounded,
-                  ),
-                );
-              }
-
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns = _favoriteGridColumns(constraints.maxWidth);
-                  final cardExtent = _favoriteGridCardExtent(
-                    context,
-                    constraints.maxWidth,
-                    columns,
-                  );
-                  return GridView.builder(
-                    key: const ValueKey('customer-favorites-list'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(
-                      CustomerUiSpacing.page,
-                      CustomerUiSpacing.md,
-                      CustomerUiSpacing.page,
-                      CustomerUiSpacing.xxl,
-                    ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: CustomerUiSpacing.sm,
-                      mainAxisSpacing: CustomerUiSpacing.sm,
-                      mainAxisExtent: cardExtent,
-                    ),
-                    itemCount: rows.length,
-                    itemBuilder: (context, index) {
-                      final raw = rows[index];
-                      final product = raw['product'] is Map
-                          ? Map<String, dynamic>.from(raw['product'] as Map)
-                          : raw;
-                      final id = (product['id'] as num?)?.toInt() ??
-                          (raw['product_id'] as num?)?.toInt();
-                      final name = product['name']?.toString() ??
-                          product['title']?.toString() ??
-                          '';
-                      final price = product['price'] ?? product['sale_price'];
-                      final oldPrice = product['old_price'] ??
-                          product['regular_price'] ??
-                          product['original_price'];
-                      final currency = product['currency']?.toString() ??
-                          raw['currency']?.toString();
-                      final imageUrl = _imageUrl(product);
-                      final categoryLabel = _categoryLabel(product);
-                      final discountLabel = _discountLabel(product);
-
-                      final card = CustomerProductCard(
-                        key: ValueKey(
-                          'customer-favorite-' + (id?.toString() ?? 'unknown'),
-                        ),
-                        title: name,
-                        priceLabel: _priceLabel(price, currency),
-                        oldPriceLabel: oldPrice == null
-                            ? null
-                            : _priceLabel(oldPrice, currency),
-                        imageUrl: imageUrl,
-                        categoryLabel: categoryLabel,
-                        discountLabel: discountLabel,
-                        onTap: id == null || widget.onOpenProduct == null
-                            ? null
-                            : () => widget.onOpenProduct!(id),
-                      );
-
-                      if (id == null) return card;
-                      return Stack(
-                        children: [
-                          Positioned.fill(child: card),
-                          PositionedDirectional(
-                            top: CustomerUiSpacing.lg,
-                            end: CustomerUiSpacing.lg,
-                            child: CustomerOutlineIconButton(
-                              key: ValueKey(
-                                'customer-favorite-remove-' + id.toString(),
-                              ),
-                              icon: Icons.favorite_rounded,
-                              selected: true,
-                              tooltip: context.tr('customer.addresses.delete'),
-                              semanticLabel:
-                                  context.tr('customer.profile.favorites'),
-                              onPressed: () => _remove(id),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              );
+            onRefresh: () async {
+              _reload();
+              try {
+                await _future;
+              } catch (_) {}
             },
+            child: FutureBuilder<Object?>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const _FavoritesSkeleton();
+                }
+                if (snapshot.hasError) {
+                  return _ScrollableState(
+                    key: const ValueKey('customer-favorites-error'),
+                    child: CustomerStateView(
+                      kind: CustomerStateKind.error,
+                      title: context.tr(customerAccountErrorKey(snapshot.error)),
+                      actionLabel: context.tr('customer.action.retry'),
+                      onAction: _reload,
+                    ),
+                  );
+                }
+
+                final rows = customerAccountRows(snapshot.data);
+                if (rows.isEmpty) {
+                  return _ScrollableState(
+                    key: const ValueKey('customer-favorites-empty'),
+                    child: CustomerStateView(
+                      kind: CustomerStateKind.empty,
+                      title: context.tr('customer.favorites.empty'),
+                      icon: Icons.favorite_border_rounded,
+                    ),
+                  );
+                }
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns = _favoriteGridColumns(constraints.maxWidth);
+                    final cardExtent = _favoriteGridCardExtent(
+                      context,
+                      constraints.maxWidth,
+                      columns,
+                    );
+                    return GridView.builder(
+                      key: const ValueKey('customer-favorites-list'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.md,
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.xxl,
+                      ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        crossAxisSpacing: CustomerUiSpacing.sm,
+                        mainAxisSpacing: CustomerUiSpacing.sm,
+                        mainAxisExtent: cardExtent,
+                      ),
+                      itemCount: rows.length,
+                      itemBuilder: (context, index) {
+                        final raw = rows[index];
+                        final product = raw['product'] is Map
+                            ? Map<String, dynamic>.from(raw['product'] as Map)
+                            : raw;
+                        final id = (product['id'] as num?)?.toInt() ??
+                            (raw['product_id'] as num?)?.toInt();
+                        final name = product['name']?.toString() ??
+                            product['title']?.toString() ??
+                            '';
+                        final price = product['price'] ?? product['sale_price'];
+                        final oldPrice = product['old_price'] ??
+                            product['regular_price'] ??
+                            product['original_price'];
+                        final currency = product['currency']?.toString() ??
+                            raw['currency']?.toString();
+                        final imageUrl = _imageUrl(product);
+                        final categoryLabel = _categoryLabel(product);
+                        final discountLabel = _discountLabel(product);
+
+                        final card = CustomerProductCard(
+                          key: ValueKey(
+                            'customer-favorite-' + (id?.toString() ?? 'unknown'),
+                          ),
+                          title: name,
+                          priceLabel: _priceLabel(price, currency),
+                          oldPriceLabel: oldPrice == null
+                              ? null
+                              : _priceLabel(oldPrice, currency),
+                          imageUrl: imageUrl,
+                          categoryLabel: categoryLabel,
+                          discountLabel: discountLabel,
+                          onTap: id == null || widget.onOpenProduct == null
+                              ? null
+                              : () => widget.onOpenProduct!(id),
+                        );
+
+                        if (id == null) return card;
+                        return Stack(
+                          children: [
+                            Positioned.fill(child: card),
+                            PositionedDirectional(
+                              top: CustomerUiSpacing.lg,
+                              end: CustomerUiSpacing.lg,
+                              child: CustomerOutlineIconButton(
+                                key: ValueKey(
+                                  'customer-favorite-remove-' + id.toString(),
+                                ),
+                                icon: Icons.favorite_rounded,
+                                selected: true,
+                                tooltip: context.tr('customer.addresses.delete'),
+                                semanticLabel:
+                                    context.tr('customer.profile.favorites'),
+                                onPressed: () => _remove(id),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
-      ),
       );
 
   static String _priceLabel(Object? value, String? currency) {
