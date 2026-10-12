@@ -1004,18 +1004,6 @@ final class CatalogManagementController extends Controller
         Gate::authorize($permission);
     }
 
-    private function assertSkuAvailable(int $catalogId, string $sku, ?int $ignoreProduct = null): void
-    {
-        $query = DB::table('products')->where('catalog_id', $catalogId)->where('sku', $sku);
-        if ($ignoreProduct !== null) {
-            $query->where('id', '!=', $ignoreProduct);
-        }
-
-        if ($query->exists()) {
-            throw ValidationException::withMessages(['sku' => ['The SKU has already been used in this catalog.']]);
-        }
-    }
-
     private function assertSlugAvailable(int $catalogId, string $slug, ?int $ignoreCategory = null): void
     {
         $query = DB::table('categories')->where('catalog_id', $catalogId)->where('slug', $slug);
