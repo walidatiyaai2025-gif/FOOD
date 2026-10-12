@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\FieldOperationsController;
+use App\Http\Controllers\Admin\FoodexResetController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -385,6 +386,8 @@ Route::prefix('admin')
         Route::put('/settings/mobile/reviewer', [StoreSubmissionController::class, 'upsertReviewer'])->name('mobile-settings.reviewer');
         Route::post('/settings/mobile/reviewer/{reviewer}/rotate', [StoreSubmissionController::class, 'rotateReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.rotate');
         Route::post('/settings/mobile/reviewer/{reviewer}/test', [StoreSubmissionController::class, 'testReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.test');
+        Route::get('/settings/foodex-reset', [FoodexResetController::class, 'index'])->name('foodex-reset.index');
+        Route::post('/settings/foodex-reset', [FoodexResetController::class, 'store'])->block(920, 1)->middleware('throttle:3,1')->name('foodex-reset.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
