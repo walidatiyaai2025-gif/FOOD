@@ -25,6 +25,7 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 10px; text-align: start; border-bottom: 1px solid #e2e8f0; }
         code { direction: ltr; unicode-bidi: embed; }
+        @media(max-width:767px){.header{align-items:flex-start;flex-direction:column}.card{padding:14px;margin-bottom:12px}button{width:100%;justify-self:stretch;min-height:44px}}
     </style>
     @include('admin._brand-components')
 </head>
