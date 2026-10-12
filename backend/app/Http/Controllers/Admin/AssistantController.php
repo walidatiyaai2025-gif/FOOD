@@ -343,7 +343,7 @@ final class AssistantController extends Controller
     ): void {
         $preserveContext = (bool) ($brainState['preserve_context'] ?? false);
         $authorized = is_array($context['authorized_entities'] ?? null) ? $context['authorized_entities'] : [];
-        $previousAuthorized = is_array($state?->last_authorized_entities) ? $state->last_authorized_entities : [];
+        $previousAuthorized = (array) ($state?->last_authorized_entities ?? []);
 
         if ($preserveContext && $authorized === []) {
             $authorized = $previousAuthorized;
@@ -357,7 +357,7 @@ final class AssistantController extends Controller
         }
 
         $references = $toolResult === null
-            ? ($preserveContext && is_array($state?->result_references) ? $state->result_references : [])
+            ? ($preserveContext ? (array) ($state?->result_references ?? []) : [])
             : $toolResult->references;
 
         foreach ($references as $reference) {
@@ -379,7 +379,7 @@ final class AssistantController extends Controller
                 'conversation_id' => $conversation->getKey(),
                 'last_intent' => $preserveContext ? $state?->last_intent : ($brainState['last_intent'] ?? null),
                 'last_period' => $preserveContext
-                    ? (is_array($state?->last_period) ? $state->last_period : null)
+                    ? ($state?->last_period === null ? null : (array) $state->last_period)
                     : (is_array($brainState['last_period'] ?? null) ? $brainState['last_period'] : null),
                 'last_authorized_entities' => $authorized,
                 'last_tool' => $preserveContext
