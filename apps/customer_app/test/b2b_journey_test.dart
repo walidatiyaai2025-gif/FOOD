@@ -1963,6 +1963,8 @@ void main() {
         find.text('Customer did not answer'),
       );
       expect(find.text('Customer did not answer'), findsOneWidget);
+
+      await _scrollUntilBuilt(tester, scrollable, find.text('VAN-ONE'));
       expect(find.text('VAN-ONE'), findsWidgets);
       expect(find.textContaining('Driver One'), findsNothing);
 
