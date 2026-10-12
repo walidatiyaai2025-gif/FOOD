@@ -455,16 +455,12 @@ void main() {
       ),
     ]) {
       testWidgets(
-        'capture Store Analytics ' + evidence.suffix + ' ' + localeCode,
+        'capture Store Analytics ${evidence.suffix} $localeCode',
         (tester) async {
           await _captureStoreAnalyticsEvidence(
             tester,
             locale: locale,
-            path: '01_Mobile/B2B_Customer/' +
-                evidence.suffix +
-                '__' +
-                localeCode +
-                '.png',
+            path: '01_Mobile/B2B_Customer/${evidence.suffix}__$localeCode.png',
             status: evidence.status,
             stale: evidence.stale,
             longName: evidence.longName,
@@ -594,7 +590,7 @@ Future<void> _captureStoreAnalyticsEvidence(
         as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    final file = File('../../ScreenShots/' + path);
+    final file = File('../../ScreenShots/$path');
     file.parent.createSync(recursive: true);
     file.writeAsBytesSync(bytes!.buffer.asUint8List(), flush: true);
     expect(file.lengthSync(), greaterThan(1000));
