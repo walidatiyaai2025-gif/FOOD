@@ -98,7 +98,7 @@ class _BusinessDashboardSmartAnalyticsLauncherState
                       ? (reducedMotion ? 1.0 : _pulse.value)
                       : 0.0;
                   final scale =
-                      reducedMotion ? 1.0 : 1.0 + (emphasis * 0.025);
+                      reducedMotion ? 1.0 : 1.0 + emphasis * 0.025;
                   return Transform.scale(
                     key: const ValueKey(
                       'business-smart-analytics-launcher-pulse',
