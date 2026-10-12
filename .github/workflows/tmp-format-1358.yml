@@ -21,15 +21,17 @@ jobs:
       - name: Canonically format changed Dart files
         run: |
           dart format             apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart             apps/customer_app/test/screenshot_evidence_test.dart             apps/customer_app/test/store_analytics_screen_test.dart
-      - name: Stage formatted artifact
+      - name: Emit formatted payloads
         run: |
-          mkdir -p /tmp/formatted/apps/customer_app/lib/features/store_analytics
-          mkdir -p /tmp/formatted/apps/customer_app/test
-          cp apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart /tmp/formatted/apps/customer_app/lib/features/store_analytics/
-          cp apps/customer_app/test/screenshot_evidence_test.dart /tmp/formatted/apps/customer_app/test/
-          cp apps/customer_app/test/store_analytics_screen_test.dart /tmp/formatted/apps/customer_app/test/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: formatted-1358
-          path: /tmp/formatted
-          if-no-files-found: error
+          echo BEGIN_STORE_ANALYTICS_SCREEN
+          base64 -w0 apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart
+          echo
+          echo END_STORE_ANALYTICS_SCREEN
+          echo BEGIN_SCREENSHOT_EVIDENCE
+          base64 -w0 apps/customer_app/test/screenshot_evidence_test.dart
+          echo
+          echo END_SCREENSHOT_EVIDENCE
+          echo BEGIN_STORE_ANALYTICS_TEST
+          base64 -w0 apps/customer_app/test/store_analytics_screen_test.dart
+          echo
+          echo END_STORE_ANALYTICS_TEST
