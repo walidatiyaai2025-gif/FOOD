@@ -4395,12 +4395,16 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                     segments: const [
                       ButtonSegment(
                         value: 'ar',
-                        label: Text('العربية'),
-                      ), // localization-gate: allow — language self-name selector
+                        label: Text(
+                          'العربية', // localization-gate: allow — language self-name selector
+                        ),
+                      ),
                       ButtonSegment(
                         value: 'en',
-                        label: Text('English'),
-                      ), // localization-gate: allow — language self-name selector
+                        label: Text(
+                          'English', // localization-gate: allow — language self-name selector
+                        ),
+                      )
                     ],
                     selected: {ar ? 'ar' : 'en'},
                     onSelectionChanged: (value) {
