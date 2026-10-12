@@ -3,16 +3,19 @@ import 'package:foodex_customer_app/core/routing/customer_screen_registry.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
 void main() {
-  test('Customer VNext registry owns every registered Customer route exactly once', () {
-    final expected =
-        customerRouteDefinitions.map((route) => route.pattern).toSet();
-    final registered = customerVNextScreenRegistry
-        .map((entry) => entry.routePattern)
-        .toSet();
+  test(
+    'Customer VNext registry owns every registered Customer route exactly once',
+    () {
+      final expected =
+          customerRouteDefinitions.map((route) => route.pattern).toSet();
+      final registered = customerVNextScreenRegistry
+          .map((entry) => entry.routePattern)
+          .toSet();
 
-    expect(registered, expected);
-    expect(registered.length, customerVNextScreenRegistry.length);
-  });
+      expect(registered, expected);
+      expect(registered.length, customerVNextScreenRegistry.length);
+    },
+  );
 
   test('Customer VNext registry keeps atomic child ownership fences', () {
     for (final entry in customerVNextScreenRegistry) {
