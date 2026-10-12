@@ -252,7 +252,7 @@ class StoreAnalyticsStore {
     final id = _positiveInt(json['id']);
     final name = _nonBlankString(json['name']);
     final currency = _nonBlankString(json['currency']);
-    if (id == null || name == null || currency != 'EGP') {
+    if (id == null || name == null || currency == null || currency != 'EGP') {
       throw const FormatException('invalid store analytics identity');
     }
 
@@ -454,6 +454,7 @@ class StoreAnalyticsTopProduct {
         units == null ||
         revenue == null ||
         contributionPercent == null ||
+        currency == null ||
         currency != 'EGP') {
       throw const FormatException('invalid top product');
     }
@@ -538,6 +539,7 @@ class StoreAnalyticsPeakWindow {
         orders == null ||
         orders < 0 ||
         sales == null ||
+        currency == null ||
         currency != 'EGP' ||
         source == null) {
       throw const FormatException('invalid peak activity window');
