@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\ProductionLaunchPreflight;
 use Illuminate\Validation\ValidationException;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class ProductionLaunchPreflightTest extends TestCase
 {
