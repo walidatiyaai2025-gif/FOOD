@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -327,12 +328,28 @@ final class ProductionLaunchPreflight
             static fn (string $table): bool => Schema::hasTable($table) === false,
         ));
 
+        if ($missing !== []) {
+            return [
+                'passed' => false,
+                'detail' => 'Missing schema tables: '.implode(', ', $missing),
+                'source' => 'database schema',
+            ];
+        }
+
+        $migrationFiles = collect(File::allFiles(database_path('migrations')))
+            ->filter(static fn ($file): bool => $file->getExtension() === 'php')
+            ->map(static fn ($file): string => $file->getFilenameWithoutExtension())
+            ->values()
+            ->all();
+        $ran = DB::table('migrations')->pluck('migration')->all();
+        $pending = array_values(array_diff($migrationFiles, $ran));
+
         return [
-            'passed' => $missing === [],
-            'detail' => $missing === []
-                ? 'Required production schema tables are present.'
-                : 'Missing schema tables: '.implode(', ', $missing),
-            'source' => 'database schema',
+            'passed' => $pending === [],
+            'detail' => $pending === []
+                ? 'Required production schema is present and no migrations are pending.'
+                : 'Pending migrations: '.implode(', ', $pending),
+            'source' => 'database schema + migration ledger',
         ];
     }
 
