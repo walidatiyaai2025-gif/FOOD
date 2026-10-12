@@ -1627,6 +1627,7 @@ double _threeColumnProductExtent({
 }) {
   const columns = 3;
   const skeletonBarsHeight = 78.0;
+  const cardVerticalSafety = 12.0;
   final gridWidth = maxWidth -
       (horizontalPadding * 2) -
       (CustomerUiSpacing.xs * (columns - 1));
@@ -1641,7 +1642,9 @@ double _threeColumnProductExtent({
       skeletonBarsHeight;
   final scaledDelta = (textScale - 1).clamp(0.0, 1.0).toDouble();
   final textSafeExtent = 258.0 + (scaledDelta * 72.0);
-  return skeletonExtent > textSafeExtent ? skeletonExtent : textSafeExtent;
+  final minimumExtent =
+      skeletonExtent > textSafeExtent ? skeletonExtent : textSafeExtent;
+  return minimumExtent + cardVerticalSafety;
 }
 
 class _BrowseProductCard extends StatelessWidget {
