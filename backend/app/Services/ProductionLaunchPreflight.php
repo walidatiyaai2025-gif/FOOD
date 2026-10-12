@@ -103,13 +103,7 @@ final class ProductionLaunchPreflight
                 '#1325-#1329',
                 $sourceCommit,
             ),
-            'provider_readiness' => [
-                'passed' => config('foodex.launch.provider_ready', false) === true,
-                'detail' => config('foodex.launch.provider_ready', false) === true
-                    ? 'Production provider readiness is attested without exposing credentials.'
-                    : 'Production provider readiness has not been attested.',
-                'source' => 'runtime configuration',
-            ],
+            'provider_readiness' => $this->providerReadinessCheck($sourceCommit),
             'mobile_artifacts' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/mobile-artifacts.json'),
                 'release pipeline',
@@ -358,6 +352,7 @@ final class ProductionLaunchPreflight
     {
         $checks = [
             'production_environment' => app()->environment('production'),
+            'launch_enabled' => config('foodex.launch.enabled', false) === true,
             'app_key' => is_string(config('app.key')) && trim((string) config('app.key')) !== '',
             'debug_disabled' => config('app.debug') === false,
             'database_configured' => is_string(config('database.default'))
@@ -375,6 +370,26 @@ final class ProductionLaunchPreflight
                 ? 'Required production environment safeguards are configured.'
                 : 'Missing production environment safeguards: '.implode(', ', $failed),
             'source' => 'runtime configuration',
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function providerReadinessCheck(?string $expectedSourceSha): array
+    {
+        $runtimeReady = config('foodex.launch.provider_ready', false) === true;
+        $attestation = $this->attestationCheck(
+            storage_path('app/private/launch-gate/provider-readiness.json'),
+            'production providers',
+            $expectedSourceSha,
+        );
+        $passed = $runtimeReady && $attestation['passed'];
+
+        return [
+            'passed' => $passed,
+            'detail' => $passed
+                ? 'Production provider readiness is explicitly enabled and attested for the exact release source.'
+                : 'Production providers require explicit runtime opt-in and exact-release readiness evidence.',
+            'source' => 'runtime configuration + provider-readiness attestation',
         ];
     }
 
