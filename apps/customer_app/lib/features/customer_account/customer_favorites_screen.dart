@@ -319,8 +319,7 @@ double _favoriteGridCardExtent(
       .toDouble();
   final imageHeight = imageWidth / 1.35;
   final textScale = MediaQuery.textScalerOf(context).scale(1);
-  final scaledTextAllowance =
-      210 + (textScale > 1 ? (textScale - 1) * 80 : 0);
+  final scaledTextAllowance = 210 + (textScale > 1 ? (textScale - 1) * 80 : 0);
   final extent = imageHeight + scaledTextAllowance;
   return extent < 330 ? 330.0 : extent;
 }

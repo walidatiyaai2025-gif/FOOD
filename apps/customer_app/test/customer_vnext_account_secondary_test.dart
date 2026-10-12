@@ -25,8 +25,7 @@ void main() {
         await tester.pumpWidget(
           FoodexCustomerApp(
             session: session,
-            initialRoute:
-                '/b2b/profile?channel=wholesale&store_id=7',
+            initialRoute: '/b2b/profile?channel=wholesale&store_id=7',
             locale: locale,
             b2bApi: const _AccountB2bApi(),
             actionApi: const _NoopCustomerActionApi(),
@@ -49,9 +48,7 @@ void main() {
         if (title.evaluate().isNotEmpty) {
           expect(
             Directionality.of(tester.element(title.first)),
-            locale.languageCode == 'ar'
-                ? TextDirection.rtl
-                : TextDirection.ltr,
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
           );
         }
 

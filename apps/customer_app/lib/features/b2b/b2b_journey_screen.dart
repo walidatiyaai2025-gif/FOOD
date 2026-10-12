@@ -4256,8 +4256,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                 FutureBuilder<Object?>(
                   future: notifications,
                   builder: (_, snap) {
-                    final count =
-                        snap.hasData ? _unreadCount(snap.data) : null;
+                    final count = snap.hasData ? _unreadCount(snap.data) : null;
                     return _HeaderCircle(
                       icon: Icons.notifications_none_rounded,
                       onTap: () => _open(widget.notificationsRoute),
@@ -4271,112 +4270,109 @@ class _B2bMorePageState extends State<_B2bMorePage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
             child: Column(
-                  key: const ValueKey('b2b-account-hub'),
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment:
-                          ar ? Alignment.centerRight : Alignment.centerLeft,
-                      child: _BusinessTile(
-                        label: context.tr('b2b.dashboard.title'),
-                        onTap: () => _open(widget.dashboardRoute),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.tr('b2b.profile.title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: ink,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      context.tr('b2b.profile.hub_subtitle'),
-                      style: const TextStyle(
-                        color: muted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _FinanceCard(
-                      future: finance,
-                      ar: ar,
-                      statementRoute: widget.statementRoute,
-                      open: _open,
-                      retry: () => setState(
-                        () => finance = widget.api.get(widget.financeEndpoint),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    LayoutBuilder(
-                      builder: (_, constraints) {
-                        const gap = 10.0;
-                        final columns = constraints.maxWidth >= 350 ? 3 : 2;
-                        final width =
-                            (constraints.maxWidth - gap * (columns - 1)) /
-                                columns;
-                        final textScale =
-                            MediaQuery.textScalerOf(context).scale(1);
-                        final scaledDelta =
-                            (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                        final cardHeight = 112.0 + (scaledDelta * 90.0);
-                        return Wrap(
-                          spacing: gap,
-                          runSpacing: gap,
-                          children: [
-                            for (final item in items)
-                              SizedBox(
-                                width: width,
-                                height: cardHeight,
-                                child: _MoreCard(item: item),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    B2bBusinessAccountProfile(
-                      api: widget.api,
-                      endpoint: widget.profileEndpoint,
-                      addressesRoute: widget.addressesRoute,
-                    ),
-                    const SizedBox(height: 14),
-                    if (widget.onLocaleChanged != null)
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'ar', label: Text('العربية')),
-                          ButtonSegment(value: 'en', label: Text('English')),
-                        ],
-                        selected: {ar ? 'ar' : 'en'},
-                        onSelectionChanged: (value) {
-                          widget.onLocaleChanged!(Locale(value.first));
-                        },
-                      ),
-                    if (widget.onLogout != null) ...[
-                      const SizedBox(height: 10),
-                      Material(
-                        color: Colors.transparent,
-                        child: ListTile(
-                          key: const ValueKey('b2b-profile-security-action'),
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.security_outlined),
-                          title: Text(context.tr('b2b.profile.security')),
-                          trailing: const Icon(Icons.chevron_left_rounded),
-                          onTap: _showSettings,
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        key: const ValueKey('b2b-profile-logout'),
-                        onPressed: widget.onLogout,
-                        icon: const Icon(Icons.logout_rounded),
-                        label: Text(context.tr('customer.logout')),
-                      ),
+              key: const ValueKey('b2b-account-hub'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
+                  child: _BusinessTile(
+                    label: context.tr('b2b.dashboard.title'),
+                    onTap: () => _open(widget.dashboardRoute),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  context.tr('b2b.profile.title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  context.tr('b2b.profile.hub_subtitle'),
+                  style: const TextStyle(
+                    color: muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _FinanceCard(
+                  future: finance,
+                  ar: ar,
+                  statementRoute: widget.statementRoute,
+                  open: _open,
+                  retry: () => setState(
+                    () => finance = widget.api.get(widget.financeEndpoint),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (_, constraints) {
+                    const gap = 10.0;
+                    final columns = constraints.maxWidth >= 350 ? 3 : 2;
+                    final width =
+                        (constraints.maxWidth - gap * (columns - 1)) / columns;
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final scaledDelta =
+                        (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+                    final cardHeight = 112.0 + (scaledDelta * 90.0);
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: [
+                        for (final item in items)
+                          SizedBox(
+                            width: width,
+                            height: cardHeight,
+                            child: _MoreCard(item: item),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                B2bBusinessAccountProfile(
+                  api: widget.api,
+                  endpoint: widget.profileEndpoint,
+                  addressesRoute: widget.addressesRoute,
+                ),
+                const SizedBox(height: 14),
+                if (widget.onLocaleChanged != null)
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ar', label: Text('العربية')),
+                      ButtonSegment(value: 'en', label: Text('English')),
                     ],
+                    selected: {ar ? 'ar' : 'en'},
+                    onSelectionChanged: (value) {
+                      widget.onLocaleChanged!(Locale(value.first));
+                    },
+                  ),
+                if (widget.onLogout != null) ...[
+                  const SizedBox(height: 10),
+                  Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      key: const ValueKey('b2b-profile-security-action'),
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.security_outlined),
+                      title: Text(context.tr('b2b.profile.security')),
+                      trailing: const Icon(Icons.chevron_left_rounded),
+                      onTap: _showSettings,
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('b2b-profile-logout'),
+                    onPressed: widget.onLogout,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: Text(context.tr('customer.logout')),
+                  ),
+                ],
               ],
             ),
           ),
