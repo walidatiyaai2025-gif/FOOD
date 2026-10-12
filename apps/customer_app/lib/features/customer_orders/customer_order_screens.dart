@@ -1212,7 +1212,10 @@ class _OrderCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Semantics(
                     button: true,
-                    label: context.tr('customer.orders.actions'),
+                    label: onReorder == null
+                        ? context.tr('customer.orders.view_details')
+                        : '${context.tr('customer.orders.view_details')}, '
+                            '${context.tr('customer.orders.reorder')}',
                     child: Material(
                       color: CustomerUiColors.deepGreenSoft,
                       borderRadius: BorderRadius.circular(CustomerUiRadii.sm),
