@@ -52,7 +52,7 @@ final class ProductionLaunchPreflight
                 ),
             ];
 
-            if (!$passed) {
+            if (! $passed) {
                 $blockers[] = $code;
             }
         }
@@ -176,7 +176,7 @@ final class ProductionLaunchPreflight
         $required = ['migrations', 'users', 'stores', 'products', 'product_images', 'orders'];
         $missing = array_values(array_filter(
             $required,
-            static fn (string $table): bool => !Schema::hasTable($table),
+            static fn (string $table): bool => ! Schema::hasTable($table),
         ));
 
         return [
@@ -212,7 +212,7 @@ final class ProductionLaunchPreflight
     /** @return array{passed:bool,detail:string,source:string} */
     private function attestationCheck(string $path, string $source): array
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return [
                 'passed' => false,
                 'detail' => 'Required signed/generated attestation is missing.',
