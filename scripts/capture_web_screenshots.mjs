@@ -35,6 +35,7 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
   ['16_مركز_الإعدادات', '/admin/settings'],
+  ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
 ];
 
 async function ensureDir(dir) {
@@ -669,6 +670,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'settings-center',
     '/admin/settings',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'foodex-reset',
+    '/admin/settings/foodex-reset',
   );
 
   const customer360Response = await page.goto(
