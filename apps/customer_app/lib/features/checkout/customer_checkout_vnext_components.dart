@@ -309,6 +309,8 @@ class CustomerOrderSuccessPanel extends StatelessWidget {
                 children: [
                   Text(
                     orderReferenceLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: CustomerUiColors.muted,
                         ),
