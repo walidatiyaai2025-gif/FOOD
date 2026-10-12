@@ -17,9 +17,7 @@
         <div>
             <span class="foodex-subtitle">FOODEX · {{ __('admin.settings_center.title') }}</span>
             <h1>{{ __('app_versions.title') }}</h1>
-            <p>{{ $ar
-                ? 'سياسة الإصدار الرسمية التي تعتمد عليها التطبيقات عند بدء التشغيل. إعدادات Runtime منفصلة ولا تستبدل هذه السياسة.'
-                : 'The authoritative startup and update policy consumed by the mobile apps. Runtime settings are separate and do not replace this policy.' }}</p>
+            <p>{{ __('admin.settings_center.items.app_versions_description') }}</p>
         </div>
         <div class="settings-page-heading__actions">
             <a class="settings-page-link" href="{{ route('admin.settings.index') }}">{{ __('admin.settings_center.title') }}</a>
