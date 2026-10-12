@@ -117,8 +117,8 @@ html[dir=ltr] .main{grid-column:2}
 <section class="section" data-administration-tools>
 <div class="section-head">
 <div>
-<h2>{{ app()->getLocale()==='ar' ? 'إدارة المنصة' : 'Platform administration' }}</h2>
-<p class="muted">{{ app()->getLocale()==='ar' ? 'إدارة الأشخاص والصلاحيات والتشخيصات والدعم الإداري. الإعدادات القابلة للتكوين موجودة في مركز الإعدادات.' : 'Manage people, access, diagnostics and administrative support. Configurable options live in Settings Center.' }}</p>
+<h2>{{ __('admin.administration_hub.platform_administration') }}</h2>
+<p class="muted">{{ __('admin.administration_hub.platform_administration_description') }}</p>
 </div>
 </div>
 <div class="utility-grid">
