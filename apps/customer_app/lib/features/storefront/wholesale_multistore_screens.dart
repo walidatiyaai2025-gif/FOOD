@@ -3864,103 +3864,59 @@ class _CartTotalPanel extends StatelessWidget {
     final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF006736),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          _CartMoneyRow(
-            label: context.tr('b2b.cart.subtotal'),
-            value: money(subtotal, currency: currency),
-          ),
-          if (doubleValue(discount, 0) > 0)
-            _CartMoneyRow(
-              label: context.tr('b2b.cart.discount'),
-              value: '- ' + money(discount, currency: currency),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomerCheckoutTotalsCard(
+          key: const ValueKey('b2b-cart-totals'),
+          rows: [
+            CustomerCheckoutTotalRow(
+              label: context.tr('b2b.cart.subtotal'),
+              value: money(subtotal, currency: currency),
             ),
-          if (delivery != null)
-            _CartMoneyRow(
-              label: context.tr('b2b.cart.delivery'),
-              value: money(delivery, currency: currency),
-            ),
-          if (tax != null)
-            _CartMoneyRow(
-              label: context.tr('b2b.cart.tax'),
-              value: money(tax, currency: currency),
-            ),
-          const Divider(color: Colors.white24, height: 18),
-          _CartMoneyRow(
-            label: context.tr('b2b.cart.total'),
-            value: money(total, currency: currency),
-            strong: true,
-          ),
-          const SizedBox(height: 9),
-          Text(
-            context.tr('b2b.cart.revalidation'),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 13),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              key: const ValueKey('b2b-cart-checkout'),
-              onPressed: enabled ? onCheckout : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF006736),
+            if (doubleValue(discount, 0) > 0)
+              CustomerCheckoutTotalRow(
+                label: context.tr('b2b.cart.discount'),
+                value: '- ' + money(discount, currency: currency),
               ),
-              child: Text(context.tr('b2b.action.checkout')),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CartMoneyRow extends StatelessWidget {
-  const _CartMoneyRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: strong ? Colors.white : Colors.white70,
-                  fontWeight: strong ? FontWeight.w800 : FontWeight.w500,
-                ),
+            if (delivery != null)
+              CustomerCheckoutTotalRow(
+                label: context.tr('b2b.cart.delivery'),
+                value: money(delivery, currency: currency),
               ),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: strong ? 20 : 13,
-                fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+            if (tax != null)
+              CustomerCheckoutTotalRow(
+                label: context.tr('b2b.cart.tax'),
+                value: money(tax, currency: currency),
               ),
+            CustomerCheckoutTotalRow(
+              label: context.tr('b2b.cart.total'),
+              value: money(total, currency: currency),
+              emphasized: true,
             ),
           ],
         ),
-      );
+        const SizedBox(height: 9),
+        Text(
+          context.tr('b2b.cart.revalidation'),
+          style: const TextStyle(
+            color: Color(0xFF6B7785),
+            fontSize: 10,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 13),
+        SizedBox(
+          height: 52,
+          child: FilledButton(
+            key: const ValueKey('b2b-cart-checkout'),
+            onPressed: enabled ? onCheckout : null,
+            child: Text(context.tr('b2b.action.checkout')),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class WholesaleCheckoutDesignScreen extends StatefulWidget {
