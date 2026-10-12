@@ -178,7 +178,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="catalog-dialog-head"><h2>{{ app()->getLocale()==='ar'?'إضافة منتج':'Add product' }}</h2><button type="button" class="catalog-dialog-close" data-dialog-close>×</button></div>
 <div class="catalog-dialog-body">
 <form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.store') }}">@csrf
-<div class="row"><label>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}<input name="sku" placeholder="{{ app()->getLocale()==='ar'?'مثال: PROD-001':'e.g. PROD-001' }}" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required></label></div>
+<div class="row"><label>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}<input value="{{ app()->getLocale()==='ar'?'يتم إنشاؤه تلقائياً عند الحفظ':'Generated automatically on save' }}" readonly aria-readonly="true" data-auto-sku></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" placeholder="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}" required></label></div>
 <label>{{ app()->getLocale()==='ar'?'الوصف':'Description' }}<textarea name="description" placeholder="{{ app()->getLocale()==='ar'?'وصف مختصر وواضح للمنتج':'Short product description' }}"></textarea></label>
 <label>{{ app()->getLocale()==='ar'?'المتجر المالك':'Owning store' }}<select name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label>
 <div class="row"><label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)<option value="{{ $c->id }}">{{ $c->name }} — {{ $c->catalog_store_name }}</option>@endforeach</select></label>
@@ -198,7 +198,7 @@ html[dir=ltr] .catalog-layout main{grid-column:2;direction:ltr}
 <div class="catalog-dialog-head"><h2>{{ app()->getLocale()==='ar'?'تعديل المنتج':'Edit product' }} — {{ $p->name }}</h2><button type="button" class="catalog-dialog-close" data-dialog-close>×</button></div>
 <div class="catalog-dialog-body">
 <form class="form" method="post" enctype="multipart/form-data" action="{{ route('admin.catalog.products.update',$p->id) }}">@csrf @method('PATCH')
-<div class="row"><label>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}<input name="sku" value="{{ $p->sku }}" required></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" value="{{ $p->name }}" required></label></div>
+<div class="row"><label>{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}<input value="{{ $p->sku }}" readonly aria-readonly="true" data-auto-sku></label><label>{{ app()->getLocale()==='ar'?'الاسم':'Name' }}<input name="name" value="{{ $p->name }}" required></label></div>
 <label>{{ app()->getLocale()==='ar'?'الوصف':'Description' }}<textarea name="description">{{ $p->description }}</textarea></label>
 <div class="row">
 <label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}<select name="category_id"><option value="">—</option>@foreach($categories as $c)@if((int)$c->catalog_id === (int)$p->catalog_id || (int)$c->id === (int)$p->category_id)<option value="{{ $c->id }}" @selected($p->category_id==$c->id)>{{ $c->name }}</option>@endif @endforeach</select></label>

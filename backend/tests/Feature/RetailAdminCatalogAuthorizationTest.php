@@ -41,7 +41,6 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
 
         $this->actingAs($manager)->post(route('admin.catalog.products.store'), [
             'store_id' => $storeA,
-            'sku' => 'A-001',
             'name' => 'Store A Product',
             'unit_id' => $unit->id,
             'price' => 1.250,
@@ -49,11 +48,13 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA);
-        $this->assertDatabaseHas('products', [
-            'catalog_id' => $catalogA->id,
-            'sku' => 'A-001',
-            'name' => 'Store A Product',
-        ]);
+        $createdProduct = DB::table('products')
+            ->where('catalog_id', $catalogA->id)
+            ->where('name', 'Store A Product')
+            ->first(['id', 'sku']);
+        $this->assertNotNull($createdProduct);
+        $this->assertMatchesRegularExpression('/^SKU-'.$storeA.'-[A-Z0-9]{10}$/', (string) $createdProduct->sku);
+        $generatedSku = (string) $createdProduct->sku;
 
         $this->actingAs($manager)
             ->get(route('admin.catalog.index', [
@@ -63,7 +64,25 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
             ->assertOk()
             ->assertSee('Store A Product')
             ->assertSee('name="description"', false)
+            ->assertSee('data-auto-sku', false)
+            ->assertSee('readonly', false)
             ->assertSee(route('admin.catalog.index'), false);
+
+        $this->actingAs($manager)
+            ->patch(route('admin.catalog.products.update', (int) $createdProduct->id), [
+                'sku' => 'USER-CANNOT-OVERRIDE',
+                'name' => 'Store A Product Updated',
+                'unit_id' => $unit->id,
+                'is_active' => 1,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => (int) $createdProduct->id,
+            'sku' => $generatedSku,
+            'name' => 'Store A Product Updated',
+        ]);
 
         $this->actingAs($manager)
             ->get(route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeB]))

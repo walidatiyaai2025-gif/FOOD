@@ -33,6 +33,7 @@ use App\Services\FieldOperationsFinanceService;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
 use App\Services\OperationalTenantScope;
+use App\Services\ProductSkuGenerator;
 use App\Services\ReportExportService;
 use App\Services\StorefrontDraftEditorService;
 use App\Services\WholesalePrincipal;
@@ -79,6 +80,7 @@ class B2bWorkspaceController extends Controller
         private readonly TenantContextResolver $tenantContext,
         private readonly OperationalTenantScope $operationalScope,
         private readonly CatalogOwnership $catalogs,
+        private readonly ProductSkuGenerator $skuGenerator,
         private readonly LookupScopeService $lookups,
         private readonly AuditLogger $audit,
         private readonly WholesalePrincipal $principal,
@@ -519,7 +521,6 @@ class B2bWorkspaceController extends Controller
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
-            'sku' => ['required', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'gte:0'],
@@ -540,17 +541,15 @@ class B2bWorkspaceController extends Controller
             $this->lookups->assertAssignableToStore('brands', $brandId, $storeId);
         }
 
-        if (DB::table('products')->where('catalog_id', $catalog->id)->where('sku', $data['sku'])->exists()) {
-            throw ValidationException::withMessages(['sku' => [$this->msg('SKU مستخدم داخل كتالوج الجملة.', 'The SKU is already used in this wholesale catalog.')]]);
-        }
+        $sku = $this->skuGenerator->generate((int) $catalog->id, $storeId);
 
-        $product = DB::transaction(function () use ($data, $request, $catalog, $categoryId, $brandId, $storeId, $warehouseId): Product {
+        $product = DB::transaction(function () use ($data, $request, $catalog, $categoryId, $brandId, $storeId, $warehouseId, $sku): Product {
             $product = Product::query()->create([
                 'catalog_id' => $catalog->id,
                 'category_id' => $categoryId,
                 'brand_id' => $brandId,
                 'unit_id' => $data['unit_id'],
-                'sku' => $data['sku'],
+                'sku' => $sku,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'low_stock_threshold' => $data['low_stock_threshold'],
@@ -608,7 +607,6 @@ class B2bWorkspaceController extends Controller
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
-            'sku' => ['required', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'gte:0'],
@@ -623,15 +621,6 @@ class B2bWorkspaceController extends Controller
         $this->lookups->assertAssignableToStore('units', (int) $data['unit_id'], $storeId);
         if ($brandId !== null) {
             $this->lookups->assertAssignableToStore('brands', $brandId, $storeId);
-        }
-
-        $duplicate = DB::table('products')
-            ->where('catalog_id', $owner->catalog_id)
-            ->where('sku', $data['sku'])
-            ->where('id', '!=', $product->id)
-            ->exists();
-        if ($duplicate) {
-            throw ValidationException::withMessages(['sku' => [$this->msg('SKU مستخدم داخل كتالوج الجملة.', 'The SKU is already used in this wholesale catalog.')]]);
         }
 
         $before = $product->toArray();
@@ -656,7 +645,6 @@ class B2bWorkspaceController extends Controller
                 'category_id' => $categoryId,
                 'brand_id' => $brandId,
                 'unit_id' => $data['unit_id'],
-                'sku' => $data['sku'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'low_stock_threshold' => $data['low_stock_threshold'],

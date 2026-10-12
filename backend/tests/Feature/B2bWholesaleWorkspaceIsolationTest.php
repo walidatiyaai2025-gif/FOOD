@@ -155,7 +155,6 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
         $this->actingAs($admin)->post('/admin/b2b/products', [
             'store_id' => $retailStore,
             'unit_id' => $unit,
-            'sku' => 'FORGED-STORE-PRODUCT',
             'name' => 'Principal Owned Product',
             'price' => 10,
             'quantity' => 5,
@@ -163,10 +162,14 @@ class B2bWholesaleWorkspaceIsolationTest extends TestCase
             'is_active' => 1,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $productStore = (int) DB::table('products')
+        $createdProduct = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->where('products.sku', 'FORGED-STORE-PRODUCT')
-            ->value('catalogs.store_id');
+            ->where('products.name', 'Principal Owned Product')
+            ->first(['products.sku', 'catalogs.store_id']);
+
+        $this->assertNotNull($createdProduct);
+        $this->assertMatchesRegularExpression('/^SKU-'.$principal.'-[A-Z0-9]{10}$/', (string) $createdProduct->sku);
+        $productStore = (int) $createdProduct->store_id;
 
         $this->assertSame($principal, $productStore);
         $this->assertNotSame($retailStore, $productStore);
