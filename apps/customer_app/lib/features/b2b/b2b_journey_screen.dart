@@ -16,6 +16,7 @@ import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
+import '../customer_account/customer_account_v3_widgets.dart';
 import '../customer_account/customer_notification_center_screen.dart';
 import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
@@ -83,6 +84,13 @@ class B2bJourneyScreen extends StatelessWidget {
     final content = _contentFor(context, definition.pattern);
     final hasRemoteState = api != null && _endpoint() != null;
     final isProfile = definition.pattern == CustomerRoutePaths.b2bProfile;
+    final isSecondaryAccountRoute = switch (definition.pattern) {
+      CustomerRoutePaths.b2bPurchaseReports ||
+      CustomerRoutePaths.b2bInvoiceDetails ||
+      CustomerRoutePaths.b2bAccountStatement =>
+        true,
+      _ => false,
+    };
     final keepLocalActions =
         definition.pattern == CustomerRoutePaths.b2bProductDetails ||
             definition.pattern == CustomerRoutePaths.b2bCart;
@@ -106,31 +114,51 @@ class B2bJourneyScreen extends StatelessWidget {
       return withFooter(
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
-          appBar: AppBar(
-            title: Text(context.tr('b2b.app.title')),
-            centerTitle: true,
-            toolbarHeight: 48,
-            backgroundColor: CustomerUiColors.deepGreen,
-            foregroundColor: CustomerUiColors.white,
-            leading: IconButton(
-              key: const ValueKey('b2b-dashboard-notifications'),
-              tooltip: context.tr('customer.nav.notifications'),
-              onPressed: () => Navigator.of(
-                context,
-              ).pushNamed(_scopedB2bRoute(CustomerRoutePaths.b2bNotifications)),
-              icon: const Icon(Icons.notifications_none_rounded),
+          body: CustomerCurvedHeaderSurface(
+            headerPadding: const EdgeInsetsDirectional.fromSTEB(12, 1, 12, 1),
+            header: SizedBox(
+              height: 44,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Text(
+                        context.tr('b2b.app.title'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: CustomerUiColors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.xs),
+                  CustomerOutlineIconButton(
+                    key: const ValueKey('b2b-dashboard-notifications'),
+                    icon: Icons.notifications_none_rounded,
+                    tooltip: context.tr('customer.nav.notifications'),
+                    semanticLabel: context.tr('customer.nav.notifications'),
+                    onPressed: () => Navigator.of(context).pushNamed(
+                      _scopedB2bRoute(CustomerRoutePaths.b2bNotifications),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          body: SafeArea(
-            top: false,
-            child: Padding(
-              // The existing app-level version/logout footer overlays routes.
-              // Wholesale's persistent dock already reserves that space.
-              padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
-              child: _B2bDashboardRemoteState(
-                api: api!,
-                endpoint: _endpoint()!,
-                storefrontApi: storefrontApi,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                // The existing app-level version/logout footer overlays routes.
+                // Wholesale's persistent dock already reserves that space.
+                padding: EdgeInsets.fromLTRB(12, 12, 12, hasDock ? 8 : 46),
+                child: _B2bDashboardRemoteState(
+                  api: api!,
+                  endpoint: _endpoint()!,
+                  storefrontApi: storefrontApi,
+                ),
               ),
             ),
           ),
@@ -210,64 +238,105 @@ class B2bJourneyScreen extends StatelessWidget {
         Scaffold(
           key: const ValueKey('b2b-invoices-screen'),
           backgroundColor: CustomerUiColors.mint,
-          appBar: AppBar(
-            key: const ValueKey('b2b-invoices-app-bar'),
-            toolbarHeight: 58,
-            elevation: 0,
-            centerTitle: false,
-            titleSpacing: 0,
-            automaticallyImplyLeading: false,
-            backgroundColor: CustomerUiColors.deepGreen,
-            foregroundColor: CustomerUiColors.white,
-            leading: IconButton(
-              key: const ValueKey('b2b-invoices-back'),
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const BackButtonIcon(),
+          body: CustomerCurvedHeaderSurface(
+            header: KeyedSubtree(
+              key: const ValueKey('b2b-invoices-app-bar'),
+              child: Row(
+                key: const ValueKey('b2b-invoices-header-row'),
+                children: [
+                  CustomerOutlineIconButton(
+                    key: const ValueKey('b2b-invoices-back'),
+                    icon: Directionality.of(context) == TextDirection.rtl
+                        ? Icons.arrow_forward_rounded
+                        : Icons.arrow_back_rounded,
+                    tooltip:
+                        MaterialLocalizations.of(context).backButtonTooltip,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      content.$1,
+                      key: const ValueKey('b2b-invoices-header-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: CustomerUiColors.white,
+                                fontWeight: FontWeight.w900,
+                                height: 1,
+                              ),
+                    ),
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.sm),
+                  Container(
+                    width: CustomerUiStroke.hairline,
+                    height: 30,
+                    color: CustomerUiColors.white,
+                  ),
+                  const SizedBox(width: CustomerUiSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      content.$2,
+                      key: const ValueKey('b2b-invoices-header-subtitle'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: CustomerUiColors.white,
+                            fontWeight: FontWeight.w500,
+                            height: 1,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            title: Row(
-              key: const ValueKey('b2b-invoices-header-row'),
-              children: [
-                Flexible(
-                  child: Text(
-                    content.$1,
-                    key: const ValueKey('b2b-invoices-header-title'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: CustomerUiColors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(width: 1, height: 30, color: CustomerUiColors.white),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    content.$2,
-                    key: const ValueKey('b2b-invoices-header-subtitle'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: CustomerUiColors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ],
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                key: const ValueKey('b2b-invoices-scroll'),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
+              ),
             ),
           ),
-          body: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              key: const ValueKey('b2b-invoices-scroll'),
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: _InvoicesRemoteState(api: api!, endpoint: _endpoint()!),
+        ),
+        destination,
+      );
+    }
+
+    if (hasRemoteState && isSecondaryAccountRoute) {
+      final remote = switch (definition.pattern) {
+        CustomerRoutePaths.b2bPurchaseReports => _PurchaseReportRemoteState(
+            api: api!,
+            endpoint: _endpoint()!,
+          ),
+        CustomerRoutePaths.b2bInvoiceDetails => _InvoiceDetailRemoteState(
+            api: api!,
+            endpoint: _endpoint()!,
+          ),
+        CustomerRoutePaths.b2bAccountStatement =>
+          _B2bAccountStatementRemoteState(
+            api: api!,
+            endpoint: _endpoint()!,
+          ),
+        _ => const SizedBox.shrink(),
+      };
+
+      return withFooter(
+        Scaffold(
+          backgroundColor: CustomerUiColors.mint,
+          body: CustomerCurvedHeaderSurface(
+            header: CustomerAccountHeader(
+              title: content.$1,
+              subtitle: content.$2,
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                child: remote,
+              ),
             ),
           ),
         ),
@@ -3993,13 +4062,13 @@ class _B2bMorePage extends StatefulWidget {
 }
 
 class _B2bMorePageState extends State<_B2bMorePage> {
-  static const deep = Color(0xFF00613F);
-  static const dark = Color(0xFF004E35);
-  static const bg = Color(0xFFF1FAF5);
-  static const soft = Color(0xFFE3F6E9);
-  static const border = Color(0xFFE1EBE5);
-  static const ink = Color(0xFF111827);
-  static const muted = Color(0xFF667085);
+  static const deep = CustomerUiColors.deepGreen;
+  static const dark = CustomerUiColors.deepGreenStrong;
+  static const bg = CustomerUiColors.mint;
+  static const soft = CustomerUiColors.limeSoft;
+  static const border = CustomerUiColors.border;
+  static const ink = CustomerUiColors.ink;
+  static const muted = CustomerUiColors.muted;
 
   late Future<Object?> finance = widget.api.get(widget.financeEndpoint);
   Future<Object?>? cart;
@@ -4236,264 +4305,166 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       child: Scaffold(
         key: const ValueKey('b2b-more-redesign'),
         backgroundColor: bg,
-        body: Column(
-          children: [
-            _MoreHeader(
-              title: context.tr('b2b.app.title'),
-              cart: cart,
-              notifications: notifications,
-              cartCount: _cartCount,
-              unreadCount: _unreadCount,
-              onCart: () => _open(widget.cartRoute),
-              onNotifications: () => _open(widget.notificationsRoute),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
-                child: Column(
-                  key: const ValueKey('b2b-account-hub'),
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment:
-                          ar ? Alignment.centerRight : Alignment.centerLeft,
-                      child: _BusinessTile(
-                        label: context.tr('b2b.dashboard.title'),
-                        onTap: () => _open(widget.dashboardRoute),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.tr('b2b.profile.title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: ink,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      context.tr('b2b.profile.hub_subtitle'),
-                      style: const TextStyle(
-                        color: muted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _FinanceCard(
-                      future: finance,
-                      ar: ar,
-                      statementRoute: widget.statementRoute,
-                      open: _open,
-                      retry: () => setState(
-                        () => finance = widget.api.get(widget.financeEndpoint),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    LayoutBuilder(
-                      builder: (_, constraints) {
-                        const gap = 10.0;
-                        final columns = constraints.maxWidth >= 350 ? 3 : 2;
-                        final width =
-                            (constraints.maxWidth - gap * (columns - 1)) /
-                                columns;
-                        final textScale =
-                            MediaQuery.textScalerOf(context).scale(1);
-                        final scaledDelta =
-                            (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                        final cardHeight = 112.0 + (scaledDelta * 90.0);
-                        return Wrap(
-                          spacing: gap,
-                          runSpacing: gap,
-                          children: [
-                            for (final item in items)
-                              SizedBox(
-                                width: width,
-                                height: cardHeight,
-                                child: _MoreCard(item: item),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    B2bBusinessAccountProfile(
-                      api: widget.api,
-                      endpoint: widget.profileEndpoint,
-                      addressesRoute: widget.addressesRoute,
-                    ),
-                    const SizedBox(height: 14),
-                    if (widget.onLocaleChanged != null)
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'ar', label: Text('العربية')),
-                          ButtonSegment(value: 'en', label: Text('English')),
-                        ],
-                        selected: {ar ? 'ar' : 'en'},
-                        onSelectionChanged: (value) {
-                          widget.onLocaleChanged!(Locale(value.first));
-                        },
-                      ),
-                    if (widget.onLogout != null) ...[
-                      const SizedBox(height: 10),
-                      ListTile(
-                        key: const ValueKey('b2b-profile-security-action'),
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.security_outlined),
-                        title: Text(context.tr('b2b.profile.security')),
-                        trailing: const Icon(Icons.chevron_left_rounded),
-                        onTap: _showSettings,
-                      ),
-                      OutlinedButton.icon(
-                        key: const ValueKey('b2b-profile-logout'),
-                        onPressed: widget.onLogout,
-                        icon: const Icon(Icons.logout_rounded),
-                        label: Text(context.tr('customer.logout')),
-                      ),
-                    ],
-                  ],
+        body: CustomerCurvedHeaderSurface(
+          header: CustomerAccountHeader(
+            key: const ValueKey('b2b-more-header-title'),
+            title: context.tr('b2b.profile.title'),
+            subtitle: context.tr('b2b.profile.hub_subtitle'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FutureBuilder<Object?>(
+                  future: cart,
+                  builder: (_, snap) => _HeaderCircle(
+                    icon: Icons.shopping_cart_outlined,
+                    onTap: () => _open(widget.cartRoute),
+                    badge: snap.hasData ? _cartCount(snap.data) : null,
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MoreHeader extends StatelessWidget {
-  const _MoreHeader({
-    required this.title,
-    required this.cart,
-    required this.notifications,
-    required this.cartCount,
-    required this.unreadCount,
-    required this.onCart,
-    required this.onNotifications,
-  });
-
-  final String title;
-  final Future<Object?>? cart;
-  final Future<Object?>? notifications;
-  final int? Function(Object?) cartCount;
-  final int? Function(Object?) unreadCount;
-  final VoidCallback onCart;
-  final VoidCallback onNotifications;
-
-  @override
-  Widget build(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-
-    return Material(
-      color: _B2bMorePageState.deep,
-      child: SafeArea(
-        bottom: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 360 || textScale > 1.15;
-
-            return ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 74),
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(
-                  compact ? 6 : 10,
-                  8,
-                  compact ? 6 : 10,
-                  8,
+                const SizedBox(width: CustomerUiSpacing.xs),
+                FutureBuilder<Object?>(
+                  future: notifications,
+                  builder: (_, snap) {
+                    final count = snap.hasData ? _unreadCount(snap.data) : null;
+                    return _HeaderCircle(
+                      icon: Icons.notifications_none_rounded,
+                      onTap: () => _open(widget.notificationsRoute),
+                      dot: count != null && count > 0,
+                    );
+                  },
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: CustomerUiSpacing.xs),
+                IconButton(
+                  key: const ValueKey('b2b-more-back'),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: Icon(
+                    ar ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
+                    color: CustomerUiColors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+            child: Column(
+              key: const ValueKey('b2b-account-hub'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
+                  child: _BusinessTile(
+                    label: context.tr('b2b.dashboard.title'),
+                    onTap: () => _open(widget.dashboardRoute),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  context.tr('b2b.profile.title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  context.tr('b2b.profile.hub_subtitle'),
+                  style: const TextStyle(
+                    color: muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _FinanceCard(
+                  future: finance,
+                  ar: ar,
+                  statementRoute: widget.statementRoute,
+                  open: _open,
+                  retry: () => setState(
+                    () => finance = widget.api.get(widget.financeEndpoint),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (_, constraints) {
+                    const gap = 10.0;
+                    final columns = constraints.maxWidth >= 350 ? 3 : 2;
+                    final width =
+                        (constraints.maxWidth - gap * (columns - 1)) / columns;
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final scaledDelta =
+                        (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+                    final cardHeight = 112.0 + (scaledDelta * 90.0);
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
                       children: [
-                        FutureBuilder<Object?>(
-                          future: cart,
-                          builder: (_, snap) => _HeaderCircle(
-                            icon: Icons.shopping_cart_outlined,
-                            onTap: onCart,
-                            badge: snap.hasData ? cartCount(snap.data) : null,
+                        for (final item in items)
+                          SizedBox(
+                            width: width,
+                            height: cardHeight,
+                            child: _MoreCard(item: item),
                           ),
-                        ),
-                        const SizedBox(width: 7),
-                        FutureBuilder<Object?>(
-                          future: notifications,
-                          builder: (_, snap) {
-                            final count =
-                                snap.hasData ? unreadCount(snap.data) : null;
-                            return _HeaderCircle(
-                              icon: Icons.notifications_none_rounded,
-                              onTap: onNotifications,
-                              dot: count != null && count > 0,
-                            );
-                          },
-                        ),
                       ],
-                    ),
-                    SizedBox(width: compact ? 6 : 10),
-                    Expanded(
-                      child: Semantics(
-                        header: true,
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 6,
-                          runSpacing: 2,
-                          children: [
-                            Text(
-                              title,
-                              key: const ValueKey('b2b-more-header-title'),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: CustomerUiColors.limeSoft,
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                              child: const Text(
-                                'B2B',
-                                textDirection: TextDirection.ltr,
-                                style: TextStyle(
-                                  color: _B2bMorePageState.dark,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                B2bBusinessAccountProfile(
+                  api: widget.api,
+                  endpoint: widget.profileEndpoint,
+                  addressesRoute: widget.addressesRoute,
+                ),
+                const SizedBox(height: 14),
+                if (widget.onLocaleChanged != null)
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'ar',
+                        label: Text(
+                          'العربية', // localization-gate: allow — language self-name selector
                         ),
                       ),
+                      ButtonSegment(
+                        value: 'en',
+                        label: Text(
+                          'English', // localization-gate: allow — language self-name selector
+                        ),
+                      )
+                    ],
+                    selected: {ar ? 'ar' : 'en'},
+                    onSelectionChanged: (value) {
+                      widget.onLocaleChanged!(Locale(value.first));
+                    },
+                  ),
+                if (widget.onLogout != null) ...[
+                  const SizedBox(height: 10),
+                  Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      key: const ValueKey('b2b-profile-security-action'),
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.security_outlined),
+                      title: Text(context.tr('b2b.profile.security')),
+                      trailing: const Icon(Icons.chevron_left_rounded),
+                      onTap: _showSettings,
                     ),
-                    SizedBox(width: compact ? 2 : 6),
-                    IconButton(
-                      key: const ValueKey('b2b-more-back'),
-                      tooltip:
-                          MaterialLocalizations.of(context).backButtonTooltip,
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                      color: Colors.white,
-                      iconSize: 26,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('b2b-profile-logout'),
+                    onPressed: widget.onLogout,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: Text(context.tr('customer.logout')),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -4507,6 +4478,7 @@ class _HeaderCircle extends StatelessWidget {
     this.badge,
     this.dot = false,
   });
+
   final IconData icon;
   final VoidCallback onTap;
   final int? badge;
@@ -4516,18 +4488,9 @@ class _HeaderCircle extends StatelessWidget {
   Widget build(BuildContext context) => Stack(
         clipBehavior: Clip.none,
         children: [
-          Material(
-            color: const Color(0x26FFFFFF),
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onTap,
-              child: SizedBox(
-                width: 44,
-                height: 44,
-                child: Icon(icon, color: Colors.white, size: 23),
-              ),
-            ),
+          CustomerOutlineIconButton(
+            icon: icon,
+            onPressed: onTap,
           ),
           if (badge != null && badge! > 0)
             PositionedDirectional(
@@ -4538,13 +4501,13 @@ class _HeaderCircle extends StatelessWidget {
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE53935),
+                  color: CustomerUiColors.destructive,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   badge! > 99 ? '99+' : badge.toString(),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: CustomerUiColors.white,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
                   ),
@@ -4559,9 +4522,12 @@ class _HeaderCircle extends StatelessWidget {
                 width: 9,
                 height: 9,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE53935),
+                  color: CustomerUiColors.destructive,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(
+                    color: CustomerUiColors.white,
+                    width: CustomerUiStroke.emphasis,
+                  ),
                 ),
               ),
             ),
@@ -4589,16 +4555,13 @@ class _BusinessTile extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [Color(0xFFE7F9D8), Color(0xFFCDEFA8)],
+                colors: [
+                  CustomerUiColors.limeSoft,
+                  CustomerUiColors.mintStrong,
+                ],
               ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x18004E35),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+              boxShadow: CustomerUiElevation.cardShadow,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -4654,16 +4617,10 @@ class _FinanceCard extends StatelessWidget {
         key: const ValueKey('b2b-more-finance-summary'),
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          color: CustomerUiColors.white,
+          borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
           border: Border.all(color: _B2bMorePageState.border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x10004E35),
-              blurRadius: 18,
-              offset: Offset(0, 7),
-            ),
-          ],
+          boxShadow: CustomerUiElevation.cardShadow,
         ),
         child: FutureBuilder<Object?>(
           future: future,
@@ -4852,23 +4809,17 @@ class _MoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
         child: InkWell(
           onTap: item.onTap,
           borderRadius: BorderRadius.circular(18),
           child: Ink(
             padding: const EdgeInsets.fromLTRB(9, 11, 9, 9),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
               border: Border.all(color: _B2bMorePageState.border),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0C004E35),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
+              boxShadow: CustomerUiElevation.cardShadow,
             ),
             child: Column(
               children: [
@@ -4877,7 +4828,7 @@ class _MoreCard extends StatelessWidget {
                   height: 60,
                   decoration: BoxDecoration(
                     color: item.warm
-                        ? const Color(0xFFFFF2D8)
+                        ? CustomerUiColors.limeSoft
                         : _B2bMorePageState.soft,
                     borderRadius: BorderRadius.circular(17),
                   ),
@@ -4904,7 +4855,7 @@ class _MoreCard extends StatelessWidget {
                       width: 26,
                       height: 26,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF2F6F4),
+                        color: CustomerUiColors.mint,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
