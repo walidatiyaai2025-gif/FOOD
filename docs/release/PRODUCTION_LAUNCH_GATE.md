@@ -1,0 +1,33 @@
+# FOODEX Production Launch Gate evidence contract
+
+Issue: #1332  
+Parent: #1323
+
+The production launch gate is fail-closed. A missing, stale, unknown or failed required check is a blocker; there is no warning-only bypass.
+
+Required check IDs:
+
+- schema_migrations
+- environment_configuration
+- release_lineage
+- official_seed
+- product_image_quality
+- clean_production_data
+- api_customer_contract
+- customer_ar_en_registry
+- customer_e2e
+- provider_readiness
+- mobile_artifacts
+- backup_rollback
+- exact_head_required_ci
+
+Evidence-producing lanes write server-side attestations under `storage/app/private/launch-gate/`. The official seed completeness evidence is `official-seed.json`; product image quality is `product-image-quality.json`; other required attestations use their matching check identifiers. Those files are deployment artifacts, not repository fixtures. Each JSON attestation must have `status: "passed"` and a 40-64 character lowercase hexadecimal `source_sha`. The SHA must equal the production source commit recorded by `Release/BUILD_INFO.json`; evidence from another commit is stale and blocks launch.
+
+The environment check is fail-closed and requires production mode, `FOODEX_PRODUCTION_LAUNCH_ENABLED=true`, an application key, debug disabled, and a configured database connection. The clean-data scan blocks known demo/test user, customer and transaction markers. Provider readiness requires both `FOODEX_PRODUCTION_PROVIDER_READY=true` and `provider-readiness.json` bound to the exact release source SHA. The gate never reads or displays provider secrets. Provider readiness is a boolean operational attestation. Exact-head Required CI is an evidence artifact from the release pipeline and must identify the exact promoted source SHA.
+
+Owner approval requires SUPER_ADMIN and the exact typed phrase `LAUNCH FOODEX PRODUCTION`. Approval is audited. The Dashboard promotion wiring must call the same fail-closed service; it must not reimplement or weaken these checks.
+
+## Protected reset handoff (#1331)
+
+A successful owner Launch approval does not perform a reset. After every mandatory #1332 check is green, it publishes the short-lived trusted reset preflight record consumed by #1331 at the configured private `foodex_reset.preflight_path`. The record is bound to the active database, the canonical `FoodexLaunchSeeder::preflight()` fingerprint, and a fresh Unix timestamp. #1331 still independently requires maintenance mode, deployment opt-in, the second destructive confirmation, and a successful real database backup before any delete. A failed or stale Launch gate cannot mint reset authorization.
+

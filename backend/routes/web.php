@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\LookupManagementController;
 use App\Http\Controllers\Admin\MobileAppDownloadController;
 use App\Http\Controllers\Admin\MobileSettingsController;
 use App\Http\Controllers\Admin\OrderOperationsController;
+use App\Http\Controllers\Admin\ProductionLaunchController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
@@ -388,6 +389,8 @@ Route::prefix('admin')
         Route::post('/settings/mobile/reviewer/{reviewer}/test', [StoreSubmissionController::class, 'testReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.test');
         Route::get('/settings/foodex-reset', [FoodexResetController::class, 'index'])->name('foodex-reset.index');
         Route::post('/settings/foodex-reset', [FoodexResetController::class, 'store'])->block(920, 1)->middleware('throttle:3,1')->name('foodex-reset.store');
+        Route::get('/settings/production-launch', [ProductionLaunchController::class, 'index'])->name('production-launch.index');
+        Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
