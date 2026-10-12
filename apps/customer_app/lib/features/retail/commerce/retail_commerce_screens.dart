@@ -780,6 +780,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                             'retail-checkout-payment-method',
                           ),
                           initialValue: _paymentMethod,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: strings.paymentMethod,
                             prefixIcon: const Icon(
@@ -791,6 +792,8 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                                   value: method,
                                   child: Text(
                                     _paymentLabel(strings, method),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               )
