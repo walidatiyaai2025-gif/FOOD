@@ -2634,7 +2634,7 @@ class _WholesaleProductDetailsDesignScreenState
                     child: DefaultTextStyle.merge(
                       style: const TextStyle(color: Colors.white),
                       child: IconTheme(
-                        data: const IconThemeData(color: Colors.white),
+                        data: IconThemeData(color: Colors.white),
                         child: FoodexTopBar(
                           title: context.tr('customer.product.title'),
                           actions: [
@@ -6149,7 +6149,7 @@ class _WholesaleOrdersHeader extends StatelessWidget {
                               size: 24,
                               color: CustomerUiColors.ink,
                             ),
-                            child: const BackButtonIcon(),
+                            child: BackButtonIcon(),
                           ),
                         ),
                       ),
