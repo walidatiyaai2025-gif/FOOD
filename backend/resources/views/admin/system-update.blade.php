@@ -33,9 +33,10 @@
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page" data-foodex-utility="system-update">
-    <div class="header foodex-page-header">
+    @include('admin._admin-center-switcher',['active'=>'settings'])
+<div class="header foodex-page-header">
         <div>
-            <a href="{{ route('admin.index') }}">← FOODEX Dashboard</a>
+            <a href="{{ route('admin.settings.index') }}">← {{ app()->getLocale()==='ar' ? 'مركز الإعدادات' : 'Settings Center' }}</a>
             <h1>System Update</h1>
         </div>
         <span class="badge">Current: {{ $currentVersion }}</span>
