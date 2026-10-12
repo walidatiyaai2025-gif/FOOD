@@ -69,7 +69,6 @@ void main() {
     },
   );
 
-
   testWidgets(
     'unscoped Wholesale footer still renders canonical four-item navigation',
     (tester) async {
