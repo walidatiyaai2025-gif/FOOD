@@ -113,6 +113,43 @@ class ProductionLaunchGateTest extends TestCase
             ->assertDontSee('Launch remains blocked.');
     }
 
+    public function test_attestation_must_match_exact_release_source_sha(): void
+    {
+        $buildInfoPath = base_path('../Release/BUILD_INFO.json');
+        $buildInfo = json_decode((string) file_get_contents($buildInfoPath), true);
+        $this->assertIsArray($buildInfo);
+        $sourceSha = $buildInfo['source_commit'] ?? null;
+        $this->assertIsString($sourceSha);
+
+        $directory = storage_path('app/private/launch-gate');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+        $path = $directory.'/product-image-quality.json';
+
+        try {
+            file_put_contents($path, json_encode([
+                'status' => 'passed',
+                'source_sha' => str_repeat('a', 40),
+            ], JSON_THROW_ON_ERROR));
+
+            $stale = app(ProductionLaunchPreflight::class)->runtimeReport();
+            $this->assertFalse($stale['checks']['product_image_quality']['passed']);
+
+            file_put_contents($path, json_encode([
+                'status' => 'passed',
+                'source_sha' => $sourceSha,
+            ], JSON_THROW_ON_ERROR));
+
+            $current = app(ProductionLaunchPreflight::class)->runtimeReport();
+            $this->assertTrue($current['checks']['product_image_quality']['passed']);
+        } finally {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+    }
+
     public function test_successful_owner_approval_audits_release_lineage(): void
     {
         $owner = $this->superAdmin();
