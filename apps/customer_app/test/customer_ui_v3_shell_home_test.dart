@@ -368,17 +368,16 @@ void main() {
   });
 }
 
-Finder _homeVerticalScroll() => find
-    .descendant(
-      of: find.byKey(const ValueKey('retail-catalog-home')),
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is Scrollable &&
-            (widget.axisDirection == AxisDirection.down ||
-                widget.axisDirection == AxisDirection.up),
-      ),
-    )
-    .first;
+Finder _homeVerticalScroll() {
+  final candidates = find.descendant(
+    of: find.byKey(const ValueKey('retail-catalog-home')),
+    matching: find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.down,
+    ),
+  );
+  return candidates.first;
+}
 
 Future<void> _dragUntilFound(
   WidgetTester tester, {
