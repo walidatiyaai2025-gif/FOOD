@@ -10,7 +10,7 @@
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="demo-data">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="page foodex-admin-main foodex-admin-page" data-foodex-utility="demo-data">
 <header class="top foodex-page-header">
 <div><div class="muted">FOODEX · {{ __('admin.security.demo_data.eyebrow') }}</div><h1>{{ __('admin.security.demo_data.title') }}</h1><p class="muted">{{ __('admin.security.demo_data.description') }}</p></div>
