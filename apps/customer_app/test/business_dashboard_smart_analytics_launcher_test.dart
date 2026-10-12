@@ -33,8 +33,9 @@ Widget _app({
     );
 
 void main() {
-  testWidgets('launcher keeps an accessible target and badge follows unread state',
-      (tester) async {
+  testWidgets(
+    'launcher keeps an accessible target and badge follows unread state',
+    (tester) async {
     var taps = 0;
     await tester.pumpWidget(
       _app(
@@ -90,17 +91,19 @@ void main() {
       find.bySemanticsLabel('التحليل الذكي للمتجر'),
       findsOneWidget,
     );
-  });
+    },
+  );
 
-  testWidgets('pulse changes softly in normal motion and stays static when reduced',
-      (tester) async {
+  testWidgets(
+    'pulse changes softly in normal motion and stays static when reduced',
+    (tester) async {
     double scale() {
       final widget = tester.widget<Transform>(
         find.byKey(
           const ValueKey('business-smart-analytics-launcher-pulse'),
         ),
       );
-      return widget.transform;
+      return widget.transform.getMaxScaleOnAxis();
     }
 
     await tester.pumpWidget(
@@ -131,7 +134,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     final reducedAfter = scale();
     expect(reducedAfter, equals(reducedBefore));
-  });
+    },
+  );
 
   for (final width in const [320.0, 360.0, 390.0, 412.0, 430.0]) {
     testWidgets('launcher is overflow-safe at width $width', (tester) async {
