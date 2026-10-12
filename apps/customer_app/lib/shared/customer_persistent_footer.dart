@@ -334,9 +334,8 @@ class _FooterButton extends StatelessWidget {
                 width: active ? 58 : 46,
                 height: active ? 42 : 42,
                 decoration: BoxDecoration(
-                  color: active
-                      ? CustomerUiColors.limeSoft
-                      : Colors.transparent,
+                  color:
+                      active ? CustomerUiColors.limeSoft : Colors.transparent,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
@@ -360,8 +359,7 @@ class _FooterButton extends StatelessWidget {
                         color: active
                             ? CustomerUiColors.deepGreenStrong
                             : CustomerUiColors.muted,
-                        fontWeight:
-                            active ? FontWeight.w900 : FontWeight.w700,
+                        fontWeight: active ? FontWeight.w900 : FontWeight.w700,
                         fontSize: 10.5,
                         height: 1.05,
                       ),

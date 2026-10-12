@@ -170,8 +170,12 @@ void main() {
           find.byKey(const ValueKey('customer-persistent-footer')),
           findsOneWidget,
         );
-        for (final destination
-            in ['products', 'orders', 'invoices', 'account']) {
+        for (final destination in [
+          'products',
+          'orders',
+          'invoices',
+          'account'
+        ]) {
           expect(
             find.byKey(ValueKey('customer-footer-$destination')),
             findsOneWidget,
@@ -182,9 +186,11 @@ void main() {
           findsNothing,
         );
         expect(
-          tester.getSize(
-            find.byKey(const ValueKey('customer-persistent-footer')),
-          ).height,
+          tester
+              .getSize(
+                find.byKey(const ValueKey('customer-persistent-footer')),
+              )
+              .height,
           greaterThanOrEqualTo(82),
         );
         expect(tester.takeException(), isNull);
