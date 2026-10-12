@@ -320,6 +320,7 @@ class CustomerOrderSuccessPanel extends StatelessWidget {
                     textDirection: TextDirection.ltr,
                     child: SelectableText(
                       orderReference,
+                      maxLines: 1,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: CustomerUiColors.deepGreenStrong,
