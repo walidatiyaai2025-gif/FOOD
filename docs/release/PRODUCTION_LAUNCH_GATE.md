@@ -8,6 +8,7 @@ The production launch gate is fail-closed. A missing, stale, unknown or failed r
 Required check IDs:
 
 - schema_migrations
+- environment_configuration
 - official_seed
 - product_image_quality
 - clean_production_data
@@ -21,6 +22,6 @@ Required check IDs:
 
 Evidence-producing lanes write server-side attestations under `storage/app/private/launch-gate/`. Those files are deployment artifacts, not repository fixtures. Each JSON attestation must have `status: "passed"` and a 40-64 character lowercase hexadecimal `source_sha` identifying the exact source/evidence lineage.
 
-The gate never reads or displays provider secrets. Provider readiness is a boolean operational attestation. Exact-head Required CI is an evidence artifact from the release pipeline and must identify the exact promoted source SHA.
+The environment check is fail-closed and requires production mode, an application key, debug disabled, and a configured database connection. The clean-data scan blocks known demo/test user, customer and transaction markers. The gate never reads or displays provider secrets. Provider readiness is a boolean operational attestation. Exact-head Required CI is an evidence artifact from the release pipeline and must identify the exact promoted source SHA.
 
 Owner approval requires SUPER_ADMIN and the exact typed phrase `LAUNCH FOODEX PRODUCTION`. Approval is audited. The Dashboard promotion wiring must call the same fail-closed service; it must not reimplement or weaken these checks.
