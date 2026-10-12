@@ -464,10 +464,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-
   testWidgets(
-      'channel tabs stay explicit and direction follows the active locale',
-      (tester) async {
+    'channel tabs stay explicit and direction follows the active locale',
+    (tester) async {
     final api = _FakeOrdersApi(
       responder: (channel, page) async => _page(
         channel: channel,
@@ -529,7 +528,8 @@ void main() {
     );
     expect(Directionality.of(arabicFilters), TextDirection.rtl);
     expect(tester.takeException(), isNull);
-  });
+  },
+  );
 
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',
       (tester) async {
