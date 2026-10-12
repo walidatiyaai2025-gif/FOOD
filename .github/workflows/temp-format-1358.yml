@@ -1,0 +1,42 @@
+name: TEMP format #1358 Dart files
+
+on:
+  push:
+    branches:
+      - feat/1358-mobile-store-analytics-screen
+    paths:
+      - .github/workflows/temp-format-1358.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/1358-mobile-store-analytics-screen
+          fetch-depth: 0
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - name: Canonically format failing Dart files
+        working-directory: apps/customer_app
+        run: |
+          dart format             lib/features/store_analytics/store_analytics_screen.dart             test/screenshot_evidence_test.dart             test/store_analytics_screen_test.dart
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart             apps/customer_app/test/screenshot_evidence_test.dart             apps/customer_app/test/store_analytics_screen_test.dart
+          git commit -m "style(customer): dart format Store Analytics files"
+          git push origin HEAD:feat/1358-mobile-store-analytics-screen
