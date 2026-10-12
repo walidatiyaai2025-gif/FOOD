@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.73 - 2026-10-12
+
+- Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update.
+- Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px.
+- Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality.
+- Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage.
+- Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff.
+- Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice.
+
 ## 1.0.72 - 2026-10-11
 
 - Promote all authoritative Dashboard/backend changes merged after FOODEX 1.0.71 through PR #1287 into the FOODEX 1.0.72 Dashboard update.
