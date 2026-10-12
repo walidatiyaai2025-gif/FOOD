@@ -24,6 +24,9 @@
             <a class="settings-page-link" href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ __('admin.settings_center.items.mobile') }}</a>
         </div>
     </header>
+    <p class="settings-page-note">{{ $ar
+        ? 'هذه هي سياسة الإصدار الرسمية التي يعتمد عليها تطبيق الهاتف عند بدء التشغيل. إعدادات Mobile Runtime منفصلة ومعلوماتية ولا تستبدل هذه السياسة.'
+        : 'This is the authoritative startup/update policy consumed by the mobile apps. Mobile Runtime settings are separate informational metadata and do not replace this policy.' }}</p>
 
     @if (session('status')) <p class="foodex-state" role="status">{{ session('status') }}</p> @endif
     @if ($errors->any()) <div class="foodex-state" role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
