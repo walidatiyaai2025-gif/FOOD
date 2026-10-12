@@ -229,7 +229,8 @@ class B2bJourneyScreen extends StatelessWidget {
                     icon: Directionality.of(context) == TextDirection.rtl
                         ? Icons.arrow_forward_rounded
                         : Icons.arrow_back_rounded,
-                    tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                    tooltip:
+                        MaterialLocalizations.of(context).backButtonTooltip,
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(width: CustomerUiSpacing.sm),
@@ -239,11 +240,12 @@ class B2bJourneyScreen extends StatelessWidget {
                       key: const ValueKey('b2b-invoices-header-title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: CustomerUiColors.white,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: CustomerUiColors.white,
+                                fontWeight: FontWeight.w900,
+                                height: 1,
+                              ),
                     ),
                   ),
                   const SizedBox(width: CustomerUiSpacing.sm),
