@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
@@ -203,7 +206,7 @@ Widget _app(
     (route) => route.pattern == CustomerRoutePaths.b2bDashboard,
   );
   return MaterialApp(
-    theme: FoodexTheme.light(fontFamily: 'sans'),
+    theme: FoodexTheme.light(fontFamily: 'DashboardAnalyticsTest'),
     home: AppTranslations(
       locale: locale,
       overrides: const <String, String>{},
@@ -234,7 +237,21 @@ Future<void> _pumpRemote(WidgetTester tester) async {
   await tester.pump();
 }
 
+Future<void> _loadTestFonts() async {
+  final font = <String>[
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+    'C:/Windows/Fonts/arial.ttf',
+  ].map(File.new).firstWhere((file) => file.existsSync());
+  final loader = FontLoader('DashboardAnalyticsTest')
+    ..addFont(Future.value(ByteData.sublistView(await font.readAsBytes())));
+  await loader.load();
+}
+
 void main() {
+  setUpAll(_loadTestFonts);
+
   testWidgets(
     'retail dashboard consumes authoritative logo/unread state and opens canonical route',
     (tester) async {
