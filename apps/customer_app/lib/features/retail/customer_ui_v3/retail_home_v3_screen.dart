@@ -60,7 +60,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
       widget.catalogApi.categories(widget.storeId),
       widget.catalogApi.products(widget.storeId),
       widget.catalogApi.banners(widget.storeId),
-      if (_storefrontApi != null) _storefrontApi!.retailHome(widget.storeId),
+      if (_storefrontApi != null) _storefrontApi.retailHome(widget.storeId),
     ]);
 
     var profile = const <String, dynamic>{};
@@ -653,7 +653,7 @@ class _RetailHomeV3Data {
     final configuredLimit = config['limit'] is num
         ? (config['limit'] as num).toInt()
         : int.tryParse('${config['limit'] ?? ''}');
-    final limit = (configuredLimit ?? 3).clamp(1, 6) as int;
+    final limit = (configuredLimit ?? 3).clamp(1, 6);
 
     if (ids.isNotEmpty) {
       final byId = <int, B2cProduct>{
