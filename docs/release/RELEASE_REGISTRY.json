@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.73",
+  "current_version": "1.0.75",
   "releases": [
     {
       "version": "1.0.40",
@@ -254,6 +254,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "3a7d74ad10d5328b225205852fa1848482ce6f825ca922607781cf118adcbf9f",
       "note": "FOODEX 1.0.73 synchronized release for Issue #1308 / PR #1309. Includes the post-1.0.72 Dashboard Mobile Web rollout, B2B sidebar cleanup, Softarkan report-branding removal, and Release Factory reliability repairs. Dashboard update is directly deployable over 1.0.72; Customer/Driver/Van source identities are synchronized at 1.0.73+73."
+    },
+    {
+      "version": "1.0.75",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.75.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "bf59ad1dbb423ea2f9fbd0d3ccde38f4901ee23ced5215f139c90835069f2b0a",
+      "note": "FOODEX 1.0.75 synchronized release for the authoritative post-1.0.73 main lineage through Customer VNext final certification PR #1353 and the authoritative mobile Store Analytics API #1355. Includes Customer VNext shopping, catalog, checkout, order-success, orders/tracking, account surfaces, secure real-data certification, production launch/reset controls, Store Analytics API, and post-1.0.73 admin/backend improvements. Version 1.0.74 is intentionally skipped; Customer/Driver/Van identities are synchronized at 1.0.75+75."
     }
   ]
 }
