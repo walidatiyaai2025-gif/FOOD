@@ -272,7 +272,10 @@ void main() {
         find.byKey(const ValueKey('business-smart-analytics-launcher-badge')),
         findsOneWidget,
       );
-      expect(find.bySemanticsLabel('Open Smart Store Analytics'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Open Smart Store Analytics'),
+        findsOneWidget,
+      );
 
       final storeLogo = tester.widget<BusinessDashboardStoreLogo>(
         find.byType(BusinessDashboardStoreLogo),
