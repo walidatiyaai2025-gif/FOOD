@@ -281,9 +281,14 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
                 CustomerRouteLocations.retailAddresses(commerceContext),
               );
             },
-            onOrderCreated: (orderId, _) {
+            onTrackOrder: (orderId, _) {
               Navigator.of(context).pushReplacementNamed(
                 _orderTrackingLocation(orderId, commerceContext),
+              );
+            },
+            onContinueShopping: () {
+              Navigator.of(context).pushReplacementNamed(
+                CustomerRouteLocations.retailHome(commerceContext),
               );
             },
           ),
