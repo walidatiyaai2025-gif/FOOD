@@ -410,7 +410,13 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('retail-checkout-submit')));
+    final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(api.lastSubmitStore, 7);
@@ -520,10 +526,14 @@ void main() {
             find.byKey(const ValueKey('retail-checkout-review')),
             findsOneWidget,
           );
-          expect(
-            find.byKey(const ValueKey('retail-checkout-submit')),
-            findsOneWidget,
+          final submit =
+              find.byKey(const ValueKey('retail-checkout-submit'));
+          await tester.scrollUntilVisible(
+            submit,
+            300,
+            scrollable: find.byType(Scrollable).first,
           );
+          expect(submit, findsOneWidget);
           expect(tester.takeException(), isNull);
 
           await tester.pumpWidget(const SizedBox.shrink());
@@ -549,7 +559,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final submit = find.byKey(const ValueKey('retail-checkout-submit'));
-    await tester.ensureVisible(submit);
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
@@ -569,7 +583,11 @@ void main() {
       findsNothing,
     );
 
-    await tester.ensureVisible(submit);
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
@@ -599,7 +617,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final submit = find.byKey(const ValueKey('retail-checkout-submit'));
-    await tester.ensureVisible(submit);
+    await tester.scrollUntilVisible(
+      submit,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
