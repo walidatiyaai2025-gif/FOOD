@@ -196,15 +196,6 @@ final class MobileStoreAnalyticsService
 
         abort_if($entitled === [], 403);
 
-        $owned = array_values(array_intersect(
-            $this->identity->ownedRetailStoreIds($user),
-            $entitled,
-        ));
-
-        if (count($owned) === 1) {
-            return (int) $owned[0];
-        }
-
         if (count($entitled) === 1) {
             return (int) $entitled[0];
         }
