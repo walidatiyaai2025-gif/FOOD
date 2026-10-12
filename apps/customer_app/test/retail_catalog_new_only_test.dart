@@ -175,7 +175,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final plus = find.byKey(const ValueKey('retail-product-plus'));
-    await tester.ensureVisible(plus);
+    await tester.dragUntilVisible(
+      plus,
+      find.byKey(const ValueKey('retail-product-scroll')),
+      const Offset(0, -240),
+    );
     await tester.tap(plus);
     await tester.pump();
     final add = find.byKey(const ValueKey('retail-product-add-cart'));
