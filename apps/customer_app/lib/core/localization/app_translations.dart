@@ -390,7 +390,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.store_analytics.insights.empty': 'لا توجد تحليلات جديدة الآن.',
     'b2b.store_analytics.top_products.title': 'أفضل المنتجات',
     'b2b.store_analytics.top_products.contribution': 'المساهمة في المبيعات',
-    'b2b.store_analytics.top_products.empty': 'لا توجد بيانات منتجات لهذه الفترة.',
+    'b2b.store_analytics.top_products.empty':
+        'لا توجد بيانات منتجات لهذه الفترة.',
     'b2b.store_analytics.inventory.low_stock': 'مخزون منخفض',
     'b2b.store_analytics.inventory.attention': 'يحتاج متابعة',
     'b2b.store_analytics.inventory.empty': 'لا توجد تنبيهات مخزون حالية.',
@@ -403,7 +404,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.store_analytics.state.empty': 'لا توجد بيانات تحليلية للفترة المحددة.',
     'b2b.store_analytics.state.error': 'تعذر تحميل تحليل المتجر.',
     'b2b.store_analytics.state.retry': 'إعادة المحاولة',
-    'b2b.store_analytics.state.no_entitlement': 'تحليل المتجر غير متاح لهذا الحساب.',
+    'b2b.store_analytics.state.no_entitlement':
+        'تحليل المتجر غير متاح لهذا الحساب.',
     'b2b.store_analytics.state.no_entitlement_hint':
         'استخدم حساب أعمال مخولًا بإدارة متجر التجزئة.',
     'b2b.store_analytics.state.stale': 'نعرض آخر بيانات مؤكدة.',
@@ -1074,10 +1076,12 @@ class AppTranslations extends InheritedWidget {
     'b2b.dashboard.offers': 'Your offers and products',
     'b2b.dashboard.offers_cta': 'Browse your top purchased products',
     'b2b.store_analytics.launcher.title': 'Store intelligence',
-    'b2b.store_analytics.launcher.hint': 'Open smart analytics for your Retail store',
+    'b2b.store_analytics.launcher.hint':
+        'Open smart analytics for your Retail store',
     'b2b.store_analytics.launcher.new_insights': 'New insights',
     'b2b.store_analytics.title': 'Smart Store Analytics',
-    'b2b.store_analytics.subtitle': 'Retail store performance and opportunities',
+    'b2b.store_analytics.subtitle':
+        'Retail store performance and opportunities',
     'b2b.store_analytics.store': 'Store',
     'b2b.store_analytics.period': 'Period',
     'b2b.store_analytics.period.current': 'Current period',
@@ -1106,7 +1110,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.store_analytics.insights.empty': 'No new insights right now.',
     'b2b.store_analytics.top_products.title': 'Top products',
     'b2b.store_analytics.top_products.contribution': 'Sales contribution',
-    'b2b.store_analytics.top_products.empty': 'No product data for this period.',
+    'b2b.store_analytics.top_products.empty':
+        'No product data for this period.',
     'b2b.store_analytics.inventory.low_stock': 'Low stock',
     'b2b.store_analytics.inventory.attention': 'Needs attention',
     'b2b.store_analytics.inventory.empty': 'No current stock alerts.',
@@ -1116,7 +1121,8 @@ class AppTranslations extends InheritedWidget {
     'b2b.store_analytics.action.refresh': 'Refresh analytics',
     'b2b.store_analytics.action.back_dashboard': 'Back to Business dashboard',
     'b2b.store_analytics.state.loading': 'Loading store analytics...',
-    'b2b.store_analytics.state.empty': 'No analytics data for the selected period.',
+    'b2b.store_analytics.state.empty':
+        'No analytics data for the selected period.',
     'b2b.store_analytics.state.error': 'Unable to load store analytics.',
     'b2b.store_analytics.state.retry': 'Try again',
     'b2b.store_analytics.state.no_entitlement':
