@@ -222,12 +222,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('b2b-checkout-submit')),
+      final submit =
+          find.byKey(const ValueKey('b2b-checkout-submit'));
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(
-        find.byKey(const ValueKey('b2b-checkout-submit')),
-      );
+      await tester.tap(submit);
       await tester.pumpAndSettle();
 
       expect(
