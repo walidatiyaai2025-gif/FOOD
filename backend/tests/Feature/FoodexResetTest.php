@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Updater\UpdateRuntime;
+use App\Http\Controllers\Admin\FoodexResetController;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\FoodexResetService;
@@ -18,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class FoodexResetTest extends TestCase
@@ -245,10 +247,15 @@ class FoodexResetTest extends TestCase
                 ->assertOk()
                 ->assertSee(FoodexResetService::PRODUCTION_CONFIRMATION);
 
-            $this->app->instance('env', 'production');
-            $this->actingAs($owner)
-                ->post('/admin/settings/foodex-reset', $this->confirmation())
-                ->assertSessionHasErrors('production_confirmation');
+            $request = Request::create('/admin/settings/foodex-reset', 'POST', $this->confirmation());
+            $request->setUserResolver(static fn (): User => $owner);
+
+            try {
+                app(FoodexResetController::class)->store($request, app(FoodexResetService::class));
+                $this->fail('Production reset must require the secondary typed confirmation.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('production_confirmation', $exception->errors());
+            }
 
             $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
         } finally {
