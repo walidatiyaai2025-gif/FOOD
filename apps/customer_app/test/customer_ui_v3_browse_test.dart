@@ -382,6 +382,11 @@ void main() {
       await tester.ensureVisible(secondImage);
       await tester.tap(secondImage);
       await tester.pump();
+      await tester.drag(
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, 420),
+      );
+      await tester.pumpAndSettle();
 
       final mainImage = tester.widget<CustomerProductImage>(
         find.byKey(const ValueKey('retail-product-gallery-main')),
