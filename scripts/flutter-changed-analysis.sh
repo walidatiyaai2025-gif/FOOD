@@ -77,13 +77,11 @@ fi
 
 (
   cd "$root/$prefix"
-  analysis_status=0
   for file in "${files[@]}"; do
     [[ -f "$file" ]] || continue
     echo "dart analyze --fatal-infos $file"
-    dart analyze --fatal-infos "$file" || analysis_status=1
+    dart analyze --fatal-infos "$file"
   done
-  exit "$analysis_status"
 )
 
 echo "Strict changed-file Flutter analysis passed for $app."
