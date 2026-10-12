@@ -661,7 +661,6 @@ class _FakeOrdersApi implements CustomerOrdersApi {
   }
 }
 
-
 class _FakeActionApi implements CustomerActionApi {
   final List<String> addCalls = <String>[];
 
