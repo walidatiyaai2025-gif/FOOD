@@ -8,7 +8,7 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}.wrap{max-wi
 @include('admin._settings-page-polish')
 </head><body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="sms-settings">
-<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'settings_center', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
 @include('admin._admin-center-switcher',['active'=>'settings'])
 <div class="wrap">
