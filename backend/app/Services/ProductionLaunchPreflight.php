@@ -186,8 +186,8 @@ final class ProductionLaunchPreflight
         $this->assertLaunchable($report);
 
         $seed = app(FoodexLaunchSeeder::class)->preflight();
-        $fingerprint = $seed['fingerprint'];
-        if ($seed['ready'] !== true || $fingerprint === '') {
+        $fingerprint = trim($seed['fingerprint']);
+        if ($seed['ready'] !== true || preg_match('/^[a-f0-9]{64}$/', $fingerprint) !== 1) {
             throw ValidationException::withMessages([
                 'launch' => __('production_launch.errors.blocked'),
             ]);
@@ -305,10 +305,8 @@ final class ProductionLaunchPreflight
             ];
         }
 
-        $fingerprint = is_string($runtime['fingerprint'] ?? null)
-            ? trim($runtime['fingerprint'])
-            : '';
-        $runtimeReady = ($runtime['ready'] ?? false) === true
+        $fingerprint = trim($runtime['fingerprint']);
+        $runtimeReady = $runtime['ready'] === true
             && preg_match('/^[a-f0-9]{64}$/', $fingerprint) === 1;
 
         $attestation = $this->attestationCheck(
