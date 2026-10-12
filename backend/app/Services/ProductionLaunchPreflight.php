@@ -164,9 +164,61 @@ final class ProductionLaunchPreflight
                         $code => $check['source'] ?? null,
                     ])
                     ->all(),
+                'release' => $this->releaseMetadata(),
             ],
             $request,
         );
+    }
+
+    /**
+     * @return array{
+     *     version:?string,
+     *     source_commit:?string,
+     *     github_run_number:?string,
+     *     customer_build_number:?int,
+     *     driver_build_number:?int,
+     *     van_build_number:?int
+     * }
+     */
+    public function releaseMetadata(): array
+    {
+        $version = null;
+        $versionPath = base_path('../VERSION');
+        if (is_file($versionPath)) {
+            $candidate = trim((string) file_get_contents($versionPath));
+            $version = $candidate !== '' ? $candidate : null;
+        }
+
+        $buildInfo = [];
+        $buildInfoPath = base_path('../Release/BUILD_INFO.json');
+        if (is_file($buildInfoPath)) {
+            $decoded = json_decode((string) file_get_contents($buildInfoPath), true);
+            if (is_array($decoded)) {
+                $buildInfo = $decoded;
+            }
+        }
+
+        $sourceCommit = is_string($buildInfo['source_commit'] ?? null)
+            && preg_match('/^[a-f0-9]{40,64}$/', $buildInfo['source_commit']) === 1
+                ? $buildInfo['source_commit']
+                : null;
+
+        return [
+            'version' => $version,
+            'source_commit' => $sourceCommit,
+            'github_run_number' => is_scalar($buildInfo['github_run_number'] ?? null)
+                ? (string) $buildInfo['github_run_number']
+                : null,
+            'customer_build_number' => is_numeric($buildInfo['customer']['build_number'] ?? null)
+                ? (int) $buildInfo['customer']['build_number']
+                : null,
+            'driver_build_number' => is_numeric($buildInfo['driver']['build_number'] ?? null)
+                ? (int) $buildInfo['driver']['build_number']
+                : null,
+            'van_build_number' => is_numeric($buildInfo['van']['build_number'] ?? null)
+                ? (int) $buildInfo['van']['build_number']
+                : null,
+        ];
     }
 
     /** @return array{passed:bool,detail:string,source:string} */
