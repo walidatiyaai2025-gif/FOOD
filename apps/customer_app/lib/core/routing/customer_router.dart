@@ -12,6 +12,7 @@ import '../auth/customer_session.dart';
 import '../auth/customer_session_store.dart';
 import '../location/customer_location_service.dart';
 import '../location/customer_map_pin_selector.dart';
+import '../localization/app_translations.dart';
 import '../../features/b2b/b2b_journey_screen.dart';
 import '../../features/customer_orders/customer_orders_api.dart';
 import '../../features/auth/unified_customer_auth_screen.dart';
@@ -418,6 +419,7 @@ class CustomerAppRouter {
           return CustomerRoutePlaceholder(
             definition: definition,
             location: requestedLocation,
+            label: context.tr('b2b.store_analytics.title'),
           );
         }
 
@@ -447,11 +449,13 @@ class CustomerRoutePlaceholder extends StatelessWidget {
   const CustomerRoutePlaceholder({
     required this.definition,
     required this.location,
+    this.label,
     super.key,
   });
 
   final CustomerRouteDefinition definition;
   final String location;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -464,7 +468,7 @@ class CustomerRoutePlaceholder extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                definition.label,
+                label ?? definition.label,
                 key: const ValueKey('customer-route-label'),
                 style: const TextStyle(
                   fontSize: 24,
