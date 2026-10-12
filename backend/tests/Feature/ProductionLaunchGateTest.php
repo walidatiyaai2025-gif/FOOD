@@ -204,7 +204,8 @@ PHP);
                 'source_sha' => $sourceSha,
             ], JSON_THROW_ON_ERROR));
 
-            $this->app->instance(FoodexLaunchSeeder::class, new class {
+            $this->app->instance(FoodexLaunchSeeder::class, new class
+            {
                 public function preflight(): array
                 {
                     return [
@@ -217,7 +218,8 @@ PHP);
             $blocked = app(ProductionLaunchPreflight::class)->runtimeReport();
             $this->assertFalse($blocked['checks']['official_seed']['passed']);
 
-            $this->app->instance(FoodexLaunchSeeder::class, new class {
+            $this->app->instance(FoodexLaunchSeeder::class, new class
+            {
                 public function preflight(): array
                 {
                     return [
@@ -333,7 +335,8 @@ PHP);
         config(['foodex_reset.preflight_path' => $path]);
 
         $fingerprint = hash('sha256', 'launch-reset-contract');
-        $this->app->instance(FoodexLaunchSeeder::class, new class ($fingerprint) {
+        $this->app->instance(FoodexLaunchSeeder::class, new class($fingerprint)
+        {
             public function __construct(private readonly string $fingerprint) {}
 
             public function preflight(): array
