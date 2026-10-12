@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/api/b2c_catalog_api.dart';
@@ -202,11 +203,19 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         );
       }
 
+      final isOffline = error is http.ClientException ||
+          (error is StorefrontApiException && error.statusCode == null);
       return CustomerStateView(
+        key: ValueKey(isOffline ? 'retail-home-offline' : 'retail-home-error'),
         kind: CustomerStateKind.error,
-        title: context.tr('customer.error.action_failed'),
+        title: context.tr(
+          isOffline
+              ? 'customer.error.offline'
+              : 'customer.error.action_failed',
+        ),
         actionLabel: context.tr('customer.action.retry'),
         onAction: _reload,
+        icon: isOffline ? Icons.wifi_off_rounded : null,
       );
     }
 
@@ -649,7 +658,9 @@ class _RetailHomeV3Data {
     final limit = (configuredLimit ?? 3).clamp(1, 6) as int;
 
     if (ids.isNotEmpty) {
-      final byId = <int, B2cProduct>{for (final product in products) product.id: product};
+      final byId = <int, B2cProduct>{
+        for (final product in products) product.id: product,
+      };
       return ids
           .map((id) => byId[id])
           .whereType<B2cProduct>()
