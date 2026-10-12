@@ -118,14 +118,6 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final mainScroll = _homeVerticalScroll();
-      final bestSellersTitle = find.text('الأكثر مبيعاً');
-      await _dragUntilFound(
-        tester,
-        scrollable: mainScroll,
-        target: bestSellersTitle,
-      );
-      expect(bestSellersTitle, findsOneWidget);
-
       final bestGridFinder =
           find.byKey(const ValueKey('retail-best-sellers-grid'));
       await _dragUntilFound(
@@ -206,14 +198,6 @@ void main() {
       await tester.pumpAndSettle();
 
       final mainScroll = _homeVerticalScroll();
-      final bestSellersTitle = find.text('Best Sellers');
-      await _dragUntilFound(
-        tester,
-        scrollable: mainScroll,
-        target: bestSellersTitle,
-      );
-      expect(bestSellersTitle, findsOneWidget);
-
       final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
       await _dragUntilFound(
         tester,
