@@ -251,8 +251,7 @@ class CustomerStoreAnalyticsRouteContext {
       return null;
     }
 
-    final rawRetailStoreId =
-        retailStoreValues == null ? null : retailStoreValues.single;
+    final rawRetailStoreId = retailStoreValues?.single;
     final retailStoreId =
         rawRetailStoreId == null ? null : int.tryParse(rawRetailStoreId);
     if (rawRetailStoreId != null &&
