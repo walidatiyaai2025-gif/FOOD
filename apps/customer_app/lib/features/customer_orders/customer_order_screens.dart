@@ -220,45 +220,51 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     final activeTab = _tabs[_activeChannel]!;
     return Scaffold(
       key: const ValueKey('customer-orders-screen'),
-      backgroundColor: const Color(0xFFF4F8F7),
-      body: SafeArea(
-        bottom: false,
+      backgroundColor: CustomerUiColors.mint,
+      body: CustomerCurvedHeaderSurface(
+        header: Row(
+          children: [
+            Expanded(
+              child: Text(
+                context.tr('customer.profile.orders'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: CustomerUiColors.white,
+                    ),
+              ),
+            ),
+            const SizedBox(width: CustomerUiSpacing.sm),
+            CustomerOutlineIconButton(
+              key: const ValueKey('customer-orders-refresh'),
+              icon: Icons.refresh_rounded,
+              tooltip: context.tr('customer.orders.refresh'),
+              semanticLabel: context.tr('customer.orders.refresh'),
+              onPressed: activeTab.loading
+                  ? null
+                  : () => unawaited(_loadChannel(_activeChannel)),
+            ),
+          ],
+        ),
         child: Column(
           children: [
-            SizedBox(
-              height: 52,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Text(
-                    context.tr('customer.profile.orders'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: const Color(0xFF111827),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                        ),
+            Material(
+              color: CustomerUiColors.white,
+              child: TabBar(
+                key: const ValueKey('customer-orders-channel-tabs'),
+                controller: _tabController,
+                indicatorColor: CustomerUiColors.deepGreen,
+                labelColor: CustomerUiColors.deepGreenStrong,
+                unselectedLabelColor: CustomerUiColors.muted,
+                dividerColor: CustomerUiColors.border,
+                tabs: [
+                  Tab(
+                    key: const ValueKey('customer-orders-channel-b2b'),
+                    text: context.tr('customer.orders.channel.wholesale'),
                   ),
-                  Positioned(
-                    left: 20,
-                    child: Material(
-                      color: const Color(0xFFE5F2EE),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        key: const ValueKey('customer-orders-refresh'),
-                        customBorder: const CircleBorder(),
-                        onTap: activeTab.loading
-                            ? null
-                            : () => unawaited(_loadChannel(_activeChannel)),
-                        child: const SizedBox.square(
-                          dimension: 40,
-                          child: Icon(
-                            Icons.refresh_rounded,
-                            size: 22,
-                            color: Color(0xFF14221D),
-                          ),
-                        ),
-                      ),
-                    ),
+                  Tab(
+                    key: const ValueKey('customer-orders-channel-b2c'),
+                    text: context.tr('customer.orders.channel.retail'),
                   ),
                 ],
               ),
@@ -314,7 +320,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
       return Padding(
         padding: const EdgeInsetsDirectional.only(end: 8),
         child: Material(
-          color: selected ? const Color(0xFF07885E) : Colors.white,
+          color: selected ? CustomerUiColors.deepGreenSoft : Colors.white,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             key: key,
@@ -328,8 +334,8 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: selected
-                      ? const Color(0xFF07885E)
-                      : const Color(0xFFE2E8E5),
+                      ? CustomerUiColors.deepGreenSoft
+                      : CustomerUiColors.border,
                 ),
                 boxShadow: selected
                     ? const [
@@ -349,7 +355,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     Icon(
                       Icons.filter_list_rounded,
                       size: 21,
-                      color: selected ? Colors.white : const Color(0xFF34433D),
+                      color: selected ? Colors.white : CustomerUiColors.inkSoft,
                     ),
                     const SizedBox(width: 7),
                   ],
@@ -376,7 +382,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
     return SizedBox(
       height: 62,
       child: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: Directionality.of(context),
         child: ListView(
           key: ValueKey('customer-orders-status-filters-$channel'),
           scrollDirection: Axis.horizontal,
@@ -966,10 +972,12 @@ class _OrderCard extends StatelessWidget {
 
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: CustomerUiColors.white,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(CustomerUiRadii.lg),
+        ),
       ),
       builder: (sheetContext) => SafeArea(
         top: false,
@@ -1072,7 +1080,7 @@ class _OrderCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFF0F2F1)),
+            border: Border.all(color: CustomerUiColors.border),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x0A0B2B20),
@@ -1082,7 +1090,7 @@ class _OrderCard extends StatelessWidget {
             ],
           ),
           child: Directionality(
-            textDirection: TextDirection.rtl,
+            textDirection: Directionality.of(context),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -1097,7 +1105,7 @@ class _OrderCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE7F7F1),
+                    color: CustomerUiColors.mint,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
@@ -1125,7 +1133,7 @@ class _OrderCard extends StatelessWidget {
                                 .textTheme
                                 .titleMedium
                                 ?.copyWith(
-                                  color: const Color(0xFF151B1A),
+                                  color: CustomerUiColors.ink,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 15.5,
                                   height: 1.12,
@@ -1199,22 +1207,27 @@ class _OrderCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                _CompactOrderStatusChip(status: order.status),
+                _StatusChip(status: order.status),
                 if (_hasQuickActions) ...[
                   const SizedBox(width: 8),
-                  Material(
-                    color: const Color(0xFF07885E),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      key: ValueKey('customer-order-actions-${order.id}'),
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => _showQuickActions(context),
-                      child: const SizedBox.square(
-                        dimension: 36,
-                        child: Icon(
-                          Icons.more_horiz_rounded,
-                          size: 22,
-                          color: Colors.white,
+                  Semantics(
+                    button: true,
+                    label: context.tr('customer.orders.actions'),
+                    child: Material(
+                      color: CustomerUiColors.deepGreenSoft,
+                      borderRadius: BorderRadius.circular(CustomerUiRadii.sm),
+                      child: InkWell(
+                        key: ValueKey('customer-order-actions-${order.id}'),
+                        borderRadius:
+                            BorderRadius.circular(CustomerUiRadii.sm),
+                        onTap: () => _showQuickActions(context),
+                        child: const SizedBox.square(
+                          dimension: 44,
+                          child: Icon(
+                            Icons.more_horiz_rounded,
+                            size: 22,
+                            color: CustomerUiColors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -1224,75 +1237,6 @@ class _OrderCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CompactOrderStatusChip extends StatelessWidget {
-  const _CompactOrderStatusChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final normalized = status.trim().toLowerCase();
-    final colors = switch (normalized) {
-      'cancelled' || 'canceled' || 'failed' => const (
-          background: Color(0xFFFFEEEE),
-          foreground: Color(0xFFD02B2B),
-        ),
-      'shipped' || 'out_for_delivery' || 'in_delivery' => const (
-          background: Color(0xFFEAF6FF),
-          foreground: Color(0xFF087FCB),
-        ),
-      'processing' || 'preparing' || 'confirmed' => const (
-          background: Color(0xFFFFF4E5),
-          foreground: Color(0xFFE57A10),
-        ),
-      'delivered' => const (
-          background: Color(0xFFE7F8F1),
-          foreground: Color(0xFF07925D),
-        ),
-      _ => const (
-          background: CustomerUiColors.mint,
-          foreground: CustomerUiColors.success,
-        ),
-    };
-
-    return Container(
-      constraints: const BoxConstraints(minWidth: 72, maxWidth: 96),
-      padding: const EdgeInsetsDirectional.fromSTEB(10, 5, 9, 5),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Flexible(
-            child: Text(
-              _statusText(context, status),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: colors.foreground,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12.5,
-                  ),
-            ),
-          ),
-          const SizedBox(width: 7),
-          Container(
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(
-              color: colors.foreground,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
       ),
     );
   }
