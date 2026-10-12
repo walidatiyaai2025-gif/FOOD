@@ -28,11 +28,12 @@
         @media(max-width:767px){.header{align-items:flex-start;flex-direction:column}.card{padding:14px;margin-bottom:12px}button{width:100%;justify-self:stretch;min-height:44px}}
     </style>
     @include('admin._brand-components')
+@include('admin._settings-page-polish')
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
-<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="system-update">
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="system-update">
     @include('admin._admin-center-switcher',['active'=>'settings'])
 <div class="header foodex-page-header">
         <div>
