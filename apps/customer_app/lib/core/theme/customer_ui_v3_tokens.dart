@@ -46,6 +46,21 @@ abstract final class CustomerUiRadii {
   static const double pill = 999;
 }
 
+abstract final class CustomerUiIconSizes {
+  static const double small = 18;
+  static const double medium = 20;
+  static const double standard = 24;
+  static const double large = 28;
+}
+
+abstract final class CustomerUiMetrics {
+  static const double minimumTouchTarget = 44;
+  static const double compactAppBarHeight = 58;
+  static const double persistentNavigationHeight = 74;
+  static const double filledButtonHeight = 52;
+  static const double outlinedButtonHeight = 50;
+}
+
 abstract final class CustomerUiStroke {
   static const double hairline = 1;
   static const double emphasis = 1.5;

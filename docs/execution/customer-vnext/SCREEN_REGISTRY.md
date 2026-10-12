@@ -48,6 +48,41 @@ Every customer route below must keep its current route authority, compose the sh
 | `/b2b/profile/addresses` | B2bJourneyScreen | #1329 | list/edit/validation |
 | `/b2b/profile` | B2bJourneyScreen | #1329 | loaded/error/logout/settings |
 
+## Shared design-system authority
+
+| Concern | Authoritative contract |
+|---|---|
+| Typography | `CustomerUiTypography` through `FoodexTheme`; Alexandria hierarchy is shared, never page-local |
+| Color | `CustomerUiColors` / `FoodexBrand`; no feature-local brand palette |
+| Spacing + gutters | `CustomerUiSpacing`; page gutter is `CustomerUiSpacing.page` (16) |
+| Radius + shadows | `CustomerUiRadii` and `CustomerUiElevation` |
+| Icons + touch | `CustomerUiIconSizes` and `CustomerUiMetrics.minimumTouchTarget` (44) |
+| Headers | compact app bar from `FoodexTheme` (58) or `CustomerCurvedHeaderSurface`; no third header system |
+| Persistent navigation | `CustomerPersistentFooterShell` / `CustomerPersistentFooterDock` / `CustomerPersistentFooter`; navigation height contract is 74 |
+| Buttons + forms | `FoodexTheme` button/input themes; filled height 52, outlined height 50 |
+| Cards + commerce | `CustomerCategoryTile`, `CustomerProductImage`, `CustomerProductCard`, and `CustomerProductGrid` |
+| Loading + states | `CustomerSkeletonBox`, `CustomerCategorySkeleton`, `CustomerProductCardSkeleton`, `CustomerStateView` plus feature-owned stale/offline truth |
+| Dialogs + sheets | Flutter `Dialog` / `AlertDialog` / `showModalBottomSheet` hosts compose the shared V3 color, radius, spacing, typography and 44px touch contracts; feature lanes must not introduce a second overlay palette or layout system |
+
+The foundation is additive to existing Customer renderers. It does not authorize a sibling V2 route, replacement navigation shell, or fake-data implementation.
+
+## Existing dialog and bottom-sheet inventory
+
+The current Customer runtime already owns overlays inside the canonical journeys. These remain in place and inherit the shared foundation when touched by their owning lane:
+
+- dialogs: `core/engagement/live_ad_service.dart`, `core/engagement/notification_campaign_popup_service.dart`, `features/customer_account/customer_account_screen.dart`, `features/customer_account/customer_address_book_screen.dart`, `features/storefront/storefront_design_system.dart`, and wholesale storefront confirmation flows;
+- bottom sheets: `core/location/customer_map_pin_selector.dart`, `features/auth/unified_customer_auth_screen.dart`, `features/b2b/b2b_journey_screen.dart`, `features/b2b/business_account_profile.dart`, `features/storefront/platform_marketplace_screen.dart`, `features/storefront/retail_multistore_screens.dart`, `features/storefront/wholesale_multistore_screens.dart`, `features/retail/commerce/retail_commerce_screens.dart`, and `features/customer_orders/customer_order_screens.dart`.
+
+All overlays must preserve AR/RTL and EN/LTR, SafeArea/readable compact-phone behavior, semantic labels for icon-only actions, explicit cancel/close behavior, and authoritative business state. A screenshot of an overlay is evidence only for the state shown; mutation/authorization behavior stays covered by functional tests.
+
+## State and visual baseline
+
+- Remote-data screens distinguish loading, loaded, empty, error, and stale/offline where the domain supports retained data.
+- `customer_ui_v3_design_system_test.dart` protects central tokens, motion, RTL and compact text scaling.
+- `customer_vnext_layout_contract_test.dart` locks the three-column product grid across 320/360/390/412/430 phone widths.
+- `screenshot_evidence_test.dart` is the runtime visual baseline and captures Customer routes in both Arabic and English at the standard 430x932 portrait geometry.
+- Required Mobile visual evidence and exact-head Required CI are the merge gates; static source inspection is not a substitute.
+
 ## Journey map
 
 `/entry` -> shopping context -> `/home` or `/retail/:store/home` / `/b2b/home` -> catalog/category/search -> product detail -> cart -> checkout auth when required -> checkout -> success -> orders -> order detail/tracking -> account/settings.

@@ -13,6 +13,12 @@ void main() {
     expect(CustomerUiColors.mintStrong, const Color(0xFFC5E0CC));
     expect(CustomerUiRadii.pill, greaterThan(CustomerUiRadii.xl));
     expect(CustomerUiMotion.standard, const Duration(milliseconds: 180));
+    expect(CustomerUiIconSizes.standard, 24);
+    expect(CustomerUiMetrics.minimumTouchTarget, 44);
+    expect(CustomerUiMetrics.compactAppBarHeight, 58);
+    expect(CustomerUiMetrics.persistentNavigationHeight, 74);
+    expect(CustomerUiMetrics.filledButtonHeight, 52);
+    expect(CustomerUiMetrics.outlinedButtonHeight, 50);
     expect(CustomerAssets.productImagesAreBackendDriven, isTrue);
     expect(CustomerAssets.storeImagesAreBackendDriven, isTrue);
     expect(CustomerAssets.proprietaryReferenceAssetsAllowed, isFalse);
