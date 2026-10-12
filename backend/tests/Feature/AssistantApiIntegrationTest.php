@@ -96,6 +96,55 @@ class AssistantApiIntegrationTest extends TestCase
         $this->assertDatabaseMissing('assistant_conversations', ['public_id' => $publicId]);
     }
 
+    public function test_message_language_overrides_conversation_language_for_natural_reply(): void
+    {
+        $admin = $this->globalUser('SUPER_ADMIN', 'en');
+
+        $created = $this->actingAs($admin)->postJson('/admin/assistant/conversations', [
+            'locale' => 'en',
+        ])->assertCreated();
+
+        $publicId = (string) $created->json('data.conversation.public_id');
+
+        $response = $this->actingAs($admin)->postJson("/admin/assistant/conversations/{$publicId}/messages", [
+            'message' => 'صباح الخير',
+            'locale' => 'en',
+        ])->assertOk();
+
+        $response
+            ->assertJsonPath('data.conversation.locale', 'ar')
+            ->assertJsonPath('data.assistant_message.intent', null);
+
+        $this->assertStringContainsString('صباح النور', (string) $response->json('data.assistant_message.content'));
+    }
+
+    public function test_arabic_business_result_keeps_machine_keys_but_exposes_arabic_card_labels(): void
+    {
+        $store = $this->store('ASSISTANT-API-AR');
+        $admin = $this->globalUser('SUPER_ADMIN', 'en');
+        $this->fakeBrainAndTool();
+
+        $created = $this->actingAs($admin)->postJson('/admin/assistant/conversations', [
+            'locale' => 'en',
+            'context' => ['path' => '/admin/b2c/dashboard', 'channel' => 'b2c', 'store_id' => $store],
+        ])->assertCreated();
+
+        $publicId = (string) $created->json('data.conversation.public_id');
+
+        $response = $this->actingAs($admin)->postJson("/admin/assistant/conversations/{$publicId}/messages", [
+            'message' => 'مبيعات اليوم',
+            'locale' => 'en',
+            'context' => ['path' => '/admin/b2c/dashboard', 'channel' => 'b2c', 'store_id' => $store],
+        ])->assertOk();
+
+        $response
+            ->assertJsonPath('data.conversation.locale', 'ar')
+            ->assertJsonPath('data.assistant_message.cards.0.data.recognized_revenue', 20)
+            ->assertJsonPath('data.assistant_message.cards.0.labels.recognized_revenue', 'الإيراد المعترف به');
+
+        $this->assertStringContainsString('جهزت لك', (string) $response->json('data.assistant_message.content'));
+    }
+
     public function test_forged_store_page_context_is_rejected(): void
     {
         $storeA = $this->store('ASSISTANT-API-SCOPE-A');
