@@ -618,196 +618,20 @@ paths:
             version, has_new_insights is false and unread_count is zero without a server-side mutation.
           schema:
             type: string
-            pattern: '^[A-Fa-f0-9]{64}    get:
-      tags: [Authentication]
-      summary: Get the authenticated customer profile
-      operationId: getProfile
-      security:
-        - bearerAuth: []
+            pattern: '^[A-Fa-f0-9]{64}$'
       responses:
         "200":
-          description: Authenticated identity and customer profile
+          description: Authorized Retail store analytics
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserIdentity"
+                $ref: "#/components/schemas/MobileStoreAnalyticsResponse"
         "401":
           $ref: "#/components/responses/Unauthenticated"
-
-  /stores:
-    get:
-      tags: [Stores]
-      summary: List active stores visible to the current client
-      operationId: listStores
-      parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PerPage"
-      responses:
-        "200":
-          description: Store collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StoreCollection"
-
-  /stores/{store}/categories:
-    get:
-      tags: [Catalog]
-      summary: List categories for a store
-      operationId: listStoreCategories
-      parameters:
-        - $ref: "#/components/parameters/StoreId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PerPage"
-      responses:
-        "200":
-          description: Category collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CategoryCollection"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-
-  /stores/{store}/products:
-    get:
-      tags: [Catalog]
-      summary: List active products for a store
-      operationId: listStoreProducts
-      parameters:
-        - $ref: "#/components/parameters/StoreId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PerPage"
-        - in: query
-          name: category
-          schema:
-            type: integer
-            minimum: 1
-        - in: query
-          name: q
-          schema:
-            type: string
-            maxLength: 120
-        - in: query
-          name: min_price
-          schema:
-            type: number
-            minimum: 0
-        - in: query
-          name: max_price
-          schema:
-            type: number
-            minimum: 0
-        - in: query
-          name: sort
-          schema:
-            type: string
-            enum: [name, price]
-        - in: query
-          name: direction
-          schema:
-            type: string
-            enum: [asc, desc]
-      responses:
-        "200":
-          description: Product collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProductCollection"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /stores/{store}/offers:
-    get:
-      tags: [Catalog]
-      summary: List active offers for a store
-      operationId: listStoreOffers
-      parameters:
-        - $ref: "#/components/parameters/StoreId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PerPage"
-      responses:
-        "200":
-          description: Store offer collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OfferCollection"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /stores/{store}/banners:
-    get:
-      tags: [Catalog]
-      summary: List active storefront banners for a B2C store
-      operationId: listStoreBanners
-      parameters:
-        - $ref: "#/components/parameters/StoreId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PerPage"
-      responses:
-        "200":
-          description: Store banner collection
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BannerCollection"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /products/{product}:
-    get:
-      tags: [Catalog]
-      summary: Get product details
-      operationId: showProduct
-      parameters:
-        - $ref: "#/components/parameters/ProductId"
-        - in: query
-          name: store
-          required: true
-          description: Store context used for active availability and B2C pricing.
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        "200":
-          description: Product detail
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Product"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /cart:
-    get:
-      tags: [Cart]
-      summary: Get or initialize the current guest cart
-      operationId: showCart
-      parameters:
-        - $ref: "#/components/parameters/GuestToken"
-        - in: query
-          name: store
-          required: false
-          description: Required only when initializing a guest cart without X-Guest-Token.
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        "200":
-          description: Current guest cart. The response also returns X-Guest-Token.
-          headers:
-            X-Guest-Token:
-              description: Opaque guest cart identity for subsequent cart requests.
-              schema:
-                type: string
-                minLength: 16
-                maxLength: 200
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Cart"
         "422":
           $ref: "#/components/responses/ValidationError"
 
@@ -3072,7 +2896,88 @@ components:
           properties:
             version:
               type: string
-              pattern: '^[a-f0-9]{64}    ApiVersion:
+              pattern: '^[a-f0-9]{64}$'
+            has_new_insights:
+              type: boolean
+            unread_count:
+              type: integer
+              minimum: 0
+            lifecycle:
+              type: object
+              additionalProperties: false
+              required: [mode, request_parameter, clear_when_seen_version_matches_current]
+              properties:
+                mode:
+                  type: string
+                  const: client_version_echo
+                request_parameter:
+                  type: string
+                  const: seen_insight_version
+                clear_when_seen_version_matches_current:
+                  type: boolean
+                  const: true
+        data_state:
+          type: string
+          enum: [ready, stale, no_data]
+
+    MobileStoreAnalyticsStore:
+      type: object
+      additionalProperties: false
+      required: [id, name, logo_url, currency]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        logo_url:
+          type: [string, "null"]
+          format: uri
+        currency:
+          type: string
+          const: EGP
+
+    MobileStoreAnalyticsPeriod:
+      type: object
+      additionalProperties: false
+      required: [from, to, days]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        days:
+          type: integer
+          minimum: 1
+          maximum: 31
+
+    MobileStoreAnalyticsMetric:
+      type: object
+      additionalProperties: false
+      required: [value, previous_value, delta_percent]
+      properties:
+        value:
+          type: number
+        previous_value:
+          type: number
+        delta_percent:
+          type: [number, "null"]
+
+    MobileStoreAnalyticsCountFact:
+      type: object
+      additionalProperties: false
+      required: [value, previous_value]
+      properties:
+        value:
+          type: integer
+          minimum: 0
+        previous_value:
+          type: integer
+          minimum: 0
+
+    ApiVersion:
       type: object
       required: [version]
       properties:
