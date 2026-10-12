@@ -71,61 +71,60 @@ StoreAnalyticsData _data({
   String? logoUrl,
   String storeName =
       'Downtown Grocery and Fresh Food Market with a deliberately long name',
-}) =>
-    StoreAnalyticsData(
-      storeId: 7,
-      storeName: storeName,
-      logoUrl: logoUrl,
-      currency: 'EGP',
-      periodLabel: '06 Oct - 12 Oct 2026',
-      freshnessLabel: stale ? 'Updated 26 hours ago' : 'Updated 5 minutes ago',
-      revenue: 18425.75,
-      orders: 53,
-      averageOrderValue: 347.66,
-      revenueDeltaPercent: -8.4,
-      isStale: stale,
-      dailySeries: const [
-        StoreAnalyticsDailyPoint(dateLabel: '06 Oct', sales: 1900, orders: 6),
-        StoreAnalyticsDailyPoint(dateLabel: '07 Oct', sales: 2700, orders: 8),
-        StoreAnalyticsDailyPoint(dateLabel: '08 Oct', sales: 2310, orders: 7),
-        StoreAnalyticsDailyPoint(dateLabel: '09 Oct', sales: 3125, orders: 9),
-        StoreAnalyticsDailyPoint(dateLabel: '10 Oct', sales: 2880, orders: 8),
-        StoreAnalyticsDailyPoint(dateLabel: '11 Oct', sales: 2510, orders: 7),
-        StoreAnalyticsDailyPoint(dateLabel: '12 Oct', sales: 3000.75, orders: 8),
-      ],
-      insights: const [
-        StoreAnalyticsInsight(
-          id: 'cancelled_orders',
-          title: 'Cancellation attention',
-          body: '3 cancelled orders in the selected period.',
-          tone: StoreAnalyticsInsightTone.warning,
-          actionLabel: 'Open orders',
-          targetRoute: '/orders?channel=retail&store_id=7',
-        ),
-        StoreAnalyticsInsight(
-          id: 'stock_attention',
-          title: 'Stock attention',
-          body: 'Two products need stock attention.',
-          tone: StoreAnalyticsInsightTone.warning,
-        ),
-        StoreAnalyticsInsight(
-          id: 'revenue_change',
-          title: 'Revenue changed',
-          body: 'Revenue changed compared with the previous period.',
-        ),
-        StoreAnalyticsInsight(
-          id: 'top_product',
-          title: 'Top contribution',
-          body: 'Fresh Milk contributed the most revenue.',
-          tone: StoreAnalyticsInsightTone.positive,
-        ),
-        StoreAnalyticsInsight(
-          id: 'ignored_fifth',
-          title: 'Fifth item',
-          body: 'The compact surface must cap visible insights at four.',
-        ),
-      ],
-    );
+}) => StoreAnalyticsData(
+  storeId: 7,
+  storeName: storeName,
+  logoUrl: logoUrl,
+  currency: 'EGP',
+  periodLabel: '06 Oct - 12 Oct 2026',
+  freshnessLabel: stale ? 'Updated 26 hours ago' : 'Updated 5 minutes ago',
+  revenue: 18425.75,
+  orders: 53,
+  averageOrderValue: 347.66,
+  revenueDeltaPercent: -8.4,
+  isStale: stale,
+  dailySeries: const [
+    StoreAnalyticsDailyPoint(dateLabel: '06 Oct', sales: 1900, orders: 6),
+    StoreAnalyticsDailyPoint(dateLabel: '07 Oct', sales: 2700, orders: 8),
+    StoreAnalyticsDailyPoint(dateLabel: '08 Oct', sales: 2310, orders: 7),
+    StoreAnalyticsDailyPoint(dateLabel: '09 Oct', sales: 3125, orders: 9),
+    StoreAnalyticsDailyPoint(dateLabel: '10 Oct', sales: 2880, orders: 8),
+    StoreAnalyticsDailyPoint(dateLabel: '11 Oct', sales: 2510, orders: 7),
+    StoreAnalyticsDailyPoint(dateLabel: '12 Oct', sales: 3000.75, orders: 8),
+  ],
+  insights: const [
+    StoreAnalyticsInsight(
+      id: 'cancelled_orders',
+      title: 'Cancellation attention',
+      body: '3 cancelled orders in the selected period.',
+      tone: StoreAnalyticsInsightTone.warning,
+      actionLabel: 'Open orders',
+      targetRoute: '/orders?channel=retail&store_id=7',
+    ),
+    StoreAnalyticsInsight(
+      id: 'stock_attention',
+      title: 'Stock attention',
+      body: 'Two products need stock attention.',
+      tone: StoreAnalyticsInsightTone.warning,
+    ),
+    StoreAnalyticsInsight(
+      id: 'revenue_change',
+      title: 'Revenue changed',
+      body: 'Revenue changed compared with the previous period.',
+    ),
+    StoreAnalyticsInsight(
+      id: 'top_product',
+      title: 'Top contribution',
+      body: 'Fresh Milk contributed the most revenue.',
+      tone: StoreAnalyticsInsightTone.positive,
+    ),
+    StoreAnalyticsInsight(
+      id: 'ignored_fifth',
+      title: 'Fifth item',
+      body: 'The compact surface must cap visible insights at four.',
+    ),
+  ],
+);
 
 Widget _app({
   required Size size,
@@ -210,18 +209,16 @@ void main() {
             find.byKey(const ValueKey('store-analytics-logo-fallback')),
             findsOneWidget,
           );
-          expect(
-            find.textContaining(arabic ? 'ج.م' : 'EGP'),
-            findsWidgets,
-          );
+          expect(find.textContaining(arabic ? 'ج.م' : 'EGP'), findsWidgets);
           expect(tester.takeException(), isNull);
         },
       );
     }
   }
 
-  testWidgets('stale data is explicit and missing logo uses store fallback',
-      (tester) async {
+  testWidgets('stale data is explicit and missing logo uses store fallback', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -230,18 +227,11 @@ void main() {
     });
 
     await tester.pumpWidget(
-      _app(
-        size: const Size(390, 844),
-        arabic: true,
-        data: _data(stale: true),
-      ),
+      _app(size: const Size(390, 844), arabic: true, data: _data(stale: true)),
     );
     await tester.pump();
 
-    expect(
-      find.byKey(const ValueKey('store-analytics-stale')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('store-analytics-stale')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('store-analytics-logo-fallback')),
       findsOneWidget,
@@ -249,8 +239,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('insights are prioritized to four and exact drill-down is used',
-      (tester) async {
+  testWidgets('insights are prioritized to four and exact drill-down is used', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 932);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -288,8 +279,9 @@ void main() {
     expect(opened, '/orders?channel=retail&store_id=7');
   });
 
-  testWidgets('multi-store selection returns the explicit Retail store id',
-      (tester) async {
+  testWidgets('multi-store selection returns the explicit Retail store id', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -324,8 +316,9 @@ void main() {
     StoreAnalyticsStatus.error,
     StoreAnalyticsStatus.noEntitlement,
   ]) {
-    testWidgets('explicit Store Analytics state ' + status.name + ' renders',
-        (tester) async {
+    testWidgets('explicit Store Analytics state ' + status.name + ' renders', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
@@ -368,8 +361,9 @@ void main() {
     });
   }
 
-  testWidgets('trend chart exposes raw daily facts through semantics',
-      (tester) async {
+  testWidgets('trend chart exposes raw daily facts through semantics', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 932);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -378,11 +372,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      _app(
-        size: const Size(390, 932),
-        arabic: false,
-        data: _data(),
-      ),
+      _app(size: const Size(390, 932), arabic: false, data: _data()),
     );
     await tester.pump();
 
