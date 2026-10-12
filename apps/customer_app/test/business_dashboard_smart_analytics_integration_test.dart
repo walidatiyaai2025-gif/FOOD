@@ -299,7 +299,9 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey('business-smart-analytics-launcher')),
       );
-      await tester.pump();
+      // Advance the named-route transition without pumpAndSettle: the unread
+      // launcher intentionally owns a repeating pulse animation.
+      await tester.pump(const Duration(milliseconds: 350));
 
       final route = Uri.parse(opened!);
       expect(route.path, CustomerRoutePaths.b2bStoreAnalytics);
