@@ -189,7 +189,6 @@ void main() {
       findsOneWidget,
     );
     for (final destination in [
-      'home',
       'products',
       'orders',
       'invoices',
@@ -202,7 +201,7 @@ void main() {
     }
     expect(
       find.byKey(const ValueKey('customer-footer-home')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
