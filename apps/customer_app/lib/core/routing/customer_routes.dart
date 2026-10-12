@@ -501,7 +501,7 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bStoreAnalytics,
-    label: 'Store analytics',
+    label: 'b2b.store_analytics.title',
     channel: CustomerChannel.b2b,
     requiresAuth: true,
   ),
