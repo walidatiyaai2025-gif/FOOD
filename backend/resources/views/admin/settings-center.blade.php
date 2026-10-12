@@ -106,7 +106,7 @@ $groups = [
 </div>
 <div class="settings-grid">
 @foreach($group['items'] as $item)
-<article class="settings-card" data-setting="{{ $item['key'] }}" data-setting-search="{{ strtolower($item['title'].' '.$item['description'].' '.$group['title']) }}">
+<article id="setting-{{ $item['key'] }}" class="settings-card" data-setting="{{ $item['key'] }}" data-setting-search="{{ strtolower($item['title'].' '.$item['description'].' '.$group['title']) }}">
 <div class="settings-card__top">
 <div>
 <h3>{{ $item['title'] }}</h3>
