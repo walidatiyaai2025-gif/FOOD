@@ -185,8 +185,8 @@ final class ProductionLaunchPreflight
         $this->assertLaunchable($report);
 
         $seed = app(FoodexLaunchSeeder::class)->preflight();
-        $fingerprint = $seed['fingerprint'] ?? null;
-        if (($seed['ready'] ?? false) !== true || ! is_string($fingerprint) || $fingerprint === '') {
+        $fingerprint = $seed['fingerprint'];
+        if ($seed['ready'] !== true || $fingerprint === '') {
             throw ValidationException::withMessages([
                 'launch' => __('production_launch.errors.blocked'),
             ]);
