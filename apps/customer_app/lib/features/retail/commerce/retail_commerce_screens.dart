@@ -208,77 +208,6 @@ class _RetailCartScreenState extends State<RetailCartScreen>
     final strings = _RetailCommerceStrings.of(context);
     final cart = _cart;
 
-    final createdOrder = _createdOrder;
-    if (createdOrder != null) {
-      return Scaffold(
-        key: const ValueKey('retail-order-success-screen'),
-        backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(strings.orderSuccess),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          automaticallyImplyLeading: false,
-        ),
-        body: SafeArea(
-          top: false,
-          child: CustomerOrderSuccessPanel(
-            title: strings.orderSuccess,
-            message: strings.orderSuccessMessage,
-            orderReferenceLabel: strings.orderReference,
-            orderReference: createdOrder.reference,
-            trackLabel: strings.trackOrder,
-            continueLabel: strings.continueShopping,
-            onTrack: () => widget.onTrackOrder?.call(
-              createdOrder.id,
-              createdOrder.storeId,
-            ),
-            onContinue: () => widget.onContinueShopping?.call(),
-            summary: CustomerCheckoutTotalsCard(
-              rows: [
-                CustomerCheckoutTotalRow(
-                  label: strings.subtotal,
-                  value: foodexMoneyText(
-                    createdOrder.subtotal,
-                    createdOrder.currency,
-                  ),
-                ),
-                if (createdOrder.discountTotal > 0)
-                  CustomerCheckoutTotalRow(
-                    label: strings.discount,
-                    value:
-                        '-${foodexMoneyText(createdOrder.discountTotal, createdOrder.currency)}',
-                  ),
-                if (createdOrder.deliveryTotal > 0)
-                  CustomerCheckoutTotalRow(
-                    label: strings.delivery,
-                    value: foodexMoneyText(
-                      createdOrder.deliveryTotal,
-                      createdOrder.currency,
-                    ),
-                  ),
-                if (createdOrder.taxTotal > 0)
-                  CustomerCheckoutTotalRow(
-                    label: strings.tax,
-                    value: foodexMoneyText(
-                      createdOrder.taxTotal,
-                      createdOrder.currency,
-                    ),
-                  ),
-                CustomerCheckoutTotalRow(
-                  label: strings.total,
-                  value: foodexMoneyText(
-                    createdOrder.grandTotal,
-                    createdOrder.currency,
-                  ),
-                  emphasized: true,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     if (_isOwnStoreBlocked(_error)) {
       return Scaffold(
         backgroundColor: CustomerUiColors.mint,
@@ -618,6 +547,77 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
   Widget build(BuildContext context) {
     final strings = _RetailCommerceStrings.of(context);
     final options = _options;
+
+    final createdOrder = _createdOrder;
+    if (createdOrder != null) {
+      return Scaffold(
+        key: const ValueKey('retail-order-success-screen'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(strings.orderSuccess),
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+          automaticallyImplyLeading: false,
+        ),
+        body: SafeArea(
+          top: false,
+          child: CustomerOrderSuccessPanel(
+            title: strings.orderSuccess,
+            message: strings.orderSuccessMessage,
+            orderReferenceLabel: strings.orderReference,
+            orderReference: createdOrder.reference,
+            trackLabel: strings.trackOrder,
+            continueLabel: strings.continueShopping,
+            onTrack: () => widget.onTrackOrder?.call(
+              createdOrder.id,
+              createdOrder.storeId,
+            ),
+            onContinue: () => widget.onContinueShopping?.call(),
+            summary: CustomerCheckoutTotalsCard(
+              rows: [
+                CustomerCheckoutTotalRow(
+                  label: strings.subtotal,
+                  value: foodexMoneyText(
+                    createdOrder.subtotal,
+                    createdOrder.currency,
+                  ),
+                ),
+                if (createdOrder.discountTotal > 0)
+                  CustomerCheckoutTotalRow(
+                    label: strings.discount,
+                    value:
+                        '-${foodexMoneyText(createdOrder.discountTotal, createdOrder.currency)}',
+                  ),
+                if (createdOrder.deliveryTotal > 0)
+                  CustomerCheckoutTotalRow(
+                    label: strings.delivery,
+                    value: foodexMoneyText(
+                      createdOrder.deliveryTotal,
+                      createdOrder.currency,
+                    ),
+                  ),
+                if (createdOrder.taxTotal > 0)
+                  CustomerCheckoutTotalRow(
+                    label: strings.tax,
+                    value: foodexMoneyText(
+                      createdOrder.taxTotal,
+                      createdOrder.currency,
+                    ),
+                  ),
+                CustomerCheckoutTotalRow(
+                  label: strings.total,
+                  value: foodexMoneyText(
+                    createdOrder.grandTotal,
+                    createdOrder.currency,
+                  ),
+                  emphasized: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     if (_isOwnStoreBlocked(_error)) {
       return Scaffold(
