@@ -75,8 +75,8 @@ final class ProductionLaunchPreflight
         return $this->decide([
             'schema_migrations' => $this->schemaCheck(),
             'official_seed' => [
-                'passed' => class_exists(FoodexLaunchCatalogSeeder::class),
-                'detail' => class_exists(FoodexLaunchCatalogSeeder::class)
+                'passed' => class_exists(FoodexLaunchSeeder::class),
+                'detail' => class_exists(FoodexLaunchSeeder::class)
                     ? 'Authoritative FOODEX launch seed is installed.'
                     : 'Authoritative FOODEX launch seed is not installed.',
                 'source' => '#1330',
