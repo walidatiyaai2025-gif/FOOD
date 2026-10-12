@@ -18,6 +18,7 @@ import 'package:foodex_customer_app/features/customer_orders/customer_order_mode
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_api.dart';
 import 'package:foodex_customer_app/features/retail/commerce/retail_commerce_screens.dart';
+import 'package:foodex_customer_app/features/store_analytics/store_analytics_screen.dart';
 
 const _b2b = CustomerSession.authenticated(
   CustomerChannel.b2b,
@@ -363,6 +364,66 @@ void main() {
       });
     });
 
+    for (final evidence
+        in <
+          ({
+            String suffix,
+            StoreAnalyticsStatus status,
+            bool stale,
+            bool longName,
+          })
+        >[
+          (
+            suffix: '15_تحليل_المتجر_الذكي__populated',
+            status: StoreAnalyticsStatus.loaded,
+            stale: false,
+            longName: false,
+          ),
+          (
+            suffix: '16_تحليل_المتجر_الذكي__stale',
+            status: StoreAnalyticsStatus.loaded,
+            stale: true,
+            longName: false,
+          ),
+          (
+            suffix: '17_تحليل_المتجر_الذكي__empty',
+            status: StoreAnalyticsStatus.empty,
+            stale: false,
+            longName: false,
+          ),
+          (
+            suffix: '18_تحليل_المتجر_الذكي__error',
+            status: StoreAnalyticsStatus.error,
+            stale: false,
+            longName: false,
+          ),
+          (
+            suffix: '19_تحليل_المتجر_الذكي__long_name_missing_logo',
+            status: StoreAnalyticsStatus.loaded,
+            stale: false,
+            longName: true,
+          ),
+        ]) {
+      testWidgets(
+        'capture Store Analytics ' + evidence.suffix + ' ' + localeCode,
+        (tester) async {
+          await _captureStoreAnalyticsEvidence(
+            tester,
+            locale: locale,
+            path:
+                '01_Mobile/B2B_Customer/' +
+                evidence.suffix +
+                '__' +
+                localeCode +
+                '.png',
+            status: evidence.status,
+            stale: evidence.stale,
+            longName: evidence.longName,
+          );
+        },
+      );
+    }
+
     testWidgets('capture My Addresses edit with location $localeCode',
         (tester) async {
       tester.view.physicalSize = const Size(430, 932);
@@ -416,6 +477,208 @@ void main() {
     });
   }
 }
+
+Future<void> _captureStoreAnalyticsEvidence(
+  WidgetTester tester, {
+  required Locale locale,
+  required String path,
+  required StoreAnalyticsStatus status,
+  required bool stale,
+  required bool longName,
+}) async {
+  tester.view.physicalSize = const Size(430, 932);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  final localeCode = locale.languageCode;
+  final arabic = localeCode == 'ar';
+  final boundaryKey = GlobalKey();
+  final data = status == StoreAnalyticsStatus.loaded
+      ? _storeAnalyticsEvidenceData(
+          arabic: arabic,
+          stale: stale,
+          longName: longName,
+        )
+      : null;
+
+  await tester.pumpWidget(
+    RepaintBoundary(
+      key: boundaryKey,
+      child: MaterialApp(
+        locale: locale,
+        theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+        home: Directionality(
+          textDirection: arabic ? TextDirection.rtl : TextDirection.ltr,
+          child: StoreAnalyticsScreen(
+            copy: _storeAnalyticsEvidenceCopy(arabic),
+            status: status,
+            data: data,
+            storeOptions: status == StoreAnalyticsStatus.loaded
+                ? const [
+                    StoreAnalyticsStoreOption(
+                      id: 7,
+                      name: 'FOODEX Fresh Market',
+                    ),
+                    StoreAnalyticsStoreOption(id: 8, name: 'FOODEX Downtown'),
+                  ]
+                : const [],
+            selectedStoreId: data?.storeId,
+            onRetry: () {},
+            onRefresh: () async {},
+            onStoreChanged: (_) {},
+            onDrillDown: (_) {},
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 150));
+  expect(tester.takeException(), isNull);
+
+  await tester.runAsync(() async {
+    final boundary =
+        boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
+    final image = await boundary.toImage(pixelRatio: 1);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    final file = File('../../ScreenShots/' + path);
+    file.parent.createSync(recursive: true);
+    file.writeAsBytesSync(bytes!.buffer.asUint8List(), flush: true);
+    expect(file.lengthSync(), greaterThan(1000));
+  });
+}
+
+StoreAnalyticsData _storeAnalyticsEvidenceData({
+  required bool arabic,
+  required bool stale,
+  required bool longName,
+}) => StoreAnalyticsData(
+  storeId: 7,
+  storeName: longName
+      ? (arabic
+            ? 'سوق فودكس المركزي للخضروات والفواكه والمواد الغذائية الطازجة'
+            : 'FOODEX Central Fresh Grocery, Produce and Daily Essentials Market')
+      : (arabic ? 'فودكس ماركت سموحة' : 'FOODEX Fresh Market'),
+  logoUrl: null,
+  currency: 'EGP',
+  periodLabel: arabic ? '6 - 12 أكتوبر 2026' : '6 - 12 Oct 2026',
+  freshnessLabel: stale
+      ? (arabic ? 'آخر تحديث منذ 26 ساعة' : 'Updated 26 hours ago')
+      : (arabic ? 'آخر تحديث منذ 5 دقائق' : 'Updated 5 minutes ago'),
+  revenue: 18425.75,
+  orders: 53,
+  averageOrderValue: 347.66,
+  revenueDeltaPercent: -8.4,
+  isStale: stale,
+  dailySeries: const [
+    StoreAnalyticsDailyPoint(dateLabel: '06', sales: 1900, orders: 6),
+    StoreAnalyticsDailyPoint(dateLabel: '07', sales: 2700, orders: 8),
+    StoreAnalyticsDailyPoint(dateLabel: '08', sales: 2310, orders: 7),
+    StoreAnalyticsDailyPoint(dateLabel: '09', sales: 3125, orders: 9),
+    StoreAnalyticsDailyPoint(dateLabel: '10', sales: 2880, orders: 8),
+    StoreAnalyticsDailyPoint(dateLabel: '11', sales: 2510, orders: 7),
+    StoreAnalyticsDailyPoint(dateLabel: '12', sales: 3000.75, orders: 8),
+  ],
+  insights: [
+    StoreAnalyticsInsight(
+      id: 'cancelled_orders',
+      title: arabic
+          ? 'طلبات ملغاة تحتاج مراجعة'
+          : 'Cancelled orders need review',
+      body: arabic
+          ? 'تم إلغاء 3 طلبات خلال الفترة المحددة.'
+          : '3 orders were cancelled in the selected period.',
+      tone: StoreAnalyticsInsightTone.warning,
+      actionLabel: arabic ? 'عرض الطلبات' : 'View orders',
+      targetRoute: '/orders?channel=retail&store_id=7',
+    ),
+    StoreAnalyticsInsight(
+      id: 'stock_attention',
+      title: arabic ? 'تنبيه مخزون' : 'Stock attention',
+      body: arabic
+          ? 'هناك منتجان يحتاجان متابعة المخزون.'
+          : 'Two products need stock attention.',
+      tone: StoreAnalyticsInsightTone.warning,
+    ),
+    StoreAnalyticsInsight(
+      id: 'revenue_change',
+      title: arabic ? 'تغير المبيعات' : 'Sales changed',
+      body: arabic
+          ? 'انخفضت المبيعات مقارنة بالفترة السابقة.'
+          : 'Sales decreased compared with the previous period.',
+    ),
+    StoreAnalyticsInsight(
+      id: 'top_product',
+      title: arabic ? 'المنتج الأقوى' : 'Top product',
+      body: arabic
+          ? 'الحليب الطازج حقق أعلى مساهمة في المبيعات.'
+          : 'Fresh Milk made the highest sales contribution.',
+      tone: StoreAnalyticsInsightTone.positive,
+    ),
+  ],
+);
+
+StoreAnalyticsCopy _storeAnalyticsEvidenceCopy(bool arabic) => arabic
+    ? const StoreAnalyticsCopy(
+        title: 'تحليل المتجر الذكي',
+        revenue: 'المبيعات',
+        orders: 'الطلبات',
+        averageOrderValue: 'متوسط قيمة الطلب',
+        comparison: 'مقارنة بالفترة السابقة',
+        vsPrevious: 'مقابل الفترة السابقة',
+        noComparison: '—',
+        salesTrend: 'اتجاه المبيعات والطلبات',
+        ordersTrend: 'الطلبات',
+        trendSummary: 'المبيعات والطلبات حسب اليوم',
+        insights: 'أهم التحليلات',
+        currencyEgp: 'ج.م',
+        stale: 'نعرض آخر بيانات مؤكدة. يمكنك المحاولة مرة أخرى.',
+        storeSelector: 'المتجر',
+        loadingLabel: 'جارٍ تحميل تحليل المتجر',
+        emptyTitle: 'لا توجد بيانات تحليلية للفترة المحددة.',
+        emptyMessage: 'لا توجد حركة يومية لهذه الفترة.',
+        errorTitle: 'تعذر تحميل تحليل المتجر.',
+        errorMessage: 'تحقق من الاتصال ثم أعد المحاولة.',
+        noEntitlementTitle: 'تحليل المتجر غير متاح لهذا الحساب.',
+        noEntitlementMessage: 'استخدم حساب أعمال مخولًا بإدارة متجر التجزئة.',
+        retry: 'إعادة المحاولة',
+        refresh: 'تحديث التحليل',
+        storeLogo: 'المتجر',
+        ordersUnit: 'طلب',
+      )
+    : const StoreAnalyticsCopy(
+        title: 'Smart Store Analytics',
+        revenue: 'Sales',
+        orders: 'Orders',
+        averageOrderValue: 'Average order value',
+        comparison: 'Compared with previous period',
+        vsPrevious: 'vs previous period',
+        noComparison: '—',
+        salesTrend: 'Sales and orders trend',
+        ordersTrend: 'Orders',
+        trendSummary: 'Sales and orders by day',
+        insights: 'Priority insights',
+        currencyEgp: 'EGP',
+        stale: 'Showing the last confirmed data. You can try again.',
+        storeSelector: 'Store',
+        loadingLabel: 'Loading store analytics',
+        emptyTitle: 'No analytics data for the selected period.',
+        emptyMessage: 'No daily activity for this period.',
+        errorTitle: 'Unable to load store analytics.',
+        errorMessage: 'Check the connection and try again.',
+        noEntitlementTitle:
+            'Store Analytics is not available for this account.',
+        noEntitlementMessage:
+            'Use a Business account authorized to manage the Retail store.',
+        retry: 'Try again',
+        refresh: 'Refresh analytics',
+        storeLogo: 'Store',
+        ordersUnit: 'orders',
+      );
 
 const _evidenceFontFamily = 'FoodexEvidence';
 
