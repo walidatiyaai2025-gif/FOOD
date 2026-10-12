@@ -210,6 +210,7 @@ final class B2cDashboardService
             ->groupBy('products.id', 'products.name', 'products.sku', 'product_images.path')
             ->havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) <= ?', [$threshold])
             ->orderBy('available')
+            ->orderBy('products.id')
             ->limit(5)
             ->get()
             ->map(fn (object $row): array => [
