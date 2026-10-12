@@ -2,6 +2,8 @@
 
 Authority: GitHub umbrella #1323 and child Issues #1324–#1334.
 
+Evidence ownership: [requirement matrix](FOODEX_CUSTOMER_VNEXT_REQUIREMENT_MATRIX.md) and [machine-readable requirements](FOODEX_CUSTOMER_VNEXT_REQUIREMENTS.json). Source identity: [real-data manifest](../testing/FOODEX_REAL_DATA_SOURCE_MANIFEST.md). Existing Customer routes/shared ownership: [Screen Registry](customer-vnext/SCREEN_REGISTRY.md) and [File Ownership](customer-vnext/FILE_OWNERSHIP.md).
+
 ## 1. Product objective
 Transform the existing FOODEX Customer application into one coherent, production-ready shopping product without introducing parallel replacement screens. Existing routes, screens, business rules and APIs are reused/refactored wherever valid; presentation and user journey are redesigned in place.
 
@@ -133,7 +135,9 @@ The repository fixture must:
 - be reproducible by documented setup/reset commands
 - be usable by all engineers and automated E2E tests
 
-Observed source baseline is recorded in docs/testing/FOODEX_REAL_DATA_SOURCE_MANIFEST.md.
+Observed source baseline is recorded in docs/testing/FOODEX_REAL_DATA_SOURCE_MANIFEST.md. The verified Oct-12 source contains 566 translation rows; the old 230-row intake count is superseded. Missing/ambiguous source price/carton values remain explicit data-review blockers, never invented values.
+
+#1330 owns one top-level `Database\Seeders\FoodexLaunchSeeder` orchestrator, exposing deterministic `preflight(): array` with `ready` and `fingerprint`, plus re-runnable transactional Laravel Seeder invocation. Catalog-specific seed components remain behind this contract. #1331 and #1332 consume it without copying catalog data or deriving a competing baseline.
 
 ## 8. Official FOODEX products and image quality
 The owner-supplied product document is the launch catalog source for product name, package size, carton quantity, price where supplied, and source imagery.
@@ -224,3 +228,9 @@ The Customer VNext effort is complete only when:
 - the owner can press Dashboard Launch with auditable evidence and no known launch blocker
 
 Final certification is #1333.
+
+## 14. Requirement evidence and convergence
+
+Each stable CVN requirement has exactly one owning implementation or independent QA Issue in the synchronized matrix. Owners attach exact-source evidence for source, automated behavior and applicable runtime/locale/responsive checks. Shared foundation completion does not certify every downstream screen; closed Issues, green generic CI, builds and generated screenshots alone do not prove product compliance.
+
+#1333 re-reads the authoritative plan, matrix, integrated source, test results and reviewed runtime evidence. Any OPEN/PARTIAL/FAIL/UNKNOWN/UNOWNED requirement blocks certification. After the implementation source is frozen, release artifacts must identify that source/version lineage. A later business/application change invalidates affected evidence and requires dependent gates to rerun. Completing documentation #1334 does not close #1323 or authorize Launch.
