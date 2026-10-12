@@ -23,6 +23,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-admin-layout" data-foodex-utility="assistant-settings">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
 <main class="foodex-admin-main foodex-admin-page">
+@include('admin._admin-center-switcher',['active'=>'settings'])
 <header class="foodex-page-header">
 <div>
 <span class="foodex-subtitle">FOODEX Assistant V1</span>
