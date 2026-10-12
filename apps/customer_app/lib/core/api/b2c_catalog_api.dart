@@ -316,15 +316,22 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
   }) async {
     final base = Uri.parse('$baseUrl$path');
     final uri = query.isEmpty ? base : base.replace(queryParameters: query);
-    final response = await _client.get(
-      uri,
-      headers: {
-        'Accept': 'application/json',
-        if (token != null && token!.isNotEmpty)
-          'Authorization': 'Bearer $token',
-        if (storeId != null) 'X-FOODEX-Store-ID': '$storeId',
-      },
-    );
+    late final http.Response response;
+    try {
+      response = await _client.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          if (token != null && token!.isNotEmpty)
+            'Authorization': 'Bearer $token',
+          if (storeId != null) 'X-FOODEX-Store-ID': '$storeId',
+        },
+      );
+    } on http.ClientException {
+      throw const B2cCatalogException(B2cCatalogException.networkUnavailable);
+    } catch (_) {
+      throw const B2cCatalogException(B2cCatalogException.networkUnavailable);
+    }
 
     Object? body;
     if (response.body.isNotEmpty) {
@@ -358,8 +365,10 @@ class B2cCatalogException implements Exception {
 
   static const String selfStorePurchaseNotAllowed =
       'SELF_STORE_PURCHASE_NOT_ALLOWED';
+  static const String networkUnavailable = 'NETWORK_UNAVAILABLE';
 
   final String code;
 
   bool get isSelfStorePurchaseNotAllowed => code == selfStorePurchaseNotAllowed;
+  bool get isNetworkUnavailable => code == networkUnavailable;
 }
