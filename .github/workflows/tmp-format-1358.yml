@@ -1,0 +1,35 @@
+name: Temporary Format 1358
+
+on:
+  push:
+    branches:
+      - feat/1358-mobile-store-analytics-screen
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - name: Canonically format changed Dart files
+        run: |
+          dart format             apps/customer/lib/features/store_analytics/store_analytics_screen.dart             apps/customer/test/screenshot_evidence_test.dart             apps/customer/test/store_analytics_screen_test.dart
+      - name: Stage formatted artifact
+        run: |
+          mkdir -p /tmp/formatted/apps/customer/lib/features/store_analytics
+          mkdir -p /tmp/formatted/apps/customer/test
+          cp apps/customer/lib/features/store_analytics/store_analytics_screen.dart /tmp/formatted/apps/customer/lib/features/store_analytics/
+          cp apps/customer/test/screenshot_evidence_test.dart /tmp/formatted/apps/customer/test/
+          cp apps/customer/test/store_analytics_screen_test.dart /tmp/formatted/apps/customer/test/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatted-1358
+          path: /tmp/formatted
+          if-no-files-found: error
