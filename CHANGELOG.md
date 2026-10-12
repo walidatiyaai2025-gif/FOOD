@@ -2,7 +2,7 @@
 
 ## 1.0.73 - 2026-10-12
 
-- Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update.
+- Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard.
 - Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px.
 - Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality.
 - Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage.
