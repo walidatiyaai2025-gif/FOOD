@@ -275,7 +275,7 @@ jobs:
           grep -Fq 'test_retail_registration_notifies_only_authorized_store_audience_and_is_deduplicated' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
           grep -Fq 'test_wholesale_registration_notifies_b2b_audience_and_login_never_reemits_registration' backend/tests/Feature/PlatformCustomerOperationalNotificationTest.php
           grep -Fq 'test_platform_customer_orders_aggregate_wholesale_and_retail_with_store_provenance' backend/tests/Feature/PlatformCustomerUnifiedOrdersTest.php
-          grep -Fq 'B2B checkout with order id navigates to B2B details and uses B2B API' apps/customer_app/test/b2b_journey_test.dart
+          grep -Fq 'B2B checkout confirms order before explicit tracking navigation' apps/customer_app/test/b2b_journey_test.dart
       - name: Verify C13 integrated 13-screen acceptance
         if: ${{ startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}
         shell: bash
