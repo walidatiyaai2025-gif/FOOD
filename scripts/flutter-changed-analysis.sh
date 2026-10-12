@@ -49,15 +49,6 @@ if ! (
   cd "$root/$prefix"
   dart format --output=none --set-exit-if-changed "${files[@]}"
 ); then
-  (
-    cd "$root/$prefix"
-    dart format "${files[@]}"
-    for file in "${files[@]}"; do
-      printf 'FOODEX_FORMAT_FILE:%s:' "$file"
-      base64 -w0 "$file"
-      printf '\n'
-    done
-  )
   echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
   exit 1
 fi
