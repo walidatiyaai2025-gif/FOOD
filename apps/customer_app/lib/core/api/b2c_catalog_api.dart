@@ -42,6 +42,40 @@ class B2cCategory {
       );
 }
 
+class B2cSellingUnit {
+  const B2cSellingUnit({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.conversionFactor,
+    this.price,
+    this.sku,
+    this.barcode,
+    this.isBase = false,
+  });
+
+  final int id;
+  final String code;
+  final String name;
+  final double conversionFactor;
+  final double? price;
+  final String? sku;
+  final String? barcode;
+  final bool isBase;
+
+  factory B2cSellingUnit.fromJson(Map<String, dynamic> json) => B2cSellingUnit(
+        id: (json['id'] as num).toInt(),
+        code: json['code'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        conversionFactor:
+            (json['conversion_factor'] as num?)?.toDouble() ?? 1,
+        price: (json['price'] as num?)?.toDouble(),
+        sku: json['sku'] as String?,
+        barcode: json['barcode'] as String?,
+        isBase: json['is_base'] as bool? ?? false,
+      );
+}
+
 class B2cProduct {
   const B2cProduct({
     required this.id,
@@ -57,6 +91,7 @@ class B2cProduct {
     this.imageUrl,
     this.thumbnailUrl,
     this.images = const [],
+    this.sellingUnits = const [],
     this.availableQuantity,
     this.isAvailable = true,
     this.availabilityState = 'AVAILABLE',
@@ -75,6 +110,7 @@ class B2cProduct {
   final String? imageUrl;
   final String? thumbnailUrl;
   final List<String> images;
+  final List<B2cSellingUnit> sellingUnits;
   final double? availableQuantity;
   final bool isAvailable;
   final String availabilityState;
@@ -96,6 +132,15 @@ class B2cProduct {
         thumbnailUrl: json['thumbnail_url'] as String?,
         images: (json['images'] as List?)
                 ?.whereType<String>()
+                .toList(growable: false) ??
+            const [],
+        sellingUnits: (json['selling_units'] as List?)
+                ?.whereType<Map>()
+                .map(
+                  (value) => B2cSellingUnit.fromJson(
+                    Map<String, dynamic>.from(value),
+                  ),
+                )
                 .toList(growable: false) ??
             const [],
         availableQuantity: (json['available_quantity'] as num?)?.toDouble(),
