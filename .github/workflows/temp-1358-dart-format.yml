@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feat/1358-mobile-store-analytics-screen
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
