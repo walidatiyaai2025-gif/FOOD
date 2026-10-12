@@ -7,7 +7,7 @@
     <style>
         :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 32px; }
+        body { margin: 0; padding: 0; }
         main { max-width: 980px; margin: 0 auto; }
         .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
         .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -29,7 +29,9 @@
     @include('admin._brand-components')
 </head>
 <body>
-<main class="foodex-admin-page" data-foodex-utility="system-update">
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
+<aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside>
+<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="system-update">
     <div class="header foodex-page-header">
         <div>
             <a href="{{ route('admin.index') }}">← FOODEX Dashboard</a>
@@ -115,6 +117,7 @@
         {{ $historyRows->links() }}
     </section>
 </main>
+</div>
 <script>
 (() => {
     const form = document.querySelector('form[data-csrf-refresh-url]');
