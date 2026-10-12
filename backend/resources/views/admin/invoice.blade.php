@@ -17,7 +17,8 @@
         .correction{margin-top:24px;display:flex;gap:8px;flex-wrap:wrap}
         .correction input{min-width:320px;flex:1}
         a{text-decoration:none}
-        @media(max-width:640px){.wrap{padding:0}.invoice-card{padding:16px}.correction input{min-width:100%}}
+        dialog{border:0;border-radius:16px;padding:0;max-width:640px;width:calc(100% - 30px);box-shadow:var(--foodex-shadow-raised)}dialog::backdrop{background:rgba(23,32,51,.42)}dialog .correction{padding:18px;margin:0}
+        @media(max-width:640px){.wrap{padding:0}.invoice-card{padding:14px}.head{display:grid;grid-template-columns:minmax(0,1fr)}.actions{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px}.actions>*{flex:0 0 auto}.grid{grid-template-columns:1fr;margin:14px 0}.summary{max-width:none;margin-inline-start:0}.correction{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.correction input{min-width:0;width:100%}.correction button{width:100%;min-height:44px}dialog{width:100%;max-width:none;max-height:92dvh;margin:auto 0 0;border-radius:18px 18px 0 0}}
         @media print{body{padding:0!important;background:#fff!important}.sidebar,.foodex-mobile-web-bar,.foodex-mobile-nav-backdrop{display:none!important}.foodex-admin-layout{display:block!important}.foodex-admin-main{padding:0!important}.wrap{max-width:none!important;margin:0!important;padding:0!important}.invoice-card{box-shadow:none!important;border:0!important;padding:0!important}}
     </style>
 </head>
