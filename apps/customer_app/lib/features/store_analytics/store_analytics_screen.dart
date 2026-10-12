@@ -722,7 +722,7 @@ class _StoreLogo extends StatelessWidget {
     final logo = data.logoUrl?.trim();
     return Semantics(
       image: true,
-      label: '${copy.storeLogo}: ${data.storeName}',
+      label: '${copy.storeLogo}: ${data.storeName}', // localization-gate: allow — localized label plus business store name.
       child: ExcludeSemantics(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(CustomerUiRadii.md),
@@ -1087,7 +1087,7 @@ class _InsightCard extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: '${insight.title}. ${insight.body}',
+      label: '${insight.title}. ${insight.body}', // localization-gate: allow — localized/authoritative insight copy.
       child: DecoratedBox(
         key: ValueKey('store-analytics-insight-${insight.id}'),
         decoration: BoxDecoration(
