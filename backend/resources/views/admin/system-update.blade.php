@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ app()->getLocale() === 'ar' ? 'تحديث النظام' : 'System Update' }} · FOODEX</title>
+    <title>{{ __('admin.system_update_surface.title') }} · FOODEX</title>
     <style>
         :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
@@ -31,17 +31,16 @@
 @include('admin._settings-page-polish')
 </head>
 <body>
-@php($ar = app()->getLocale() === 'ar')
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
 <main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="system-update">
     @include('admin._admin-center-switcher',['active'=>'settings'])
 <div class="header foodex-page-header">
         <div>
-            <a href="{{ route('admin.settings.index') }}">← {{ app()->getLocale()==='ar' ? 'مركز الإعدادات' : 'Settings Center' }}</a>
-            <h1>{{ $ar ? 'تحديث النظام' : 'System Update' }}</h1>
+            <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
+            <h1>{{ __('admin.system_update_surface.title') }}</h1>
         </div>
-        <span class="badge">{{ $ar ? 'الإصدار الحالي' : 'Current' }}: {{ $currentVersion }}</span>
+        <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
     </div>
 
     @if (session('status'))
@@ -50,7 +49,7 @@
 
     @if ($errors->any())
         <div class="error foodex-state" role="alert">
-            <strong>{{ $ar ? 'لم يتم تطبيق التحديث.' : 'Update was not applied.' }}</strong>
+            <strong>{{ __('admin.system_update_surface.not_applied') }}</strong>
             <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -60,38 +59,38 @@
     @endif
 
     <section class="card">
-        <h2>{{ $ar ? 'حزمة تحديث موثقة' : 'Validated update package' }}</h2>
-        <p>{{ $ar ? 'يتم التحقق من الحزمة وإنشاء نسخة احتياطية قبل بدء وضع الصيانة أو استخراج الإصدار.' : 'The package is verified and backed up before maintenance mode or release extraction begins.' }}</p>
+        <h2>{{ __('admin.system_update_surface.package_title') }}</h2>
+        <p>{{ __('admin.system_update_surface.package_description') }}</p>
 
         <form method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
             @csrf
-            <label>{{ $ar ? 'حزمة ZIP' : 'ZIP package' }}
+            <label>{{ __('admin.system_update_surface.zip_package') }}
                 <input type="file" name="package" accept=".zip,application/zip" required>
             </label>
-            <label>{{ $ar ? 'الإصدار المستهدف' : 'Target version' }}
+            <label>{{ __('admin.system_update_surface.target_version') }}
                 <input name="target_version" placeholder="1.2.0" required>
             </label>
-            <label>{{ $ar ? 'أقل إصدار حالي مسموح' : 'Minimum current version' }}
+            <label>{{ __('admin.system_update_surface.minimum_current_version') }}
                 <input name="minimum_current_version" value="{{ $currentVersion }}" required>
             </label>
-            <label>{{ $ar ? 'قيمة SHA-256 المتوقعة' : 'Expected SHA-256' }}
+            <label>{{ __('admin.system_update_surface.sha256') }}
                 <input name="sha256" maxlength="64" minlength="64" required>
             </label>
-            <label>{{ $ar ? 'ملاحظات الإصدار' : 'Release notes' }}
+            <label>{{ __('admin.system_update_surface.release_notes') }}
                 <textarea name="release_notes" rows="4"></textarea>
             </label>
             <div class="notice">
-                {{ $ar ? 'يتم اكتشاف ترحيلات قاعدة البيانات تلقائيًا من حزمة التحديث المرفوعة، ولا يلزم اختيار يدوي.' : 'Database migrations are detected automatically from the uploaded update package. No manual migration checkbox is required.' }}
+                {{ __('admin.system_update_surface.migration_notice') }}
             </div>
-            <button class="foodex-primary" type="submit">{{ $ar ? 'تحقق وثبّت التحديث' : 'Validate and install update' }}</button>
+            <button class="foodex-primary" type="submit">{{ __('admin.system_update_surface.install') }}</button>
         </form>
     </section>
 
     <section class="card">
-        <h2>{{ $ar ? 'سجل التحديثات الأخيرة' : 'Recent update history' }}</h2>
+        <h2>{{ __('admin.system_update_surface.history') }}</h2>
         <table data-pagination-required>
             <thead>
-            <tr><th>{{ $ar?'من':'From' }}</th><th>{{ $ar?'إلى':'To' }}</th><th>{{ $ar?'الحالة':'Status' }}</th><th>{{ $ar?'بدأ':'Started' }}</th><th>{{ $ar?'سبب الفشل':'Failure' }}</th></tr>
+            <tr><th>{{ __('admin.system_update_surface.from') }}</th><th>{{ __('admin.system_update_surface.to') }}</th><th>{{ __('admin.system_update_surface.status') }}</th><th>{{ __('admin.system_update_surface.started') }}</th><th>{{ __('admin.system_update_surface.failure') }}</th></tr>
             </thead>
             <tbody>
             @forelse ($historyRows as $row)
@@ -114,7 +113,7 @@
                     <td>{{ $row->failure_reason ?: '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5">{{ $ar ? 'لم يتم تنفيذ أي تحديثات بعد.' : 'No updates have been executed yet.' }}</td></tr>
+                <tr><td colspan="5">{{ __('admin.system_update_surface.empty') }}</td></tr>
             @endforelse
             </tbody>
         </table>
