@@ -1643,8 +1643,23 @@ void main() {
       await tester.pump();
       expect(commerce.checkoutCalls, 1);
 
-      completer.complete(<String, Object?>{});
+      completer.complete(<String, Object?>{
+        'id': 31,
+        'order_number': 'FDX-C13-31',
+        'currency': 'EGP',
+        'subtotal': 10.0,
+        'discount_total': 0.0,
+        'delivery_total': 0.0,
+        'tax_total': 0.0,
+        'grand_total': 10.0,
+      });
       await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-order-success')),
+        findsOneWidget,
+      );
+      expect(find.text('FDX-C13-31'), findsOneWidget);
     },
   );
 
