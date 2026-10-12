@@ -24,6 +24,7 @@ footer="apps/customer_app/test/customer_b2b_footer_test.dart"
 marketplace="apps/customer_app/test/platform_marketplace_home_test.dart"
 profile_screen="apps/customer_app/lib/features/b2b/business_account_profile.dart"
 dashboard_orders="backend/tests/Feature/DashboardOrderManagementTest.php"
+manual_dispatch="backend/tests/Feature/OrderManualDispatchServiceTest.php"
 driver_lifecycle="backend/tests/Feature/DriverAssignmentLifecycleTest.php"
 driver_invoice="backend/tests/Feature/DriverInvoiceNotificationTest.php"
 driver_journey="apps/driver_app/test/driver_active_journey_test.dart"
@@ -104,12 +105,14 @@ require_text "$marketplace" "signed-in marketplace keeps store switcher open and
 require_text "$marketplace" "stale owned Retail context is rejected by marketplace header and footer"
 require_text "$profile_screen" "Wholesale / Retail"
 
-# Customer-Service approval is mandatory before Driver fulfillment, and rejection must reverse settlement once.
+# Customer-Service remains authoritative for B2B approval/dispatch. After the Van cutover,
+# B2B fulfillment is Van-only and must never fall back to Driver assignment.
 require_text "$dashboard_orders" "test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity"
 require_text "$dashboard_orders" "test_b2b_rejection_reverses_checkout_settlement_once_without_touching_manual_ledger"
-require_text "$driver_lifecycle" "test_pending_b2b_order_cannot_be_assigned_before_customer_service_approval"
+require_text "$manual_dispatch" "test_customer_service_can_assign_b2b_van_idempotently_initialize_execution_state_and_clear"
+require_text "$driver_lifecycle" "test_b2b_order_cannot_be_assigned_to_driver_after_van_cutover"
 
-# Driver must receive the authoritative invoice/payment/collection contract after approval.
+# Historical Driver invoice/payment/collection contracts remain auditable after the Van cutover.
 require_text "$driver_invoice" "test_assigned_driver_receives_safe_invoice_and_note_timeline_only_for_own_assignment"
 require_text "$driver_invoice" "test_checkout_settlement_snapshot_controls_driver_collection_instruction"
 require_text "$driver_journey" "new detail preserves assigned invoice access"
