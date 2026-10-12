@@ -2,27 +2,27 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.73",
-  "minimum_current_version": "1.0.72",
-  "source_base": "ce0f8e24fb4f09a6f9afd1b0253a2b171a3c95bd",
-  "source_commit": "3186f5722c4ec3f95355923132c99e0bc449166f",
-  "sha256": "92ce82be2d442c64233efcc387e6debf5ebdd1b4bbd080c9512c4762fe4a7c7f",
+  "target_version": "1.0.74",
+  "minimum_current_version": "1.0.73",
+  "source_base": "3186f5722c4ec3f95355923132c99e0bc449166f",
+  "source_commit": "d606e8b6a2423b666e414570a9879255e3a95feb",
+  "sha256": "30cbaf4ba950c8482b08aa9dfc7184d98f812ee36a75b234598a43428be3ea6d",
   "contains_migrations": false,
   "migrations": [],
   "delta": {
-    "file_count": 444,
-    "source_file_count": 344,
+    "file_count": 484,
+    "source_file_count": 384,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard. Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px. Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality. Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage. Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff. Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice.",
+  "release_notes": "Promote the completed Customer VNext program from umbrella #1323 into the FOODEX 1.0.74 Dashboard update, including the unified Shopping Home, catalog/search/product details, cart/checkout/order success, orders/tracking, account/address/notifications/offers/settings, sanitized launch-data baseline, protected reset/reseed, production preflight/Launch gate, and independent final certification from #1333 / PR #1353. The Dashboard package supports direct update from the currently published 1.0.73 release. Include the integrated Mobile Smart Store Analytics mission #1354–#1359: authoritative Retail analytics in EGP, live Dashboard-managed store branding, compact mobile analytics UI, unread insight badge/pulse accessibility behavior, explicit Retail-vs-Wholesale context isolation, and final security/runtime/visual convergence through PR #1366. Carry forward exact-head repository policy, localization, backend/MySQL, Customer validation, runtime screenshot, required mobile visual evidence, APP-PREVIEW parity and Platform Customer Commerce E2E gates from the merged integration lineage. Preserve fail-closed production safeguards: Launch/reset still require the configured owner data, approved high-resolution assets, backup and green preflight evidence; this release does not bypass those controls. Synchronize Customer, Driver and Van source identities at 1.0.74+74. The Dashboard Update ZIP remains independently deployable; APK installation remains an explicit operational action.",
   "dashboard_fields": {
-    "target_version": "1.0.73",
-    "minimum_current_version": "1.0.72",
-    "source_commit": "3186f5722c4ec3f95355923132c99e0bc449166f",
-    "sha256": "92ce82be2d442c64233efcc387e6debf5ebdd1b4bbd080c9512c4762fe4a7c7f",
+    "target_version": "1.0.74",
+    "minimum_current_version": "1.0.73",
+    "source_commit": "d606e8b6a2423b666e414570a9879255e3a95feb",
+    "sha256": "30cbaf4ba950c8482b08aa9dfc7184d98f812ee36a75b234598a43428be3ea6d",
     "contains_migrations": false,
-    "release_notes": "Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard. Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px. Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality. Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage. Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff. Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice."
+    "release_notes": "Promote the completed Customer VNext program from umbrella #1323 into the FOODEX 1.0.74 Dashboard update, including the unified Shopping Home, catalog/search/product details, cart/checkout/order success, orders/tracking, account/address/notifications/offers/settings, sanitized launch-data baseline, protected reset/reseed, production preflight/Launch gate, and independent final certification from #1333 / PR #1353. The Dashboard package supports direct update from the currently published 1.0.73 release. Include the integrated Mobile Smart Store Analytics mission #1354–#1359: authoritative Retail analytics in EGP, live Dashboard-managed store branding, compact mobile analytics UI, unread insight badge/pulse accessibility behavior, explicit Retail-vs-Wholesale context isolation, and final security/runtime/visual convergence through PR #1366. Carry forward exact-head repository policy, localization, backend/MySQL, Customer validation, runtime screenshot, required mobile visual evidence, APP-PREVIEW parity and Platform Customer Commerce E2E gates from the merged integration lineage. Preserve fail-closed production safeguards: Launch/reset still require the configured owner data, approved high-resolution assets, backup and green preflight evidence; this release does not bypass those controls. Synchronize Customer, Driver and Van source identities at 1.0.74+74. The Dashboard Update ZIP remains independently deployable; APK installation remains an explicit operational action."
   }
 }
