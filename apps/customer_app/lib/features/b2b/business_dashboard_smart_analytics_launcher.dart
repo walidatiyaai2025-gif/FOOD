@@ -218,3 +218,70 @@ class _BusinessDashboardSmartAnalyticsLauncherState
     );
   }
 }
+
+
+class BusinessDashboardStoreLogo extends StatelessWidget {
+  const BusinessDashboardStoreLogo({
+    required this.storeName,
+    this.logoUrl,
+    this.imageProvider,
+    super.key,
+  });
+
+  final String storeName;
+  final String? logoUrl;
+  final ImageProvider<Object>? imageProvider;
+
+  Widget _fallback() {
+    final normalizedName = storeName.trim();
+    final initial =
+        normalizedName.isEmpty ? 'F' : normalizedName.substring(0, 1).toUpperCase();
+    return Container(
+      key: const ValueKey('b2b-dashboard-store-logo-fallback'),
+      width: 64,
+      height: 64,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: CustomerUiColors.mint,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: CustomerUiColors.border),
+      ),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: CustomerUiColors.deepGreen,
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedUrl = logoUrl?.trim() ?? '';
+    final provider =
+        imageProvider ?? (normalizedUrl.isEmpty ? null : NetworkImage(normalizedUrl));
+    if (provider == null) return _fallback();
+
+    return Container(
+      key: const ValueKey('b2b-dashboard-store-logo'),
+      width: 64,
+      height: 64,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: CustomerUiColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: CustomerUiColors.border),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image(
+          image: provider,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => _fallback(),
+        ),
+      ),
+    );
+  }
+}
