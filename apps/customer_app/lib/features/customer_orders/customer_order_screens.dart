@@ -355,9 +355,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen>
                     Icon(
                       Icons.filter_list_rounded,
                       size: 21,
-                      color: selected
-                          ? Colors.white
-                          : CustomerUiColors.inkSoft,
+                      color: selected ? Colors.white : CustomerUiColors.inkSoft,
                     ),
                     const SizedBox(width: 7),
                   ],
@@ -1148,12 +1146,11 @@ class _OrderCard extends StatelessWidget {
                         store == null || store.isEmpty ? channel : store,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: CustomerUiColors.muted,
-                                  fontSize: 13.5,
-                                  height: 1.1,
-                                ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.muted,
+                              fontSize: 13.5,
+                              height: 1.1,
+                            ),
                       ),
                       if (order.createdAt != null) ...[
                         const SizedBox(height: 6),
@@ -1223,8 +1220,7 @@ class _OrderCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(CustomerUiRadii.sm),
                       child: InkWell(
                         key: ValueKey('customer-order-actions-${order.id}'),
-                        borderRadius:
-                            BorderRadius.circular(CustomerUiRadii.sm),
+                        borderRadius: BorderRadius.circular(CustomerUiRadii.sm),
                         onTap: () => _showQuickActions(context),
                         child: const SizedBox.square(
                           dimension: 44,
