@@ -146,12 +146,12 @@ class CustomerReplicaReportsTest extends TestCase
             'رصيد اول الفتره',
             'صافي القيمة',
             'صافي المباع',
-            'Design By www.Softarkan.com',
-            'Desigend by : WWW.Softarkan.Com',
             'foodex-economical-group.webp',
         ] as $lockedText) {
             $this->assertStringContainsString($lockedText, $source);
         }
+
+        $this->assertDoesNotMatchRegularExpression('/softarkan/i', $source);
     }
 
     /**

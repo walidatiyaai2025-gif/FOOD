@@ -337,13 +337,8 @@ final class CustomerReplicaReportPdfService
         $landscape = $type !== CustomerReplicaReportService::ACCOUNT_STATEMENT;
         $pageWidth = $landscape ? 297.0 : 210.0;
         $footerY = $landscape ? 202.5 : 289.0;
-        $design = $type === CustomerReplicaReportService::ITEM_DETAIL
-            ? 'Desigend by : WWW.Softarkan.Com'
-            : 'Design By www.Softarkan.com';
-
         for ($page = 1; $page <= $pages; $page++) {
             $pdf->setPage($page);
-            $this->cell($pdf, 5, $footerY, 80, 5, $design, false, 'L', 6.2, true, null, [0, 0, 0], 0);
             $this->cell($pdf, ($pageWidth / 2) - 20, $footerY, 40, 5, (string) $page, false, 'C', 6.2, false, null, [0, 0, 0], 0);
             $this->cell($pdf, $pageWidth - 55, $footerY, 50, 5, 'Page '.$page.' of '.$pages, false, 'R', 6.2, false, null, [0, 0, 0], 0);
         }
