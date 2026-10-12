@@ -35,10 +35,7 @@ class CustomerCheckoutProgress extends StatelessWidget {
                     height: CustomerUiStroke.hairline,
                     color: CustomerUiColors.border,
                   ),
-                _CheckoutProgressStep(
-                  step: steps[index],
-                  index: index + 1,
-                ),
+                _CheckoutProgressStep(step: steps[index]),
               ],
             ],
           ),
@@ -47,13 +44,9 @@ class CustomerCheckoutProgress extends StatelessWidget {
 }
 
 class _CheckoutProgressStep extends StatelessWidget {
-  const _CheckoutProgressStep({
-    required this.step,
-    required this.index,
-  });
+  const _CheckoutProgressStep({required this.step});
 
   final CustomerCheckoutStep step;
-  final int index;
 
   @override
   Widget build(BuildContext context) => Container(
