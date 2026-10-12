@@ -464,6 +464,73 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+
+  testWidgets(
+      'channel tabs stay explicit and direction follows the active locale',
+      (tester) async {
+    final api = _FakeOrdersApi(
+      responder: (channel, page) async => _page(
+        channel: channel,
+        orderId: channel == 'b2b' ? 801 : 802,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('customer-orders-channel-tabs')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-orders-channel-b2b')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('customer-orders-channel-b2c')),
+      findsOneWidget,
+    );
+    expect(find.text('Wholesale'), findsOneWidget);
+    expect(find.text('Retail'), findsOneWidget);
+
+    final englishFilters = tester.element(
+      find.byKey(
+        const ValueKey('customer-orders-status-filters-b2b'),
+      ),
+    );
+    expect(Directionality.of(englishFilters), TextDirection.ltr);
+    expect(find.byType(CustomerBadge), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('customer-orders-channel-b2c')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('RT-802'), findsOneWidget);
+    expect(find.text('WH-801'), findsNothing);
+
+    await tester.pumpWidget(
+      _TestApp(
+        textDirection: TextDirection.rtl,
+        child: CustomerOrdersScreen(api: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('الجملة'), findsOneWidget);
+    expect(find.text('التجزئة'), findsOneWidget);
+    final arabicFilters = tester.element(
+      find.byKey(
+        const ValueKey('customer-orders-status-filters-b2b'),
+      ),
+    );
+    expect(Directionality.of(arabicFilters), TextDirection.rtl);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('cross-channel API leakage is never rendered in the wrong tab',
       (tester) async {
     final api = _FakeOrdersApi(
