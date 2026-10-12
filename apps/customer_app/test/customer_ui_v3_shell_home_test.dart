@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
@@ -88,22 +87,7 @@ void main() {
       expect(
           find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
-      expect(find.text('الأكثر مبيعاً'), findsOneWidget);
-      expect(find.text('عرض المزيد'), findsOneWidget);
       expect(find.text('Weekend Offer'), findsNothing);
-
-      final bestGrid = tester.widget<GridView>(
-        find.byKey(const ValueKey('retail-best-sellers-grid')),
-      );
-      final bestDelegate =
-          bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(bestDelegate.crossAxisCount, 3);
-      expect(
-          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('retail-shell-nav-home')),
         findsOneWidget,
@@ -133,8 +117,28 @@ void main() {
       await tester.pump();
       expect(capturedCategoryId, 3);
 
-      final product = find.byKey(const ValueKey('retail-product-42'));
       final mainScroll = find.byType(Scrollable).first;
+      final bestGridFinder =
+          find.byKey(const ValueKey('retail-best-sellers-grid'));
+      await tester.scrollUntilVisible(
+        bestGridFinder,
+        240,
+        scrollable: mainScroll,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('الأكثر مبيعاً'), findsOneWidget);
+      final bestGrid = tester.widget<GridView>(bestGridFinder);
+      final bestDelegate =
+          bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(bestDelegate.crossAxisCount, 3);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
+
+      final product = find.byKey(const ValueKey('retail-product-42'));
       await tester.scrollUntilVisible(
         product,
         240,
@@ -153,6 +157,15 @@ void main() {
       await tester.tap(add);
       await tester.pump();
       expect(addedProductId, 42);
+
+      final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
+      await tester.scrollUntilVisible(
+        viewMore,
+        240,
+        scrollable: mainScroll,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('عرض المزيد'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -186,14 +199,37 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Best Sellers'), findsOneWidget);
-      expect(find.text('View more'), findsOneWidget);
-      final allGrid = tester.widget<GridView>(
-        find.byKey(const ValueKey('retail-all-products-grid')),
+      final mainScroll = find.byType(Scrollable).first;
+      final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
+      await tester.scrollUntilVisible(
+        bestGrid,
+        240,
+        scrollable: mainScroll,
       );
+      await tester.pumpAndSettle();
+      expect(find.text('Best Sellers'), findsOneWidget);
+
+      final allGridFinder =
+          find.byKey(const ValueKey('retail-all-products-grid'));
+      await tester.scrollUntilVisible(
+        allGridFinder,
+        240,
+        scrollable: mainScroll,
+      );
+      await tester.pumpAndSettle();
+      final allGrid = tester.widget<GridView>(allGridFinder);
       final allDelegate =
           allGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(allDelegate.crossAxisCount, 3);
+
+      final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
+      await tester.scrollUntilVisible(
+        viewMore,
+        240,
+        scrollable: mainScroll,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('View more'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -460,6 +496,6 @@ class _FakeStorefrontApi implements StorefrontApi {
 class _OfflineCatalogApi extends _FakeCatalogApi {
   @override
   Future<List<B2cCategory>> categories(int storeId) async {
-    throw http.ClientException('offline');
+    throw const B2cCatalogException(B2cCatalogException.networkUnavailable);
   }
 }

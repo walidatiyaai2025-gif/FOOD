@@ -66,6 +66,9 @@ class RetailCartSnapshot {
     required this.subtotal,
     required this.grandTotal,
     required this.hasUnavailableItems,
+    this.discountTotal = 0,
+    this.deliveryTotal = 0,
+    this.taxTotal = 0,
     this.syncState = RetailCartSyncState.synced,
   });
 
@@ -73,6 +76,9 @@ class RetailCartSnapshot {
   final String currency;
   final List<RetailCartItem> items;
   final double subtotal;
+  final double discountTotal;
+  final double deliveryTotal;
+  final double taxTotal;
   final double grandTotal;
   final bool hasUnavailableItems;
   final RetailCartSyncState syncState;
@@ -83,13 +89,16 @@ class RetailCartSnapshot {
         currency: currency,
         items: items,
         subtotal: subtotal,
+        discountTotal: discountTotal,
+        deliveryTotal: deliveryTotal,
+        taxTotal: taxTotal,
         grandTotal: grandTotal,
         hasUnavailableItems: hasUnavailableItems,
         syncState: value,
       );
 
   RetailCartSnapshot applyPending(List<RetailCartMutation> mutations) {
-    var nextItems = items.toList(growable: true);
+    final nextItems = items.toList(growable: true);
     for (final mutation in mutations) {
       final index = nextItems.indexWhere((item) => item.id == mutation.itemId);
       if (mutation.operation == RetailCartMutationOperation.remove) {
@@ -119,6 +128,9 @@ class RetailCartSnapshot {
       currency: currency,
       items: List<RetailCartItem>.unmodifiable(nextItems),
       subtotal: nextSubtotal,
+      discountTotal: discountTotal,
+      deliveryTotal: deliveryTotal,
+      taxTotal: taxTotal,
       grandTotal: (grandTotal + delta).clamp(0, double.infinity).toDouble(),
       hasUnavailableItems: nextItems.any((item) => !item.isAvailable),
       syncState: mutations.isEmpty
@@ -144,7 +156,22 @@ class RetailCartSnapshot {
       items: _asList(map['items'])
           .map((item) => RetailCartItem.fromMap(_asMap(item)))
           .toList(growable: false),
-      subtotal: _asDouble(map['subtotal']),
+      subtotal: _asDouble(
+        quote['subtotal'],
+        fallback: _asDouble(map['subtotal']),
+      ),
+      discountTotal: _asDouble(
+        quote['discount_total'],
+        fallback: _asDouble(map['discount_total']),
+      ),
+      deliveryTotal: _asDouble(
+        quote['delivery_total'],
+        fallback: _asDouble(map['delivery_total']),
+      ),
+      taxTotal: _asDouble(
+        quote['tax_total'],
+        fallback: _asDouble(map['tax_total']),
+      ),
       grandTotal: _asDouble(
         quote['grand_total'],
         fallback: _asDouble(map['subtotal']),
@@ -217,10 +244,38 @@ class RetailCreatedOrder {
   const RetailCreatedOrder({
     required this.id,
     required this.storeId,
+    this.orderNumber = '',
+    this.displayOrderNumber = '',
+    this.currency = 'KWD',
+    this.subtotal = 0,
+    this.discountTotal = 0,
+    this.deliveryTotal = 0,
+    this.taxTotal = 0,
+    this.grandTotal = 0,
+    this.paymentMethod,
+    this.paymentStatus,
+    this.itemCount = 0,
   });
 
   final int id;
   final int storeId;
+  final String orderNumber;
+  final String displayOrderNumber;
+  final String currency;
+  final double subtotal;
+  final double discountTotal;
+  final double deliveryTotal;
+  final double taxTotal;
+  final double grandTotal;
+  final String? paymentMethod;
+  final String? paymentStatus;
+  final int itemCount;
+
+  String get reference {
+    if (orderNumber.trim().isNotEmpty) return orderNumber.trim();
+    if (displayOrderNumber.trim().isNotEmpty) return displayOrderNumber.trim();
+    return '#$id';
+  }
 
   factory RetailCreatedOrder.fromPayload(
     Object? value, {
@@ -232,7 +287,26 @@ class RetailCreatedOrder {
     if (id <= 0 || storeId != expectedStoreId) {
       throw const RetailCommerceException('invalid_checkout_response');
     }
-    return RetailCreatedOrder(id: id, storeId: storeId);
+
+    final rawPayment = map['payment'];
+    final payment = rawPayment is Map
+        ? Map<String, dynamic>.from(rawPayment)
+        : <String, dynamic>{};
+    return RetailCreatedOrder(
+      id: id,
+      storeId: storeId,
+      orderNumber: map['order_number']?.toString() ?? '',
+      displayOrderNumber: map['display_order_number']?.toString() ?? '',
+      currency: map['currency']?.toString() ?? 'KWD',
+      subtotal: _asDouble(map['subtotal']),
+      discountTotal: _asDouble(map['discount_total']),
+      deliveryTotal: _asDouble(map['delivery_total']),
+      taxTotal: _asDouble(map['tax_total']),
+      grandTotal: _asDouble(map['grand_total']),
+      paymentMethod: map['payment_method']?.toString(),
+      paymentStatus: payment.isEmpty ? null : payment['status']?.toString(),
+      itemCount: _asList(map['items']).length,
+    );
   }
 }
 

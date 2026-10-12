@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/api/b2c_catalog_api.dart';
@@ -202,8 +201,9 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         );
       }
 
-      final isOffline = error is http.ClientException ||
-          (error is StorefrontApiException && error.statusCode == null);
+      final isOffline =
+          (error is B2cCatalogException && error.isNetworkUnavailable) ||
+              (error is StorefrontApiException && error.statusCode == null);
       return CustomerStateView(
         key: ValueKey(isOffline ? 'retail-home-offline' : 'retail-home-error'),
         kind: CustomerStateKind.error,
@@ -344,7 +344,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
   }) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = 304.0 + (scaledDelta * 210.0);
+    final cardExtent = 368.0 + (scaledDelta * 240.0);
 
     return GridView.builder(
       key: gridKey,
@@ -578,7 +578,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = 304.0 + (scaledDelta * 210.0);
+    final cardExtent = 368.0 + (scaledDelta * 240.0);
 
     return ListView(
       padding: const EdgeInsets.all(CustomerUiSpacing.page),

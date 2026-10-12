@@ -1187,6 +1187,109 @@ void main() {
     },
   );
 
+  testWidgets(
+    'B2B add-to-cart checkout success journey completes in AR and EN',
+    (tester) async {
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+
+      for (final locale in const [Locale('ar'), Locale('en')]) {
+        final actionApi = _CountingCustomerActionApi();
+        final b2bApi = _FakeB2bApi({
+          'id': 42,
+          'sku': 'B2B-E2E-42',
+          'name': 'FOODEX Wholesale Water',
+          'store_id': 7,
+          'brand_name': 'FOODEX',
+          'category_name': 'Beverages',
+          'description': 'Authoritative seeded journey product',
+          'account_price': 7.25,
+          'minimum_order_quantity': 1,
+          'ordering_increment': 1,
+          'available_quantity': 24,
+          'is_available': true,
+          'availability_state': 'AVAILABLE',
+          'currency': 'KWD',
+        });
+        final storefront = _C13CheckoutStorefrontApi({
+          'store_id': 7,
+          'store_name': 'FOODEX Wholesale',
+          'customer_name': 'Launch Buyer',
+          'addresses': [
+            {
+              'id': 81,
+              'label': 'Warehouse',
+              'line1': 'FOODEX Street 1',
+              'city': 'Kuwait City',
+            },
+          ],
+          'delivery_dates': ['2026-10-13'],
+          'payment_methods': ['cash_on_delivery'],
+          'purchasing_power': 500,
+          'currency': 'KWD',
+        });
+        final commerce = _CheckoutJourneyWholesaleCommerceApi();
+
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: b2b,
+            locale: locale,
+            initialRoute: '/b2b/products/42?store_id=7',
+            b2bApi: b2bApi,
+            actionApi: actionApi,
+            storefrontApi: storefront,
+            wholesaleCommerceApi: commerce,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('customer-add-cart')),
+        );
+        await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
+        await tester.pumpAndSettle();
+
+        expect(actionApi.addCalls, 1);
+        expect(actionApi.lastProductId, 42);
+        expect(find.byType(SnackBarAction), findsOneWidget);
+
+        await tester.tap(find.byType(SnackBarAction));
+        await tester.pumpAndSettle();
+
+        final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
+        expect(checkout, findsOneWidget);
+        await tester.ensureVisible(checkout);
+        await tester.tap(checkout);
+        await tester.pumpAndSettle();
+
+        final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
+        await tester.scrollUntilVisible(
+          submit,
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(submit, findsOneWidget);
+        await tester.tap(submit);
+        await tester.pumpAndSettle();
+
+        expect(commerce.checkoutCalls, 1);
+        expect(
+          find.byKey(const ValueKey('customer-order-success')),
+          findsOneWidget,
+        );
+        expect(find.text('FDX-E2E-707'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      }
+    },
+  );
+
   testWidgets('B2B cart exposes authoritative checkout action', (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -1201,7 +1304,7 @@ void main() {
   });
 
   testWidgets(
-    'B2B checkout with order id navigates to B2B details and uses B2B API',
+    'B2B checkout confirms order before explicit tracking navigation',
     (tester) async {
       final api = _FakeB2bApi({
         'id': 4,
@@ -1227,7 +1330,16 @@ void main() {
           initialRoute: '/b2b/checkout?store=7',
           b2bApi: api,
           storefrontApi: const _CheckoutStorefrontApi(),
-          wholesaleCommerceApi: const _FakeWholesaleCommerceApi({'id': 4}),
+          wholesaleCommerceApi: const _FakeWholesaleCommerceApi({
+            'id': 4,
+            'order_number': 'FDX-B2B-4',
+            'currency': 'KWD',
+            'subtotal': 25.5,
+            'discount_total': 0.0,
+            'delivery_total': 0.0,
+            'tax_total': 0.0,
+            'grand_total': 25.5,
+          }),
         ),
       );
       await tester.pumpAndSettle();
@@ -1238,6 +1350,21 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.tap(find.text('تأكيد الطلب'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-order-success')),
+        findsOneWidget,
+      );
+      expect(find.text('FDX-B2B-4'), findsOneWidget);
+      expect(api.lastPath, isNot('/api/v1/b2b/orders/4'));
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('customer-order-success-track')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('customer-order-success-track')),
+      );
       await tester.pumpAndSettle();
 
       expect(api.lastPath, '/api/v1/b2b/orders/4');
@@ -1254,7 +1381,7 @@ void main() {
     },
   );
 
-  testWidgets('B2B checkout without usable order id falls back to B2B orders', (
+  testWidgets('B2B checkout rejects missing authoritative order reference', (
     tester,
   ) async {
     final api = _FakeB2bApi(const {'data': <Object>[]});
@@ -1280,8 +1407,15 @@ void main() {
     await tester.tap(find.text('تأكيد الطلب'));
     await tester.pumpAndSettle();
 
-    expect(api.lastPath, '/api/v1/b2b/orders');
-    expect(find.byKey(const ValueKey('b2b-empty')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('customer-order-success')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-checkout-data')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('b2b-empty')), findsNothing);
   });
 
   testWidgets(
@@ -1524,7 +1658,7 @@ void main() {
 
       expect(find.text('Current financial position'), findsOneWidget);
       expect(find.text('Available purchasing power'), findsOneWidget);
-      expect(find.text('Final review'), findsOneWidget);
+      expect(find.text('Final review'), findsWidgets);
       expect(find.text('Acme Buyer'), findsOneWidget);
       expect(find.text('Wholesale Store'), findsOneWidget);
       expect(
@@ -1612,8 +1746,23 @@ void main() {
       await tester.pump();
       expect(commerce.checkoutCalls, 1);
 
-      completer.complete(<String, Object?>{});
+      completer.complete(<String, Object?>{
+        'id': 31,
+        'order_number': 'FDX-C13-31',
+        'currency': 'EGP',
+        'subtotal': 10.0,
+        'discount_total': 0.0,
+        'delivery_total': 0.0,
+        'tax_total': 0.0,
+        'grand_total': 10.0,
+      });
       await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('customer-order-success')),
+        findsOneWidget,
+      );
+      expect(find.text('FDX-C13-31'), findsOneWidget);
     },
   );
 
@@ -3190,6 +3339,78 @@ class _DelayedQuantityWholesaleCommerceApi implements WholesaleCommerceApi {
     required String idempotencyKey,
   }) async =>
       <String, Object?>{};
+}
+
+class _CheckoutJourneyWholesaleCommerceApi implements WholesaleCommerceApi {
+  int checkoutCalls = 0;
+
+  @override
+  Future<Object?> cart(int storeId) async => {
+        'store_id': storeId,
+        'currency': 'KWD',
+        'subtotal': 7.25,
+        'has_unavailable_items': false,
+        'quote': {
+          'discount_total': 0.0,
+          'delivery_total': 0.75,
+          'tax_total': 0.0,
+          'grand_total': 8.0,
+        },
+        'items': [
+          {
+            'id': 707,
+            'product': {
+              'id': 42,
+              'name': 'FOODEX Wholesale Water',
+              'sku': 'B2B-E2E-42',
+            },
+            'quantity': 1.0,
+            'unit_price_snapshot': 7.25,
+            'line_total': 7.25,
+            'is_available': true,
+            'available_quantity': 24.0,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      };
+
+  @override
+  Future<Object?> addItem(int storeId, int productId, double quantity) async =>
+      cart(storeId);
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async => null;
+
+  @override
+  Future<void> removeItem(int itemId) async {}
+
+  @override
+  Future<Object?> checkout({
+    required int storeId,
+    required int addressId,
+    required String paymentMethod,
+    String? requestedDeliveryDate,
+    String? note,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async {
+    checkoutCalls++;
+    return {
+      'id': 707,
+      'order_number': 'FDX-E2E-707',
+      'display_order_number': '#707',
+      'store_id': storeId,
+      'currency': 'KWD',
+      'subtotal': 7.25,
+      'discount_total': 0.0,
+      'delivery_total': 0.75,
+      'tax_total': 0.0,
+      'grand_total': 8.0,
+      'payment_method': paymentMethod,
+      'status': 'pending',
+    };
+  }
 }
 
 class _C13CheckoutStorefrontApi implements StorefrontApi {
