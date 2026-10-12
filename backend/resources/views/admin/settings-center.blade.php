@@ -63,8 +63,13 @@ $groups = [
         'title' => __('admin.settings_center.groups.apps'),
         'description' => __('admin.settings_center.groups.apps_description'),
         'items' => [
-            ['key'=>'mobile','icon'=>'APP','title'=>__('admin.settings_center.items.mobile'),'description'=>__('admin.settings_center.items.mobile_description'),'route'=>'admin.mobile-settings.index','params'=>[],'allowed'=>$access['mobile']],
-            ['key'=>'app_versions','icon'=>'VER','title'=>__('admin.settings_center.items.app_versions'),'description'=>__('admin.settings_center.items.app_versions_description'),'route'=>'admin.app-versions.index','params'=>[],'allowed'=>$access['app_versions']],
+            ['key'=>'mobile','icon'=>'APP','title'=>__('admin.settings_center.items.mobile'),'description'=>__('admin.settings_center.items.mobile_description'),'route'=>'admin.mobile-settings.index','params'=>[],'fragment'=>'runtime','allowed'=>$access['mobile']],
+            ['key'=>'driver_location','icon'=>'GPS','title'=>__('admin.settings_center.items.driver_location'),'description'=>__('admin.settings_center.items.driver_location_description'),'route'=>'admin.mobile-settings.index','params'=>[],'fragment'=>'location','allowed'=>$access['mobile']],
+            ['key'=>'push','icon'=>'PUSH','title'=>__('admin.settings_center.items.push'),'description'=>__('admin.settings_center.items.push_description'),'route'=>'admin.mobile-settings.index','params'=>[],'fragment'=>'push','allowed'=>$access['mobile']],
+            ['key'=>'push_test','icon'=>'TEST','title'=>__('admin.settings_center.items.push_test'),'description'=>__('admin.settings_center.items.push_test_description'),'route'=>'admin.mobile-settings.index','params'=>[],'fragment'=>'push-test','allowed'=>$access['mobile']],
+            ['key'=>'publishing','icon'=>'STORE','title'=>__('admin.settings_center.items.publishing'),'description'=>__('admin.settings_center.items.publishing_description'),'route'=>'admin.mobile-settings.index','params'=>[],'fragment'=>'publishing','allowed'=>$access['mobile']],
+            ['key'=>'reviewers','icon'=>'QA','title'=>__('admin.settings_center.items.reviewers'),'description'=>__('admin.settings_center.items.reviewers_description'),'route'=>'admin.mobile-settings.index','params'=>[],'fragment'=>'reviewers','allowed'=>$access['mobile']],
+            ['key'=>'app_versions','icon'=>'VER','title'=>__('admin.settings_center.items.app_versions'),'description'=>__('admin.settings_center.items.app_versions_description'),'route'=>'admin.app-versions.index','params'=>[],'fragment'=>null,'allowed'=>$access['app_versions']],
         ],
     ],
     'communication' => [
@@ -119,7 +124,7 @@ $groups = [
 <span class="settings-pill {{ $item['allowed'] ? 'available' : '' }}">{{ $item['allowed'] ? __('admin.settings_center.available') : __('admin.settings_center.restricted') }}</span>
 </div>
 @if($item['allowed'])
-<a class="settings-card__action" href="{{ route($item['route'],$item['params']) }}">{{ __('admin.settings_center.open') }}</a>
+<a class="settings-card__action" href="{{ route($item['route'],$item['params']).(!empty($item['fragment']) ? '#'.$item['fragment'] : '') }}">{{ __('admin.settings_center.open') }}</a>
 @else
 <div class="settings-card__restricted">{{ __('admin.settings_center.permission_required') }}</div>
 @endif
