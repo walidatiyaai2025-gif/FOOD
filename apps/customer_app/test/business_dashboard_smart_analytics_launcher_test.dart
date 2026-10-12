@@ -94,7 +94,7 @@ void main() {
 
   testWidgets('pulse changes softly in normal motion and stays static when reduced',
       (tester) async {
-    Future<Matrix4> transform() async {
+    double scale() {
       final widget = tester.widget<Transform>(
         find.byKey(
           const ValueKey('business-smart-analytics-launcher-pulse'),
@@ -112,9 +112,9 @@ void main() {
         onTap: () {},
       ),
     );
-    final animatedBefore = await transform();
+    final animatedBefore = scale();
     await tester.pump(const Duration(milliseconds: 420));
-    final animatedAfter = await transform();
+    final animatedAfter = scale();
     expect(animatedAfter, isNot(equals(animatedBefore)));
 
     await tester.pumpWidget(
@@ -127,9 +127,9 @@ void main() {
       ),
     );
     await tester.pump();
-    final reducedBefore = await transform();
+    final reducedBefore = scale();
     await tester.pump(const Duration(milliseconds: 700));
-    final reducedAfter = await transform();
+    final reducedAfter = scale();
     expect(reducedAfter, equals(reducedBefore));
   });
 
