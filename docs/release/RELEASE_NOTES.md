@@ -20,6 +20,7 @@ Release promotion from the authoritative post-1.0.73 `main` lineage through Cust
 - Preserve authoritative Wholesale/Retail store, channel, cart, checkout, order and account isolation while keeping Arabic RTL and English LTR behavior covered by the VNext acceptance suite.
 - Include the secure real-data Customer VNext fixture/preflight baseline and final screenshot/route/state evidence used by the integrated release gate.
 - Include post-1.0.73 Dashboard/backend improvements: Administration and Settings center redesign, localized Assistant conversation basics, Flash Offers repair with automated product SKU generation, protected reset/reseed controls, production launch preflight/gate, and 14-inch order-management optimization.
+- Include the authoritative mobile Store Analytics API from #1355, keeping mobile analytics data server-scoped and available to the latest Customer/mobile lineage.
 - Synchronize Customer, Driver and Van source identities at `1.0.75+75`. Version `1.0.74` is intentionally not published.
 
 ## Validation contract
