@@ -23,7 +23,8 @@
 <div class="foodex-admin-layout">
     <aside class="sidebar">@include('admin._sidebar')</aside>
     <main class="foodex-admin-main foodex-admin-page">
-        @php($ar=app()->getLocale()==='ar')
+        @include('admin._admin-center-switcher',['active'=>'administration'])
+@php($ar=app()->getLocale()==='ar')
         <header class="foodex-page-header">
             <div>
                 <span class="foodex-subtitle">FOODEX · Runtime Diagnostics</span>

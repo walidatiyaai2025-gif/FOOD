@@ -5,19 +5,28 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ __('app_versions.title') }} · FOODEX</title>
     @include('admin._brand-components')
+@include('admin._settings-page-polish')
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="app-versions">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
-<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="app-versions">
-    @php($ar = app()->getLocale() === 'ar')
-    <h1>{{ __('app_versions.title') }}</h1>
-    <p class="foodex-state">
-        {{ $ar
-            ? 'هذه هي سياسة الإصدار الرسمية التي يعتمد عليها تطبيق الهاتف عند بدء التشغيل. إعدادات Mobile Runtime منفصلة ومعلوماتية ولا تستبدل هذه السياسة.'
-            : 'This is the authoritative startup/update policy consumed by the mobile apps. Mobile Runtime settings are separate informational metadata and do not replace this policy.' }}
-    </p>
-    <p><a href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ $ar ? 'العودة إلى إعدادات الموبايل وجاهزية النشر' : 'Back to Mobile Settings and rollout readiness' }}</a></p>
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="app-versions">
+    @include('admin._admin-center-switcher',['active'=>'settings'])
+@php($ar = app()->getLocale() === 'ar')
+    <header class="foodex-page-header settings-page-heading">
+        <div>
+            <span class="foodex-subtitle">FOODEX · {{ __('admin.settings_center.title') }}</span>
+            <h1>{{ __('app_versions.title') }}</h1>
+            <p>{{ __('admin.settings_center.items.app_versions_description') }}</p>
+        </div>
+        <div class="settings-page-heading__actions">
+            <a class="settings-page-link" href="{{ route('admin.settings.index') }}">{{ __('admin.settings_center.title') }}</a>
+            <a class="settings-page-link" href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ __('admin.settings_center.items.mobile') }}</a>
+        </div>
+    </header>
+    <p class="settings-page-note">{{ $ar
+        ? 'هذه هي سياسة الإصدار الرسمية التي يعتمد عليها تطبيق الهاتف عند بدء التشغيل. إعدادات Mobile Runtime منفصلة ومعلوماتية ولا تستبدل هذه السياسة.'
+        : 'This is the authoritative startup/update policy consumed by the mobile apps. Mobile Runtime settings are separate informational metadata and do not replace this policy.' }}</p>
 
     @if (session('status')) <p class="foodex-state" role="status">{{ session('status') }}</p> @endif
     @if ($errors->any()) <div class="foodex-state" role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif

@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\OrderOperationsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
+use App\Http\Controllers\Admin\SettingsCenterController;
 use App\Http\Controllers\Admin\SmsSettingsController;
 use App\Http\Controllers\Admin\StorefrontDraftEditorController;
 use App\Http\Controllers\Admin\StoreSubmissionController;
@@ -115,6 +116,7 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
+        Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
             ->name('assistant.')

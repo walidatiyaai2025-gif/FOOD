@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>System Update · FOODEX</title>
+    <title>{{ __('admin.system_update_surface.title') }} · FOODEX</title>
     <style>
         :root { color: #17202a; background: #f5f7fa; }
         * { box-sizing: border-box; }
@@ -28,17 +28,19 @@
         @media(max-width:767px){.header{align-items:flex-start;flex-direction:column}.card{padding:14px;margin-bottom:12px}button{width:100%;justify-self:stretch;min-height:44px}}
     </style>
     @include('admin._brand-components')
+@include('admin._settings-page-polish')
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="system-update">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
-<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="system-update">
-    <div class="header foodex-page-header">
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="system-update">
+    @include('admin._admin-center-switcher',['active'=>'settings'])
+<div class="header foodex-page-header">
         <div>
-            <a href="{{ route('admin.index') }}">← FOODEX Dashboard</a>
-            <h1>System Update</h1>
+            <a href="{{ route('admin.settings.index') }}">← {{ __('admin.system_update_surface.back_settings') }}</a>
+            <h1>{{ __('admin.system_update_surface.title') }}</h1>
         </div>
-        <span class="badge">Current: {{ $currentVersion }}</span>
+        <span class="badge">{{ __('admin.system_update_surface.current') }}: {{ $currentVersion }}</span>
     </div>
 
     @if (session('status'))
@@ -47,7 +49,7 @@
 
     @if ($errors->any())
         <div class="error foodex-state" role="alert">
-            <strong>Update was not applied.</strong>
+            <strong>{{ __('admin.system_update_surface.not_applied') }}</strong>
             <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -57,38 +59,38 @@
     @endif
 
     <section class="card">
-        <h2>Validated update package</h2>
-        <p>The package is verified and backed up before maintenance mode or release extraction begins.</p>
+        <h2>{{ __('admin.system_update_surface.package_title') }}</h2>
+        <p>{{ __('admin.system_update_surface.package_description') }}</p>
 
         <form method="post" action="{{ route('admin.system-update.store') }}" enctype="multipart/form-data" data-csrf-refresh-url="{{ route('admin.csrf-token') }}">
             @csrf
-            <label>ZIP package
+            <label>{{ __('admin.system_update_surface.zip_package') }}
                 <input type="file" name="package" accept=".zip,application/zip" required>
             </label>
-            <label>Target version
+            <label>{{ __('admin.system_update_surface.target_version') }}
                 <input name="target_version" placeholder="1.2.0" required>
             </label>
-            <label>Minimum current version
+            <label>{{ __('admin.system_update_surface.minimum_current_version') }}
                 <input name="minimum_current_version" value="{{ $currentVersion }}" required>
             </label>
-            <label>Expected SHA-256
+            <label>{{ __('admin.system_update_surface.sha256') }}
                 <input name="sha256" maxlength="64" minlength="64" required>
             </label>
-            <label>Release notes
+            <label>{{ __('admin.system_update_surface.release_notes') }}
                 <textarea name="release_notes" rows="4"></textarea>
             </label>
             <div class="notice">
-                Database migrations are detected automatically from the uploaded update package. No manual migration checkbox is required.
+                {{ __('admin.system_update_surface.migration_notice') }}
             </div>
-            <button class="foodex-primary" type="submit">Validate and install update</button>
+            <button class="foodex-primary" type="submit">{{ __('admin.system_update_surface.install') }}</button>
         </form>
     </section>
 
     <section class="card">
-        <h2>Recent update history</h2>
+        <h2>{{ __('admin.system_update_surface.history') }}</h2>
         <table data-pagination-required>
             <thead>
-            <tr><th>From</th><th>To</th><th>Status</th><th>Started</th><th>Failure</th></tr>
+            <tr><th>{{ __('admin.system_update_surface.from') }}</th><th>{{ __('admin.system_update_surface.to') }}</th><th>{{ __('admin.system_update_surface.status') }}</th><th>{{ __('admin.system_update_surface.started') }}</th><th>{{ __('admin.system_update_surface.failure') }}</th></tr>
             </thead>
             <tbody>
             @forelse ($historyRows as $row)
@@ -111,7 +113,7 @@
                     <td>{{ $row->failure_reason ?: '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5">No updates have been executed yet.</td></tr>
+                <tr><td colspan="5">{{ __('admin.system_update_surface.empty') }}</td></tr>
             @endforelse
             </tbody>
         </table>

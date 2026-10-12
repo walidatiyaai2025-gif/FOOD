@@ -51,11 +51,14 @@ class AdministrationHubTest extends TestCase
             ->assertSee('Customer App')
             ->assertSee('Driver App')
             ->assertSee('Van App')
+            ->assertSee('data-admin-card="settings-center"', false)
             ->assertSee('data-admin-card="users-permissions"', false)
-            ->assertSee('data-admin-card="system-settings"', false)
-            ->assertSee('data-admin-card="notifications"', false)
-            ->assertSee('data-admin-card="publishing"', false)
-            ->assertSee('data-admin-card="integrations"', false)
+            ->assertSee('data-admin-card="system-inspector"', false)
+            ->assertSee('data-admin-card="van-finance-support"', false)
+            ->assertSee('data-admin-card="profile"', false)
+            ->assertDontSee('data-admin-card="system-settings"', false)
+            ->assertDontSee('data-admin-card="notifications"', false)
+            ->assertDontSee('data-admin-card="publishing"', false)
             ->assertSee('data-nav-group="administration"', false)
             ->assertSee('aria-current="page"', false);
     }
@@ -122,12 +125,12 @@ class AdministrationHubTest extends TestCase
         $this->assertSame('administration', $groups->last());
     }
 
-    public function test_admin_hub_links_each_first_class_app_to_its_settings(): void
+    public function test_admin_hub_links_each_first_class_app_to_the_settings_center(): void
     {
         $view = file_get_contents(resource_path('views/admin/administration-hub.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString("route('admin.mobile-settings.index', ['app'=>\$app, 'environment'=>'production'])", $view);
+        $this->assertStringContainsString("route('admin.settings.index') }}#setting-mobile", $view);
         $this->assertStringContainsString("@foreach(['customer','driver','van'] as \$app)", $view);
     }
 }

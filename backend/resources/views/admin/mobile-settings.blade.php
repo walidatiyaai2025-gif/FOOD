@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('mobile_settings.title') }}</title>
 <style>
-body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr);min-height:100vh;width:100%}.sidebar{background:#111827;color:#fff;padding:20px}.main{min-width:0;width:100%;padding:clamp(16px,1.8vw,32px)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:20px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;font-weight:650;font-size:.85rem;margin:9px 0 5px}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #cbd5e1;border-radius:10px}textarea{min-height:70px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}.button{display:inline-block;margin-top:12px;padding:10px 14px;border:0;border-radius:10px;background:#0f172a;color:#fff;text-decoration:none}.button.secondary{background:#475569}.notice{padding:12px;background:#ecfdf5;border-radius:10px;margin-bottom:14px}.warning{padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px}.muted{color:#64748b}.log{padding:8px 0;border-top:1px solid #e2e8f0}.policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.policy{border:1px solid #e2e8f0;border-radius:12px;padding:12px}.status-ready{color:#166534}.status-blocked{color:#991b1b}.blockers{margin:8px 0;padding-inline-start:20px}.runtime-picker{padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px}@media(max-width:1023px){.layout{grid-template-columns:1fr}.row,.policy-grid{grid-template-columns:1fr}}
+body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr);min-height:100vh;width:100%}.mobile-settings-nav{display:flex;gap:8px;overflow-x:auto;max-width:1180px;margin:0 auto 16px;padding:8px;background:#fff;border:1px solid var(--foodex-border);border-radius:14px;box-shadow:var(--foodex-shadow-sm);scrollbar-width:thin}.mobile-settings-nav a{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:10px;text-decoration:none;color:var(--foodex-ink);font-weight:800;border:1px solid transparent}.mobile-settings-nav a:hover{background:var(--foodex-background)}.mobile-settings-nav a.active{background:var(--foodex-green);color:#fff}.mobile-settings-panel.is-section-hidden{display:none!important}.sidebar{background:#111827;color:#fff;padding:20px}.main{min-width:0;width:100%;padding:clamp(16px,1.8vw,32px)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:20px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;font-weight:650;font-size:.85rem;margin:9px 0 5px}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #cbd5e1;border-radius:10px}textarea{min-height:70px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}.button{display:inline-block;margin-top:12px;padding:10px 14px;border:0;border-radius:10px;background:#0f172a;color:#fff;text-decoration:none}.button.secondary{background:#475569}.notice{padding:12px;background:#ecfdf5;border-radius:10px;margin-bottom:14px}.warning{padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px}.muted{color:#64748b}.log{padding:8px 0;border-top:1px solid #e2e8f0}.policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.policy{border:1px solid #e2e8f0;border-radius:12px;padding:12px}.status-ready{color:#166534}.status-blocked{color:#991b1b}.blockers{margin:8px 0;padding-inline-start:20px}.runtime-picker{padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px}@media(max-width:1023px){.layout{grid-template-columns:1fr}.row,.policy-grid{grid-template-columns:1fr}}
 </style>
 @include('admin._brand-components')
+@include('admin._settings-page-polish')
 </head>
 <body>
 @php
@@ -40,14 +41,23 @@ $submissionListText = static function ($value): string {
 };
 @endphp
 <div class="layout foodex-admin-layout" data-foodex-utility="mobile-settings">
-<aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),'navContext'=>'mobile_settings','user'=>auth()->user()])</aside>
-<main class="main foodex-admin-main">
+<aside class="sidebar">@include('admin._sidebar',['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()),'navContext'=>'administration_hub','user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+<main class="main foodex-admin-main foodex-settings-surface">
+@include('admin._admin-center-switcher',['active'=>'settings'])
 <header class="foodex-page-header"><div><h1>{{ __('mobile_settings.title') }}</h1><p class="muted">{{ __('mobile_settings.description') }}</p></div>@include('admin._live-notifications',['user'=>auth()->user()])</header>
+<nav class="mobile-settings-nav" aria-label="{{ __('admin.settings_center.mobile_sections_aria') }}" data-mobile-settings-nav>
+<a href="#runtime" data-mobile-section-link="runtime">{{ __('admin.settings_center.items.mobile') }}</a>
+<a href="#location" data-mobile-section-link="location">{{ __('admin.settings_center.items.driver_location') }}</a>
+<a href="#push" data-mobile-section-link="push">{{ __('admin.settings_center.items.push') }}</a>
+<a href="#push-test" data-mobile-section-link="push-test">{{ __('admin.settings_center.items.push_test') }}</a>
+<a href="#publishing" data-mobile-section-link="publishing">{{ __('admin.settings_center.items.publishing') }}</a>
+<a href="#reviewers" data-mobile-section-link="reviewers">{{ __('admin.settings_center.items.reviewers') }}</a>
+</nav>
 @if(session('status'))<div class="notice foodex-state" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="error foodex-state" role="alert">{{ $errors->first() }}</div>@endif
 
 <div class="grid">
-<section class="card">
+<section id="runtime" class="card mobile-settings-panel" data-mobile-section="runtime">
 <h2>{{ __('mobile_settings.runtime_title') }}</h2>
 <p class="muted">{{ __('mobile_settings.runtime_info') }}</p>
 <p><strong>{{ __('mobile_settings.release_identity') }}:</strong> <code>{{ $currentReleaseVersion }}</code></p>
@@ -119,7 +129,7 @@ $submissionListText = static function ($value): string {
 </form>
 </section>
 
-<section class="card" data-driver-location-policy>
+<section id="location" class="card mobile-settings-panel" data-mobile-section="location" data-driver-location-policy>
 <h2>{{ __('mobile_settings.ui.driver_location_title') }}</h2>
 <p class="muted">{{ __('mobile_settings.ui.driver_location_info') }}</p>
 <p><strong>{{ __('mobile_settings.ui.heartbeat_minimum') }}:</strong> <code>{{ $driverLocationPolicy['minimum_heartbeat_version'] }}</code></p>
@@ -170,7 +180,7 @@ $submissionListText = static function ($value): string {
 </form>
 </section>
 
-<section class="card">
+<section id="push" class="card mobile-settings-panel" data-mobile-section="push">
 <h2>{{ __('mobile_settings.push_title') }}</h2>
 <form method="post" action="{{ route('admin.mobile-settings.push') }}">@csrf @method('put')
 <div class="row"><div><label>{{ __('mobile_settings.app') }}</label><select name="app"><option value="customer">{{ __('mobile_settings.apps.customer') }}</option><option value="driver">{{ __('mobile_settings.apps.driver') }}</option><option value="van">{{ __('mobile_settings.apps.van') }}</option></select></div><div><label>{{ __('mobile_settings.platform') }}</label><select name="platform"><option value="android">{{ __('mobile_settings.ui.android_fcm') }}</option><option value="ios">{{ __('mobile_settings.ui.ios_fcm') }}</option></select></div></div>
@@ -188,7 +198,7 @@ $submissionListText = static function ($value): string {
 @empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse
 </section>
 
-<section class="card">
+<section id="push-test" class="card mobile-settings-panel" data-mobile-section="push-test">
 <h2>{{ __('mobile_settings.test_title') }}</h2>
 <form method="post" action="{{ route('admin.mobile-settings.test') }}">@csrf
 <label>{{ __('mobile_settings.device') }}</label><select name="device_id">@foreach($devices as $d)<option value="{{ $d->id }}">{{ $d->user?->name ?: ($d->user?->email ?: __('mobile_settings.unknown_user')) }} · {{ __('mobile_settings.apps.'.$d->app) }} · {{ strtoupper($d->platform) }} · {{ __('mobile_settings.environments.'.$d->environment) }}</option>@endforeach</select>
@@ -200,7 +210,7 @@ $submissionListText = static function ($value): string {
 @forelse($logs as $log)<div class="log">{{ __('mobile_settings.apps.'.$log->app) }} · {{ __('mobile_settings.ui.platforms.'.$log->platform) }} · {{ __('mobile_settings.environments.'.$log->environment) }} · <strong>{{ __('mobile_settings.delivery_status.'.$log->status) }}</strong>@if($log->error_code)<br><strong>{{ __('mobile_settings.delivery_issue') }}:</strong> {{ $log->error_message ?: __('mobile_settings.test_failed') }}@endif</div>@empty<p class="muted">{{ __('mobile_settings.empty') }}</p>@endforelse {{-- localization-gate: allow Blade control directive around localized delivery issue --}}
 </section>
 
-<section class="card" style="grid-column:1/-1" data-store-submission-center>
+<section id="publishing" class="card mobile-settings-panel" style="grid-column:1/-1" data-mobile-section="publishing" data-store-submission-center>
 <h2>{{ __('mobile_settings.ui.publishing_title') }}</h2>
 <p class="muted">{{ __('mobile_settings.ui.publishing_info') }}</p>
 @foreach(['customer','driver','van'] as $submissionApp)
@@ -252,7 +262,7 @@ $submissionListText = static function ($value): string {
 @endforeach
 </section>
 
-<section class="card" style="grid-column:1/-1" data-reviewer-accounts>
+<section id="reviewers" class="card mobile-settings-panel" style="grid-column:1/-1" data-mobile-section="reviewers" data-reviewer-accounts>
 <h2>{{ __('mobile_settings.ui.reviewers_title') }}</h2>
 <p class="warning">{{ __('mobile_settings.ui.reviewer_warning') }}</p>
 <form method="post" action="{{ route('admin.mobile-settings.reviewer') }}">
@@ -287,5 +297,42 @@ $submissionListText = static function ($value): string {
 </div>
 </main>
 </div>
+<script>
+(() => {
+    const panels = Array.from(document.querySelectorAll('[data-mobile-section]'));
+    const links = Array.from(document.querySelectorAll('[data-mobile-section-link]'));
+    if (!panels.length || !links.length) return;
+
+    const allowed = new Set(panels.map((panel) => panel.dataset.mobileSection));
+    const sectionFromHash = () => {
+        const raw = String(window.location.hash || '').replace(/^#/, '');
+        return allowed.has(raw) ? raw : 'runtime';
+    };
+
+    const show = (section, updateHash = false) => {
+        const active = allowed.has(section) ? section : 'runtime';
+        panels.forEach((panel) => panel.classList.toggle('is-section-hidden', panel.dataset.mobileSection !== active));
+        links.forEach((link) => {
+            const selected = link.dataset.mobileSectionLink === active;
+            link.classList.toggle('active', selected);
+            if (selected) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        });
+        if (updateHash && window.location.hash !== '#' + active) {
+            history.replaceState(null, '', '#' + active);
+        }
+    };
+
+    links.forEach((link) => link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const section = link.dataset.mobileSectionLink;
+        show(section, true);
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }));
+
+    window.addEventListener('hashchange', () => show(sectionFromHash(), false));
+    show(sectionFromHash(), false);
+})();
+</script>
 </body>
 </html>

@@ -70,6 +70,7 @@ backend/app/Http/Controllers/Admin/PromotionalNotificationCampaignController.php
 backend/app/Http/Controllers/Admin/ReportController.php
 backend/app/Http/Controllers/Admin/RetailStoreProvisioningController.php
 backend/app/Http/Controllers/Admin/SecurityController.php
+backend/app/Http/Controllers/Admin/SettingsCenterController.php
 backend/app/Http/Controllers/Admin/SmsSettingsController.php
 backend/app/Http/Controllers/Admin/StoreSubmissionController.php
 backend/app/Http/Controllers/Admin/StorefrontDesignController.php
@@ -737,6 +738,7 @@ backend/public/preview/driver/main.dart.js
 backend/public/preview/driver/manifest.json
 backend/public/preview/driver/version.json
 backend/resources/views/admin/_account-menu.blade.php
+backend/resources/views/admin/_admin-center-switcher.blade.php
 backend/resources/views/admin/_assistant-chat.blade.php
 backend/resources/views/admin/_brand-components.blade.php
 backend/resources/views/admin/_brand.blade.php
@@ -753,6 +755,7 @@ backend/resources/views/admin/_new-order-popup.blade.php
 backend/resources/views/admin/_order-new-wizard.blade.php
 backend/resources/views/admin/_premium-icon.blade.php
 backend/resources/views/admin/_premium-sidebar.blade.php
+backend/resources/views/admin/_settings-page-polish.blade.php
 backend/resources/views/admin/_sidebar.blade.php
 backend/resources/views/admin/_storefront-builder.blade.php
 backend/resources/views/admin/_system-lookup-row.blade.php
@@ -787,6 +790,7 @@ backend/resources/views/admin/profile.blade.php
 backend/resources/views/admin/reports.blade.php
 backend/resources/views/admin/retail-stores.blade.php
 backend/resources/views/admin/security.blade.php
+backend/resources/views/admin/settings-center.blade.php
 backend/resources/views/admin/sms-settings.blade.php
 backend/resources/views/admin/system-inspector.blade.php
 backend/resources/views/admin/system-lookups.blade.php

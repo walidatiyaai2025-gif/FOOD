@@ -31,7 +31,7 @@ final class AssistantSettingsController extends Controller
         return view('admin.assistant-settings', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
-            'navContext' => 'assistant_settings',
+            'navContext' => 'administration_hub',
             'assistantSettings' => $this->settings->snapshot(),
             'canManage' => $actor->hasPermission('settings.manage'),
         ]);

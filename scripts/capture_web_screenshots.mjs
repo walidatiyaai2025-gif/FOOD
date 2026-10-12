@@ -34,6 +34,7 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
+  ['16_مركز_الإعدادات', '/admin/settings'],
 ];
 
 async function ensureDir(dir) {
@@ -294,7 +295,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     const requiredFragments = [
       `/admin/app-preview?application=${app.app}`,
       `/admin/settings/app-versions?app=${app.app}`,
-      `/admin/settings/mobile?app=${app.app}&environment=production`,
+      `/admin/settings#setting-mobile`,
     ];
     for (const fragment of requiredFragments) {
       if (!app.actions.some((href) => href.includes(fragment))) {
@@ -313,6 +314,7 @@ async function captureAdministrationRuntimeEvidence(page, locale) {
     page,
     `02_Web/B2C_Admin/16_administration_runtime_contract__populated__${locale}.png`,
   );
+
 }
 
 async function captureMixedTrackingEvidence(page, locale) {
@@ -660,6 +662,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'administration-hub',
     '/admin/administration',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'settings-center',
+    '/admin/settings',
   );
 
   const customer360Response = await page.goto(

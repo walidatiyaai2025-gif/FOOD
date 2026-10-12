@@ -34,11 +34,13 @@
         @media(max-width:800px){ body{padding:0}.filters{grid-template-columns:1fr}.langs{grid-template-columns:1fr}.top{flex-direction:column}.card{padding:14px}.actions{flex-wrap:nowrap;overflow-x:auto;max-width:100%}.actions>*{flex:0 0 auto} }
     </style>
     @include('admin._brand-components')
+@include('admin._settings-page-polish')
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="translations">
 <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'administration_hub', 'user' => auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
-<main class="foodex-admin-main foodex-admin-page" data-foodex-utility="translations">
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface" data-foodex-utility="translations">
+@include('admin._admin-center-switcher',['active'=>'settings'])
 <div class="wrap">
     <div class="top foodex-page-header">
         <div>
@@ -49,7 +51,7 @@
             @if(auth()->user()?->hasPermission('notifications.manage'))
                 <a class="back" href="{{ route('admin.notifications.index') }}">{{ __('notifications.title') }}</a>
             @endif
-            <a class="back" href="{{ route('admin.index') }}">← {{ __('admin.overview') }}</a>
+            <a class="back" href="{{ route('admin.settings.index') }}">← {{ __('admin.settings_center.title') }}</a>
         </div>
     </div>
 

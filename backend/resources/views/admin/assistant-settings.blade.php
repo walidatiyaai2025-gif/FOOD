@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ app()->getLocale()==='ar' ? 'إعدادات مساعد FOODEX' : 'FOODEX Assistant Settings' }} · FOODEX</title>
 @include('admin._brand-components')
+@include('admin._settings-page-polish')
 <style>
 body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .assistant-settings-card{max-width:760px;background:#fff;border:1px solid var(--foodex-border);border-radius:18px;padding:24px;box-shadow:var(--foodex-shadow-sm)}
@@ -22,7 +23,8 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @php($ar=app()->getLocale()==='ar')
 <div class="foodex-admin-layout" data-foodex-utility="assistant-settings">
 <aside class="sidebar">@include('admin._sidebar',['navGroups'=>$navGroups,'navContext'=>$navContext,'user'=>$user])</aside>
-<main class="foodex-admin-main foodex-admin-page">
+<main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
+@include('admin._admin-center-switcher',['active'=>'settings'])
 <header class="foodex-page-header">
 <div>
 <span class="foodex-subtitle">FOODEX Assistant V1</span>
