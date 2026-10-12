@@ -433,21 +433,25 @@ void main() {
     );
     expect(find.text('FDX-TEST-101'), findsOneWidget);
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('customer-order-success-track')),
+    final trackOrder =
+        find.byKey(const ValueKey('customer-order-success-track'));
+    await tester.scrollUntilVisible(
+      trackOrder,
+      300,
+      scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(
-      find.byKey(const ValueKey('customer-order-success-track')),
-    );
+    await tester.tap(trackOrder);
     await tester.pump();
     expect(trackedOrder, 101);
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('customer-order-success-continue')),
+    final continueShopping =
+        find.byKey(const ValueKey('customer-order-success-continue'));
+    await tester.scrollUntilVisible(
+      continueShopping,
+      300,
+      scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(
-      find.byKey(const ValueKey('customer-order-success-continue')),
-    );
+    await tester.tap(continueShopping);
     await tester.pump();
     expect(continueCalls, 1);
     expect(tester.takeException(), isNull);
@@ -575,7 +579,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('retail-commerce-retry')));
+    final retry = find.byKey(const ValueKey('retail-commerce-retry'));
+    await tester.ensureVisible(retry);
+    await tester.pumpAndSettle();
+    await tester.tap(retry);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('retail-commerce-retry')),
