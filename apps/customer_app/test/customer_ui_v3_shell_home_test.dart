@@ -85,7 +85,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-catalog-search')),
+          findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
       expect(find.text('الأكثر مبيعاً'), findsOneWidget);
       expect(find.text('عرض المزيد'), findsOneWidget);
@@ -94,12 +95,15 @@ void main() {
       final bestGrid = tester.widget<GridView>(
         find.byKey(const ValueKey('retail-best-sellers-grid')),
       );
-      final bestDelegate = bestGrid.gridDelegate
-          as SliverGridDelegateWithFixedCrossAxisCount;
+      final bestDelegate =
+          bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(bestDelegate.crossAxisCount, 3);
-      expect(find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
-      expect(find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-best-seller-44')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-best-seller-43')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('retail-best-seller-42')),
+          findsOneWidget);
       expect(
         find.byKey(const ValueKey('retail-shell-nav-home')),
         findsOneWidget,
@@ -187,8 +191,8 @@ void main() {
       final allGrid = tester.widget<GridView>(
         find.byKey(const ValueKey('retail-all-products-grid')),
       );
-      final allDelegate = allGrid.gridDelegate
-          as SliverGridDelegateWithFixedCrossAxisCount;
+      final allDelegate =
+          allGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(allDelegate.crossAxisCount, 3);
       expect(tester.takeException(), isNull);
     },
