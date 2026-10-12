@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/api/b2c_catalog_api.dart';
+import '../../../core/api/storefront_api.dart';
 import '../../../core/localization/app_translations.dart';
 import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
@@ -15,6 +16,7 @@ class RetailHomeV3Screen extends StatefulWidget {
     required this.catalogApi,
     required this.isAuthenticated,
     this.accountApi,
+    this.storefrontApi,
     this.navigation = const RetailCatalogNavigation(),
     this.onAddToCart,
     super.key,
@@ -23,6 +25,7 @@ class RetailHomeV3Screen extends StatefulWidget {
   final int storeId;
   final B2cCatalogApi catalogApi;
   final B2cAccountApi? accountApi;
+  final StorefrontApi? storefrontApi;
   final bool isAuthenticated;
   final RetailCatalogNavigation navigation;
   final RetailAddToCart? onAddToCart;
@@ -33,12 +36,22 @@ class RetailHomeV3Screen extends StatefulWidget {
 
 class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
     with WidgetsBindingObserver {
-  late Future<_RetailHomeV3Data> _future = _load();
+  late Future<_RetailHomeV3Data> _future;
+  late final StorefrontApi? _storefrontApi;
   final TextEditingController _search = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    final catalogApi = widget.catalogApi;
+    _storefrontApi = widget.storefrontApi ??
+        (catalogApi is HttpB2cCatalogApi
+            ? HttpStorefrontApi(
+                baseUrl: catalogApi.baseUrl,
+                token: catalogApi.token,
+              )
+            : null);
+    _future = _load();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -46,8 +59,8 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
     final values = await Future.wait<Object?>([
       widget.catalogApi.categories(widget.storeId),
       widget.catalogApi.products(widget.storeId),
-      widget.catalogApi.offers(widget.storeId),
       widget.catalogApi.banners(widget.storeId),
+      if (_storefrontApi != null) _storefrontApi!.retailHome(widget.storeId),
     ]);
 
     var profile = const <String, dynamic>{};
@@ -69,8 +82,10 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
     return _RetailHomeV3Data(
       categories: values[0] as List<B2cCategory>,
       products: values[1] as List<B2cProduct>,
-      offers: values[2] as List<B2cOffer>,
-      banners: values[3] as List<B2cBanner>,
+      banners: values[2] as List<B2cBanner>,
+      storefront: values.length > 3 && values[3] is Map
+          ? Map<String, dynamic>.from(values[3] as Map)
+          : const <String, dynamic>{},
       profile: profile,
       addresses: addresses,
     );
@@ -199,7 +214,6 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
     final data = snapshot.data!;
     if (data.categories.isEmpty &&
         data.products.isEmpty &&
-        data.offers.isEmpty &&
         data.banners.isEmpty) {
       return RefreshIndicator(
         onRefresh: _refresh,
@@ -270,23 +284,21 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
                 },
               ),
             ),
-          if (data.offers.isNotEmpty) ...[
-            const SizedBox(height: CustomerUiSpacing.xl),
-            _HomeSectionTitle(context.tr('customer.home.offers')),
-            const SizedBox(height: CustomerUiSpacing.sm),
-            Wrap(
-              spacing: CustomerUiSpacing.xs,
-              runSpacing: CustomerUiSpacing.xs,
-              children: [
-                for (final offer in data.offers)
-                  CustomerBadge(
-                    key: ValueKey('retail-offer-${offer.id}'),
-                    label: _offerLabel(offer),
-                    tone: CustomerBadgeTone.accent,
-                  ),
-              ],
+          const SizedBox(height: CustomerUiSpacing.xl),
+          _HomeSectionTitle(context.tr('customer.home.best_sellers')),
+          const SizedBox(height: CustomerUiSpacing.sm),
+          if (data.bestSellers.isEmpty)
+            CustomerStateView(
+              kind: CustomerStateKind.empty,
+              title: context.tr('customer.products.empty'),
+            )
+          else
+            _productGrid(
+              context,
+              products: data.bestSellers,
+              gridKey: const ValueKey('retail-best-sellers-grid'),
+              keyPrefix: 'retail-best-seller',
             ),
-          ],
           const SizedBox(height: CustomerUiSpacing.xl),
           _HomeSectionTitle(context.tr('customer.home.all_products')),
           const SizedBox(height: CustomerUiSpacing.sm),
@@ -295,74 +307,83 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
               kind: CustomerStateKind.empty,
               title: context.tr('customer.products.empty'),
             )
-          else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 720 ? 3 : 2;
-                final textScale = MediaQuery.textScalerOf(context).scale(1);
-                final scaledDelta =
-                    (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                final cardExtent = 304.0 + (scaledDelta * 210.0);
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: data.products.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    crossAxisSpacing: CustomerUiSpacing.sm,
-                    mainAxisSpacing: CustomerUiSpacing.sm,
-                    mainAxisExtent: cardExtent,
-                  ),
-                  itemBuilder: (context, index) {
-                    final product = data.products[index];
-                    final price = product.price == null
-                        ? product.sku
-                        : foodexMoneyText(product.price!, product.currency);
-                    return CustomerProductCard(
-                      key: ValueKey('retail-product-${product.id}'),
-                      title: product.name,
-                      priceLabel: price,
-                      imageUrl: product.imageUrl,
-                      brandLabel: product.brandName,
-                      brandImageUrl: product.brandImageUrl,
-                      isAvailable: product.isAvailable,
-                      unavailableLabel:
-                          context.tr('customer.product.out_of_stock'),
-                      categoryLabel: product.categoryId == null
-                          ? null
-                          : categoryNames[product.categoryId],
-                      onTap: widget.navigation.openProduct == null
-                          ? null
-                          : () => widget.navigation.openProduct!(
-                                context,
-                                storeId: widget.storeId,
-                                productId: product.id,
-                              ),
-                      onAdd: !product.isAvailable ||
-                              widget.onAddToCart == null
-                          ? null
-                          : () => _addProduct(product),
-                      addSemanticLabel:
-                          context.tr('customer.action.add_cart'),
-                    );
-                  },
-                );
-              },
+          else ...[
+            _productGrid(
+              context,
+              products: data.allProductsPreview,
+              gridKey: const ValueKey('retail-all-products-grid'),
+              keyPrefix: 'retail-product',
             ),
+            if (widget.navigation.openProducts != null) ...[
+              const SizedBox(height: CustomerUiSpacing.sm),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  key: const ValueKey('retail-home-view-more'),
+                  onPressed: () => widget.navigation.openProducts!(
+                    context,
+                    storeId: widget.storeId,
+                  ),
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: Text(context.tr('customer.home.view_more')),
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );
   }
 
-  String _offerLabel(B2cOffer offer) {
-    if (offer.value == null) return offer.name;
-    final value = offer.value!;
-    final formatted = value == value.roundToDouble()
-        ? value.toStringAsFixed(0)
-        : value.toStringAsFixed(1);
-    return offer.type.toLowerCase().contains('percent')
-        ? '${offer.name} · $formatted%'
-        : '${offer.name} · $formatted';
+  Widget _productGrid(
+    BuildContext context, {
+    required List<B2cProduct> products,
+    required Key gridKey,
+    required String keyPrefix,
+  }) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+    final cardExtent = 304.0 + (scaledDelta * 210.0);
+
+    return GridView.builder(
+      key: gridKey,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: products.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: CustomerUiSpacing.xs,
+        mainAxisSpacing: CustomerUiSpacing.sm,
+        mainAxisExtent: cardExtent,
+      ),
+      itemBuilder: (context, index) {
+        final product = products[index];
+        final price = product.price == null
+            ? product.sku
+            : foodexMoneyText(product.price!, product.currency);
+        return CustomerProductCard(
+          key: ValueKey('$keyPrefix-${product.id}'),
+          title: product.name,
+          priceLabel: price,
+          imageUrl: product.imageUrl,
+          brandLabel: product.brandName,
+          brandImageUrl: product.brandImageUrl,
+          isAvailable: product.isAvailable,
+          unavailableLabel: context.tr('customer.product.out_of_stock'),
+          onTap: widget.navigation.openProduct == null
+              ? null
+              : () => widget.navigation.openProduct!(
+                    context,
+                    storeId: widget.storeId,
+                    productId: product.id,
+                  ),
+          onAdd: !product.isAvailable || widget.onAddToCart == null
+              ? null
+              : () => _addProduct(product),
+          addSemanticLabel: context.tr('customer.action.add_cart'),
+        );
+      },
+    );
   }
 }
 
@@ -586,8 +607,8 @@ class _RetailHomeSkeleton extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 4,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: CustomerUiSpacing.sm,
+              crossAxisCount: 3,
+              crossAxisSpacing: CustomerUiSpacing.xs,
               mainAxisSpacing: CustomerUiSpacing.sm,
               mainAxisExtent: cardExtent,
             ),
@@ -602,18 +623,63 @@ class _RetailHomeV3Data {
   const _RetailHomeV3Data({
     required this.categories,
     required this.products,
-    required this.offers,
     required this.banners,
+    required this.storefront,
     required this.profile,
     required this.addresses,
   });
 
   final List<B2cCategory> categories;
   final List<B2cProduct> products;
-  final List<B2cOffer> offers;
   final List<B2cBanner> banners;
+  final Map<String, dynamic> storefront;
   final Map<String, dynamic> profile;
   final List<Map<String, dynamic>> addresses;
+
+  List<B2cProduct> get bestSellers {
+    final section = _section('best_sellers');
+    final config = section?['config'] is Map
+        ? Map<String, dynamic>.from(section!['config'] as Map)
+        : const <String, dynamic>{};
+    final ids = config['product_ids'] is List
+        ? (config['product_ids'] as List)
+            .map((value) => value is num ? value.toInt() : int.tryParse('$value'))
+            .whereType<int>()
+            .where((id) => id > 0)
+            .toList(growable: false)
+        : const <int>[];
+    final configuredLimit = config['limit'] is num
+        ? (config['limit'] as num).toInt()
+        : int.tryParse('${config['limit'] ?? ''}');
+    final limit = (configuredLimit ?? 3).clamp(1, 6);
+
+    if (ids.isNotEmpty) {
+      final byId = <int, B2cProduct>{for (final product in products) product.id: product};
+      return ids
+          .map((id) => byId[id])
+          .whereType<B2cProduct>()
+          .take(limit)
+          .toList(growable: false);
+    }
+
+    // The published storefront section may specify only a limit. Do not invent
+    // a client-side sales score: preserve the authoritative catalog order.
+    return products.take(limit).toList(growable: false);
+  }
+
+  List<B2cProduct> get allProductsPreview =>
+      products.take(6).toList(growable: false);
+
+  Map<String, dynamic>? _section(String type) {
+    final rows = storefront['sections'];
+    if (rows is! List) return null;
+    for (final row in rows.whereType<Map>()) {
+      if (row['type']?.toString() == type) {
+        return Map<String, dynamic>.from(row);
+      }
+    }
+    return null;
+  }
 
   String? get customerName {
     final value = profile['name']?.toString().trim();
