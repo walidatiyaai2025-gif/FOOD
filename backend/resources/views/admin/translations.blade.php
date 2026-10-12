@@ -31,7 +31,7 @@
         label { display:block; font-size:.8rem; font-weight:700; margin-bottom:6px; color:#475569; }
         .empty { text-align:center; padding:30px; color:#64748b; }
         .pagination { margin-top:18px; }
-        @media(max-width:800px){ body{padding:16px}.filters{grid-template-columns:1fr}.langs{grid-template-columns:1fr}.top{flex-direction:column} }
+        @media(max-width:800px){ body{padding:0}.filters{grid-template-columns:1fr}.langs{grid-template-columns:1fr}.top{flex-direction:column}.card{padding:14px}.actions{flex-wrap:nowrap;overflow-x:auto;max-width:100%}.actions>*{flex:0 0 auto} }
     </style>
     @include('admin._brand-components')
 </head>
