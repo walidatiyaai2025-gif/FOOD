@@ -85,7 +85,25 @@ final class MobileStoreAnalyticsService
         $attention = [
             'low_stock' => array_values((array) ($dashboard['low_stock'] ?? [])),
             'merchant_summary' => (array) data_get($dashboard, 'merchant_intelligence.summary', []),
-            'merchant_attention' => array_values((array) data_get($dashboard, 'merchant_intelligence.attention', [])),
+            'merchant_attention' => collect((array) data_get(
+                $dashboard,
+                'merchant_intelligence.attention',
+                [],
+            ))
+                ->take(5)
+                ->map(static fn (array $row): array => [
+                    'product_id' => (int) ($row['retail_product_id'] ?? 0),
+                    'sku' => (string) ($row['sku'] ?? ''),
+                    'name' => (string) ($row['name'] ?? ''),
+                    'available' => round((float) data_get($row, 'inventory.available', 0), 3),
+                    'days_of_cover' => data_get($row, 'inventory.days_of_cover'),
+                    'stock_risk' => (string) data_get($row, 'inventory.stock_risk', 'insufficient_data'),
+                    'action' => (string) data_get($row, 'recommendation.action', 'healthy'),
+                    'state' => (string) data_get($row, 'recommendation.state', 'no_order_needed'),
+                    'priority_score' => round((float) ($row['priority_score'] ?? 0), 1),
+                ])
+                ->values()
+                ->all(),
         ];
 
         $insights = $this->insights(
