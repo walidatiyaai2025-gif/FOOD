@@ -343,7 +343,7 @@ final class AssistantController extends Controller
     ): void {
         $preserveContext = (bool) ($brainState['preserve_context'] ?? false);
         $authorized = is_array($context['authorized_entities'] ?? null) ? $context['authorized_entities'] : [];
-        $previousAuthorized = (array) ($state?->last_authorized_entities ?? []);
+        $previousAuthorized = $state === null ? [] : (array) $state->last_authorized_entities;
 
         if ($preserveContext && $authorized === []) {
             $authorized = $previousAuthorized;
@@ -357,7 +357,7 @@ final class AssistantController extends Controller
         }
 
         $references = $toolResult === null
-            ? ($preserveContext ? (array) ($state?->result_references ?? []) : [])
+            ? ($preserveContext && $state !== null ? (array) $state->result_references : [])
             : $toolResult->references;
 
         foreach ($references as $reference) {
