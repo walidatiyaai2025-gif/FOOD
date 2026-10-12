@@ -170,7 +170,8 @@ class DashboardMetricCard extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final dense = compact || constraints.maxHeight < 90;
-      final inline = dense && constraints.maxHeight < 52 && !value.contains('.');
+      final inline =
+          dense && constraints.maxHeight < 48 && !value.contains('.');
       final symbol = Container(
         width: dense ? 18 : 28,
         height: dense ? 18 : 28,
