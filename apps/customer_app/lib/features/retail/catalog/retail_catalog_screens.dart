@@ -1028,33 +1028,38 @@ class _BrowseProductGrid extends StatelessWidget {
   final RetailAddToCart? onAddToCart;
 
   @override
-  Widget build(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final extraExtent = ((textScale - 1).clamp(0, 1) * 72).toDouble();
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final cardExtent = _threeColumnProductExtent(
+            maxWidth: constraints.maxWidth,
+            horizontalPadding: CustomerUiSpacing.page,
+            textScale: MediaQuery.textScalerOf(context).scale(1),
+          );
 
-    return GridView.builder(
-      key: const ValueKey('retail-products-grid'),
-      padding: const EdgeInsets.fromLTRB(
-        CustomerUiSpacing.page,
-        CustomerUiSpacing.xs,
-        CustomerUiSpacing.page,
-        CustomerUiSpacing.xxl,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: CustomerUiSpacing.xs,
-        mainAxisSpacing: CustomerUiSpacing.sm,
-        mainAxisExtent: 258 + extraExtent,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) => _BrowseProductCard(
-        storeId: storeId,
-        product: products[index],
-        navigation: navigation,
-        onAddToCart: onAddToCart,
-      ),
-    );
-  }
+          return GridView.builder(
+            key: const ValueKey('retail-products-grid'),
+            padding: const EdgeInsets.fromLTRB(
+              CustomerUiSpacing.page,
+              CustomerUiSpacing.xs,
+              CustomerUiSpacing.page,
+              CustomerUiSpacing.xxl,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: CustomerUiSpacing.xs,
+              mainAxisSpacing: CustomerUiSpacing.sm,
+              mainAxisExtent: cardExtent,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) => _BrowseProductCard(
+              storeId: storeId,
+              product: products[index],
+              navigation: navigation,
+              onAddToCart: onAddToCart,
+            ),
+          );
+        },
+      );
 }
 
 class RetailCatalogProductScreen extends StatefulWidget {
@@ -1218,6 +1223,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
                 await _future;
               },
               child: ListView(
+                key: const ValueKey('retail-product-scroll'),
                 padding: const EdgeInsets.fromLTRB(
                   CustomerUiSpacing.page,
                   CustomerUiSpacing.md,
@@ -1584,29 +1590,58 @@ class _RelatedProductsGrid extends StatelessWidget {
   final RetailAddToCart? onAddToCart;
 
   @override
-  Widget build(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final extraExtent = ((textScale - 1).clamp(0, 1) * 72).toDouble();
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final cardExtent = _threeColumnProductExtent(
+            maxWidth: constraints.maxWidth,
+            horizontalPadding: 0,
+            textScale: MediaQuery.textScalerOf(context).scale(1),
+          );
 
-    return GridView.builder(
-      key: const ValueKey('retail-product-related-grid'),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: CustomerUiSpacing.xs,
-        mainAxisSpacing: CustomerUiSpacing.sm,
-        mainAxisExtent: 258 + extraExtent,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) => _BrowseProductCard(
-        storeId: storeId,
-        product: products[index],
-        navigation: navigation,
-        onAddToCart: onAddToCart,
-      ),
-    );
-  }
+          return GridView.builder(
+            key: const ValueKey('retail-product-related-grid'),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: CustomerUiSpacing.xs,
+              mainAxisSpacing: CustomerUiSpacing.sm,
+              mainAxisExtent: cardExtent,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) => _BrowseProductCard(
+              storeId: storeId,
+              product: products[index],
+              navigation: navigation,
+              onAddToCart: onAddToCart,
+            ),
+          );
+        },
+      );
+}
+
+double _threeColumnProductExtent({
+  required double maxWidth,
+  required double horizontalPadding,
+  required double textScale,
+}) {
+  const columns = 3;
+  const skeletonBarsHeight = 78.0;
+  final gridWidth = maxWidth -
+      (horizontalPadding * 2) -
+      (CustomerUiSpacing.xs * (columns - 1));
+  final cellWidth = gridWidth / columns;
+  final skeletonImageWidth =
+      (cellWidth - (CustomerUiSpacing.sm * 2)).clamp(0.0, double.infinity);
+  final skeletonExtent = (skeletonImageWidth / 1.35) +
+      (CustomerUiSpacing.sm * 2) +
+      CustomerUiSpacing.sm +
+      (CustomerUiSpacing.xs * 2) +
+      CustomerUiSpacing.md +
+      skeletonBarsHeight;
+  final scaledDelta = (textScale - 1).clamp(0.0, 1.0).toDouble();
+  final textSafeExtent = 258.0 + (scaledDelta * 72.0);
+  return skeletonExtent > textSafeExtent ? skeletonExtent : textSafeExtent;
 }
 
 class _BrowseProductCard extends StatelessWidget {
@@ -1666,8 +1701,11 @@ class _BrowseProductsSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
-          final textScale = MediaQuery.textScalerOf(context).scale(1);
-          final extraExtent = ((textScale - 1).clamp(0, 1) * 72).toDouble();
+          final cardExtent = _threeColumnProductExtent(
+            maxWidth: constraints.maxWidth,
+            horizontalPadding: CustomerUiSpacing.page,
+            textScale: MediaQuery.textScalerOf(context).scale(1),
+          );
           return GridView.builder(
             key: const ValueKey('retail-products-loading'),
             padding: const EdgeInsets.fromLTRB(
@@ -1680,7 +1718,7 @@ class _BrowseProductsSkeleton extends StatelessWidget {
               crossAxisCount: 3,
               crossAxisSpacing: CustomerUiSpacing.xs,
               mainAxisSpacing: CustomerUiSpacing.sm,
-              mainAxisExtent: 258 + extraExtent,
+              mainAxisExtent: cardExtent,
             ),
             itemCount: 6,
             itemBuilder: (_, __) => const CustomerProductCardSkeleton(),
