@@ -1,6 +1,5 @@
 @php
     $adminCenterActive = $active ?? 'administration';
-    $adminCenterAr = app()->getLocale() === 'ar';
 @endphp
 <style>
 .admin-center-switcher{display:flex;align-items:center;justify-content:space-between;gap:14px;max-width:1180px;margin:0 auto 22px;padding:10px;background:#fff;border:1px solid var(--foodex-border);border-radius:16px;box-shadow:var(--foodex-shadow-sm)}
@@ -13,21 +12,21 @@
 .admin-center-switcher__tab.is-active{background:var(--foodex-green);color:#fff}
 @media(max-width:680px){.admin-center-switcher{align-items:stretch;flex-direction:column;margin-bottom:16px}.admin-center-switcher__tabs{display:grid;grid-template-columns:1fr 1fr}.admin-center-switcher__tab{width:100%}}
 </style>
-<nav class="admin-center-switcher" aria-label="{{ $adminCenterAr ? 'التنقل بين الإدارة والإعدادات' : 'Administration and settings navigation' }}">
+<nav class="admin-center-switcher" aria-label="{{ __('admin.settings_center.switcher_aria') }}">
     <div class="admin-center-switcher__context">
         <span class="admin-center-switcher__icon" aria-hidden="true">⚙</span>
-        <span class="admin-center-switcher__label">{{ $adminCenterAr ? 'مركز التحكم في FOODEX' : 'FOODEX Control Center' }}</span>
+        <span class="admin-center-switcher__label">{{ __('admin.management_system') }}</span>
     </div>
     <div class="admin-center-switcher__tabs">
         <a class="admin-center-switcher__tab {{ $adminCenterActive === 'administration' ? 'is-active' : '' }}"
            href="{{ route('admin.administration.index') }}"
            @if($adminCenterActive === 'administration') aria-current="page" @endif>
-            {{ $adminCenterAr ? 'الإدارة' : 'Administration' }}
+            {{ __('admin.administration_hub.title') }}
         </a>
         <a class="admin-center-switcher__tab {{ $adminCenterActive === 'settings' ? 'is-active' : '' }}"
            href="{{ route('admin.settings.index') }}"
            @if($adminCenterActive === 'settings') aria-current="page" @endif>
-            {{ $adminCenterAr ? 'الإعدادات' : 'Settings' }}
+            {{ __('admin.settings_center.title') }}
         </a>
     </div>
 </nav>
