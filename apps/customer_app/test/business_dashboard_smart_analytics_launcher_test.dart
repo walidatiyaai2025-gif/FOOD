@@ -153,4 +153,49 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets(
+    'store logo prefers authoritative branding and falls back to business initial',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: BusinessDashboardStoreLogo(
+              storeName: 'Downtown Store',
+              logoUrl: 'https://cdn.foodex.test/store.png',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('b2b-dashboard-store-logo')),
+        findsOneWidget,
+      );
+      final image = tester.widget<Image>(find.byType(Image));
+      expect(image.image, isA<NetworkImage>());
+      expect(
+        (image.image as NetworkImage).url,
+        'https://cdn.foodex.test/store.png',
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: BusinessDashboardStoreLogo(storeName: 'Downtown Store'),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('b2b-dashboard-store-logo-fallback')),
+        findsOneWidget,
+      );
+      expect(find.text('D'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
 }
