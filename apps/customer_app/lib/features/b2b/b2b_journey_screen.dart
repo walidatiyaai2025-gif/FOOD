@@ -1000,6 +1000,15 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
         onTap: () => Navigator.of(context).pushNamed(_scopedRoute(route)),
       );
 
+  Widget _compactMetricColumn(List<Widget> metrics) => Column(
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            if (index > 0) const SizedBox(height: 4),
+            Expanded(child: metrics[index]),
+          ],
+        ],
+      );
+
   String _shortTimestamp(BuildContext context, String? raw) {
     final date = raw == null ? null : DateTime.tryParse(raw);
     if (date == null) return raw ?? '—';
@@ -1536,18 +1545,18 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                 monthly: DashboardPanel(
                   title: context.tr('b2b.dashboard.monthly'),
                   icon: Icons.calendar_today_outlined,
-                  child: DashboardMetricGrid(
-                    columns: 1,
-                    metrics: operationMetrics.take(2).toList(),
+                  child: _compactMetricColumn(
+                    operationMetrics.take(2).toList(),
                   ),
                 ),
                 activity: DashboardPanel(
                   title: context.tr('b2b.dashboard.operations'),
                   icon: Icons.insights_rounded,
-                  child: DashboardMetricGrid(
+                  child: KeyedSubtree(
                     key: const ValueKey('b2b-dashboard-operations-grid'),
-                    columns: 1,
-                    metrics: operationMetrics.skip(2).toList(),
+                    child: _compactMetricColumn(
+                      operationMetrics.skip(2).toList(),
+                    ),
                   ),
                 ),
                 offers: _offers(context),
