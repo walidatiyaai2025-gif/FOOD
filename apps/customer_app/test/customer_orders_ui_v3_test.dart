@@ -544,10 +544,7 @@ void main() {
         _TestApp(
           size: const Size(320, 700),
           textScale: 1.4,
-          child: CustomerOrdersScreen(
-            api: api,
-            onOpenOrder: (_) {},
-          ),
+          child: CustomerOrdersScreen(api: api, onOpenOrder: (_) {}),
         ),
       );
       await tester.pumpAndSettle();
