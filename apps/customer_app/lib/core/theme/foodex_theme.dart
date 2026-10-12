@@ -128,7 +128,7 @@ abstract final class FoodexTheme {
         elevation: CustomerUiElevation.flat,
         scrolledUnderElevation: CustomerUiElevation.flat,
         centerTitle: false,
-        toolbarHeight: CustomerUiMetrics.compactAppBarHeight,
+        toolbarHeight: 58,
         titleSpacing: CustomerUiSpacing.md,
         titleTextStyle: primaryTextTheme.titleLarge?.copyWith(
           color: CustomerUiColors.white,
@@ -139,7 +139,7 @@ abstract final class FoodexTheme {
         actionsIconTheme: const IconThemeData(color: CustomerUiColors.white),
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        height: CustomerUiMetrics.persistentNavigationHeight,
+        height: 74,
         backgroundColor: CustomerUiColors.white,
         indicatorColor: CustomerUiColors.limeSoft,
         surfaceTintColor: Colors.transparent,
@@ -151,7 +151,7 @@ abstract final class FoodexTheme {
         style: FilledButton.styleFrom(
           backgroundColor: CustomerUiColors.deepGreen,
           foregroundColor: CustomerUiColors.white,
-          minimumSize: const Size(0, CustomerUiMetrics.filledButtonHeight),
+          minimumSize: const Size(0, 52),
           padding: const EdgeInsets.symmetric(
             horizontal: CustomerUiSpacing.lg,
             vertical: CustomerUiSpacing.sm,
@@ -164,10 +164,7 @@ abstract final class FoodexTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: CustomerUiColors.deepGreenStrong,
-          minimumSize: const Size(
-            CustomerUiMetrics.minimumTouchTarget,
-            CustomerUiMetrics.minimumTouchTarget,
-          ),
+          minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CustomerUiRadii.md),
           ),
@@ -176,7 +173,7 @@ abstract final class FoodexTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: CustomerUiColors.deepGreenStrong,
-          minimumSize: const Size(0, CustomerUiMetrics.outlinedButtonHeight),
+          minimumSize: const Size(0, 50),
           side: const BorderSide(color: CustomerUiColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CustomerUiRadii.md),
