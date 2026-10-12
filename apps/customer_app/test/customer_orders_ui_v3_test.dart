@@ -358,7 +358,9 @@ void main() {
     },
   );
 
-  test('order summary consumes nested authoritative settlement without deriving debt', () {
+  test(
+      'order summary consumes nested authoritative settlement without deriving debt',
+      () {
     final order = CustomerOrderSummary.fromJson(<String, dynamic>{
       'id': 503,
       'order_number': 'WH-503',
@@ -650,21 +652,21 @@ class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppTranslations(
-    locale: textDirection == TextDirection.rtl
-        ? const Locale('ar')
-        : const Locale('en'),
-    overrides: const {},
-    child: MaterialApp(
-      theme: FoodexTheme.light(fontFamily: 'sans'),
-      home: MediaQuery(
-        data: MediaQueryData(
-          size: size,
-          textScaler: TextScaler.linear(textScale),
+        locale: textDirection == TextDirection.rtl
+            ? const Locale('ar')
+            : const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          theme: FoodexTheme.light(fontFamily: 'sans'),
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: Directionality(textDirection: textDirection, child: child),
+          ),
         ),
-        child: Directionality(textDirection: textDirection, child: child),
-      ),
-    ),
-  );
+      );
 }
 
 CustomerOrderPage _page({
@@ -683,72 +685,74 @@ CustomerOrderPage _page({
   double? appliedCustomerCreditAmount,
   String? remainderMethod,
   bool? fullySettled,
-}) => CustomerOrderPage(
-  orders: [
-    CustomerOrderSummary(
-      id: orderId,
-      orderNumber: channel == 'b2b' ? 'WH-$orderId' : 'RT-$orderId',
-      storeId: storeId,
-      storeName: channel == 'b2b' ? 'Wholesale A' : 'Retail A',
-      storeLogoUrl: null,
-      channel: channel,
-      status: status,
-      currency: 'KWD',
-      grandTotal: 12.5,
-      createdAt: DateTime.utc(2026, 10, 1, 10),
-      itemCount: reorderItems.length,
-      reorderItems: reorderItems,
-      approvalStatus: approvalStatus,
-      invoiceOutstandingAmount: invoiceOutstandingAmount,
-      appliedCustomerCreditAmount: appliedCustomerCreditAmount,
-      remainderMethod: remainderMethod,
-      fullySettled: fullySettled,
-    ),
-  ],
-  currentPage: currentPage,
-  perPage: 20,
-  total: total,
-  allTotal: allTotal ?? total,
-  statusCodes: statusCodes,
-  statusCounts: statusCounts,
-  scope: channel,
-);
+}) =>
+    CustomerOrderPage(
+      orders: [
+        CustomerOrderSummary(
+          id: orderId,
+          orderNumber: channel == 'b2b' ? 'WH-$orderId' : 'RT-$orderId',
+          storeId: storeId,
+          storeName: channel == 'b2b' ? 'Wholesale A' : 'Retail A',
+          storeLogoUrl: null,
+          channel: channel,
+          status: status,
+          currency: 'KWD',
+          grandTotal: 12.5,
+          createdAt: DateTime.utc(2026, 10, 1, 10),
+          itemCount: reorderItems.length,
+          reorderItems: reorderItems,
+          approvalStatus: approvalStatus,
+          invoiceOutstandingAmount: invoiceOutstandingAmount,
+          appliedCustomerCreditAmount: appliedCustomerCreditAmount,
+          remainderMethod: remainderMethod,
+          fullySettled: fullySettled,
+        ),
+      ],
+      currentPage: currentPage,
+      perPage: 20,
+      total: total,
+      allTotal: allTotal ?? total,
+      statusCodes: statusCodes,
+      statusCounts: statusCounts,
+      scope: channel,
+    );
 
 CustomerOrderDetails _details({
   required int orderId,
   String channel = 'b2b',
   String status = 'delivered',
-}) => CustomerOrderDetails(
-  summary: CustomerOrderSummary(
-    id: orderId,
-    orderNumber: channel == 'b2b' ? 'WH-$orderId' : 'RT-$orderId',
-    storeId: 7,
-    storeName: channel == 'b2b' ? 'Wholesale A' : 'Retail A',
-    storeLogoUrl: null,
-    channel: channel,
-    status: status,
-    currency: 'KWD',
-    grandTotal: 12.5,
-    createdAt: DateTime.utc(2026, 10, 1, 10),
-  ),
-  subtotal: 10,
-  discountTotal: 0,
-  deliveryTotal: 2.5,
-  paymentMethod: 'cash_on_delivery',
-  deliveryAddress: null,
-  items: const <CustomerOrderItem>[],
-  history: [
-    CustomerOrderHistoryEntry(
-      id: 1,
-      fromStatus: status == 'delivered' ? 'out_for_delivery' : 'pending',
-      toStatus: status,
-      note: null,
-      createdAt: DateTime.utc(2026, 10, 1, 11),
-    ),
-  ],
-  payment: null,
-  requestedDeliveryDate: null,
-);
+}) =>
+    CustomerOrderDetails(
+      summary: CustomerOrderSummary(
+        id: orderId,
+        orderNumber: channel == 'b2b' ? 'WH-$orderId' : 'RT-$orderId',
+        storeId: 7,
+        storeName: channel == 'b2b' ? 'Wholesale A' : 'Retail A',
+        storeLogoUrl: null,
+        channel: channel,
+        status: status,
+        currency: 'KWD',
+        grandTotal: 12.5,
+        createdAt: DateTime.utc(2026, 10, 1, 10),
+      ),
+      subtotal: 10,
+      discountTotal: 0,
+      deliveryTotal: 2.5,
+      paymentMethod: 'cash_on_delivery',
+      deliveryAddress: null,
+      items: const <CustomerOrderItem>[],
+      history: [
+        CustomerOrderHistoryEntry(
+          id: 1,
+          fromStatus: status == 'delivered' ? 'out_for_delivery' : 'pending',
+          toStatus: status,
+          note: null,
+          createdAt: DateTime.utc(2026, 10, 1, 11),
+        ),
+      ],
+      payment: null,
+      requestedDeliveryDate: null,
+    );
 
 class _FakeOrdersApi implements CustomerOrdersApi {
   _FakeOrdersApi({required this.responder, this.detailResponder});
@@ -757,8 +761,7 @@ class _FakeOrdersApi implements CustomerOrdersApi {
   final Future<CustomerOrderDetails> Function(
     int orderId,
     CustomerOrderContext? context,
-  )?
-  detailResponder;
+  )? detailResponder;
   final List<String> calls = <String>[];
   final List<String> statusCalls = <String>[];
 
@@ -814,5 +817,6 @@ class _FakeActionApi implements CustomerActionApi {
     String? paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => const <String, dynamic>{'ok': true};
+  }) async =>
+      const <String, dynamic>{'ok': true};
 }
