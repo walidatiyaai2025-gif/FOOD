@@ -23,7 +23,7 @@
         </div>
         <div class="settings-page-heading__actions">
             <a class="settings-page-link" href="{{ route('admin.settings.index') }}">{{ __('admin.settings_center.title') }}</a>
-            <a class="settings-page-link" href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ $ar ? 'إعدادات الموبايل' : 'Mobile settings' }}</a>
+            <a class="settings-page-link" href="{{ route('admin.mobile-settings.index', ['app' => $selectedApp, 'environment' => 'production']) }}">{{ __('admin.settings_center.items.mobile') }}</a>
         </div>
     </header>
 
