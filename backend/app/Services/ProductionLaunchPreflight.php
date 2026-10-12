@@ -190,6 +190,9 @@ final class ProductionLaunchPreflight
      *     build_info_version:?string,
      *     source_commit:?string,
      *     github_run_number:?string,
+     *     customer_version:?string,
+     *     driver_version:?string,
+     *     van_version:?string,
      *     customer_build_number:?int,
      *     driver_build_number:?int,
      *     van_build_number:?int
@@ -227,6 +230,15 @@ final class ProductionLaunchPreflight
             'github_run_number' => is_scalar($buildInfo['github_run_number'] ?? null)
                 ? (string) $buildInfo['github_run_number']
                 : null,
+            'customer_version' => is_string($buildInfo['customer']['version'] ?? null)
+                ? trim($buildInfo['customer']['version'])
+                : null,
+            'driver_version' => is_string($buildInfo['driver']['version'] ?? null)
+                ? trim($buildInfo['driver']['version'])
+                : null,
+            'van_version' => is_string($buildInfo['van']['version'] ?? null)
+                ? trim($buildInfo['van']['version'])
+                : null,
             'customer_build_number' => is_numeric($buildInfo['customer']['build_number'] ?? null)
                 ? (int) $buildInfo['customer']['build_number']
                 : null,
@@ -245,6 +257,9 @@ final class ProductionLaunchPreflight
      *     build_info_version:?string,
      *     source_commit:?string,
      *     github_run_number:?string,
+     *     customer_version:?string,
+     *     driver_version:?string,
+     *     van_version:?string,
      *     customer_build_number:?int,
      *     driver_build_number:?int,
      *     van_build_number:?int
@@ -258,6 +273,10 @@ final class ProductionLaunchPreflight
             && $release['version'] === $release['build_info_version'];
         $hasSource = is_string($release['source_commit']) && $release['source_commit'] !== '';
         $hasRun = is_string($release['github_run_number']) && $release['github_run_number'] !== '';
+        $appVersionsMatch = $versionMatches
+            && $release['customer_version'] === $release['version']
+            && $release['driver_version'] === $release['version']
+            && $release['van_version'] === $release['version'];
         $builds = [
             $release['customer_build_number'],
             $release['driver_build_number'],
@@ -268,7 +287,7 @@ final class ProductionLaunchPreflight
             static fn (?int $build): bool => is_int($build) && $build > 0,
         )) === 3;
 
-        $passed = $versionMatches && $hasSource && $hasRun && $hasBuilds;
+        $passed = $versionMatches && $appVersionsMatch && $hasSource && $hasRun && $hasBuilds;
 
         return [
             'passed' => $passed,
