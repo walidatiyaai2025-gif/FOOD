@@ -69,7 +69,6 @@ class AdminCatalogManagementTest extends TestCase
         $categoryId = (int) DB::table('categories')->where('slug', 'beverages')->value('id');
 
         $this->actingAs($user)->post('/admin/catalog/products', [
-            'sku' => 'SKU-001',
             'name' => 'مياه',
             'category_id' => $categoryId,
             'unit_id' => $unitId,
@@ -78,8 +77,12 @@ class AdminCatalogManagementTest extends TestCase
             'is_active' => 1,
         ])->assertSessionHasNoErrors();
 
-        $productId = (int) DB::table('products')->where('sku', 'SKU-001')->value('id');
+        $createdProduct = DB::table('products')->where('name', 'مياه')->first(['id', 'sku']);
+        $this->assertNotNull($createdProduct);
+        $productId = (int) $createdProduct->id;
+        $generatedSku = (string) $createdProduct->sku;
 
+        $this->assertMatchesRegularExpression('/^SKU-'.$storeId.'-[A-Z0-9]{10}$/', $generatedSku);
         $this->assertGreaterThan(0, $productId);
         $this->assertDatabaseHas('store_products', [
             'store_id' => $storeId,
@@ -123,7 +126,7 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('data-availability-state="AVAILABLE"', false);
 
         $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
-            'sku' => 'SKU-001',
+            'sku' => 'IGNORED-CLIENT-SKU',
             'name' => 'مياه معدنية',
             'category_id' => $categoryId,
             'unit_id' => $unitId,
@@ -132,6 +135,7 @@ class AdminCatalogManagementTest extends TestCase
 
         $this->assertDatabaseHas('products', [
             'id' => $productId,
+            'sku' => $generatedSku,
             'name' => 'مياه معدنية',
         ]);
 
