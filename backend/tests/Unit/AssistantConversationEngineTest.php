@@ -119,6 +119,53 @@ class AssistantConversationEngineTest extends TestCase
         $this->assertStringEndsWith('?', $result->message);
     }
 
+    public function test_arabic_morning_greeting_gets_a_natural_arabic_reply(): void
+    {
+        $result = $this->brain(['sales.summary'])->respond(new AssistantBrainRequest(
+            message: 'صباح الخير',
+            locale: 'ar',
+            state: ['last_intent' => 'sales.summary'],
+        ));
+
+        $this->assertNull($result->intent);
+        $this->assertSame(1.0, $result->confidence);
+        $this->assertStringContainsString('صباح النور', $result->message);
+        $this->assertTrue($result->state['preserve_context']);
+    }
+
+    public function test_english_greeting_gets_an_english_reply(): void
+    {
+        $result = $this->brain(['sales.summary'])->respond(new AssistantBrainRequest(
+            message: 'Good morning',
+            locale: 'en',
+        ));
+
+        $this->assertNull($result->intent);
+        $this->assertStringContainsString('Good morning', $result->message);
+    }
+
+    public function test_arabic_how_are_you_is_handled_as_conversation(): void
+    {
+        $result = $this->brain(['sales.summary'])->respond(new AssistantBrainRequest(
+            message: 'عامل ايه؟',
+            locale: 'ar',
+        ));
+
+        $this->assertNull($result->intent);
+        $this->assertStringContainsString('جاهز أساعدك', $result->message);
+    }
+
+    public function test_business_intent_wins_when_a_greeting_and_business_request_are_combined(): void
+    {
+        $result = $this->brain(['sales.summary'])->respond(new AssistantBrainRequest(
+            message: 'صباح الخير عاوز مبيعات اليوم',
+            locale: 'ar',
+        ));
+
+        $this->assertSame('sales.summary', $result->intent);
+        $this->assertGreaterThanOrEqual(0.75, $result->confidence);
+    }
+
     public function test_low_confidence_returns_bounded_supported_topic_fallback(): void
     {
         $result = $this->brain(['sales.summary'])->respond(new AssistantBrainRequest(
