@@ -6,7 +6,7 @@ import 'package:foodex_customer_app/shared/customer_persistent_footer.dart';
 
 void main() {
   testWidgets(
-    'Wholesale footer has five destinations and Shopping opens products',
+    'Wholesale footer has four destinations and Shopping opens Wholesale home',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
@@ -43,7 +43,6 @@ void main() {
       );
 
       for (final destination in [
-        'home',
         'products',
         'orders',
         'invoices',
@@ -54,10 +53,7 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(
-        find.byKey(const ValueKey('customer-footer-home')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
@@ -72,14 +68,14 @@ void main() {
       final route = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(route.path, '/b2b/products');
+      expect(route.path, '/b2b/home');
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
     },
   );
 
   testWidgets(
-    'unscoped Wholesale footer still renders canonical five-item navigation',
+    'unscoped Wholesale footer still renders canonical four-item navigation',
     (tester) async {
       await tester.pumpWidget(
         AppTranslations(
@@ -189,7 +185,6 @@ void main() {
           findsOneWidget,
         );
         for (final destination in [
-          'home',
           'products',
           'orders',
           'invoices',
@@ -202,7 +197,7 @@ void main() {
         }
         expect(
           find.byKey(const ValueKey('customer-footer-home')),
-          findsOneWidget,
+          findsNothing,
         );
         expect(
           tester
