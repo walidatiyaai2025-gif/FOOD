@@ -594,6 +594,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
