@@ -6132,7 +6132,8 @@ class _WholesaleOrdersHeader extends StatelessWidget {
                   button: true,
                   label: MaterialLocalizations.of(context).backButtonTooltip,
                   child: Tooltip(
-                    message:\n                        MaterialLocalizations.of(context).backButtonTooltip,
+                    message:
+                        MaterialLocalizations.of(context).backButtonTooltip,
                     child: Material(
                       color: CustomerUiColors.mintStrong.withOpacity(.45),
                       shape: const CircleBorder(),
@@ -6143,10 +6144,12 @@ class _WholesaleOrdersHeader extends StatelessWidget {
                         onTap: onBack,
                         child: const SizedBox.square(
                           dimension: 42,
-                          child: Icon(
-                            Icons.arrow_back_rounded,
-                            size: 24,
-                            color: CustomerUiColors.ink,
+                          child: IconTheme(
+                            data: const IconThemeData(
+                              size: 24,
+                              color: CustomerUiColors.ink,
+                            ),
+                            child: const BackButtonIcon(),
                           ),
                         ),
                       ),
