@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/api/b2c_account_api.dart';
 import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
+import '../../checkout/customer_checkout_vnext_components.dart';
 import 'retail_commerce_api.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
@@ -207,6 +208,77 @@ class _RetailCartScreenState extends State<RetailCartScreen>
     final strings = _RetailCommerceStrings.of(context);
     final cart = _cart;
 
+    final createdOrder = _createdOrder;
+    if (createdOrder != null) {
+      return Scaffold(
+        key: const ValueKey('retail-order-success-screen'),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(strings.orderSuccess),
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+          automaticallyImplyLeading: false,
+        ),
+        body: SafeArea(
+          top: false,
+          child: CustomerOrderSuccessPanel(
+            title: strings.orderSuccess,
+            message: strings.orderSuccessMessage,
+            orderReferenceLabel: strings.orderReference,
+            orderReference: createdOrder.reference,
+            trackLabel: strings.trackOrder,
+            continueLabel: strings.continueShopping,
+            onTrack: () => widget.onTrackOrder?.call(
+              createdOrder.id,
+              createdOrder.storeId,
+            ),
+            onContinue: () => widget.onContinueShopping?.call(),
+            summary: CustomerCheckoutTotalsCard(
+              rows: [
+                CustomerCheckoutTotalRow(
+                  label: strings.subtotal,
+                  value: foodexMoneyText(
+                    createdOrder.subtotal,
+                    createdOrder.currency,
+                  ),
+                ),
+                if (createdOrder.discountTotal > 0)
+                  CustomerCheckoutTotalRow(
+                    label: strings.discount,
+                    value:
+                        '-${foodexMoneyText(createdOrder.discountTotal, createdOrder.currency)}',
+                  ),
+                if (createdOrder.deliveryTotal > 0)
+                  CustomerCheckoutTotalRow(
+                    label: strings.delivery,
+                    value: foodexMoneyText(
+                      createdOrder.deliveryTotal,
+                      createdOrder.currency,
+                    ),
+                  ),
+                if (createdOrder.taxTotal > 0)
+                  CustomerCheckoutTotalRow(
+                    label: strings.tax,
+                    value: foodexMoneyText(
+                      createdOrder.taxTotal,
+                      createdOrder.currency,
+                    ),
+                  ),
+                CustomerCheckoutTotalRow(
+                  label: strings.total,
+                  value: foodexMoneyText(
+                    createdOrder.grandTotal,
+                    createdOrder.currency,
+                  ),
+                  emphasized: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_isOwnStoreBlocked(_error)) {
       return Scaffold(
         backgroundColor: CustomerUiColors.mint,
@@ -253,7 +325,7 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                       )
                     else ...[
                       for (final item in cart.items) ...[
-                        _CartItemCard(
+                        CustomerCartItemCard(
                           item: item,
                           currency: cart.currency,
                           busy: _busy,
@@ -375,7 +447,9 @@ class RetailCheckoutScreen extends StatefulWidget {
   const RetailCheckoutScreen({
     required this.storeId,
     required this.api,
-    required this.onOrderCreated,
+    this.onOrderCreated,
+    this.onTrackOrder,
+    this.onContinueShopping,
     this.onAddAddress,
     this.onEditAddress,
     super.key,
@@ -383,7 +457,9 @@ class RetailCheckoutScreen extends StatefulWidget {
 
   final int storeId;
   final RetailCommerceApi api;
-  final RetailOrderCreated onOrderCreated;
+  final RetailOrderCreated? onOrderCreated;
+  final RetailOrderCreated? onTrackOrder;
+  final VoidCallback? onContinueShopping;
   final RetailAddressHandoff? onAddAddress;
   final RetailAddressEditHandoff? onEditAddress;
 
@@ -398,6 +474,8 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
   final TextEditingController _coupon = TextEditingController();
 
   RetailCheckoutOptions? _options;
+  RetailCartSnapshot? _checkoutCart;
+  RetailCreatedOrder? _createdOrder;
   int? _addressId;
   String? _paymentMethod;
   Object? _error;
@@ -436,6 +514,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
       final options = await widget.api.checkoutOptions(
         storeId: widget.storeId,
       );
+      final cart = await widget.api.loadCart(storeId: widget.storeId);
       if (!mounted) return;
 
       RetailCheckoutAddress? defaultAddress;
@@ -448,6 +527,7 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
 
       setState(() {
         _options = options;
+        _checkoutCart = cart;
         _addressId = defaultAddress?.id ??
             (options.addresses.isEmpty ? null : options.addresses.first.id);
         _paymentMethod = options.paymentMethods.isEmpty
@@ -501,7 +581,8 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
         couponCode: _coupon.text,
       );
       if (!mounted) return;
-      widget.onOrderCreated(order.id, order.storeId);
+      setState(() => _createdOrder = order);
+      widget.onOrderCreated?.call(order.id, order.storeId);
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -545,6 +626,28 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                   CustomerUiSpacing.xxl,
                 ),
                 children: [
+                  CustomerCheckoutProgress(
+                    key: const ValueKey('retail-checkout-progress'),
+                    steps: [
+                      CustomerCheckoutStep(
+                        label: strings.address,
+                        icon: Icons.location_on_outlined,
+                      ),
+                      CustomerCheckoutStep(
+                        label: strings.delivery,
+                        icon: Icons.local_shipping_outlined,
+                      ),
+                      CustomerCheckoutStep(
+                        label: strings.paymentMethod,
+                        icon: Icons.payments_outlined,
+                      ),
+                      CustomerCheckoutStep(
+                        label: strings.review,
+                        icon: Icons.fact_check_outlined,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: CustomerUiSpacing.md),
                   if (_error != null)
                     _ErrorBanner(
                       message: _commerceErrorText(strings, _error!),
@@ -684,6 +787,28 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen>
                       ],
                     ),
                   ),
+                  const SizedBox(height: CustomerUiSpacing.md),
+                  if (_checkoutCart != null)
+                    CustomerCheckoutTotalsCard(
+                      key: const ValueKey('retail-checkout-review'),
+                      rows: [
+                        CustomerCheckoutTotalRow(
+                          label: strings.subtotal,
+                          value: foodexMoneyText(
+                            _checkoutCart!.subtotal,
+                            _checkoutCart!.currency,
+                          ),
+                        ),
+                        CustomerCheckoutTotalRow(
+                          label: strings.total,
+                          value: foodexMoneyText(
+                            _checkoutCart!.grandTotal,
+                            _checkoutCart!.currency,
+                          ),
+                          emphasized: true,
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: CustomerUiSpacing.lg),
                   FilledButton.icon(
                     key: const ValueKey('retail-checkout-submit'),
@@ -768,8 +893,8 @@ class _SectionTitle extends StatelessWidget {
       );
 }
 
-class _CartItemCard extends StatelessWidget {
-  const _CartItemCard({
+class CustomerCartItemCard extends StatelessWidget {
+  const CustomerCartItemCard({
     required this.item,
     required this.currency,
     required this.busy,
@@ -831,30 +956,13 @@ class _CartItemCard extends StatelessWidget {
             const SizedBox(height: CustomerUiSpacing.sm),
             Align(
               alignment: AlignmentDirectional.centerEnd,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomerOutlineIconButton(
-                    key: ValueKey('retail-cart-minus-${item.id}'),
-                    icon: Icons.remove_rounded,
-                    onPressed: busy ? null : onMinus,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CustomerUiSpacing.xs,
-                    ),
-                    child: Text(
-                      item.quantity.toStringAsFixed(0),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  CustomerOutlineIconButton(
-                    key: ValueKey('retail-cart-plus-${item.id}'),
-                    icon: Icons.add_rounded,
-                    selected: true,
-                    onPressed: busy ? null : onPlus,
-                  ),
-                ],
+              child: CustomerQuantityStepper(
+                valueText: item.quantity.toStringAsFixed(0),
+                decreaseKey: ValueKey('retail-cart-minus-${item.id}'),
+                increaseKey: ValueKey('retail-cart-plus-${item.id}'),
+                busy: busy,
+                onDecrease: onMinus,
+                onIncrease: onPlus,
               ),
             ),
           ],
@@ -1018,6 +1126,16 @@ class _RetailCommerceStrings {
     required this.login,
     required this.register,
     required this.deliveryAddress,
+    required this.delivery,
+    required this.review,
+    required this.subtotal,
+    required this.discount,
+    required this.tax,
+    required this.orderSuccess,
+    required this.orderSuccessMessage,
+    required this.orderReference,
+    required this.trackOrder,
+    required this.continueShopping,
     required this.noAddresses,
     required this.address,
     required this.addAddress,
@@ -1044,6 +1162,16 @@ class _RetailCommerceStrings {
   final String login;
   final String register;
   final String deliveryAddress;
+  final String delivery;
+  final String review;
+  final String subtotal;
+  final String discount;
+  final String tax;
+  final String orderSuccess;
+  final String orderSuccessMessage;
+  final String orderReference;
+  final String trackOrder;
+  final String continueShopping;
   final String noAddresses;
   final String address;
   final String addAddress;
@@ -1075,6 +1203,16 @@ class _RetailCommerceStrings {
     login: 'تسجيل الدخول',
     register: 'إنشاء حساب',
     deliveryAddress: 'عنوان التوصيل',
+    delivery: 'التوصيل',
+    review: 'مراجعة الطلب',
+    subtotal: 'الإجمالي الفرعي',
+    discount: 'الخصم',
+    tax: 'الضريبة',
+    orderSuccess: 'تم تأكيد طلبك',
+    orderSuccessMessage: 'تم إنشاء الطلب بنجاح ويمكنك متابعة حالته الآن.',
+    orderReference: 'رقم الطلب',
+    trackOrder: 'تتبع الطلب',
+    continueShopping: 'متابعة التسوق',
     noAddresses: 'أضف عنوان توصيل للمتابعة.',
     address: 'العنوان',
     addAddress: 'إضافة عنوان',
@@ -1104,6 +1242,16 @@ class _RetailCommerceStrings {
     login: 'Sign in',
     register: 'Create account',
     deliveryAddress: 'Delivery address',
+    delivery: 'Delivery',
+    review: 'Review',
+    subtotal: 'Subtotal',
+    discount: 'Discount',
+    tax: 'Tax',
+    orderSuccess: 'Order confirmed',
+    orderSuccessMessage: 'Your order was created successfully and is ready to track.',
+    orderReference: 'Order number',
+    trackOrder: 'Track order',
+    continueShopping: 'Continue shopping',
     noAddresses: 'Add a delivery address to continue.',
     address: 'Address',
     addAddress: 'Add address',
