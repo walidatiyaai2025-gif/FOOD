@@ -314,9 +314,14 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('retail-products-category-4')),
+      final teaCategory =
+          find.byKey(const ValueKey('retail-products-category-4'));
+      await tester.dragUntilVisible(
+        teaCategory,
+        find.byKey(const ValueKey('retail-products-category-filter')),
+        const Offset(-120, 0),
       );
+      await tester.tap(teaCategory);
       await tester.pumpAndSettle();
       expect(api.lastCategoryId, 4);
 
@@ -368,10 +373,14 @@ void main() {
       );
       expect(find.text('Carton'), findsOneWidget);
       expect(find.text('× 12'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('retail-product-related-grid')),
-        findsOneWidget,
+      final relatedGrid =
+          find.byKey(const ValueKey('retail-product-related-grid'));
+      await tester.dragUntilVisible(
+        relatedGrid,
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, -300),
       );
+      expect(relatedGrid, findsOneWidget);
       expect(find.byType(CustomerProductCard), findsNWidgets(2));
 
       final secondImage = find.byKey(const ValueKey('retail-product-image-1'));
