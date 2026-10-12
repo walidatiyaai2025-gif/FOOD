@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
@@ -192,6 +193,29 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Customer VNext Home exposes an explicit retryable offline state',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailHomeV3Screen(
+          storeId: 7,
+          catalogApi: _OfflineCatalogApi(),
+          isAuthenticated: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('retail-home-offline')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.wifi_off_rounded), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
       'fixed footer reserves business-action space and Home returns to platform store switcher',
@@ -424,4 +448,12 @@ class _FakeStorefrontApi implements StorefrontApi {
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
       const <String, dynamic>{};
+}
+
+
+class _OfflineCatalogApi extends _FakeCatalogApi {
+  @override
+  Future<List<B2cCategory>> categories(int storeId) async {
+    throw http.ClientException('offline');
+  }
 }
