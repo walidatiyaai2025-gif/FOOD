@@ -21,7 +21,7 @@ void main() {
           );
         }),
       );
-      final seenVersion = 'a' * 64;
+      final seenVersion = List<String>.filled(64, 'a').join();
 
       final model = await api.read(
         retailStoreId: 22,
@@ -402,7 +402,7 @@ Map<String, dynamic> _payload({
         'state': stale ? 'stale' : 'fresh',
       },
       'insight_state': <String, dynamic>{
-        'version': 'b' * 64,
+        'version': List<String>.filled(64, 'b').join(),
         'has_new_insights': hasNewInsights,
         'unread_count': unreadCount,
         'lifecycle': <String, dynamic>{
