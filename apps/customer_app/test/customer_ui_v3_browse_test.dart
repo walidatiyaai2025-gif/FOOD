@@ -250,6 +250,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('retail-product-scroll')),
+        const Offset(0, -360),
+      );
+      await tester.pumpAndSettle();
 
       expect(
         find.byKey(const ValueKey('retail-product-out-of-stock')),
