@@ -6,6 +6,7 @@ import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
+import 'customer_account_v3_widgets.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 class CustomerFavoritesScreen extends StatefulWidget {
@@ -84,15 +85,12 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('customer-favorites-screen'),
-        backgroundColor: CustomerUiColors.mint,
-        appBar: AppBar(
-          title: Text(context.tr('customer.profile.favorites')),
-          backgroundColor: CustomerUiColors.deepGreen,
-          foregroundColor: CustomerUiColors.white,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-        ),
-        body: RefreshIndicator(
+        body: CustomerCurvedHeaderSurface(
+          header: CustomerAccountHeader(
+            title: context.tr('customer.profile.favorites'),
+            subtitle: context.tr('customer.favorites.subtitle'),
+          ),
+          child: RefreshIndicator(
           onRefresh: () async {
             _reload();
             try {
@@ -218,6 +216,7 @@ class _CustomerFavoritesScreenState extends State<CustomerFavoritesScreen>
             },
           ),
         ),
+      ),
       );
 
   static String _priceLabel(Object? value, String? currency) {
