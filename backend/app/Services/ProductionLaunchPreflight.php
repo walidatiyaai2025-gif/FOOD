@@ -149,8 +149,7 @@ final class ProductionLaunchPreflight
         array $report,
         string $confirmation,
         AuditLogger $audit,
-    ): void
-    {
+    ): void {
         abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
 
         if ($confirmation !== self::LAUNCH_CONFIRMATION) {
@@ -249,7 +248,7 @@ final class ProductionLaunchPreflight
     /** @return array{passed:bool,detail:string,source:string} */
     private function officialSeedCheck(?string $expectedSourceSha): array
     {
-        if (!class_exists(FoodexLaunchSeeder::class)) {
+        if (! class_exists(FoodexLaunchSeeder::class)) {
             return [
                 'passed' => false,
                 'detail' => 'Authoritative FOODEX launch seed is not installed.',
