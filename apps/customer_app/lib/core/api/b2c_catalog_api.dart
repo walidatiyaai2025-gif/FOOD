@@ -67,8 +67,7 @@ class B2cSellingUnit {
         id: (json['id'] as num).toInt(),
         code: json['code'] as String? ?? '',
         name: json['name'] as String? ?? '',
-        conversionFactor:
-            (json['conversion_factor'] as num?)?.toDouble() ?? 1,
+        conversionFactor: (json['conversion_factor'] as num?)?.toDouble() ?? 1,
         price: (json['price'] as num?)?.toDouble(),
         sku: json['sku'] as String?,
         barcode: json['barcode'] as String?,
