@@ -2634,7 +2634,7 @@ class _WholesaleProductDetailsDesignScreenState
                     child: DefaultTextStyle.merge(
                       style: const TextStyle(color: Colors.white),
                       child: IconTheme(
-                        data: const IconThemeData(color: Colors.white),
+                        data: IconThemeData(color: Colors.white),
                         child: FoodexTopBar(
                           title: context.tr('customer.product.title'),
                           actions: [
@@ -4822,6 +4822,24 @@ class _WholesaleOrdersDesignScreenState
     }
   }
 
+  void _goBack() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    final commerceContext =
+        CustomerCommerceContext.tryParseLocation(widget.location);
+    final dashboardRoute = commerceContext?.isWholesale == true
+        ? Uri(
+            path: CustomerRoutePaths.b2bDashboard,
+            queryParameters: commerceContext!.toQueryParameters(),
+          ).toString()
+        : CustomerRoutePaths.b2bDashboard;
+    navigator.pushReplacementNamed(dashboardRoute);
+  }
+
   int _orderStoreId(Map<String, dynamic> order) {
     final nestedStore = order['store'];
     final fromRow = intValue(
@@ -5179,6 +5197,7 @@ class _WholesaleOrdersDesignScreenState
                             _WholesaleOrdersHeader(
                               pageInset: pageInset,
                               loading: loading,
+                              onBack: _goBack,
                               onRefresh: () => unawaited(_refresh()),
                             ),
                             _OrderTabs(
@@ -6078,11 +6097,13 @@ class _WholesaleOrdersHeader extends StatelessWidget {
   const _WholesaleOrdersHeader({
     required this.pageInset,
     required this.loading,
+    required this.onBack,
     required this.onRefresh,
   });
 
   final double pageInset;
   final bool loading;
+  final VoidCallback onBack;
   final VoidCallback onRefresh;
 
   @override
@@ -6105,8 +6126,39 @@ class _WholesaleOrdersHeader extends StatelessWidget {
                       height: 1.1,
                     ),
               ),
-              Positioned(
-                left: 0,
+              PositionedDirectional(
+                start: 0,
+                child: Semantics(
+                  button: true,
+                  label: MaterialLocalizations.of(context).backButtonTooltip,
+                  child: Tooltip(
+                    message:
+                        MaterialLocalizations.of(context).backButtonTooltip,
+                    child: Material(
+                      color: CustomerUiColors.mintStrong.withOpacity(.45),
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        key: const ValueKey('b2b-orders-back'),
+                        customBorder: const CircleBorder(),
+                        onTap: onBack,
+                        child: const SizedBox.square(
+                          dimension: 42,
+                          child: IconTheme(
+                            data: IconThemeData(
+                              size: 24,
+                              color: CustomerUiColors.ink,
+                            ),
+                            child: BackButtonIcon(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                end: 0,
                 child: Semantics(
                   button: true,
                   label: context.tr('customer.orders.refresh'),

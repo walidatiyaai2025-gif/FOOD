@@ -6,7 +6,7 @@ import 'package:foodex_customer_app/shared/customer_persistent_footer.dart';
 
 void main() {
   testWidgets(
-    'Wholesale footer has five destinations and Shopping opens products',
+    'Wholesale footer has four destinations and Shopping opens Wholesale home',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
@@ -42,13 +42,18 @@ void main() {
         ),
       );
 
-      for (final destination in ['home', 'products', 'orders', 'invoices', 'account']) {
+      for (final destination in [
+        'products',
+        'orders',
+        'invoices',
+        'account',
+      ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
@@ -63,9 +68,69 @@ void main() {
       final route = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(route.path, '/b2b/products');
+      expect(route.path, '/b2b/home');
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
+    },
+  );
+
+  testWidgets(
+    'unscoped Wholesale footer still renders canonical four-item navigation',
+    (tester) async {
+      await tester.pumpWidget(
+        AppTranslations(
+          locale: const Locale('ar'),
+          overrides: const {},
+          child: MaterialApp(
+            home: const Scaffold(
+              body: Column(
+                children: [
+                  Spacer(),
+                  CustomerPersistentFooter(
+                    forceWholesale: true,
+                    activeDestination: CustomerFooterDestination.orders,
+                  ),
+                ],
+              ),
+            ),
+            onGenerateRoute: (settings) => MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => Scaffold(
+                body: Text(
+                  settings.name ?? '',
+                  key: const ValueKey('route-name'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      for (final destination in [
+        'products',
+        'orders',
+        'invoices',
+        'account',
+      ]) {
+        expect(
+          find.byKey(ValueKey('customer-footer-$destination')),
+          findsOneWidget,
+        );
+      }
+      expect(
+        find.byKey(const ValueKey('customer-footer-home')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('customer-footer-invoices')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
+        '/b2b/invoices',
+      );
     },
   );
 
@@ -118,17 +183,27 @@ void main() {
           find.byKey(const ValueKey('customer-persistent-footer')),
           findsOneWidget,
         );
-        for (final destination
-            in ['home', 'products', 'orders', 'invoices', 'account']) {
+        for (final destination in [
+          'products',
+          'orders',
+          'invoices',
+          'account',
+        ]) {
           expect(
             find.byKey(ValueKey('customer-footer-$destination')),
             findsOneWidget,
           );
         }
         expect(
-          tester.getSize(
-            find.byKey(const ValueKey('customer-persistent-footer')),
-          ).height,
+          find.byKey(const ValueKey('customer-footer-home')),
+          findsNothing,
+        );
+        expect(
+          tester
+              .getSize(
+                find.byKey(const ValueKey('customer-persistent-footer')),
+              )
+              .height,
           greaterThanOrEqualTo(82),
         );
         expect(tester.takeException(), isNull);

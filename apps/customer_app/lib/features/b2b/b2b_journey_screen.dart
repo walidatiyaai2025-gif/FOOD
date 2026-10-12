@@ -53,11 +53,9 @@ class B2bJourneyScreen extends StatelessWidget {
     final commerceContext = CustomerCommerceContext.tryParseLocation(location);
 
     Widget withFooter(Widget child, CustomerFooterDestination destination) {
-      if (commerceContext == null || !commerceContext.isWholesale) {
-        return child;
-      }
       return CustomerPersistentFooterShell(
         commerceContext: commerceContext,
+        forceWholesale: commerceContext == null,
         activeDestination: destination,
         child: child,
       );

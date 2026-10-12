@@ -73,12 +73,18 @@ class MultiStoreDesignScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final commerceContext = CustomerCommerceContext.tryParseLocation(location);
+    final parsedCommerceContext =
+        CustomerCommerceContext.tryParseLocation(location);
+    final currentContext = currentCommerceContext?.call();
+    final commerceContext = parsedCommerceContext ??
+        (currentContext?.isWholesale == true ? currentContext : null);
+    final isWholesaleRoute = definition.channel == CustomerChannel.b2b;
 
     Widget withFooter(Widget child, CustomerFooterDestination destination) {
-      if (commerceContext == null) return child;
+      if (commerceContext == null && !isWholesaleRoute) return child;
       return CustomerPersistentFooterShell(
         commerceContext: commerceContext,
+        forceWholesale: commerceContext == null && isWholesaleRoute,
         activeDestination: destination,
         child: child,
       );

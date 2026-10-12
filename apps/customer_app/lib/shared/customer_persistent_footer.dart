@@ -16,17 +16,19 @@ enum CustomerFooterDestination {
 
 class CustomerPersistentFooterShell extends StatelessWidget {
   const CustomerPersistentFooterShell({
-    required this.commerceContext,
     required this.activeDestination,
     required this.child,
+    this.commerceContext,
+    this.forceWholesale = false,
     this.keyPrefix = 'customer-footer',
     this.isPlatformHome = false,
     super.key,
-  });
+  }) : assert(commerceContext != null || forceWholesale);
 
-  final CustomerCommerceContext commerceContext;
+  final CustomerCommerceContext? commerceContext;
   final CustomerFooterDestination activeDestination;
   final Widget child;
+  final bool forceWholesale;
   final String keyPrefix;
   final bool isPlatformHome;
 
@@ -43,6 +45,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
             CustomerPersistentFooterDock(
               commerceContext: commerceContext,
               activeDestination: activeDestination,
+              forceWholesale: forceWholesale,
               keyPrefix: keyPrefix,
               isPlatformHome: isPlatformHome,
             ),
@@ -54,15 +57,17 @@ class CustomerPersistentFooterShell extends StatelessWidget {
 
 class CustomerPersistentFooterDock extends StatelessWidget {
   const CustomerPersistentFooterDock({
-    required this.commerceContext,
     required this.activeDestination,
+    this.commerceContext,
+    this.forceWholesale = false,
     this.keyPrefix = 'customer-footer',
     this.isPlatformHome = false,
     super.key,
-  });
+  }) : assert(commerceContext != null || forceWholesale);
 
-  final CustomerCommerceContext commerceContext;
+  final CustomerCommerceContext? commerceContext;
   final CustomerFooterDestination activeDestination;
+  final bool forceWholesale;
   final String keyPrefix;
   final bool isPlatformHome;
 
@@ -83,6 +88,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
         child: CustomerPersistentFooter(
           commerceContext: commerceContext,
           activeDestination: activeDestination,
+          forceWholesale: forceWholesale,
           keyPrefix: keyPrefix,
           isPlatformHome: isPlatformHome,
         ),
@@ -93,28 +99,33 @@ class CustomerPersistentFooterDock extends StatelessWidget {
 
 class CustomerPersistentFooter extends StatelessWidget {
   const CustomerPersistentFooter({
-    required this.commerceContext,
     required this.activeDestination,
+    this.commerceContext,
+    this.forceWholesale = false,
     this.keyPrefix = 'customer-footer',
     this.isPlatformHome = false,
     super.key,
-  });
+  }) : assert(commerceContext != null || forceWholesale);
 
-  final CustomerCommerceContext commerceContext;
+  final CustomerCommerceContext? commerceContext;
   final CustomerFooterDestination activeDestination;
+  final bool forceWholesale;
   final String keyPrefix;
   final bool isPlatformHome;
 
   @override
   Widget build(BuildContext context) {
-    final items = commerceContext.isWholesale
+    final isWholesale = commerceContext?.isWholesale ?? forceWholesale;
+    final isRetail = commerceContext?.isRetail == true;
+    final items = isWholesale
         ? <_FooterItem>[
-            _FooterItem(
-              destination: CustomerFooterDestination.home,
-              label: context.tr('customer.nav.home'),
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
+            if (isPlatformHome)
+              _FooterItem(
+                destination: CustomerFooterDestination.home,
+                label: context.tr('customer.nav.home'),
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+              ),
             _FooterItem(
               destination: CustomerFooterDestination.products,
               label: context.tr('customer.nav.shopping'),
@@ -200,7 +211,7 @@ class CustomerPersistentFooter extends StatelessWidget {
                       ),
                       item: item,
                       active: item.destination == activeDestination,
-                      onTap: commerceContext.isRetail &&
+                      onTap: isRetail &&
                               item.destination == activeDestination &&
                               (item.destination !=
                                       CustomerFooterDestination.home ||
@@ -220,45 +231,68 @@ class CustomerPersistentFooter extends StatelessWidget {
   }
 
   String _locationFor(CustomerFooterDestination destination) {
-    if (commerceContext.isRetail) {
+    final scope = commerceContext;
+    if (scope?.isRetail == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
           return CustomerRoutePaths.marketplace;
         case CustomerFooterDestination.products:
           return Uri(
             path: CustomerRoutePaths.products,
-            queryParameters: commerceContext.toQueryParameters(),
+            queryParameters: scope!.toQueryParameters(),
           ).toString();
         case CustomerFooterDestination.cart:
-          return CustomerRouteLocations.retailCart(commerceContext);
+          return CustomerRouteLocations.retailCart(scope!);
         case CustomerFooterDestination.orders:
-          return CustomerRouteLocations.retailOrders(commerceContext);
+          return CustomerRouteLocations.retailOrders(scope!);
         case CustomerFooterDestination.invoices:
-          return CustomerRouteLocations.retailProfile(commerceContext);
+          return CustomerRouteLocations.retailProfile(scope!);
         case CustomerFooterDestination.account:
-          return CustomerRouteLocations.retailProfile(commerceContext);
+          return CustomerRouteLocations.retailProfile(scope!);
+      }
+    }
+
+    if (scope?.isWholesale == true) {
+      switch (destination) {
+        case CustomerFooterDestination.home:
+          return CustomerRouteLocations.wholesaleHome(scope!);
+        case CustomerFooterDestination.products:
+          if (isPlatformHome) {
+            return Uri(
+              path: CustomerRoutePaths.b2bProducts,
+              queryParameters: scope!.toQueryParameters(),
+            ).toString();
+          }
+          return CustomerRouteLocations.wholesaleHome(scope!);
+        case CustomerFooterDestination.cart:
+          return CustomerRouteLocations.wholesaleCart(scope!);
+        case CustomerFooterDestination.orders:
+          return CustomerRouteLocations.wholesaleOrders(scope!);
+        case CustomerFooterDestination.invoices:
+          return Uri(
+            path: CustomerRoutePaths.b2bInvoices,
+            queryParameters: scope!.toQueryParameters(),
+          ).toString();
+        case CustomerFooterDestination.account:
+          return CustomerRouteLocations.wholesaleProfile(scope!);
       }
     }
 
     switch (destination) {
       case CustomerFooterDestination.home:
-        return CustomerRouteLocations.wholesaleHome(commerceContext);
+        return CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.products:
-        return Uri(
-          path: CustomerRoutePaths.b2bProducts,
-          queryParameters: commerceContext.toQueryParameters(),
-        ).toString();
+        return isPlatformHome
+            ? CustomerRoutePaths.b2bProducts
+            : CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.cart:
-        return CustomerRouteLocations.wholesaleCart(commerceContext);
+        return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
-        return CustomerRouteLocations.wholesaleOrders(commerceContext);
+        return CustomerRoutePaths.b2bOrders;
       case CustomerFooterDestination.invoices:
-        return Uri(
-          path: CustomerRoutePaths.b2bInvoices,
-          queryParameters: commerceContext.toQueryParameters(),
-        ).toString();
+        return CustomerRoutePaths.b2bInvoices;
       case CustomerFooterDestination.account:
-        return CustomerRouteLocations.wholesaleProfile(commerceContext);
+        return CustomerRoutePaths.b2bProfile;
     }
   }
 }
@@ -317,9 +351,8 @@ class _FooterButton extends StatelessWidget {
                 width: active ? 58 : 46,
                 height: active ? 42 : 42,
                 decoration: BoxDecoration(
-                  color: active
-                      ? CustomerUiColors.limeSoft
-                      : Colors.transparent,
+                  color:
+                      active ? CustomerUiColors.limeSoft : Colors.transparent,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
@@ -343,8 +376,7 @@ class _FooterButton extends StatelessWidget {
                         color: active
                             ? CustomerUiColors.deepGreenStrong
                             : CustomerUiColors.muted,
-                        fontWeight:
-                            active ? FontWeight.w900 : FontWeight.w700,
+                        fontWeight: active ? FontWeight.w900 : FontWeight.w700,
                         fontSize: 10.5,
                         height: 1.05,
                       ),
