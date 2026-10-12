@@ -234,8 +234,9 @@ class BusinessDashboardStoreLogo extends StatelessWidget {
 
   Widget _fallback() {
     final normalizedName = storeName.trim();
-    final initial =
-        normalizedName.isEmpty ? 'F' : normalizedName.substring(0, 1).toUpperCase();
+    final initial = normalizedName.isEmpty
+        ? 'F'
+        : normalizedName.substring(0, 1).toUpperCase();
     return Container(
       key: const ValueKey('b2b-dashboard-store-logo-fallback'),
       width: 64,
@@ -260,8 +261,8 @@ class BusinessDashboardStoreLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalizedUrl = logoUrl?.trim() ?? '';
-    final provider =
-        imageProvider ?? (normalizedUrl.isEmpty ? null : NetworkImage(normalizedUrl));
+    final provider = imageProvider ??
+        (normalizedUrl.isEmpty ? null : NetworkImage(normalizedUrl));
     if (provider == null) return _fallback();
 
     return Container(
