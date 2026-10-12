@@ -10,7 +10,7 @@ class ProductionLaunchPreflightTest extends TestCase
 {
     public function test_missing_required_checks_are_fail_closed(): void
     {
-        $service = new ProductionLaunchPreflight();
+        $service = new ProductionLaunchPreflight;
 
         $report = $service->decide([
             'schema_migrations' => ['passed' => true, 'detail' => 'ok'],
@@ -23,7 +23,7 @@ class ProductionLaunchPreflightTest extends TestCase
 
     public function test_gate_is_ready_only_when_every_required_check_passes(): void
     {
-        $service = new ProductionLaunchPreflight();
+        $service = new ProductionLaunchPreflight;
         $checks = [];
 
         foreach (ProductionLaunchPreflight::REQUIRED_CHECKS as $code) {
@@ -43,7 +43,7 @@ class ProductionLaunchPreflightTest extends TestCase
 
     public function test_one_failure_blocks_launch_without_bypass(): void
     {
-        $service = new ProductionLaunchPreflight();
+        $service = new ProductionLaunchPreflight;
         $checks = [];
 
         foreach (ProductionLaunchPreflight::REQUIRED_CHECKS as $code) {
