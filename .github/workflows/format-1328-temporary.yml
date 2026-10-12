@@ -1,4 +1,5 @@
 name: Temporary 1328 Dart Formatter
+# one-shot canonical formatter retrigger for issue 1328
 
 on:
   push:
