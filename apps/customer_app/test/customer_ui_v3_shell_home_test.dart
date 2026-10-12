@@ -117,7 +117,7 @@ void main() {
       await tester.pump();
       expect(capturedCategoryId, 3);
 
-      final mainScroll = find.byType(Scrollable).first;
+      final mainScroll = _homeVerticalScroll();
       final bestSellersTitle = find.text('الأكثر مبيعاً');
       await _dragUntilFound(
         tester,
@@ -128,12 +128,11 @@ void main() {
 
       final bestGridFinder =
           find.byKey(const ValueKey('retail-best-sellers-grid'));
-      await tester.scrollUntilVisible(
-        bestGridFinder,
-        240,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: bestGridFinder,
       );
-      await tester.pumpAndSettle();
       final bestGrid = tester.widget<GridView>(bestGridFinder);
       final bestDelegate =
           bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
@@ -146,13 +145,11 @@ void main() {
           find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
-      await tester.scrollUntilVisible(
-        product,
-        240,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: product,
       );
-      await tester.drag(mainScroll, const Offset(0, -160));
-      await tester.pumpAndSettle();
       await tester.tap(product);
       await tester.pump();
       expect(capturedProductId, 42);
@@ -166,12 +163,11 @@ void main() {
       expect(addedProductId, 42);
 
       final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
-      await tester.scrollUntilVisible(
-        viewMore,
-        240,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: viewMore,
       );
-      await tester.pumpAndSettle();
       expect(find.text('عرض المزيد'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -209,7 +205,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final mainScroll = find.byType(Scrollable).first;
+      final mainScroll = _homeVerticalScroll();
       final bestSellersTitle = find.text('Best Sellers');
       await _dragUntilFound(
         tester,
@@ -219,33 +215,30 @@ void main() {
       expect(bestSellersTitle, findsOneWidget);
 
       final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
-      await tester.scrollUntilVisible(
-        bestGrid,
-        240,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: bestGrid,
       );
-      await tester.pumpAndSettle();
 
       final allGridFinder =
           find.byKey(const ValueKey('retail-all-products-grid'));
-      await tester.scrollUntilVisible(
-        allGridFinder,
-        240,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: allGridFinder,
       );
-      await tester.pumpAndSettle();
       final allGrid = tester.widget<GridView>(allGridFinder);
       final allDelegate =
           allGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(allDelegate.crossAxisCount, 3);
 
       final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
-      await tester.scrollUntilVisible(
-        viewMore,
-        240,
+      await _dragUntilFound(
+        tester,
         scrollable: mainScroll,
+        target: viewMore,
       );
-      await tester.pumpAndSettle();
       expect(find.text('View more'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -375,19 +368,34 @@ void main() {
   });
 }
 
+Finder _homeVerticalScroll() => find
+    .descendant(
+      of: find.byKey(const ValueKey('retail-catalog-home')),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable &&
+            (widget.axisDirection == AxisDirection.down ||
+                widget.axisDirection == AxisDirection.up),
+      ),
+    )
+    .first;
+
 Future<void> _dragUntilFound(
   WidgetTester tester, {
   required Finder scrollable,
   required Finder target,
 }) async {
-  for (var attempt = 0; attempt < 12 && target.evaluate().isEmpty; attempt++) {
-    await tester.drag(scrollable, const Offset(0, -160));
+  for (var attempt = 0; attempt < 30 && target.evaluate().isEmpty; attempt++) {
+    await tester.drag(scrollable, const Offset(0, -220));
     await tester.pump();
   }
-  if (target.evaluate().isNotEmpty) {
-    await tester.ensureVisible(target);
-    await tester.pumpAndSettle();
-  }
+  expect(
+    target,
+    findsOneWidget,
+    reason: 'Expected lazy Home content to become reachable by vertical scroll.',
+  );
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
 }
 
 void _noopOpenProducts(
