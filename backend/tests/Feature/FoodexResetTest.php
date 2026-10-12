@@ -232,7 +232,11 @@ class FoodexResetTest extends TestCase
             'catalog_fingerprint' => 'test-contract',
             'checked_at' => now()->timestamp,
         ], JSON_THROW_ON_ERROR));
-        config(['foodex_reset.production_enabled' => true, 'foodex_reset.preflight_path' => $path]);
+        config([
+            'app.env' => 'production',
+            'foodex_reset.production_enabled' => true,
+            'foodex_reset.preflight_path' => $path,
+        ]);
         $this->app->instance('env', 'production');
 
         try {
@@ -247,6 +251,7 @@ class FoodexResetTest extends TestCase
 
             $this->assertSame(0, DB::table('audit_logs')->where('event', 'system.launch_reset')->count());
         } finally {
+            config(['app.env' => 'testing']);
             $this->app->instance('env', 'testing');
             unlink($path);
         }
@@ -255,11 +260,12 @@ class FoodexResetTest extends TestCase
     public function test_production_cannot_be_enabled_by_confirmation_or_backup_text(): void
     {
         $this->bindCatalog();
+        config(['app.env' => 'production', 'foodex_reset.production_enabled' => false]);
         $this->app->instance('env', 'production');
-        config(['foodex_reset.production_enabled' => false]);
         $preview = app(FoodexResetService::class)->preview();
         $this->assertFalse($preview['production_ready']);
         $this->assertFalse($preview['ready']);
+        config(['app.env' => 'testing']);
         $this->app->instance('env', 'testing');
     }
 
