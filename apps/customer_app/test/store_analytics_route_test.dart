@@ -159,7 +159,7 @@ void main() {
         find.byKey(const ValueKey('customer-route-shell')),
         findsOneWidget,
       );
-      expect(find.text('Store analytics'), findsOneWidget);
+      expect(find.text('تحليل المتجر الذكي'), findsOneWidget);
     });
   });
 }
