@@ -3986,18 +3986,19 @@ class _WholesaleCheckoutDesignScreenState
                       success['currency']?.toString().trim().isNotEmpty == true
                           ? success['currency'].toString()
                           : 'KWD';
-                  final reference =
-                      success['order_number']?.toString().trim().isNotEmpty == true
-                          ? success['order_number'].toString().trim()
-                          : (success['display_order_number']
-                                      ?.toString()
-                                      .trim()
-                                      .isNotEmpty ==
-                                  true
-                              ? success['display_order_number']
-                                  .toString()
+                  final reference = success['order_number']
+                              ?.toString()
+                              .trim()
+                              .isNotEmpty ==
+                          true
+                      ? success['order_number'].toString().trim()
+                      : (success['display_order_number']
+                                  ?.toString()
                                   .trim()
-                              : '#$orderId');
+                                  .isNotEmpty ==
+                              true
+                          ? success['display_order_number'].toString().trim()
+                          : '#$orderId');
                   final subtotal = doubleValue(success['subtotal'], 0);
                   final discount = doubleValue(success['discount_total'], 0);
                   final delivery = doubleValue(success['delivery_total'], 0);
@@ -4009,12 +4010,10 @@ class _WholesaleCheckoutDesignScreenState
                     message: ar
                         ? 'تم إنشاء الطلب بنجاح ويمكنك متابعة حالته الآن.'
                         : 'Your order was created successfully and is ready to track.',
-                    orderReferenceLabel:
-                        ar ? 'رقم الطلب' : 'Order number',
+                    orderReferenceLabel: ar ? 'رقم الطلب' : 'Order number',
                     orderReference: reference,
                     trackLabel: ar ? 'تتبع الطلب' : 'Track order',
-                    continueLabel:
-                        ar ? 'متابعة التسوق' : 'Continue shopping',
+                    continueLabel: ar ? 'متابعة التسوق' : 'Continue shopping',
                     onTrack: () => Navigator.of(context).pushReplacementNamed(
                       Uri(
                         path: '/b2b/orders/$orderId',
@@ -4043,8 +4042,7 @@ class _WholesaleCheckoutDesignScreenState
                         if (discount > 0)
                           CustomerCheckoutTotalRow(
                             label: ar ? 'الخصم' : 'Discount',
-                            value:
-                                '-${foodexMoneyText(discount, currency)}',
+                            value: '-${foodexMoneyText(discount, currency)}',
                           ),
                         if (delivery > 0)
                           CustomerCheckoutTotalRow(
