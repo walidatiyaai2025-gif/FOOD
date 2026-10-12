@@ -66,6 +66,9 @@ class RetailCartSnapshot {
     required this.subtotal,
     required this.grandTotal,
     required this.hasUnavailableItems,
+    this.discountTotal = 0,
+    this.deliveryTotal = 0,
+    this.taxTotal = 0,
     this.syncState = RetailCartSyncState.synced,
   });
 
@@ -73,6 +76,9 @@ class RetailCartSnapshot {
   final String currency;
   final List<RetailCartItem> items;
   final double subtotal;
+  final double discountTotal;
+  final double deliveryTotal;
+  final double taxTotal;
   final double grandTotal;
   final bool hasUnavailableItems;
   final RetailCartSyncState syncState;
@@ -83,6 +89,9 @@ class RetailCartSnapshot {
         currency: currency,
         items: items,
         subtotal: subtotal,
+        discountTotal: discountTotal,
+        deliveryTotal: deliveryTotal,
+        taxTotal: taxTotal,
         grandTotal: grandTotal,
         hasUnavailableItems: hasUnavailableItems,
         syncState: value,
@@ -119,6 +128,9 @@ class RetailCartSnapshot {
       currency: currency,
       items: List<RetailCartItem>.unmodifiable(nextItems),
       subtotal: nextSubtotal,
+      discountTotal: discountTotal,
+      deliveryTotal: deliveryTotal,
+      taxTotal: taxTotal,
       grandTotal: (grandTotal + delta).clamp(0, double.infinity).toDouble(),
       hasUnavailableItems: nextItems.any((item) => !item.isAvailable),
       syncState: mutations.isEmpty
@@ -144,7 +156,22 @@ class RetailCartSnapshot {
       items: _asList(map['items'])
           .map((item) => RetailCartItem.fromMap(_asMap(item)))
           .toList(growable: false),
-      subtotal: _asDouble(map['subtotal']),
+      subtotal: _asDouble(
+        quote['subtotal'],
+        fallback: _asDouble(map['subtotal']),
+      ),
+      discountTotal: _asDouble(
+        quote['discount_total'],
+        fallback: _asDouble(map['discount_total']),
+      ),
+      deliveryTotal: _asDouble(
+        quote['delivery_total'],
+        fallback: _asDouble(map['delivery_total']),
+      ),
+      taxTotal: _asDouble(
+        quote['tax_total'],
+        fallback: _asDouble(map['tax_total']),
+      ),
       grandTotal: _asDouble(
         quote['grand_total'],
         fallback: _asDouble(map['subtotal']),
