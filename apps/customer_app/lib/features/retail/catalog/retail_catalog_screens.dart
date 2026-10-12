@@ -862,8 +862,9 @@ enum _RetailSortOption {
   final String direction;
 
   String label(BuildContext context) {
-    final fieldKey =
-        sort == 'price' ? 'customer.products.sort_price' : 'customer.products.sort_name';
+    final fieldKey = sort == 'price'
+        ? 'customer.products.sort_price'
+        : 'customer.products.sort_name';
     final directionKey = direction == 'desc'
         ? 'customer.products.descending'
         : 'customer.products.ascending';
@@ -1078,8 +1079,8 @@ class RetailCatalogProductScreen extends StatefulWidget {
       _RetailCatalogProductScreenState();
 }
 
-class _RetailCatalogProductScreenState
-    extends State<RetailCatalogProductScreen> with WidgetsBindingObserver {
+class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
+    with WidgetsBindingObserver {
   late Future<_RetailProductDetailData> _future = _load();
   double _quantity = 1;
   bool _submitting = false;
@@ -1204,10 +1205,10 @@ class _RetailCatalogProductScreenState
                 product.imageUrl?.trim().isNotEmpty == true) {
               gallery.add(product.imageUrl!);
             }
-            final selectedIndex = gallery.isEmpty ||
-                    _selectedImageIndex >= gallery.length
-                ? 0
-                : _selectedImageIndex;
+            final selectedIndex =
+                gallery.isEmpty || _selectedImageIndex >= gallery.length
+                    ? 0
+                    : _selectedImageIndex;
             final selectedImage =
                 gallery.isEmpty ? null : gallery[selectedIndex];
 
@@ -1278,8 +1279,7 @@ class _RetailCatalogProductScreenState
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: CustomerUiColors.white,
-                      borderRadius:
-                          BorderRadius.circular(CustomerUiRadii.xl),
+                      borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
                       border: Border.all(color: CustomerUiColors.border),
                       boxShadow: CustomerUiElevation.cardShadow,
                     ),
@@ -1331,8 +1331,7 @@ class _RetailCatalogProductScreenState
                           Text(
                             product.isAvailable
                                 ? context.tr('customer.product.available')
-                                : context
-                                    .tr('customer.product.out_of_stock'),
+                                : context.tr('customer.product.out_of_stock'),
                             key: ValueKey(
                               product.isAvailable
                                   ? 'retail-product-available'
@@ -1411,14 +1410,13 @@ class _RetailCatalogProductScreenState
                                       key: const ValueKey(
                                         'retail-product-minus',
                                       ),
-                                      onPressed: !product.isAvailable ||
-                                              _quantity <= 1
-                                          ? null
-                                          : () => setState(
-                                                () => _quantity -= 1,
-                                              ),
-                                      icon:
-                                          const Icon(Icons.remove_rounded),
+                                      onPressed:
+                                          !product.isAvailable || _quantity <= 1
+                                              ? null
+                                              : () => setState(
+                                                    () => _quantity -= 1,
+                                                  ),
+                                      icon: const Icon(Icons.remove_rounded),
                                     ),
                                     ConstrainedBox(
                                       constraints:
@@ -1456,10 +1454,9 @@ class _RetailCatalogProductScreenState
                                 key: const ValueKey(
                                   'retail-product-add-cart',
                                 ),
-                                onPressed:
-                                    _submitting || !product.isAvailable
-                                        ? null
-                                        : () => _add(product),
+                                onPressed: _submitting || !product.isAvailable
+                                    ? null
+                                    : () => _add(product),
                                 icon: _submitting
                                     ? const SizedBox.square(
                                         dimension: 18,
@@ -1528,15 +1525,12 @@ class _SellingUnitCard extends StatelessWidget {
     final conversion = unit.conversionFactor == 1
         ? null
         : '× ${foodexQuantity(unit.conversionFactor)}';
-    final price = unit.price == null
-        ? null
-        : foodexMoneyText(unit.price!, currency);
+    final price =
+        unit.price == null ? null : foodexMoneyText(unit.price!, currency);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: unit.isBase
-            ? CustomerUiColors.limeSoft
-            : CustomerUiColors.mint,
+        color: unit.isBase ? CustomerUiColors.limeSoft : CustomerUiColors.mint,
         borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
         border: Border.all(color: CustomerUiColors.border),
       ),
@@ -1673,8 +1667,7 @@ class _BrowseProductsSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final textScale = MediaQuery.textScalerOf(context).scale(1);
-          final extraExtent =
-              ((textScale - 1).clamp(0, 1) * 72).toDouble();
+          final extraExtent = ((textScale - 1).clamp(0, 1) * 72).toDouble();
           return GridView.builder(
             key: const ValueKey('retail-products-loading'),
             padding: const EdgeInsets.fromLTRB(
@@ -1968,8 +1961,7 @@ class _CatalogErrorState extends StatelessWidget {
       );
     }
 
-    final isOffline =
-        catalogError is B2cCatalogException &&
+    final isOffline = catalogError is B2cCatalogException &&
         catalogError.isNetworkUnavailable;
     return KeyedSubtree(
       key: ValueKey(
@@ -1978,9 +1970,7 @@ class _CatalogErrorState extends StatelessWidget {
       child: CustomerStateView(
         kind: CustomerStateKind.error,
         title: context.tr(
-          isOffline
-              ? 'customer.error.offline'
-              : 'customer.error.action_failed',
+          isOffline ? 'customer.error.offline' : 'customer.error.action_failed',
         ),
         actionLabel: context.tr('customer.action.retry'),
         onAction: onRetry,
