@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.73",
+  "target_version": "1.0.75",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "b5ba42154c5d39716630d74788bbcc51041f6242",
-  "sha256": "3a7d74ad10d5328b225205852fa1848482ce6f825ca922607781cf118adcbf9f",
+  "source_commit": "24c9fe868dc99e5c03a267ffce853f925a13f29c",
+  "sha256": "bf59ad1dbb423ea2f9fbd0d3ccde38f4901ee23ced5215f139c90835069f2b0a",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/2026_09_27_160800_add_brand_image_path.php",
@@ -76,19 +76,19 @@
     "backend/database/migrations/2026_10_11_160000_add_product_low_stock_threshold.php"
   ],
   "delta": {
-    "file_count": 894,
-    "source_file_count": 789,
+    "file_count": 919,
+    "source_file_count": 814,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.73: Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard. Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px. Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality. Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage. Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff. Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice.",
+  "release_notes": "FOODEX 1.0.75: Promote all authoritative main changes after FOODEX 1.0.73 through Customer VNext final certification PR #1353 and the authoritative mobile Store Analytics API #1355 into the synchronized FOODEX 1.0.75 release; version 1.0.74 is intentionally skipped. Ship the completed Customer VNext experience across shared responsive foundation, Shopping Home, catalog/search/product detail, cart/checkout/order success, orders/detail/tracking, account/secondary surfaces and final route/state/visual certification. Preserve authoritative Wholesale/Retail tenant, store, channel, cart, checkout and order isolation with Arabic RTL and English LTR acceptance, backed by the secure real-data VNext baseline. Include post-1.0.73 Dashboard/backend work covering Administration and Settings redesign, Assistant localization, Flash Offers/SKU repair, protected reset/reseed, production launch preflight/gate, 14-inch order-management optimization, and server-authoritative mobile Store Analytics. Synchronize Customer, Driver and Van source identities at 1.0.75+75 and publish the versioned Customer artifact `FOODEX-Customer-1.0.75.apk` from the exact authoritative main release commit.",
   "dashboard_fields": {
-    "target_version": "1.0.73",
+    "target_version": "1.0.75",
     "minimum_current_version": "1.0.6",
-    "source_commit": "b5ba42154c5d39716630d74788bbcc51041f6242",
-    "sha256": "3a7d74ad10d5328b225205852fa1848482ce6f825ca922607781cf118adcbf9f",
+    "source_commit": "24c9fe868dc99e5c03a267ffce853f925a13f29c",
+    "sha256": "bf59ad1dbb423ea2f9fbd0d3ccde38f4901ee23ced5215f139c90835069f2b0a",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.73: Promote the authoritative post-1.0.72 main lineage into the FOODEX 1.0.73 Dashboard update, supporting direct update from the currently installed 1.0.72 Dashboard. Ship the Dashboard Mobile Web charter and full admin-page rollout from PRs #1298 and #1303, including off-canvas navigation, compact phone composition, mobile record-card tables, responsive forms/dialogs/pagination and AR/RTL + EN/LTR acceptance at 320/360/390/412/430px. Include B2B navigation cleanup from PR #1305 by hiding Inventory Management and System Settings / Lookups from the shared sidebar while preserving the underlying authorized routes and functionality. Remove Softarkan design-credit branding from customer report PDFs through PR #1307 while preserving report pagination and adding regression coverage. Include Release Factory reliability repairs from PRs #1290, #1295 and #1299 so synchronized Dashboard + Customer + Driver + Van publication uses the canonical B2B Sales Control fresh-install fixture and clean generated-distribution branch handoff. Synchronize Customer, Driver and Van source identities at 1.0.73+73 for the release contract. The Dashboard Update ZIP remains independently deployable from installed APKs; mobile APK publication/deployment remains an explicit operational choice."
+    "release_notes": "FOODEX 1.0.75: Promote all authoritative main changes after FOODEX 1.0.73 through Customer VNext final certification PR #1353 and the authoritative mobile Store Analytics API #1355 into the synchronized FOODEX 1.0.75 release; version 1.0.74 is intentionally skipped. Ship the completed Customer VNext experience across shared responsive foundation, Shopping Home, catalog/search/product detail, cart/checkout/order success, orders/detail/tracking, account/secondary surfaces and final route/state/visual certification. Preserve authoritative Wholesale/Retail tenant, store, channel, cart, checkout and order isolation with Arabic RTL and English LTR acceptance, backed by the secure real-data VNext baseline. Include post-1.0.73 Dashboard/backend work covering Administration and Settings redesign, Assistant localization, Flash Offers/SKU repair, protected reset/reseed, production launch preflight/gate, 14-inch order-management optimization, and server-authoritative mobile Store Analytics. Synchronize Customer, Driver and Van source identities at 1.0.75+75 and publish the versioned Customer artifact `FOODEX-Customer-1.0.75.apk` from the exact authoritative main release commit."
   }
 }
