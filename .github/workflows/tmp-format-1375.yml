@@ -1,0 +1,40 @@
+name: Temporary format issue 1375
+
+on:
+  push:
+    branches:
+      - fix/1375-customer-hotfix-apk
+    paths:
+      - .github/workflows/tmp-format-1375.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.13.4
+      - name: Canonical Dart format
+        run: |
+          dart format \
+            apps/customer_app/lib/core/api/customer_action_api.dart \
+            apps/customer_app/lib/features/auth/unified_customer_auth_screen.dart \
+            apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart
+      - name: Commit formatting
+        shell: bash
+        run: |
+          if git diff --quiet --             apps/customer_app/lib/core/api/customer_action_api.dart             apps/customer_app/lib/features/auth/unified_customer_auth_screen.dart             apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             apps/customer_app/lib/core/api/customer_action_api.dart             apps/customer_app/lib/features/auth/unified_customer_auth_screen.dart             apps/customer_app/lib/features/storefront/wholesale_multistore_screens.dart
+          git commit -m "style(customer): canonical Dart formatting (#1375)"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
