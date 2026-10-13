@@ -11,6 +11,7 @@ import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
+import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
 
 Future<void> _scrollUntilBuilt(
   WidgetTester tester,
@@ -61,6 +62,77 @@ void main() {
       expect(find.text('المشتريات'), findsOneWidget);
       expect(find.text('الفواتير'), findsWidgets);
       expect(find.text('كشف الحساب'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'B2B account statement keeps compact period controls and correct credit direction',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final api = _FakeB2bApi({
+        'currency': 'EGP',
+        'opening_balance': 25,
+        'period_debits': 20,
+        'period_credits': 120,
+        'closing_balance': 125,
+        'balance': 80,
+        'transactions': <Object>[],
+        'pagination': {
+          'current_page': 1,
+          'last_page': 1,
+        },
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/account-statement?store_id=7',
+          b2bApi: api,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('كل التواريخ'), findsNothing);
+      expect(find.text('ليك'), findsWidgets);
+      expect(find.text('عليك'), findsNothing);
+
+      final periodY = tester
+          .getTopLeft(find.text('الفترة'))
+          .dy;
+      final fromY = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-statement-from')))
+          .dy;
+      final toY = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-statement-to')))
+          .dy;
+      expect((periodY - fromY).abs(), lessThan(10));
+      expect((fromY - toY).abs(), lessThan(1));
+
+      final presetKeys = <String>['month', 'previous', '30', 'all'];
+      final presetYs = presetKeys
+          .map(
+            (key) => tester
+                .getTopLeft(
+                  find.byKey(ValueKey('b2b-statement-preset-' + key)),
+                )
+                .dy,
+          )
+          .toList(growable: false);
+      expect(
+        presetYs.every((value) => (value - presetYs.first).abs() < 1),
+        isTrue,
+      );
+
+      final closingText = tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-statement-closing-value')),
+      );
+      expect(closingText.style?.color, CustomerUiColors.white);
     },
   );
 
