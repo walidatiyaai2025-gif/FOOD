@@ -69,7 +69,7 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
         uri,
         headers: <String, String>{
           'Accept': 'application/json',
-          'Authorization': '***',
+          'Authorization': 'Bearer $token',
           'X-FOODEX-Customer-Domain': 'b2b',
         },
       ).timeout(requestTimeout);
