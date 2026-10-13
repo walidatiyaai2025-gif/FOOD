@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -419,7 +420,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     if (widget.previewContext != null) return;
     final session = CustomerSession.platformCustomer(
       accessToken: token,
-      b2bRetailStoreId: retailStoreId ?? _session.b2bRetailStoreId,
+      b2bRetailStoreId: retailStoreId,
     );
     setState(() {
       _session = session;
@@ -453,6 +454,53 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
         _session.b2bRetailStoreId,
       ),
     );
+  }
+
+  Future<int?> _resolveRememberedRetailStoreId(
+    String token,
+    int? rememberedRetailStoreId,
+  ) async {
+    try {
+      final response = await _sessionHttpClient.get(
+        Uri.parse('${FoodexEnvironment.apiBaseUrl}/api/v1/auth/profile'),
+        headers: <String, String>{
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 401) return null;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return rememberedRetailStoreId;
+      }
+
+      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+      if (decoded is! Map) return rememberedRetailStoreId;
+
+      final activeStoreIds = (decoded['retail_store_ids'] as List? ??
+              const <Object>[])
+          .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
+          .whereType<int>()
+          .where((id) => id > 0)
+          .toSet()
+          .toList(growable: false)
+        ..sort();
+
+      if (activeStoreIds.isEmpty) return null;
+      if (rememberedRetailStoreId != null &&
+          activeStoreIds.contains(rememberedRetailStoreId)) {
+        return rememberedRetailStoreId;
+      }
+
+      return activeStoreIds.first;
+    } catch (error) {
+      _diagnostics.record('merchant_identity_refresh_deferred_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+      // Online-first with offline fallback: preserve the remembered scope only
+      // when the server cannot be reached to authoritatively refresh identity.
+      return rememberedRetailStoreId;
+    }
   }
 
   Future<void> _resumeAuthenticatedRoute(String target) async {
@@ -756,6 +804,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       onPlatformRegistered: _onPlatformRegistered,
       onUnifiedAuthenticated: _completeUnifiedAuthentication,
       onAuthenticatedRouteResume: _resumeAuthenticatedRoute,
+      rememberedRetailStoreResolver: _resolveRememberedRetailStoreId,
       onLogout: widget.previewContext == null ? () => _logout(actionApi) : null,
       sessionStore: widget.previewContext == null ? widget.sessionStore : null,
       authPreferences: _authPreferences,
