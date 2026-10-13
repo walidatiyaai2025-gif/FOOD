@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.75 - 2026-10-13
+
+- Promote the authoritative FOODEX main lineage after the completed 1.0.74 Dashboard update into synchronized release 1.0.75.
+- Preserve the full Customer VNext program and Mobile Smart Store Analytics stack already integrated on main, including Retail EGP analytics, Dashboard-managed store branding, compact mobile analytics UI, insight badge/pulse behavior, production launch controls, protected reset/reseed, and final certification gates.
+- Rebuild the Dashboard update and Customer, Driver and Van Android artifacts from one exact release lineage with mobile source identity 1.0.75+75.
+- Keep production Launch/reset safeguards fail-closed; release promotion does not bypass owner-data, asset, backup, migration or green-preflight requirements.
+- Dashboard update targets direct upgrade from 1.0.74 while retaining the cumulative updater boundary.
+
 ## 1.0.74 - 2026-10-12
 
 - Promote the completed Customer VNext program from umbrella #1323 into the FOODEX 1.0.74 Dashboard update, including the unified Shopping Home, catalog/search/product details, cart/checkout/order success, orders/tracking, account/address/notifications/offers/settings, sanitized launch-data baseline, protected reset/reseed, production preflight/Launch gate, and independent final certification from #1333 / PR #1353. The Dashboard package supports direct update from the currently published 1.0.73 release.
