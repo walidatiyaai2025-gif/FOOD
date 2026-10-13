@@ -351,6 +351,7 @@ try {
       viewport: { width, height },
       deviceScaleFactor: 1,
       locale: browserLocale,
+      reducedMotion: 'reduce',
     });
     instrumentPage(standalone);
     await standalone.goto(
@@ -369,6 +370,7 @@ try {
       viewport: { width: width + 40, height: height + 40 },
       deviceScaleFactor: 1,
       locale: browserLocale,
+      reducedMotion: 'reduce',
     });
     instrumentPage(embedded);
     await embedded.goto(origin + '/host.html?fixture=' + encodeURIComponent(id), { waitUntil: 'networkidle' });
