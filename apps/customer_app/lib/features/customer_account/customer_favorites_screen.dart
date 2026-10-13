@@ -301,7 +301,7 @@ class _FavoritesSkeleton extends StatelessWidget {
       );
 }
 
-int _favoriteGridColumns(double maxWidth) => maxWidth >= 720 ? 3 : 2;
+int _favoriteGridColumns(double maxWidth) => 3;
 
 double _favoriteGridCardExtent(
   BuildContext context,
