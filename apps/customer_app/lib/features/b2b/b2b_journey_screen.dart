@@ -6622,7 +6622,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       icon: const Icon(Icons.local_shipping_outlined),
                       label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                     ),
-
                 ],
               ),
             ],
