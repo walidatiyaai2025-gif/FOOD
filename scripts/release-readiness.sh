@@ -23,6 +23,23 @@ grep -q 'iOS' docs/release/RELEASE_CHECKLIST.md
 release_version="$(tr -d '\r\n' < VERSION)"
 [[ "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
+customer_freeze_sha="4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d"
+production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
+if [[ "$release_version" == "1.0.77" && -f "$production_hold_file" ]]; then
+  if ! git cat-file -e "$customer_freeze_sha^{commit}" 2>/dev/null; then
+    echo "::error::Customer freeze baseline commit $customer_freeze_sha is not available."
+    exit 1
+  fi
+  if ! git diff --quiet "$customer_freeze_sha" -- apps/customer_app; then
+    echo "::error::FOODEX 1.0.77 production hold requires apps/customer_app/** to remain identical to frozen baseline $customer_freeze_sha."
+    git diff --name-only "$customer_freeze_sha" -- apps/customer_app
+    exit 1
+  fi
+  echo "FOODEX 1.0.77 production hold is active; Customer tree is frozen and unchanged."
+  echo "Final synchronized publication remains blocked until #1380 replaces the hold with the frozen-lineage release contract."
+  exit 0
+fi
+
 customer_version="$(awk '/^version:/ {print $2; exit}' apps/customer_app/pubspec.yaml)"
 driver_version="$(awk '/^version:/ {print $2; exit}' apps/driver_app/pubspec.yaml)"
 van_version="$(awk '/^version:/ {print $2; exit}' apps/van_app/pubspec.yaml)"
