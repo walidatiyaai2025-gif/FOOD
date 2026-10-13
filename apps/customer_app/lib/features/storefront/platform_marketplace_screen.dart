@@ -521,7 +521,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                       constraints.maxWidth < 350 ? 158.0 : 166.0;
                   const productColumns = 3;
                   final productAspectRatio =
-                      constraints.maxWidth >= 720 ? .72 : .68;
+                      (constraints.maxWidth >= 720 ? .72 : .68) / .85;
 
                   return CustomScrollView(
                     slivers: [
