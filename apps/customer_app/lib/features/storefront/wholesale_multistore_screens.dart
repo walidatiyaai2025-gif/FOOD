@@ -350,7 +350,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       title: sectionTitle,
                       palette: palette,
                       textScale: .8,
-                      spacingScale: .5,
+                      spacingScale: .25,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'categories',
@@ -379,7 +379,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         title: sectionTitle,
                         palette: palette,
                         textScale: .8,
-                        spacingScale: .5,
+                        spacingScale: .25,
                         onAction: storeId > 0
                             ? () =>
                                 openCatalog(_wholesaleSectionFilters(section))
@@ -407,7 +407,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       title: sectionTitle,
                       palette: palette,
                       textScale: .8,
-                      spacingScale: .5,
+                      spacingScale: .25,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'brands',
@@ -444,7 +444,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   title: context.tr('customer.products.title'),
                   palette: palette,
                   textScale: .8,
-                  spacingScale: .5,
+                  spacingScale: .25,
                   onAction: storeId > 0 ? () => openCatalog() : null,
                 ),
               );
@@ -484,7 +484,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
                     ...content,
-                    const SizedBox(height: 11),
+                    const SizedBox(height: 5.5),
                   ],
                 ),
               ),
@@ -796,7 +796,7 @@ class _WholesaleHero extends StatelessWidget {
     final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 1.7),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, .85),
       child: Container(
         width: double.infinity,
         height: 168.3,
