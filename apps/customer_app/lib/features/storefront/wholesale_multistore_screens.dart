@@ -349,6 +349,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      textScale: .8,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'categories',
@@ -376,6 +377,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       FoodexSectionHeader(
                         title: sectionTitle,
                         palette: palette,
+                        textScale: .8,
                         onAction: storeId > 0
                             ? () =>
                                 openCatalog(_wholesaleSectionFilters(section))
@@ -402,6 +404,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      textScale: .8,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'brands',
@@ -437,6 +440,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 FoodexSectionHeader(
                   title: context.tr('customer.products.title'),
                   palette: palette,
+                  textScale: .8,
                   onAction: storeId > 0 ? () => openCatalog() : null,
                 ),
               );
