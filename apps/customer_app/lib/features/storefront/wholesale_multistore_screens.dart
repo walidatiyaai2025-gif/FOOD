@@ -1225,8 +1225,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.2,
+                  fontSize: 11,
+                  height: 1.15,
                   fontWeight: FontWeight.w900,
                   color: Color(0xFF102033),
                 ),
