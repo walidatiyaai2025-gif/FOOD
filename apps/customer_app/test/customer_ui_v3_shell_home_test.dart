@@ -303,7 +303,11 @@ void main() {
       find.byKey(const ValueKey('retail-shell-nav-home')),
     );
     await tester.pumpAndSettle();
-    expect(pushedRoute, CustomerRoutePaths.marketplace);
+    expect(pushedRoute, isNotNull);
+    final homeUri = Uri.parse(pushedRoute!);
+    expect(homeUri.path, '/retail/17/home');
+    expect(homeUri.queryParameters['store_id'], '17');
+    expect(homeUri.queryParameters['channel'], 'retail');
   });
 
   testWidgets(
