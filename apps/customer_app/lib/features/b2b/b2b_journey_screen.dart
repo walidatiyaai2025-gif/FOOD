@@ -7492,13 +7492,52 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                               '${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}',
                               style: compactStrongStyle,
                             ),
-                            Text(
-                              '${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}',
-                              style: compactBodyStyle,
+                            Text.rich(
+                              key: ValueKey(
+                                'b2b-invoice-paid-${row['id']}',
+                              ),
+                              TextSpan(
+                                style: compactBodyStyle,
+                                children: [
+                                  TextSpan(
+                                    text: '${ar ? 'المدفوع' : 'Paid'}: ',
+                                  ),
+                                  TextSpan(
+                                    text: _money(
+                                      row['paid_amount'],
+                                      currency,
+                                    ),
+                                    style: const TextStyle(
+                                      color: CustomerUiColors.success,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            Text(
-                              '${ar ? 'المتبقي' : 'Outstanding'}: ${_money(row['outstanding_amount'], currency)}',
-                              style: compactBodyStyle,
+                            Text.rich(
+                              key: ValueKey(
+                                'b2b-invoice-outstanding-${row['id']}',
+                              ),
+                              TextSpan(
+                                style: compactBodyStyle,
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        '${ar ? 'المتبقي' : 'Outstanding'}: ',
+                                  ),
+                                  TextSpan(
+                                    text: _money(
+                                      row['outstanding_amount'],
+                                      currency,
+                                    ),
+                                    style: const TextStyle(
+                                      color: CustomerUiColors.destructive,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             if ((double.tryParse(
                                       row['credit_amount'].toString(),
