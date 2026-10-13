@@ -291,7 +291,7 @@ class CustomerAppRouter {
             nextRoute: CustomerRoutePaths.marketplace,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences) async => onPlatformRegistered(token),
+                (token, preferences, retailStoreId) async => onPlatformRegistered(token),
             sessionStore: sessionStore,
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
@@ -340,7 +340,7 @@ class CustomerAppRouter {
             nextRoute: nextLocation,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences) async => onPlatformRegistered(token),
+                (token, preferences, retailStoreId) async => onPlatformRegistered(token),
             commerceContext: commerceContext,
             registrationStoreId:
                 commerceContext != null && commerceContext.isRetail
