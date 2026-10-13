@@ -233,24 +233,28 @@ class DashboardMetricCard extends StatelessWidget {
                     children: [
                       if (dense) ...[
                         amount,
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            symbol,
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                label,
-                                maxLines: 2,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontSize: 12,
-                                      height: 1.15,
-                                      color: CustomerUiColors.muted,
-                                    ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              symbol,
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        fontSize: 12,
+                                        height: 1.05,
+                                        color: CustomerUiColors.muted,
+                                      ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ] else ...[
                         symbol,
