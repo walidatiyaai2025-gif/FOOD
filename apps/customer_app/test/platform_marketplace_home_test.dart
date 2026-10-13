@@ -1272,6 +1272,5 @@ void main() {
       find.byKey(const ValueKey('footer-disabled-products')),
       findsOneWidget,
     );
-
   });
 }

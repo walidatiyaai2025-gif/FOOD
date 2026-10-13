@@ -174,9 +174,8 @@ class CustomerOutlineIconButton extends StatelessWidget {
         label: semanticLabel ?? tooltip,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: selected
-                ? CustomerUiColors.limeSoft
-                : CustomerUiColors.white,
+            color:
+                selected ? CustomerUiColors.limeSoft : CustomerUiColors.white,
             borderRadius: BorderRadius.circular(CustomerUiRadii.md),
             border: Border.all(color: CustomerUiColors.border),
           ),
@@ -412,16 +411,20 @@ class CustomerProductCard extends StatelessWidget {
                           fallbackAsset: fallbackAsset,
                         ),
                       ),
-                      if (!isAvailable && unavailableLabel?.trim().isNotEmpty == true)
+                      if (!isAvailable &&
+                          unavailableLabel?.trim().isNotEmpty == true)
                         PositionedDirectional(
                           bottom: CustomerUiSpacing.xs,
                           start: CustomerUiSpacing.xs,
                           child: DecoratedBox(
-                            key: const ValueKey('customer-product-out-of-stock'),
+                            key:
+                                const ValueKey('customer-product-out-of-stock'),
                             decoration: BoxDecoration(
                               color: CustomerUiColors.white,
-                              borderRadius: BorderRadius.circular(CustomerUiRadii.pill),
-                              border: Border.all(color: CustomerUiColors.border),
+                              borderRadius:
+                                  BorderRadius.circular(CustomerUiRadii.pill),
+                              border:
+                                  Border.all(color: CustomerUiColors.border),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
@@ -430,7 +433,10 @@ class CustomerProductCard extends StatelessWidget {
                               ),
                               child: Text(
                                 unavailableLabel!,
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
                                       color: CustomerUiColors.muted,
                                       fontWeight: FontWeight.w800,
                                     ),
