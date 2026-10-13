@@ -438,7 +438,7 @@ void main() {
     expect(find.text('Active orders'), findsOneWidget);
   });
 
-  testWidgets('B2B profile is the complete visible account and finance hub', (
+  testWidgets('B2B More keeps the compact hub without inline account sections', (
     tester,
   ) async {
     final api = _PathB2bApi({
@@ -489,22 +489,22 @@ void main() {
 
     expect(
       find.byKey(const ValueKey('b2b-profile-friendly-data')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Acme Foods'), findsWidgets);
-    expect(find.text('TAX-872'), findsOneWidget);
-    expect(find.text('نشط'), findsOneWidget);
+    expect(find.text('Acme Foods'), findsNothing);
+    expect(find.text('TAX-872'), findsNothing);
+    expect(find.text('نشط'), findsNothing);
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
     expect(find.text('عليك'), findsOneWidget);
     expect(find.text('125.000 KWD'), findsOneWidget);
     expect(find.text('1000.000 KWD'), findsOneWidget);
     expect(find.text('875.000 KWD'), findsWidgets);
-    expect(find.text('طلباتي'), findsWidgets);
-    expect(find.text('الفواتير'), findsWidgets);
-    expect(find.text('كشف الحساب'), findsWidgets);
+    expect(find.text('طلباتي'), findsOneWidget);
+    expect(find.text('الفواتير'), findsOneWidget);
+    expect(find.text('كشف الحساب'), findsOneWidget);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
     expect(find.text('الإشعارات'), findsOneWidget);
-    expect(find.text('العناوين'), findsWidgets);
+    expect(find.text('العناوين'), findsOneWidget);
     expect(find.text('العربية'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
     expect(find.text('المساعدة والدعم'), findsOneWidget);
