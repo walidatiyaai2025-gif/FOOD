@@ -1222,7 +1222,7 @@ class _RetailProductGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = MediaQuery.sizeOf(context).width < 350 ? 3 : 4;
+    const count = 3;
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       shrinkWrap: true,
@@ -1232,7 +1232,7 @@ class _RetailProductGrid extends StatelessWidget {
         crossAxisCount: count,
         crossAxisSpacing: 9,
         mainAxisSpacing: 10,
-        childAspectRatio: count == 3 ? .56 : .48,
+        childAspectRatio: .56 / .85,
       ),
       itemBuilder: (context, index) {
         final product = products[index];
@@ -1257,7 +1257,8 @@ class _RetailProductGrid extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
+                  SizedBox(
+                    height: 72,
                     child: Opacity(
                       opacity: product.isAvailable ? 1 : 0.42,
                       child: FoodexProductImage(
@@ -1272,7 +1273,8 @@ class _RetailProductGrid extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
+                      height: 1.15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1295,7 +1297,7 @@ class _RetailProductGrid extends StatelessWidget {
                         child: Text(
                           product.price == null
                               ? '—'
-                              : product.price!.toStringAsFixed(2) +
+                              : product.price!.toStringAsFixed(0) +
                                   ' ' +
                                   product.currency,
                           style: TextStyle(

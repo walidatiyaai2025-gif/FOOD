@@ -10,6 +10,7 @@ class PlatformAnalyticsRolloutContractTest extends TestCase
     {
         $b2bDashboard = file_get_contents(resource_path('views/admin/b2b-workspace.blade.php'));
         $customer = file_get_contents(base_path('../apps/customer_app/lib/features/b2b/b2b_journey_screen.dart'));
+        $customerAnalytics = file_get_contents(base_path('../apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart'));
         $driver = file_get_contents(base_path('../apps/driver_app/lib/navigation.dart'));
         $vanDashboard = file_get_contents(base_path('../apps/van_app/lib/features/foundation/van_dashboard_page.dart'));
         $vanOrders = file_get_contents(base_path('../apps/van_app/lib/features/orders/van_orders_page.dart'));
@@ -21,7 +22,9 @@ class PlatformAnalyticsRolloutContractTest extends TestCase
         $this->assertStringContainsString('foodex-viz-donut', $b2bDashboard);
 
         $this->assertStringContainsString('FoodexBarChart(', $customer);
-        $this->assertStringContainsString('FoodexDonutChart(', $customer);
+        $this->assertStringContainsString('FoodexTrendChart(', $customerAnalytics);
+        $this->assertStringContainsString('FoodexBarChart(', $customerAnalytics);
+        $this->assertStringContainsString("ValueKey('store-analytics-screen')", $customerAnalytics);
         $this->assertStringContainsString('_DriverWorkloadChart', $driver);
         $this->assertStringContainsString('FoodexDonutChart(', $driver);
         $this->assertStringContainsString('driver-home-workload-chart', $driver);

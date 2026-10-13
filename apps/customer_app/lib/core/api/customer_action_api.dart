@@ -57,10 +57,12 @@ class CustomerLoginResult {
   const CustomerLoginResult({
     required this.token,
     this.platformCustomer = false,
+    this.retailStoreIds = const <int>[],
   });
 
   final String token;
   final bool platformCustomer;
+  final List<int> retailStoreIds;
 }
 
 abstract interface class CustomerActionApi {
@@ -144,9 +146,19 @@ class HttpCustomerActionApi implements CustomerActionApi {
         ? Map<String, dynamic>.from(body['user'] as Map)
         : const <String, dynamic>{};
 
+    final retailStoreIds = (user['retail_store_ids'] as List? ??
+            const <Object>[])
+        .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
+        .whereType<int>()
+        .where((id) => id > 0)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+
     return CustomerLoginResult(
       token: value,
       platformCustomer: user['platform_customer'] == true,
+      retailStoreIds: retailStoreIds,
     );
   }
 
@@ -178,16 +190,11 @@ class HttpCustomerActionApi implements CustomerActionApi {
       throw const CustomerActionException('invalid_registration_response');
     }
 
-    return CustomerLoginResult(
-      token: value,
-      platformCustomer: true,
-    );
+    return CustomerLoginResult(token: value, platformCustomer: true);
   }
 
   @override
-  Future<CustomerLoginResult> login({
-    required String username,
-  }) async {
+  Future<CustomerLoginResult> login({required String username}) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/auth/mobile-trial'),
       headers: _headers,
@@ -203,9 +210,19 @@ class HttpCustomerActionApi implements CustomerActionApi {
         ? Map<String, dynamic>.from(body['user'] as Map)
         : const <String, dynamic>{};
 
+    final retailStoreIds = (user['retail_store_ids'] as List? ??
+            const <Object>[])
+        .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
+        .whereType<int>()
+        .where((id) => id > 0)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+
     return CustomerLoginResult(
       token: value,
       platformCustomer: user['platform_customer'] == true,
+      retailStoreIds: retailStoreIds,
     );
   }
 
@@ -224,17 +241,14 @@ class HttpCustomerActionApi implements CustomerActionApi {
       await future;
       _loggedOutTokens.add(accessToken);
     } finally {
-      _logoutInFlight.remove(accessToken);
+      _logoutInFlight.remove(accessToken)?.ignore();
     }
   }
 
   Future<void> _performLogout(String accessToken) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/auth/logout'),
-      headers: {
-        ..._headers,
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {..._headers, 'Authorization': 'Bearer $accessToken'},
     );
     if (response.statusCode == 401 || response.statusCode == 204) return;
     _decode(response);
@@ -324,10 +338,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
       } else if (body is Map && body['message'] is String) {
         code = body['message'] as String;
       }
-      throw CustomerActionException(
-        code,
-        fieldErrors: _validationErrors(body),
-      );
+      throw CustomerActionException(code, fieldErrors: _validationErrors(body));
     }
 
     return body;

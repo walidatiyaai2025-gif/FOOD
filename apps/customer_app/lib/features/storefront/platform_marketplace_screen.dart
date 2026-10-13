@@ -48,6 +48,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
   List<Map<String, dynamic>>? _retailStoreFallback;
+  CustomerCommerceContext? _lastChosenCommerceContext;
 
   CustomerSession get _currentSession =>
       widget.sessionProvider?.call() ?? widget.session;
@@ -56,7 +57,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     Map<String, dynamic> data,
     CustomerCommerceContext? fallback,
   ) {
-    final remembered = widget.commerceContextProvider?.call();
+    final remembered =
+        _lastChosenCommerceContext ?? widget.commerceContextProvider?.call();
     if (remembered == null) return fallback;
     if (!remembered.isRetail) return remembered;
 
@@ -322,12 +324,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       source: CustomerCommerceSource.retailBanner,
       entryPlacementId: placementId > 0 ? placementId : null,
     );
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.retailHome(commerceContext),
     );
   }
 
   void _openWholesaleStore(CustomerCommerceContext commerceContext) {
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.wholesaleHome(commerceContext),
     );
@@ -358,6 +362,25 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
           ? CustomerRouteLocations.retailHome(context)
           : CustomerRouteLocations.wholesaleHome(context);
 
+  void _openWholesaleCategory(int storeId, int categoryId) {
+    if (storeId <= 0 || categoryId <= 0) return;
+    final commerceContext = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.wholesale,
+      storeId: storeId,
+      source: CustomerCommerceSource.marketplace,
+    );
+    setState(() => _lastChosenCommerceContext = commerceContext);
+    Navigator.of(context).pushNamed(
+      Uri(
+        path: CustomerRoutePaths.b2bProducts,
+        queryParameters: <String, String>{
+          ...commerceContext.toQueryParameters(),
+          'category_id': '$categoryId',
+        },
+      ).toString(),
+    );
+  }
+
   void _openWholesaleProduct(int storeId, int productId) {
     if (storeId <= 0 || productId <= 0) return;
     final commerceContext = CustomerCommerceContext(
@@ -365,6 +388,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       storeId: storeId,
       source: CustomerCommerceSource.wholesaleEntry,
     );
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.wholesaleProduct(
         commerceContext,
@@ -501,10 +525,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                 builder: (context, constraints) {
                   final bannerHeight =
                       constraints.maxWidth < 350 ? 158.0 : 166.0;
-                  final productColumns =
-                      constraints.maxWidth >= 720 ? 3 : 2;
+                  const productColumns = 3;
                   final productAspectRatio =
-                      constraints.maxWidth >= 720 ? .72 : .68;
+                      (constraints.maxWidth >= 720 ? .72 : .68) / .85;
 
                   return CustomScrollView(
                     slivers: [
@@ -660,7 +683,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           child: _MarketplaceCategoryRail(
                             categories: categories,
                             selectedCategoryId: _selectedCategoryId,
-                            onSelect: _selectCategory,
+                            onSelect: (categoryId) {
+                              if (categoryId == null) {
+                                _selectCategory(null);
+                                return;
+                              }
+                              _openWholesaleCategory(storeId, categoryId);
+                            },
                           ),
                         ),
                       ...homeCollections.map(
@@ -746,11 +775,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               storeId: storeId,
               source: CustomerCommerceSource.marketplace,
             );
+            final selectedContext = _safeCommerceContext(data, null);
             return CustomerPersistentFooterDock(
-              commerceContext: _safeCommerceContext(data, fallbackContext) ??
-                  fallbackContext,
+              commerceContext: selectedContext ?? fallbackContext,
               activeDestination: CustomerFooterDestination.home,
               isPlatformHome: true,
+              disableProducts:
+                  _currentSession.isAuthenticated && selectedContext == null,
             );
           },
         ),
@@ -1741,8 +1772,6 @@ class _WholesaleProductCard extends StatelessWidget {
     final currency = product['currency']?.toString().trim();
     final name = product['name']?.toString().trim() ?? '';
     final brand = product['brand_name']?.toString().trim() ?? '';
-    final minimum = product['minimum_order_quantity'] ??
-        product['minimum_quantity'];
     final priceText =
         '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}';
 
@@ -1769,7 +1798,8 @@ class _WholesaleProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
+              SizedBox(
+                height: 78,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -1824,14 +1854,14 @@ class _WholesaleProductCard extends StatelessWidget {
                     Text(
                       name,
                       key: ValueKey('$keyPrefix-name-$id'),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.start,
                       style: const TextStyle(
                         color: Color(0xFF17212F),
                         fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        height: 1.18,
+                        fontSize: 11,
+                        height: 1.15,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1847,29 +1877,6 @@ class _WholesaleProductCard extends StatelessWidget {
                         height: 1.1,
                       ),
                     ),
-                    if (minimum != null) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F8F4),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'الحد الأدنى: $minimum',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF68766E),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),

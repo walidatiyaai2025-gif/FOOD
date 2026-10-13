@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,12 +10,14 @@ import 'core/api/b2c_catalog_api.dart';
 import 'core/api/b2c_account_api.dart';
 import 'core/api/customer_action_api.dart';
 import 'core/api/storefront_api.dart';
+import 'core/api/store_analytics_api.dart';
 import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_auth_persistence.dart';
 import 'core/auth/customer_session.dart';
 import 'core/auth/customer_session_http_client.dart';
 import 'core/auth/customer_session_store.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/config/customer_app_release.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/engagement/notification_campaign_popup_service.dart';
 import 'core/localization/app_translations.dart';
@@ -35,6 +38,7 @@ import 'core/theme/foodex_theme.dart';
 import 'features/customer_orders/customer_orders_api.dart';
 import 'features/retail/commerce/retail_commerce_api.dart';
 import 'features/storefront/marketplace_barcode_scanner.dart';
+import 'features/store_analytics/store_analytics_screen.dart';
 
 class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
@@ -175,13 +179,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
   late final CustomerNotificationCampaignPopupService _launchCampaignPopups;
   bool _launchCampaignPopupScheduled = false;
-  Timer? _versionFooterTimer;
-  bool _showVersionFooter = false;
   final CustomerDiagnostics _diagnostics = CustomerDiagnostics.instance;
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-  static const _appVersion = '1.0.75';
 
   @override
   void initState() {
@@ -212,12 +213,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       lowDataHttpClient,
       onUnauthorized: _onSessionExpired,
     );
-    _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
-    if (!_showVersionFooter) {
-      _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
-        if (mounted) setState(() => _showVersionFooter = true);
-      });
-    }
     _loadRemoteTranslations();
     _configurePush();
     _configureDiagnostics();
@@ -336,7 +331,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
     _diagnostics.updateContext(
-      appVersion: _appVersion,
+      appVersion: customerAppVersion,
       apiBaseUrl: baseUrl,
       locale: _locale.languageCode,
       authenticated: _session.isAuthenticated,
@@ -412,11 +407,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   Future<void> _completeUnifiedAuthentication(
     String token,
     CustomerAuthPreferences preferences,
+    int? retailStoreId,
   ) async {
     if (widget.previewContext != null) return;
     final session = CustomerSession.platformCustomer(
       accessToken: token,
-      b2bRetailStoreId: _session.b2bRetailStoreId,
+      b2bRetailStoreId: retailStoreId,
     );
     setState(() {
       _session = session;
@@ -434,14 +430,69 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
 
   void _onAuthenticated(CustomerChannel channel, String token) {
     unawaited(
-      _completeUnifiedAuthentication(token, const CustomerAuthPreferences()),
+      _completeUnifiedAuthentication(
+        token,
+        const CustomerAuthPreferences(),
+        _session.b2bRetailStoreId,
+      ),
     );
   }
 
   void _onPlatformRegistered(String token) {
     unawaited(
-      _completeUnifiedAuthentication(token, const CustomerAuthPreferences()),
+      _completeUnifiedAuthentication(
+        token,
+        const CustomerAuthPreferences(),
+        _session.b2bRetailStoreId,
+      ),
     );
+  }
+
+  Future<int?> _resolveRememberedRetailStoreId(
+    String token,
+    int? rememberedRetailStoreId,
+  ) async {
+    try {
+      final response = await _sessionHttpClient.get(
+        Uri.parse('${FoodexEnvironment.apiBaseUrl}/api/v1/auth/profile'),
+        headers: <String, String>{
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 401) return null;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return rememberedRetailStoreId;
+      }
+
+      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+      if (decoded is! Map) return rememberedRetailStoreId;
+
+      final activeStoreIds = (decoded['retail_store_ids'] as List? ??
+              const <Object>[])
+          .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
+          .whereType<int>()
+          .where((id) => id > 0)
+          .toSet()
+          .toList(growable: false)
+        ..sort();
+
+      if (activeStoreIds.isEmpty) return null;
+      if (rememberedRetailStoreId != null &&
+          activeStoreIds.contains(rememberedRetailStoreId)) {
+        return rememberedRetailStoreId;
+      }
+
+      return activeStoreIds.first;
+    } catch (error) {
+      _diagnostics.record('merchant_identity_refresh_deferred_error', {
+        'error_type': error.runtimeType.toString(),
+      });
+      // Online-first with offline fallback: preserve the remembered scope only
+      // when the server cannot be reached to authoritatively refresh identity.
+      return rememberedRetailStoreId;
+    }
   }
 
   Future<void> _resumeAuthenticatedRoute(String target) async {
@@ -527,7 +578,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _sessionHttpClient.close();
-    _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
     super.dispose();
@@ -544,7 +594,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
     _diagnostics.updateContext(
-      appVersion: _appVersion,
+      appVersion: customerAppVersion,
       apiBaseUrl: baseUrl,
       locale: _locale.languageCode,
       authenticated: _session.isAuthenticated,
@@ -745,6 +795,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       onPlatformRegistered: _onPlatformRegistered,
       onUnifiedAuthenticated: _completeUnifiedAuthentication,
       onAuthenticatedRouteResume: _resumeAuthenticatedRoute,
+      rememberedRetailStoreResolver: _resolveRememberedRetailStoreId,
       onLogout: widget.previewContext == null ? () => _logout(actionApi) : null,
       sessionStore: widget.previewContext == null ? widget.sessionStore : null,
       authPreferences: _authPreferences,
@@ -765,6 +816,23 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       onCommerceContextChanged: (context) {
         _activeCommerceContext = context;
       },
+      storeAnalyticsBuilder: token == null || token.isEmpty
+          ? null
+          : (context, location) {
+              final routeContext =
+                  CustomerStoreAnalyticsRouteContext.tryParse(location);
+              return StoreAnalyticsRouteScreen(
+                api: b2bApi == null
+                    ? HttpStoreAnalyticsApi(
+                        baseUrl: baseUrl,
+                        token: token,
+                        client: _sessionHttpClient,
+                      )
+                    : B2bBackedStoreAnalyticsApi(b2bApi),
+                retailStoreId:
+                    routeContext?.retailStoreId ?? _session.b2bRetailStoreId,
+              );
+            },
     );
     _activeRouter = router;
 
@@ -786,90 +854,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
         AppTranslations(
           locale: _locale,
           overrides: _translations,
-          child: Builder(
-            builder: (translatedContext) => Stack(
-              fit: StackFit.expand,
-              children: [
-                if (_showVersionFooter && widget.showPersistentFooter)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      bottom: 34 +
-                          MediaQuery.viewPaddingOf(translatedContext).bottom,
-                    ),
-                    child: child ?? const SizedBox.shrink(),
-                  )
-                else
-                  child ?? const SizedBox.shrink(),
-                if (_showVersionFooter && widget.showPersistentFooter) ...[
-                  PositionedDirectional(
-                    start: 0,
-                    end: 0,
-                    bottom: 0,
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          color: FoodexBrand.surfaceMuted,
-                          border: Border(
-                            top: BorderSide(color: FoodexBrand.border),
-                          ),
-                        ),
-                        child: SafeArea(
-                          top: false,
-                          child: SizedBox(
-                            height: 34,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Text(
-                                  '${translatedContext.tr('customer.version')} $_appVersion',
-                                  key: const ValueKey(
-                                    'customer-app-version-footer',
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(translatedContext)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(
-                                        color: FoodexBrand.muted,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_session.isAuthenticated)
-                    PositionedDirectional(
-                      end: 6,
-                      bottom: 0,
-                      child: SafeArea(
-                        top: false,
-                        child: SizedBox(
-                          height: 34,
-                          child: TextButton.icon(
-                            key: const ValueKey('customer-logout'),
-                            onPressed: () => _logout(actionApi),
-                            icon: const Icon(Icons.logout_rounded, size: 16),
-                            label: Text(
-                              translatedContext.tr('customer.logout'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
+          child: child ?? const SizedBox.shrink(),
         ),
       ),
       initialRoute: widget.initialRoute,

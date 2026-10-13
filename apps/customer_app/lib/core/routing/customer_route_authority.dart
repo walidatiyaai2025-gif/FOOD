@@ -39,6 +39,7 @@ CustomerRouteAuthority customerRouteAuthorityFor(
     case CustomerRoutePaths.b2bCheckout:
     case CustomerRoutePaths.b2bOrders:
     case CustomerRoutePaths.b2bOrderDetails:
+    case CustomerRoutePaths.b2bFavorites:
       return CustomerRouteAuthority.multiStore;
 
     // Product detail without wholesale store context remains a compatibility

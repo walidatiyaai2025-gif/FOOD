@@ -35,6 +35,7 @@ abstract final class CustomerRoutePaths {
   static const b2bInvoiceDetails = '/b2b/invoices/:id';
   static const b2bAccountStatement = '/b2b/account-statement';
   static const b2bOrders = '/b2b/orders';
+  static const b2bFavorites = '/b2b/favorites';
   static const b2bOrderDetails = '/b2b/orders/:id';
   static const b2bNotifications = '/b2b/notifications';
   static const b2bCart = '/b2b/cart';
@@ -49,6 +50,27 @@ abstract final class CustomerRouteLocations {
   static String retailHome(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.retail);
     return _scoped('/retail/${context.storeId}/home', context);
+  }
+
+  static String retailProducts(
+    CustomerCommerceContext context, {
+    String? query,
+    int? categoryId,
+  }) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    if (categoryId != null && categoryId <= 0) {
+      throw ArgumentError.value(categoryId, 'categoryId', 'must be positive');
+    }
+    final normalizedQuery = query?.trim();
+    return _scoped(
+      CustomerRoutePaths.products,
+      context,
+      <String, String>{
+        if (normalizedQuery != null && normalizedQuery.isNotEmpty)
+          'q': normalizedQuery,
+        if (categoryId != null) 'category_id': '$categoryId',
+      },
+    );
   }
 
   static String retailProduct(
@@ -140,6 +162,11 @@ abstract final class CustomerRouteLocations {
   static String wholesaleOrders(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.wholesale);
     return _scoped(CustomerRoutePaths.b2bOrders, context);
+  }
+
+  static String wholesaleFavorites(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    return _scoped(CustomerRoutePaths.b2bFavorites, context);
   }
 
   static String wholesaleNotifications(CustomerCommerceContext context) {
@@ -548,6 +575,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bOrders,
     label: 'B2B orders',
+    channel: CustomerChannel.b2b,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bFavorites,
+    label: 'B2B favorites',
     channel: CustomerChannel.b2b,
     requiresAuth: true,
   ),

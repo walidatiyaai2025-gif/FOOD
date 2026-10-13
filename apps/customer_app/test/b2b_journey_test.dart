@@ -11,6 +11,7 @@ import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
+import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
 
 Future<void> _scrollUntilBuilt(
   WidgetTester tester,
@@ -61,6 +62,77 @@ void main() {
       expect(find.text('المشتريات'), findsOneWidget);
       expect(find.text('الفواتير'), findsWidgets);
       expect(find.text('كشف الحساب'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'B2B account statement keeps compact period controls and correct credit direction',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final api = _FakeB2bApi({
+        'currency': 'EGP',
+        'opening_balance': 25,
+        'period_debits': 20,
+        'period_credits': 120,
+        'closing_balance': 125,
+        'balance': 80,
+        'transactions': <Object>[],
+        'pagination': {
+          'current_page': 1,
+          'last_page': 1,
+        },
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/account-statement?store_id=7',
+          b2bApi: api,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('كل التواريخ'), findsNothing);
+      expect(find.text('ليك'), findsWidgets);
+      expect(find.text('عليك'), findsNothing);
+
+      final periodY = tester
+          .getTopLeft(find.text('الفترة'))
+          .dy;
+      final fromY = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-statement-from')))
+          .dy;
+      final toY = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-statement-to')))
+          .dy;
+      expect((periodY - fromY).abs(), lessThan(10));
+      expect((fromY - toY).abs(), lessThan(1));
+
+      final presetKeys = <String>['month', 'previous', '30', 'all'];
+      final presetYs = presetKeys
+          .map(
+            (key) => tester
+                .getTopLeft(
+                  find.byKey(ValueKey('b2b-statement-preset-' + key)),
+                )
+                .dy,
+          )
+          .toList(growable: false);
+      expect(
+        presetYs.every((value) => (value - presetYs.first).abs() < 1),
+        isTrue,
+      );
+
+      final closingText = tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-statement-closing-value')),
+      );
+      expect(closingText.style?.color, CustomerUiColors.white);
     },
   );
 
@@ -121,6 +193,10 @@ void main() {
       );
       expect(find.byKey(const ValueKey('b2b-dashboard-refresh')), findsNothing);
       expect(
+        find.byKey(const ValueKey('b2b-dashboard-back')),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const ValueKey('b2b-dashboard-finance-grid')),
         findsOneWidget,
       );
@@ -150,8 +226,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('حد الائتمان'), findsOneWidget);
-      expect(find.text('الائتمان المتاح'), findsOneWidget);
+      expect(find.text('حد الائتمان'), findsNothing);
+      expect(find.text('الائتمان المتاح'), findsNothing);
       expect(find.text('الفواتير المفتوحة'), findsOneWidget);
       expect(find.text('المبلغ المتأخر'), findsOneWidget);
       expect(find.text('مشتريات هذا الشهر'), findsOneWidget);
@@ -189,6 +265,7 @@ void main() {
       findsOneWidget,
     );
     for (final destination in [
+      'home',
       'products',
       'orders',
       'invoices',
@@ -201,7 +278,7 @@ void main() {
     }
     expect(
       find.byKey(const ValueKey('customer-footer-home')),
-      findsNothing,
+      findsOneWidget,
     );
     expect(find.byKey(const ValueKey('b2b-orders-back')), findsOneWidget);
 
@@ -295,6 +372,7 @@ void main() {
 
       final reorder = find.byKey(const ValueKey('b2b-order-reorder-77'));
       expect(reorder, findsOneWidget);
+      expect(find.text('Reorder'), findsOneWidget);
       await tester.tap(reorder);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -433,11 +511,12 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Available credit'), findsOneWidget);
+    expect(find.text('Credit limit'), findsNothing);
+    expect(find.text('Available credit'), findsNothing);
     expect(find.text('Active orders'), findsOneWidget);
   });
 
-  testWidgets('B2B profile is the complete visible account and finance hub', (
+  testWidgets('B2B More keeps the compact hub without inline account sections', (
     tester,
   ) async {
     final api = _PathB2bApi({
@@ -488,22 +567,22 @@ void main() {
 
     expect(
       find.byKey(const ValueKey('b2b-profile-friendly-data')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Acme Foods'), findsWidgets);
-    expect(find.text('TAX-872'), findsOneWidget);
-    expect(find.text('نشط'), findsOneWidget);
+    expect(find.text('Acme Foods'), findsNothing);
+    expect(find.text('TAX-872'), findsNothing);
+    expect(find.text('نشط'), findsNothing);
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
     expect(find.text('عليك'), findsOneWidget);
     expect(find.text('125.000 KWD'), findsOneWidget);
-    expect(find.text('1000.000 KWD'), findsOneWidget);
-    expect(find.text('875.000 KWD'), findsWidgets);
-    expect(find.text('طلباتي'), findsWidgets);
-    expect(find.text('الفواتير'), findsWidgets);
-    expect(find.text('كشف الحساب'), findsWidgets);
+    expect(find.text('1000.000 KWD'), findsNothing);
+    expect(find.text('875.000 KWD'), findsOneWidget);
+    expect(find.text('طلباتي'), findsOneWidget);
+    expect(find.text('الفواتير'), findsOneWidget);
+    expect(find.text('كشف الحساب'), findsOneWidget);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
     expect(find.text('الإشعارات'), findsOneWidget);
-    expect(find.text('العناوين'), findsWidgets);
+    expect(find.text('العناوين'), findsOneWidget);
     expect(find.text('العربية'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
     expect(find.text('المساعدة والدعم'), findsOneWidget);
@@ -512,6 +591,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('b2b-profile-logout')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
+    expect(find.text('الإصدار 1.0.75'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);
   });
 
@@ -559,7 +640,7 @@ void main() {
   );
 
   testWidgets(
-    'Wholesale header shows Business dashboard shortcut only for signed-in B2B users',
+    'Wholesale header removes Business shortcut and keeps search inside header',
     (tester) async {
       await tester.pumpWidget(
         FoodexCustomerApp(
@@ -572,18 +653,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final shortcut = find.byKey(
-        const ValueKey('wholesale-business-dashboard-button'),
-      );
-      expect(shortcut, findsOneWidget);
-
-      await tester.tap(shortcut);
-      await tester.pumpAndSettle();
-
       expect(
-        find.byKey(const ValueKey('b2b-dashboard-notifications')),
+        find.byKey(const ValueKey('wholesale-business-dashboard-button')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-home-search')),
         findsOneWidget,
       );
+      expect(find.text('B2B'), findsNothing);
     },
   );
 
@@ -667,36 +745,77 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('wholesale-catalog-grid-view')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('wholesale-catalog-list-view')),
-        findsOneWidget,
+        findsNothing,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('wholesale-catalog-list-view')),
-      );
-      await tester.pump();
-      var grid = tester.widget<GridView>(
+      final grid = tester.widget<GridView>(
         find.byKey(const ValueKey('wholesale-product-grid')),
       );
-      var delegate =
+      final delegate =
           grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(delegate.crossAxisCount, 1);
-
-      await tester.tap(
-        find.byKey(const ValueKey('wholesale-catalog-grid-view')),
-      );
-      await tester.pump();
-      grid = tester.widget<GridView>(
-        find.byKey(const ValueKey('wholesale-product-grid')),
-      );
-      delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(delegate.crossAxisCount, 2);
+      expect(delegate.crossAxisCount, 3);
 
       expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
       expect(storefront.lastStoreId, 70);
+    },
+  );
+
+  testWidgets(
+    'Wholesale View All keeps fallback section products visible',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Bulk Water',
+            'sku': 'WATER-42',
+            'account_price': 75,
+            'minimum_order_quantity': 5,
+            'ordering_increment': 1,
+            'available_quantity': 20,
+            'is_available': true,
+            'category_id': 3,
+            'category_name': 'Beverages',
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final viewAll = find.byKey(
+        const ValueKey('section-action-عروض الحساب'),
+      );
+      await tester.scrollUntilVisible(
+        viewAll,
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(viewAll);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        findsOneWidget,
+      );
+      expect(find.text('Bulk Water'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('wholesale-product-grid')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -883,9 +1002,9 @@ void main() {
       expect(find.text('Wholesale Water'), findsOneWidget);
       expect(find.text('Beverages'), findsOneWidget);
       expect(find.textContaining('72.50 EGP'), findsOneWidget);
-      expect(find.textContaining('Case 12'), findsOneWidget);
-      expect(find.textContaining('Step 5'), findsOneWidget);
-      expect(find.textContaining('Available quantity: 30'), findsOneWidget);
+      expect(find.textContaining('Case 12'), findsNothing);
+      expect(find.textContaining('Step 5'), findsNothing);
+      expect(find.textContaining('Available quantity: 30'), findsNothing);
 
       final availableAdd = find.byKey(
         const ValueKey('wholesale-product-add-42'),
@@ -896,6 +1015,27 @@ void main() {
       expect(availableAdd, findsOneWidget);
       expect(unavailableAdd, findsOneWidget);
       expect(tester.widget<FilledButton>(unavailableAdd).onPressed, isNull);
+
+      final addVisual = tester.widget<Container>(
+        find.descendant(
+          of: availableAdd,
+          matching: find.byType(Container),
+        ).last,
+      );
+      expect(addVisual.constraints?.maxWidth, 18);
+      expect(addVisual.constraints?.maxHeight, 18);
+
+      final productName = tester.widget<Text>(
+        find.byKey(const ValueKey('wholesale-product-name-42')),
+      );
+      expect(productName.maxLines, 1);
+      expect(productName.overflow, TextOverflow.ellipsis);
+
+      final priceCenter = tester.getCenter(
+        find.byKey(const ValueKey('wholesale-product-price-42')),
+      );
+      final addCenter = tester.getCenter(availableAdd);
+      expect((priceCenter.dy - addCenter.dy).abs(), lessThan(10));
 
       await tester.tap(availableAdd);
       await tester.pumpAndSettle();
@@ -1300,6 +1440,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('سلة الجملة'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -1489,18 +1630,45 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Wholesale cart'), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-header')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
       expect(find.text('Bulk Water'), findsOneWidget);
+      expect(find.text('W-101'), findsNothing);
+      expect(find.text('Case 12'), findsOneWidget);
       expect(find.textContaining('Unit price'), findsWidgets);
       expect(find.textContaining('Line total'), findsWidgets);
-      expect(find.textContaining('Available: 8'), findsOneWidget);
+      expect(find.textContaining('Available: 8'), findsNothing);
+
+      final minusIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-cart-minus-11')),
+          matching: find.byIcon(Icons.remove_rounded),
+        ),
+      );
+      final plusIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-cart-plus-11')),
+          matching: find.byIcon(Icons.add_rounded),
+        ),
+      );
+      expect(minusIcon.size, 12);
+      expect(plusIcon.size, 12);
+
       expect(find.text('Discounts'), findsOneWidget);
       expect(find.text('Delivery'), findsOneWidget);
       expect(find.text('Tax'), findsOneWidget);
       expect(find.byKey(const ValueKey('b2b-cart-clear')), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('b2b-cart-remove-Bulk Water')),
-        findsOneWidget,
+      final removeButton = find.byKey(
+        const ValueKey('b2b-cart-remove-Bulk Water'),
       );
+      expect(removeButton, findsOneWidget);
+      final removeIcon = tester.widget<Icon>(
+        find.descendant(
+          of: removeButton,
+          matching: find.byIcon(Icons.delete_outline_rounded),
+        ),
+      );
+      expect(removeIcon.color, const Color(0xFFD92D20));
 
       await tester.tap(
         find.byKey(const ValueKey('b2b-cart-remove-Bulk Water')),
@@ -1656,8 +1824,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Current financial position'), findsOneWidget);
-      expect(find.text('Available purchasing power'), findsOneWidget);
+      expect(find.text('Current financial position'), findsNothing);
+      expect(find.text('Available purchasing power'), findsNothing);
       expect(find.text('Final review'), findsWidgets);
       expect(find.text('Acme Buyer'), findsOneWidget);
       expect(find.text('Wholesale Store'), findsOneWidget);
@@ -1839,7 +2007,7 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
       expect(find.byKey(const ValueKey('b2b-order-row-91')), findsOneWidget);
       expect(find.text('#91'), findsOneWidget);
-      expect(find.text('FOODEX Wholesale'), findsOneWidget);
+      expect(find.text('FOODEX Wholesale'), findsNothing);
       expect(find.text('جاهز'), findsOneWidget);
       expect(find.text('KWD 42.5'), findsOneWidget);
 
@@ -1932,6 +2100,27 @@ void main() {
         find.byKey(const ValueKey('b2b-timeline-3-out_for_delivery')),
         findsOneWidget,
       );
+
+      Icon timelineIcon(String stage) => tester.widget<Icon>(
+            find
+                .descendant(
+                  of: find.byKey(ValueKey('b2b-timeline-icon-' + stage)),
+                  matching: find.byType(Icon),
+                )
+                .first,
+          );
+
+      final placedIcon = timelineIcon('placed');
+      final readyIcon = timelineIcon('ready');
+      final assignedIcon = timelineIcon('van_assigned');
+      final deliveryIcon = timelineIcon('out_for_delivery');
+      expect(placedIcon.icon, Icons.receipt_long_outlined);
+      expect(readyIcon.icon, Icons.task_alt_rounded);
+      expect(assignedIcon.icon, Icons.local_shipping_outlined);
+      expect(deliveryIcon.icon, Icons.delivery_dining_rounded);
+      expect(placedIcon.color, isNot(readyIcon.color));
+      expect(readyIcon.color, isNot(deliveryIcon.color));
+
       expect(find.text('VAN-07'), findsOneWidget);
       expect(find.textContaining('Driver'), findsNothing);
       expect(find.text('تم التأكيد'), findsNothing);
@@ -1952,6 +2141,18 @@ void main() {
         find.byKey(const ValueKey('b2b-timeline-1-delivered')),
         findsOneWidget,
       );
+      final deliveredIcon = tester.widget<Icon>(
+        find
+            .descendant(
+              of: find.byKey(
+                const ValueKey('b2b-timeline-icon-delivered'),
+              ),
+              matching: find.byType(Icon),
+            )
+            .first,
+      );
+      expect(deliveredIcon.icon, Icons.home_rounded);
+      expect(deliveredIcon.color, isNot(deliveryIcon.color));
       expect(find.text('تم التسليم'), findsWidgets);
       expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
     },
@@ -2095,7 +2296,9 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
       expect(find.text('Order details'), findsOneWidget);
       expect(find.text('#78'), findsOneWidget);
-      expect(find.text('Wholesale Store'), findsOneWidget);
+      expect(find.text('Wholesale Store'), findsNothing);
+      expect(find.text('2026-10-05'), findsNothing);
+      expect(find.text('Wholesale B2B'), findsNothing);
       expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
       expect(
         Directionality.of(
@@ -2390,7 +2593,7 @@ void main() {
   );
 
   testWidgets(
-    'C13 Screen 3 renders period summary trend categories and drill-through',
+    'C13 Screen 3 keeps compact report header then categories trend and orders',
     (tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1;
@@ -2479,17 +2682,51 @@ void main() {
         find.byKey(const ValueKey('b2b-purchases-summary')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
+      for (final metric in <String>['total', 'orders', 'invoices', 'average']) {
+        expect(
+          find.byKey(ValueKey('b2b-purchases-summary-' + metric)),
+          findsOneWidget,
+        );
+      }
+
+      final metricTops = <String>['total', 'orders', 'invoices', 'average']
+          .map(
+            (metric) => tester
+                .getTopLeft(
+                  find.byKey(ValueKey('b2b-purchases-summary-' + metric)),
+                )
+                .dy,
+          )
+          .toList(growable: false);
+      expect(
+        metricTops.every((value) => (value - metricTops.first).abs() < 1),
+        isTrue,
+      );
+
       expect(
         find.byKey(const ValueKey('b2b-purchases-categories')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-purchases-orders')), findsOneWidget);
+
+      final categoriesTop = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-purchases-categories')))
+          .dy;
+      final trendTop = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-purchases-trend')))
+          .dy;
+      final ordersTop = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-purchases-orders')))
+          .dy;
+      expect(categoriesTop, lessThan(trendTop));
+      expect(trendTop, lessThan(ordersTop));
       expect(
-        find.byKey(const ValueKey('b2b-purchases-category-donut')),
+        find.byKey(const ValueKey('b2b-purchases-category-bars')),
         findsOneWidget,
       );
-      expect(find.byType(FoodexBarChart), findsOneWidget);
-      expect(find.byType(FoodexDonutChart), findsOneWidget);
+      expect(find.byType(FoodexBarChart), findsNWidgets(2));
+      expect(find.byType(FoodexDonutChart), findsNothing);
       expect(
         find.descendant(
           of: find.byType(FoodexChartLegend),
@@ -2505,6 +2742,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('#77'), findsOneWidget);
+
+      final distributionTitle = tester.widget<Text>(
+        find.text('توزيع المشتريات'),
+      );
+      expect(distributionTitle.style?.fontSize, lessThanOrEqualTo(12));
+
+      final reportOrderNumber = tester.widget<Text>(
+        find.text('#77'),
+      );
+      expect(reportOrderNumber.style?.fontSize, lessThanOrEqualTo(11));
+
       expect(api.lastPath, contains('store_id=7'));
 
       await tester.tap(
@@ -2733,7 +2981,11 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-statement-data')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('b2b-statement-summary-opening')),
-        findsOneWidget,
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('b2b-statement-summary-current')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('b2b-statement-summary-closing')),
@@ -2748,7 +3000,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('50.00 EGP'), findsWidgets);
-      expect(find.textContaining('عليك'), findsWidgets);
+      expect(find.textContaining('ليك'), findsWidgets);
       expect(
         find.byKey(const ValueKey('b2b-statement-export-pdf')),
         findsOneWidget,
@@ -2757,10 +3009,47 @@ void main() {
         find.byKey(const ValueKey('b2b-statement-export-xlsx')),
         findsOneWidget,
       );
+      expect(find.text('تحميل كشف الحساب'), findsOneWidget);
+      final pdfTop = tester
+          .getTopLeft(
+            find.byKey(const ValueKey('b2b-statement-export-pdf')),
+          )
+          .dy;
+      final excelTop = tester
+          .getTopLeft(
+            find.byKey(const ValueKey('b2b-statement-export-xlsx')),
+          )
+          .dy;
+      expect((pdfTop - excelTop).abs(), lessThan(1));
       expect(
         find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
         findsOneWidget,
       );
+
+      final invoiceCard = find.byKey(
+        const ValueKey('b2b-statement-row-invoice:31'),
+      );
+      final invoiceTitle = tester.widget<Text>(
+        find.descendant(of: invoiceCard, matching: find.text('فاتورة')),
+      );
+      expect(invoiceTitle.style?.color, CustomerUiColors.warning);
+
+      final referenceButton = find.byKey(
+        const ValueKey('b2b-statement-reference-invoice:31'),
+      );
+      final referenceText = tester.widget<Text>(
+        find.descendant(
+          of: referenceButton,
+          matching: find.textContaining('INV-31'),
+        ),
+      );
+      expect(referenceText.style?.color, CustomerUiColors.deepGreenStrong);
+
+      final runningText = tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
+      );
+      expect(runningText.style?.color, CustomerUiColors.success);
+
       expect(api.lastPath, contains('/api/v1/b2b/account-statement'));
       expect(api.lastPath, contains('store_id=7'));
 
@@ -2940,7 +3229,43 @@ void main() {
     expect(find.textContaining('5.000 KWD'), findsWidgets);
     expect(find.textContaining('15.000 KWD'), findsWidgets);
 
-    await tester.tap(find.text('#31'));
+    final paidText = tester.widget<Text>(
+      find.byKey(const ValueKey('b2b-invoice-paid-31')),
+    );
+    final paidSpans = (paidText.textSpan as TextSpan).children!;
+    expect((paidSpans.last as TextSpan).style?.color, CustomerUiColors.success);
+
+    final outstandingText = tester.widget<Text>(
+      find.byKey(const ValueKey('b2b-invoice-outstanding-31')),
+    );
+    final outstandingSpans =
+        (outstandingText.textSpan as TextSpan).children!;
+    expect(
+      (outstandingSpans.last as TextSpan).style?.color,
+      CustomerUiColors.destructive,
+    );
+
+    expect(find.text('#31'), findsNothing);
+    expect(find.text('رقم الفاتورة INV-31'), findsOneWidget);
+
+    final statusRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoice-status-31')),
+    );
+    final pdfRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoice-pdf-31')),
+    );
+    final detailsRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoice-open-31')),
+    );
+    expect(pdfRect.top, greaterThan(statusRect.bottom - 1));
+    expect((pdfRect.center.dy - detailsRect.center.dy).abs(), lessThan(1));
+
+    final invoiceHeader = tester.widget<Text>(
+      find.byKey(const ValueKey('b2b-invoice-number-31')),
+    );
+    expect(invoiceHeader.style?.fontSize, lessThanOrEqualTo(10));
+
+    await tester.tap(find.text('رقم الفاتورة INV-31'));
     await tester.pumpAndSettle();
 
     expect(find.text('/b2b/invoices/31'), findsNothing);
@@ -3054,8 +3379,21 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-settlement-strip')),
         findsOneWidget,
       );
-      expect(find.text('#31'), findsOneWidget);
-      expect(find.textContaining('FOODEX Wholesale'), findsOneWidget);
+      expect(find.text('#31'), findsNothing);
+      expect(find.text('تفاصيل الفاتورة'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('b2b-invoice-detail-number')),
+        findsOneWidget,
+      );
+      final invoiceNumber = tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-invoice-detail-number')),
+      );
+      expect(invoiceNumber.textSpan?.toPlainText(), 'رقم الفاتورة INV-31');
+      expect(
+        find.byKey(const ValueKey('b2b-invoice-seller')),
+        findsNothing,
+      );
+      expect(find.textContaining('FOODEX Wholesale'), findsNothing);
       expect(find.textContaining('Buyer Co'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('b2b-invoice-detail-totals')),
@@ -3092,6 +3430,19 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-related-order')),
         findsOneWidget,
       );
+
+      final pdfRect = tester.getRect(
+        find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
+      );
+      final relatedRect = tester.getRect(
+        find.byKey(const ValueKey('b2b-invoice-related-order')),
+      );
+      expect((pdfRect.center.dy - relatedRect.center.dy).abs(), lessThan(1));
+      expect(
+        find.byKey(const ValueKey('b2b-invoice-detail-refresh')),
+        findsNothing,
+      );
+
       expect(find.textContaining('/api/v1/invoices/31/download'), findsNothing);
     },
   );
@@ -3221,6 +3572,12 @@ void main() {
     final title = find.byKey(const ValueKey('b2b-more-header-title'));
     expect(title, findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-more-back')), findsOneWidget);
+    expect(find.text('حساب الأعمال'), findsNothing);
+    expect(find.text('كل أدوات حسابك في مكان واحد'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('b2b-more-business-dashboard')),
+      findsOneWidget,
+    );
 
     final titleRect = tester.getRect(title);
     expect(titleRect.left, greaterThanOrEqualTo(0));

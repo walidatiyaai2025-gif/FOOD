@@ -293,6 +293,8 @@ class AppTranslations extends InheritedWidget {
         'صلاحية الموقع مرفوضة نهائيًا. فعّلها من إعدادات الجهاز أو أدخل العنوان يدويًا.',
     'customer.addresses.location_failed':
         'تعذر تحديد الموقع حاليًا. يمكنك حفظ العنوان يدويًا.',
+    'customer.addresses.reverse_geocode_failed':
+        'تم تحديد الموقع، لكن تعذر تعبئة بيانات العنوان تلقائيًا. يمكنك استكمالها يدويًا.',
     'customer.addresses.required_fields':
         'أدخل العنوان والمدينة ورمز الدولة المكون من حرفين.',
     'customer.settings.title': 'الإعدادات',
@@ -444,7 +446,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.purchase_reports.empty': 'لا توجد مشتريات في الفترة المحددة.',
     'b2b.purchase_reports.stale':
         'تعذر تحديث التقرير. يتم عرض آخر بيانات مؤكدة.',
-    'b2b.top_products.title': 'الأكثر شراء',
+    'b2b.top_products.title': 'المنتجات الأكثر شراءً',
     'b2b.top_products.subtitle': 'المنتجات الأعلى شراءً للحساب',
     'b2b.top_products.search': 'ابحث في منتجاتك ومشترياتك',
     'b2b.top_products.from': 'من',
@@ -552,14 +554,14 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.closing_balance': 'الرصيد الختامي',
     'b2b.statement.current_balance': 'الرصيد الحالي',
     'b2b.statement.you_owe': 'عليك',
-    'b2b.statement.owed_to_you': 'لك',
+    'b2b.statement.owed_to_you': 'ليك',
     'b2b.statement.settled': 'مسدد',
     'b2b.statement.transactions': 'حركات الحساب',
     'b2b.statement.reference': 'المرجع',
     'b2b.statement.debit': 'مدين',
     'b2b.statement.credit': 'دائن',
     'b2b.statement.running_balance': 'الرصيد الجاري',
-    'b2b.statement.export_exact': 'تصدير نفس النتيجة المفلترة',
+    'b2b.statement.export_exact': 'تحميل كشف الحساب',
     'b2b.statement.export_failed': 'تعذر تجهيز ملف كشف الحساب.',
     'b2b.statement.stale': 'تعذر التحديث. يتم عرض آخر كشف حساب مؤكد.',
     'b2b.statement.page': 'صفحة',
@@ -655,7 +657,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.cart.clear': 'تفريغ السلة',
     'b2b.cart.remove': 'حذف',
     'b2b.cart.unit_price': 'سعر الوحدة',
-    'b2b.cart.line_total': 'إجمالي السطر',
+    'b2b.cart.line_total': 'الإجمالي',
     'b2b.cart.available': 'المتاح',
     'b2b.cart.unavailable': 'غير متاح حاليًا',
     'b2b.cart.subtotal': 'الإجمالي الفرعي',
@@ -1010,6 +1012,8 @@ class AppTranslations extends InheritedWidget {
         'Location permission is permanently denied. Enable it in device settings or enter the address manually.',
     'customer.addresses.location_failed':
         'Could not get your location. You can save the address manually.',
+    'customer.addresses.reverse_geocode_failed':
+        'Location selected, but the address fields could not be filled automatically. You can complete them manually.',
     'customer.addresses.required_fields':
         'Enter the address, city, and a two-letter country code.',
     'customer.settings.title': 'Settings',
@@ -1288,7 +1292,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.debit': 'Debit',
     'b2b.statement.credit': 'Credit',
     'b2b.statement.running_balance': 'Running balance',
-    'b2b.statement.export_exact': 'Export this exact filtered result',
+    'b2b.statement.export_exact': 'Download account statement',
     'b2b.statement.export_failed':
         'Could not prepare the account statement file.',
     'b2b.statement.stale':

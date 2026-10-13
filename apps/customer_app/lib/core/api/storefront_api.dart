@@ -63,22 +63,72 @@ class HttpStorefrontApi implements StorefrontApi {
       if (support) 'support': '1',
     };
 
-    if (token == null || token!.isEmpty) {
-      final body = await _get('/api/v1/stores', query: params);
-      final rows = body is Map && body['data'] is List
-          ? (body['data'] as List)
+    Future<Map<String, dynamic>> publicSelection() async {
+      final publicPayload =
+          _asMap(await _get('/api/v1/platform/storefront', query: params));
+      final mainWholesale = publicPayload['main_wholesale_store'];
+      final principalId = mainWholesale is Map
+          ? int.tryParse(
+              (mainWholesale['id'] ?? mainWholesale['store_id'])
+                  ?.toString() ??
+                  '',
+            )
+          : null;
+      final retailStores = publicPayload['retail_stores'] is List
+          ? (publicPayload['retail_stores'] as List)
               .whereType<Map>()
               .map((row) => Map<String, dynamic>.from(row))
               .toList(growable: false)
           : const <Map<String, dynamic>>[];
-      return {
-        'retail_stores': rows,
-        'wholesale_stores': const <Object>[],
-        'entitlements': const <String, Object>{},
+
+      return <String, dynamic>{
+        'retail_stores': retailStores,
+        'wholesale_stores': mainWholesale is Map
+            ? <Object>[Map<String, dynamic>.from(mainWholesale)]
+            : const <Object>[],
+        'entitlements': <String, Object?>{
+          'direct_b2b': false,
+          'retail_context_ids': const <int>[],
+          'support_access': false,
+          'principal_wholesale_store_id':
+              principalId != null && principalId > 0 ? principalId : null,
+        },
       };
     }
 
-    return _asMap(await _get('/api/v1/store-selector', query: params));
+    if (token == null || token!.isEmpty) {
+      return publicSelection();
+    }
+
+    final scopedSelection =
+        _asMap(await _get('/api/v1/store-selector', query: params));
+    final entitlements = scopedSelection['entitlements'] is Map
+        ? Map<String, dynamic>.from(scopedSelection['entitlements'] as Map)
+        : <String, dynamic>{};
+    final principalId = int.tryParse(
+      entitlements['principal_wholesale_store_id']?.toString() ?? '',
+    );
+    final wholesaleStores = scopedSelection['wholesale_stores'];
+
+    if (principalId != null &&
+        principalId > 0 &&
+        wholesaleStores is List &&
+        wholesaleStores.isNotEmpty) {
+      return scopedSelection;
+    }
+
+    final publicPayload = await publicSelection();
+    return <String, dynamic>{
+      ...scopedSelection,
+      'wholesale_stores': publicPayload['wholesale_stores'],
+      'entitlements': <String, dynamic>{
+        ...entitlements,
+        'principal_wholesale_store_id':
+            (publicPayload['entitlements'] as Map?)?[
+                'principal_wholesale_store_id'
+              ],
+      },
+    };
   }
 
   @override
@@ -86,13 +136,23 @@ class HttpStorefrontApi implements StorefrontApi {
       _asMap(await _get('/api/v1/stores/$storeId/storefront'));
 
   @override
-  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => _asMap(
-        await _get(
-          token == null || token!.isEmpty
-              ? '/api/v1/wholesale/stores/$storeId/storefront'
-              : '/api/v1/b2b/stores/$storeId/storefront',
-        ),
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async {
+    final publicPath = '/api/v1/wholesale/stores/$storeId/storefront';
+    if (token == null || token!.isEmpty) {
+      return _asMap(await _get(publicPath));
+    }
+
+    try {
+      return _asMap(
+        await _get('/api/v1/b2b/stores/$storeId/storefront'),
       );
+    } on StorefrontApiException catch (error) {
+      if (error.statusCode != 401 && error.statusCode != 403) rethrow;
+      // Home is a public discovery surface. Commercial B2B actions remain
+      // separately authorized by their own endpoints.
+      return _asMap(await _get(publicPath));
+    }
+  }
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>

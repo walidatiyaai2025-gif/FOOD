@@ -95,6 +95,8 @@ class FoodexSectionHeader extends StatelessWidget {
     required this.palette,
     this.action = 'عرض الكل',
     this.onAction,
+    this.textScale = 1,
+    this.spacingScale = 1,
     super.key,
   });
 
@@ -102,10 +104,17 @@ class FoodexSectionHeader extends StatelessWidget {
   final String action;
   final FoodexPalette palette;
   final VoidCallback? onAction;
+  final double textScale;
+  final double spacingScale;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 9),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          14 * spacingScale,
+          16,
+          9 * spacingScale,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -113,7 +122,7 @@ class FoodexSectionHeader extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: palette.text,
-                  fontSize: 18,
+                  fontSize: 18 * textScale,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -123,7 +132,7 @@ class FoodexSectionHeader extends StatelessWidget {
                 action,
                 style: TextStyle(
                   color: palette.primary,
-                  fontSize: 12,
+                  fontSize: 12 * textScale,
                   fontWeight: FontWeight.w700,
                 ),
               )
@@ -135,7 +144,7 @@ class FoodexSectionHeader extends StatelessWidget {
                   action,
                   style: TextStyle(
                     color: palette.primary,
-                    fontSize: 12,
+                    fontSize: 12 * textScale,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/api/b2c_account_api.dart';
@@ -8,7 +10,6 @@ import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../customer_account/customer_account_data.dart';
 import '../catalog/retail_catalog_screens.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 class RetailHomeV3Screen extends StatefulWidget {
   const RetailHomeV3Screen({
@@ -287,7 +288,17 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
               ),
             ),
           const SizedBox(height: CustomerUiSpacing.xl),
-          _HomeSectionTitle(context.tr('customer.home.best_sellers')),
+          _RetailBestSellerTickerHeader(
+            title: context.tr('customer.home.best_sellers'),
+            products: data.bestSellers,
+            onTap: widget.navigation.openProduct == null
+                ? null
+                : (product) => widget.navigation.openProduct!(
+                      context,
+                      storeId: widget.storeId,
+                      productId: product.id,
+                    ),
+          ),
           const SizedBox(height: CustomerUiSpacing.sm),
           if (data.bestSellers.isEmpty)
             CustomerStateView(
@@ -345,7 +356,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
   }) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = 368.0 + (scaledDelta * 240.0);
+    final cardExtent = (368.0 + (scaledDelta * 240.0)) * .85;
 
     return GridView.builder(
       key: gridKey,
@@ -362,7 +373,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         final product = products[index];
         final price = product.price == null
             ? product.sku
-            : foodexMoneyText(product.price!, product.currency);
+            : '${product.price!.toStringAsFixed(0)} ${product.currency}';
         return CustomerProductCard(
           key: ValueKey('$keyPrefix-${product.id}'),
           title: product.name,
@@ -558,6 +569,193 @@ class _HomeHeroBanner extends StatelessWidget {
       );
 }
 
+class _RetailBestSellerTickerHeader extends StatefulWidget {
+  const _RetailBestSellerTickerHeader({
+    required this.title,
+    required this.products,
+    required this.onTap,
+  });
+
+  final String title;
+  final List<B2cProduct> products;
+  final ValueChanged<B2cProduct>? onTap;
+
+  @override
+  State<_RetailBestSellerTickerHeader> createState() =>
+      _RetailBestSellerTickerHeaderState();
+}
+
+class _RetailBestSellerTickerHeaderState
+    extends State<_RetailBestSellerTickerHeader>
+    with SingleTickerProviderStateMixin {
+  static const _interval = Duration(seconds: 10);
+  static const _tones = <Color>[
+    Color(0xFF087347),
+    Color(0xFF2E5FA8),
+    Color(0xFF8B5A00),
+    Color(0xFF7A4EA3),
+    Color(0xFFB54708),
+  ];
+
+  Timer? _timer;
+  AnimationController? _marquee;
+  int _index = 0;
+
+  AnimationController get _marqueeController =>
+      _marquee ??= AnimationController(vsync: this, duration: _interval);
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTicker();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RetailBestSellerTickerHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.products.map((product) => product.id).join(',');
+    final newIds = widget.products.map((product) => product.id).join(',');
+    if (oldIds != newIds) {
+      _index = 0;
+      _restartTicker();
+    }
+  }
+
+  void _restartTicker() {
+    _timer?.cancel();
+    final marquee = _marqueeController;
+    marquee.stop();
+    if (widget.products.isEmpty) return;
+
+    marquee.forward(from: 0);
+    _timer = Timer.periodic(_interval, (_) {
+      if (!mounted || widget.products.isEmpty) return;
+      setState(() {
+        if (widget.products.length > 1) {
+          _index = (_index + 1) % widget.products.length;
+        }
+      });
+      marquee.forward(from: 0);
+    });
+  }
+
+  Widget _marqueeLink(
+    BuildContext context,
+    B2cProduct product,
+    Color tone,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final style = Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: tone,
+          fontWeight: FontWeight.w900,
+          decoration: TextDecoration.underline,
+          decorationColor: tone,
+        );
+    final painter = TextPainter(
+      text: TextSpan(text: product.name, style: style),
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final textWidth = painter.width + 20;
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRect(
+        child: SizedBox(
+          height: 30,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              AnimatedBuilder(
+                animation: _marqueeController,
+                child: SizedBox(
+                  width: textWidth,
+                  height: 30,
+                  child: InkWell(
+                    key: ValueKey(
+                      'retail-best-seller-ticker-product-${product.id}',
+                    ),
+                    onTap: widget.onTap == null
+                        ? null
+                        : () => widget.onTap!(product),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        product.name,
+                        key: ValueKey(
+                          'retail-best-seller-ticker-label-${product.id}',
+                        ),
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.visible,
+                        style: style,
+                      ),
+                    ),
+                  ),
+                ),
+                builder: (context, child) {
+                  final travel = constraints.maxWidth + textWidth;
+                  final dx = isArabic
+                      ? constraints.maxWidth - (_marqueeController.value * travel)
+                      : -textWidth + (_marqueeController.value * travel);
+                  return Transform.translate(
+                    offset: Offset(dx, 0),
+                    child: child,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _restartTicker();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _marquee?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final products = widget.products;
+    final product = products.isEmpty ? null : products[_index % products.length];
+    final tone = _tones[_index % _tones.length];
+
+    return Row(
+      key: const ValueKey('retail-best-seller-ticker-header'),
+      children: [
+        Text(
+          widget.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: CustomerUiColors.deepGreenStrong,
+              ),
+        ),
+        if (product != null) ...[
+          const SizedBox(width: CustomerUiSpacing.sm),
+          Expanded(child: _marqueeLink(context, product, tone)),
+        ],
+      ],
+    );
+  }
+}
+
 class _HomeSectionTitle extends StatelessWidget {
   const _HomeSectionTitle(this.title);
 
@@ -579,7 +777,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = 368.0 + (scaledDelta * 240.0);
+    final cardExtent = (368.0 + (scaledDelta * 240.0)) * .85;
 
     return ListView(
       padding: const EdgeInsets.all(CustomerUiSpacing.page),

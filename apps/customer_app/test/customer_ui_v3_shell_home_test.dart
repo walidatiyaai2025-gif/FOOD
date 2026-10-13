@@ -81,7 +81,7 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpRetailHomeReady(tester);
 
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
       expect(
@@ -135,6 +135,28 @@ void main() {
           find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
       expect(
           find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
+
+      expect(
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-44'),
+        ),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump(const Duration(seconds: 5));
+      expect(
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-43'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-43'),
+        ),
+      );
+      await tester.pump();
+      expect(capturedProductId, 43);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
       await _dragUntilFound(
@@ -198,7 +220,7 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpRetailHomeReady(tester);
 
       final mainScroll = _homeVerticalScroll();
       final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
@@ -303,7 +325,11 @@ void main() {
       find.byKey(const ValueKey('retail-shell-nav-home')),
     );
     await tester.pumpAndSettle();
-    expect(pushedRoute, CustomerRoutePaths.marketplace);
+    expect(pushedRoute, isNotNull);
+    final homeUri = Uri.parse(pushedRoute!);
+    expect(homeUri.path, '/retail/17/home');
+    expect(homeUri.queryParameters['store_id'], '17');
+    expect(homeUri.queryParameters['channel'], 'retail');
   });
 
   testWidgets(
@@ -381,7 +407,21 @@ Future<void> _dragUntilFound(
         'Expected lazy Home content to become reachable by vertical scroll.',
   );
   await tester.ensureVisible(target);
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
+Future<void> _pumpRetailHomeReady(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 12; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (find.byKey(const ValueKey('retail-catalog-home')).evaluate().isNotEmpty) {
+      return;
+    }
+  }
+  expect(
+    find.byKey(const ValueKey('retail-catalog-home')),
+    findsOneWidget,
+    reason: 'Expected Retail Home to finish its initial async load.',
+  );
 }
 
 void _noopOpenProducts(

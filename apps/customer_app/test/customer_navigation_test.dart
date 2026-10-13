@@ -3,9 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
+import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
+import 'package:foodex_customer_app/features/retail/retail_customer_journey_screen.dart';
+import 'package:foodex_customer_app/features/storefront/platform_marketplace_screen.dart';
+import 'package:foodex_customer_app/features/storefront/wholesale_multistore_screens.dart';
 
 void main() {
   test('reference route patterns are represented in one route registry', () {
@@ -70,9 +74,10 @@ void main() {
     );
   });
 
-  test('auth return validation preserves exact channel-correct internal targets', () {
-    const b2bTarget =
-        '/b2b/products/42?store_id=7&campaign=october%20launch';
+  test(
+      'auth return validation preserves exact channel-correct internal targets',
+      () {
+    const b2bTarget = '/b2b/products/42?store_id=7&campaign=october%20launch';
 
     expect(
       safeCustomerReturnLocation(
@@ -90,7 +95,8 @@ void main() {
     );
   });
 
-  test('auth return validation rejects external, cross-channel and login loops', () {
+  test('auth return validation rejects external, cross-channel and login loops',
+      () {
     expect(
       safeCustomerReturnLocation(
         'https://evil.example/b2b/products/42?store_id=7',
@@ -121,7 +127,7 @@ void main() {
     );
   });
 
-  testWidgets('entry route renders the C13 business login without Marketplace bypass',
+  testWidgets('entry route renders unified login without Marketplace bypass',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/entry'),
@@ -132,7 +138,10 @@ void main() {
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('c13-business-login-title')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('c13-business-login-title')),
+      findsOneWidget,
+    );
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
@@ -151,13 +160,14 @@ void main() {
     expect(find.byKey(const ValueKey('customer-auth-guest')), findsNothing);
   });
 
-  testWidgets('successful C13 login lands on Screen 2 dashboard',
+  testWidgets('successful non-merchant login lands on canonical Wholesale Home',
       (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(
         initialRoute: '/entry',
         actionApi: const _SuccessfulCustomerActionApi(),
         b2bApi: _RecordingB2bApi(),
+        storefrontApi: const _CanonicalWholesaleHomeStorefrontApi(),
       ),
     );
     await tester.pumpAndSettle();
@@ -176,8 +186,42 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.text('فودكس للأعمال'), findsOneWidget);
-    expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
+    expect(find.byType(WholesaleHomeDesignScreen), findsOneWidget);
+    expect(find.byType(PlatformMarketplaceScreen), findsNothing);
+    expect(
+        find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
+  });
+
+  testWidgets(
+      'successful Retail merchant login lands on canonical Wholesale Home',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/entry',
+        actionApi: const _RetailMerchantCustomerActionApi(),
+        b2bApi: _RecordingB2bApi(),
+        storefrontApi: const _CanonicalWholesaleHomeStorefrontApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'merchant@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'password-123',
+    );
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WholesaleHomeDesignScreen), findsOneWidget);
+    expect(find.byType(RetailCustomerJourneyScreen), findsNothing);
+    expect(find.byType(PlatformMarketplaceScreen), findsNothing);
   });
 
   testWidgets('entry register mode exposes the existing registration controls',
@@ -266,8 +310,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
-        initialRoute:
-            '/checkout/address-payment?channel=retail&store_id=7',
+        initialRoute: '/checkout/address-payment?channel=retail&store_id=7',
       ),
     );
     await tester.pumpAndSettle();
@@ -277,7 +320,8 @@ void main() {
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('customer-auth-remember-me')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-auth-remember-me')),
+        findsOneWidget);
     expect(find.textContaining('/auth/checkout'), findsNothing);
     expect(find.textContaining('next='), findsNothing);
   });
@@ -420,7 +464,8 @@ void main() {
     );
   });
 
-  testWidgets('platform-wide customer can enter Retail protected routes from one Wholesale session',
+  testWidgets(
+      'platform-wide customer can enter Retail protected routes from one Wholesale session',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -437,7 +482,8 @@ void main() {
     expect(find.text('حسابي'), findsWidgets);
   });
 
-  testWidgets('platform-wide customer can enter Wholesale protected routes from one Retail session',
+  testWidgets(
+      'platform-wide customer can enter Wholesale protected routes from one Retail session',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -519,6 +565,38 @@ class _SuccessfulCustomerActionApi implements CustomerActionApi {
       null;
 }
 
+class _RetailMerchantCustomerActionApi implements CustomerActionApi {
+  const _RetailMerchantCustomerActionApi();
+
+  @override
+  Future<CustomerLoginResult> login({required String username}) async =>
+      const CustomerLoginResult(
+        token: 'retail-token',
+        retailStoreIds: <int>[7],
+      );
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async =>
+      null;
+
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    int? storeId,
+    String? paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      null;
+}
+
 class _RecordingB2bApi implements B2bApi {
   final requestedPaths = <String>[];
 
@@ -536,7 +614,6 @@ class _RecordingB2bApi implements B2bApi {
     };
   }
 }
-
 
 class _MemoryPendingActionStore implements CustomerPendingActionStore {
   CustomerPendingAction? value;
@@ -560,4 +637,55 @@ class _MemoryPendingActionStore implements CustomerPendingActionStore {
   Future<void> write(CustomerPendingAction action) async {
     value = action;
   }
+}
+
+
+class _CanonicalWholesaleHomeStorefrontApi implements StorefrontApi {
+  const _CanonicalWholesaleHomeStorefrontApi();
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const <String, dynamic>{
+        'wholesale_stores': <Object>[
+          <String, Object?>{
+            'id': 70,
+            'name': 'FOODEX Main Wholesale',
+            'is_platform_principal': true,
+          },
+        ],
+        'entitlements': <String, Object?>{
+          'principal_wholesale_store_id': 70,
+        },
+      };
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
+      <String, dynamic>{
+        'store': <String, Object?>{
+          'id': storeId,
+          'name': 'FOODEX Main Wholesale',
+        },
+        'sections': const <Object>[
+          <String, Object?>{
+            'type': 'hero',
+            'sort_order': 10,
+          },
+        ],
+        'products': const <String, Object?>{
+          'data': <Object>[],
+        },
+      };
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async =>
+      const <String, dynamic>{};
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
+      const <String, dynamic>{};
 }

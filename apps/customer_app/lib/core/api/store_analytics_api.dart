@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'b2b_api.dart';
+
 abstract interface class StoreAnalyticsApi {
   Future<StoreAnalyticsReadModel> read({
     int? retailStoreId,
@@ -12,6 +14,99 @@ abstract interface class StoreAnalyticsApi {
   });
 }
 
+class B2bBackedStoreAnalyticsApi implements StoreAnalyticsApi {
+  const B2bBackedStoreAnalyticsApi(this.api);
+
+  final B2bApi api;
+
+  @override
+  Future<StoreAnalyticsReadModel> read({
+    int? retailStoreId,
+    DateTime? from,
+    DateTime? to,
+    String? seenInsightVersion,
+  }) async {
+    if (retailStoreId != null && retailStoreId <= 0) {
+      throw ArgumentError.value(
+        retailStoreId,
+        'retailStoreId',
+        'must be positive',
+      );
+    }
+    if (from != null && to != null && _dateOnly(from).isAfter(_dateOnly(to))) {
+      throw ArgumentError.value(from, 'from', 'must not be after to');
+    }
+    if (seenInsightVersion != null &&
+        (seenInsightVersion.length != 64 ||
+            BigInt.tryParse(seenInsightVersion, radix: 16) == null)) {
+      throw ArgumentError.value(
+        seenInsightVersion,
+        'seenInsightVersion',
+        'must be a 64-character hex digest',
+      );
+    }
+
+    final requestPath = Uri(
+      path: HttpStoreAnalyticsApi.endpoint,
+      queryParameters: <String, String>{
+        if (retailStoreId != null) 'retail_store_id': retailStoreId.toString(),
+        if (from != null) 'from': _formatDate(from),
+        if (to != null) 'to': _formatDate(to),
+        if (seenInsightVersion != null)
+          'seen_insight_version': seenInsightVersion.toLowerCase(),
+      },
+    ).toString();
+
+    Object? raw;
+    try {
+      raw = await api.get(requestPath);
+    } on B2bApiException catch (error) {
+      if (error.statusCode == 401) {
+        throw const StoreAnalyticsApiException(
+          StoreAnalyticsApiException.notAuthenticated,
+          statusCode: 401,
+        );
+      }
+      if (error.statusCode == 403) {
+        throw const StoreAnalyticsApiException(
+          StoreAnalyticsApiException.noEntitlement,
+          statusCode: 403,
+        );
+      }
+      if (error.code == 'timeout') {
+        throw const StoreAnalyticsApiException(
+          StoreAnalyticsApiException.timeout,
+        );
+      }
+      if (error.code == 'network_unavailable') {
+        throw const StoreAnalyticsApiException(
+          StoreAnalyticsApiException.networkUnavailable,
+        );
+      }
+      throw StoreAnalyticsApiException(
+        error.code,
+        statusCode: error.statusCode,
+      );
+    }
+
+    final envelope = _map(raw);
+    final payload =
+        envelope == null ? null : _map(envelope['data']) ?? envelope;
+    if (payload == null) {
+      throw const StoreAnalyticsApiException(
+        StoreAnalyticsApiException.invalidResponse,
+      );
+    }
+
+    try {
+      return StoreAnalyticsReadModel.fromJson(payload);
+    } on FormatException {
+      throw const StoreAnalyticsApiException(
+        StoreAnalyticsApiException.invalidResponse,
+      );
+    }
+  }
+}
 class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
   HttpStoreAnalyticsApi({
     required this.baseUrl,
@@ -69,7 +164,7 @@ class HttpStoreAnalyticsApi implements StoreAnalyticsApi {
         uri,
         headers: <String, String>{
           'Accept': 'application/json',
-          'Authorization': '***',
+          'Authorization': 'Bearer $token',
           'X-FOODEX-Customer-Domain': 'b2b',
         },
       ).timeout(requestTimeout);
@@ -709,7 +804,7 @@ class StoreAnalyticsAttention {
             .map(StoreAnalyticsLowStockItem.fromJson)
             .toList(growable: false),
         merchantSummary: StoreAnalyticsMerchantSummary.fromJson(
-          _requiredMap(json, 'merchant_summary'),
+          _requiredMapOrEmptyList(json, 'merchant_summary'),
         ),
         merchantAttention: _mapList(
           json['merchant_attention'],
@@ -971,6 +1066,17 @@ Map<String, dynamic> _requiredMap(
     throw FormatException('$key is required');
   }
   return value;
+}
+
+Map<String, dynamic> _requiredMapOrEmptyList(
+  Map<String, dynamic> json,
+  String key,
+) {
+  final raw = json[key];
+  final value = _map(raw);
+  if (value != null) return value;
+  if (raw is List && raw.isEmpty) return const <String, dynamic>{};
+  throw FormatException('$key must be an object');
 }
 
 String _requiredString(Map<String, dynamic> json, String key) {

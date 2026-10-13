@@ -86,14 +86,11 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
         categoryId,
       }) {
         Navigator.of(context).pushNamed(
-          Uri(
-            path: CustomerRoutePaths.products,
-            queryParameters: <String, String>{
-              ...commerceContext.toQueryParameters(),
-              if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
-              if (categoryId != null) 'category_id': '$categoryId',
-            },
-          ).toString(),
+          CustomerRouteLocations.retailProducts(
+            commerceContext,
+            query: query,
+            categoryId: categoryId,
+          ),
         );
       },
       openProduct: (

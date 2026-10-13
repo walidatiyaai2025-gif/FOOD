@@ -32,6 +32,7 @@ class B2bReportController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
         $finance = $this->ledger->summary($customer, $storeId);
+        $retailStore = $this->retailStoreBranding($request, $customer);
 
         $orders = DB::table('orders')
             ->where('b2b_customer_id', $customer->getKey())
@@ -101,6 +102,7 @@ class B2bReportController extends Controller
                 'company_name' => (string) $account->company_name,
                 'status' => (string) $account->status,
             ],
+            'retail_store' => $retailStore,
             'finance' => $finance,
             'operations' => [
                 'purchases_this_month' => round($purchasesThisMonth, 3),
@@ -534,6 +536,53 @@ class B2bReportController extends Controller
                 'has_more' => ($offset + count($rows)) < $total,
             ],
         ]);
+    }
+
+    /**
+     * Return the Retail store branding owned by this B2B account.
+     *
+     * The admin dashboard persists the uploaded store image in stores.logo_path.
+     * Prefer the explicitly scoped Retail store header; when the account is linked
+     * to exactly one active Retail store, use that store as a safe fallback.
+     *
+     * @return array{id:int,name:string,logo_url:?string}|null
+     */
+    private function retailStoreBranding(Request $request, B2bCustomer $customer): ?array
+    {
+        $requested = filter_var(
+            $request->header('X-FOODEX-Retail-Store-ID'),
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]],
+        );
+
+        $query = DB::table('retail_wholesale_accounts')
+            ->join('stores', 'stores.id', '=', 'retail_wholesale_accounts.retail_store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('retail_wholesale_accounts.b2b_customer_id', $customer->getKey())
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->select([
+                'stores.id',
+                'stores.name',
+                'stores.logo_path',
+            ]);
+
+        if ($requested !== false) {
+            $store = (clone $query)->where('stores.id', (int) $requested)->first();
+        } else {
+            $stores = (clone $query)->orderBy('stores.id')->limit(2)->get();
+            $store = $stores->count() === 1 ? $stores->first() : null;
+        }
+
+        if ($store === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $store->id,
+            'name' => (string) $store->name,
+            'logo_url' => $this->assetUrl($store->logo_path),
+        ];
     }
 
     private function assetUrl(mixed $path): ?string

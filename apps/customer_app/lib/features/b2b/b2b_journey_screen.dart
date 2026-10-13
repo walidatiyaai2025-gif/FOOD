@@ -12,6 +12,7 @@ import '../../core/api/store_analytics_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
+import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
@@ -188,10 +189,14 @@ class B2bJourneyScreen extends StatelessWidget {
             icon: const BackButtonIcon(),
           ),
           title: Text(
-            context.tr('b2b.app.title'),
+            context.tr('b2b.top_products.title'),
+            key: const ValueKey('b2b-top-products-header-title'),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: CustomerUiColors.white,
-              fontSize: 18,
+              fontSize: 12.6,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -200,32 +205,10 @@ class B2bJourneyScreen extends StatelessWidget {
           top: false,
           child: SingleChildScrollView(
             key: const ValueKey('b2b-top-products-scroll'),
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  content.$1,
-                  key: const ValueKey('customer-route-label'),
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: CustomerUiColors.ink,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  content.$2,
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: CustomerUiColors.muted,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-                const SizedBox(height: 16),
                 _TopProductsRemoteState(api: api!, endpoint: _endpoint()!),
               ],
             ),
@@ -333,7 +316,15 @@ class B2bJourneyScreen extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                padding: definition.pattern == CustomerRoutePaths.b2bAccountStatement ||
+                        definition.pattern == CustomerRoutePaths.b2bPurchaseReports
+                    ? const EdgeInsets.fromLTRB(
+                        CustomerUiSpacing.page,
+                        0,
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.page,
+                      )
+                    : const EdgeInsets.all(CustomerUiSpacing.page),
                 child: remote,
               ),
             ),
@@ -353,6 +344,9 @@ class B2bJourneyScreen extends StatelessWidget {
           dashboardRoute: _scopedB2bRoute(CustomerRoutePaths.b2bDashboard),
           purchasesRoute: _scopedB2bRoute(
             CustomerRoutePaths.b2bPurchaseReports,
+          ),
+          topProductsRoute: _scopedB2bRoute(
+            CustomerRoutePaths.b2bTopProducts,
           ),
           invoicesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bInvoices),
           statementRoute: _scopedB2bRoute(
@@ -1073,14 +1067,27 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   Widget _dashboardIdentityImage(
     Map<Object?, Object?> customer,
     Map<Object?, Object?> account,
+    Map<Object?, Object?> retailStore,
     StoreAnalyticsReadModel? analytics,
   ) {
+    final dashboardStoreName = retailStore['name']?.toString().trim() ?? '';
+    final dashboardLogoUrl = retailStore['logo_url']?.toString().trim() ?? '';
+    final analyticsName = analytics?.store.name.trim() ?? '';
+    final companyName = account['company_name']?.toString().trim() ?? '';
+
+    if (dashboardStoreName.isNotEmpty || dashboardLogoUrl.isNotEmpty) {
+      return BusinessDashboardStoreLogo(
+        storeName: dashboardStoreName.isNotEmpty
+            ? dashboardStoreName
+            : (analyticsName.isNotEmpty ? analyticsName : companyName),
+        logoUrl: dashboardLogoUrl.isEmpty ? null : dashboardLogoUrl,
+      );
+    }
+
     if (_retailStoreContextId == null) {
       return _ownerAvatar(customer, account);
     }
 
-    final analyticsName = analytics?.store.name.trim() ?? '';
-    final companyName = account['company_name']?.toString().trim() ?? '';
     return BusinessDashboardStoreLogo(
       storeName: analyticsName.isNotEmpty ? analyticsName : companyName,
       logoUrl: analytics?.store.logoUrl,
@@ -1096,6 +1103,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     Object? creditBalance,
     Object? purchaseValue,
     String currency,
+    Map<Object?, Object?> retailStore,
     StoreAnalyticsReadModel? analytics,
   ) =>
       Semantics(
@@ -1120,7 +1128,12 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                     textDirection: TextDirection.ltr,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _dashboardIdentityImage(customer, account, analytics),
+                      _dashboardIdentityImage(
+                        customer,
+                        account,
+                        retailStore,
+                        analytics,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -1155,12 +1168,31 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                                     onTap: _openStoreAnalytics,
                                   ),
                                 ],
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  key: const ValueKey('b2b-dashboard-back'),
+                                  tooltip: MaterialLocalizations.of(context)
+                                      .backButtonTooltip,
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 36,
+                                    minHeight: 36,
+                                  ),
+                                  icon: const BackButtonIcon(),
+                                  color: CustomerUiColors.deepGreen,
+                                ),
                               ],
                             ),
                             Text(
-                              analytics?.store.name ??
-                                  account['company_name']?.toString() ??
-                                  '—',
+                              (retailStore['name']?.toString().trim().isNotEmpty ??
+                                      false)
+                                  ? retailStore['name'].toString().trim()
+                                  : analytics?.store.name ??
+                                      account['company_name']?.toString() ??
+                                      '—',
                               textAlign: TextAlign.start,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1420,6 +1452,9 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           final freshness = data['freshness'] is Map
               ? Map<Object?, Object?>.from(data['freshness'] as Map)
               : <Object?, Object?>{};
+          final retailStore = data['retail_store'] is Map
+              ? Map<Object?, Object?>.from(data['retail_store'] as Map)
+              : <Object?, Object?>{};
 
           final currency = finance['currency']?.toString() ??
               data['currency']?.toString() ??
@@ -1442,22 +1477,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                   age > const Duration(minutes: 5));
 
           final financeMetrics = <Widget>[
-            _metric(
-              context,
-              keyName: 'credit-limit',
-              label: context.tr('b2b.dashboard.credit_limit'),
-              value: _money(finance['credit_limit'], currency),
-              icon: Icons.credit_score_outlined,
-              route: CustomerRoutePaths.b2bAccountStatement,
-            ),
-            _metric(
-              context,
-              keyName: 'available-credit',
-              label: context.tr('b2b.dashboard.available_credit'),
-              value: _money(finance['available_credit_line'], currency),
-              icon: Icons.savings_outlined,
-              route: CustomerRoutePaths.b2bAccountStatement,
-            ),
             _metric(
               context,
               keyName: 'open-invoices',
@@ -1532,6 +1551,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                   creditBalance,
                   purchaseValue,
                   currency,
+                  retailStore,
                   analytics,
                 ),
                 finance: DashboardPanel(
@@ -2968,7 +2988,6 @@ class _PurchaseReportRemoteStateState
           }
 
           final summary = _reportMap(data['summary']);
-          final comparison = _reportMap(data['comparison']);
           final trend = _reportRows(data['data']);
           final categories = _reportRows(data['categories']);
           final orders = _reportRows(data['orders']);
@@ -2990,7 +3009,7 @@ class _PurchaseReportRemoteStateState
             key: const ValueKey('b2b-purchases-report'),
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _filters(context),
+              _filters(context, summary, currency),
               if (loading) const LinearProgressIndicator(),
               if (stale) ...[
                 const SizedBox(height: 10),
@@ -3007,12 +3026,6 @@ class _PurchaseReportRemoteStateState
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
-              _summary(context, summary, currency),
-              if (comparison.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _comparison(context, comparison, currency),
-              ],
               if (isEmpty) ...[
                 const SizedBox(height: 10),
                 Card(
@@ -3024,9 +3037,9 @@ class _PurchaseReportRemoteStateState
                 ),
               ] else ...[
                 const SizedBox(height: 10),
-                _trend(context, trend, currency),
-                const SizedBox(height: 10),
                 _categories(context, categories, currency),
+                const SizedBox(height: 10),
+                _trend(context, trend, currency),
                 if (orders.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   _orders(
@@ -3043,212 +3056,277 @@ class _PurchaseReportRemoteStateState
         },
       );
 
-  Widget _filters(BuildContext context) => Card(
+  Widget _filters(
+    BuildContext context,
+    Map<Object?, Object?> summary,
+    String currency,
+  ) =>
+      Card(
         key: const ValueKey('b2b-purchases-filters'),
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                context.tr('b2b.purchase_reports.period'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ChoiceChip(
-                    key: const ValueKey('b2b-purchases-current-period'),
-                    label:
-                        Text(context.tr('b2b.purchase_reports.current_period')),
-                    selected: _period == _PurchaseReportPeriod.current,
-                    onSelected: (_) =>
-                        _applyPeriod(_PurchaseReportPeriod.current),
-                  ),
-                  ChoiceChip(
-                    key: const ValueKey('b2b-purchases-previous-period'),
-                    label: Text(
-                        context.tr('b2b.purchase_reports.previous_period')),
-                    selected: _period == _PurchaseReportPeriod.previous,
-                    onSelected: (_) =>
-                        _applyPeriod(_PurchaseReportPeriod.previous),
-                  ),
-                  ChoiceChip(
-                    key: const ValueKey('b2b-purchases-all-periods'),
-                    label: Text(context.tr('b2b.purchase_reports.all_time')),
-                    selected: _period == _PurchaseReportPeriod.all,
-                    onSelected: (_) => _applyPeriod(_PurchaseReportPeriod.all),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
+              Row(
                 key: const ValueKey('b2b-purchases-date-actions-row'),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    OutlinedButton.icon(
+                children: [
+                  Text(
+                    context.tr('b2b.purchase_reports.period'),
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: OutlinedButton.icon(
                       key: const ValueKey('b2b-purchases-from'),
                       onPressed: () => _pickDate(from: true),
-                      icon: const Icon(Icons.calendar_today_outlined),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 12,
+                      ),
                       label: Text(
                         '${context.tr('b2b.purchase_reports.from')}: '
                         '${_from == null ? '—' : _isoDate(_from!)}',
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9.2,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: OutlinedButton.icon(
                       key: const ValueKey('b2b-purchases-to'),
                       onPressed: () => _pickDate(from: false),
-                      icon: const Icon(Icons.event_available_outlined),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(
+                        Icons.event_available_outlined,
+                        size: 12,
+                      ),
                       label: Text(
                         '${context.tr('b2b.purchase_reports.to')}: '
                         '${_to == null ? '—' : _isoDate(_to!)}',
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9.2,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
+                  ),
+                  const SizedBox(width: 3),
+                  SizedBox.square(
+                    dimension: 30,
+                    child: IconButton(
                       key: const ValueKey('b2b-purchases-refresh'),
                       tooltip: context.tr('b2b.purchase_reports.refresh'),
                       onPressed: _reload,
+                      padding: EdgeInsets.zero,
+                      iconSize: 16,
                       icon: const Icon(Icons.refresh),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: _compactPeriodChip(
+                      keyName: 'current-period',
+                      label: context.tr('b2b.purchase_reports.current_period'),
+                      selected: _period == _PurchaseReportPeriod.current,
+                      onPressed: () =>
+                          _applyPeriod(_PurchaseReportPeriod.current),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _compactPeriodChip(
+                      keyName: 'previous-period',
+                      label: context.tr('b2b.purchase_reports.previous_period'),
+                      selected: _period == _PurchaseReportPeriod.previous,
+                      onPressed: () =>
+                          _applyPeriod(_PurchaseReportPeriod.previous),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _compactPeriodChip(
+                      keyName: 'all-periods',
+                      label: context.tr('b2b.purchase_reports.all_time'),
+                      selected: _period == _PurchaseReportPeriod.all,
+                      onPressed: () =>
+                          _applyPeriod(_PurchaseReportPeriod.all),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 7),
+              Row(
+                key: const ValueKey('b2b-purchases-summary'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'total',
+                      icon: Icons.shopping_bag_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.total_purchases',
+                      ),
+                      value: _reportMoney(
+                        summary['total_purchases'],
+                        currency,
+                      ),
+                    ),
+                  ),
+                  _purchaseMetricDivider(),
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'orders',
+                      icon: Icons.inventory_2_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.order_count',
+                      ),
+                      value: summary['order_count']?.toString() ?? '0',
+                    ),
+                  ),
+                  _purchaseMetricDivider(),
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'invoices',
+                      icon: Icons.receipt_long_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.invoice_count',
+                      ),
+                      value: summary['invoice_count']?.toString() ?? '0',
+                    ),
+                  ),
+                  _purchaseMetricDivider(),
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'average',
+                      icon: Icons.query_stats_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.average_order',
+                      ),
+                      value: _reportMoney(
+                        summary['average_order_value'],
+                        currency,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       );
 
-  Widget _summary(
-    BuildContext context,
-    Map<Object?, Object?> summary,
-    String currency,
-  ) {
-    final values =
-        <({String keyName, String label, String value, IconData icon})>[
-      (
-        keyName: 'total',
-        label: context.tr('b2b.purchase_reports.total_purchases'),
-        value: _reportMoney(summary['total_purchases'], currency),
-        icon: Icons.shopping_bag_outlined,
-      ),
-      (
-        keyName: 'orders',
-        label: context.tr('b2b.purchase_reports.order_count'),
-        value: summary['order_count']?.toString() ?? '0',
-        icon: Icons.inventory_2_outlined,
-      ),
-      (
-        keyName: 'invoices',
-        label: context.tr('b2b.purchase_reports.invoice_count'),
-        value: summary['invoice_count']?.toString() ?? '0',
-        icon: Icons.receipt_long_outlined,
-      ),
-      (
-        keyName: 'average',
-        label: context.tr('b2b.purchase_reports.average_order'),
-        value: _reportMoney(summary['average_order_value'], currency),
-        icon: Icons.query_stats_outlined,
-      ),
-    ];
-
-    return Card(
-      key: const ValueKey('b2b-purchases-summary'),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final tileWidth = constraints.maxWidth >= 520
-                ? (constraints.maxWidth - 24) / 4
-                : (constraints.maxWidth - 8) / 2;
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: values
-                  .map(
-                    (item) => SizedBox(
-                      width: tileWidth,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            key: ValueKey(
-                              'b2b-purchases-summary-${item.keyName}',
-                            ),
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(item.icon, size: 20),
-                              const SizedBox(height: 8),
-                              Text(
-                                item.label,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.value,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
+  Widget _compactPeriodChip({
+    required String keyName,
+    required String label,
+    required bool selected,
+    required VoidCallback onPressed,
+  }) =>
+      ChoiceChip(
+        key: ValueKey('b2b-purchases-$keyName'),
+        selected: selected,
+        onSelected: (_) => onPressed(),
+        visualDensity: VisualDensity.compact,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 1),
+        label: SizedBox(
+          width: double.infinity,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 8.4,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _comparison(
-    BuildContext context,
-    Map<Object?, Object?> comparison,
-    String currency,
-  ) {
-    final change = _reportDouble(comparison['change_amount']);
-    final percent = comparison['change_percent'];
-    final prefix = change > 0 ? '+' : '';
-    final percentText =
-        percent == null ? '—' : '${_reportDouble(percent).toStringAsFixed(1)}%';
+  Widget _purchaseMetric({
+    required String keyName,
+    required IconData icon,
+    required String label,
+    required String value,
+  }) =>
+      Column(
+        key: ValueKey('b2b-purchases-summary-$keyName'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: CustomerUiColors.deepGreenStrong,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: CustomerUiColors.muted,
+              fontSize: 7.2,
+              fontWeight: FontWeight.w700,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: const TextStyle(
+                color: CustomerUiColors.ink,
+                fontSize: 9.2,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      );
 
-    return Card(
-      key: const ValueKey('b2b-purchases-comparison'),
-      child: ListTile(
-        leading: Icon(change >= 0 ? Icons.trending_up : Icons.trending_down),
-        title: Text(context.tr('b2b.purchase_reports.comparison')),
-        subtitle: Text(
-          '${context.tr('b2b.purchase_reports.previous_period_total')}: '
-          '${_reportMoney(comparison['total_purchases'], currency)}',
-        ),
-        trailing: Text(
-          '$prefix${_reportMoney(change, currency)}\n$percentText',
-          textAlign: TextAlign.end,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-      ),
-    );
-  }
+  Widget _purchaseMetricDivider() => Container(
+        width: 1,
+        height: 44,
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        color: CustomerUiColors.border,
+      );
 
   Widget _trend(
     BuildContext context,
@@ -3283,30 +3361,39 @@ class _PurchaseReportRemoteStateState
     BuildContext context,
     List<Map<Object?, Object?>> rows,
     String currency,
-  ) =>
-      Card(
-        key: const ValueKey('b2b-purchases-categories'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                context.tr('b2b.purchase_reports.categories'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+  ) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+
+    return Card(
+      key: const ValueKey('b2b-purchases-categories'),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.tr('b2b.purchase_reports.categories'),
+              style: titleStyle?.copyWith(
+                fontSize: (titleStyle.fontSize ?? 16) * .75,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                Text(context.tr('b2b.purchase_reports.no_categories'))
-              else
-                _PurchaseCategoryDistribution(rows: rows, currency: currency),
-            ],
-          ),
+            ),
+            const SizedBox(height: 9),
+            if (rows.isEmpty)
+              Text(
+                context.tr('b2b.purchase_reports.no_categories'),
+                style: bodyStyle?.copyWith(
+                  fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                ),
+              )
+            else
+              _PurchaseCategoryDistribution(rows: rows, currency: currency),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   String _localizedOrderStatus(BuildContext context, Object? rawStatus) {
     final status = rawStatus?.toString().trim().toLowerCase() ?? '';
@@ -3324,24 +3411,29 @@ class _PurchaseReportRemoteStateState
     String currency, {
     required int currentPage,
     required bool hasMore,
-  }) =>
-      Card(
-        key: const ValueKey('b2b-purchases-orders'),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  context.tr('b2b.purchase_reports.recent_orders'),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
+  }) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+    final bodySmallStyle = Theme.of(context).textTheme.bodySmall;
+    final buttonStyle = Theme.of(context).textTheme.labelLarge;
+
+    return Card(
+      key: const ValueKey('b2b-purchases-orders'),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(
+                context.tr('b2b.purchase_reports.recent_orders'),
+                style: titleStyle?.copyWith(
+                  fontSize: (titleStyle.fontSize ?? 16) * .75,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
+            ),
               ...rows.map((row) {
                 final id = int.tryParse(row['id']?.toString() ?? '');
                 final storeId = int.tryParse(row['store_id']?.toString() ?? '');
@@ -3356,21 +3448,31 @@ class _PurchaseReportRemoteStateState
                     _localizedOrderStatus(context, row['status']);
                 return ListTile(
                   key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
-                  leading: const Icon(Icons.receipt_long_outlined),
+                  leading: const Icon(Icons.receipt_long_outlined, size: 18),
                   title: Text(
                     orderNumber,
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
+                    style: bodyStyle?.copyWith(
+                      fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   subtitle: Text(
                     '${row['created_at'] ?? ''} · $statusLabel',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: bodySmallStyle?.copyWith(
+                      fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
+                    ),
                   ),
                   trailing: Text(
                     _reportMoney(row['grand_total'], displayCurrency),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: bodyStyle?.copyWith(
+                      fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   onTap: id == null
                       ? null
@@ -3399,6 +3501,10 @@ class _PurchaseReportRemoteStateState
                       context.tr('b2b.purchase_reports.page'),
                       currentPage.toString(),
                     ].join(' '),
+                    style: bodySmallStyle?.copyWith(
+                      fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   Wrap(
                     spacing: 6,
@@ -3410,8 +3516,12 @@ class _PurchaseReportRemoteStateState
                             ? () => _reload(page: currentPage - 1)
                             : null,
                         icon: const Icon(Icons.chevron_left),
-                        label:
-                            Text(context.tr('b2b.purchase_reports.previous')),
+                        label: Text(
+                          context.tr('b2b.purchase_reports.previous'),
+                          style: buttonStyle?.copyWith(
+                            fontSize: (buttonStyle.fontSize ?? 14) * .75,
+                          ),
+                        ),
                       ),
                       TextButton.icon(
                         key: const ValueKey('b2b-purchases-next-page'),
@@ -3419,7 +3529,12 @@ class _PurchaseReportRemoteStateState
                             ? () => _reload(page: currentPage + 1)
                             : null,
                         icon: const Icon(Icons.chevron_right),
-                        label: Text(context.tr('b2b.purchase_reports.next')),
+                        label: Text(
+                          context.tr('b2b.purchase_reports.next'),
+                          style: buttonStyle?.copyWith(
+                            fontSize: (buttonStyle.fontSize ?? 14) * .75,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -3428,7 +3543,8 @@ class _PurchaseReportRemoteStateState
             ],
           ),
         ),
-      );
+    );
+  }
 
   static DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
@@ -3521,16 +3637,25 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
 
     return Column(
       children: [
-        FoodexDonutChart(
-          key: const ValueKey('b2b-purchases-category-donut'),
-          values: values,
+        FoodexBarChart(
+          key: const ValueKey('b2b-purchases-category-bars'),
+          groups: values.map((value) => <double>[value]).toList(growable: false),
           semanticLabel: context.tr('b2b.purchase_reports.categories'),
-          size: 138,
-          strokeWidth: 18,
+          height: 138,
+          gap: 10,
         ),
         const SizedBox(height: 12),
-        FoodexChartLegend(labels: labels),
-        const SizedBox(height: 8),
+        DefaultTextStyle.merge(
+          style: TextStyle(
+            fontSize:
+                (Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14) * .75,
+          ),
+          child: FoodexChartLegend(
+            labels: labels,
+            spacing: 9,
+          ),
+        ),
+        const SizedBox(height: 6),
         ...rows.asMap().entries.map((entry) {
           final row = entry.value;
           final color = FoodexChartPalette
@@ -3553,15 +3678,24 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
                   child: Text(
                     row['category_name']?.toString() ?? '—',
                     overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize:
+                              (Theme.of(context).textTheme.bodyMedium?.fontSize ??
+                                      14) *
+                                  .75,
+                        ),
                   ),
                 ),
                 Text(
                   '${percentage.toStringAsFixed(1)}% · '
                   '${_reportMoney(row['purchase_total'], currency)}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize:
+                            (Theme.of(context).textTheme.bodySmall?.fontSize ??
+                                    12) *
+                                .75,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ],
             ),
@@ -4156,6 +4290,7 @@ class _B2bMorePage extends StatefulWidget {
     required this.financeEndpoint,
     required this.dashboardRoute,
     required this.purchasesRoute,
+    required this.topProductsRoute,
     required this.invoicesRoute,
     required this.statementRoute,
     required this.ordersRoute,
@@ -4174,6 +4309,7 @@ class _B2bMorePage extends StatefulWidget {
   final String financeEndpoint;
   final String dashboardRoute;
   final String purchasesRoute;
+  final String topProductsRoute;
   final String invoicesRoute;
   final String statementRoute;
   final String ordersRoute;
@@ -4362,69 +4498,20 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     final items = <_MoreItem>[
-      _MoreItem(
-        Icons.apartment_rounded,
-        context.tr('b2b.profile.company'),
-        _showProfile,
-      ),
-      _MoreItem(
-        Icons.account_balance_wallet_rounded,
-        context.tr('b2b.profile.financial'),
-        () => _open(widget.dashboardRoute),
-      ),
-      _MoreItem(
-        Icons.shopping_bag_outlined,
-        context.tr('b2b.profile.orders'),
-        () => _open(widget.ordersRoute),
-      ),
-      _MoreItem(
-        Icons.receipt_long_rounded,
-        context.tr('b2b.finance.invoices'),
-        () => _open(widget.invoicesRoute),
-        warm: true,
-      ),
-      _MoreItem(
-        Icons.credit_card_rounded,
-        context.tr('b2b.finance.statement'),
-        () => _open(widget.statementRoute),
-      ),
-      _MoreItem(
-        Icons.bar_chart_rounded,
-        context.tr('b2b.profile.purchases_report'),
-        () => _open(widget.purchasesRoute),
-      ),
-      _MoreItem(
-        Icons.notifications_rounded,
-        context.tr('b2b.profile.notifications'),
-        () => _open(widget.notificationsRoute),
-        warm: true,
-      ),
-      _MoreItem(
-        Icons.location_on_rounded,
-        context.tr('b2b.profile.addresses'),
-        () => _open(widget.addressesRoute),
-      ),
-      _MoreItem(
-        Icons.settings_rounded,
-        context.tr('b2b.profile.settings'),
-        _showSettings,
-      ),
-      _MoreItem(
-        Icons.language_rounded,
-        context.tr('b2b.profile.language'),
-        _showSettings,
-      ),
-      _MoreItem(
-        Icons.support_agent_rounded,
-        context.tr('b2b.profile.support'),
-        () => _open(CustomerRoutePaths.diagnostics),
-      ),
+      _MoreItem(Icons.apartment_rounded, context.tr('b2b.profile.company'), _showProfile, tone: 0),
+      _MoreItem(Icons.account_balance_wallet_rounded, context.tr('b2b.profile.financial'), () => _open(widget.dashboardRoute), tone: 1),
+      _MoreItem(Icons.shopping_bag_outlined, context.tr('b2b.profile.orders'), () => _open(widget.ordersRoute), tone: 2),
+      _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'), () => _open(widget.invoicesRoute), tone: 3),
+      _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'), () => _open(widget.statementRoute), tone: 4),
+      _MoreItem(Icons.bar_chart_rounded, context.tr('b2b.profile.purchases_report'), () => _open(widget.purchasesRoute), tone: 2),
+      _MoreItem(Icons.local_fire_department_rounded, context.tr('b2b.top_products.title'), () => _open(widget.topProductsRoute), tone: 3),
+      _MoreItem(Icons.notifications_rounded, context.tr('b2b.profile.notifications'), () => _open(widget.notificationsRoute), tone: 1),
+      _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'), () => _open(widget.addressesRoute), tone: 0),
+      _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'), _showSettings, tone: 4),
+      _MoreItem(Icons.language_rounded, context.tr('b2b.profile.language'), _showSettings, tone: 3),
+      _MoreItem(Icons.support_agent_rounded, context.tr('b2b.profile.support'), () => _open(CustomerRoutePaths.diagnostics), tone: 2),
       if (widget.onLogout != null)
-        _MoreItem(
-          Icons.shield_rounded,
-          context.tr('b2b.profile.security'),
-          _showSettings,
-        ),
+        _MoreItem(Icons.shield_rounded, context.tr('b2b.profile.security'), _showSettings, tone: 1),
     ];
 
     return Directionality(
@@ -4435,8 +4522,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         body: CustomerCurvedHeaderSurface(
           header: CustomerAccountHeader(
             key: const ValueKey('b2b-more-header-title'),
-            title: context.tr('b2b.profile.title'),
-            subtitle: context.tr('b2b.profile.hub_subtitle'),
+            title: context.tr('customer.nav.more'),
+            subtitle: '',
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -4479,37 +4566,10 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               key: const ValueKey('b2b-account-hub'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Align(
-                  alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
-                  child: _BusinessTile(
-                    label: context.tr('b2b.dashboard.title'),
-                    onTap: () => _open(widget.dashboardRoute),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.tr('b2b.profile.title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: ink,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  context.tr('b2b.profile.hub_subtitle'),
-                  style: const TextStyle(
-                    color: muted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 14),
                 _FinanceCard(
                   future: finance,
                   ar: ar,
+                  dashboardRoute: widget.dashboardRoute,
                   statementRoute: widget.statementRoute,
                   open: _open,
                   retry: () => setState(
@@ -4519,14 +4579,14 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                 const SizedBox(height: 14),
                 LayoutBuilder(
                   builder: (_, constraints) {
-                    const gap = 10.0;
-                    final columns = constraints.maxWidth >= 350 ? 3 : 2;
+                    const gap = 6.0;
+                    const columns = 5;
                     final width =
                         (constraints.maxWidth - gap * (columns - 1)) / columns;
                     final textScale = MediaQuery.textScalerOf(context).scale(1);
                     final scaledDelta =
                         (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                    final cardHeight = 112.0 + (scaledDelta * 90.0);
+                    final cardHeight = 66.0 + (scaledDelta * 32.0);
                     return Wrap(
                       spacing: gap,
                       runSpacing: gap,
@@ -4540,12 +4600,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       ],
                     );
                   },
-                ),
-                const SizedBox(height: 18),
-                B2bBusinessAccountProfile(
-                  api: widget.api,
-                  endpoint: widget.profileEndpoint,
-                  addressesRoute: widget.addressesRoute,
                 ),
                 const SizedBox(height: 14),
                 if (widget.onLocaleChanged != null)
@@ -4587,6 +4641,17 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                     onPressed: widget.onLogout,
                     icon: const Icon(Icons.logout_rounded),
                     label: Text(context.tr('customer.logout')),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${context.tr('customer.version')} $customerAppVersion',
+                    key: const ValueKey('b2b-more-app-version'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: _B2bMorePageState.muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ],
               ],
@@ -4659,65 +4724,11 @@ class _HeaderCircle extends StatelessWidget {
       );
 }
 
-class _BusinessTile extends StatelessWidget {
-  const _BusinessTile({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          key: const ValueKey('b2b-more-business-dashboard'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            width: 166,
-            height: 66,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [
-                  CustomerUiColors.limeSoft,
-                  CustomerUiColors.mintStrong
-                ],
-              ),
-              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-              boxShadow: CustomerUiElevation.cardShadow,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.grid_view_rounded,
-                  size: 27,
-                  color: _B2bMorePageState.dark,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: _B2bMorePageState.dark,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-}
-
 class _FinanceCard extends StatelessWidget {
   const _FinanceCard({
     required this.future,
     required this.ar,
+    required this.dashboardRoute,
     required this.statementRoute,
     required this.open,
     required this.retry,
@@ -4725,6 +4736,7 @@ class _FinanceCard extends StatelessWidget {
 
   final Future<Object?> future;
   final bool ar;
+  final String dashboardRoute;
   final String statementRoute;
   final void Function(String) open;
   final VoidCallback retry;
@@ -4784,14 +4796,6 @@ class _FinanceCard extends StatelessWidget {
             final values = <(String, String)>[
               (firstLabel, _money(balance.abs(), currency)),
               (
-                ar ? 'حد الائتمان' : 'Credit limit',
-                _money(_n(data['credit_limit']), currency),
-              ),
-              (
-                ar ? 'الائتمان المتاح' : 'Available credit',
-                _money(_n(data['available_credit_line']), currency),
-              ),
-              (
                 ar ? 'القوة الشرائية' : 'Purchasing power',
                 _money(_n(data['purchasing_power']), currency),
               ),
@@ -4817,10 +4821,36 @@ class _FinanceCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         ar ? 'ملخص الحساب المالي' : 'Financial account summary',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _B2bMorePageState.ink,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox.square(
+                      dimension: 34,
+                      child: IconButton(
+                        key: const ValueKey(
+                          'b2b-more-business-dashboard',
+                        ),
+                        tooltip: context.tr('b2b.dashboard.title'),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => open(dashboardRoute),
+                        icon: const Icon(
+                          Icons.grid_view_rounded,
+                          size: 18,
+                          color: _B2bMorePageState.dark,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: _B2bMorePageState.soft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
@@ -4920,81 +4950,68 @@ class _FinanceCard extends StatelessWidget {
 }
 
 class _MoreItem {
-  const _MoreItem(this.icon, this.label, this.onTap, {this.warm = false});
+  const _MoreItem(this.icon, this.label, this.onTap, {this.tone = 0});
+
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool warm;
+  final int tone;
 }
 
 class _MoreCard extends StatelessWidget {
   const _MoreCard({required this.item});
+
   final _MoreItem item;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: CustomerUiColors.white,
-        borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-        child: InkWell(
-          onTap: item.onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            padding: const EdgeInsets.fromLTRB(9, 11, 9, 9),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-              border: Border.all(color: _B2bMorePageState.border),
-              boxShadow: CustomerUiElevation.cardShadow,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: item.warm
-                        ? CustomerUiColors.limeSoft
-                        : _B2bMorePageState.soft,
-                    borderRadius: BorderRadius.circular(17),
+  Widget build(BuildContext context) {
+    const tones = <Color>[
+      Color(0xFF067A3A),
+      Color(0xFF9A6200),
+      Color(0xFF2E5FA8),
+      Color(0xFF7150A8),
+      Color(0xFF16766C),
+    ];
+    final tone = tones[item.tone % tones.length];
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: item.onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(3, 4, 3, 2),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    color: tone,
+                    size: 27,
                   ),
-                  child:
-                      Icon(item.icon, color: _B2bMorePageState.deep, size: 31),
                 ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.label,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _B2bMorePageState.ink,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          height: 1.08,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: const BoxDecoration(
-                        color: CustomerUiColors.mint,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.chevron_left_rounded,
-                        size: 18,
-                        color: _B2bMorePageState.dark,
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _B2bMorePageState.ink,
+                  fontSize: 7.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.08,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _B2bAccountHub extends StatefulWidget {
@@ -5532,14 +5549,14 @@ class _B2bAccountStatementRemoteStateState
     final closing = _amount(data['closing_balance']);
     final current = _amount(data['balance']);
     final direction = closing > 0
-        ? context.tr('b2b.statement.you_owe')
+        ? context.tr('b2b.statement.owed_to_you')
         : closing < 0
-            ? context.tr('b2b.statement.owed_to_you')
+            ? context.tr('b2b.statement.you_owe')
             : context.tr('b2b.statement.settled');
     final currentDirection = current > 0
-        ? context.tr('b2b.statement.you_owe')
+        ? context.tr('b2b.statement.owed_to_you')
         : current < 0
-            ? context.tr('b2b.statement.owed_to_you')
+            ? context.tr('b2b.statement.you_owe')
             : context.tr('b2b.statement.settled');
 
     return Column(
@@ -5548,47 +5565,111 @@ class _B2bAccountStatementRemoteStateState
       children: [
         Card(
           key: const ValueKey('b2b-statement-filters'),
+          margin: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  context.tr('b2b.statement.period'),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-statement-from'),
-                      onPressed: () => _pickDate(from: true),
-                      icon: const Icon(Icons.calendar_today_outlined),
-                      label: Text(
-                        '${context.tr('b2b.statement.from')}: ${_from ?? context.tr('b2b.statement.any_date')}',
+                    Text(
+                      context.tr('b2b.statement.period'),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 12.8,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('b2b-statement-from'),
+                        onPressed: () => _pickDate(from: true),
+                        icon: const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 14,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        label: Text(
+                          context.tr('b2b.statement.from'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-statement-to'),
-                      onPressed: () => _pickDate(from: false),
-                      icon: const Icon(Icons.event_available_outlined),
-                      label: Text(
-                        '${context.tr('b2b.statement.to')}: ${_to ?? context.tr('b2b.statement.any_date')}',
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('b2b-statement-to'),
+                        onPressed: () => _pickDate(from: false),
+                        icon: const Icon(
+                          Icons.event_available_outlined,
+                          size: 14,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        label: Text(
+                          context.tr('b2b.statement.to'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                const SizedBox(height: 7),
+                Row(
                   children: [
-                    _presetChip('month', 'b2b.statement.this_month'),
-                    _presetChip('previous', 'b2b.statement.previous_month'),
-                    _presetChip('30', 'b2b.statement.last_30_days'),
-                    _presetChip('all', 'b2b.statement.all_time'),
+                    Expanded(
+                      child: _presetChip(
+                        'month',
+                        'b2b.statement.this_month',
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _presetChip(
+                        'previous',
+                        'b2b.statement.previous_month',
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _presetChip(
+                        '30',
+                        'b2b.statement.last_30_days',
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _presetChip(
+                        'all',
+                        'b2b.statement.all_time',
+                        compact: true,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -5613,67 +5694,91 @@ class _B2bAccountStatementRemoteStateState
         const SizedBox(height: 10),
         Card(
           key: const ValueKey('b2b-statement-summary-closing'),
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: CustomerUiColors.deepGreen,
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 34,
+                  height: 34,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(14),
+                    color: CustomerUiColors.white.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.account_balance_wallet_outlined,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: CustomerUiColors.white,
+                    size: 19,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         context.tr('b2b.statement.closing_balance'),
-                        style: Theme.of(context).textTheme.labelLarge,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: CustomerUiColors.white,
+                              fontSize: 9.8,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         '$direction · ${_money(closing.abs(), currency)}',
                         key: const ValueKey('b2b-statement-closing-value'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: CustomerUiColors.white,
+                              fontSize: 15.4,
+                              fontWeight: FontWeight.w900,
+                              height: 1.05,
+                            ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 5),
                       Text(
                         '${context.tr('b2b.statement.current_balance')}: '
                         '$currentDirection · ${_money(current.abs(), currency)}',
                         key: const ValueKey('b2b-statement-current-direction'),
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.white.withValues(
+                                alpha: .88,
+                              ),
+                              fontSize: 9.8,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 6),
                 Chip(
                   key: const ValueKey('b2b-statement-direction-chip'),
+                  backgroundColor:
+                      CustomerUiColors.white.withValues(alpha: .14),
+                  side: BorderSide(
+                    color: CustomerUiColors.white.withValues(alpha: .22),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  labelStyle: const TextStyle(
+                    color: CustomerUiColors.white,
+                    fontSize: 9.8,
+                    fontWeight: FontWeight.w800,
+                  ),
                   label: Text(direction),
                   avatar: Icon(
                     closing == 0
                         ? Icons.check_circle_outline
                         : closing > 0
-                            ? Icons.arrow_upward_rounded
-                            : Icons.arrow_downward_rounded,
-                    size: 18,
+                            ? Icons.arrow_downward_rounded
+                            : Icons.arrow_upward_rounded,
+                    color: CustomerUiColors.white,
+                    size: 14,
                   ),
                 ),
               ],
@@ -5686,11 +5791,6 @@ class _B2bAccountStatementRemoteStateState
           runSpacing: 8,
           children: [
             _summaryCard(
-              'opening',
-              context.tr('b2b.statement.opening_balance'),
-              _money(data['opening_balance'], currency),
-            ),
-            _summaryCard(
               'debits',
               context.tr('b2b.statement.period_debits'),
               _money(data['period_debits'], currency),
@@ -5700,43 +5800,62 @@ class _B2bAccountStatementRemoteStateState
               context.tr('b2b.statement.period_credits'),
               _money(data['period_credits'], currency),
             ),
-            _summaryCard(
-              'current',
-              context.tr('b2b.statement.current_balance'),
-              '$currentDirection · ${_money(current.abs(), currency)}',
-            ),
           ],
         ),
         const SizedBox(height: 10),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
               children: [
-                Text(
-                  context.tr('b2b.statement.export_exact'),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                Expanded(
+                  child: Text(
+                    context.tr('b2b.statement.export_exact'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
+                const SizedBox(width: 6),
                 FilledButton.tonalIcon(
                   key: const ValueKey('b2b-statement-export-pdf'),
                   onPressed: _exporting ? null : () => _export('pdf'),
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 28),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 12),
                   label: const Text('PDF'),
                 ),
+                const SizedBox(width: 4),
                 FilledButton.tonalIcon(
                   key: const ValueKey('b2b-statement-export-xlsx'),
                   onPressed: _exporting ? null : () => _export('xlsx'),
-                  icon: const Icon(Icons.table_view_outlined),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 28),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  icon: const Icon(Icons.table_view_outlined, size: 12),
                   label: const Text('Excel'),
-                ),
-                IconButton(
-                  key: const ValueKey('b2b-statement-refresh'),
-                  tooltip: context.tr('customer.action.retry'),
-                  onPressed: _load,
-                  icon: const Icon(Icons.refresh),
                 ),
               ],
             ),
@@ -5796,9 +5915,29 @@ class _B2bAccountStatementRemoteStateState
     );
   }
 
-  Widget _presetChip(String preset, String labelKey) => ActionChip(
+  Widget _presetChip(
+    String preset,
+    String labelKey, {
+    bool compact = false,
+  }) =>
+      ActionChip(
         key: ValueKey('b2b-statement-preset-$preset'),
-        label: Text(context.tr(labelKey)),
+        labelPadding: compact
+            ? const EdgeInsets.symmetric(horizontal: 2)
+            : null,
+        visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+        label: Text(
+          context.tr(labelKey),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: compact
+              ? const TextStyle(
+                  fontSize: 9.6,
+                  fontWeight: FontWeight.w700,
+                )
+              : null,
+        ),
         onPressed: () => _preset(preset),
       );
 
@@ -5837,6 +5976,31 @@ class _B2bAccountStatementRemoteStateState
     final reference = row['reference']?.toString() ?? '—';
     final description = row['description']?.toString() ?? '—';
     final route = _referenceRoute(row);
+    final textTheme = Theme.of(context).textTheme;
+    final typeColor = _statementTypeColor(type);
+    final runningBalance = _amount(row['running_balance']);
+    final runningBalanceColor = runningBalance > 0
+        ? CustomerUiColors.success
+        : runningBalance < 0
+            ? CustomerUiColors.destructive
+            : CustomerUiColors.muted;
+    final transactionTitleStyle = textTheme.titleSmall?.copyWith(
+      color: typeColor,
+      fontSize: (textTheme.titleSmall?.fontSize ?? 14) * .75,
+      fontWeight: FontWeight.w900,
+    );
+    final transactionTextStyle = textTheme.bodyMedium?.copyWith(
+      fontSize: (textTheme.bodyMedium?.fontSize ?? 14) * .75,
+    );
+    final referenceTextStyle = transactionTextStyle?.copyWith(
+      color: CustomerUiColors.deepGreenStrong,
+      fontWeight: FontWeight.w800,
+    );
+    final transactionButtonStyle = textTheme.labelLarge?.copyWith(
+      color: CustomerUiColors.deepGreenStrong,
+      fontSize: (textTheme.labelLarge?.fontSize ?? 14) * .75,
+      fontWeight: FontWeight.w800,
+    );
 
     return Card(
       key: ValueKey('b2b-statement-row-${row['id']}'),
@@ -5850,22 +6014,23 @@ class _B2bAccountStatementRemoteStateState
                 Expanded(
                   child: Text(
                     _typeLabel(type),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: transactionTitleStyle,
                   ),
                 ),
-                Text(_shortDate(row['occurred_at']?.toString())),
+                Text(
+                  _shortDate(row['occurred_at']?.toString()),
+                  style: transactionTextStyle,
+                ),
               ],
             ),
             const SizedBox(height: 5),
-            Text(description),
+            Text(description, style: transactionTextStyle),
             const SizedBox(height: 6),
             if (route == null)
               Text(
                 '${context.tr('b2b.statement.reference')}: $reference',
                 key: ValueKey('b2b-statement-reference-${row['id']}'),
+                style: referenceTextStyle,
               )
             else
               Align(
@@ -5873,9 +6038,13 @@ class _B2bAccountStatementRemoteStateState
                 child: TextButton.icon(
                   key: ValueKey('b2b-statement-reference-${row['id']}'),
                   onPressed: () => Navigator.of(context).pushNamed(route),
+                  style: TextButton.styleFrom(
+                    foregroundColor: CustomerUiColors.deepGreenStrong,
+                  ),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: Text(
                     '${context.tr('b2b.statement.reference')}: $reference',
+                    style: transactionButtonStyle,
                   ),
                 ),
               ),
@@ -5886,13 +6055,19 @@ class _B2bAccountStatementRemoteStateState
               children: [
                 Text(
                   '${context.tr('b2b.statement.debit')}: ${_money(row['debit'], currency)}',
+                  style: transactionTextStyle,
                 ),
                 Text(
                   '${context.tr('b2b.statement.credit')}: ${_money(row['credit'], currency)}',
+                  style: transactionTextStyle,
                 ),
                 Text(
                   '${context.tr('b2b.statement.running_balance')}: ${_money(row['running_balance'], currency)}',
                   key: ValueKey('b2b-statement-running-${row['id']}'),
+                  style: transactionTextStyle?.copyWith(
+                    color: runningBalanceColor,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -5930,6 +6105,19 @@ class _B2bAccountStatementRemoteStateState
         ? context.tr('b2b.statement.type.$type')
         : type.replaceAll('_', ' ');
   }
+
+  static Color _statementTypeColor(String type) => switch (type) {
+        'opening_balance' => CustomerUiColors.deepGreenSoft,
+        'invoice' => CustomerUiColors.warning,
+        'payment' => CustomerUiColors.success,
+        'credit_note' => CustomerUiColors.info,
+        'debit_note' => CustomerUiColors.destructive,
+        'return' => const Color(0xFF0F766E),
+        'refund' => const Color(0xFF7C3AED),
+        'adjustment_positive' => const Color(0xFF15803D),
+        'adjustment_negative' => const Color(0xFFB91C1C),
+        _ => CustomerUiColors.inkSoft,
+      };
 
   static double _amount(Object? value) =>
       double.tryParse(value?.toString() ?? '') ?? 0;
@@ -6250,6 +6438,15 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         double.tryParse(data['credit_amount']?.toString() ?? '') ?? 0;
     final outstanding =
         double.tryParse(data['outstanding_amount']?.toString() ?? '') ?? 0;
+    final rawInvoiceNumber =
+        data['display_invoice_number']?.toString().trim().isNotEmpty == true
+            ? data['display_invoice_number'].toString().trim()
+            : data['invoice_number']?.toString().trim().isNotEmpty == true
+                ? data['invoice_number'].toString().trim()
+                : data['id']?.toString() ?? '—';
+    final invoiceNumber = rawInvoiceNumber.startsWith('#')
+        ? rawInvoiceNumber.substring(1).trim()
+        : rawInvoiceNumber;
 
     return Column(
       key: const ValueKey('b2b-invoice-detail-data'),
@@ -6318,34 +6515,29 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ar ? 'تفاصيل الفاتورة' : 'Invoice details',
-                          style:
-                              Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          data['display_invoice_number']?.toString() ??
-                              (data['id'] == null ? '—' : '#${data['id']}'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                      ],
+                    child: Text.rich(
+                      key: const ValueKey('b2b-invoice-detail-number'),
+                      TextSpan(
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.w800,
+                            ),
+                        children: [
+                          TextSpan(
+                            text: ar ? 'رقم الفاتورة ' : 'Invoice ',
+                          ),
+                          TextSpan(
+                            text: invoiceNumber,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Chip(
@@ -6373,21 +6565,13 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ],
               ),
-              if ((seller['name']?.toString() ?? '').isNotEmpty ||
-                  (customer['name']?.toString() ?? '').isNotEmpty) ...[
+              if ((customer['name']?.toString() ?? '').isNotEmpty ||
+                  (customer['email']?.toString() ?? '').isNotEmpty ||
+                  (customer['phone']?.toString() ?? '').isNotEmpty) ...[
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
               ],
-              if ((seller['name']?.toString() ?? '').isNotEmpty)
-                Text(
-                  '${ar ? 'البائع' : 'Seller'} · ${seller['name']}',
-                  key: const ValueKey('b2b-invoice-seller'),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
               if ((customer['name']?.toString() ?? '').isNotEmpty)
                 Text(
                   '${ar ? 'العميل' : 'Customer'} · ${customer['name']}',
@@ -6412,37 +6596,33 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ),
               const SizedBox(height: 14),
-              FilledButton.icon(
-                key: const ValueKey('b2b-invoice-detail-pdf'),
-                onPressed: _sharingPdf ? null : () => _sharePdf(data),
-                icon: _sharingPdf
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.picture_as_pdf_rounded),
-                label: Text(ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
-              ),
-              const SizedBox(height: 8),
               Row(
+                textDirection: TextDirection.ltr,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (orderRoute != null)
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        key: const ValueKey('b2b-invoice-related-order'),
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(orderRoute),
-                        icon: const Icon(Icons.local_shipping_outlined),
-                        label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
-                      ),
-                    ),
-                  if (orderRoute != null) const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    key: const ValueKey('b2b-invoice-detail-refresh'),
-                    tooltip: ar ? 'تحديث' : 'Refresh',
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh_rounded),
+                  FilledButton.icon(
+                    key: const ValueKey('b2b-invoice-detail-pdf'),
+                    onPressed: _sharingPdf ? null : () => _sharePdf(data),
+                    icon: _sharingPdf
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.picture_as_pdf_rounded),
+                    label:
+                        Text(ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
                   ),
+                  if (orderRoute != null) ...[
+                    const SizedBox(width: 8),
+                    FilledButton.tonalIcon(
+                      key: const ValueKey('b2b-invoice-related-order'),
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(orderRoute),
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
+                    ),
+                  ],
+
                 ],
               ),
             ],
@@ -7242,65 +7422,196 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
             final status = row['display_status']?.toString() ??
                 row['status']?.toString() ??
                 'open';
+            final rawInvoiceNumber =
+                row['display_invoice_number']?.toString().trim().isNotEmpty ==
+                        true
+                    ? row['display_invoice_number'].toString().trim()
+                    : row['invoice_number']?.toString().trim().isNotEmpty ==
+                            true
+                        ? row['invoice_number'].toString().trim()
+                        : row['id']?.toString() ?? '—';
+            final invoiceNumber = rawInvoiceNumber.startsWith('#')
+                ? rawInvoiceNumber.substring(1).trim()
+                : rawInvoiceNumber;
+            final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+            final labelStyle = Theme.of(context).textTheme.labelLarge;
+            final compactBodyStyle = bodyStyle?.copyWith(
+              fontSize: (bodyStyle.fontSize ?? 14) * .70,
+              height: 1.15,
+            );
+            final compactStrongStyle = compactBodyStyle?.copyWith(
+              color: CustomerUiColors.ink,
+              fontWeight: FontWeight.w800,
+            );
+            final compactButtonStyle = labelStyle?.copyWith(
+              fontSize: (labelStyle.fontSize ?? 14) * .70,
+              fontWeight: FontWeight.w800,
+            );
+
             return Card(
               key: ValueKey('b2b-invoice-${row['id']}'),
               child: InkWell(
                 onTap: () => Navigator.of(context).pushNamed(_detailRoute(row)),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              row['display_invoice_number']?.toString() ??
-                                  (row['id'] == null ? '—' : '#${row['id']}'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '${ar ? 'رقم الفاتورة' : 'Invoice'} $invoiceNumber',
+                              key: ValueKey(
+                                'b2b-invoice-number-${row['id']}',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: compactStrongStyle?.copyWith(
+                                fontSize:
+                                    (bodyStyle?.fontSize ?? 14) * .70,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
-                          ),
-                          Chip(label: Text(_statusLabel(context, status))),
-                        ],
-                      ),
-                      Text(
-                        '${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}',
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}',
-                      ),
-                      Text(
-                        '${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}',
-                      ),
-                      Text(
-                        '${ar ? 'المتبقي' : 'Outstanding'}: ${_money(row['outstanding_amount'], currency)}',
-                      ),
-                      if ((double.tryParse(row['credit_amount'].toString()) ??
-                              0) >
-                          0)
-                        Text(
-                          '${ar ? 'لك' : 'Credit'}: ${_money(row['credit_amount'], currency)}',
+                            const SizedBox(height: 4),
+                            Text(
+                              '${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}',
+                              style: compactBodyStyle,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}',
+                              style: compactStrongStyle,
+                            ),
+                            Text.rich(
+                              key: ValueKey(
+                                'b2b-invoice-paid-${row['id']}',
+                              ),
+                              TextSpan(
+                                style: compactBodyStyle,
+                                children: [
+                                  TextSpan(
+                                    text: '${ar ? 'المدفوع' : 'Paid'}: ',
+                                  ),
+                                  TextSpan(
+                                    text: _money(
+                                      row['paid_amount'],
+                                      currency,
+                                    ),
+                                    style: const TextStyle(
+                                      color: CustomerUiColors.success,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text.rich(
+                              key: ValueKey(
+                                'b2b-invoice-outstanding-${row['id']}',
+                              ),
+                              TextSpan(
+                                style: compactBodyStyle,
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        '${ar ? 'المتبقي' : 'Outstanding'}: ',
+                                  ),
+                                  TextSpan(
+                                    text: _money(
+                                      row['outstanding_amount'],
+                                      currency,
+                                    ),
+                                    style: const TextStyle(
+                                      color: CustomerUiColors.destructive,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if ((double.tryParse(
+                                      row['credit_amount'].toString(),
+                                    ) ??
+                                    0) >
+                                0)
+                              Text(
+                                '${ar ? 'لك' : 'Credit'}: ${_money(row['credit_amount'], currency)}',
+                                style: compactBodyStyle,
+                              ),
+                          ],
                         ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          OutlinedButton.icon(
-                            key: ValueKey('b2b-invoice-pdf-${row['id']}'),
-                            onPressed:
-                                _sharingPdf ? null : () => _sharePdf(row),
-                            icon: const Icon(Icons.picture_as_pdf_outlined),
-                            label: const Text('PDF'),
+                          Chip(
+                            key: ValueKey(
+                              'b2b-invoice-status-${row['id']}',
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            labelPadding:
+                                const EdgeInsets.symmetric(horizontal: 2),
+                            label: Text(
+                              _statusLabel(context, status),
+                              style: compactButtonStyle,
+                            ),
                           ),
-                          FilledButton.tonalIcon(
-                            key: ValueKey('b2b-invoice-open-${row['id']}'),
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(_detailRoute(row)),
-                            icon: const Icon(Icons.open_in_new_rounded),
-                            label: Text(ar ? 'التفاصيل' : 'Details'),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              OutlinedButton.icon(
+                                key: ValueKey(
+                                  'b2b-invoice-pdf-${row['id']}',
+                                ),
+                                onPressed:
+                                    _sharingPdf ? null : () => _sharePdf(row),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 28),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: compactButtonStyle,
+                                ),
+                                icon: const Icon(
+                                  Icons.picture_as_pdf_outlined,
+                                  size: 12,
+                                ),
+                                label: const Text('PDF'),
+                              ),
+                              const SizedBox(width: 4),
+                              FilledButton.tonalIcon(
+                                key: ValueKey(
+                                  'b2b-invoice-open-${row['id']}',
+                                ),
+                                onPressed: () => Navigator.of(context)
+                                    .pushNamed(_detailRoute(row)),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 28),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: compactButtonStyle,
+                                ),
+                                icon: const Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 12,
+                                ),
+                                label: Text(
+                                  ar ? 'التفاصيل' : 'Details',
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

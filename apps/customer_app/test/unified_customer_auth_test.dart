@@ -23,7 +23,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (token, preferences) async {
+          onAuthenticated: (token, preferences, _) async {
             completedToken = token;
             completedPreferences = preferences;
           },
@@ -75,7 +75,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) async {},
+          onAuthenticated: (_, __, ___) async {},
           biometricAuthenticator:
               const _FakeBiometric(available: false, result: false),
         ),
@@ -118,7 +118,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRouteLocations.retailCheckout(context),
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (token, preferences) async {
+          onAuthenticated: (token, preferences, _) async {
             completedToken = token;
             expect(preferences.rememberMe, isTrue);
             expect(preferences.biometricEnabled, isTrue);
@@ -164,7 +164,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) async {},
+          onAuthenticated: (_, __, ___) async {},
           pendingActionStore: const _ThrowingPendingActionStore(),
         ),
       ),
@@ -182,7 +182,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
     await tester.pumpAndSettle();
 
-    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+    expect(find.text(CustomerRoutePaths.b2bHome), findsOneWidget);
     expect(
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsNothing,
@@ -197,7 +197,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) async {},
+          onAuthenticated: (_, __, ___) async {},
           pendingActionStore: const _HangingPendingActionStore(),
         ),
       ),
@@ -235,7 +235,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) async {},
+          onAuthenticated: (_, __, ___) async {},
           sessionStore: sessions,
           preferences: const CustomerAuthPreferences(
             rememberMe: true,
@@ -276,7 +276,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.b2bDashboard,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, preferences) async {
+          onAuthenticated: (_, preferences, __) async {
             completedPreferences = preferences;
           },
           sessionStore: sessions,
@@ -351,7 +351,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.b2bDashboard,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (token, preferences) async {
+          onAuthenticated: (token, preferences, _) async {
             completedToken = token;
             expect(preferences.rememberMe, isTrue);
             expect(preferences.biometricEnabled, isTrue);
@@ -414,7 +414,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.b2bDashboard,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) async {},
+          onAuthenticated: (_, __, ___) async {},
           sessionStore: sessions,
           preferences: const CustomerAuthPreferences(
             rememberMe: true,
@@ -440,6 +440,59 @@ void main() {
     expect(logoutCalled, isTrue);
   });
 
+  testWidgets(
+      'biometric refresh drops inactive Retail context but still resumes canonical Wholesale Home',
+      (tester) async {
+    final storage = _MemorySecureStore();
+    final sessions = SecureCustomerSessionStore(storage: storage);
+    await sessions.write(
+      const CustomerSession.platformCustomer(
+        accessToken: 'saved-token',
+        b2bRetailStoreId: 2,
+      ),
+    );
+
+    int? completedRetailStoreId = -1;
+    int resolverCalls = 0;
+
+    await tester.pumpWidget(
+      _testApp(
+        child: UnifiedCustomerAuthScreen(
+          nextRoute: CustomerRoutePaths.marketplace,
+          actionApi: const _SuccessfulActionApi(),
+          onAuthenticated: (token, preferences, retailStoreId) async {
+            expect(token, 'saved-token');
+            completedRetailStoreId = retailStoreId;
+          },
+          sessionStore: sessions,
+          preferences: const CustomerAuthPreferences(
+            rememberMe: true,
+            biometricEnabled: true,
+          ),
+          biometricAuthenticator:
+              const _FakeBiometric(available: true, result: true),
+          rememberedRetailStoreResolver: (token, rememberedRetailStoreId) async {
+            resolverCalls += 1;
+            expect(token, 'saved-token');
+            expect(rememberedRetailStoreId, 2);
+            return null;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final biometricLogin =
+        find.byKey(const ValueKey('customer-auth-biometric-login'));
+    await tester.ensureVisible(biometricLogin);
+    await tester.tap(biometricLogin);
+    await tester.pumpAndSettle();
+
+    expect(resolverCalls, 1);
+    expect(completedRetailStoreId, isNull);
+    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+  });
+
   testWidgets('Arabic auth surface remains RTL and customer-only',
       (tester) async {
     await tester.pumpWidget(
@@ -448,7 +501,7 @@ void main() {
         child: UnifiedCustomerAuthScreen(
           nextRoute: CustomerRoutePaths.marketplace,
           actionApi: const _SuccessfulActionApi(),
-          onAuthenticated: (_, __) async {},
+          onAuthenticated: (_, __, ___) async {},
         ),
       ),
     );

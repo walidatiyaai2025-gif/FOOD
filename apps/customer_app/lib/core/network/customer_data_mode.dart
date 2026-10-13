@@ -44,7 +44,7 @@ class CustomerDataModeController extends ChangeNotifier {
       _networkOffline &&
       _offlineSince != null &&
       DateTime.now().toUtc().difference(_offlineSince!) >=
-          const Duration(seconds: 30);
+          const Duration(seconds: 5);
 
   Future<void> initialize() async {
     _preferences ??= await SharedPreferences.getInstance();
@@ -109,7 +109,7 @@ class CustomerDataModeController extends ChangeNotifier {
       _autoLite = true;
       changed = true;
     }
-    if (_consecutiveFailures >= 2 && !_networkOffline) {
+    if (_consecutiveFailures >= 4 && !_networkOffline) {
       _networkOffline = true;
       _offlineSince = DateTime.now().toUtc();
       changed = true;
@@ -128,8 +128,8 @@ class CustomerDataModeController extends ChangeNotifier {
   bool get allowsBackgroundRefresh => allowsRefresh;
 
   Duration requestTimeout() => switch (effectiveMode) {
-        CustomerDataMode.normal => const Duration(seconds: 12),
-        CustomerDataMode.lite => const Duration(seconds: 8),
+        CustomerDataMode.normal => const Duration(seconds: 15),
+        CustomerDataMode.lite => const Duration(seconds: 15),
         CustomerDataMode.offline => Duration.zero,
       };
 

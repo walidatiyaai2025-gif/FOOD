@@ -33,6 +33,7 @@ class RetailMerchantIdentityIsolationTest extends TestCase
         $manager = $this->user('merchant-multi@example.test');
         [$storeA, $b2bCustomerA] = $this->managedStore($manager, 'MERCHANT-A', true);
         [$storeB, $b2bCustomerB] = $this->managedStore($manager, 'MERCHANT-B', false);
+        $storeA->update(['logo_path' => 'storage/store-logos/merchant-a.png']);
 
         $identity = app(RetailMerchantIdentityService::class)->identityPayload($manager);
 
@@ -73,6 +74,17 @@ class RetailMerchantIdentityIsolationTest extends TestCase
                 (int) $resolver->b2bFromRequest($manager, $request)->getKey(),
             );
         }
+
+        Sanctum::actingAs($manager);
+        $this->withHeader('X-FOODEX-Retail-Store-ID', (string) $storeA->id)
+            ->getJson('/api/v1/b2b/dashboard')
+            ->assertOk()
+            ->assertJsonPath('retail_store.id', $storeA->id)
+            ->assertJsonPath('retail_store.name', $storeA->name)
+            ->assertJsonPath(
+                'retail_store.logo_url',
+                url('/storage/store-logos/merchant-a.png'),
+            );
     }
 
     public function test_self_store_guard_blocks_existing_customer_cart_profile_and_checkout_paths(): void

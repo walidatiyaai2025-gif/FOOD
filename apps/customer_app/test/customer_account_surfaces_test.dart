@@ -163,6 +163,7 @@ void main() {
         home: CustomerAddressBookScreen(
           api: api,
           locationService: const _LocationFake(),
+          reverseGeocoder: const _ReverseGeocoderFake(),
         ),
       ),
     );
@@ -171,13 +172,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('customer-address-add')));
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.byKey(const ValueKey('customer-address-line1')),
-      'Test Street',
-    );
     final currentLocation = find.byKey(
       const ValueKey('customer-address-current-location'),
     );
+    final line1 = find.byKey(const ValueKey('customer-address-line1'));
+    expect(
+      tester.getTopLeft(currentLocation).dy,
+      lessThan(tester.getTopLeft(line1).dy),
+    );
+
     await tester.ensureVisible(currentLocation);
     await tester.tap(currentLocation);
     await tester.pumpAndSettle();
@@ -186,12 +189,54 @@ void main() {
       find.byKey(const ValueKey('customer-address-coordinates')),
       findsOneWidget,
     );
+    expect(
+      tester.widget<TextField>(line1).controller?.text,
+      'Test Street 12',
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('customer-address-governorate')),
+          )
+          .controller
+          ?.text,
+      'Hawalli',
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('customer-address-area')),
+          )
+          .controller
+          ?.text,
+      'Salmiya',
+    );
+
+    final governorateRect = tester.getRect(
+      find.byKey(const ValueKey('customer-address-governorate')),
+    );
+    final areaRect = tester.getRect(
+      find.byKey(const ValueKey('customer-address-area')),
+    );
+    expect(
+      (governorateRect.center.dy - areaRect.center.dy).abs(),
+      lessThan(1),
+    );
+    expect(find.text('Block'), findsNothing);
+    expect(find.text('Avenue'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('customer-address-save')));
     await tester.pumpAndSettle();
 
     expect(api.createdAddresses, hasLength(1));
-    expect(api.createdAddresses.single['line1'], 'Test Street');
+    expect(api.createdAddresses.single['line1'], 'Test Street 12');
+    expect(api.createdAddresses.single['area'], 'Salmiya');
+    expect(api.createdAddresses.single['governorate'], 'Hawalli');
+    expect(api.createdAddresses.single['city'], 'Kuwait City');
+    expect(api.createdAddresses.single['country'], 'Kuwait');
+    expect(api.createdAddresses.single['country_code'], 'KW');
+    expect(api.createdAddresses.single.containsKey('block'), isFalse);
+    expect(api.createdAddresses.single.containsKey('avenue'), isFalse);
     expect(api.createdAddresses.single['latitude'], 29.3759);
     expect(api.createdAddresses.single['longitude'], 47.9774);
     expect(api.createdAddresses.single['location_source'], 'current_location');
@@ -353,6 +398,26 @@ class _LocationFake implements CustomerLocationService {
         latitude: 29.3759,
         longitude: 47.9774,
         accuracyMeters: 4.5,
+      );
+}
+
+class _ReverseGeocoderFake implements CustomerReverseGeocoder {
+  const _ReverseGeocoderFake();
+
+  @override
+  Future<CustomerGeocodedAddress?> reverse({
+    required double latitude,
+    required double longitude,
+    String? languageCode,
+  }) async =>
+      const CustomerGeocodedAddress(
+        line1: 'Test Street 12',
+        area: 'Salmiya',
+        governorate: 'Hawalli',
+        city: 'Kuwait City',
+        country: 'Kuwait',
+        countryCode: 'KW',
+        building: '12',
       );
 }
 

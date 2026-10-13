@@ -56,7 +56,12 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   final search = TextEditingController();
   final campaignPopups = CustomerNotificationCampaignPopupService();
   final liveAds = CustomerLiveAdService();
-  late final int storeId = wholesaleStoreId(widget.location);
+  int _resolvedStoreId = 0;
+  int get storeId {
+    final scopedStoreId = wholesaleStoreId(widget.location);
+    return scopedStoreId > 0 ? scopedStoreId : _resolvedStoreId;
+  }
+
   late Future<Map<String, dynamic>> future = _load();
   bool _liveAdScheduled = false;
 
@@ -73,40 +78,94 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
     }
   }
 
+  Future<int> _resolveWholesaleHomeStoreId() async {
+    final scopedStoreId = wholesaleStoreId(widget.location);
+    if (scopedStoreId > 0) return scopedStoreId;
+    if (_resolvedStoreId > 0) return _resolvedStoreId;
+
+    final storefrontApi = widget.storefrontApi;
+    if (storefrontApi == null) return 0;
+
+    final selection = await storefrontApi.selection();
+    final entitlements = selection['entitlements'] is Map
+        ? Map<String, dynamic>.from(selection['entitlements'] as Map)
+        : const <String, dynamic>{};
+
+    final principalFromEntitlements =
+        intValue(entitlements['principal_wholesale_store_id']);
+    if (principalFromEntitlements > 0) {
+      _resolvedStoreId = principalFromEntitlements;
+      return _resolvedStoreId;
+    }
+
+    for (final row in mapRows(selection['wholesale_stores'])) {
+      if (row['is_platform_principal'] != true) continue;
+      final candidate = intValue(row['id'] ?? row['store_id']);
+      if (candidate > 0) {
+        _resolvedStoreId = candidate;
+        return _resolvedStoreId;
+      }
+    }
+
+    return 0;
+  }
+
   Future<Map<String, dynamic>> _load([String query = '']) async {
-    if (storeId <= 0) {
+    final resolvedStoreId = await _resolveWholesaleHomeStoreId();
+    if (resolvedStoreId <= 0) {
       return const {
         'products': {'data': <Object>[]},
         'storefront': <String, Object?>{},
       };
     }
 
+    _resolvedStoreId = resolvedStoreId;
+
     Map<String, dynamic> storefront = <String, dynamic>{};
     if (widget.storefrontApi != null) {
-      storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+      storefront = await widget.storefrontApi!.wholesaleHome(resolvedStoreId);
     }
 
     Object? products;
     if (widget.api != null) {
-      var endpoint = '/api/v1/b2b/products?store_id=' + storeId.toString();
-      if (query.trim().isNotEmpty) {
-        endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+      try {
+        var endpoint =
+            '/api/v1/b2b/products?store_id=' + resolvedStoreId.toString();
+        if (query.trim().isNotEmpty) {
+          endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+        }
+        products = await widget.api!.get(endpoint);
+      } catch (_) {
+        products = <String, Object?>{
+          'data': _filterWholesaleHomeRows(
+            mapRows(storefront['products']),
+            query,
+          ),
+        };
       }
-      products = await widget.api!.get(endpoint);
     } else {
-      var rows = mapRows(storefront['products']);
-      final needle = query.trim().toLowerCase();
-      if (needle.isNotEmpty) {
-        rows = rows.where((row) {
-          final name = row['name']?.toString().toLowerCase() ?? '';
-          final sku = row['sku']?.toString().toLowerCase() ?? '';
-          return name.contains(needle) || sku.contains(needle);
-        }).toList(growable: false);
-      }
-      products = <String, Object?>{'data': rows};
+      products = <String, Object?>{
+        'data': _filterWholesaleHomeRows(
+          mapRows(storefront['products']),
+          query,
+        ),
+      };
     }
 
     return {'products': products, 'storefront': storefront};
+  }
+
+  List<Map<String, dynamic>> _filterWholesaleHomeRows(
+    List<Map<String, dynamic>> rows,
+    String query,
+  ) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return rows;
+    return rows.where((row) {
+      final name = row['name']?.toString().toLowerCase() ?? '';
+      final sku = row['sku']?.toString().toLowerCase() ?? '';
+      return name.contains(needle) || sku.contains(needle);
+    }).toList(growable: false);
   }
 
   @override
@@ -183,6 +242,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             final hero = storefront['hero'] is Map
                 ? Map<String, dynamic>.from(storefront['hero'] as Map)
                 : <String, dynamic>{};
+            final banners = mapRows(storefront['banners']);
             final palette = _wholesalePalette(theme);
 
             final title =
@@ -205,7 +265,11 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 (storefront['sections'] as List? ?? const <Object>[])
                     .whereType<Map>()
                     .map((row) => Map<String, dynamic>.from(row))
-                    .toList(growable: false);
+                    .toList(growable: true)
+                  ..sort(
+                    (left, right) => intValue(left['sort_order'])
+                        .compareTo(intValue(right['sort_order'])),
+                  );
             final effectiveSections = sections.isEmpty
                 ? <Map<String, dynamic>>[
                     {'type': 'hero', 'sort_order': 10},
@@ -239,6 +303,22 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             }
 
             final content = <Widget>[];
+            final hasBannerSection = effectiveSections.any((section) {
+              final type = section['type']?.toString() ?? '';
+              return type == 'hero' || type == 'banner_slider';
+            });
+            if (banners.isNotEmpty && !hasBannerSection) {
+              content.add(
+                _WholesaleBannerCarousel(
+                  banners: banners,
+                  fallbackTitle: heroTitle,
+                  cta: heroCta,
+                  palette: palette,
+                  onCta: storeId > 0 ? () => openCatalog() : null,
+                ),
+              );
+            }
+
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
               final sectionTitle =
@@ -250,10 +330,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 case 'hero':
                 case 'banner_slider':
                   content.add(
-                    _WholesaleHero(
-                      title: heroTitle,
+                    _WholesaleBannerCarousel(
+                      banners: banners.isNotEmpty
+                          ? banners
+                          : hero.isEmpty
+                              ? const <Map<String, dynamic>>[]
+                              : <Map<String, dynamic>>[hero],
+                      fallbackTitle: heroTitle,
                       cta: heroCta,
-                      imageUrl: hero['image_url']?.toString(),
                       palette: palette,
                       onCta: storeId > 0 ? () => openCatalog() : null,
                     ),
@@ -265,6 +349,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      textScale: .8,
+                      spacingScale: .25,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'categories',
@@ -289,27 +375,48 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   {
                     final sectionRows = _wholesaleRowsForSection(rows, section);
                     content.add(
-                      FoodexSectionHeader(
-                        title: sectionTitle,
-                        palette: palette,
-                        onAction: storeId > 0
-                            ? () =>
-                                openCatalog(_wholesaleSectionFilters(section))
-                            : null,
-                      ),
+                      type == 'best_sellers'
+                          ? _WholesaleBestSellerTickerHeader(
+                              title: sectionTitle,
+                              rows: sectionRows,
+                              palette: palette,
+                              storeId: storeId,
+                              onAction: storeId > 0
+                                  ? () => openCatalog(
+                                        _wholesaleSectionFilters(
+                                          section,
+                                          rows: sectionRows,
+                                        ),
+                                      )
+                                  : null,
+                            )
+                          : FoodexSectionHeader(
+                              title: sectionTitle,
+                              palette: palette,
+                              textScale: .8,
+                              spacingScale: .25,
+                              onAction: storeId > 0
+                                  ? () => openCatalog(
+                                        _wholesaleSectionFilters(
+                                          section,
+                                          rows: sectionRows,
+                                        ),
+                                      )
+                                  : null,
+                            ),
                     );
                     content.add(
                       _WholesaleProductGrid(
                         rows: sectionRows,
-                        gridMode: true,
                         storeId: storeId,
                         sourceLocation: widget.location,
                         session: widget.session,
                         actionApi: widget.actionApi,
                         pendingActionStore: widget.pendingActionStore,
                         palette: palette,
-                        maxItems: 4,
+                        maxItems: 3,
                         showCommerceActions: true,
+                        homeWholeNumberPrice: true,
                       ),
                     );
                     break;
@@ -319,6 +426,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     FoodexSectionHeader(
                       title: sectionTitle,
                       palette: palette,
+                      textScale: .8,
+                      spacingScale: .25,
                       onAction: storeId > 0
                           ? () => openCatalog(const <String, String>{
                                 'browse': 'brands',
@@ -354,21 +463,23 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 FoodexSectionHeader(
                   title: context.tr('customer.products.title'),
                   palette: palette,
+                  textScale: .8,
+                  spacingScale: .25,
                   onAction: storeId > 0 ? () => openCatalog() : null,
                 ),
               );
               content.add(
                 _WholesaleProductGrid(
                   rows: rows,
-                  gridMode: true,
                   storeId: storeId,
                   sourceLocation: widget.location,
                   session: widget.session,
                   actionApi: widget.actionApi,
                   pendingActionStore: widget.pendingActionStore,
                   palette: palette,
-                  maxItems: 4,
+                  maxItems: 3,
                   showCommerceActions: true,
+                  homeWholeNumberPrice: true,
                 ),
               );
             }
@@ -384,42 +495,17 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
-                      onBusinessDashboard: widget.session.isAuthenticated &&
-                              (widget.session
-                                      .allowsChannel(CustomerChannel.b2b) ||
-                                  widget.session.b2bRetailStoreId != null)
-                          ? () => Navigator.of(context).pushNamed(
-                                Uri(
-                                  path: CustomerRoutePaths.b2bDashboard,
-                                  queryParameters: <String, String>{
-                                    'channel': 'wholesale',
-                                    if (storeId > 0)
-                                      'store_id': storeId.toString(),
-                                  },
-                                ).toString(),
-                              )
-                          : null,
+                      searchController: search,
+                      searchHint: context.tr(
+                        'customer.products.search_name_sku_barcode',
+                      ),
+                      onSearchSubmitted: (value) =>
+                          setState(() => future = _load(value)),
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                      child: TextField(
-                        controller: search,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (value) =>
-                            setState(() => future = _load(value)),
-                        decoration: InputDecoration(
-                          hintText: context.tr(
-                            'customer.products.search_name_sku_barcode',
-                          ),
-                          prefixIcon: Icon(Icons.search_rounded),
-                          suffixIcon: Icon(Icons.qr_code_scanner_rounded),
-                        ),
-                      ),
-                    ),
                     ...content,
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 5.5),
                   ],
                 ),
               ),
@@ -437,7 +523,12 @@ class _WholesaleHeader extends StatelessWidget {
     required this.title,
     required this.onCart,
     required this.palette,
-    this.onBusinessDashboard,
+    required this.searchController,
+    required this.searchHint,
+    required this.onSearchSubmitted,
+    this.searchKey = const ValueKey('wholesale-home-search'),
+    this.onSearchChanged,
+    this.onClearSearch,
     this.logoUrl,
     this.address,
   });
@@ -446,149 +537,131 @@ class _WholesaleHeader extends StatelessWidget {
   final String? logoUrl;
   final String? address;
   final VoidCallback onCart;
-  final VoidCallback? onBusinessDashboard;
   final FoodexPalette palette;
+  final TextEditingController searchController;
+  final String searchHint;
+  final ValueChanged<String> onSearchSubmitted;
+  final Key searchKey;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onClearSearch;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         color: palette.primaryDark,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (onBusinessDashboard != null) ...[
-              _BusinessDashboardHeaderButton(
-                onTap: onBusinessDashboard!,
-                palette: palette,
-              ),
-              const SizedBox(width: 8),
-            ],
             if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 child: Image.network(
                   logoUrl!,
-                  width: 44,
-                  height: 44,
+                  width: 28,
+                  height: 28,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
-                      const SizedBox(width: 44, height: 44),
+                      const SizedBox(width: 28, height: 28),
                 ),
               ),
-              const SizedBox(width: 9),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: palette.accent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'B2B',
-                  style: TextStyle(
-                    color: palette.primaryDark,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
             ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (address != null && address!.trim().isNotEmpty)
-                    Text(
-                      address!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(.78),
-                        fontSize: 10,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const _RoundHeaderIcon(icon: Icons.notifications_none_rounded),
-            const SizedBox(width: 8),
-            _RoundHeaderIcon(icon: Icons.shopping_cart_outlined, onTap: onCart),
-          ],
-        ),
-      );
-}
-
-class _BusinessDashboardHeaderButton extends StatelessWidget {
-  const _BusinessDashboardHeaderButton({
-    required this.onTap,
-    required this.palette,
-  });
-
-  final VoidCallback onTap;
-  final FoodexPalette palette;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          key: const ValueKey('wholesale-business-dashboard-button'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Ink(
-            width: 82,
-            height: 62,
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [
-                  Color.lerp(palette.accent, Colors.white, .18)!,
-                  Color.lerp(palette.accent, Colors.white, .42)!,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(.30)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(.10),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.grid_view_rounded,
-                    size: 23, color: palette.primaryDark),
-                const SizedBox(height: 2),
-                Text(
-                  context.tr('b2b.dashboard.title'),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 72),
+              child: Tooltip(
+                message: address == null || address!.trim().isEmpty
+                    ? title
+                    : '$title\n$address',
+                child: Text(
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: palette.primaryDark,
-                    fontSize: 10,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.3,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: TextField(
+                  key: searchKey,
+                  controller: searchController,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: onSearchSubmitted,
+                  onChanged: onSearchChanged,
+                  style: const TextStyle(fontSize: 12),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: Colors.white,
+                    hintText: searchHint,
+                    hintStyle: const TextStyle(fontSize: 11),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 34,
+                      minHeight: 34,
+                    ),
+                    suffixIcon: onClearSearch == null
+                        ? const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            size: 16,
+                          )
+                        : IconButton(
+                            key: const ValueKey(
+                              'wholesale-catalog-clear-search',
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 34,
+                              minHeight: 34,
+                            ),
+                            onPressed: searchController.text.trim().isEmpty
+                                ? null
+                                : onClearSearch,
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                          ),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 34,
+                      minHeight: 34,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(999),
+                      borderSide: BorderSide(
+                        color: palette.accent,
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            const _RoundHeaderIcon(
+              icon: Icons.notifications_none_rounded,
+            ),
+            const SizedBox(width: 4),
+            _RoundHeaderIcon(
+              icon: Icons.shopping_cart_outlined,
+              onTap: onCart,
+            ),
+          ],
         ),
       );
 }
@@ -607,21 +680,174 @@ class _RoundHeaderIcon extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, color: Colors.white),
+            width: 28,
+            height: 28,
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 12,
+            ),
           ),
         ),
       );
 }
 
-class _WholesaleHero extends StatelessWidget {
+class _WholesaleBannerCarousel extends StatefulWidget {
+  const _WholesaleBannerCarousel({
+    required this.banners,
+    required this.fallbackTitle,
+    required this.cta,
+    required this.palette,
+    this.onCta,
+  });
+
+  final List<Map<String, dynamic>> banners;
+  final String fallbackTitle;
+  final String cta;
+  final FoodexPalette palette;
+  final VoidCallback? onCta;
+
+  @override
+  State<_WholesaleBannerCarousel> createState() =>
+      _WholesaleBannerCarouselState();
+}
+
+class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
+  static const Duration _autoSlideEvery = Duration(seconds: 5);
+  static const Duration _autoSlideDuration = Duration(milliseconds: 650);
+
+  final PageController _pageController = PageController();
+  Timer? _autoSlideTimer;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleAutoSlide();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleBannerCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.banners.length != widget.banners.length) {
+      _currentPage = 0;
+      _autoSlideTimer?.cancel();
+      _scheduleAutoSlide();
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
+    }
+  }
+
+  void _scheduleAutoSlide() {
+    if (widget.banners.length <= 1) return;
+    _autoSlideTimer = Timer.periodic(_autoSlideEvery, (_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final nextPage = (_currentPage + 1) % widget.banners.length;
+      _pageController.animateToPage(
+        nextPage,
+        duration: _autoSlideDuration,
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.banners.isEmpty) {
+      return _WholesaleHero(
+        title: widget.fallbackTitle,
+        cta: widget.cta,
+        palette: widget.palette,
+        onCta: widget.onCta,
+      );
+    }
+
+    return SizedBox(
+      key: const ValueKey('wholesale-home-banner-carousel'),
+      height: 178.5,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.banners.length,
+            onPageChanged: (index) {
+              if (!mounted) return;
+              setState(() => _currentPage = index);
+            },
+            itemBuilder: (context, index) {
+              final banner = widget.banners[index];
+              final bannerTitle = banner['title']?.toString().trim();
+              return _WholesaleHero(
+                key: ValueKey('wholesale-home-banner-$index'),
+                title: bannerTitle != null && bannerTitle.isNotEmpty
+                    ? bannerTitle
+                    : widget.fallbackTitle,
+                cta: widget.cta,
+                imageUrl: banner['image_url']?.toString(),
+                palette: widget.palette,
+                onCta: widget.onCta,
+              );
+            },
+          ),
+          if (widget.banners.length > 1)
+            PositionedDirectional(
+              bottom: 7,
+              start: 0,
+              end: 0,
+              child: IgnorePointer(
+                child: Row(
+                  key: const ValueKey('wholesale-home-banner-indicators'),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var index = 0;
+                        index < widget.banners.length;
+                        index++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        width: index == _currentPage ? 18 : 6,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(
+                            index == _currentPage ? .95 : .45,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 5,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WholesaleHero extends StatefulWidget {
   const _WholesaleHero({
     required this.title,
     required this.cta,
     required this.palette,
     this.imageUrl,
     this.onCta,
+    super.key,
   });
 
   final String title;
@@ -631,63 +857,218 @@ class _WholesaleHero extends StatelessWidget {
   final VoidCallback? onCta;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-        child: Container(
-          height: 170,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              colors: [palette.primary, palette.primaryDark],
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        height: 1.25,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _WhitePill(label: cta, palette: palette, onTap: onCta),
-                  ],
-                ),
-              ),
-              if (imageUrl != null && imageUrl!.trim().isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    imageUrl!,
-                    width: 100,
-                    height: 112,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.warehouse_rounded,
-                      size: 78,
-                      color: Colors.white.withOpacity(.45),
-                    ),
-                  ),
-                )
-              else
-                Icon(
-                  Icons.warehouse_rounded,
-                  size: 78,
-                  color: Colors.white.withOpacity(.45),
-                ),
-            ],
+  State<_WholesaleHero> createState() => _WholesaleHeroState();
+}
+
+class _WholesaleHeroState extends State<_WholesaleHero>
+    with TickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final AnimationController _ambientController;
+  bool _reduceMotion = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    )..forward();
+    _ambientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5600),
+    )..repeat();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduceMotion = CustomerUiMotion.isReduced(context);
+    if (reduceMotion == _reduceMotion) return;
+    _reduceMotion = reduceMotion;
+    if (_reduceMotion) {
+      _entranceController.value = 1;
+      _ambientController.stop();
+    } else {
+      if (_entranceController.value < 1) {
+        _entranceController.forward();
+      }
+      if (!_ambientController.isAnimating) {
+        _ambientController.repeat();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleHero oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title || oldWidget.imageUrl != widget.imageUrl) {
+      if (_reduceMotion) {
+        _entranceController.value = 1;
+      } else {
+        _entranceController
+          ..value = 0
+          ..forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    _ambientController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage =
+        widget.imageUrl != null && widget.imageUrl!.trim().isNotEmpty;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, .85),
+      child: Container(
+        width: double.infinity,
+        height: 168.3,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [widget.palette.primary, widget.palette.primaryDark],
           ),
         ),
-      );
+        child: AnimatedBuilder(
+          animation: _ambientController,
+          builder: (context, child) {
+            final t = _reduceMotion ? .5 : _ambientController.value;
+            final wave = math.sin(t * math.pi * 2);
+            final imageScale = 1.035 + (.012 * wave);
+            final imageShift = 3.5 * wave;
+            final glowX = rtl ? (1 - t) : t;
+            final ctaScale = 1 + (.018 * math.sin(t * math.pi * 4));
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                if (hasImage)
+                  Transform.translate(
+                    offset: Offset(imageShift, 0),
+                    child: Transform.scale(
+                      scale: imageScale,
+                      child: Image.network(
+                        widget.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: AlignmentDirectional.centerStart,
+                      end: AlignmentDirectional.centerEnd,
+                      colors: [
+                        Colors.black.withOpacity(hasImage ? .60 : .20),
+                        Colors.black.withOpacity(hasImage ? .28 : .09),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+                if (!_reduceMotion)
+                  Positioned(
+                    key: const ValueKey('wholesale-home-banner-illumination'),
+                    left: -100 + (MediaQuery.sizeOf(context).width + 200) * glowX,
+                    top: -36,
+                    bottom: -36,
+                    width: 92,
+                    child: Transform.rotate(
+                      angle: -.16,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.white.withOpacity(0),
+                              Colors.white.withOpacity(.16),
+                              Colors.white.withOpacity(.04),
+                              Colors.white.withOpacity(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                AnimatedBuilder(
+                  animation: _entranceController,
+                  builder: (context, _) {
+                    final eased = Curves.easeOutCubic.transform(
+                      _reduceMotion ? 1 : _entranceController.value,
+                    );
+                    return Opacity(
+                      opacity: eased,
+                      child: Transform.translate(
+                        offset: Offset(0, 14 * (1 - eased)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 230),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      height: 1.25,
+                                      fontWeight: FontWeight.w800,
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                          color: Color(0x66000000),
+                                        ),
+                                        Shadow(
+                                          blurRadius: 20,
+                                          color: Color(0x5500FFB0),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Transform.scale(
+                                    alignment:
+                                        AlignmentDirectional.centerStart,
+                                    scale: _reduceMotion ? 1 : ctaScale,
+                                    child: _WhitePill(
+                                      label: widget.cta,
+                                      palette: widget.palette,
+                                      onTap: widget.onCta,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
 class _WhitePill extends StatelessWidget {
@@ -723,7 +1104,7 @@ class _WhitePill extends StatelessWidget {
       );
 }
 
-class _WholesaleCategoryGrid extends StatelessWidget {
+class _WholesaleCategoryGrid extends StatefulWidget {
   const _WholesaleCategoryGrid({
     required this.rows,
     required this.palette,
@@ -735,9 +1116,52 @@ class _WholesaleCategoryGrid extends StatelessWidget {
   final int storeId;
 
   @override
+  State<_WholesaleCategoryGrid> createState() =>
+      _WholesaleCategoryGridState();
+}
+
+class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
+  static const double _itemStep = 86;
+  static const Duration _slideEvery = Duration(seconds: 3);
+  static const Duration _slideDuration = Duration(milliseconds: 500);
+
+  final ScrollController _controller = ScrollController();
+  Timer? _autoSlideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoSlideTimer = Timer.periodic(_slideEvery, (_) => _slideNext());
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _slideNext() async {
+    if (!mounted || !_controller.hasClients) return;
+    final position = _controller.position;
+    if (position.maxScrollExtent <= 0) return;
+
+    final next = position.pixels + _itemStep;
+    final target = next >= position.maxScrollExtent - 2
+        ? 0.0
+        : math.min(next, position.maxScrollExtent);
+
+    await _controller.animateTo(
+      target,
+      duration: _slideDuration,
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final byId = <int, Map<String, dynamic>>{};
-    for (final row in rows) {
+    for (final row in widget.rows) {
       final id = intValue(row['category_id']);
       if (id <= 0 || byId.containsKey(id)) continue;
       byId[id] = {
@@ -753,8 +1177,10 @@ class _WholesaleCategoryGrid extends StatelessWidget {
       key: const ValueKey('wholesale-home-category-rail'),
       height: 104,
       child: ListView.separated(
+        controller: _controller,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, index) {
@@ -765,13 +1191,13 @@ class _WholesaleCategoryGrid extends StatelessWidget {
           return InkWell(
             key: ValueKey('wholesale-category-$id'),
             borderRadius: BorderRadius.circular(18),
-            onTap: storeId > 0
+            onTap: widget.storeId > 0
                 ? () => Navigator.of(context).pushNamed(
                       Uri(
                         path: CustomerRoutePaths.b2bProducts,
                         queryParameters: <String, String>{
                           'channel': 'wholesale',
-                          'store_id': storeId.toString(),
+                          'store_id': widget.storeId.toString(),
                           'category_id': id.toString(),
                         },
                       ).toString(),
@@ -788,7 +1214,7 @@ class _WholesaleCategoryGrid extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: palette.soft),
+                      border: Border.all(color: widget.palette.soft),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(.04),
@@ -803,13 +1229,13 @@ class _WholesaleCategoryGrid extends StatelessWidget {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Icon(
                               Icons.category_outlined,
-                              color: palette.primary,
+                              color: widget.palette.primary,
                               size: 28,
                             ),
                           )
                         : Icon(
                             Icons.category_outlined,
-                            color: palette.primary,
+                            color: widget.palette.primary,
                             size: 28,
                           ),
                   ),
@@ -934,10 +1360,246 @@ class _WholesaleBrandRail extends StatelessWidget {
   }
 }
 
+class _WholesaleBestSellerTickerHeader extends StatefulWidget {
+  const _WholesaleBestSellerTickerHeader({
+    required this.title,
+    required this.rows,
+    required this.palette,
+    required this.storeId,
+    required this.onAction,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> rows;
+  final FoodexPalette palette;
+  final int storeId;
+  final VoidCallback? onAction;
+
+  @override
+  State<_WholesaleBestSellerTickerHeader> createState() =>
+      _WholesaleBestSellerTickerHeaderState();
+}
+
+class _WholesaleBestSellerTickerHeaderState
+    extends State<_WholesaleBestSellerTickerHeader>
+    with SingleTickerProviderStateMixin {
+  static const _interval = Duration(seconds: 10);
+  static const _tones = <Color>[
+    Color(0xFF087347),
+    Color(0xFF2E5FA8),
+    Color(0xFF8B5A00),
+    Color(0xFF7A4EA3),
+    Color(0xFFB54708),
+  ];
+
+  Timer? _timer;
+  AnimationController? _marquee;
+  int _index = 0;
+
+  AnimationController get _marqueeController =>
+      _marquee ??= AnimationController(vsync: this, duration: _interval);
+
+  List<Map<String, dynamic>> get _products => widget.rows
+      .where(
+        (row) =>
+            intValue(row['id']) > 0 &&
+            (row['name']?.toString().trim().isNotEmpty ?? false),
+      )
+      .toList(growable: false);
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTicker();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleBestSellerTickerHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.rows.map((row) => intValue(row['id'])).join(',');
+    final newIds = widget.rows.map((row) => intValue(row['id'])).join(',');
+    if (oldIds != newIds) {
+      _index = 0;
+      _restartTicker();
+    }
+  }
+
+  void _restartTicker() {
+    _timer?.cancel();
+    final marquee = _marqueeController;
+    marquee.stop();
+    final products = _products;
+    if (products.isEmpty) return;
+
+    marquee.forward(from: 0);
+    _timer = Timer.periodic(_interval, (_) {
+      final currentProducts = _products;
+      if (!mounted || currentProducts.isEmpty) return;
+      setState(() {
+        if (currentProducts.length > 1) {
+          _index = (_index + 1) % currentProducts.length;
+        }
+      });
+      marquee.forward(from: 0);
+    });
+  }
+
+  void _openProduct(Map<String, dynamic> product) {
+    final id = intValue(product['id']);
+    if (id <= 0 || widget.storeId <= 0) return;
+    Navigator.of(context).pushNamed(
+      '/b2b/products/' +
+          id.toString() +
+          '?store_id=' +
+          widget.storeId.toString(),
+    );
+  }
+
+  Widget _marqueeLink(
+    BuildContext context,
+    Map<String, dynamic> product,
+    Color tone,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final name = product['name'].toString();
+    final style = TextStyle(
+      color: tone,
+      fontSize: 10.5,
+      fontWeight: FontWeight.w900,
+      decoration: TextDecoration.underline,
+      decorationColor: tone,
+    );
+    final painter = TextPainter(
+      text: TextSpan(text: name, style: style),
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final textWidth = painter.width + 18;
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRect(
+        child: SizedBox(
+          height: 28,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              AnimatedBuilder(
+                animation: _marqueeController,
+                child: SizedBox(
+                  width: textWidth,
+                  height: 28,
+                  child: InkWell(
+                    key: ValueKey(
+                      'wholesale-best-seller-ticker-product-${intValue(product['id'])}',
+                    ),
+                    onTap: () => _openProduct(product),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        name,
+                        key: ValueKey(
+                          'wholesale-best-seller-ticker-label-${intValue(product['id'])}',
+                        ),
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.visible,
+                        style: style,
+                      ),
+                    ),
+                  ),
+                ),
+                builder: (context, child) {
+                  final travel = constraints.maxWidth + textWidth;
+                  final dx = isArabic
+                      ? constraints.maxWidth - (_marqueeController.value * travel)
+                      : -textWidth + (_marqueeController.value * travel);
+                  return Transform.translate(
+                    offset: Offset(dx, 0),
+                    child: child,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _restartTicker();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _marquee?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final products = _products;
+    final product = products.isEmpty ? null : products[_index % products.length];
+    final tone = _tones[_index % _tones.length];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 3.5, 16, 2.25),
+      child: Row(
+        key: const ValueKey('wholesale-best-seller-ticker-header'),
+        children: [
+          Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: widget.palette.text,
+              fontSize: 14.4,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (product != null) ...[
+            const SizedBox(width: 8),
+            Expanded(child: _marqueeLink(context, product, tone)),
+          ] else
+            const Spacer(),
+          if (widget.onAction != null)
+            TextButton(
+              key: ValueKey('section-action-' + widget.title),
+              onPressed: widget.onAction,
+              child: Text(
+                'عرض الكل',
+                style: TextStyle(
+                  color: widget.palette.primary,
+                  fontSize: 9.6,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+int _wholesaleProductColumns(int itemCount) {
+  if (itemCount <= 1) return 1;
+  if (itemCount == 2) return 2;
+  return 3;
+}
+
 class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
     required this.rows,
-    required this.gridMode,
     required this.storeId,
     required this.sourceLocation,
     required this.session,
@@ -948,10 +1610,10 @@ class _WholesaleProductGrid extends StatelessWidget {
     this.defaultCurrency = 'EGP',
     this.noResults = false,
     this.showCommerceActions = false,
+    this.homeWholeNumberPrice = false,
   });
 
   final List<Map<String, dynamic>> rows;
-  final bool gridMode;
   final int storeId;
   final String sourceLocation;
   final CustomerSession session;
@@ -962,6 +1624,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final String defaultCurrency;
   final bool noResults;
   final bool showCommerceActions;
+  final bool homeWholeNumberPrice;
 
   @override
   Widget build(BuildContext context) {
@@ -979,7 +1642,7 @@ class _WholesaleProductGrid extends StatelessWidget {
 
     final displayRows =
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
-    final width = MediaQuery.sizeOf(context).width;
+    final columns = _wholesaleProductColumns(displayRows.length);
 
     return GridView.builder(
       key: const ValueKey('wholesale-product-grid'),
@@ -988,14 +1651,10 @@ class _WholesaleProductGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridMode ? 2 : 1,
-        crossAxisSpacing: gridMode ? 10 : 0,
-        mainAxisSpacing: 12,
-        mainAxisExtent: showCommerceActions
-            ? (gridMode ? (width < 360 ? 424 : 438) : (width < 360 ? 350 : 370))
-            : (gridMode
-                ? (width < 360 ? 286 : 306)
-                : (width < 360 ? 260 : 280)),
+        crossAxisCount: columns,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        mainAxisExtent: showCommerceActions ? 188 : 166,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1007,6 +1666,8 @@ class _WholesaleProductGrid extends StatelessWidget {
         palette: palette,
         defaultCurrency: defaultCurrency,
         showCommerceActions: showCommerceActions,
+        homeWholeNumberPrice: homeWholeNumberPrice,
+        gridColumns: columns,
       ),
     );
   }
@@ -1023,6 +1684,8 @@ class _WholesaleProductCard extends StatefulWidget {
     required this.palette,
     required this.defaultCurrency,
     required this.showCommerceActions,
+    required this.homeWholeNumberPrice,
+    required this.gridColumns,
   });
 
   final Map<String, dynamic> row;
@@ -1034,6 +1697,8 @@ class _WholesaleProductCard extends StatefulWidget {
   final FoodexPalette palette;
   final String defaultCurrency;
   final bool showCommerceActions;
+  final bool homeWholeNumberPrice;
+  final int gridColumns;
 
   @override
   State<_WholesaleProductCard> createState() => _WholesaleProductCardState();
@@ -1085,16 +1750,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final row = widget.row;
     final palette = widget.palette;
     final id = intValue(row['id']);
-    final minimum = doubleValue(
-      row['minimum_order_quantity'] ?? row['minimum_quantity'],
-      1,
-    );
-    final increment = doubleValue(row['ordering_increment'], 1);
-    final packSize = doubleValue(row['pack_size'], 1);
-    final packLabel = row['pack_label']?.toString().trim() ?? '';
     final brand = row['brand_name']?.toString().trim() ?? '';
     final category = row['category_name']?.toString().trim() ?? '';
-    final availableQuantity = row['available_quantity'];
     final currency = row['currency']?.toString().trim().isNotEmpty == true
         ? row['currency'].toString().trim().toUpperCase()
         : widget.defaultCurrency;
@@ -1103,6 +1760,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final promotion = row['promotion'] is Map
         ? (row['promotion'] as Map)['name']?.toString().trim()
         : row['promotion_name']?.toString().trim();
+    final denseFourColumn = widget.gridColumns >= 4;
 
     return Material(
       key: ValueKey('wholesale-product-card-$id'),
@@ -1119,7 +1777,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       widget.storeId.toString(),
                 ),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
+          padding: denseFourColumn
+              ? const EdgeInsets.fromLTRB(6, 7, 6, 7)
+              : const EdgeInsets.fromLTRB(10, 10, 10, 11),
           decoration: BoxDecoration(
             border: Border.all(color: palette.soft),
             borderRadius: BorderRadius.circular(18),
@@ -1134,7 +1794,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
+              SizedBox(
+                height: denseFourColumn ? 72 : 92,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -1228,21 +1889,21 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: denseFourColumn ? 5 : 8),
               Text(
                 row['name']?.toString() ?? '',
                 key: ValueKey('wholesale-product-name-$id'),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.2,
+                style: TextStyle(
+                  fontSize: denseFourColumn ? 9.5 : 11,
+                  height: 1.15,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF102033),
+                  color: const Color(0xFF102033),
                 ),
               ),
               if (widget.showCommerceActions && category.isNotEmpty) ...[
-                const SizedBox(height: 3),
+                SizedBox(height: denseFourColumn ? 2 : 3),
                 Text(
                   category,
                   key: ValueKey('wholesale-product-category-$id'),
@@ -1250,114 +1911,96 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: palette.muted,
-                    fontSize: 9,
+                    fontSize: denseFourColumn ? 7.5 : 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
-              const SizedBox(height: 6),
-              Text(
-                money(
-                  row['account_price'] ?? row['unit_price'] ?? row['price'],
-                  currency: currency,
-                ),
-                key: ValueKey('wholesale-product-price-$id'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: palette.primary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 5),
+              const Spacer(),
+              const SizedBox(height: 4),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 14,
-                    color: palette.primaryDark,
-                  ),
-                  const SizedBox(width: 5),
                   Expanded(
                     child: Text(
-                      context.tr('b2b.minimum_order') +
-                          ': ' +
-                          compactNumber(minimum),
+                      widget.homeWholeNumberPrice
+                          ? '${doubleValue(
+                              row['account_price'] ??
+                                  row['unit_price'] ??
+                                  row['price'],
+                              0,
+                            ).toStringAsFixed(0)} $currency'
+                          : money(
+                              row['account_price'] ??
+                                  row['unit_price'] ??
+                                  row['price'],
+                              currency: currency,
+                            ),
+                      key: ValueKey('wholesale-product-price-$id'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: palette.muted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                        color: palette.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: denseFourColumn ? 10.5 : 14,
                       ),
                     ),
                   ),
+                  if (widget.showCommerceActions) ...[
+                    const SizedBox(width: 4),
+                    SizedBox.square(
+                      dimension: denseFourColumn ? 24 : 32,
+                      child: Semantics(
+                        button: true,
+                        label: context.tr('customer.action.add_cart'),
+                        child: FilledButton(
+                          key: ValueKey('wholesale-product-add-$id'),
+                          onPressed: isAvailable && id > 0 && !busy
+                              ? _addToCart
+                              : null,
+                          style: FilledButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.square(
+                              denseFourColumn ? 24 : 32,
+                            ),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: Colors.transparent,
+                            disabledBackgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
+                            shape: const CircleBorder(),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isAvailable && id > 0
+                                  ? palette.primary
+                                  : palette.muted.withOpacity(.22),
+                            ),
+                            alignment: Alignment.center,
+                            child: busy
+                                ? const SizedBox.square(
+                                    dimension: 8,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.add_rounded,
+                                    size: 10,
+                                    color: Colors.white,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              if (widget.showCommerceActions) ...[
-                const SizedBox(height: 4),
-                Text(
-                  (packLabel.isNotEmpty
-                          ? packLabel
-                          : context.tr('b2b.catalog.pack') +
-                              ' ' +
-                              compactNumber(packSize)) +
-                      ' · ' +
-                      context.tr('b2b.catalog.step') +
-                      ' ' +
-                      compactNumber(increment),
-                  key: ValueKey('wholesale-product-pack-$id'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: palette.muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isAvailable
-                      ? (availableQuantity == null
-                          ? context.tr('b2b.product.inventory_unbounded')
-                          : context.tr('b2b.product.inventory') +
-                              ': ' +
-                              compactNumber(
-                                doubleValue(availableQuantity, 0),
-                              ))
-                      : context.tr('customer.product.out_of_stock'),
-                  key: ValueKey('wholesale-product-availability-$id'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isAvailable ? palette.primaryDark : palette.muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  key: ValueKey('wholesale-product-add-$id'),
-                  onPressed: isAvailable && id > 0 && !busy ? _addToCart : null,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
-                  ),
-                  icon: busy
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                  label: Text(
-                    isAvailable
-                        ? context.tr('customer.action.add_cart')
-                        : context.tr('customer.product.out_of_stock'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -1450,7 +2093,6 @@ class _WholesaleCatalogDesignScreenState
   String? sectionFilter;
   Set<int> productFilterIds = <int>{};
   String sortMode = 'default';
-  bool gridMode = true;
   int visibleLimit = 24;
   bool stale = false;
   Map<String, dynamic>? _lastPayload;
@@ -1763,33 +2405,17 @@ class _WholesaleCatalogDesignScreenState
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
+                    searchController: search,
+                    searchKey: const ValueKey('wholesale-catalog-search'),
+                    searchHint: context.tr('b2b.catalog.search_hint'),
+                    onSearchSubmitted: (_) => _reload(),
+                    onSearchChanged: (_) => setState(() {}),
+                    onClearSearch: () {
+                      search.clear();
+                      _reload();
+                    },
                     onCart: () => Navigator.of(context)
                         .pushNamed('/b2b/cart?store=' + storeId.toString()),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                    child: TextField(
-                      key: const ValueKey('wholesale-catalog-search'),
-                      controller: search,
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _reload(),
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: context.tr('b2b.catalog.search_hint'),
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: IconButton(
-                          key: const ValueKey('wholesale-catalog-clear-search'),
-                          tooltip: context.tr('b2b.catalog.clear_search'),
-                          onPressed: search.text.trim().isEmpty
-                              ? null
-                              : () {
-                                  search.clear();
-                                  _reload();
-                                },
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ),
-                    ),
                   ),
                   if (categories.isNotEmpty)
                     SizedBox(
@@ -1955,30 +2581,6 @@ class _WholesaleCatalogDesignScreenState
                                 ),
                               ),
                             ),
-                            IconButton(
-                              key:
-                                  const ValueKey('wholesale-catalog-grid-view'),
-                              tooltip: context.tr('b2b.catalog.grid_view'),
-                              isSelected: gridMode,
-                              selectedIcon: Icon(
-                                Icons.grid_view_rounded,
-                                color: palette.primary,
-                              ),
-                              onPressed: () => setState(() => gridMode = true),
-                              icon: const Icon(Icons.grid_view_outlined),
-                            ),
-                            IconButton(
-                              key:
-                                  const ValueKey('wholesale-catalog-list-view'),
-                              tooltip: context.tr('b2b.catalog.list_view'),
-                              isSelected: !gridMode,
-                              selectedIcon: Icon(
-                                Icons.view_list_rounded,
-                                color: palette.primary,
-                              ),
-                              onPressed: () => setState(() => gridMode = false),
-                              icon: const Icon(Icons.view_list_outlined),
-                            ),
                           ],
                         ),
                       ],
@@ -2015,7 +2617,6 @@ class _WholesaleCatalogDesignScreenState
                     ),
                   _WholesaleProductGrid(
                     rows: displayedRows,
-                    gridMode: gridMode,
                     storeId: storeId,
                     sourceLocation: widget.location,
                     session: widget.session,
@@ -2163,20 +2764,33 @@ List<Map<String, dynamic>> _wholesaleRowsForSection(
   return filtered.isEmpty ? rows : filtered;
 }
 
-Map<String, String> _wholesaleSectionFilters(Map<String, dynamic> section) {
+Map<String, String> _wholesaleSectionFilters(
+  Map<String, dynamic> section, {
+  List<Map<String, dynamic>> rows = const <Map<String, dynamic>>[],
+}) {
   final type = section['type']?.toString().trim() ?? '';
   final config = section['config'] is Map
       ? Map<String, dynamic>.from(section['config'] as Map)
       : const <String, dynamic>{};
-  final ids = config['product_ids'] is List
+
+  final configuredIds = config['product_ids'] is List
       ? (config['product_ids'] as List)
           .map(intValue)
           .where((id) => id > 0)
           .toList(growable: false)
       : const <int>[];
+
+  final resolvedIds = configuredIds.isNotEmpty
+      ? configuredIds
+      : rows
+          .map((row) => intValue(row['id']))
+          .where((id) => id > 0)
+          .toSet()
+          .toList(growable: false);
+
   return <String, String>{
     if (type.isNotEmpty) 'section': type,
-    if (ids.isNotEmpty) 'product_ids': ids.join(','),
+    if (resolvedIds.isNotEmpty) 'product_ids': resolvedIds.join(','),
   };
 }
 
@@ -2770,42 +3384,12 @@ class _WholesaleProductDetailsDesignScreenState
                       border: Border.all(color: const Color(0xFFE4ECE7)),
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _InfoPill(
-                            icon: Icons.inventory_2_outlined,
-                            label: context.tr('b2b.minimum_order') +
-                                ' ' +
-                                compactNumber(minimum),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _InfoPill(
-                            icon: isAvailable
-                                ? Icons.verified_rounded
-                                : Icons.remove_shopping_cart_outlined,
-                            label: isAvailable
-                                ? context.tr('b2b.product.inventory') +
-                                    ' ' +
-                                    (availableQuantity == null
-                                        ? context.tr(
-                                            'b2b.product.inventory_unbounded',
-                                          )
-                                        : compactNumber(availableQuantity))
-                                : context.tr('customer.product.out_of_stock'),
-                          ),
-                        ),
-                      ],
+                    child: _InfoPill(
+                      icon: Icons.inventory_2_outlined,
+                      label: context.tr('b2b.minimum_order') +
+                          ' ' +
+                          compactNumber(minimum),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoPill(
-                    icon: Icons.straighten_rounded,
-                    label: context.tr('b2b.product.quantity_step') +
-                        ' ' +
-                        compactNumber(increment),
                   ),
                   if (quantityIssue != null && isAvailable) ...[
                     const SizedBox(height: 8),
@@ -3450,37 +4034,35 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                   key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    FoodexTopBar(title: context.tr('b2b.cart.title')),
-                    const SizedBox(height: 5),
-                    Text(
-                      context.tr('b2b.cart.subtitle'),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 11,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F8F4),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    SizedBox(
+                      key: const ValueKey('b2b-cart-header'),
+                      height: 44,
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.warehouse_outlined,
-                            color: Color(0xFF078A43),
-                            size: 19,
+                          IconButton(
+                            key: const ValueKey('b2b-cart-back'),
+                            tooltip:
+                                MaterialLocalizations.of(context).backButtonTooltip,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            visualDensity: VisualDensity.compact,
+                            icon: Icon(
+                              Directionality.of(context) == TextDirection.rtl
+                                  ? Icons.arrow_forward_ios_rounded
+                                  : Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                            ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              context.tr('b2b.cart.store'),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700),
+                              context.tr('b2b.cart.title'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF10233F),
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                           if (rows.isNotEmpty && widget.commerceApi != null)
@@ -3489,14 +4071,20 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                               onPressed: () => _clear(rows),
                               icon: const Icon(
                                 Icons.delete_sweep_outlined,
-                                size: 18,
+                                size: 16,
                               ),
                               label: Text(context.tr('b2b.cart.clear')),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                              ),
                             ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     if (rows.isEmpty)
                       FoodexEmptyState(
                         key: const ValueKey('b2b-empty'),
@@ -3526,22 +4114,13 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                           name: product['name']?.toString() ??
                               row['name']?.toString() ??
                               '',
-                          subtitle: [
-                            product['sku']?.toString(),
-                            row['pack_label']?.toString(),
-                          ]
-                              .where(
-                                (value) =>
-                                    value != null && value.trim().isNotEmpty,
-                              )
-                              .join(' • '),
+                          subtitle:
+                              row['pack_label']?.toString().trim() ?? '',
                           imageUrl: product['image_url']?.toString(),
                           quantity: qty,
                           unitPrice:
                               row['unit_price_snapshot'] ?? row['unit_price'],
                           lineTotal: row['line_total'],
-                          availableQuantity: available,
-                          isAvailable: row['is_available'] != false,
                           onMinus: widget.commerceApi == null ||
                                   qty <= minimum + .0001
                               ? null
@@ -3597,8 +4176,6 @@ class _CartLine extends StatelessWidget {
     required this.quantity,
     required this.unitPrice,
     required this.lineTotal,
-    required this.availableQuantity,
-    required this.isAvailable,
     required this.onMinus,
     required this.onPlus,
     required this.onRemove,
@@ -3612,8 +4189,6 @@ class _CartLine extends StatelessWidget {
   final double quantity;
   final Object? unitPrice;
   final Object? lineTotal;
-  final double? availableQuantity;
-  final bool isAvailable;
   final VoidCallback? onMinus;
   final VoidCallback? onPlus;
   final VoidCallback? onRemove;
@@ -3621,14 +4196,6 @@ class _CartLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final validImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
-    final availability = !isAvailable
-        ? context.tr('b2b.cart.unavailable')
-        : availableQuantity == null
-            ? context.tr('b2b.cart.available')
-            : context.tr('b2b.cart.available') +
-                ': ' +
-                compactNumber(availableQuantity!);
-
     Widget imageFallback() => const DecoratedBox(
           decoration: BoxDecoration(
             color: Color(0xFFF1F8F4),
@@ -3689,6 +4256,7 @@ class _CartLine extends StatelessWidget {
                         icon: const Icon(
                           Icons.delete_outline_rounded,
                           size: 20,
+                          color: Color(0xFFD92D20),
                         ),
                       ),
                   ],
@@ -3701,17 +4269,6 @@ class _CartLine extends StatelessWidget {
                       color: Color(0xFF6B7785),
                     ),
                   ),
-                const SizedBox(height: 5),
-                Text(
-                  availability,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isAvailable
-                        ? const Color(0xFF078A43)
-                        : const Color(0xFFB3261E),
-                  ),
-                ),
                 const SizedBox(height: 7),
                 Wrap(
                   spacing: 12,
@@ -3742,6 +4299,7 @@ class _CartLine extends StatelessWidget {
                   increaseKey: ValueKey('b2b-cart-plus-$itemId'),
                   onDecrease: onMinus,
                   onIncrease: onPlus,
+                  iconSize: 12,
                 ),
               ],
             ),
@@ -4174,8 +4732,6 @@ class _WholesaleCheckoutDesignScreenState
                       ],
                     ),
                     const SizedBox(height: 14),
-                    _CheckoutFinanceCard(data: data),
-                    const SizedBox(height: 14),
                     Text(
                       context.tr('b2b.checkout.address'),
                       style: const TextStyle(fontWeight: FontWeight.w800),
@@ -4328,71 +4884,6 @@ class _WholesaleCheckoutDesignScreenState
           ),
         ),
       );
-}
-
-class _CheckoutFinanceCard extends StatelessWidget {
-  const _CheckoutFinanceCard({required this.data});
-
-  final Map<String, dynamic> data;
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = data['currency']?.toString() ?? 'EGP';
-    final rows = <(String, Object?)>[
-      (
-        context.tr('b2b.checkout.customer_credit'),
-        data['customer_credit_balance'],
-      ),
-      (context.tr('b2b.checkout.amount_owed'), data['outstanding_receivable']),
-      (context.tr('b2b.checkout.credit_limit'), data['credit_limit']),
-      (
-        context.tr('b2b.checkout.available_credit'),
-        data['available_credit_line'],
-      ),
-      (context.tr('b2b.checkout.purchasing_power'), data['purchasing_power']),
-    ];
-
-    return Container(
-      key: const ValueKey('b2b-checkout-finance'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F8F4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr('b2b.checkout.finance'),
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF006736),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...rows.map(
-            (row) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(row.$1, style: const TextStyle(fontSize: 11)),
-                  ),
-                  Text(
-                    money(row.$2 ?? 0, currency: currency),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _CheckoutReviewCard extends StatelessWidget {
@@ -4803,8 +5294,9 @@ class _WholesaleOrdersDesignScreenState
       return;
     }
 
-    final commerceContext =
-        CustomerCommerceContext.tryParseLocation(widget.location);
+    final commerceContext = CustomerCommerceContext.tryParseLocation(
+      widget.location,
+    );
     final dashboardRoute = commerceContext?.isWholesale == true
         ? Uri(
             path: CustomerRoutePaths.b2bDashboard,
@@ -5420,13 +5912,6 @@ class _WholesaleOrderDetailsDesignScreenState
                                 _friendlyOrderDate(
                                     order['created_at']?.toString()),
                               ),
-                              (context.tr('b2b.order.store'), storeName),
-                              (
-                                context.tr('b2b.order.channel'),
-                                order['channel']?.toString() == 'b2b'
-                                    ? context.tr('b2b.order.channel_b2b')
-                                    : (order['channel']?.toString() ?? '-'),
-                              ),
                               (
                                 context.tr('b2b.order.total'),
                                 money(total, currency: currency),
@@ -5435,14 +5920,6 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.payment_method'),
                                 _paymentMethodText(context, paymentMethod),
                               ),
-                              if ((order['requested_delivery_date']
-                                          ?.toString() ??
-                                      '')
-                                  .isNotEmpty)
-                                (
-                                  context.tr('b2b.order.requested_delivery'),
-                                  order['requested_delivery_date'].toString(),
-                                ),
                             ],
                           ),
                           if (address != null) ...[
@@ -5491,32 +5968,18 @@ class _WholesaleOrderDetailsDesignScreenState
                                 final reasonCode =
                                     event['reason_code']?.toString() ?? '';
 
-                                return ListTile(
+                                return _B2bOrderTimelineEntry(
                                   key: ValueKey(
                                     'b2b-timeline-' +
                                         index.toString() +
                                         '-' +
                                         stage,
                                   ),
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: const Icon(Icons.timeline_rounded),
-                                  title: Text(_orderStatusText(context, stage)),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (occurredAt.isNotEmpty)
-                                        Text(_friendlyOrderDate(occurredAt)),
-                                      if (vanCode.isNotEmpty) Text(vanCode),
-                                      if (reasonCode.isNotEmpty)
-                                        Text(
-                                          _failureReasonText(
-                                            context,
-                                            reasonCode,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                  stage: stage,
+                                  occurredAt: occurredAt,
+                                  vanCode: vanCode,
+                                  reasonCode: reasonCode,
+                                  isLast: index == timeline.length - 1,
                                 );
                               }).toList(growable: false),
                             ),
@@ -6020,6 +6483,227 @@ class _OrderInlineRow extends StatelessWidget {
       );
 }
 
+({IconData icon, Color foreground, Color background, Color line})
+    _orderTimelineVisual(String stage) {
+  switch (stage) {
+    case 'placed':
+    case 'pending':
+      return (
+        icon: Icons.receipt_long_outlined,
+        foreground: const Color(0xFF2563EB),
+        background: const Color(0xFFEFF6FF),
+        line: const Color(0xFFBFDBFE),
+      );
+    case 'confirmed':
+      return (
+        icon: Icons.verified_rounded,
+        foreground: const Color(0xFF0F766E),
+        background: const Color(0xFFECFDF5),
+        line: const Color(0xFFA7F3D0),
+      );
+    case 'accepted':
+      return (
+        icon: Icons.thumb_up_alt_rounded,
+        foreground: const Color(0xFF15803D),
+        background: const Color(0xFFF0FDF4),
+        line: const Color(0xFFBBF7D0),
+      );
+    case 'preparing':
+      return (
+        icon: Icons.inventory_2_outlined,
+        foreground: const Color(0xFFD97706),
+        background: const Color(0xFFFFF7ED),
+        line: const Color(0xFFFED7AA),
+      );
+    case 'ready':
+      return (
+        icon: Icons.task_alt_rounded,
+        foreground: const Color(0xFF7C3AED),
+        background: const Color(0xFFF5F3FF),
+        line: const Color(0xFFDDD6FE),
+      );
+    case 'van_assigned':
+    case 'assigned':
+      return (
+        icon: Icons.local_shipping_outlined,
+        foreground: const Color(0xFF4F46E5),
+        background: const Color(0xFFEEF2FF),
+        line: const Color(0xFFC7D2FE),
+      );
+    case 'awaiting_dispatch':
+      return (
+        icon: Icons.schedule_rounded,
+        foreground: const Color(0xFFB45309),
+        background: const Color(0xFFFFFBEB),
+        line: const Color(0xFFFDE68A),
+      );
+    case 'picked_up':
+      return (
+        icon: Icons.move_to_inbox_rounded,
+        foreground: const Color(0xFF0369A1),
+        background: const Color(0xFFF0F9FF),
+        line: const Color(0xFFBAE6FD),
+      );
+    case 'out_for_delivery':
+      return (
+        icon: Icons.delivery_dining_rounded,
+        foreground: const Color(0xFF0284C7),
+        background: const Color(0xFFE0F2FE),
+        line: const Color(0xFF7DD3FC),
+      );
+    case 'delivered':
+      return (
+        icon: Icons.home_rounded,
+        foreground: const Color(0xFF15803D),
+        background: const Color(0xFFDCFCE7),
+        line: const Color(0xFF86EFAC),
+      );
+    case 'failed':
+      return (
+        icon: Icons.error_rounded,
+        foreground: const Color(0xFFDC2626),
+        background: const Color(0xFFFEE2E2),
+        line: const Color(0xFFFCA5A5),
+      );
+    case 'cancelled':
+      return (
+        icon: Icons.cancel_rounded,
+        foreground: const Color(0xFFB91C1C),
+        background: const Color(0xFFFEF2F2),
+        line: const Color(0xFFFECACA),
+      );
+    default:
+      return (
+        icon: Icons.help_outline_rounded,
+        foreground: const Color(0xFF64748B),
+        background: const Color(0xFFF1F5F9),
+        line: const Color(0xFFCBD5E1),
+      );
+  }
+}
+
+class _B2bOrderTimelineEntry extends StatelessWidget {
+  const _B2bOrderTimelineEntry({
+    required this.stage,
+    required this.occurredAt,
+    required this.vanCode,
+    required this.reasonCode,
+    required this.isLast,
+    super.key,
+  });
+
+  final String stage;
+  final String occurredAt;
+  final String vanCode;
+  final String reasonCode;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = _orderTimelineVisual(stage);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 36,
+            child: Column(
+              children: [
+                Container(
+                  key: ValueKey('b2b-timeline-icon-$stage'),
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: visual.background,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: visual.foreground.withOpacity(.75),
+                      width: 1.6,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: visual.foreground.withOpacity(.12),
+                        blurRadius: 7,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    visual.icon,
+                    size: 16,
+                    color: visual.foreground,
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      color: visual.line,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _orderStatusText(context, stage),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: visual.foreground,
+                    ),
+                  ),
+                  if (occurredAt.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _friendlyOrderDate(occurredAt),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7785),
+                      ),
+                    ),
+                  ],
+                  if (vanCode.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      vanCode,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7785),
+                      ),
+                    ),
+                  ],
+                  if (reasonCode.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _failureReasonText(context, reasonCode),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: stage == 'failed' || stage == 'cancelled'
+                            ? visual.foreground
+                            : const Color(0xFF6B7785),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _OrderDetailCard extends StatelessWidget {
   const _OrderDetailCard({required this.title, required this.rows});
 
@@ -6341,12 +7025,6 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = FoodexPalette.wholesale;
     final id = intValue(row['id']);
-    final store = row['store'];
-    final storeName = row['store_name']?.toString().trim().isNotEmpty == true
-        ? row['store_name'].toString().trim()
-        : (store is Map && store['name']?.toString().trim().isNotEmpty == true)
-            ? store['name'].toString().trim()
-            : context.tr('customer.orders.channel.wholesale');
     final currency = (row['currency']?.toString().trim().isNotEmpty == true
             ? row['currency'].toString().trim()
             : 'EGP')
@@ -6421,18 +7099,6 @@ class _OrderCard extends StatelessWidget {
                                   ),
                         ),
                       ),
-                      SizedBox(height: compact ? 3 : 4),
-                      Text(
-                        storeName,
-                        textDirection: TextDirection.ltr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: CustomerUiColors.muted,
-                              fontSize: compact ? 11 : 12.5,
-                              height: 1.05,
-                            ),
-                      ),
                       if (createdAt != '-') ...[
                         SizedBox(height: compact ? 4 : 5),
                         Row(
@@ -6484,22 +7150,54 @@ class _OrderCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: compact ? 5 : 8),
-                if (onReorder != null)
-                  IconButton(
-                    key: ValueKey('b2b-order-reorder-' + id.toString()),
-                    tooltip: context.tr('customer.orders.reorder'),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: reordering ? null : onReorder,
-                    icon: reordering
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.replay_rounded),
-                  ),
-                _StatusPill(
-                  status: row['status']?.toString() ?? '',
-                  compact: compact,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _StatusPill(
+                      status: row['status']?.toString() ?? '',
+                      compact: compact,
+                    ),
+                    if (onReorder != null) ...[
+                      SizedBox(height: compact ? 5 : 7),
+                      TextButton(
+                        key: ValueKey(
+                          'b2b-order-reorder-' + id.toString(),
+                        ),
+                        onPressed: reordering ? null : onReorder,
+                        style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: compact ? 8 : 10,
+                            vertical: compact ? 4 : 5,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: CustomerUiColors.deepGreenStrong,
+                          backgroundColor: CustomerUiColors.limeSoft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: reordering
+                            ? SizedBox.square(
+                                dimension: compact ? 14 : 16,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                context.tr('customer.orders.reorder'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: compact ? 9.5 : 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                ),
+                              ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

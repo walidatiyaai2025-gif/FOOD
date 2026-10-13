@@ -1183,3 +1183,92 @@ String _trendSummary(StoreAnalyticsData data, StoreAnalyticsCopy copy) {
 
   return '${copy.trendSummary}. $points';
 }
+
+
+class StoreAnalyticsRouteScreen extends StatefulWidget {
+  const StoreAnalyticsRouteScreen({
+    required this.api,
+    this.retailStoreId,
+    super.key,
+  });
+
+  final analytics_api.StoreAnalyticsApi api;
+  final int? retailStoreId;
+
+  @override
+  State<StoreAnalyticsRouteScreen> createState() =>
+      _StoreAnalyticsRouteScreenState();
+}
+
+class _StoreAnalyticsRouteScreenState extends State<StoreAnalyticsRouteScreen> {
+  analytics_api.StoreAnalyticsConsumerState _state =
+      const analytics_api.StoreAnalyticsConsumerState.loading();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    if (mounted) {
+      setState(() {
+        _state = const analytics_api.StoreAnalyticsConsumerState.loading();
+      });
+    }
+
+    try {
+      final data = await widget.api.read(
+        retailStoreId: widget.retailStoreId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _state = analytics_api.StoreAnalyticsConsumerState.fromData(data);
+      });
+    } on analytics_api.StoreAnalyticsApiException catch (error) {
+      debugPrint(
+        'StoreAnalytics load failed: code=${error.code} '
+        'status=${error.statusCode ?? '-'} '
+        'retailStoreId=${widget.retailStoreId ?? '-'}',
+      );
+      if (!mounted) return;
+      setState(() {
+        _state = error.isNoEntitlement
+            ? const analytics_api.StoreAnalyticsConsumerState.noEntitlement()
+            : analytics_api.StoreAnalyticsConsumerState.error(error.code);
+      });
+    } catch (error) {
+      debugPrint(
+        'StoreAnalytics load failed: error=${error.runtimeType} '
+        'retailStoreId=${widget.retailStoreId ?? '-'}',
+      );
+      if (!mounted) return;
+      setState(() {
+        _state =
+            const analytics_api.StoreAnalyticsConsumerState.error('unknown');
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = StoreAnalyticsCopy.fromContext(context);
+    final model = _state.data;
+    final data = model == null
+        ? null
+        : storeAnalyticsDataFromReadModel(
+            model,
+            copy: copy,
+          );
+
+    return StoreAnalyticsScreen(
+      copy: copy,
+      status: storeAnalyticsStatusFromConsumerState(_state),
+      data: data,
+      selectedStoreId: data?.storeId ?? widget.retailStoreId,
+      onRetry: _load,
+      onRefresh: _load,
+      onDrillDown: (location) => Navigator.of(context).pushNamed(location),
+    );
+  }
+}

@@ -157,6 +157,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
     this.tooltip,
     this.selected = false,
     this.semanticLabel,
+    this.iconSize = 24,
     super.key,
   });
 
@@ -165,6 +166,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
   final String? tooltip;
   final bool selected;
   final String? semanticLabel;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -185,6 +187,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
               onPressed: onPressed,
               icon: Icon(
                 icon,
+                size: iconSize,
                 color: selected
                     ? CustomerUiColors.deepGreenStrong
                     : CustomerUiColors.inkSoft,
@@ -503,7 +506,10 @@ class CustomerProductCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 11,
+                          height: 1.15,
+                        ),
                   ),
                   const SizedBox(height: CustomerUiSpacing.sm),
                   Row(
@@ -553,6 +559,7 @@ class CustomerProductCard extends StatelessWidget {
                                 dimension: 44,
                                 child: Icon(
                                   Icons.add_rounded,
+                                  size: 17,
                                   color: CustomerUiColors.deepGreenStrong,
                                 ),
                               ),

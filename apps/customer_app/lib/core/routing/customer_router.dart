@@ -43,6 +43,7 @@ class CustomerAppRouter {
     required this.onPlatformRegistered,
     this.onUnifiedAuthenticated,
     this.onAuthenticatedRouteResume,
+    this.rememberedRetailStoreResolver,
     this.onLogout,
     this.sessionStore,
     this.authPreferences = const CustomerAuthPreferences(),
@@ -98,6 +99,7 @@ class CustomerAppRouter {
   final ValueChanged<String> onPlatformRegistered;
   final CustomerUnifiedAuthenticated? onUnifiedAuthenticated;
   final CustomerAuthenticatedRouteResume? onAuthenticatedRouteResume;
+  final CustomerRememberedRetailStoreResolver? rememberedRetailStoreResolver;
   final Future<void> Function()? onLogout;
   final CustomerSessionStore? sessionStore;
   final CustomerAuthPreferences authPreferences;
@@ -288,14 +290,15 @@ class CustomerAppRouter {
             definition.pattern == CustomerRoutePaths.entry) {
           final uri = Uri.parse(requestedLocation);
           return UnifiedCustomerAuthScreen(
-            nextRoute: CustomerRoutePaths.b2bDashboard,
+            nextRoute: CustomerRoutePaths.marketplace,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences) async => onPlatformRegistered(token),
+                (token, preferences, retailStoreId) async => onPlatformRegistered(token),
             sessionStore: sessionStore,
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            rememberedRetailStoreResolver: rememberedRetailStoreResolver,
             onLogout: onLogout,
             onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',
@@ -340,7 +343,7 @@ class CustomerAppRouter {
             nextRoute: nextLocation,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
-                (token, preferences) async => onPlatformRegistered(token),
+                (token, preferences, retailStoreId) async => onPlatformRegistered(token),
             commerceContext: commerceContext,
             registrationStoreId:
                 commerceContext != null && commerceContext.isRetail
@@ -356,6 +359,7 @@ class CustomerAppRouter {
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            rememberedRetailStoreResolver: rememberedRetailStoreResolver,
             onLogout: onLogout,
             onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',

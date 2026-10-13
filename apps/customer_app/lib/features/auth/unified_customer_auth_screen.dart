@@ -13,9 +13,15 @@ import '../retail/commerce/retail_commerce_api.dart';
 typedef CustomerUnifiedAuthenticated = Future<void> Function(
   String token,
   CustomerAuthPreferences preferences,
+  int? retailStoreId,
 );
 
 typedef CustomerAuthenticatedRouteResume = Future<void> Function(String route);
+
+typedef CustomerRememberedRetailStoreResolver = Future<int?> Function(
+  String token,
+  int? rememberedRetailStoreId,
+);
 
 typedef CustomerPendingActionExecutor = Future<String?> Function(
   CustomerPendingAction action,
@@ -36,6 +42,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
     this.resumeAuthenticatedRoute,
+    this.rememberedRetailStoreResolver,
     this.onLogout,
     this.onLocaleChanged,
     this.registerInitially = false,
@@ -54,6 +61,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
   final CustomerAuthenticatedRouteResume? resumeAuthenticatedRoute;
+  final CustomerRememberedRetailStoreResolver? rememberedRetailStoreResolver;
   final Future<void> Function()? onLogout;
   final ValueChanged<Locale>? onLocaleChanged;
   final bool registerInitially;
@@ -167,12 +175,12 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     };
     return <String, String>{
       for (final field in error.fieldErrors.keys)
-        if (supported.contains(field)) field: 'customer.validation.field_invalid',
+        if (supported.contains(field))
+          field: 'customer.validation.field_invalid',
     };
   }
 
-  CustomerAuthPreferences get _selectedPreferences =>
-      CustomerAuthPreferences(
+  CustomerAuthPreferences get _selectedPreferences => CustomerAuthPreferences(
         rememberMe: _rememberMe || _biometricEnabled,
         biometricEnabled: _biometricAvailable && _biometricEnabled,
       );
@@ -189,9 +197,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     if (pendingStore != null) {
       try {
         final pending = await pendingStore.take().timeout(
-          const Duration(milliseconds: 750),
-          onTimeout: () => null,
-        );
+              const Duration(milliseconds: 750),
+              onTimeout: () => null,
+            );
         if (pending != null &&
             (commerceContext == null ||
                 commerceContext.sameScope(pending.context))) {
@@ -238,10 +246,12 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   Future<void> _finishAuthentication(
     String token, {
     required bool mergeRetailGuestCart,
+    String? postAuthenticationRoute,
+    int? retailStoreId,
   }) async {
     // Capture everything needed for post-auth work before the parent rebuild:
     // that rebuild may legitimately dispose this auth route.
-    final nextRoute = widget.nextRoute;
+    final nextRoute = postAuthenticationRoute ?? widget.nextRoute;
     final pendingStore = widget.pendingActionStore;
     final pendingExecutor = widget.pendingActionExecutor;
     final commerceContext = widget.commerceContext;
@@ -251,7 +261,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
 
     // Authentication is authoritative only after the parent commits the new
     // platform session/router.
-    await widget.onAuthenticated(token, preferences);
+    await widget.onAuthenticated(token, preferences, retailStoreId);
 
     // Guest-cart merge does not depend on this State remaining mounted.
     if (mergeRetailGuestCart &&
@@ -312,9 +322,20 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         return;
       }
 
+      var rememberedRetailStoreId = stored.b2bRetailStoreId;
+      final resolver = widget.rememberedRetailStoreResolver;
+      if (resolver != null) {
+        rememberedRetailStoreId = await resolver(
+          token,
+          rememberedRetailStoreId,
+        );
+      }
+
       await _finishAuthentication(
         token,
         mergeRetailGuestCart: true,
+        retailStoreId: rememberedRetailStoreId,
+        postAuthenticationRoute: CustomerRoutePaths.b2bHome,
       );
     } catch (_) {
       if (mounted) {
@@ -357,9 +378,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   }
 
   Widget _buildC13SavedBiometricCard(BuildContext context) {
-    final biometricAction = _busy || _checkingBiometric
-        ? null
-        : _authenticateWithBiometrics;
+    final biometricAction =
+        _busy || _checkingBiometric ? null : _authenticateWithBiometrics;
 
     return Container(
       key: const ValueKey('c13-saved-biometric-login-panel'),
@@ -516,8 +536,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       if (password.length < 8) {
         validation['password'] = 'customer.validation.password_minimum';
       }
-      if (_confirmation.text.isEmpty ||
-          password != _confirmation.text) {
+      if (_confirmation.text.isEmpty || password != _confirmation.text) {
         validation['password_confirmation'] =
             'customer.validation.password_confirmation';
       }
@@ -555,25 +574,24 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         );
       } else {
         result = api is HttpCustomerActionApi
-            ? await api.credentialLogin(
-                email: email,
-                password: password,
-              )
+            ? await api.credentialLogin(email: email, password: password)
             : await api.login(username: email);
       }
+
+      final retailStoreId =
+          result.retailStoreIds.isEmpty ? null : result.retailStoreIds.first;
 
       await _finishAuthentication(
         result.token,
         mergeRetailGuestCart: true,
+        retailStoreId: retailStoreId,
+        postAuthenticationRoute: CustomerRoutePaths.b2bHome,
       );
     } on CustomerActionException catch (error) {
       if (!mounted) return;
       setState(() {
         _fieldErrorKeys = _safeFieldErrors(error);
-        _errorKey = _safeActionErrorKey(
-          error,
-          register: _register,
-        );
+        _errorKey = _safeActionErrorKey(error, register: _register);
       });
     } catch (_) {
       if (!mounted) return;
@@ -586,10 +604,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     }
   }
 
-  void _showC13InfoSheet({
-    required String title,
-    required String body,
-  }) {
+  void _showC13InfoSheet({required String title, required String body}) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: CustomerUiColors.white,
@@ -612,16 +627,14 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                title,
-                style: Theme.of(sheetContext).textTheme.titleLarge,
-              ),
+              Text(title, style: Theme.of(sheetContext).textTheme.titleLarge),
               const SizedBox(height: CustomerUiSpacing.sm),
               Text(
                 body,
-                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                      color: CustomerUiColors.muted,
-                    ),
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: CustomerUiColors.muted),
               ),
               const SizedBox(height: CustomerUiSpacing.lg),
               FilledButton(
@@ -641,8 +654,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     required TextDirection textDirection,
   }) {
     final isArabic = locale.languageCode == 'ar';
-    final showRememberedBiometricCard =
-        !_savedBiometricDismissed &&
+    final showRememberedBiometricCard = !_savedBiometricDismissed &&
         widget.preferences.rememberMe &&
         widget.preferences.biometricEnabled &&
         widget.sessionStore != null &&
@@ -746,7 +758,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   context.tr('customer.auth.title'),
-                                  key: const ValueKey('c13-business-login-title'),
+                                  key: const ValueKey(
+                                    'c13-business-login-title',
+                                  ),
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context)
                                       .textTheme
@@ -770,279 +784,308 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   _buildC13SavedBiometricCard(context)
                                 else ...[
                                   TextField(
-                                  key: const ValueKey('unified-auth-email'),
-                                  controller: _email,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  autocorrect: false,
-                                  enableSuggestions: false,
-                                  decoration: InputDecoration(
-                                    hintText: context.tr('customer.login.email'),
-                                    errorText: _fieldErrorText(context, 'email'),
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.all(14),
-                                      child: Image.asset(
-                                        'assets/branding/login_reference/email_icon.png',
-                                        width: 24,
-                                        height: 24,
+                                    key: const ValueKey('unified-auth-email'),
+                                    controller: _email,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    decoration: InputDecoration(
+                                      hintText: context.tr(
+                                        'customer.login.email',
                                       ),
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFFFCFDFC),
-                                    border: fieldBorder,
-                                    enabledBorder: fieldBorder,
-                                    focusedBorder: focusBorder,
-                                    errorBorder: fieldBorder.copyWith(
-                                      borderSide: const BorderSide(
-                                        color: CustomerUiColors.destructive,
+                                      errorText: _fieldErrorText(
+                                        context,
+                                        'email',
                                       ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 18,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: CustomerUiSpacing.sm),
-                                TextField(
-                                  key: const ValueKey('unified-auth-password'),
-                                  controller: _password,
-                                  obscureText: true,
-                                  textInputAction: TextInputAction.done,
-                                  decoration: InputDecoration(
-                                    hintText: context.tr('customer.login.password'),
-                                    errorText: _fieldErrorText(context, 'password'),
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.all(14),
-                                      child: Image.asset(
-                                        'assets/branding/login_reference/lock_icon.png',
-                                        width: 24,
-                                        height: 24,
-                                      ),
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFFFCFDFC),
-                                    border: fieldBorder,
-                                    enabledBorder: fieldBorder,
-                                    focusedBorder: focusBorder,
-                                    errorBorder: fieldBorder.copyWith(
-                                      borderSide: const BorderSide(
-                                        color: CustomerUiColors.destructive,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 18,
-                                    ),
-                                  ),
-                                  onSubmitted: (_) => _submit(),
-                                ),
-                                const SizedBox(height: CustomerUiSpacing.sm),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: InkWell(
-                                        key: const ValueKey(
-                                          'customer-auth-remember-me',
+                                      prefixIcon: Padding(
+                                        padding: const EdgeInsets.all(14),
+                                        child: Image.asset(
+                                          'assets/branding/login_reference/email_icon.png',
+                                          width: 24,
+                                          height: 24,
                                         ),
-                                        onTap: _busy
-                                            ? null
-                                            : () => toggleRemember(!_rememberMe),
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 7,
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFFFCFDFC),
+                                      border: fieldBorder,
+                                      enabledBorder: fieldBorder,
+                                      focusedBorder: focusBorder,
+                                      errorBorder: fieldBorder.copyWith(
+                                        borderSide: const BorderSide(
+                                          color: CustomerUiColors.destructive,
+                                        ),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: CustomerUiSpacing.sm),
+                                  TextField(
+                                    key: const ValueKey(
+                                      'unified-auth-password',
+                                    ),
+                                    controller: _password,
+                                    obscureText: true,
+                                    textInputAction: TextInputAction.done,
+                                    decoration: InputDecoration(
+                                      hintText: context.tr(
+                                        'customer.login.password',
+                                      ),
+                                      errorText: _fieldErrorText(
+                                        context,
+                                        'password',
+                                      ),
+                                      prefixIcon: Padding(
+                                        padding: const EdgeInsets.all(14),
+                                        child: Image.asset(
+                                          'assets/branding/login_reference/lock_icon.png',
+                                          width: 24,
+                                          height: 24,
+                                        ),
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFFFCFDFC),
+                                      border: fieldBorder,
+                                      enabledBorder: fieldBorder,
+                                      focusedBorder: focusBorder,
+                                      errorBorder: fieldBorder.copyWith(
+                                        borderSide: const BorderSide(
+                                          color: CustomerUiColors.destructive,
+                                        ),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 18,
+                                      ),
+                                    ),
+                                    onSubmitted: (_) => _submit(),
+                                  ),
+                                  const SizedBox(height: CustomerUiSpacing.sm),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: InkWell(
+                                          key: const ValueKey(
+                                            'customer-auth-remember-me',
                                           ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Checkbox(
-                                                value: _rememberMe,
-                                                onChanged: _busy
-                                                    ? null
-                                                    : (value) => toggleRemember(
-                                                          value ?? false,
-                                                        ),
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                              ),
-                                              Flexible(
-                                                child: Text(
-                                                  context.tr(
-                                                    'customer.auth.remember_me',
+                                          onTap: _busy
+                                              ? null
+                                              : () => toggleRemember(
+                                                    !_rememberMe,
                                                   ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 7,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Checkbox(
+                                                  value: _rememberMe,
+                                                  onChanged: _busy
+                                                      ? null
+                                                      : (value) =>
+                                                          toggleRemember(
+                                                            value ?? false,
+                                                          ),
+                                                  visualDensity:
+                                                      VisualDensity.compact,
                                                 ),
-                                              ),
-                                            ],
+                                                Flexible(
+                                                  child: Text(
+                                                    context.tr(
+                                                      'customer.auth.remember_me',
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        key: const ValueKey(
-                                          'customer-auth-biometric-login',
-                                        ),
-                                        onPressed:
-                                            _biometricAvailable && !_busy
-                                                ? biometricPressed
-                                                : null,
-                                        icon: _checkingBiometric
-                                            ? const SizedBox.square(
-                                                dimension: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          key: const ValueKey(
+                                            'customer-auth-biometric-login',
+                                          ),
+                                          onPressed:
+                                              _biometricAvailable && !_busy
+                                                  ? biometricPressed
+                                                  : null,
+                                          icon: _checkingBiometric
+                                              ? const SizedBox.square(
+                                                  dimension: 18,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
+                                                )
+                                              : Image.asset(
+                                                  'assets/branding/login_reference/fingerprint_icon.png',
+                                                  width: 30,
+                                                  height: 30,
                                                 ),
-                                              )
-                                            : Image.asset(
-                                                'assets/branding/login_reference/fingerprint_icon.png',
-                                                width: 30,
-                                                height: 30,
-                                              ),
-                                        label: Text(
-                                          isArabic ? 'البصمة' : 'Biometric',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          minimumSize: const Size(0, 48),
-                                          foregroundColor:
-                                              CustomerUiColors.deepGreen,
-                                          backgroundColor: _biometricEnabled
-                                              ? CustomerUiColors.mint
-                                              : CustomerUiColors.white,
-                                          side: BorderSide(
-                                            color: _biometricEnabled
-                                                ? CustomerUiColors.deepGreenSoft
-                                                : CustomerUiColors.border,
+                                          label: Text(
+                                            isArabic ? 'البصمة' : 'Biometric',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
+                                          style: OutlinedButton.styleFrom(
+                                            minimumSize: const Size(0, 48),
+                                            foregroundColor:
+                                                CustomerUiColors.deepGreen,
+                                            backgroundColor: _biometricEnabled
+                                                ? CustomerUiColors.mint
+                                                : CustomerUiColors.white,
+                                            side: BorderSide(
+                                              color: _biometricEnabled
+                                                  ? CustomerUiColors
+                                                      .deepGreenSoft
+                                                  : CustomerUiColors.border,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
                                           ),
                                         ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_errorKey != null) ...[
+                                    const SizedBox(
+                                      height: CustomerUiSpacing.sm,
+                                    ),
+                                    Text(
+                                      context.tr(_errorKey!),
+                                      key: const ValueKey('unified-auth-error'),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: CustomerUiColors.destructive,
                                       ),
                                     ),
                                   ],
-                                ),
-                                if (_errorKey != null) ...[
                                   const SizedBox(height: CustomerUiSpacing.sm),
-                                  Text(
-                                    context.tr(_errorKey!),
-                                    key: const ValueKey('unified-auth-error'),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: CustomerUiColors.destructive,
+                                  SizedBox(
+                                    height: 58,
+                                    child: FilledButton(
+                                      key: const ValueKey(
+                                        'unified-auth-submit',
+                                      ),
+                                      onPressed: _busy ? null : _submit,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            CustomerUiColors.deepGreenSoft,
+                                        foregroundColor: CustomerUiColors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                        ),
+                                      ),
+                                      child: _busy
+                                          ? const SizedBox.square(
+                                              dimension: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: CustomerUiColors.white,
+                                              ),
+                                            )
+                                          : Text(
+                                              context.tr(
+                                                'customer.action.login',
+                                              ),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
+                                                    color:
+                                                        CustomerUiColors.white,
+                                                  ),
+                                            ),
                                     ),
                                   ),
-                                ],
-                                const SizedBox(height: CustomerUiSpacing.sm),
-                                SizedBox(
-                                  height: 58,
-                                  child: FilledButton(
-                                    key: const ValueKey('unified-auth-submit'),
-                                    onPressed: _busy ? null : _submit,
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor:
+                                  const SizedBox(height: 8),
+                                  OutlinedButton(
+                                    key: const ValueKey(
+                                      'c13-business-forgot-password',
+                                    ),
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _showC13InfoSheet(
+                                              title: isArabic
+                                                  ? 'نسيت كلمة المرور؟'
+                                                  : 'Forgot password?',
+                                              body: isArabic
+                                                  ? 'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الأعمال المعتمد.'
+                                                  : 'Contact FOODEX administration to reset the password for your approved business account.',
+                                            ),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(52),
+                                      foregroundColor:
                                           CustomerUiColors.deepGreenSoft,
-                                      foregroundColor: CustomerUiColors.white,
+                                      backgroundColor: const Color(0xFFF9FCFA),
+                                      side: const BorderSide(
+                                        color: Color(0xFFE2E9E5),
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(18),
                                       ),
                                     ),
-                                    child: _busy
-                                        ? const SizedBox.square(
-                                            dimension: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: CustomerUiColors.white,
+                                    child: Text(
+                                      isArabic
+                                          ? 'نسيت كلمة المرور؟'
+                                          : 'Forgot password?',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  OutlinedButton(
+                                    key: const ValueKey(
+                                      'c13-business-contact-us',
+                                    ),
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _showC13InfoSheet(
+                                              title: isArabic
+                                                  ? 'تواصل معنا'
+                                                  : 'Contact us',
+                                              body: isArabic
+                                                  ? 'حسابات الأعمال تُنشأ وتُعتمد من لوحة الإدارة. تواصل مع مسؤول FOODEX لتفعيل الحساب أو المساعدة في الدخول.'
+                                                  : 'Business accounts are created and approved from the management dashboard. Contact your FOODEX administrator for activation or sign-in help.',
                                             ),
-                                          )
-                                        : Text(
-                                            context.tr('customer.action.login'),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  color:
-                                                      CustomerUiColors.white,
-                                                ),
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                OutlinedButton(
-                                  key: const ValueKey(
-                                    'c13-business-forgot-password',
-                                  ),
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _showC13InfoSheet(
-                                            title: isArabic
-                                                ? 'نسيت كلمة المرور؟'
-                                                : 'Forgot password?',
-                                            body: isArabic
-                                                ? 'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الأعمال المعتمد.'
-                                                : 'Contact FOODEX administration to reset the password for your approved business account.',
-                                          ),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(52),
-                                    foregroundColor:
-                                        CustomerUiColors.deepGreenSoft,
-                                    backgroundColor: const Color(0xFFF9FCFA),
-                                    side: const BorderSide(
-                                      color: Color(0xFFE2E9E5),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(54),
+                                      foregroundColor:
+                                          CustomerUiColors.deepGreen,
+                                      side: const BorderSide(
+                                        color: CustomerUiColors.deepGreenSoft,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
+                                    child: Text(
+                                      isArabic ? 'تواصل معنا' : 'Contact us',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    isArabic
-                                        ? 'نسيت كلمة المرور؟'
-                                        : 'Forgot password?',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton(
-                                  key: const ValueKey(
-                                    'c13-business-contact-us',
-                                  ),
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _showC13InfoSheet(
-                                            title: isArabic
-                                                ? 'تواصل معنا'
-                                                : 'Contact us',
-                                            body: isArabic
-                                                ? 'حسابات الأعمال تُنشأ وتُعتمد من لوحة الإدارة. تواصل مع مسؤول FOODEX لتفعيل الحساب أو المساعدة في الدخول.'
-                                                : 'Business accounts are created and approved from the management dashboard. Contact your FOODEX administrator for activation or sign-in help.',
-                                          ),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(54),
-                                    foregroundColor: CustomerUiColors.deepGreen,
-                                    side: const BorderSide(
-                                      color: CustomerUiColors.deepGreenSoft,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    isArabic ? 'تواصل معنا' : 'Contact us',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
                                 ],
                               ],
                             ),
@@ -1058,15 +1101,11 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
-                                      ?.copyWith(
-                                        color: CustomerUiColors.muted,
-                                      ),
+                                      ?.copyWith(color: CustomerUiColors.muted),
                                 ),
                               ),
                               Text(
-                                isArabic
-                                    ? 'الإصدار 1.0.54'
-                                    : 'Version 1.0.54',
+                                isArabic ? 'الإصدار 1.0.54' : 'Version 1.0.54',
                                 key: const ValueKey(
                                   'c13-business-login-version',
                                 ),
@@ -1117,12 +1156,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         const Locale('ar');
     final textDirection =
         locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
-    final isC13BusinessEntry =
-        widget.nextRoute == CustomerRoutePaths.b2bDashboard &&
-        widget.commerceContext == null &&
-        !widget.registerInitially;
-
-    if (isC13BusinessEntry) {
+    // FOODEX has one customer sign-in surface. Registration keeps its
+    // dedicated form, while every sign-in route uses the fingerprint-capable
+    // login experience and resolves the post-auth destination afterwards.
+    if (!_register) {
       return _buildC13BusinessEntry(
         context,
         locale: locale,
@@ -1134,291 +1171,290 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       textDirection: textDirection,
       child: Scaffold(
         key: const ValueKey('unified-customer-auth-screen'),
-      backgroundColor: CustomerUiColors.mint,
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: CustomerUiColors.deepGreen,
-        foregroundColor: CustomerUiColors.white,
-        actions: [
-          IconButton(
-            key: const ValueKey('customer-login-diagnostics'),
-            onPressed: _busy
-                ? null
-                : () => Navigator.of(context).pushNamed(
-                      CustomerRoutePaths.diagnostics,
-                    ),
-            tooltip: context.tr('customer.diagnostics.open'),
-            icon: const Icon(Icons.bug_report_outlined),
-          ),
-          IconButton(
-            key: const ValueKey('customer-auth-guest'),
-            onPressed: _busy
-                ? null
-                : () => Navigator.of(context).pushReplacementNamed(
-                      CustomerRoutePaths.marketplace,
-                    ),
-            tooltip: context.tr('customer.action.guest'),
-            icon: const Icon(Icons.storefront_outlined),
-          ),
-          if (widget.onLocaleChanged != null)
-            TextButton(
-              key: const ValueKey('customer-auth-language-toggle'),
-              onPressed: _busy ? null : _toggleLocale,
-              child: Text(
-                locale.languageCode == 'ar' ? 'English' : 'العربية',
-                style: const TextStyle(color: CustomerUiColors.white),
-              ),
+        backgroundColor: CustomerUiColors.mint,
+        appBar: AppBar(
+          title: Text(title),
+          backgroundColor: CustomerUiColors.deepGreen,
+          foregroundColor: CustomerUiColors.white,
+          actions: [
+            IconButton(
+              key: const ValueKey('customer-login-diagnostics'),
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context)
+                      .pushNamed(CustomerRoutePaths.diagnostics),
+              tooltip: context.tr('customer.diagnostics.open'),
+              icon: const Icon(Icons.bug_report_outlined),
             ),
-        ],
-      ),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            CustomerUiSpacing.page,
-            CustomerUiSpacing.lg,
-            CustomerUiSpacing.page,
-            CustomerUiSpacing.xxl,
-          ),
-          children: [
-            Material(
-              color: CustomerUiColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
-                side: const BorderSide(color: CustomerUiColors.border),
+            IconButton(
+              key: const ValueKey('customer-auth-guest'),
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context)
+                      .pushReplacementNamed(CustomerRoutePaths.marketplace),
+              tooltip: context.tr('customer.action.guest'),
+              icon: const Icon(Icons.storefront_outlined),
+            ),
+            if (widget.onLocaleChanged != null)
+              TextButton(
+                key: const ValueKey('customer-auth-language-toggle'),
+                onPressed: _busy ? null : _toggleLocale,
+                child: Text(
+                  locale.languageCode == 'ar' ? 'English' : 'العربية',
+                  style: const TextStyle(color: CustomerUiColors.white),
+                ),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.all(CustomerUiSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      context.tr('customer.app.identity'),
-                      key: const ValueKey('customer-app-identity'),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: CustomerUiColors.deepGreen,
-                            fontWeight: FontWeight.w900,
+          ],
+        ),
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              CustomerUiSpacing.page,
+              CustomerUiSpacing.lg,
+              CustomerUiSpacing.page,
+              CustomerUiSpacing.xxl,
+            ),
+            children: [
+              Material(
+                color: CustomerUiColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
+                  side: const BorderSide(color: CustomerUiColors.border),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(CustomerUiSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        context.tr('customer.app.identity'),
+                        key: const ValueKey('customer-app-identity'),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: CustomerUiColors.deepGreen,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.xs),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.xs),
+                      Text(
+                        context.tr('customer.auth.subtitle'),
+                        key: const ValueKey('unified-customer-auth-subtitle'),
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.lg),
+                      SegmentedButton<bool>(
+                        segments: [
+                          ButtonSegment<bool>(
+                            value: false,
+                            label: Text(context.tr('customer.action.login')),
+                            icon: const Icon(Icons.login_rounded),
                           ),
-                    ),
-                    const SizedBox(height: CustomerUiSpacing.xs),
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: CustomerUiSpacing.xs),
-                    Text(
-                      context.tr('customer.auth.subtitle'),
-                      key: const ValueKey('unified-customer-auth-subtitle'),
-                    ),
-                    const SizedBox(height: CustomerUiSpacing.lg),
-                    SegmentedButton<bool>(
-                      segments: [
-                        ButtonSegment<bool>(
-                          value: false,
-                          label: Text(context.tr('customer.action.login')),
-                          icon: const Icon(Icons.login_rounded),
+                          ButtonSegment<bool>(
+                            value: true,
+                            label: Text(
+                              context.tr('customer.marketplace.register'),
+                            ),
+                            icon: const Icon(Icons.person_add_alt_1_rounded),
+                          ),
+                        ],
+                        selected: {_register},
+                        onSelectionChanged: _busy
+                            ? null
+                            : (values) => _switchMode(values.first),
+                      ),
+                      const SizedBox(height: CustomerUiSpacing.lg),
+                      if (_register) ...[
+                        TextField(
+                          key: const ValueKey('unified-auth-name'),
+                          controller: _name,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: context.tr('customer.settings.name'),
+                            prefixIcon: const Icon(
+                              Icons.person_outline_rounded,
+                            ),
+                            errorText: _fieldErrorText(context, 'name'),
+                          ),
                         ),
-                        ButtonSegment<bool>(
-                          value: true,
-                          label: Text(
-                            context.tr('customer.marketplace.register'),
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                      ],
+                      TextField(
+                        key: const ValueKey('unified-auth-email'),
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: InputDecoration(
+                          labelText: context.tr('customer.login.email'),
+                          prefixIcon: const Icon(Icons.mail_outline_rounded),
+                          errorText: _fieldErrorText(context, 'email'),
+                        ),
+                      ),
+                      if (_register) ...[
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        TextField(
+                          key: const ValueKey('unified-auth-phone'),
+                          controller: _phone,
+                          keyboardType: TextInputType.phone,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: context.tr('customer.marketplace.phone'),
+                            prefixIcon: const Icon(Icons.phone_outlined),
+                            errorText: _fieldErrorText(context, 'phone'),
                           ),
-                          icon: const Icon(Icons.person_add_alt_1_rounded),
                         ),
                       ],
-                      selected: {_register},
-                      onSelectionChanged: _busy
-                          ? null
-                          : (values) => _switchMode(values.first),
-                    ),
-                    const SizedBox(height: CustomerUiSpacing.lg),
-                    if (_register) ...[
-                      TextField(
-                        key: const ValueKey('unified-auth-name'),
-                        controller: _name,
-                        textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
-                          labelText: context.tr('customer.settings.name'),
-                          prefixIcon:
-                              const Icon(Icons.person_outline_rounded),
-                          errorText: _fieldErrorText(context, 'name'),
-                        ),
-                      ),
-                      const SizedBox(height: CustomerUiSpacing.sm),
-                    ],
-                    TextField(
-                      key: const ValueKey('unified-auth-email'),
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      decoration: InputDecoration(
-                        labelText: context.tr('customer.login.email'),
-                        prefixIcon: const Icon(Icons.mail_outline_rounded),
-                        errorText: _fieldErrorText(context, 'email'),
-                      ),
-                    ),
-                    if (_register) ...[
                       const SizedBox(height: CustomerUiSpacing.sm),
                       TextField(
-                        key: const ValueKey('unified-auth-phone'),
-                        controller: _phone,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
-                          labelText:
-                              context.tr('customer.marketplace.phone'),
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                          errorText: _fieldErrorText(context, 'phone'),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: CustomerUiSpacing.sm),
-                    TextField(
-                      key: const ValueKey('unified-auth-password'),
-                      controller: _password,
-                      obscureText: true,
-                      textInputAction: _register
-                          ? TextInputAction.next
-                          : TextInputAction.done,
-                      decoration: InputDecoration(
-                        labelText: context.tr('customer.login.password'),
-                        prefixIcon: const Icon(Icons.lock_outline_rounded),
-                        errorText: _fieldErrorText(context, 'password'),
-                      ),
-                      onSubmitted: (_) {
-                        if (!_register) _submit();
-                      },
-                    ),
-                    if (_register) ...[
-                      const SizedBox(height: CustomerUiSpacing.sm),
-                      TextField(
-                        key: const ValueKey(
-                          'unified-auth-password-confirmation',
-                        ),
-                        controller: _confirmation,
+                        key: const ValueKey('unified-auth-password'),
+                        controller: _password,
                         obscureText: true,
-                        textInputAction: TextInputAction.done,
+                        textInputAction: _register
+                            ? TextInputAction.next
+                            : TextInputAction.done,
                         decoration: InputDecoration(
-                          labelText: context.tr(
-                            'customer.marketplace.password_confirmation',
-                          ),
-                          prefixIcon:
-                              const Icon(Icons.verified_user_outlined),
-                          errorText: _fieldErrorText(
-                            context,
-                            'password_confirmation',
-                          ),
+                          labelText: context.tr('customer.login.password'),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          errorText: _fieldErrorText(context, 'password'),
                         ),
-                        onSubmitted: (_) => _submit(),
+                        onSubmitted: (_) {
+                          if (!_register) _submit();
+                        },
                       ),
-                    ],
-                    const SizedBox(height: CustomerUiSpacing.sm),
-                    Material(
-                      type: MaterialType.transparency,
-                      child: SwitchListTile.adaptive(
-                        key: const ValueKey('customer-auth-remember-me'),
-                        contentPadding: EdgeInsets.zero,
-                        value: _rememberMe,
-                        onChanged: _busy
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _rememberMe = value;
-                                  if (!value) _biometricEnabled = false;
-                                });
-                              },
-                        title: Text(context.tr('customer.auth.remember_me')),
-                        subtitle: Text(
-                          context.tr('customer.auth.remember_me_help'),
+                      if (_register) ...[
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        TextField(
+                          key: const ValueKey(
+                            'unified-auth-password-confirmation',
+                          ),
+                          controller: _confirmation,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          decoration: InputDecoration(
+                            labelText: context.tr(
+                              'customer.marketplace.password_confirmation',
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.verified_user_outlined,
+                            ),
+                            errorText: _fieldErrorText(
+                              context,
+                              'password_confirmation',
+                            ),
+                          ),
+                          onSubmitted: (_) => _submit(),
                         ),
-                      ),
-                    ),
-                    if (_checkingBiometric)
-                      const LinearProgressIndicator(
-                        key: ValueKey('customer-auth-biometric-checking'),
-                      ),
-                    if (_biometricAvailable)
+                      ],
+                      const SizedBox(height: CustomerUiSpacing.sm),
                       Material(
                         type: MaterialType.transparency,
                         child: SwitchListTile.adaptive(
-                          key: const ValueKey('customer-auth-biometric-toggle'),
+                          key: const ValueKey('customer-auth-remember-me'),
                           contentPadding: EdgeInsets.zero,
-                          value: _biometricEnabled,
+                          value: _rememberMe,
                           onChanged: _busy
                               ? null
                               : (value) {
                                   setState(() {
-                                    _biometricEnabled = value;
-                                    if (value) _rememberMe = true;
+                                    _rememberMe = value;
+                                    if (!value) _biometricEnabled = false;
                                   });
                                 },
-                          title: Text(
-                            context.tr('customer.auth.biometric_enable'),
-                          ),
+                          title: Text(context.tr('customer.auth.remember_me')),
                           subtitle: Text(
-                            context.tr('customer.auth.biometric_help'),
+                            context.tr('customer.auth.remember_me_help'),
                           ),
                         ),
                       ),
-                    if (_errorKey != null) ...[
-                      const SizedBox(height: CustomerUiSpacing.sm),
-                      Text(
-                        context.tr(_errorKey!),
-                        key: const ValueKey('unified-auth-error'),
-                        style: const TextStyle(
-                          color: CustomerUiColors.destructive,
+                      if (_checkingBiometric)
+                        const LinearProgressIndicator(
+                          key: ValueKey('customer-auth-biometric-checking'),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: CustomerUiSpacing.lg),
-                    FilledButton.icon(
-                      key: const ValueKey('unified-auth-submit'),
-                      onPressed: _busy ? null : _submit,
-                      icon: _busy
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              _register
-                                  ? Icons.person_add_alt_1_rounded
-                                  : Icons.login_rounded,
+                      if (_biometricAvailable)
+                        Material(
+                          type: MaterialType.transparency,
+                          child: SwitchListTile.adaptive(
+                            key: const ValueKey(
+                              'customer-auth-biometric-toggle',
                             ),
-                      label: Text(
-                        context.tr(
-                          _register
-                              ? 'customer.marketplace.create_account'
-                              : 'customer.action.login',
+                            contentPadding: EdgeInsets.zero,
+                            value: _biometricEnabled,
+                            onChanged: _busy
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _biometricEnabled = value;
+                                      if (value) _rememberMe = true;
+                                    });
+                                  },
+                            title: Text(
+                              context.tr('customer.auth.biometric_enable'),
+                            ),
+                            subtitle: Text(
+                              context.tr('customer.auth.biometric_help'),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    if (!_register &&
-                        _biometricAvailable &&
-                        _biometricEnabled) ...[
-                      const SizedBox(height: CustomerUiSpacing.sm),
-                      OutlinedButton.icon(
-                        key: const ValueKey(
-                          'customer-auth-biometric-login',
+                      if (_errorKey != null) ...[
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        Text(
+                          context.tr(_errorKey!),
+                          key: const ValueKey('unified-auth-error'),
+                          style: const TextStyle(
+                            color: CustomerUiColors.destructive,
+                          ),
                         ),
-                        onPressed:
-                            _busy ? null : _authenticateWithBiometrics,
-                        icon: const Icon(Icons.fingerprint_rounded),
+                      ],
+                      const SizedBox(height: CustomerUiSpacing.lg),
+                      FilledButton.icon(
+                        key: const ValueKey('unified-auth-submit'),
+                        onPressed: _busy ? null : _submit,
+                        icon: _busy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                _register
+                                    ? Icons.person_add_alt_1_rounded
+                                    : Icons.login_rounded,
+                              ),
                         label: Text(
-                          context.tr('customer.auth.biometric_login'),
+                          context.tr(
+                            _register
+                                ? 'customer.marketplace.create_account'
+                                : 'customer.action.login',
+                          ),
                         ),
                       ),
+                      if (!_register &&
+                          _biometricAvailable &&
+                          _biometricEnabled) ...[
+                        const SizedBox(height: CustomerUiSpacing.sm),
+                        OutlinedButton.icon(
+                          key: const ValueKey('customer-auth-biometric-login'),
+                          onPressed: _busy ? null : _authenticateWithBiometrics,
+                          icon: const Icon(Icons.fingerprint_rounded),
+                          label: Text(
+                            context.tr('customer.auth.biometric_login'),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );

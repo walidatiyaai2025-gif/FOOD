@@ -191,7 +191,7 @@ void main() {
             expect(promo.bottom, lessThan(size.height - 58));
             expect(
               find.byKey(const ValueKey('customer-logout')),
-              findsOneWidget,
+              findsNothing,
             );
             expect(
               find.byKey(const ValueKey('customer-footer-orders')),
@@ -221,7 +221,7 @@ void main() {
   }
   if (!before) {
     testWidgets(
-      'dashboard logout invokes existing session flow and returns to entry',
+      'dashboard no longer renders the global logout/version footer',
       (tester) async {
         tester.view.physicalSize = const Size(393, 873);
         tester.view.devicePixelRatio = 1;
@@ -229,17 +229,17 @@ void main() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
         });
-        final actions = DashboardActions();
-        await tester.pumpWidget(testApp(DashboardApi(), actions: actions));
+        await tester.pumpWidget(testApp(DashboardApi()));
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('customer-logout')));
-        await tester.pumpAndSettle();
-        expect(actions.logoutCalls, 1);
         expect(
-          find.byKey(const ValueKey('unified-auth-submit')),
-          findsOneWidget,
+          find.byKey(const ValueKey('customer-logout')),
+          findsNothing,
         );
-        expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsNothing);
+        expect(
+          find.byKey(const ValueKey('customer-app-version-footer')),
+          findsNothing,
+        );
+        expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );

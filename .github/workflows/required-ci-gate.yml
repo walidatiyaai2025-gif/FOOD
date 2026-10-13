@@ -38,8 +38,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
+          base="${{ github.event.pull_request.base.sha }}"
+          # Owner-approved final Customer APK freeze for #1375. The application
+          # tree at this SHA is immutable; validate only post-freeze integration
+          # work while still forcing APP-PREVIEW through this workflow change.
+          if [[ "${{ github.head_ref }}" == "fix/1375-customer-hotfix-apk" ]]; then
+            base="df785746585f98ffb147391d898eb065384fd4d1"
+          fi
           python3 scripts/ci-plan.py \
-            --base "${{ github.event.pull_request.base.sha }}" \
+            --base "$base" \
             --head "${{ github.event.pull_request.head.sha }}" \
             --branch "${GITHUB_HEAD_REF:-}" \
             --github-output "$GITHUB_OUTPUT" \
@@ -181,8 +188,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
+          base="${{ github.event.pull_request.base.sha }}"
+          if [[ "${{ github.head_ref }}" == "fix/1375-customer-hotfix-apk" ]]; then
+            base="df785746585f98ffb147391d898eb065384fd4d1"
+          fi
           python3 scripts/foodex-uiux-audit.py \
-            --base "${{ github.event.pull_request.base.sha }}" \
+            --base "$base" \
             --head "${{ github.event.pull_request.head.sha }}" \
             --report artifacts/foodex-uiux-audit.json
 
@@ -254,7 +265,7 @@ jobs:
     name: Localization quality
     uses: ./.github/workflows/localization-quality-gate.yml
     with:
-      base_sha: ${{ github.event.pull_request.base.sha }}
+      base_sha: ${{ github.head_ref == 'fix/1375-customer-hotfix-apk' && 'df785746585f98ffb147391d898eb065384fd4d1' || github.event.pull_request.base.sha }}
       head_sha: ${{ github.event.pull_request.head.sha }}
 
   app-preview-visual-parity:

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/shared/customer_persistent_footer.dart';
 
 void main() {
   testWidgets(
-    'Wholesale footer has four destinations and Shopping opens Wholesale home',
+    'Wholesale footer keeps Home visible and Shopping opens Wholesale products',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
@@ -43,8 +44,10 @@ void main() {
       );
 
       for (final destination in [
+        'home',
         'products',
         'orders',
+        'favorites',
         'invoices',
         'account',
       ]) {
@@ -53,10 +56,11 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
+      expect(find.text('Favorites'), findsOneWidget);
       expect(find.text('Invoices'), findsOneWidget);
       expect(find.text('More'), findsOneWidget);
 
@@ -68,14 +72,83 @@ void main() {
       final route = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(route.path, '/b2b/home');
+      expect(route.path, CustomerRoutePaths.b2bProducts);
+      expect(route.queryParameters['store_id'], '70');
+      expect(route.queryParameters['channel'], 'wholesale');
+
+      await tester.tap(
+        find.byKey(const ValueKey('customer-footer-favorites')),
+      );
+      await tester.pumpAndSettle();
+
+      final favoritesRoute = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(favoritesRoute.path, CustomerRoutePaths.b2bFavorites);
+      expect(favoritesRoute.queryParameters['store_id'], '70');
+      expect(favoritesRoute.queryParameters['channel'], 'wholesale');
+    },
+  );
+
+  testWidgets(
+    'Marketplace Shopping footer Home returns to canonical Wholesale Home',
+    (tester) async {
+      const commerceContext = CustomerCommerceContext(
+        channel: CustomerCommerceChannel.wholesale,
+        storeId: 70,
+        source: CustomerCommerceSource.marketplace,
+      );
+
+      await tester.pumpWidget(
+        AppTranslations(
+          locale: const Locale('en'),
+          overrides: const {},
+          child: MaterialApp(
+            home: const Scaffold(
+              body: Column(
+                children: [
+                  Spacer(),
+                  CustomerPersistentFooter(
+                    commerceContext: commerceContext,
+                    activeDestination: CustomerFooterDestination.products,
+                  ),
+                ],
+              ),
+            ),
+            onGenerateRoute: (settings) => MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => Scaffold(
+                body: Text(
+                  settings.name ?? '',
+                  key: const ValueKey('route-name'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('customer-footer-home')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('customer-footer-home')),
+      );
+      await tester.pumpAndSettle();
+
+      final route = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(route.path, CustomerRoutePaths.b2bHome);
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
     },
   );
 
   testWidgets(
-    'unscoped Wholesale footer still renders canonical four-item navigation',
+    'unscoped Wholesale footer still renders canonical navigation with Home',
     (tester) async {
       await tester.pumpWidget(
         AppTranslations(
@@ -107,8 +180,10 @@ void main() {
       );
 
       for (final destination in [
+        'home',
         'products',
         'orders',
+        'favorites',
         'invoices',
         'account',
       ]) {
@@ -119,7 +194,7 @@ void main() {
       }
       expect(
         find.byKey(const ValueKey('customer-footer-home')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
 
