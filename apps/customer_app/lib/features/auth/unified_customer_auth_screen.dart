@@ -13,6 +13,7 @@ import '../retail/commerce/retail_commerce_api.dart';
 typedef CustomerUnifiedAuthenticated = Future<void> Function(
   String token,
   CustomerAuthPreferences preferences,
+  int? retailStoreId,
 );
 
 typedef CustomerAuthenticatedRouteResume = Future<void> Function(String route);
@@ -239,6 +240,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     String token, {
     required bool mergeRetailGuestCart,
     String? postAuthenticationRoute,
+    int? retailStoreId,
   }) async {
     // Capture everything needed for post-auth work before the parent rebuild:
     // that rebuild may legitimately dispose this auth route.
@@ -252,7 +254,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
 
     // Authentication is authoritative only after the parent commits the new
     // platform session/router.
-    await widget.onAuthenticated(token, preferences);
+    await widget.onAuthenticated(token, preferences, retailStoreId);
 
     // Guest-cart merge does not depend on this State remaining mounted.
     if (mergeRetailGuestCart &&
@@ -317,6 +319,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       await _finishAuthentication(
         token,
         mergeRetailGuestCart: true,
+        retailStoreId: rememberedRetailStoreId,
         postAuthenticationRoute: rememberedRetailStoreId == null
             ? widget.nextRoute
             : CustomerRouteLocations.retailHome(
@@ -581,6 +584,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       await _finishAuthentication(
         result.token,
         mergeRetailGuestCart: true,
+        retailStoreId: retailStoreId,
         postAuthenticationRoute: postLoginRoute,
       );
     } on CustomerActionException catch (error) {
