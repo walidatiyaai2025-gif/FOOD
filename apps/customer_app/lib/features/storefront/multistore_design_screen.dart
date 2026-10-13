@@ -14,6 +14,7 @@ import '../../core/routing/customer_route_authority.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
+import '../customer_account/customer_favorites_screen.dart';
 import 'marketplace_barcode_scanner.dart';
 import 'platform_marketplace_screen.dart';
 import 'wholesale_multistore_screens.dart';
@@ -171,6 +172,24 @@ class MultiStoreDesignScreen extends StatelessWidget {
         return withFooter(
           WholesaleOrderDetailsDesignScreen(location: location, api: b2bApi),
           CustomerFooterDestination.orders,
+        );
+      case CustomerRoutePaths.b2bFavorites:
+        final scope = commerceContext;
+        if (scope == null ||
+            !scope.isWholesale ||
+            wholesaleFavoritesApi == null) {
+          return const SizedBox.shrink();
+        }
+        return withFooter(
+          CustomerFavoritesScreen(
+            api: accountApi,
+            favoritesApi: wholesaleFavoritesApi!,
+            retailStoreId: scope.storeId,
+            onOpenProduct: (productId) => Navigator.of(context).pushNamed(
+              CustomerRouteLocations.wholesaleProduct(scope, productId),
+            ),
+          ),
+          CustomerFooterDestination.favorites,
         );
       default:
         return const SizedBox.shrink();
