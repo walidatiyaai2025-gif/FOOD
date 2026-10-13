@@ -47,11 +47,9 @@ echo "Strict changed-file Flutter analysis: app=$app files=${#files[@]} base=$ba
 
 if ! (
   cd "$root/$prefix"
-  dart format "${files[@]}"
-  git -C "$root" diff -- "$prefix/lib" "$prefix/test"
-  exit 1
+  dart format --output=none --set-exit-if-changed "${files[@]}"
 ); then
-  echo "Changed $app Dart files are not canonically formatted. Formatter patch emitted above." >&2
+  echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
   exit 1
 fi
 
