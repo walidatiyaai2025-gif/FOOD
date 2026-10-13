@@ -37,6 +37,7 @@
                 <p>{{ __('production_launch.description') }}</p>
             </div>
             <div class="foodex-header-actions">
+                <a class="foodex-action-secondary" href="{{ route('admin.production-launch.report') }}">{{ __('production_launch.report.download') }}</a>
                 <a class="foodex-action-secondary" href="{{ route('admin.settings.index') }}">{{ __('production_launch.back') }}</a>
             </div>
         </header>
@@ -83,9 +84,9 @@
                 <div class="foodex-card">
                     <span>{{ __('production_launch.release.mobile_builds') }}</span>
                     <strong class="foodex-number" dir="ltr">
-                        {{ $release['customer_build_number'] ?? '—' }} /
-                        {{ $release['driver_build_number'] ?? '—' }} /
-                        {{ $release['van_build_number'] ?? '—' }}
+                        {{ $release['customer_frozen_identity'] ?? __('production_launch.release.unknown') }} /
+                        {{ $release['driver_version'] ? $release['driver_version'].'+'.($release['driver_build_number'] ?? '?') : __('production_launch.release.unknown') }} /
+                        {{ $release['van_version'] ? $release['van_version'].'+'.($release['van_build_number'] ?? '?') : __('production_launch.release.unknown') }}
                     </strong>
                 </div>
             </div>
