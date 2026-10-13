@@ -334,7 +334,14 @@ class B2bJourneyScreen extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(CustomerUiSpacing.page),
+                padding: definition.pattern == CustomerRoutePaths.b2bAccountStatement
+                    ? const EdgeInsets.fromLTRB(
+                        CustomerUiSpacing.page,
+                        0,
+                        CustomerUiSpacing.page,
+                        CustomerUiSpacing.page,
+                      )
+                    : const EdgeInsets.all(CustomerUiSpacing.page),
                 child: remote,
               ),
             ),
@@ -5460,14 +5467,14 @@ class _B2bAccountStatementRemoteStateState
     final closing = _amount(data['closing_balance']);
     final current = _amount(data['balance']);
     final direction = closing > 0
-        ? context.tr('b2b.statement.you_owe')
+        ? context.tr('b2b.statement.owed_to_you')
         : closing < 0
-            ? context.tr('b2b.statement.owed_to_you')
+            ? context.tr('b2b.statement.you_owe')
             : context.tr('b2b.statement.settled');
     final currentDirection = current > 0
-        ? context.tr('b2b.statement.you_owe')
+        ? context.tr('b2b.statement.owed_to_you')
         : current < 0
-            ? context.tr('b2b.statement.owed_to_you')
+            ? context.tr('b2b.statement.you_owe')
             : context.tr('b2b.statement.settled');
 
     return Column(
@@ -5476,47 +5483,111 @@ class _B2bAccountStatementRemoteStateState
       children: [
         Card(
           key: const ValueKey('b2b-statement-filters'),
+          margin: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  context.tr('b2b.statement.period'),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-statement-from'),
-                      onPressed: () => _pickDate(from: true),
-                      icon: const Icon(Icons.calendar_today_outlined),
-                      label: Text(
-                        '${context.tr('b2b.statement.from')}: ${_from ?? context.tr('b2b.statement.any_date')}',
+                    Text(
+                      context.tr('b2b.statement.period'),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 12.8,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('b2b-statement-from'),
+                        onPressed: () => _pickDate(from: true),
+                        icon: const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 14,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        label: Text(
+                          context.tr('b2b.statement.from'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                    OutlinedButton.icon(
-                      key: const ValueKey('b2b-statement-to'),
-                      onPressed: () => _pickDate(from: false),
-                      icon: const Icon(Icons.event_available_outlined),
-                      label: Text(
-                        '${context.tr('b2b.statement.to')}: ${_to ?? context.tr('b2b.statement.any_date')}',
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('b2b-statement-to'),
+                        onPressed: () => _pickDate(from: false),
+                        icon: const Icon(
+                          Icons.event_available_outlined,
+                          size: 14,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        label: Text(
+                          context.tr('b2b.statement.to'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                const SizedBox(height: 7),
+                Row(
                   children: [
-                    _presetChip('month', 'b2b.statement.this_month'),
-                    _presetChip('previous', 'b2b.statement.previous_month'),
-                    _presetChip('30', 'b2b.statement.last_30_days'),
-                    _presetChip('all', 'b2b.statement.all_time'),
+                    Expanded(
+                      child: _presetChip(
+                        'month',
+                        'b2b.statement.this_month',
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _presetChip(
+                        'previous',
+                        'b2b.statement.previous_month',
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _presetChip(
+                        '30',
+                        'b2b.statement.last_30_days',
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _presetChip(
+                        'all',
+                        'b2b.statement.all_time',
+                        compact: true,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -5541,67 +5612,91 @@ class _B2bAccountStatementRemoteStateState
         const SizedBox(height: 10),
         Card(
           key: const ValueKey('b2b-statement-summary-closing'),
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: CustomerUiColors.deepGreen,
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 34,
+                  height: 34,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(14),
+                    color: CustomerUiColors.white.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.account_balance_wallet_outlined,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: CustomerUiColors.white,
+                    size: 19,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         context.tr('b2b.statement.closing_balance'),
-                        style: Theme.of(context).textTheme.labelLarge,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: CustomerUiColors.white,
+                              fontSize: 9.8,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         '$direction · ${_money(closing.abs(), currency)}',
                         key: const ValueKey('b2b-statement-closing-value'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: CustomerUiColors.white,
+                              fontSize: 15.4,
+                              fontWeight: FontWeight.w900,
+                              height: 1.05,
+                            ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 5),
                       Text(
                         '${context.tr('b2b.statement.current_balance')}: '
                         '$currentDirection · ${_money(current.abs(), currency)}',
                         key: const ValueKey('b2b-statement-current-direction'),
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: CustomerUiColors.white.withValues(
+                                alpha: .88,
+                              ),
+                              fontSize: 9.8,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 6),
                 Chip(
                   key: const ValueKey('b2b-statement-direction-chip'),
+                  backgroundColor:
+                      CustomerUiColors.white.withValues(alpha: .14),
+                  side: BorderSide(
+                    color: CustomerUiColors.white.withValues(alpha: .22),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  labelStyle: const TextStyle(
+                    color: CustomerUiColors.white,
+                    fontSize: 9.8,
+                    fontWeight: FontWeight.w800,
+                  ),
                   label: Text(direction),
                   avatar: Icon(
                     closing == 0
                         ? Icons.check_circle_outline
                         : closing > 0
-                            ? Icons.arrow_upward_rounded
-                            : Icons.arrow_downward_rounded,
-                    size: 18,
+                            ? Icons.arrow_downward_rounded
+                            : Icons.arrow_upward_rounded,
+                    color: CustomerUiColors.white,
+                    size: 14,
                   ),
                 ),
               ],
@@ -5724,9 +5819,29 @@ class _B2bAccountStatementRemoteStateState
     );
   }
 
-  Widget _presetChip(String preset, String labelKey) => ActionChip(
+  Widget _presetChip(
+    String preset,
+    String labelKey, {
+    bool compact = false,
+  }) =>
+      ActionChip(
         key: ValueKey('b2b-statement-preset-$preset'),
-        label: Text(context.tr(labelKey)),
+        labelPadding: compact
+            ? const EdgeInsets.symmetric(horizontal: 2)
+            : null,
+        visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+        label: Text(
+          context.tr(labelKey),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: compact
+              ? const TextStyle(
+                  fontSize: 9.6,
+                  fontWeight: FontWeight.w700,
+                )
+              : null,
+        ),
         onPressed: () => _preset(preset),
       );
 
