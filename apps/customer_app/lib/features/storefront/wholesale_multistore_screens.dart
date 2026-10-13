@@ -995,7 +995,9 @@ class _WholesaleProductGrid extends StatelessWidget {
         crossAxisSpacing: gridMode ? 8 : 0,
         mainAxisSpacing: 12,
         mainAxisExtent: showCommerceActions
-            ? (gridMode ? (width < 360 ? 356 : 370) : (width < 360 ? 350 : 370))
+            ? (gridMode
+                ? (width < 360 ? 356 : 370)
+                : (width < 360 ? 350 : 370))
             : (gridMode
                 ? (width < 360 ? 250 : 264)
                 : (width < 360 ? 260 : 280)),
