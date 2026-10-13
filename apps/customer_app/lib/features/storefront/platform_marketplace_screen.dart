@@ -1845,7 +1845,7 @@ class _WholesaleProductCard extends StatelessWidget {
                     Text(
                       name,
                       key: ValueKey('$keyPrefix-name-$id'),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.start,
                       style: const TextStyle(
