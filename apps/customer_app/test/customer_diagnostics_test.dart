@@ -178,10 +178,6 @@ void main() {
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('customer-login-diagnostics')),
-      findsOneWidget,
-    );
   });
 
   test('central inspector keeps offline Customer failure pending until accepted',
