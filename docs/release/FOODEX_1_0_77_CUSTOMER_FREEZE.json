@@ -12,7 +12,8 @@
     "allow_test_edit": false,
     "allow_asset_edit": false,
     "allow_formatting_edit": false,
-    "allow_generated_file_edit": false
+    "allow_generated_file_edit": false,
+    "tree_sha": "7e5828423d2b747afcd607a643c853495024328c"
   },
   "integration_branch": "release/1.0.77-production-program",
   "production_hold_file": "docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
