@@ -16,6 +16,8 @@ on:
 
 permissions:
   contents: write
+  actions: write
+  pull-requests: write
 
 concurrency:
   group: foodex-release-factory-${{ github.ref_name }}
@@ -410,3 +412,154 @@ jobs:
             gh release create "$tag" --target "$SOURCE_COMMIT" --title "FOODEX $CURRENT_VERSION" --notes "$notes"
           fi
           gh release upload "$tag"             Release/FOODEX-Customer-$CURRENT_VERSION.apk             Release/FOODEX-Driver-$CURRENT_VERSION.apk             Release/FOODEX-Van-$CURRENT_VERSION.apk             Release/FOODEX-Laravel-Setup.zip             Release/LATEST_RELEASE.json             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             --clobber
+
+      - name: Synchronize Dashboard update through protected main
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sync_branch="release/${CURRENT_VERSION}-dashboard-update-sync"
+          stage="$(mktemp -d)"
+          mkdir -p "$stage/Updates"
+          cp -a Release/Updates/FOODEX-Update.zip "$stage/Updates/"
+          cp -a Release/Updates/FOODEX-Update.json "$stage/Updates/"
+          cp -a Release/Updates/FOODEX-Update.sha256.txt "$stage/Updates/"
+          cp -a Release/Updates/FOODEX-Update.files.txt "$stage/Updates/"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          base_sha="$(git rev-parse origin/main)"
+          git switch -C "$sync_branch" origin/main
+
+          main_version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$main_version" != "$CURRENT_VERSION" ]]; then
+            echo "::error::main is already at $main_version; refusing to sync FOODEX $CURRENT_VERSION Dashboard artifacts."
+            exit 1
+          fi
+
+          mkdir -p Release/Updates
+          cp -a "$stage/Updates/." Release/Updates/
+
+          UPDATE_SHA="$(sha256sum Release/Updates/FOODEX-Update.zip | awk '{print $1}')"
+          UPDATE_SHA="$UPDATE_SHA" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          version=os.environ["CURRENT_VERSION"]
+          update_sha=os.environ["UPDATE_SHA"]
+          source_commit=os.environ["SOURCE_COMMIT"]
+          build_number=os.environ["MOBILE_BUILD_NUMBER"]
+
+          registry_path=Path("docs/release/RELEASE_REGISTRY.json")
+          registry=json.loads(registry_path.read_text(encoding="utf-8"))
+          manifest=json.loads(Path("Release/Updates/FOODEX-Update.json").read_text(encoding="utf-8"))
+
+          if manifest.get("target_version") != version:
+              raise SystemExit(f"Dashboard target_version {manifest.get('target_version')} != {version}")
+          if manifest.get("sha256") != update_sha:
+              raise SystemExit("Dashboard package SHA does not match manifest")
+          previous=manifest.get("minimum_current_version")
+
+          existing=[entry for entry in registry["releases"] if entry.get("version") == version]
+          if existing:
+              if len(existing) != 1:
+                  raise SystemExit(f"Duplicate registry entries for {version}")
+              entry=existing[0]
+              if entry.get("state") != "published":
+                  raise SystemExit(f"Existing {version} registry entry is not published")
+              if entry.get("dashboard_update_sha256") != update_sha:
+                  raise SystemExit(f"Existing {version} registry SHA differs from published package")
+          else:
+              if registry.get("current_version") != previous:
+                  raise SystemExit(
+                      f"Registry current_version {registry.get('current_version')} "
+                      f"does not match update minimum_current_version {previous}"
+                  )
+              notes=f"docs/release/UPDATE_NOTES_{version}.md"
+              if not Path(notes).is_file():
+                  raise SystemExit(f"Missing release notes: {notes}")
+              registry["releases"].append({
+                  "version": version,
+                  "state": "published",
+                  "registration": "generated-release",
+                  "release_notes": notes,
+                  "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+                  "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+                  "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+                  "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+                  "dashboard_update_sha256": update_sha,
+                  "note": (
+                      f"FOODEX {version} synchronized release automatically registered by Release Factory "
+                      f"from source {source_commit}. Dashboard update is directly deployable over {previous}; "
+                      f"Customer/Driver/Van source identities are synchronized at {version}+{build_number}."
+                  ),
+              })
+          registry["current_version"]=version
+          registry_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          git add -f \
+            Release/Updates/FOODEX-Update.zip \
+            Release/Updates/FOODEX-Update.json \
+            Release/Updates/FOODEX-Update.sha256.txt \
+            Release/Updates/FOODEX-Update.files.txt \
+            docs/release/RELEASE_REGISTRY.json
+
+          if git diff --cached --quiet; then
+            echo "main already contains the validated FOODEX $CURRENT_VERSION Dashboard update."
+            exit 0
+          fi
+
+          git commit -m "release: sync Dashboard update $CURRENT_VERSION"
+          head_sha="$(git rev-parse HEAD)"
+          git push --force origin "HEAD:refs/heads/$sync_branch"
+
+          pr_number="$(gh pr list --state open --base main --head "$sync_branch" --json number --jq '.[0].number // empty')"
+          if [[ -z "$pr_number" ]]; then
+            gh pr create \
+              --base main \
+              --head "$sync_branch" \
+              --title "release: sync Dashboard update $CURRENT_VERSION" \
+              --body "Register FOODEX $CURRENT_VERSION as published and synchronize the exact Dashboard update artifacts already published in GitHub Release v$CURRENT_VERSION back to protected main."
+            pr_number="$(gh pr list --state open --base main --head "$sync_branch" --json number --jq '.[0].number')"
+          fi
+
+          gh workflow run release-sync-gate.yml \
+            --ref "$sync_branch" \
+            -f base_sha="$base_sha" \
+            -f head_sha="$head_sha" \
+            -f branch="$sync_branch"
+
+          run_id=""
+          for attempt in {1..30}; do
+            run_id="$(gh run list \
+              --workflow release-sync-gate.yml \
+              --branch "$sync_branch" \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"$head_sha\") | .databaseId" | head -n 1)"
+            if [[ -n "$run_id" ]]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ -z "$run_id" ]]; then
+            echo "::error::Could not locate the release sync gate run for $head_sha."
+            exit 1
+          fi
+
+          gh run watch "$run_id" --exit-status
+
+          pr_head="$(gh pr view "$pr_number" --json headRefOid --jq '.headRefOid')"
+          if [[ "$pr_head" != "$head_sha" ]]; then
+            echo "::error::Sync PR head moved from $head_sha to $pr_head; refusing automatic merge."
+            exit 1
+          fi
+
+          gh pr merge "$pr_number" --squash --delete-branch
+

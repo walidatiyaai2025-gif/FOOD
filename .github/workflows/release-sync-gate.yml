@@ -1,0 +1,160 @@
+name: FOODEX Release Sync Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Protected main SHA used as the sync PR base
+        required: true
+        type: string
+      head_sha:
+        description: Release sync branch SHA to validate
+        required: true
+        type: string
+      branch:
+        description: Release sync branch name
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-sync-gate-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  required-ci-gate:
+    name: required-ci-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_SHA: ${{ inputs.base_sha }}
+      HEAD_SHA: ${{ inputs.head_sha }}
+      SYNC_BRANCH: ${{ inputs.branch }}
+    steps:
+      - name: Checkout exact sync head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+
+      - name: Validate protected release-sync boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
+
+          python3 - <<'PY'
+          import os, re, subprocess, sys
+          branch=os.environ["SYNC_BRANCH"]
+          base=os.environ["BASE_SHA"]
+          head=os.environ["HEAD_SHA"]
+          match=re.fullmatch(r"release/(\d+\.\d+\.\d+)-dashboard-update-sync", branch)
+          if not match:
+              raise SystemExit(f"invalid release sync branch: {branch}")
+          version=open("VERSION", encoding="utf-8").read().strip()
+          if match.group(1) != version:
+              raise SystemExit(f"branch version {match.group(1)} != VERSION {version}")
+          changed=subprocess.check_output(["git","diff","--name-only",base,head], text=True).splitlines()
+          allowed={
+              "Release/Updates/FOODEX-Update.zip",
+              "Release/Updates/FOODEX-Update.json",
+              "Release/Updates/FOODEX-Update.sha256.txt",
+              "Release/Updates/FOODEX-Update.files.txt",
+              "docs/release/RELEASE_REGISTRY.json",
+          }
+          if not changed:
+              raise SystemExit("release sync has no changes")
+          outside=[path for path in changed if path not in allowed]
+          if outside:
+              raise SystemExit("release sync contains forbidden paths: " + ", ".join(outside))
+          print("Release sync changed paths:", ", ".join(changed))
+          PY
+
+      - name: Verify update package and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, re
+          from pathlib import Path
+
+          root=Path("Release/Updates")
+          manifest=json.loads((root/"FOODEX-Update.json").read_text(encoding="utf-8"))
+          version=Path("VERSION").read_text(encoding="utf-8").strip()
+          package=root/"FOODEX-Update.zip"
+          files_manifest=root/"FOODEX-Update.files.txt"
+          hash_file=root/"FOODEX-Update.sha256.txt"
+
+          if manifest.get("available") is not True:
+              raise SystemExit("Dashboard update manifest is not available")
+          if manifest.get("package") != package.name:
+              raise SystemExit("Dashboard update package name mismatch")
+          if manifest.get("target_version") != version:
+              raise SystemExit(f"target_version {manifest.get('target_version')} != VERSION {version}")
+          if manifest.get("delta", {}).get("files_manifest") != files_manifest.name:
+              raise SystemExit("files manifest pointer mismatch")
+          source_commit=str(manifest.get("source_commit",""))
+          if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+              raise SystemExit("invalid source_commit")
+
+          digest=hashlib.sha256(package.read_bytes()).hexdigest()
+          if manifest.get("sha256") != digest:
+              raise SystemExit("FOODEX-Update.zip SHA256 does not match manifest")
+          recorded=hash_file.read_text(encoding="utf-8").split()[0]
+          if recorded != digest:
+              raise SystemExit("FOODEX-Update.sha256.txt does not match package")
+          print(f"Validated FOODEX {version} Dashboard update: {digest}")
+          PY
+          unzip -tq Release/Updates/FOODEX-Update.zip
+
+      - name: Validate release registry publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          python3 scripts/foodex-branch-policy.py validate "$SYNC_BRANCH" --base main
+          GITHUB_BASE_REF=main GITHUB_HEAD_REF="$SYNC_BRANCH" node .github/scripts/release-registry.js validate
+
+      - name: Match exact published GitHub Release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          tag="v$version"
+          release_target="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.target_commitish')"
+          manifest_source="$(python3 -c 'import json; print(json.load(open("Release/Updates/FOODEX-Update.json"))["source_commit"])')"
+          if [[ "$release_target" != "$manifest_source" ]]; then
+            echo "::error::Release target $release_target does not match manifest source_commit $manifest_source."
+            exit 1
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" \
+            --jq '.assets[] | [.name, .digest] | @tsv' > /tmp/release-assets.tsv
+
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          expected={}
+          for line in Path("/tmp/release-assets.tsv").read_text(encoding="utf-8").splitlines():
+              name, digest = line.split("\t", 1)
+              expected[name]=digest
+
+          paths=[
+              Path("Release/Updates/FOODEX-Update.zip"),
+              Path("Release/Updates/FOODEX-Update.json"),
+              Path("Release/Updates/FOODEX-Update.sha256.txt"),
+              Path("Release/Updates/FOODEX-Update.files.txt"),
+          ]
+          for path in paths:
+              digest="sha256:"+hashlib.sha256(path.read_bytes()).hexdigest()
+              published=expected.get(path.name)
+              if published != digest:
+                  raise SystemExit(f"{path.name} does not match published asset digest: {published} != {digest}")
+              print(f"{path.name}: {digest}")
+          PY
