@@ -1297,7 +1297,7 @@ class _RetailProductGrid extends StatelessWidget {
                         child: Text(
                           product.price == null
                               ? '—'
-                              : product.price!.toStringAsFixed(2) +
+                              : product.price!.toStringAsFixed(0) +
                                   ' ' +
                                   product.currency,
                           style: TextStyle(
