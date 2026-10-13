@@ -23,6 +23,23 @@ grep -q 'iOS' docs/release/RELEASE_CHECKLIST.md
 release_version="$(tr -d '\r\n' < VERSION)"
 [[ "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
+customer_freeze_sha="4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d"
+customer_freeze_tree_sha="7e5828423d2b747afcd607a643c853495024328c"
+production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
+if [[ "$release_version" == "1.0.77" && -f "$production_hold_file" ]]; then
+  current_customer_tree="$(git rev-parse HEAD:apps/customer_app 2>/dev/null || true)"
+  if [[ "$current_customer_tree" != "$customer_freeze_tree_sha" ]]; then
+    echo "::error::FOODEX 1.0.77 production hold requires apps/customer_app/** tree $customer_freeze_tree_sha from baseline $customer_freeze_sha; current tree is ${current_customer_tree:-missing}."
+    exit 1
+  fi
+  if ! git diff --quiet -- apps/customer_app || ! git diff --cached --quiet -- apps/customer_app || [[ -n "$(git ls-files --others --exclude-standard apps/customer_app)" ]]; then
+    echo "::error::FOODEX 1.0.77 production hold forbids Customer worktree/index/untracked changes."
+    exit 1
+  fi
+  echo "FOODEX 1.0.77 production hold is active; Customer tree is frozen and unchanged ($customer_freeze_tree_sha)."
+  echo "Final synchronized publication remains blocked until #1380 replaces the hold with the frozen-lineage release contract."
+  exit 0
+fi
 customer_version="$(awk '/^version:/ {print $2; exit}' apps/customer_app/pubspec.yaml)"
 driver_version="$(awk '/^version:/ {print $2; exit}' apps/driver_app/pubspec.yaml)"
 van_version="$(awk '/^version:/ {print $2; exit}' apps/van_app/pubspec.yaml)"

@@ -39,6 +39,22 @@ if [[ "$current_version" != "$base_version" ]]; then
   version_changed=true
 fi
 
+customer_freeze_sha="4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d"
+customer_freeze_tree_sha="7e5828423d2b747afcd607a643c853495024328c"
+production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
+if [[ "$current_version" == "1.0.77" && -f "$production_hold_file" ]]; then
+  current_customer_tree="$(git rev-parse HEAD:apps/customer_app 2>/dev/null || true)"
+  if [[ "$current_customer_tree" != "$customer_freeze_tree_sha" ]]; then
+    echo "FOODEX 1.0.77 production hold requires Customer tree $customer_freeze_tree_sha from frozen baseline $customer_freeze_sha; current tree is ${current_customer_tree:-missing}." >&2
+    exit 1
+  fi
+  if ! git diff --quiet -- apps/customer_app || ! git diff --cached --quiet -- apps/customer_app || [[ -n "$(git ls-files --others --exclude-standard apps/customer_app)" ]]; then
+    echo "FOODEX 1.0.77 production hold forbids Customer worktree/index/untracked changes." >&2
+    exit 1
+  fi
+  echo "Pre-merge release hold contract passed: candidate=1.0.77, Customer tree frozen at $customer_freeze_sha ($customer_freeze_tree_sha)."
+  exit 0
+fi
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 release_branch=false
 if [[ "$branch_name" == release/* ]]; then
