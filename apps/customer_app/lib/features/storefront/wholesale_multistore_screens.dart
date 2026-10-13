@@ -1285,7 +1285,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
               Text(
                 row['name']?.toString() ?? '',
                 key: ValueKey('wholesale-product-name-$id'),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 11,
@@ -1309,52 +1309,59 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                 ),
               ],
               const SizedBox(height: 6),
-              Text(
-                money(
-                  row['account_price'] ?? row['unit_price'] ?? row['price'],
-                  currency: currency,
-                ),
-                key: ValueKey('wholesale-product-price-$id'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: palette.primary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
-              ),
-              if (widget.showCommerceActions) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: SizedBox.square(
-                    dimension: 40,
-                    child: Semantics(
-                      button: true,
-                      label: context.tr('customer.action.add_cart'),
-                      child: FilledButton(
-                        key: ValueKey('wholesale-product-add-$id'),
-                        onPressed:
-                            isAvailable && id > 0 && !busy ? _addToCart : null,
-                        style: FilledButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size.square(40),
-                          shape: const CircleBorder(),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        child: busy
-                            ? const SizedBox.square(
-                                dimension: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add_rounded, size: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      money(
+                        row['account_price'] ??
+                            row['unit_price'] ??
+                            row['price'],
+                        currency: currency,
+                      ),
+                      key: ValueKey('wholesale-product-price-$id'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: palette.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  if (widget.showCommerceActions) ...[
+                    const SizedBox(width: 4),
+                    SizedBox.square(
+                      dimension: 36,
+                      child: Semantics(
+                        button: true,
+                        label: context.tr('customer.action.add_cart'),
+                        child: FilledButton(
+                          key: ValueKey('wholesale-product-add-$id'),
+                          onPressed: isAvailable && id > 0 && !busy
+                              ? _addToCart
+                              : null,
+                          style: FilledButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size.square(36),
+                            shape: const CircleBorder(),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: busy
+                              ? const SizedBox.square(
+                                  dimension: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.add_rounded, size: 22),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
