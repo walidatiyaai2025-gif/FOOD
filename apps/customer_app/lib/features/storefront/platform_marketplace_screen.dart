@@ -769,11 +769,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
               storeId: storeId,
               source: CustomerCommerceSource.marketplace,
             );
+            final selectedContext = _safeCommerceContext(data, null);
             return CustomerPersistentFooterDock(
-              commerceContext: _safeCommerceContext(data, fallbackContext) ??
-                  fallbackContext,
+              commerceContext: selectedContext ?? fallbackContext,
               activeDestination: CustomerFooterDestination.home,
               isPlatformHome: true,
+              disableProducts:
+                  _currentSession.isAuthenticated && selectedContext == null,
             );
           },
         ),
