@@ -586,7 +586,8 @@ class _RetailBestSellerTickerHeader extends StatefulWidget {
 }
 
 class _RetailBestSellerTickerHeaderState
-    extends State<_RetailBestSellerTickerHeader> {
+    extends State<_RetailBestSellerTickerHeader>
+    with SingleTickerProviderStateMixin {
   static const _interval = Duration(seconds: 10);
   static const _tones = <Color>[
     Color(0xFF087347),
@@ -597,12 +598,14 @@ class _RetailBestSellerTickerHeaderState
   ];
 
   Timer? _timer;
+  late final AnimationController _marquee;
   int _index = 0;
 
   @override
   void initState() {
     super.initState();
-    _restartTimer();
+    _marquee = AnimationController(vsync: this, duration: _interval);
+    _restartTicker();
   }
 
   @override
@@ -612,22 +615,107 @@ class _RetailBestSellerTickerHeaderState
     final newIds = widget.products.map((product) => product.id).join(',');
     if (oldIds != newIds) {
       _index = 0;
-      _restartTimer();
+      _restartTicker();
     }
   }
 
-  void _restartTimer() {
+  void _restartTicker() {
     _timer?.cancel();
-    if (widget.products.length <= 1) return;
+    _marquee.stop();
+    if (widget.products.isEmpty) return;
+
+    _marquee.forward(from: 0);
     _timer = Timer.periodic(_interval, (_) {
       if (!mounted || widget.products.isEmpty) return;
-      setState(() => _index = (_index + 1) % widget.products.length);
+      setState(() {
+        if (widget.products.length > 1) {
+          _index = (_index + 1) % widget.products.length;
+        }
+      });
+      _marquee.forward(from: 0);
     });
+  }
+
+  Widget _marqueeLink(
+    BuildContext context,
+    B2cProduct product,
+    Color tone,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final style = Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: tone,
+          fontWeight: FontWeight.w900,
+          decoration: TextDecoration.underline,
+          decorationColor: tone,
+        );
+    final painter = TextPainter(
+      text: TextSpan(text: product.name, style: style),
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final textWidth = painter.width + 20;
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRect(
+        child: SizedBox(
+          height: 30,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              AnimatedBuilder(
+                animation: _marquee,
+                child: SizedBox(
+                  width: textWidth,
+                  height: 30,
+                  child: InkWell(
+                    key: ValueKey(
+                      'retail-best-seller-ticker-product-${product.id}',
+                    ),
+                    onTap: widget.onTap == null
+                        ? null
+                        : () => widget.onTap!(product),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        product.name,
+                        key: ValueKey(
+                          'retail-best-seller-ticker-label-${product.id}',
+                        ),
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.visible,
+                        style: style,
+                      ),
+                    ),
+                  ),
+                ),
+                builder: (context, child) {
+                  final travel = constraints.maxWidth + textWidth;
+                  final dx = isArabic
+                      ? constraints.maxWidth - (_marquee.value * travel)
+                      : -textWidth + (_marquee.value * travel);
+                  return Transform.translate(
+                    offset: Offset(dx, 0),
+                    child: child,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _marquee.dispose();
     super.dispose();
   }
 
@@ -650,43 +738,7 @@ class _RetailBestSellerTickerHeaderState
         ),
         if (product != null) ...[
           const SizedBox(width: CustomerUiSpacing.sm),
-          Expanded(
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                child: InkWell(
-                  key: ValueKey(
-                    'retail-best-seller-ticker-product-${product.id}',
-                  ),
-                  onTap: widget.onTap == null
-                      ? null
-                      : () => widget.onTap!(product),
-                  borderRadius: BorderRadius.circular(999),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      product.name,
-                      key: ValueKey(
-                        'retail-best-seller-ticker-label-${product.id}',
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: tone,
-                            fontWeight: FontWeight.w900,
-                            decoration: TextDecoration.underline,
-                            decorationColor: tone,
-                          ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          Expanded(child: _marqueeLink(context, product, tone)),
         ],
       ],
     );
