@@ -739,13 +739,15 @@ class _RetailBestSellerTickerHeaderState
     return Row(
       key: const ValueKey('retail-best-seller-ticker-header'),
       children: [
-        Text(
-          widget.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: CustomerUiColors.deepGreenStrong,
-              ),
+        Flexible(
+          child: Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: CustomerUiColors.deepGreenStrong,
+                ),
+          ),
         ),
         if (product != null) ...[
           const SizedBox(width: CustomerUiSpacing.sm),
