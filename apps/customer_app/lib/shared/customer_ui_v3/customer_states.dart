@@ -62,7 +62,8 @@ class CustomerProductCardSkeleton extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
+              AspectRatio(
+                aspectRatio: 1.35,
                 child: CustomerSkeletonBox(
                   height: 180,
                   radius: CustomerUiRadii.lg,
