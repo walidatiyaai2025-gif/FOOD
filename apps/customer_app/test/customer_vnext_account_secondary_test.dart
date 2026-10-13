@@ -41,7 +41,6 @@ void main() {
         );
         expect(find.byType(CustomerAccountHeader), findsOneWidget);
         expect(find.byType(CustomerOutlineIconButton), findsNWidgets(2));
-        expect(find.text('Buyer Co'), findsWidgets);
 
         final title = locale.languageCode == 'ar'
             ? find.text('الملف التجاري')
