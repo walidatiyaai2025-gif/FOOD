@@ -226,8 +226,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('حد الائتمان'), findsOneWidget);
-      expect(find.text('الائتمان المتاح'), findsOneWidget);
+      expect(find.text('حد الائتمان'), findsNothing);
+      expect(find.text('الائتمان المتاح'), findsNothing);
       expect(find.text('الفواتير المفتوحة'), findsOneWidget);
       expect(find.text('المبلغ المتأخر'), findsOneWidget);
       expect(find.text('مشتريات هذا الشهر'), findsOneWidget);
@@ -511,7 +511,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Available credit'), findsOneWidget);
+    expect(find.text('Credit limit'), findsNothing);
+    expect(find.text('Available credit'), findsNothing);
     expect(find.text('Active orders'), findsOneWidget);
   });
 
