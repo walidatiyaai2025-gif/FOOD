@@ -5890,16 +5890,29 @@ class _B2bAccountStatementRemoteStateState
     final description = row['description']?.toString() ?? '—';
     final route = _referenceRoute(row);
     final textTheme = Theme.of(context).textTheme;
+    final typeColor = _statementTypeColor(type);
+    final runningBalance = _amount(row['running_balance']);
+    final runningBalanceColor = runningBalance > 0
+        ? CustomerUiColors.success
+        : runningBalance < 0
+            ? CustomerUiColors.destructive
+            : CustomerUiColors.muted;
     final transactionTitleStyle = textTheme.titleSmall?.copyWith(
+      color: typeColor,
       fontSize: (textTheme.titleSmall?.fontSize ?? 14) * .75,
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w900,
     );
     final transactionTextStyle = textTheme.bodyMedium?.copyWith(
       fontSize: (textTheme.bodyMedium?.fontSize ?? 14) * .75,
     );
+    final referenceTextStyle = transactionTextStyle?.copyWith(
+      color: CustomerUiColors.deepGreenStrong,
+      fontWeight: FontWeight.w800,
+    );
     final transactionButtonStyle = textTheme.labelLarge?.copyWith(
+      color: CustomerUiColors.deepGreenStrong,
       fontSize: (textTheme.labelLarge?.fontSize ?? 14) * .75,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
     );
 
     return Card(
@@ -5930,7 +5943,7 @@ class _B2bAccountStatementRemoteStateState
               Text(
                 '${context.tr('b2b.statement.reference')}: $reference',
                 key: ValueKey('b2b-statement-reference-${row['id']}'),
-                style: transactionTextStyle,
+                style: referenceTextStyle,
               )
             else
               Align(
@@ -5938,6 +5951,9 @@ class _B2bAccountStatementRemoteStateState
                 child: TextButton.icon(
                   key: ValueKey('b2b-statement-reference-${row['id']}'),
                   onPressed: () => Navigator.of(context).pushNamed(route),
+                  style: TextButton.styleFrom(
+                    foregroundColor: CustomerUiColors.deepGreenStrong,
+                  ),
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: Text(
                     '${context.tr('b2b.statement.reference')}: $reference',
@@ -5961,7 +5977,10 @@ class _B2bAccountStatementRemoteStateState
                 Text(
                   '${context.tr('b2b.statement.running_balance')}: ${_money(row['running_balance'], currency)}',
                   key: ValueKey('b2b-statement-running-${row['id']}'),
-                  style: transactionTextStyle,
+                  style: transactionTextStyle?.copyWith(
+                    color: runningBalanceColor,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -5999,6 +6018,19 @@ class _B2bAccountStatementRemoteStateState
         ? context.tr('b2b.statement.type.$type')
         : type.replaceAll('_', ' ');
   }
+
+  static Color _statementTypeColor(String type) => switch (type) {
+        'opening_balance' => CustomerUiColors.deepGreenSoft,
+        'invoice' => CustomerUiColors.warning,
+        'payment' => CustomerUiColors.success,
+        'credit_note' => CustomerUiColors.info,
+        'debit_note' => CustomerUiColors.destructive,
+        'return' => const Color(0xFF0F766E),
+        'refund' => const Color(0xFF7C3AED),
+        'adjustment_positive' => const Color(0xFF15803D),
+        'adjustment_negative' => const Color(0xFFB91C1C),
+        _ => CustomerUiColors.inkSoft,
+      };
 
   static double _amount(Object? value) =>
       double.tryParse(value?.toString() ?? '') ?? 0;
