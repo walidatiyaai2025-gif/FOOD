@@ -106,6 +106,7 @@ class CustomerQuantityStepper extends StatelessWidget {
     this.decreaseKey,
     this.increaseKey,
     this.busy = false,
+    this.iconSize = 24,
     super.key,
   });
 
@@ -115,6 +116,7 @@ class CustomerQuantityStepper extends StatelessWidget {
   final Key? decreaseKey;
   final Key? increaseKey;
   final bool busy;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -125,6 +127,7 @@ class CustomerQuantityStepper extends StatelessWidget {
             CustomerOutlineIconButton(
               key: decreaseKey,
               icon: Icons.remove_rounded,
+              iconSize: iconSize,
               onPressed: busy ? null : onDecrease,
             ),
             ConstrainedBox(
@@ -147,6 +150,7 @@ class CustomerQuantityStepper extends StatelessWidget {
             CustomerOutlineIconButton(
               key: increaseKey,
               icon: Icons.add_rounded,
+              iconSize: iconSize,
               selected: true,
               onPressed: busy ? null : onIncrease,
             ),
