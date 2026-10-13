@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "program": "FOODEX 1.0.77",
+  "release_version": "1.0.77",
   "parent_issue": 1380,
   "frozen_customer": {
     "baseline_commit": "4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d",
@@ -8,6 +9,10 @@
       "apps/customer_app/**"
     ],
     "policy": "zero-diff",
+    "lineage_mode": "carried_forward",
+    "source_version": "1.0.76",
+    "source_build_number": 76,
+    "source_identity": "1.0.76+76",
     "allow_version_edit": false,
     "allow_test_edit": false,
     "allow_asset_edit": false,

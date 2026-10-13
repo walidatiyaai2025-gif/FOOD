@@ -43,6 +43,12 @@ changed_files="$(
   } | sort -u
 )"
 
+if [[ "$(tr -d '[:space:]' < VERSION)" == "1.0.77" ]]; then
+  python3 scripts/validate_customer_freeze_contract.py \
+    --candidate WORKTREE \
+    --metadata-out artifacts/customer-frozen-lineage.json
+fi
+
 bash ./scripts/validate-premerge-release-version.sh "$base" WORKTREE
 python3 ./scripts/localization-quality-gate.py --base "$base" --head WORKTREE
 python3 ./scripts/mobile-ux-contract-guard.py --base "$base" --head WORKTREE
