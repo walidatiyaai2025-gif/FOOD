@@ -300,6 +300,7 @@ void main() {
 
       final reorder = find.byKey(const ValueKey('b2b-order-reorder-77'));
       expect(reorder, findsOneWidget);
+      expect(find.text('Reorder'), findsOneWidget);
       await tester.tap(reorder);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
