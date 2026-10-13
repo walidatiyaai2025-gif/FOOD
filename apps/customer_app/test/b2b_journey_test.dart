@@ -693,7 +693,7 @@ void main() {
         find.byKey(const ValueKey('wholesale-product-grid')),
       );
       delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(delegate.crossAxisCount, 2);
+      expect(delegate.crossAxisCount, 3);
 
       expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
       expect(storefront.lastStoreId, 70);
