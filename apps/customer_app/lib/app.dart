@@ -822,11 +822,13 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
               final routeContext =
                   CustomerStoreAnalyticsRouteContext.tryParse(location);
               return StoreAnalyticsRouteScreen(
-                api: HttpStoreAnalyticsApi(
-                  baseUrl: baseUrl,
-                  token: token,
-                  client: _sessionHttpClient,
-                ),
+                api: b2bApi == null
+                    ? HttpStoreAnalyticsApi(
+                        baseUrl: baseUrl,
+                        token: token,
+                        client: _sessionHttpClient,
+                      )
+                    : B2bBackedStoreAnalyticsApi(b2bApi),
                 retailStoreId:
                     routeContext?.retailStoreId ?? _session.b2bRetailStoreId,
               );
