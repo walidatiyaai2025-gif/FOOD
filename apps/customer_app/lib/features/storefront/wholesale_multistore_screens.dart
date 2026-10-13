@@ -6735,12 +6735,6 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = FoodexPalette.wholesale;
     final id = intValue(row['id']);
-    final store = row['store'];
-    final storeName = row['store_name']?.toString().trim().isNotEmpty == true
-        ? row['store_name'].toString().trim()
-        : (store is Map && store['name']?.toString().trim().isNotEmpty == true)
-            ? store['name'].toString().trim()
-            : context.tr('customer.orders.channel.wholesale');
     final currency = (row['currency']?.toString().trim().isNotEmpty == true
             ? row['currency'].toString().trim()
             : 'EGP')
@@ -6814,18 +6808,6 @@ class _OrderCard extends StatelessWidget {
                                     height: 1.08,
                                   ),
                         ),
-                      ),
-                      SizedBox(height: compact ? 3 : 4),
-                      Text(
-                        storeName,
-                        textDirection: TextDirection.ltr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: CustomerUiColors.muted,
-                              fontSize: compact ? 11 : 12.5,
-                              height: 1.05,
-                            ),
                       ),
                       if (createdAt != '-') ...[
                         SizedBox(height: compact ? 4 : 5),
