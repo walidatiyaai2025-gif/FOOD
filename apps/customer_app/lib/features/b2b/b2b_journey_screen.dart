@@ -12,6 +12,7 @@ import '../../core/api/store_analytics_api.dart';
 import '../../core/api/storefront_api.dart';
 import '../../core/auth/customer_session.dart';
 import '../../core/diagnostics/customer_diagnostics.dart';
+import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
@@ -4388,69 +4389,19 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     final items = <_MoreItem>[
-      _MoreItem(
-        Icons.apartment_rounded,
-        context.tr('b2b.profile.company'),
-        _showProfile,
-      ),
-      _MoreItem(
-        Icons.account_balance_wallet_rounded,
-        context.tr('b2b.profile.financial'),
-        () => _open(widget.dashboardRoute),
-      ),
-      _MoreItem(
-        Icons.shopping_bag_outlined,
-        context.tr('b2b.profile.orders'),
-        () => _open(widget.ordersRoute),
-      ),
-      _MoreItem(
-        Icons.receipt_long_rounded,
-        context.tr('b2b.finance.invoices'),
-        () => _open(widget.invoicesRoute),
-        warm: true,
-      ),
-      _MoreItem(
-        Icons.credit_card_rounded,
-        context.tr('b2b.finance.statement'),
-        () => _open(widget.statementRoute),
-      ),
-      _MoreItem(
-        Icons.bar_chart_rounded,
-        context.tr('b2b.profile.purchases_report'),
-        () => _open(widget.purchasesRoute),
-      ),
-      _MoreItem(
-        Icons.notifications_rounded,
-        context.tr('b2b.profile.notifications'),
-        () => _open(widget.notificationsRoute),
-        warm: true,
-      ),
-      _MoreItem(
-        Icons.location_on_rounded,
-        context.tr('b2b.profile.addresses'),
-        () => _open(widget.addressesRoute),
-      ),
-      _MoreItem(
-        Icons.settings_rounded,
-        context.tr('b2b.profile.settings'),
-        _showSettings,
-      ),
-      _MoreItem(
-        Icons.language_rounded,
-        context.tr('b2b.profile.language'),
-        _showSettings,
-      ),
-      _MoreItem(
-        Icons.support_agent_rounded,
-        context.tr('b2b.profile.support'),
-        () => _open(CustomerRoutePaths.diagnostics),
-      ),
+      _MoreItem(Icons.apartment_rounded, context.tr('b2b.profile.company'), _showProfile, tone: 0),
+      _MoreItem(Icons.account_balance_wallet_rounded, context.tr('b2b.profile.financial'), () => _open(widget.dashboardRoute), tone: 1),
+      _MoreItem(Icons.shopping_bag_outlined, context.tr('b2b.profile.orders'), () => _open(widget.ordersRoute), tone: 2),
+      _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'), () => _open(widget.invoicesRoute), tone: 3),
+      _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'), () => _open(widget.statementRoute), tone: 4),
+      _MoreItem(Icons.bar_chart_rounded, context.tr('b2b.profile.purchases_report'), () => _open(widget.purchasesRoute), tone: 2),
+      _MoreItem(Icons.notifications_rounded, context.tr('b2b.profile.notifications'), () => _open(widget.notificationsRoute), tone: 1),
+      _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'), () => _open(widget.addressesRoute), tone: 0),
+      _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'), _showSettings, tone: 4),
+      _MoreItem(Icons.language_rounded, context.tr('b2b.profile.language'), _showSettings, tone: 3),
+      _MoreItem(Icons.support_agent_rounded, context.tr('b2b.profile.support'), () => _open(CustomerRoutePaths.diagnostics), tone: 2),
       if (widget.onLogout != null)
-        _MoreItem(
-          Icons.shield_rounded,
-          context.tr('b2b.profile.security'),
-          _showSettings,
-        ),
+        _MoreItem(Icons.shield_rounded, context.tr('b2b.profile.security'), _showSettings, tone: 1),
     ];
 
     return Directionality(
@@ -4580,6 +4531,17 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                     onPressed: widget.onLogout,
                     icon: const Icon(Icons.logout_rounded),
                     label: Text(context.tr('customer.logout')),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${context.tr('customer.version')} $customerAppVersion',
+                    key: const ValueKey('b2b-more-app-version'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: _B2bMorePageState.muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ],
               ],
@@ -4723,14 +4685,6 @@ class _FinanceCard extends StatelessWidget {
                     : (ar ? 'الرصيد' : 'Balance');
             final values = <(String, String)>[
               (firstLabel, _money(balance.abs(), currency)),
-              (
-                ar ? 'حد الائتمان' : 'Credit limit',
-                _money(_n(data['credit_limit']), currency),
-              ),
-              (
-                ar ? 'الائتمان المتاح' : 'Available credit',
-                _money(_n(data['available_credit_line']), currency),
-              ),
               (
                 ar ? 'القوة الشرائية' : 'Purchasing power',
                 _money(_n(data['purchasing_power']), currency),
@@ -4886,81 +4840,73 @@ class _FinanceCard extends StatelessWidget {
 }
 
 class _MoreItem {
-  const _MoreItem(this.icon, this.label, this.onTap, {this.warm = false});
+  const _MoreItem(this.icon, this.label, this.onTap, {this.tone = 0});
+
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool warm;
+  final int tone;
 }
 
 class _MoreCard extends StatelessWidget {
   const _MoreCard({required this.item});
+
   final _MoreItem item;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: CustomerUiColors.white,
-        borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-        child: InkWell(
-          onTap: item.onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            padding: const EdgeInsets.fromLTRB(4.5, 5.5, 4.5, 4.5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-              border: Border.all(color: _B2bMorePageState.border),
-              boxShadow: CustomerUiElevation.cardShadow,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: item.warm
-                        ? CustomerUiColors.limeSoft
-                        : _B2bMorePageState.soft,
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child:
-                      Icon(item.icon, color: _B2bMorePageState.deep, size: 15.5),
+  Widget build(BuildContext context) {
+    const tones = <(Color, Color)>[
+      (Color(0xFFE7F8D7), Color(0xFF067A3A)),
+      (Color(0xFFFFF1CC), Color(0xFF9A6200)),
+      (Color(0xFFE8F1FF), Color(0xFF2E5FA8)),
+      (Color(0xFFF1E9FF), Color(0xFF7150A8)),
+      (Color(0xFFE5F7F4), Color(0xFF16766C)),
+    ];
+    final tone = tones[item.tone % tones.length];
+
+    return Material(
+      color: CustomerUiColors.white,
+      borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+      child: InkWell(
+        onTap: item.onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(4.5, 5.5, 4.5, 4.5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+            border: Border.all(color: _B2bMorePageState.border),
+            boxShadow: CustomerUiElevation.cardShadow,
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: tone.$1,
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.label,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _B2bMorePageState.ink,
-                          fontSize: 6.25,
-                          fontWeight: FontWeight.w800,
-                          height: 1.08,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 13,
-                      height: 13,
-                      decoration: const BoxDecoration(
-                        color: CustomerUiColors.mint,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.chevron_left_rounded,
-                        size: 9,
-                        color: _B2bMorePageState.dark,
-                      ),
-                    ),
-                  ],
+                child: Icon(item.icon, color: tone.$2, size: 15.5),
+              ),
+              const Spacer(),
+              Text(
+                item.label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _B2bMorePageState.ink,
+                  fontSize: 6.25,
+                  fontWeight: FontWeight.w800,
+                  height: 1.08,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _B2bAccountHub extends StatefulWidget {
