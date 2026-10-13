@@ -1352,7 +1352,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
+              SizedBox(
+                height: 92,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -3577,17 +3578,8 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                   key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    FoodexTopBar(title: context.tr('b2b.cart.title')),
-                    const SizedBox(height: 5),
-                    Text(
-                      context.tr('b2b.cart.subtitle'),
-                      style: const TextStyle(
-                        color: Color(0xFF6B7785),
-                        fontSize: 11,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
+                    const FoodexTopBar(title: ''),
+                    const SizedBox(height: 4),
                     Container(
                       height: 38,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -3653,22 +3645,13 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                           name: product['name']?.toString() ??
                               row['name']?.toString() ??
                               '',
-                          subtitle: [
-                            product['sku']?.toString(),
-                            row['pack_label']?.toString(),
-                          ]
-                              .where(
-                                (value) =>
-                                    value != null && value.trim().isNotEmpty,
-                              )
-                              .join(' • '),
+                          subtitle:
+                              row['pack_label']?.toString().trim() ?? '',
                           imageUrl: product['image_url']?.toString(),
                           quantity: qty,
                           unitPrice:
                               row['unit_price_snapshot'] ?? row['unit_price'],
                           lineTotal: row['line_total'],
-                          availableQuantity: available,
-                          isAvailable: row['is_available'] != false,
                           onMinus: widget.commerceApi == null ||
                                   qty <= minimum + .0001
                               ? null
@@ -3724,8 +3707,6 @@ class _CartLine extends StatelessWidget {
     required this.quantity,
     required this.unitPrice,
     required this.lineTotal,
-    required this.availableQuantity,
-    required this.isAvailable,
     required this.onMinus,
     required this.onPlus,
     required this.onRemove,
@@ -3739,8 +3720,6 @@ class _CartLine extends StatelessWidget {
   final double quantity;
   final Object? unitPrice;
   final Object? lineTotal;
-  final double? availableQuantity;
-  final bool isAvailable;
   final VoidCallback? onMinus;
   final VoidCallback? onPlus;
   final VoidCallback? onRemove;
@@ -3748,14 +3727,6 @@ class _CartLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final validImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
-    final availability = !isAvailable
-        ? context.tr('b2b.cart.unavailable')
-        : availableQuantity == null
-            ? context.tr('b2b.cart.available')
-            : context.tr('b2b.cart.available') +
-                ': ' +
-                compactNumber(availableQuantity!);
-
     Widget imageFallback() => const DecoratedBox(
           decoration: BoxDecoration(
             color: Color(0xFFF1F8F4),
@@ -3828,17 +3799,6 @@ class _CartLine extends StatelessWidget {
                       color: Color(0xFF6B7785),
                     ),
                   ),
-                const SizedBox(height: 5),
-                Text(
-                  availability,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isAvailable
-                        ? const Color(0xFF078A43)
-                        : const Color(0xFFB3261E),
-                  ),
-                ),
                 const SizedBox(height: 7),
                 Wrap(
                   spacing: 12,
@@ -3869,6 +3829,7 @@ class _CartLine extends StatelessWidget {
                   increaseKey: ValueKey('b2b-cart-plus-$itemId'),
                   onDecrease: onMinus,
                   onIncrease: onPlus,
+                  iconSize: 12,
                 ),
               ],
             ),
