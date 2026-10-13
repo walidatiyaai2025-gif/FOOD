@@ -121,6 +121,10 @@ void main() {
       );
       expect(find.byKey(const ValueKey('b2b-dashboard-refresh')), findsNothing);
       expect(
+        find.byKey(const ValueKey('b2b-dashboard-back')),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const ValueKey('b2b-dashboard-finance-grid')),
         findsOneWidget,
       );
