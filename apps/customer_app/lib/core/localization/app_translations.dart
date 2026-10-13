@@ -444,7 +444,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.purchase_reports.empty': 'لا توجد مشتريات في الفترة المحددة.',
     'b2b.purchase_reports.stale':
         'تعذر تحديث التقرير. يتم عرض آخر بيانات مؤكدة.',
-    'b2b.top_products.title': 'الأكثر شراء',
+    'b2b.top_products.title': 'المنتجات الأكثر شراءً',
     'b2b.top_products.subtitle': 'المنتجات الأعلى شراءً للحساب',
     'b2b.top_products.search': 'ابحث في منتجاتك ومشترياتك',
     'b2b.top_products.from': 'من',
