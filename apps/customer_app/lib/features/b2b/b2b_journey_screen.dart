@@ -6438,6 +6438,15 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
         double.tryParse(data['credit_amount']?.toString() ?? '') ?? 0;
     final outstanding =
         double.tryParse(data['outstanding_amount']?.toString() ?? '') ?? 0;
+    final rawInvoiceNumber =
+        data['display_invoice_number']?.toString().trim().isNotEmpty == true
+            ? data['display_invoice_number'].toString().trim()
+            : data['invoice_number']?.toString().trim().isNotEmpty == true
+                ? data['invoice_number'].toString().trim()
+                : data['id']?.toString() ?? '—';
+    final invoiceNumber = rawInvoiceNumber.startsWith('#')
+        ? rawInvoiceNumber.substring(1).trim()
+        : rawInvoiceNumber;
 
     return Column(
       key: const ValueKey('b2b-invoice-detail-data'),
@@ -6506,34 +6515,29 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ar ? 'تفاصيل الفاتورة' : 'Invoice details',
-                          style:
-                              Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          data['display_invoice_number']?.toString() ??
-                              (data['id'] == null ? '—' : '#${data['id']}'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                      ],
+                    child: Text.rich(
+                      key: const ValueKey('b2b-invoice-detail-number'),
+                      TextSpan(
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.w800,
+                            ),
+                        children: [
+                          TextSpan(
+                            text: ar ? 'رقم الفاتورة ' : 'Invoice ',
+                          ),
+                          TextSpan(
+                            text: invoiceNumber,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Chip(
@@ -6561,21 +6565,13 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ],
               ),
-              if ((seller['name']?.toString() ?? '').isNotEmpty ||
-                  (customer['name']?.toString() ?? '').isNotEmpty) ...[
+              if ((customer['name']?.toString() ?? '').isNotEmpty ||
+                  (customer['email']?.toString() ?? '').isNotEmpty ||
+                  (customer['phone']?.toString() ?? '').isNotEmpty) ...[
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
               ],
-              if ((seller['name']?.toString() ?? '').isNotEmpty)
-                Text(
-                  '${ar ? 'البائع' : 'Seller'} · ${seller['name']}',
-                  key: const ValueKey('b2b-invoice-seller'),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
               if ((customer['name']?.toString() ?? '').isNotEmpty)
                 Text(
                   '${ar ? 'العميل' : 'Customer'} · ${customer['name']}',
@@ -6600,31 +6596,33 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ),
               const SizedBox(height: 14),
-              FilledButton.icon(
-                key: const ValueKey('b2b-invoice-detail-pdf'),
-                onPressed: _sharingPdf ? null : () => _sharePdf(data),
-                icon: _sharingPdf
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.picture_as_pdf_rounded),
-                label: Text(ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
-              ),
-              const SizedBox(height: 8),
               Row(
+                textDirection: TextDirection.ltr,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (orderRoute != null)
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        key: const ValueKey('b2b-invoice-related-order'),
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(orderRoute),
-                        icon: const Icon(Icons.local_shipping_outlined),
-                        label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
-                      ),
+                  FilledButton.icon(
+                    key: const ValueKey('b2b-invoice-detail-pdf'),
+                    onPressed: _sharingPdf ? null : () => _sharePdf(data),
+                    icon: _sharingPdf
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.picture_as_pdf_rounded),
+                    label:
+                        Text(ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
+                  ),
+                  if (orderRoute != null) ...[
+                    const SizedBox(width: 8),
+                    FilledButton.tonalIcon(
+                      key: const ValueKey('b2b-invoice-related-order'),
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(orderRoute),
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                     ),
-                  if (orderRoute != null) const SizedBox(width: 8),
+                  ],
+                  const Spacer(),
                   IconButton.filledTonal(
                     key: const ValueKey('b2b-invoice-detail-refresh'),
                     tooltip: ar ? 'تحديث' : 'Refresh',
