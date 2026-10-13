@@ -20,3 +20,5 @@ The canonical Release Factory must generate the Dashboard Update ZIP and Custome
 - Final validation retriggered after formatter parity with the Customer CI environment.
 
 - Final Customer release-scope Dart formatting was normalized by the exact CI Flutter environment.
+
+- Targeted Customer CI fixes were revalidated after canonical formatting.
