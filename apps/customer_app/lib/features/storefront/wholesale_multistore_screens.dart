@@ -1199,7 +1199,8 @@ class _WholesaleBestSellerTickerHeader extends StatefulWidget {
 }
 
 class _WholesaleBestSellerTickerHeaderState
-    extends State<_WholesaleBestSellerTickerHeader> {
+    extends State<_WholesaleBestSellerTickerHeader>
+    with SingleTickerProviderStateMixin {
   static const _interval = Duration(seconds: 10);
   static const _tones = <Color>[
     Color(0xFF087347),
@@ -1210,6 +1211,7 @@ class _WholesaleBestSellerTickerHeaderState
   ];
 
   Timer? _timer;
+  late final AnimationController _marquee;
   int _index = 0;
 
   List<Map<String, dynamic>> get _products => widget.rows
@@ -1223,7 +1225,8 @@ class _WholesaleBestSellerTickerHeaderState
   @override
   void initState() {
     super.initState();
-    _restartTimer();
+    _marquee = AnimationController(vsync: this, duration: _interval);
+    _restartTicker();
   }
 
   @override
@@ -1233,17 +1236,26 @@ class _WholesaleBestSellerTickerHeaderState
     final newIds = widget.rows.map((row) => intValue(row['id'])).join(',');
     if (oldIds != newIds) {
       _index = 0;
-      _restartTimer();
+      _restartTicker();
     }
   }
 
-  void _restartTimer() {
+  void _restartTicker() {
     _timer?.cancel();
-    if (_products.length <= 1) return;
+    _marquee.stop();
+    final products = _products;
+    if (products.isEmpty) return;
+
+    _marquee.forward(from: 0);
     _timer = Timer.periodic(_interval, (_) {
-      final products = _products;
-      if (!mounted || products.isEmpty) return;
-      setState(() => _index = (_index + 1) % products.length);
+      final currentProducts = _products;
+      if (!mounted || currentProducts.isEmpty) return;
+      setState(() {
+        if (currentProducts.length > 1) {
+          _index = (_index + 1) % currentProducts.length;
+        }
+      });
+      _marquee.forward(from: 0);
     });
   }
 
@@ -1258,9 +1270,86 @@ class _WholesaleBestSellerTickerHeaderState
     );
   }
 
+  Widget _marqueeLink(
+    BuildContext context,
+    Map<String, dynamic> product,
+    Color tone,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final name = product['name'].toString();
+    final style = TextStyle(
+      color: tone,
+      fontSize: 10.5,
+      fontWeight: FontWeight.w900,
+      decoration: TextDecoration.underline,
+      decorationColor: tone,
+    );
+    final painter = TextPainter(
+      text: TextSpan(text: name, style: style),
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final textWidth = painter.width + 18;
+
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRect(
+        child: SizedBox(
+          height: 28,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              AnimatedBuilder(
+                animation: _marquee,
+                child: SizedBox(
+                  width: textWidth,
+                  height: 28,
+                  child: InkWell(
+                    key: ValueKey(
+                      'wholesale-best-seller-ticker-product-${intValue(product['id'])}',
+                    ),
+                    onTap: () => _openProduct(product),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        name,
+                        key: ValueKey(
+                          'wholesale-best-seller-ticker-label-${intValue(product['id'])}',
+                        ),
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.visible,
+                        style: style,
+                      ),
+                    ),
+                  ),
+                ),
+                builder: (context, child) {
+                  final travel = constraints.maxWidth + textWidth;
+                  final dx = isArabic
+                      ? constraints.maxWidth - (_marquee.value * travel)
+                      : -textWidth + (_marquee.value * travel);
+                  return Transform.translate(
+                    offset: Offset(dx, 0),
+                    child: child,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _marquee.dispose();
     super.dispose();
   }
 
@@ -1287,42 +1376,7 @@ class _WholesaleBestSellerTickerHeaderState
           ),
           if (product != null) ...[
             const SizedBox(width: 8),
-            Expanded(
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 280),
-                  child: InkWell(
-                    key: ValueKey(
-                      'wholesale-best-seller-ticker-product-${intValue(product['id'])}',
-                    ),
-                    onTap: () => _openProduct(product),
-                    borderRadius: BorderRadius.circular(999),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 4,
-                      ),
-                      child: Text(
-                        product['name'].toString(),
-                        key: ValueKey(
-                          'wholesale-best-seller-ticker-label-${intValue(product['id'])}',
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: tone,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w900,
-                          decoration: TextDecoration.underline,
-                          decorationColor: tone,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            Expanded(child: _marqueeLink(context, product, tone)),
           ] else
             const Spacer(),
           if (widget.onAction != null)
