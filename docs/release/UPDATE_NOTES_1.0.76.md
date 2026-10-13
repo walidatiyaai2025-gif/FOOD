@@ -16,3 +16,5 @@ The canonical Release Factory must generate the Dashboard Update ZIP and Custome
 
 
 - Canonical Dart formatting applied to the Customer release-touch files before final promotion.
+
+- Final validation retriggered after formatter parity with the Customer CI environment.
