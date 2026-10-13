@@ -2688,11 +2688,11 @@ void main() {
       expect(categoriesTop, lessThan(trendTop));
       expect(trendTop, lessThan(ordersTop));
       expect(
-        find.byKey(const ValueKey('b2b-purchases-category-donut')),
+        find.byKey(const ValueKey('b2b-purchases-category-bars')),
         findsOneWidget,
       );
-      expect(find.byType(FoodexBarChart), findsOneWidget);
-      expect(find.byType(FoodexDonutChart), findsOneWidget);
+      expect(find.byType(FoodexBarChart), findsNWidgets(2));
+      expect(find.byType(FoodexDonutChart), findsNothing);
       expect(
         find.descendant(
           of: find.byType(FoodexChartLegend),
