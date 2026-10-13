@@ -4492,14 +4492,14 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                 const SizedBox(height: 14),
                 LayoutBuilder(
                   builder: (_, constraints) {
-                    const gap = 10.0;
-                    final columns = constraints.maxWidth >= 350 ? 3 : 2;
+                    const gap = 6.0;
+                    const columns = 5;
                     final width =
                         (constraints.maxWidth - gap * (columns - 1)) / columns;
                     final textScale = MediaQuery.textScalerOf(context).scale(1);
                     final scaledDelta =
                         (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                    final cardHeight = 112.0 + (scaledDelta * 90.0);
+                    final cardHeight = 66.0 + (scaledDelta * 32.0);
                     return Wrap(
                       spacing: gap,
                       runSpacing: gap,
@@ -4513,12 +4513,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       ],
                     );
                   },
-                ),
-                const SizedBox(height: 18),
-                B2bBusinessAccountProfile(
-                  api: widget.api,
-                  endpoint: widget.profileEndpoint,
-                  addressesRoute: widget.addressesRoute,
                 ),
                 const SizedBox(height: 14),
                 if (widget.onLocaleChanged != null)
@@ -4885,7 +4879,7 @@ class _MoreCard extends StatelessWidget {
           onTap: item.onTap,
           borderRadius: BorderRadius.circular(18),
           child: Ink(
-            padding: const EdgeInsets.fromLTRB(9, 11, 9, 9),
+            padding: const EdgeInsets.fromLTRB(4.5, 5.5, 4.5, 4.5),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
               border: Border.all(color: _B2bMorePageState.border),
@@ -4894,16 +4888,16 @@ class _MoreCard extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     color: item.warm
                         ? CustomerUiColors.limeSoft
                         : _B2bMorePageState.soft,
-                    borderRadius: BorderRadius.circular(17),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   child:
-                      Icon(item.icon, color: _B2bMorePageState.deep, size: 31),
+                      Icon(item.icon, color: _B2bMorePageState.deep, size: 15.5),
                 ),
                 const Spacer(),
                 Row(
@@ -4915,22 +4909,22 @@ class _MoreCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _B2bMorePageState.ink,
-                          fontSize: 12.5,
+                          fontSize: 6.25,
                           fontWeight: FontWeight.w800,
                           height: 1.08,
                         ),
                       ),
                     ),
                     Container(
-                      width: 26,
-                      height: 26,
+                      width: 13,
+                      height: 13,
                       decoration: const BoxDecoration(
                         color: CustomerUiColors.mint,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.chevron_left_rounded,
-                        size: 18,
+                        size: 9,
                         color: _B2bMorePageState.dark,
                       ),
                     ),
