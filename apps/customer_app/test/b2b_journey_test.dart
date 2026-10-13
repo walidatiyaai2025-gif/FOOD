@@ -2902,7 +2902,11 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-statement-data')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('b2b-statement-summary-opening')),
-        findsOneWidget,
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('b2b-statement-summary-current')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('b2b-statement-summary-closing')),
@@ -2917,7 +2921,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('50.00 EGP'), findsWidgets);
-      expect(find.textContaining('عليك'), findsWidgets);
+      expect(find.textContaining('ليك'), findsWidgets);
       expect(
         find.byKey(const ValueKey('b2b-statement-export-pdf')),
         findsOneWidget,
@@ -2926,6 +2930,18 @@ void main() {
         find.byKey(const ValueKey('b2b-statement-export-xlsx')),
         findsOneWidget,
       );
+      expect(find.text('تحميل كشف الحساب'), findsOneWidget);
+      final pdfTop = tester
+          .getTopLeft(
+            find.byKey(const ValueKey('b2b-statement-export-pdf')),
+          )
+          .dy;
+      final excelTop = tester
+          .getTopLeft(
+            find.byKey(const ValueKey('b2b-statement-export-xlsx')),
+          )
+          .dy;
+      expect((pdfTop - excelTop).abs(), lessThan(1));
       expect(
         find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
         findsOneWidget,
