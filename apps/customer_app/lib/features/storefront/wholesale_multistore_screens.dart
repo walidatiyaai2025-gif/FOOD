@@ -991,13 +991,13 @@ class _WholesaleProductGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridMode ? 2 : 1,
-        crossAxisSpacing: gridMode ? 10 : 0,
+        crossAxisCount: gridMode ? 3 : 1,
+        crossAxisSpacing: gridMode ? 8 : 0,
         mainAxisSpacing: 12,
         mainAxisExtent: showCommerceActions
-            ? (gridMode ? (width < 360 ? 424 : 438) : (width < 360 ? 350 : 370))
+            ? (gridMode ? (width < 360 ? 356 : 370) : (width < 360 ? 350 : 370))
             : (gridMode
-                ? (width < 360 ? 286 : 306)
+                ? (width < 360 ? 250 : 264)
                 : (width < 360 ? 260 : 280)),
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
@@ -1344,7 +1344,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   key: ValueKey('wholesale-product-add-$id'),
                   onPressed: isAvailable && id > 0 && !busy ? _addToCart : null,
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44),
+                    minimumSize: const Size.fromHeight(40),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    visualDensity: VisualDensity.compact,
                   ),
                   icon: busy
                       ? const SizedBox.square(
