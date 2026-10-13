@@ -501,8 +501,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                 builder: (context, constraints) {
                   final bannerHeight =
                       constraints.maxWidth < 350 ? 158.0 : 166.0;
-                  final productColumns =
-                      constraints.maxWidth >= 720 ? 3 : 2;
+                  const productColumns = 3;
                   final productAspectRatio =
                       constraints.maxWidth >= 720 ? .72 : .68;
 
@@ -1741,8 +1740,6 @@ class _WholesaleProductCard extends StatelessWidget {
     final currency = product['currency']?.toString().trim();
     final name = product['name']?.toString().trim() ?? '';
     final brand = product['brand_name']?.toString().trim() ?? '';
-    final minimum = product['minimum_order_quantity'] ??
-        product['minimum_quantity'];
     final priceText =
         '$rawPrice ${currency == null || currency.isEmpty ? 'EGP' : currency}';
 
@@ -1847,29 +1844,6 @@ class _WholesaleProductCard extends StatelessWidget {
                         height: 1.1,
                       ),
                     ),
-                    if (minimum != null) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F8F4),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'الحد الأدنى: $minimum',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF68766E),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
