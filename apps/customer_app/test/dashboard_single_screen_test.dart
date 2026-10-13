@@ -55,7 +55,7 @@ class DashboardApi implements B2bApi {
   Future<Object?> get(String path) async {
     calls++;
     lastPath = path;
-    if (response is Future<Object?>) return await (response as Future<Object?>);
+    if (response is Future<Object?>) return response as Future<Object?>;
     if (response is Exception) throw response!;
     return response;
   }
