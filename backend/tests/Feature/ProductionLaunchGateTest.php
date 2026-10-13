@@ -376,6 +376,55 @@ PHP);
         }
     }
 
+    public function test_1_0_77_reversible_launch_checks_are_mandatory_and_fail_closed(): void
+    {
+        $report = app(ProductionLaunchPreflight::class)->decide([]);
+
+        foreach ([
+            'customer_frozen_lineage',
+            'catalog_provenance',
+            'reconstructed_image_quality',
+            'prelaunch_snapshot',
+            'restore_verification',
+            'dataset_switch_readiness',
+        ] as $code) {
+            $this->assertContains($code, ProductionLaunchPreflight::REQUIRED_CHECKS);
+            $this->assertFalse($report['checks'][$code]['passed']);
+            $this->assertContains($code, $report['blockers']);
+        }
+
+        $this->assertFalse($report['ready']);
+    }
+
+    public function test_launch_report_discloses_catalog_inferences_and_is_source_bound(): void
+    {
+        $payload = app(\App\Services\ProductionLaunchReport::class)
+            ->build(app(ProductionLaunchPreflight::class));
+
+        $this->assertSame('1.0.77', $payload['release']);
+        $this->assertTrue($payload['stale_if_source_sha_changes']);
+        $this->assertArrayHasKey('source_sha', $payload);
+        $this->assertArrayHasKey('all_fields', $payload['catalog']);
+        $this->assertNotEmpty($payload['catalog']['inferred_fields']);
+        $this->assertGreaterThan(0, $payload['catalog']['inferred_count']);
+        $this->assertArrayHasKey('snapshot', $payload['rollback']);
+        $this->assertArrayHasKey('blockers', $payload);
+    }
+
+    public function test_release_metadata_uses_frozen_customer_identity_without_mutating_customer(): void
+    {
+        $release = app(ProductionLaunchPreflight::class)->releaseMetadata();
+
+        $this->assertSame('1.0.77', $release['version']);
+        $this->assertSame('1.0.76', $release['customer_version']);
+        $this->assertSame(76, $release['customer_build_number']);
+        $this->assertSame('1.0.76+76', $release['customer_frozen_identity']);
+        $this->assertSame(
+            '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d',
+            $release['customer_frozen_baseline'],
+        );
+    }
+
     private function superAdmin(string $locale = 'en'): User
     {
         $user = User::query()->create([
