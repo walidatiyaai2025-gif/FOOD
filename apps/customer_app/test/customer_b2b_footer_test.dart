@@ -69,14 +69,14 @@ void main() {
       final route = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(route.path, '/b2b/home');
+      expect(route.path, CustomerRoutePaths.b2bProducts);
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
     },
   );
 
   testWidgets(
-    'Marketplace Shopping footer Home returns to platform Home',
+    'Marketplace Shopping footer Home returns to canonical Wholesale Home',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
@@ -123,10 +123,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
-        CustomerRoutePaths.marketplace,
+      final route = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
+      expect(route.path, CustomerRoutePaths.b2bHome);
+      expect(route.queryParameters['store_id'], '70');
+      expect(route.queryParameters['channel'], 'wholesale');
     },
   );
 
