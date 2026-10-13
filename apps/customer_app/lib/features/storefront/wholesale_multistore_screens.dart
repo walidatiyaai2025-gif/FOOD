@@ -395,6 +395,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                                     'channel': 'wholesale',
                                     if (storeId > 0)
                                       'store_id': storeId.toString(),
+                                    if (widget.session.b2bRetailStoreId != null)
+                                      'retail_store_id':
+                                          widget.session.b2bRetailStoreId.toString(),
                                   },
                                 ).toString(),
                               )
