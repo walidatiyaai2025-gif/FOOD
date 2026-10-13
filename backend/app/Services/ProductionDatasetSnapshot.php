@@ -72,12 +72,15 @@ final class ProductionDatasetSnapshot
                 'size' => $size,
                 'checksum_sha256' => $checksum,
                 'created_at' => now()->toIso8601String(),
-                'verified' => true,
-                'verified_at' => now()->toIso8601String(),
+                'verified' => false,
+                'verified_at' => null,
             ];
             $this->writeMetadata($metadata);
             $this->runtime->verifyDatabaseBackup($reference);
             $this->verify($metadata);
+            $metadata['verified'] = true;
+            $metadata['verified_at'] = now()->toIso8601String();
+            $this->writeMetadata($metadata);
             $this->audit->record('system.production_snapshot.created', $actor, null, null, $this->safeAudit($metadata), $request);
 
             return $this->status();
