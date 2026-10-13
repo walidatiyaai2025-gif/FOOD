@@ -242,6 +242,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             final hero = storefront['hero'] is Map
                 ? Map<String, dynamic>.from(storefront['hero'] as Map)
                 : <String, dynamic>{};
+            final banners = mapRows(storefront['banners']);
             final palette = _wholesalePalette(theme);
 
             final title =
@@ -302,6 +303,22 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             }
 
             final content = <Widget>[];
+            final hasBannerSection = effectiveSections.any((section) {
+              final type = section['type']?.toString() ?? '';
+              return type == 'hero' || type == 'banner_slider';
+            });
+            if (banners.isNotEmpty && !hasBannerSection) {
+              content.add(
+                _WholesaleBannerCarousel(
+                  banners: banners,
+                  fallbackTitle: heroTitle,
+                  cta: heroCta,
+                  palette: palette,
+                  onCta: storeId > 0 ? () => openCatalog() : null,
+                ),
+              );
+            }
+
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
               final sectionTitle =
@@ -313,10 +330,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 case 'hero':
                 case 'banner_slider':
                   content.add(
-                    _WholesaleHero(
-                      title: heroTitle,
+                    _WholesaleBannerCarousel(
+                      banners: banners.isNotEmpty
+                          ? banners
+                          : hero.isEmpty
+                              ? const <Map<String, dynamic>>[]
+                              : <Map<String, dynamic>>[hero],
+                      fallbackTitle: heroTitle,
                       cta: heroCta,
-                      imageUrl: hero['image_url']?.toString(),
                       palette: palette,
                       onCta: storeId > 0 ? () => openCatalog() : null,
                     ),
@@ -678,6 +699,55 @@ class _RoundHeaderIcon extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _WholesaleBannerCarousel extends StatelessWidget {
+  const _WholesaleBannerCarousel({
+    required this.banners,
+    required this.fallbackTitle,
+    required this.cta,
+    required this.palette,
+    this.onCta,
+  });
+
+  final List<Map<String, dynamic>> banners;
+  final String fallbackTitle;
+  final String cta;
+  final FoodexPalette palette;
+  final VoidCallback? onCta;
+
+  @override
+  Widget build(BuildContext context) {
+    if (banners.isEmpty) {
+      return _WholesaleHero(
+        title: fallbackTitle,
+        cta: cta,
+        palette: palette,
+        onCta: onCta,
+      );
+    }
+
+    return SizedBox(
+      key: const ValueKey('wholesale-home-banner-carousel'),
+      height: 182,
+      child: PageView.builder(
+        itemCount: banners.length,
+        itemBuilder: (context, index) {
+          final banner = banners[index];
+          final bannerTitle = banner['title']?.toString().trim();
+          return _WholesaleHero(
+            title: bannerTitle != null && bannerTitle.isNotEmpty
+                ? bannerTitle
+                : fallbackTitle,
+            cta: cta,
+            imageUrl: banner['image_url']?.toString(),
+            palette: palette,
+            onCta: onCta,
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _WholesaleHero extends StatelessWidget {
