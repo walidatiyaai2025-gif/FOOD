@@ -3217,6 +3217,12 @@ void main() {
     final title = find.byKey(const ValueKey('b2b-more-header-title'));
     expect(title, findsOneWidget);
     expect(find.byKey(const ValueKey('b2b-more-back')), findsOneWidget);
+    expect(find.text('حساب الأعمال'), findsNothing);
+    expect(find.text('كل أدوات حسابك في مكان واحد'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('b2b-more-business-dashboard')),
+      findsOneWidget,
+    );
 
     final titleRect = tester.getRect(title);
     expect(titleRect.left, greaterThanOrEqualTo(0));
