@@ -6878,22 +6878,54 @@ class _OrderCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: compact ? 5 : 8),
-                if (onReorder != null)
-                  IconButton(
-                    key: ValueKey('b2b-order-reorder-' + id.toString()),
-                    tooltip: context.tr('customer.orders.reorder'),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: reordering ? null : onReorder,
-                    icon: reordering
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.replay_rounded),
-                  ),
-                _StatusPill(
-                  status: row['status']?.toString() ?? '',
-                  compact: compact,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _StatusPill(
+                      status: row['status']?.toString() ?? '',
+                      compact: compact,
+                    ),
+                    if (onReorder != null) ...[
+                      SizedBox(height: compact ? 5 : 7),
+                      TextButton(
+                        key: ValueKey(
+                          'b2b-order-reorder-' + id.toString(),
+                        ),
+                        onPressed: reordering ? null : onReorder,
+                        style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: compact ? 8 : 10,
+                            vertical: compact ? 4 : 5,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: CustomerUiColors.deepGreenStrong,
+                          backgroundColor: CustomerUiColors.limeSoft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: reordering
+                            ? SizedBox.square(
+                                dimension: compact ? 14 : 16,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                context.tr('customer.orders.reorder'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: compact ? 9.5 : 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                ),
+                              ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
