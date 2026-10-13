@@ -691,6 +691,61 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale View All keeps fallback section products visible',
+    (tester) async {
+      final storefront = _FakeWholesaleStorefrontApi();
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Bulk Water',
+            'sku': 'WATER-42',
+            'account_price': 75,
+            'minimum_order_quantity': 5,
+            'ordering_increment': 1,
+            'available_quantity': 20,
+            'is_available': true,
+            'category_id': 3,
+            'category_name': 'Beverages',
+          },
+        ],
+      });
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: storefront,
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final viewAll = find.byKey(
+        const ValueKey('section-action-عروض الحساب'),
+      );
+      await tester.scrollUntilVisible(
+        viewAll,
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(viewAll);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        findsOneWidget,
+      );
+      expect(find.text('Bulk Water'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('wholesale-product-grid')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'guest can browse Wholesale storefront and product without login',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
