@@ -358,6 +358,24 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
           ? CustomerRouteLocations.retailHome(context)
           : CustomerRouteLocations.wholesaleHome(context);
 
+  void _openWholesaleCategory(int storeId, int categoryId) {
+    if (storeId <= 0 || categoryId <= 0) return;
+    final commerceContext = CustomerCommerceContext(
+      channel: CustomerCommerceChannel.wholesale,
+      storeId: storeId,
+      source: CustomerCommerceSource.marketplace,
+    );
+    Navigator.of(context).pushNamed(
+      Uri(
+        path: CustomerRoutePaths.b2bProducts,
+        queryParameters: <String, String>{
+          ...commerceContext.toQueryParameters(),
+          'category_id': '$categoryId',
+        },
+      ).toString(),
+    );
+  }
+
   void _openWholesaleProduct(int storeId, int productId) {
     if (storeId <= 0 || productId <= 0) return;
     final commerceContext = CustomerCommerceContext(
@@ -659,7 +677,13 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           child: _MarketplaceCategoryRail(
                             categories: categories,
                             selectedCategoryId: _selectedCategoryId,
-                            onSelect: _selectCategory,
+                            onSelect: (categoryId) {
+                              if (categoryId == null) {
+                                _selectCategory(null);
+                                return;
+                              }
+                              _openWholesaleCategory(storeId, categoryId);
+                            },
                           ),
                         ),
                       ...homeCollections.map(
