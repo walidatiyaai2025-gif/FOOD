@@ -232,6 +232,12 @@ const customerVNextScreenRegistry = <CustomerScreenRegistryEntry>[
     evidence: _fullEvidence,
   ),
   CustomerScreenRegistryEntry(
+    routePattern: CustomerRoutePaths.b2bFavorites,
+    ownerIssue: 1328,
+    surface: 'wholesale favorites',
+    evidence: _fullEvidence,
+  ),
+  CustomerScreenRegistryEntry(
     routePattern: CustomerRoutePaths.b2bOrderDetails,
     ownerIssue: 1328,
     surface: 'wholesale order details/tracking',
