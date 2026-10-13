@@ -6596,9 +6596,11 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ),
               const SizedBox(height: 14),
-              Row(
+              Wrap(
                 textDirection: TextDirection.ltr,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilledButton.icon(
                     key: const ValueKey('b2b-invoice-detail-pdf'),
@@ -6612,8 +6614,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     label:
                         Text(ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
                   ),
-                  if (orderRoute != null) ...[
-                    const SizedBox(width: 8),
+                  if (orderRoute != null)
                     FilledButton.tonalIcon(
                       key: const ValueKey('b2b-invoice-related-order'),
                       onPressed: () =>
@@ -6621,7 +6622,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       icon: const Icon(Icons.local_shipping_outlined),
                       label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                     ),
-                  ],
 
                 ],
               ),
