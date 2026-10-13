@@ -408,7 +408,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         actionApi: widget.actionApi,
                         pendingActionStore: widget.pendingActionStore,
                         palette: palette,
-                        maxItems: 4,
+                        maxItems: 3,
                         showCommerceActions: true,
                         homeWholeNumberPrice: true,
                       ),
@@ -471,7 +471,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   actionApi: widget.actionApi,
                   pendingActionStore: widget.pendingActionStore,
                   palette: palette,
-                  maxItems: 4,
+                  maxItems: 3,
                   showCommerceActions: true,
                   homeWholeNumberPrice: true,
                 ),
@@ -1411,15 +1411,8 @@ class _WholesaleBestSellerTickerHeaderState
 
 int _wholesaleProductColumns(int itemCount) {
   if (itemCount <= 1) return 1;
-  if (itemCount <= 4) return itemCount;
-
-  if (itemCount % 4 == 0) return 4;
-  if (itemCount % 3 == 0) return 3;
-
-  if (itemCount % 4 != 1) return 4;
-  if (itemCount % 3 != 1) return 3;
-
-  return 2;
+  if (itemCount == 2) return 2;
+  return 3;
 }
 
 class _WholesaleProductGrid extends StatelessWidget {
@@ -1468,7 +1461,6 @@ class _WholesaleProductGrid extends StatelessWidget {
     final displayRows =
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
     final columns = _wholesaleProductColumns(displayRows.length);
-    final denseFourColumn = columns >= 4;
 
     return GridView.builder(
       key: const ValueKey('wholesale-product-grid'),
@@ -1478,11 +1470,9 @@ class _WholesaleProductGrid extends StatelessWidget {
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
-        crossAxisSpacing: denseFourColumn ? 5 : 8,
+        crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        mainAxisExtent: showCommerceActions
-            ? (denseFourColumn ? 160 : 188)
-            : (denseFourColumn ? 146 : 166),
+        mainAxisExtent: showCommerceActions ? 188 : 166,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
