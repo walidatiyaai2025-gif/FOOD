@@ -1798,8 +1798,7 @@ class _WholesaleProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: 78,
+              Expanded(
                 child: Stack(
                   children: [
                     Positioned.fill(
