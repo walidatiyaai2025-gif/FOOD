@@ -51,6 +51,27 @@ abstract final class CustomerRouteLocations {
     return _scoped('/retail/${context.storeId}/home', context);
   }
 
+  static String retailProducts(
+    CustomerCommerceContext context, {
+    String? query,
+    int? categoryId,
+  }) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    if (categoryId != null && categoryId <= 0) {
+      throw ArgumentError.value(categoryId, 'categoryId', 'must be positive');
+    }
+    final normalizedQuery = query?.trim();
+    return _scoped(
+      CustomerRoutePaths.products,
+      context,
+      <String, String>{
+        if (normalizedQuery != null && normalizedQuery.isNotEmpty)
+          'q': normalizedQuery,
+        if (categoryId != null) 'category_id': '$categoryId',
+      },
+    );
+  }
+
   static String retailProduct(
     CustomerCommerceContext context,
     int productId,
