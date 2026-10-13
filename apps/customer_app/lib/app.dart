@@ -9,6 +9,7 @@ import 'core/api/b2c_catalog_api.dart';
 import 'core/api/b2c_account_api.dart';
 import 'core/api/customer_action_api.dart';
 import 'core/api/storefront_api.dart';
+import 'core/api/store_analytics_api.dart';
 import 'core/api/wholesale_commerce_api.dart';
 import 'core/auth/customer_auth_persistence.dart';
 import 'core/auth/customer_session.dart';
@@ -35,6 +36,7 @@ import 'core/theme/foodex_theme.dart';
 import 'features/customer_orders/customer_orders_api.dart';
 import 'features/retail/commerce/retail_commerce_api.dart';
 import 'features/storefront/marketplace_barcode_scanner.dart';
+import 'features/store_analytics/store_analytics_screen.dart';
 
 class FoodexCustomerApp extends StatefulWidget {
   const FoodexCustomerApp({
@@ -774,6 +776,21 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       onCommerceContextChanged: (context) {
         _activeCommerceContext = context;
       },
+      storeAnalyticsBuilder: token == null || token.isEmpty
+          ? null
+          : (context, location) {
+              final routeContext =
+                  CustomerStoreAnalyticsRouteContext.tryParse(location);
+              return StoreAnalyticsRouteScreen(
+                api: HttpStoreAnalyticsApi(
+                  baseUrl: baseUrl,
+                  token: token,
+                  client: _sessionHttpClient,
+                ),
+                retailStoreId:
+                    routeContext?.retailStoreId ?? _session.b2bRetailStoreId,
+              );
+            },
     );
     _activeRouter = router;
 
