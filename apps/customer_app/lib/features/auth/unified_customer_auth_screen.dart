@@ -238,10 +238,11 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   Future<void> _finishAuthentication(
     String token, {
     required bool mergeRetailGuestCart,
+    String? postAuthenticationRoute,
   }) async {
     // Capture everything needed for post-auth work before the parent rebuild:
     // that rebuild may legitimately dispose this auth route.
-    final nextRoute = widget.nextRoute;
+    final nextRoute = postAuthenticationRoute ?? widget.nextRoute;
     final pendingStore = widget.pendingActionStore;
     final pendingExecutor = widget.pendingActionExecutor;
     final commerceContext = widget.commerceContext;
@@ -312,9 +313,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         return;
       }
 
+      final rememberedRetailStoreId = stored.b2bRetailStoreId;
       await _finishAuthentication(
         token,
         mergeRetailGuestCart: true,
+        postAuthenticationRoute: rememberedRetailStoreId == null
+            ? widget.nextRoute
+            : CustomerRouteLocations.retailHome(
+                CustomerCommerceContext(
+                  channel: CustomerCommerceChannel.retail,
+                  storeId: rememberedRetailStoreId,
+                ),
+              ),
       );
     } catch (_) {
       if (mounted) {
@@ -562,9 +572,21 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             : await api.login(username: email);
       }
 
+      final retailStoreId =
+          result.retailStoreIds.isEmpty ? null : result.retailStoreIds.first;
+      final postLoginRoute = retailStoreId == null
+          ? CustomerRoutePaths.marketplace
+          : CustomerRouteLocations.retailHome(
+              CustomerCommerceContext(
+                channel: CustomerCommerceChannel.retail,
+                storeId: retailStoreId,
+              ),
+            );
+
       await _finishAuthentication(
         result.token,
         mergeRetailGuestCart: true,
+        postAuthenticationRoute: postLoginRoute,
       );
     } on CustomerActionException catch (error) {
       if (!mounted) return;
