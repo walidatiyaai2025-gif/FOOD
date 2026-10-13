@@ -1175,6 +1175,22 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                                     onTap: _openStoreAnalytics,
                                   ),
                                 ],
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  key: const ValueKey('b2b-dashboard-back'),
+                                  tooltip: MaterialLocalizations.of(context)
+                                      .backButtonTooltip,
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 36,
+                                    minHeight: 36,
+                                  ),
+                                  icon: const BackButtonIcon(),
+                                  color: CustomerUiColors.deepGreen,
+                                ),
                               ],
                             ),
                             Text(
