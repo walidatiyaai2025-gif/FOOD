@@ -740,7 +740,7 @@ class _WholesaleHero extends StatelessWidget {
     final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 3.4, 0, 1.7),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 1.7),
       child: Container(
         width: double.infinity,
         height: 168.3,
