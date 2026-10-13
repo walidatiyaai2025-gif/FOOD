@@ -709,7 +709,7 @@ class StoreAnalyticsAttention {
             .map(StoreAnalyticsLowStockItem.fromJson)
             .toList(growable: false),
         merchantSummary: StoreAnalyticsMerchantSummary.fromJson(
-          _requiredMap(json, 'merchant_summary'),
+          _requiredMapOrEmptyList(json, 'merchant_summary'),
         ),
         merchantAttention: _mapList(
           json['merchant_attention'],
@@ -971,6 +971,17 @@ Map<String, dynamic> _requiredMap(
     throw FormatException('$key is required');
   }
   return value;
+}
+
+Map<String, dynamic> _requiredMapOrEmptyList(
+  Map<String, dynamic> json,
+  String key,
+) {
+  final raw = json[key];
+  final value = _map(raw);
+  if (value != null) return value;
+  if (raw is List && raw.isEmpty) return const <String, dynamic>{};
+  throw FormatException('$key must be an object');
 }
 
 String _requiredString(Map<String, dynamic> json, String key) {
