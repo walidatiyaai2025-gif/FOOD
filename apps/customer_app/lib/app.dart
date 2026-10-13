@@ -412,11 +412,12 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   Future<void> _completeUnifiedAuthentication(
     String token,
     CustomerAuthPreferences preferences,
+    int? retailStoreId,
   ) async {
     if (widget.previewContext != null) return;
     final session = CustomerSession.platformCustomer(
       accessToken: token,
-      b2bRetailStoreId: _session.b2bRetailStoreId,
+      b2bRetailStoreId: retailStoreId ?? _session.b2bRetailStoreId,
     );
     setState(() {
       _session = session;
@@ -434,13 +435,21 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
 
   void _onAuthenticated(CustomerChannel channel, String token) {
     unawaited(
-      _completeUnifiedAuthentication(token, const CustomerAuthPreferences()),
+      _completeUnifiedAuthentication(
+        token,
+        const CustomerAuthPreferences(),
+        _session.b2bRetailStoreId,
+      ),
     );
   }
 
   void _onPlatformRegistered(String token) {
     unawaited(
-      _completeUnifiedAuthentication(token, const CustomerAuthPreferences()),
+      _completeUnifiedAuthentication(
+        token,
+        const CustomerAuthPreferences(),
+        _session.b2bRetailStoreId,
+      ),
     );
   }
 
