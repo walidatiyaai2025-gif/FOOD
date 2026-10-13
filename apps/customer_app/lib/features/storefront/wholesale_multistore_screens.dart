@@ -714,7 +714,7 @@ class _WholesaleBannerCarousel extends StatefulWidget {
 
 class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
   static const Duration _autoSlideEvery = Duration(seconds: 5);
-  static const Duration _autoSlideDuration = Duration(milliseconds: 450);
+  static const Duration _autoSlideDuration = Duration(milliseconds: 650);
 
   final PageController _pageController = PageController();
   Timer? _autoSlideTimer;
@@ -773,30 +773,74 @@ class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
     return SizedBox(
       key: const ValueKey('wholesale-home-banner-carousel'),
       height: 178.5,
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: widget.banners.length,
-        onPageChanged: (index) => _currentPage = index,
-        itemBuilder: (context, index) {
-          final banner = widget.banners[index];
-          final bannerTitle = banner['title']?.toString().trim();
-          return _WholesaleHero(
-            key: ValueKey('wholesale-home-banner-$index'),
-            title: bannerTitle != null && bannerTitle.isNotEmpty
-                ? bannerTitle
-                : widget.fallbackTitle,
-            cta: widget.cta,
-            imageUrl: banner['image_url']?.toString(),
-            palette: widget.palette,
-            onCta: widget.onCta,
-          );
-        },
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.banners.length,
+            onPageChanged: (index) {
+              if (!mounted) return;
+              setState(() => _currentPage = index);
+            },
+            itemBuilder: (context, index) {
+              final banner = widget.banners[index];
+              final bannerTitle = banner['title']?.toString().trim();
+              return _WholesaleHero(
+                key: ValueKey('wholesale-home-banner-$index'),
+                title: bannerTitle != null && bannerTitle.isNotEmpty
+                    ? bannerTitle
+                    : widget.fallbackTitle,
+                cta: widget.cta,
+                imageUrl: banner['image_url']?.toString(),
+                palette: widget.palette,
+                onCta: widget.onCta,
+              );
+            },
+          ),
+          if (widget.banners.length > 1)
+            PositionedDirectional(
+              bottom: 7,
+              start: 0,
+              end: 0,
+              child: IgnorePointer(
+                child: Row(
+                  key: const ValueKey('wholesale-home-banner-indicators'),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var index = 0;
+                        index < widget.banners.length;
+                        index++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        width: index == _currentPage ? 18 : 6,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(
+                            index == _currentPage ? .95 : .45,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 5,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _WholesaleHero extends StatelessWidget {
+class _WholesaleHero extends StatefulWidget {
   const _WholesaleHero({
     required this.title,
     required this.cta,
@@ -813,8 +857,73 @@ class _WholesaleHero extends StatelessWidget {
   final VoidCallback? onCta;
 
   @override
+  State<_WholesaleHero> createState() => _WholesaleHeroState();
+}
+
+class _WholesaleHeroState extends State<_WholesaleHero>
+    with TickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final AnimationController _ambientController;
+  bool _reduceMotion = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    )..forward();
+    _ambientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5600),
+    )..repeat();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduceMotion = CustomerUiMotion.isReduced(context);
+    if (reduceMotion == _reduceMotion) return;
+    _reduceMotion = reduceMotion;
+    if (_reduceMotion) {
+      _entranceController.value = 1;
+      _ambientController.stop();
+    } else {
+      if (_entranceController.value < 1) {
+        _entranceController.forward();
+      }
+      if (!_ambientController.isAnimating) {
+        _ambientController.repeat();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleHero oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title || oldWidget.imageUrl != widget.imageUrl) {
+      if (_reduceMotion) {
+        _entranceController.value = 1;
+      } else {
+        _entranceController
+          ..value = 0
+          ..forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    _ambientController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+    final hasImage =
+        widget.imageUrl != null && widget.imageUrl!.trim().isNotEmpty;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, .85),
@@ -824,71 +933,138 @@ class _WholesaleHero extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [palette.primary, palette.primaryDark],
+            colors: [widget.palette.primary, widget.palette.primaryDark],
           ),
         ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (hasImage)
-              Image.network(
-                imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: AlignmentDirectional.centerStart,
-                  end: AlignmentDirectional.centerEnd,
-                  colors: [
-                    Colors.black.withOpacity(hasImage ? .58 : .18),
-                    Colors.black.withOpacity(hasImage ? .26 : .08),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 230),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          height: 1.25,
-                          fontWeight: FontWeight.w800,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                              color: Color(0x66000000),
-                            ),
-                          ],
-                        ),
+        child: AnimatedBuilder(
+          animation: _ambientController,
+          builder: (context, child) {
+            final t = _reduceMotion ? .5 : _ambientController.value;
+            final wave = math.sin(t * math.pi * 2);
+            final imageScale = 1.035 + (.012 * wave);
+            final imageShift = 3.5 * wave;
+            final glowX = rtl ? (1 - t) : t;
+            final ctaScale = 1 + (.018 * math.sin(t * math.pi * 4));
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                if (hasImage)
+                  Transform.translate(
+                    offset: Offset(imageShift, 0),
+                    child: Transform.scale(
+                      scale: imageScale,
+                      child: Image.network(
+                        widget.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const SizedBox.shrink(),
                       ),
-                      const SizedBox(height: 12),
-                      _WhitePill(
-                        label: cta,
-                        palette: palette,
-                        onTap: onCta,
-                      ),
-                    ],
+                    ),
+                  ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: AlignmentDirectional.centerStart,
+                      end: AlignmentDirectional.centerEnd,
+                      colors: [
+                        Colors.black.withOpacity(hasImage ? .60 : .20),
+                        Colors.black.withOpacity(hasImage ? .28 : .09),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ],
+                if (!_reduceMotion)
+                  Positioned(
+                    key: const ValueKey('wholesale-home-banner-illumination'),
+                    left: -100 + (MediaQuery.sizeOf(context).width + 200) * glowX,
+                    top: -36,
+                    bottom: -36,
+                    width: 92,
+                    child: Transform.rotate(
+                      angle: -.16,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.white.withOpacity(0),
+                              Colors.white.withOpacity(.16),
+                              Colors.white.withOpacity(.04),
+                              Colors.white.withOpacity(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                AnimatedBuilder(
+                  animation: _entranceController,
+                  builder: (context, _) {
+                    final eased = Curves.easeOutCubic.transform(
+                      _reduceMotion ? 1 : _entranceController.value,
+                    );
+                    return Opacity(
+                      opacity: eased,
+                      child: Transform.translate(
+                        offset: Offset(0, 14 * (1 - eased)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 230),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      height: 1.25,
+                                      fontWeight: FontWeight.w800,
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                          color: Color(0x66000000),
+                                        ),
+                                        Shadow(
+                                          blurRadius: 20,
+                                          color: Color(0x5500FFB0),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Transform.scale(
+                                    alignment:
+                                        AlignmentDirectional.centerStart,
+                                    scale: _reduceMotion ? 1 : ctaScale,
+                                    child: _WhitePill(
+                                      label: widget.cta,
+                                      palette: widget.palette,
+                                      onTap: widget.onCta,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
