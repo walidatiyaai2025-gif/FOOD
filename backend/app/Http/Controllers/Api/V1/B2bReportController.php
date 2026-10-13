@@ -567,7 +567,7 @@ class B2bReportController extends Controller
                 'stores.logo_path',
             ]);
 
-        if ($requested !== false && $requested !== null) {
+        if ($requested !== false) {
             $store = (clone $query)->where('stores.id', (int) $requested)->first();
         } else {
             $stores = (clone $query)->orderBy('stores.id')->limit(2)->get();
