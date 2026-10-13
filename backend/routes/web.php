@@ -391,6 +391,8 @@ Route::prefix('admin')
         Route::post('/settings/foodex-reset', [FoodexResetController::class, 'store'])->block(920, 1)->middleware('throttle:3,1')->name('foodex-reset.store');
         Route::get('/settings/production-launch', [ProductionLaunchController::class, 'index'])->name('production-launch.index');
         Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
+        Route::post('/settings/production-launch/snapshot', [ProductionLaunchController::class, 'snapshot'])->block(1820, 1)->middleware('throttle:2,1')->name('production-launch.snapshot');
+        Route::post('/settings/production-launch/restore', [ProductionLaunchController::class, 'restore'])->block(1820, 1)->middleware('throttle:2,1')->name('production-launch.restore');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
         Route::get('/settings/translations', [TranslationController::class, 'index'])->name('translations.index');
