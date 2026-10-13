@@ -383,7 +383,10 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                               storeId: storeId,
                               onAction: storeId > 0
                                   ? () => openCatalog(
-                                        _wholesaleSectionFilters(section),
+                                        _wholesaleSectionFilters(
+                                          section,
+                                          rows: sectionRows,
+                                        ),
                                       )
                                   : null,
                             )
@@ -394,7 +397,10 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                               spacingScale: .25,
                               onAction: storeId > 0
                                   ? () => openCatalog(
-                                        _wholesaleSectionFilters(section),
+                                        _wholesaleSectionFilters(
+                                          section,
+                                          rows: sectionRows,
+                                        ),
                                       )
                                   : null,
                             ),
@@ -2582,20 +2588,33 @@ List<Map<String, dynamic>> _wholesaleRowsForSection(
   return filtered.isEmpty ? rows : filtered;
 }
 
-Map<String, String> _wholesaleSectionFilters(Map<String, dynamic> section) {
+Map<String, String> _wholesaleSectionFilters(
+  Map<String, dynamic> section, {
+  List<Map<String, dynamic>> rows = const <Map<String, dynamic>>[],
+}) {
   final type = section['type']?.toString().trim() ?? '';
   final config = section['config'] is Map
       ? Map<String, dynamic>.from(section['config'] as Map)
       : const <String, dynamic>{};
-  final ids = config['product_ids'] is List
+
+  final configuredIds = config['product_ids'] is List
       ? (config['product_ids'] as List)
           .map(intValue)
           .where((id) => id > 0)
           .toList(growable: false)
       : const <int>[];
+
+  final resolvedIds = configuredIds.isNotEmpty
+      ? configuredIds
+      : rows
+          .map((row) => intValue(row['id']))
+          .where((id) => id > 0)
+          .toSet()
+          .toList(growable: false);
+
   return <String, String>{
     if (type.isNotEmpty) 'section': type,
-    if (ids.isNotEmpty) 'product_ids': ids.join(','),
+    if (resolvedIds.isNotEmpty) 'product_ids': resolvedIds.join(','),
   };
 }
 
