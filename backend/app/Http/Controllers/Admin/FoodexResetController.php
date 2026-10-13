@@ -49,13 +49,13 @@ final class FoodexResetController extends Controller
         ]);
     }
 
-    public function store(Request $request, FoodexResetService $reset, ProductionDatasetSnapshot $snapshot): RedirectResponse
+    public function store(Request $request, FoodexResetService $reset, ?ProductionDatasetSnapshot $snapshot = null): RedirectResponse
     {
         $actor = $this->authorizeOperator($request);
         $action = (string) $request->input('dataset_action', 'launch');
 
         if ($action === 'revert') {
-            return $this->revert($request, $actor, $snapshot);
+            return $this->revert($request, $actor, $snapshot ?? app(ProductionDatasetSnapshot::class));
         }
 
         abort_unless($action === 'launch', 422);
