@@ -35,7 +35,11 @@ final class ProductionDatasetSnapshot
             'snapshot_id' => $metadata['snapshot_id'] ?? null,
             'verified' => ($metadata['verified'] ?? false) === true,
             'created_at' => $metadata['created_at'] ?? null,
+            'verified_at' => $metadata['verified_at'] ?? null,
+            'launch_activated_at' => $metadata['launch_activated_at'] ?? null,
+            'restore_started_at' => $metadata['restore_started_at'] ?? null,
             'restored_at' => $metadata['restored_at'] ?? null,
+            'failed_at' => $metadata['failed_at'] ?? null,
         ];
     }
 
