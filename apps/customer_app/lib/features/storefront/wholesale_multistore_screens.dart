@@ -56,7 +56,12 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   final search = TextEditingController();
   final campaignPopups = CustomerNotificationCampaignPopupService();
   final liveAds = CustomerLiveAdService();
-  late final int storeId = wholesaleStoreId(widget.location);
+  int _resolvedStoreId = 0;
+  int get storeId {
+    final scopedStoreId = wholesaleStoreId(widget.location);
+    return scopedStoreId > 0 ? scopedStoreId : _resolvedStoreId;
+  }
+
   late Future<Map<String, dynamic>> future = _load();
   bool _liveAdScheduled = false;
 
@@ -73,40 +78,94 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
     }
   }
 
+  Future<int> _resolveWholesaleHomeStoreId() async {
+    final scopedStoreId = wholesaleStoreId(widget.location);
+    if (scopedStoreId > 0) return scopedStoreId;
+    if (_resolvedStoreId > 0) return _resolvedStoreId;
+
+    final storefrontApi = widget.storefrontApi;
+    if (storefrontApi == null) return 0;
+
+    final selection = await storefrontApi.selection();
+    final entitlements = selection['entitlements'] is Map
+        ? Map<String, dynamic>.from(selection['entitlements'] as Map)
+        : const <String, dynamic>{};
+
+    final principalFromEntitlements =
+        intValue(entitlements['principal_wholesale_store_id']);
+    if (principalFromEntitlements > 0) {
+      _resolvedStoreId = principalFromEntitlements;
+      return _resolvedStoreId;
+    }
+
+    for (final row in mapRows(selection['wholesale_stores'])) {
+      if (row['is_platform_principal'] != true) continue;
+      final candidate = intValue(row['id'] ?? row['store_id']);
+      if (candidate > 0) {
+        _resolvedStoreId = candidate;
+        return _resolvedStoreId;
+      }
+    }
+
+    return 0;
+  }
+
   Future<Map<String, dynamic>> _load([String query = '']) async {
-    if (storeId <= 0) {
+    final resolvedStoreId = await _resolveWholesaleHomeStoreId();
+    if (resolvedStoreId <= 0) {
       return const {
         'products': {'data': <Object>[]},
         'storefront': <String, Object?>{},
       };
     }
 
+    _resolvedStoreId = resolvedStoreId;
+
     Map<String, dynamic> storefront = <String, dynamic>{};
     if (widget.storefrontApi != null) {
-      storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+      storefront = await widget.storefrontApi!.wholesaleHome(resolvedStoreId);
     }
 
     Object? products;
     if (widget.api != null) {
-      var endpoint = '/api/v1/b2b/products?store_id=' + storeId.toString();
-      if (query.trim().isNotEmpty) {
-        endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+      try {
+        var endpoint =
+            '/api/v1/b2b/products?store_id=' + resolvedStoreId.toString();
+        if (query.trim().isNotEmpty) {
+          endpoint += '&q=' + Uri.encodeQueryComponent(query.trim());
+        }
+        products = await widget.api!.get(endpoint);
+      } catch (_) {
+        products = <String, Object?>{
+          'data': _filterWholesaleHomeRows(
+            mapRows(storefront['products']),
+            query,
+          ),
+        };
       }
-      products = await widget.api!.get(endpoint);
     } else {
-      var rows = mapRows(storefront['products']);
-      final needle = query.trim().toLowerCase();
-      if (needle.isNotEmpty) {
-        rows = rows.where((row) {
-          final name = row['name']?.toString().toLowerCase() ?? '';
-          final sku = row['sku']?.toString().toLowerCase() ?? '';
-          return name.contains(needle) || sku.contains(needle);
-        }).toList(growable: false);
-      }
-      products = <String, Object?>{'data': rows};
+      products = <String, Object?>{
+        'data': _filterWholesaleHomeRows(
+          mapRows(storefront['products']),
+          query,
+        ),
+      };
     }
 
     return {'products': products, 'storefront': storefront};
+  }
+
+  List<Map<String, dynamic>> _filterWholesaleHomeRows(
+    List<Map<String, dynamic>> rows,
+    String query,
+  ) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return rows;
+    return rows.where((row) {
+      final name = row['name']?.toString().toLowerCase() ?? '';
+      final sku = row['sku']?.toString().toLowerCase() ?? '';
+      return name.contains(needle) || sku.contains(needle);
+    }).toList(growable: false);
   }
 
   @override
@@ -205,7 +264,11 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 (storefront['sections'] as List? ?? const <Object>[])
                     .whereType<Map>()
                     .map((row) => Map<String, dynamic>.from(row))
-                    .toList(growable: false);
+                    .toList(growable: true)
+                  ..sort(
+                    (left, right) => intValue(left['sort_order'])
+                        .compareTo(intValue(right['sort_order'])),
+                  );
             final effectiveSections = sections.isEmpty
                 ? <Map<String, dynamic>>[
                     {'type': 'hero', 'sort_order': 10},
