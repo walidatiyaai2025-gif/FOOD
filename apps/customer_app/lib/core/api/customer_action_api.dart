@@ -92,8 +92,8 @@ class HttpCustomerActionApi implements CustomerActionApi {
     CustomerGuestSession? guestSession,
     this.b2bRetailStoreId,
     http.Client? client,
-  })  : guestSession = guestSession ?? CustomerGuestSession(),
-        _client = client ?? http.Client();
+  }) : guestSession = guestSession ?? CustomerGuestSession(),
+       _client = client ?? http.Client();
 
   final String baseUrl;
   final String? token;
@@ -190,16 +190,11 @@ class HttpCustomerActionApi implements CustomerActionApi {
       throw const CustomerActionException('invalid_registration_response');
     }
 
-    return CustomerLoginResult(
-      token: value,
-      platformCustomer: true,
-    );
+    return CustomerLoginResult(token: value, platformCustomer: true);
   }
 
   @override
-  Future<CustomerLoginResult> login({
-    required String username,
-  }) async {
+  Future<CustomerLoginResult> login({required String username}) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/auth/mobile-trial'),
       headers: _headers,
@@ -253,10 +248,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
   Future<void> _performLogout(String accessToken) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/auth/logout'),
-      headers: {
-        ..._headers,
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: {..._headers, 'Authorization': 'Bearer $accessToken'},
     );
     if (response.statusCode == 401 || response.statusCode == 204) return;
     _decode(response);
@@ -346,10 +338,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
       } else if (body is Map && body['message'] is String) {
         code = body['message'] as String;
       }
-      throw CustomerActionException(
-        code,
-        fieldErrors: _validationErrors(body),
-      );
+      throw CustomerActionException(code, fieldErrors: _validationErrors(body));
     }
 
     return body;
