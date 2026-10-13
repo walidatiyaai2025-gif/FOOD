@@ -484,110 +484,6 @@ class CustomerLowDataHttpClient extends http.BaseClient {
     }
   }
 
-  void _scheduleRevalidation(
-    CustomerCacheIdentity identity,
-    Uri uri,
-    Map<String, String> sourceHeaders,
-    CustomerCachedHttpResponse cached,
-  ) {
-    if (_isCircuitOpen || _revalidationInFlight) return;
-    if (!_revalidating.add(identity.key)) return;
-    _revalidationInFlight = true;
-
-    unawaited(() async {
-      final request = http.Request('GET', uri);
-      request.headers.addAll(sourceHeaders);
-      final etag = cached.etag;
-      final lastModified = cached.lastModified;
-      if (etag != null && etag.isNotEmpty) {
-        request.headers['If-None-Match'] = etag;
-      }
-      if (lastModified != null && lastModified.isNotEmpty) {
-        request.headers['If-Modified-Since'] = lastModified;
-      }
-
-      final timeout = dataMode.requestTimeout();
-      final stopwatch = Stopwatch()..start();
-      try {
-        final response = await _inner.send(request).timeout(timeout);
-        final bytes = await response.stream.toBytes().timeout(timeout);
-        stopwatch.stop();
-
-        _closeCircuit();
-        dataMode.observeSuccess(stopwatch.elapsed);
-        metrics.recordNetwork(
-          uploadedBytes: 0,
-          downloadedBytes: bytes.length,
-          elapsed: stopwatch.elapsed,
-          validated: response.statusCode == 304,
-        );
-
-        if (response.statusCode == 304) {
-          await cache.touch(
-            identity.key,
-            cached,
-            sensitive: identity.sensitive,
-          );
-        } else if (_isSuccessful(response.statusCode) &&
-            _isJsonResponse(response.headers)) {
-          await cache.write(
-            identity.key,
-            CustomerCachedHttpResponse(
-              statusCode: response.statusCode,
-              body: utf8.decode(bytes, allowMalformed: true),
-              headers: _cacheHeaders(response.headers),
-              storedAt: DateTime.now().toUtc(),
-            ),
-            sensitive: identity.sensitive,
-          );
-        }
-
-        diagnostics.recordNetworkTransfer(
-          method: 'GET',
-          uri: uri,
-          statusCode: response.statusCode,
-          downloadedBytes: bytes.length,
-          uploadedBytes: 0,
-          elapsed: stopwatch.elapsed,
-          cacheState: response.statusCode == 304 ? 'validated' : 'revalidated',
-        );
-      } on TimeoutException catch (error) {
-        stopwatch.stop();
-        _openCircuit();
-        dataMode.observeFailure();
-        metrics.recordError(timeout: true);
-        diagnostics.recordNetworkTransfer(
-          method: 'GET',
-          uri: uri,
-          statusCode: null,
-          downloadedBytes: 0,
-          uploadedBytes: 0,
-          elapsed: stopwatch.elapsed,
-          cacheState: 'revalidation_timeout',
-          errorType: error.runtimeType.toString(),
-        );
-      } catch (error) {
-        stopwatch.stop();
-        _openCircuit();
-        dataMode.observeFailure();
-        metrics.recordError(timeout: false);
-        diagnostics.recordNetworkTransfer(
-          method: 'GET',
-          uri: uri,
-          statusCode: null,
-          downloadedBytes: 0,
-          uploadedBytes: 0,
-          elapsed: stopwatch.elapsed,
-          cacheState: 'revalidation_error',
-          errorType: error.runtimeType.toString(),
-        );
-      } finally {
-        _revalidating.remove(identity.key);
-        _revalidationInFlight = false;
-      }
-    }());
-  }
-
   Future<void> _handleSuccessfulMutation(
     http.BaseRequest request,
     http.StreamedResponse response,
@@ -695,24 +591,6 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         path.startsWith('/api/v1/notifications') ||
         path.startsWith('/api/v1/account-deletion') ||
         path.startsWith('/api/v1/checkout');
-  }
-
-  static Duration _freshnessFor(String path, CustomerDataMode mode) {
-    final multiplier = mode == CustomerDataMode.lite ? 6 : 1;
-    if (path.startsWith('/api/v1/orders') ||
-        path.startsWith('/api/v1/cart') ||
-        path.startsWith('/api/v1/notifications')) {
-      return Duration(seconds: 15 * multiplier);
-    }
-    if (path.startsWith('/api/v1/stores') ||
-        path.startsWith('/api/v1/products') ||
-        path.contains('/products') ||
-        path.contains('/categories') ||
-        path.contains('/offers') ||
-        path.contains('/banners')) {
-      return Duration(minutes: 5 * multiplier);
-    }
-    return Duration(minutes: 2 * multiplier);
   }
 
   static Map<String, String> _cacheHeaders(Map<String, String> headers) {
