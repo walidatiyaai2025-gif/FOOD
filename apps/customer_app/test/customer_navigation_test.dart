@@ -3,11 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
 import 'package:foodex_customer_app/core/api/b2b_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
+import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/retail_customer_journey_screen.dart';
 import 'package:foodex_customer_app/features/storefront/platform_marketplace_screen.dart';
+import 'package:foodex_customer_app/features/storefront/wholesale_multistore_screens.dart';
 
 void main() {
   test('reference route patterns are represented in one route registry', () {
@@ -158,13 +160,14 @@ void main() {
     expect(find.byKey(const ValueKey('customer-auth-guest')), findsNothing);
   });
 
-  testWidgets('successful non-merchant login lands on Marketplace',
+  testWidgets('successful non-merchant login lands on canonical Wholesale Home',
       (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(
         initialRoute: '/entry',
         actionApi: const _SuccessfulCustomerActionApi(),
         b2bApi: _RecordingB2bApi(),
+        storefrontApi: const _CanonicalWholesaleHomeStorefrontApi(),
       ),
     );
     await tester.pumpAndSettle();
@@ -183,18 +186,21 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.byType(PlatformMarketplaceScreen), findsOneWidget);
-    expect(find.text('فودكس للأعمال'), findsNothing);
+    expect(find.byType(WholesaleHomeDesignScreen), findsOneWidget);
+    expect(find.byType(PlatformMarketplaceScreen), findsNothing);
     expect(
         find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
   });
 
-  testWidgets('successful Retail merchant login lands on store Shopping Home',
+  testWidgets(
+      'successful Retail merchant login lands on canonical Wholesale Home',
       (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(
         initialRoute: '/entry',
         actionApi: const _RetailMerchantCustomerActionApi(),
+        b2bApi: _RecordingB2bApi(),
+        storefrontApi: const _CanonicalWholesaleHomeStorefrontApi(),
       ),
     );
     await tester.pumpAndSettle();
@@ -213,7 +219,8 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.byType(RetailCustomerJourneyScreen), findsOneWidget);
+    expect(find.byType(WholesaleHomeDesignScreen), findsOneWidget);
+    expect(find.byType(RetailCustomerJourneyScreen), findsNothing);
     expect(find.byType(PlatformMarketplaceScreen), findsNothing);
   });
 
@@ -630,4 +637,55 @@ class _MemoryPendingActionStore implements CustomerPendingActionStore {
   Future<void> write(CustomerPendingAction action) async {
     value = action;
   }
+}
+
+
+class _CanonicalWholesaleHomeStorefrontApi implements StorefrontApi {
+  const _CanonicalWholesaleHomeStorefrontApi();
+
+  @override
+  Future<Map<String, dynamic>> selection({
+    String? countryCode,
+    String? city,
+    String? area,
+    bool support = false,
+  }) async =>
+      const <String, dynamic>{
+        'wholesale_stores': <Object>[
+          <String, Object?>{
+            'id': 70,
+            'name': 'FOODEX Main Wholesale',
+            'is_platform_principal': true,
+          },
+        ],
+        'entitlements': <String, Object?>{
+          'principal_wholesale_store_id': 70,
+        },
+      };
+
+  @override
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
+      <String, dynamic>{
+        'store': <String, Object?>{
+          'id': storeId,
+          'name': 'FOODEX Main Wholesale',
+        },
+        'sections': const <Object>[
+          <String, Object?>{
+            'type': 'hero',
+            'sort_order': 10,
+          },
+        ],
+        'products': const <String, Object?>{
+          'data': <Object>[],
+        },
+      };
+
+  @override
+  Future<Map<String, dynamic>> retailHome(int storeId) async =>
+      const <String, dynamic>{};
+
+  @override
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
+      const <String, dynamic>{};
 }
