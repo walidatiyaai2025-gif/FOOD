@@ -355,62 +355,65 @@ class _FooterButton extends StatelessWidget {
       label: item.label,
       child: Opacity(
         key: ValueKey(
-          enabled ? 'footer-enabled-${item.destination.name}' : 'footer-disabled-${item.destination.name}',
+          enabled
+              ? 'footer-enabled-${item.destination.name}'
+              : 'footer-disabled-${item.destination.name}',
         ),
         opacity: enabled ? 1 : .36,
         child: InkWell(
           onTap: enabled ? onTap : null,
           child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: CustomerUiSpacing.xxs,
-            vertical: 5,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: duration,
-                curve: CustomerUiMotion.emphasisCurve,
-                width: active ? 58 : 46,
-                height: active ? 42 : 42,
-                decoration: BoxDecoration(
-                  color:
-                      active ? CustomerUiColors.limeSoft : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: CustomerUiSpacing.xxs,
+              vertical: 5,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: duration,
+                  curve: CustomerUiMotion.emphasisCurve,
+                  width: active ? 58 : 46,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color:
+                        active ? CustomerUiColors.limeSoft : Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(
+                    active ? item.activeIcon : item.icon,
+                    size: active ? 27 : 24,
+                    color: active
+                        ? CustomerUiColors.deepGreenStrong
+                        : CustomerUiColors.muted,
+                  ),
                 ),
-                child: Icon(
-                  active ? item.activeIcon : item.icon,
-                  size: active ? 27 : 24,
-                  color: active
-                      ? CustomerUiColors.deepGreenStrong
-                      : CustomerUiColors.muted,
+                const SizedBox(height: 2),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 15),
+                  child: Text(
+                    item.label,
+                    maxLines: 2,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: active
+                              ? CustomerUiColors.deepGreenStrong
+                              : CustomerUiColors.muted,
+                          fontWeight:
+                              active ? FontWeight.w900 : FontWeight.w700,
+                          fontSize: 10.5,
+                          height: 1.05,
+                        ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 15),
-                child: Text(
-                  item.label,
-                  maxLines: 2,
-                  softWrap: true,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: active
-                            ? CustomerUiColors.deepGreenStrong
-                            : CustomerUiColors.muted,
-                        fontWeight: active ? FontWeight.w900 : FontWeight.w700,
-                        fontSize: 10.5,
-                        height: 1.05,
-                      ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 }
