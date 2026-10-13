@@ -146,13 +146,14 @@ class HttpCustomerActionApi implements CustomerActionApi {
         ? Map<String, dynamic>.from(body['user'] as Map)
         : const <String, dynamic>{};
 
-    final retailStoreIds = (user['retail_store_ids'] as List? ?? const <Object>[])
-        .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
-        .whereType<int>()
-        .where((id) => id > 0)
-        .toSet()
-        .toList(growable: false)
-      ..sort();
+    final retailStoreIds =
+        (user['retail_store_ids'] as List? ?? const <Object>[])
+            .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
+            .whereType<int>()
+            .where((id) => id > 0)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
 
     return CustomerLoginResult(
       token: value,
@@ -214,13 +215,14 @@ class HttpCustomerActionApi implements CustomerActionApi {
         ? Map<String, dynamic>.from(body['user'] as Map)
         : const <String, dynamic>{};
 
-    final retailStoreIds = (user['retail_store_ids'] as List? ?? const <Object>[])
-        .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
-        .whereType<int>()
-        .where((id) => id > 0)
-        .toSet()
-        .toList(growable: false)
-      ..sort();
+    final retailStoreIds =
+        (user['retail_store_ids'] as List? ?? const <Object>[])
+            .map((raw) => raw is int ? raw : int.tryParse(raw.toString()))
+            .whereType<int>()
+            .where((id) => id > 0)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
 
     return CustomerLoginResult(
       token: value,
