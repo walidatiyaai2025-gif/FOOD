@@ -18,6 +18,11 @@ typedef CustomerUnifiedAuthenticated = Future<void> Function(
 
 typedef CustomerAuthenticatedRouteResume = Future<void> Function(String route);
 
+typedef CustomerRememberedRetailStoreResolver = Future<int?> Function(
+  String token,
+  int? rememberedRetailStoreId,
+);
+
 typedef CustomerPendingActionExecutor = Future<String?> Function(
   CustomerPendingAction action,
   String token,
@@ -37,6 +42,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
     this.preferences = const CustomerAuthPreferences(),
     this.biometricAuthenticator,
     this.resumeAuthenticatedRoute,
+    this.rememberedRetailStoreResolver,
     this.onLogout,
     this.onLocaleChanged,
     this.registerInitially = false,
@@ -55,6 +61,7 @@ class UnifiedCustomerAuthScreen extends StatefulWidget {
   final CustomerAuthPreferences preferences;
   final CustomerBiometricAuthenticator? biometricAuthenticator;
   final CustomerAuthenticatedRouteResume? resumeAuthenticatedRoute;
+  final CustomerRememberedRetailStoreResolver? rememberedRetailStoreResolver;
   final Future<void> Function()? onLogout;
   final ValueChanged<Locale>? onLocaleChanged;
   final bool registerInitially;
@@ -315,7 +322,15 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         return;
       }
 
-      final rememberedRetailStoreId = stored.b2bRetailStoreId;
+      var rememberedRetailStoreId = stored.b2bRetailStoreId;
+      final resolver = widget.rememberedRetailStoreResolver;
+      if (resolver != null) {
+        rememberedRetailStoreId = await resolver(
+          token,
+          rememberedRetailStoreId,
+        );
+      }
+
       await _finishAuthentication(
         token,
         mergeRetailGuestCart: true,
