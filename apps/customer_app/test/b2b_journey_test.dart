@@ -560,7 +560,7 @@ void main() {
   );
 
   testWidgets(
-    'Wholesale header shows Business dashboard shortcut only for signed-in B2B users',
+    'Wholesale header removes Business shortcut and keeps search inside header',
     (tester) async {
       await tester.pumpWidget(
         FoodexCustomerApp(
@@ -573,18 +573,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final shortcut = find.byKey(
-        const ValueKey('wholesale-business-dashboard-button'),
-      );
-      expect(shortcut, findsOneWidget);
-
-      await tester.tap(shortcut);
-      await tester.pumpAndSettle();
-
       expect(
-        find.byKey(const ValueKey('b2b-dashboard-notifications')),
+        find.byKey(const ValueKey('wholesale-business-dashboard-button')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('wholesale-home-search')),
         findsOneWidget,
       );
+      expect(find.text('B2B'), findsNothing);
     },
   );
 
