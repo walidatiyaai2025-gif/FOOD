@@ -3228,6 +3228,23 @@ void main() {
     expect(find.textContaining('20.000 KWD'), findsWidgets);
     expect(find.textContaining('5.000 KWD'), findsWidgets);
     expect(find.textContaining('15.000 KWD'), findsWidgets);
+
+    final paidText = tester.widget<Text>(
+      find.byKey(const ValueKey('b2b-invoice-paid-31')),
+    );
+    final paidSpans = (paidText.textSpan as TextSpan).children!;
+    expect((paidSpans.last as TextSpan).style?.color, CustomerUiColors.success);
+
+    final outstandingText = tester.widget<Text>(
+      find.byKey(const ValueKey('b2b-invoice-outstanding-31')),
+    );
+    final outstandingSpans =
+        (outstandingText.textSpan as TextSpan).children!;
+    expect(
+      (outstandingSpans.last as TextSpan).style?.color,
+      CustomerUiColors.destructive,
+    );
+
     expect(find.text('#31'), findsNothing);
     expect(find.text('رقم الفاتورة INV-31'), findsOneWidget);
 
