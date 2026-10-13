@@ -3228,8 +3228,27 @@ void main() {
     expect(find.textContaining('20.000 KWD'), findsWidgets);
     expect(find.textContaining('5.000 KWD'), findsWidgets);
     expect(find.textContaining('15.000 KWD'), findsWidgets);
+    expect(find.text('#31'), findsNothing);
+    expect(find.text('رقم الفاتورة INV-31'), findsOneWidget);
 
-    await tester.tap(find.text('#31'));
+    final statusRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoice-status-31')),
+    );
+    final pdfRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoice-pdf-31')),
+    );
+    final detailsRect = tester.getRect(
+      find.byKey(const ValueKey('b2b-invoice-open-31')),
+    );
+    expect(pdfRect.top, greaterThan(statusRect.bottom - 1));
+    expect((pdfRect.center.dy - detailsRect.center.dy).abs(), lessThan(1));
+
+    final invoiceHeader = tester.widget<Text>(
+      find.byKey(const ValueKey('b2b-invoice-number-31')),
+    );
+    expect(invoiceHeader.style?.fontSize, lessThanOrEqualTo(10));
+
+    await tester.tap(find.text('رقم الفاتورة INV-31'));
     await tester.pumpAndSettle();
 
     expect(find.text('/b2b/invoices/31'), findsNothing);
