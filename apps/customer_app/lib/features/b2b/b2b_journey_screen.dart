@@ -5704,11 +5704,6 @@ class _B2bAccountStatementRemoteStateState
           runSpacing: 8,
           children: [
             _summaryCard(
-              'opening',
-              context.tr('b2b.statement.opening_balance'),
-              _money(data['opening_balance'], currency),
-            ),
-            _summaryCard(
               'debits',
               context.tr('b2b.statement.period_debits'),
               _money(data['period_debits'], currency),
@@ -5718,43 +5713,62 @@ class _B2bAccountStatementRemoteStateState
               context.tr('b2b.statement.period_credits'),
               _money(data['period_credits'], currency),
             ),
-            _summaryCard(
-              'current',
-              context.tr('b2b.statement.current_balance'),
-              '$currentDirection · ${_money(current.abs(), currency)}',
-            ),
           ],
         ),
         const SizedBox(height: 10),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
               children: [
-                Text(
-                  context.tr('b2b.statement.export_exact'),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                Expanded(
+                  child: Text(
+                    context.tr('b2b.statement.export_exact'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
+                const SizedBox(width: 6),
                 FilledButton.tonalIcon(
                   key: const ValueKey('b2b-statement-export-pdf'),
                   onPressed: _exporting ? null : () => _export('pdf'),
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 28),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 12),
                   label: const Text('PDF'),
                 ),
+                const SizedBox(width: 4),
                 FilledButton.tonalIcon(
                   key: const ValueKey('b2b-statement-export-xlsx'),
                   onPressed: _exporting ? null : () => _export('xlsx'),
-                  icon: const Icon(Icons.table_view_outlined),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 28),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  icon: const Icon(Icons.table_view_outlined, size: 12),
                   label: const Text('Excel'),
-                ),
-                IconButton(
-                  key: const ValueKey('b2b-statement-refresh'),
-                  tooltip: context.tr('customer.action.retry'),
-                  onPressed: _load,
-                  icon: const Icon(Icons.refresh),
                 ),
               ],
             ),
