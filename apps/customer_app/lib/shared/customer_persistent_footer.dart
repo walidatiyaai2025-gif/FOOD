@@ -119,13 +119,12 @@ class CustomerPersistentFooter extends StatelessWidget {
     final isRetail = commerceContext?.isRetail == true;
     final items = isWholesale
         ? <_FooterItem>[
-            if (isPlatformHome)
-              _FooterItem(
-                destination: CustomerFooterDestination.home,
-                label: context.tr('customer.nav.home'),
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-              ),
+            _FooterItem(
+              destination: CustomerFooterDestination.home,
+              label: context.tr('customer.nav.home'),
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
+            ),
             _FooterItem(
               destination: CustomerFooterDestination.products,
               label: context.tr('customer.nav.shopping'),
@@ -255,7 +254,9 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (scope?.isWholesale == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return CustomerRouteLocations.wholesaleHome(scope!);
+          return scope!.source == CustomerCommerceSource.marketplace
+              ? CustomerRoutePaths.marketplace
+              : CustomerRouteLocations.wholesaleHome(scope);
         case CustomerFooterDestination.products:
           if (isPlatformHome) {
             return Uri(
