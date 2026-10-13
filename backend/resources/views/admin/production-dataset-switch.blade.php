@@ -33,7 +33,7 @@
 <div class="foodex-card dataset-card"><span>{{ __('production_dataset_switch.restore_verified') }}</span><strong>{{ ($dataset['verified'] ?? false) ? __('production_dataset_switch.yes') : __('production_dataset_switch.no') }}</strong></div>
 <div class="foodex-card dataset-card"><span>{{ __('production_dataset_switch.launch_ready') }}</span><strong>{{ $preview['ready'] ? __('production_dataset_switch.yes') : __('production_dataset_switch.no') }}</strong></div>
 <div class="foodex-card dataset-card"><span>{{ __('production_dataset_switch.impact') }}</span><strong>{{ trans_choice('production_dataset_switch.rows', $preview['total'], ['count'=>$preview['total']]) }}</strong></div>
-<div class="foodex-card dataset-card"><span>{{ __('production_dataset_switch.last_transition') }}</span><strong dir="ltr">{{ $dataset['restored_at'] ?? ($dataset['created_at'] ?? '—') }}</strong></div>
+<div class="foodex-card dataset-card"><span>{{ __('production_dataset_switch.last_transition') }}</span><strong dir="ltr">{{ $lastTransition?->created_at?->toIso8601String() ?? '—' }}</strong></div>\n<div class="foodex-card dataset-card"><span>{{ __('production_dataset_switch.audit_reference') }}</span><strong dir="ltr">{{ $lastTransition ? '#'.$lastTransition->id : '—' }}</strong></div>
 </div>
 </section>
 
