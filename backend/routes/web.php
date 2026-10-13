@@ -389,7 +389,7 @@ Route::prefix('admin')
         Route::post('/settings/mobile/reviewer/{reviewer}/test', [StoreSubmissionController::class, 'testReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.test');
         Route::get('/settings/foodex-reset', [FoodexResetController::class, 'index'])->name('foodex-reset.index');
         Route::post('/settings/foodex-reset', [FoodexResetController::class, 'store'])->block(920, 1)->middleware('throttle:3,1')->name('foodex-reset.store');
-        Route::get('/settings/production-launch', [ProductionLaunchController::class, 'index'])->name('production-launch.index');
+        Route::get('/settings/production-dataset', [ProductionDatasetSwitchController::class, 'index'])->name('production-dataset-switch.index');\n        Route::post('/settings/production-dataset/launch', [ProductionDatasetSwitchController::class, 'launch'])->block(920, 1)->middleware('throttle:3,1')->name('production-dataset-switch.launch');\n        Route::post('/settings/production-dataset/legacy', [ProductionDatasetSwitchController::class, 'legacy'])->block(1820, 1)->middleware('throttle:3,1')->name('production-dataset-switch.legacy');\n        Route::get('/settings/production-launch', [ProductionLaunchController::class, 'index'])->name('production-launch.index');
         Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');
