@@ -6,6 +6,8 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
+import 'package:foodex_customer_app/features/retail/retail_customer_journey_screen.dart';
+import 'package:foodex_customer_app/features/storefront/platform_marketplace_screen.dart';
 
 void main() {
   test('reference route patterns are represented in one route registry', () {
@@ -121,7 +123,7 @@ void main() {
     );
   });
 
-  testWidgets('entry route renders the C13 business login without Marketplace bypass',
+  testWidgets('entry route renders unified login without Marketplace bypass',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/entry'),
@@ -132,7 +134,7 @@ void main() {
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('c13-business-login-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
@@ -151,7 +153,7 @@ void main() {
     expect(find.byKey(const ValueKey('customer-auth-guest')), findsNothing);
   });
 
-  testWidgets('successful C13 login lands on Screen 2 dashboard',
+  testWidgets('successful non-merchant login lands on Marketplace',
       (tester) async {
     await tester.pumpWidget(
       FoodexCustomerApp(
@@ -176,8 +178,37 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(find.text('فودكس للأعمال'), findsOneWidget);
+    expect(find.byType(PlatformMarketplaceScreen), findsOneWidget);
+    expect(find.text('فودكس للأعمال'), findsNothing);
     expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
+  });
+
+  testWidgets('successful Retail merchant login lands on store Shopping Home',
+      (tester) async {
+    await tester.pumpWidget(
+      FoodexCustomerApp(
+        initialRoute: '/entry',
+        actionApi: const _RetailMerchantCustomerActionApi(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-email')),
+      'merchant@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('unified-auth-password')),
+      'password-123',
+    );
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RetailCustomerJourneyScreen), findsOneWidget);
+    expect(find.byType(PlatformMarketplaceScreen), findsNothing);
   });
 
   testWidgets('entry register mode exposes the existing registration controls',
@@ -496,6 +527,38 @@ class _SuccessfulCustomerActionApi implements CustomerActionApi {
   @override
   Future<CustomerLoginResult> login({required String username}) async =>
       const CustomerLoginResult(token: 'b2b-token');
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<Object?> addCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+  }) async =>
+      null;
+
+  @override
+  Future<Object?> checkout({
+    required int addressId,
+    int? storeId,
+    String? paymentMethod,
+    String? couponCode,
+    required String idempotencyKey,
+  }) async =>
+      null;
+}
+
+class _RetailMerchantCustomerActionApi implements CustomerActionApi {
+  const _RetailMerchantCustomerActionApi();
+
+  @override
+  Future<CustomerLoginResult> login({required String username}) async =>
+      const CustomerLoginResult(
+        token: 'retail-token',
+        retailStoreIds: <int>[7],
+      );
 
   @override
   Future<void> logout() async {}
