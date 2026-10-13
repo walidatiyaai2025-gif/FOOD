@@ -1460,7 +1460,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.add_rounded, size: 22),
+                              : const Icon(Icons.add_rounded, size: 15),
                         ),
                       ),
                     ),
