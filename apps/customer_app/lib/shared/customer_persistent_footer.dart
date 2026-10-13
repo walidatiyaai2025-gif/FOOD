@@ -234,7 +234,7 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (scope?.isRetail == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return CustomerRouteLocations.retailHome(scope!);
+          return CustomerRoutePaths.b2bHome;
         case CustomerFooterDestination.products:
           return Uri(
             path: CustomerRoutePaths.products,
@@ -254,17 +254,12 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (scope?.isWholesale == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return scope!.source == CustomerCommerceSource.marketplace
-              ? CustomerRoutePaths.marketplace
-              : CustomerRouteLocations.wholesaleHome(scope);
-        case CustomerFooterDestination.products:
-          if (isPlatformHome) {
-            return Uri(
-              path: CustomerRoutePaths.b2bProducts,
-              queryParameters: scope!.toQueryParameters(),
-            ).toString();
-          }
           return CustomerRouteLocations.wholesaleHome(scope!);
+        case CustomerFooterDestination.products:
+          return Uri(
+            path: CustomerRoutePaths.b2bProducts,
+            queryParameters: scope!.toQueryParameters(),
+          ).toString();
         case CustomerFooterDestination.cart:
           return CustomerRouteLocations.wholesaleCart(scope!);
         case CustomerFooterDestination.orders:
@@ -283,9 +278,7 @@ class CustomerPersistentFooter extends StatelessWidget {
       case CustomerFooterDestination.home:
         return CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.products:
-        return isPlatformHome
-            ? CustomerRoutePaths.b2bProducts
-            : CustomerRoutePaths.b2bHome;
+        return CustomerRoutePaths.b2bProducts;
       case CustomerFooterDestination.cart:
         return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
