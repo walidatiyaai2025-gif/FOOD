@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/retail_home_v3_screen.dart';
@@ -412,10 +413,7 @@ Future<void> _dragUntilFound(
 Future<void> _pumpRetailHomeReady(WidgetTester tester) async {
   for (var attempt = 0; attempt < 12; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
-    if (find
-        .byKey(const ValueKey('retail-catalog-home'))
-        .evaluate()
-        .isNotEmpty) {
+    if (find.byKey(const ValueKey('retail-catalog-home')).evaluate().isNotEmpty) {
       return;
     }
   }
