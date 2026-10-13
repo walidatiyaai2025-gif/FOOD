@@ -182,7 +182,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
     await tester.pumpAndSettle();
 
-    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+    expect(find.text(CustomerRoutePaths.b2bHome), findsOneWidget);
     expect(
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsNothing,
@@ -441,7 +441,7 @@ void main() {
   });
 
   testWidgets(
-      'biometric refresh drops inactive remembered Retail store and resumes marketplace',
+      'biometric refresh drops inactive Retail context but still resumes canonical Wholesale Home',
       (tester) async {
     final storage = _MemorySecureStore();
     final sessions = SecureCustomerSessionStore(storage: storage);
