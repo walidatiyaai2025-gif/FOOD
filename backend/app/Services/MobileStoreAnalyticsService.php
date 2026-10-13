@@ -18,7 +18,8 @@ final class MobileStoreAnalyticsService
     public function __construct(
         private readonly B2cDashboardService $dashboard,
         private readonly RetailMerchantIdentityService $identity,
-    ) {}
+    ) {
+    }
 
     /** @return array<string,mixed> */
     public function forUser(
@@ -147,7 +148,7 @@ final class MobileStoreAnalyticsService
         );
         $seenVersion = $seenInsightVersion === null ? null : strtolower(trim($seenInsightVersion));
         $hasNewInsights = $insights !== []
-            && ($seenVersion === null || ! hash_equals($insightVersion, $seenVersion));
+            && ($seenVersion === null || !hash_equals($insightVersion, $seenVersion));
 
         $merchantRecommendationCount = count((array) data_get(
             $dashboard,
@@ -342,7 +343,7 @@ final class MobileStoreAnalyticsService
                 ->hour;
             $buckets[$hour]['orders']++;
 
-            if (! in_array((string) $order->status, ['cancelled', 'refunded'], true)) {
+            if (!in_array((string) $order->status, ['cancelled', 'refunded'], true)) {
                 $buckets[$hour]['sales'] += (float) $order->grand_total;
             }
         }
@@ -397,7 +398,7 @@ final class MobileStoreAnalyticsService
 
         $sourceUpdatedAt = null;
         foreach ([$orderUpdatedAt, $inventoryUpdatedAt] as $value) {
-            if (! is_string($value) || trim($value) === '') {
+            if (!is_string($value) || trim($value) === '') {
                 continue;
             }
 
@@ -562,7 +563,7 @@ final class MobileStoreAnalyticsService
 
     private function assetUrl(mixed $path): ?string
     {
-        if (! is_string($path) || trim($path) === '') {
+        if (!is_string($path) || trim($path) === '') {
             return null;
         }
 
