@@ -122,7 +122,7 @@ void main() {
           .map(
             (key) => tester
                 .getTopLeft(
-                  find.byKey(ValueKey('b2b-statement-preset-' + key)),
+                  find.byKey(ValueKey('b2b-statement-preset-$key')),
                 )
                 .dy,
           )
@@ -2089,7 +2089,7 @@ void main() {
       Icon timelineIcon(String stage) => tester.widget<Icon>(
             find
                 .descendant(
-                  of: find.byKey(ValueKey('b2b-timeline-icon-' + stage)),
+                  of: find.byKey(ValueKey('b2b-timeline-icon-$stage')),
                   matching: find.byType(Icon),
                 )
                 .first,
@@ -2669,7 +2669,7 @@ void main() {
       );
       for (final metric in <String>['total', 'orders', 'invoices', 'average']) {
         expect(
-          find.byKey(ValueKey('b2b-purchases-summary-' + metric)),
+          find.byKey(ValueKey('b2b-purchases-summary-$metric')),
           findsOneWidget,
         );
       }
@@ -2678,7 +2678,7 @@ void main() {
           .map(
             (metric) => tester
                 .getTopLeft(
-                  find.byKey(ValueKey('b2b-purchases-summary-' + metric)),
+                  find.byKey(ValueKey('b2b-purchases-summary-$metric')),
                 )
                 .dy,
           )
