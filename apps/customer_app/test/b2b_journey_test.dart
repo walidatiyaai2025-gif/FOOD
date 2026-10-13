@@ -1295,7 +1295,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('سلة الجملة'), findsOneWidget);
+    expect(find.text('سلة الجملة'), findsNothing);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -1484,11 +1484,29 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Wholesale cart'), findsOneWidget);
+      expect(find.text('Wholesale cart'), findsNothing);
       expect(find.text('Bulk Water'), findsOneWidget);
+      expect(find.text('W-101'), findsNothing);
+      expect(find.text('Case 12'), findsOneWidget);
       expect(find.textContaining('Unit price'), findsWidgets);
       expect(find.textContaining('Line total'), findsWidgets);
-      expect(find.textContaining('Available: 8'), findsOneWidget);
+      expect(find.textContaining('Available: 8'), findsNothing);
+
+      final minusIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-cart-minus-11')),
+          matching: find.byIcon(Icons.remove_rounded),
+        ),
+      );
+      final plusIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('b2b-cart-plus-11')),
+          matching: find.byIcon(Icons.add_rounded),
+        ),
+      );
+      expect(minusIcon.size, 12);
+      expect(plusIcon.size, 12);
+
       expect(find.text('Discounts'), findsOneWidget);
       expect(find.text('Delivery'), findsOneWidget);
       expect(find.text('Tax'), findsOneWidget);
