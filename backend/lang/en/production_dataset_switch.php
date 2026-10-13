@@ -1,7 +1,7 @@
 <?php
 return [
 'title'=>'Production / Legacy Data','description'=>'Switch the live dataset through the verified snapshot and exact-restore workflow.','back'=>'Settings Center',
-'status_title'=>'Current dataset state','active_mode'=>'Active data mode','snapshot_id'=>'Pre-launch snapshot ID','snapshot_status'=>'Snapshot / transition status','snapshot_time'=>'Snapshot created','restore_verified'=>'Restore verification','launch_ready'=>'Launch dataset readiness','impact'=>'Launch impact preview','last_transition'=>'Last successful transition','yes'=>'Ready','no'=>'Blocked',
+'status_title'=>'Current dataset state','active_mode'=>'Active data mode','snapshot_id'=>'Pre-launch snapshot ID','snapshot_status'=>'Snapshot / transition status','snapshot_time'=>'Snapshot created','restore_verified'=>'Restore verification','launch_ready'=>'Launch dataset readiness','impact'=>'Launch impact preview','last_transition'=>'Last successful transition','audit_reference'=>'Audit reference','yes'=>'Ready','no'=>'Blocked',
 'modes'=>['legacy'=>'Legacy / Pre-launch','launch'=>'FOODEX Launch / Production','restoring'=>'Restoring Legacy','failed'=>'Recovery required'],
 'states'=>['no_snapshot'=>'No snapshot','snapshot_ready'=>'Verified snapshot ready','launch_active'=>'Launch active','restoring'=>'Restoring','legacy_restored'=>'Legacy restored','failed'=>'Failed / recoverable'],
 'rows'=>'1 row will be replaced|:count rows will be replaced',
