@@ -2006,7 +2006,7 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-orders-data')), findsOneWidget);
       expect(find.byKey(const ValueKey('b2b-order-row-91')), findsOneWidget);
       expect(find.text('#91'), findsOneWidget);
-      expect(find.text('FOODEX Wholesale'), findsOneWidget);
+      expect(find.text('FOODEX Wholesale'), findsNothing);
       expect(find.text('جاهز'), findsOneWidget);
       expect(find.text('KWD 42.5'), findsOneWidget);
 
