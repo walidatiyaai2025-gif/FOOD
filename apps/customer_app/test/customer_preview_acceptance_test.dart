@@ -14,6 +14,12 @@ import 'package:foodex_customer_app/core/preview/customer_preview_transport.dart
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+Future<void> _pumpCustomerFrames(WidgetTester tester) async {
+  for (var frame = 0; frame < 30; frame++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+}
+
 void main() {
   const widths = <double>[360, 390, 430];
   const locales = <Locale>[Locale('ar'), Locale('en')];
@@ -39,7 +45,7 @@ void main() {
               locale: locale,
             ),
           );
-          await tester.pumpAndSettle();
+          await _pumpCustomerFrames(tester);
 
           expect(tester.takeException(), isNull);
           expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
@@ -90,7 +96,7 @@ void main() {
       expect(guestApp.previewContext, same(guest));
 
       await tester.pumpWidget(guestApp);
-      await tester.pumpAndSettle();
+      await _pumpCustomerFrames(tester);
       expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
 
@@ -103,7 +109,7 @@ void main() {
       expect(authenticatedApp.previewContext, same(authenticated));
 
       await tester.pumpWidget(authenticatedApp);
-      await tester.pumpAndSettle();
+      await _pumpCustomerFrames(tester);
       expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -144,7 +150,7 @@ void main() {
             locale: locale,
           ),
         );
-        await tester.pumpAndSettle();
+        await _pumpCustomerFrames(tester);
 
         expect(tester.takeException(), isNull);
         final scaffold = find.byType(Scaffold).first;
