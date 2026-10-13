@@ -38,7 +38,7 @@ if [[ "$release_version" != "$mobile_release_version" ]]; then
   exit 1
 fi
 
-customer_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/customer_app/lib/app.dart)"
+customer_ui_version="$(awk -F"'" '/^const customerAppVersion =/ {print $2; exit}' apps/customer_app/lib/core/config/customer_app_release.dart)"
 driver_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/driver_app/lib/app.dart)"
 test "$customer_ui_version" = "$release_version"
 test "$driver_ui_version" = "$release_version"
