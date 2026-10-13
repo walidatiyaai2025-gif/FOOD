@@ -1851,8 +1851,8 @@ class _WholesaleProductCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Color(0xFF17212F),
                         fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        height: 1.18,
+                        fontSize: 11,
+                        height: 1.15,
                       ),
                     ),
                     const SizedBox(height: 6),
