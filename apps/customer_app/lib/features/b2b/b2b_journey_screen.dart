@@ -7430,65 +7430,157 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
             final status = row['display_status']?.toString() ??
                 row['status']?.toString() ??
                 'open';
+            final rawInvoiceNumber =
+                row['display_invoice_number']?.toString().trim().isNotEmpty ==
+                        true
+                    ? row['display_invoice_number'].toString().trim()
+                    : row['invoice_number']?.toString().trim().isNotEmpty ==
+                            true
+                        ? row['invoice_number'].toString().trim()
+                        : row['id']?.toString() ?? '—';
+            final invoiceNumber = rawInvoiceNumber.startsWith('#')
+                ? rawInvoiceNumber.substring(1).trim()
+                : rawInvoiceNumber;
+            final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+            final labelStyle = Theme.of(context).textTheme.labelLarge;
+            final compactBodyStyle = bodyStyle?.copyWith(
+              fontSize: (bodyStyle.fontSize ?? 14) * .70,
+              height: 1.15,
+            );
+            final compactStrongStyle = compactBodyStyle?.copyWith(
+              color: CustomerUiColors.ink,
+              fontWeight: FontWeight.w800,
+            );
+            final compactButtonStyle = labelStyle?.copyWith(
+              fontSize: (labelStyle.fontSize ?? 14) * .70,
+              fontWeight: FontWeight.w800,
+            );
+
             return Card(
               key: ValueKey('b2b-invoice-${row['id']}'),
               child: InkWell(
                 onTap: () => Navigator.of(context).pushNamed(_detailRoute(row)),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              row['display_invoice_number']?.toString() ??
-                                  (row['id'] == null ? '—' : '#${row['id']}'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '${ar ? 'رقم الفاتورة' : 'Invoice'} $invoiceNumber',
+                              key: ValueKey(
+                                'b2b-invoice-number-${row['id']}',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: compactStrongStyle?.copyWith(
+                                fontSize:
+                                    (bodyStyle?.fontSize ?? 14) * .70,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
-                          ),
-                          Chip(label: Text(_statusLabel(context, status))),
-                        ],
-                      ),
-                      Text(
-                        '${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}',
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}',
-                      ),
-                      Text(
-                        '${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}',
-                      ),
-                      Text(
-                        '${ar ? 'المتبقي' : 'Outstanding'}: ${_money(row['outstanding_amount'], currency)}',
-                      ),
-                      if ((double.tryParse(row['credit_amount'].toString()) ??
-                              0) >
-                          0)
-                        Text(
-                          '${ar ? 'لك' : 'Credit'}: ${_money(row['credit_amount'], currency)}',
+                            const SizedBox(height: 4),
+                            Text(
+                              '${ar ? 'تاريخ الإصدار' : 'Issued'}: ${_displayDate(row['issued_at'])}',
+                              style: compactBodyStyle,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${ar ? 'الإجمالي' : 'Total'}: ${_money(row['total'], currency)}',
+                              style: compactStrongStyle,
+                            ),
+                            Text(
+                              '${ar ? 'المدفوع' : 'Paid'}: ${_money(row['paid_amount'], currency)}',
+                              style: compactBodyStyle,
+                            ),
+                            Text(
+                              '${ar ? 'المتبقي' : 'Outstanding'}: ${_money(row['outstanding_amount'], currency)}',
+                              style: compactBodyStyle,
+                            ),
+                            if ((double.tryParse(
+                                      row['credit_amount'].toString(),
+                                    ) ??
+                                    0) >
+                                0)
+                              Text(
+                                '${ar ? 'لك' : 'Credit'}: ${_money(row['credit_amount'], currency)}',
+                                style: compactBodyStyle,
+                              ),
+                          ],
                         ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          OutlinedButton.icon(
-                            key: ValueKey('b2b-invoice-pdf-${row['id']}'),
-                            onPressed:
-                                _sharingPdf ? null : () => _sharePdf(row),
-                            icon: const Icon(Icons.picture_as_pdf_outlined),
-                            label: const Text('PDF'),
+                          Chip(
+                            key: ValueKey(
+                              'b2b-invoice-status-${row['id']}',
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            labelPadding:
+                                const EdgeInsets.symmetric(horizontal: 2),
+                            label: Text(
+                              _statusLabel(context, status),
+                              style: compactButtonStyle,
+                            ),
                           ),
-                          FilledButton.tonalIcon(
-                            key: ValueKey('b2b-invoice-open-${row['id']}'),
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(_detailRoute(row)),
-                            icon: const Icon(Icons.open_in_new_rounded),
-                            label: Text(ar ? 'التفاصيل' : 'Details'),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              OutlinedButton.icon(
+                                key: ValueKey(
+                                  'b2b-invoice-pdf-${row['id']}',
+                                ),
+                                onPressed:
+                                    _sharingPdf ? null : () => _sharePdf(row),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 28),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: compactButtonStyle,
+                                ),
+                                icon: const Icon(
+                                  Icons.picture_as_pdf_outlined,
+                                  size: 12,
+                                ),
+                                label: const Text('PDF'),
+                              ),
+                              const SizedBox(width: 4),
+                              FilledButton.tonalIcon(
+                                key: ValueKey(
+                                  'b2b-invoice-open-${row['id']}',
+                                ),
+                                onPressed: () => Navigator.of(context)
+                                    .pushNamed(_detailRoute(row)),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 28),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: compactButtonStyle,
+                                ),
+                                icon: const Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 12,
+                                ),
+                                label: Text(
+                                  ar ? 'التفاصيل' : 'Details',
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
