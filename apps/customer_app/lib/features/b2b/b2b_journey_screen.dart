@@ -1479,22 +1479,6 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           final financeMetrics = <Widget>[
             _metric(
               context,
-              keyName: 'credit-limit',
-              label: context.tr('b2b.dashboard.credit_limit'),
-              value: _money(finance['credit_limit'], currency),
-              icon: Icons.credit_score_outlined,
-              route: CustomerRoutePaths.b2bAccountStatement,
-            ),
-            _metric(
-              context,
-              keyName: 'available-credit',
-              label: context.tr('b2b.dashboard.available_credit'),
-              value: _money(finance['available_credit_line'], currency),
-              icon: Icons.savings_outlined,
-              route: CustomerRoutePaths.b2bAccountStatement,
-            ),
-            _metric(
-              context,
               keyName: 'open-invoices',
               label: context.tr('b2b.dashboard.open_invoices'),
               value: _money(finance['open_amount'], currency),
