@@ -499,6 +499,7 @@ void main() {
           platformWide: true,
         ),
         initialRoute: '/b2b/dashboard',
+        b2bApi: _RecordingB2bApi(),
       ),
     );
     await _pumpCustomerFrames(tester);
