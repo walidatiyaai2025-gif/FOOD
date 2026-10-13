@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -40,7 +39,7 @@ class FoodexResetService
     public function __construct(
         private readonly LaunchCatalog $catalog,
         private readonly AuditLogger $audit,
-        private readonly UpdateRuntime $runtime,
+        private readonly ProductionSnapshotService $snapshots,
     ) {}
 
     public function isProduction(): bool
@@ -94,8 +93,10 @@ class FoodexResetService
             }
 
             // Production backups are made BEFORE the first write and must actually succeed.
-            $backup = $this->isProduction() ? $this->runtime->backupDatabase(true) : null;
-            if ($this->isProduction() && $backup === null) {
+            $backup = $this->isProduction()
+                ? $this->snapshots->createVerified($actor, $request)
+                : null;
+            if ($this->isProduction() && ! is_array($backup)) {
                 throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
             }
 
@@ -107,6 +108,7 @@ class FoodexResetService
                 $this->audit->record('system.launch_reset', $actor, null, $current['counts'], [
                     'catalog_fingerprint' => $current['catalog_fingerprint'],
                     'backup_created' => $backup !== null,
+                    'snapshot_id' => is_array($backup) ? ($backup['snapshot_id'] ?? null) : null,
                     'operation_id' => $request->session()->get('launch_reset_operation'),
                 ], $request);
 
@@ -119,6 +121,10 @@ class FoodexResetService
                         report($exception);
                     }
                 });
+
+                if (is_array($backup)) {
+                    DB::afterCommit(fn () => $this->snapshots->markLaunchActive());
+                }
 
                 return ['removed' => $current['total']];
             });
