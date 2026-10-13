@@ -1073,14 +1073,27 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
   Widget _dashboardIdentityImage(
     Map<Object?, Object?> customer,
     Map<Object?, Object?> account,
+    Map<Object?, Object?> retailStore,
     StoreAnalyticsReadModel? analytics,
   ) {
+    final dashboardStoreName = retailStore['name']?.toString().trim() ?? '';
+    final dashboardLogoUrl = retailStore['logo_url']?.toString().trim() ?? '';
+    final analyticsName = analytics?.store.name.trim() ?? '';
+    final companyName = account['company_name']?.toString().trim() ?? '';
+
+    if (dashboardStoreName.isNotEmpty || dashboardLogoUrl.isNotEmpty) {
+      return BusinessDashboardStoreLogo(
+        storeName: dashboardStoreName.isNotEmpty
+            ? dashboardStoreName
+            : (analyticsName.isNotEmpty ? analyticsName : companyName),
+        logoUrl: dashboardLogoUrl.isEmpty ? null : dashboardLogoUrl,
+      );
+    }
+
     if (_retailStoreContextId == null) {
       return _ownerAvatar(customer, account);
     }
 
-    final analyticsName = analytics?.store.name.trim() ?? '';
-    final companyName = account['company_name']?.toString().trim() ?? '';
     return BusinessDashboardStoreLogo(
       storeName: analyticsName.isNotEmpty ? analyticsName : companyName,
       logoUrl: analytics?.store.logoUrl,
@@ -1096,6 +1109,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
     Object? creditBalance,
     Object? purchaseValue,
     String currency,
+    Map<Object?, Object?> retailStore,
     StoreAnalyticsReadModel? analytics,
   ) =>
       Semantics(
@@ -1120,7 +1134,12 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                     textDirection: TextDirection.ltr,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _dashboardIdentityImage(customer, account, analytics),
+                      _dashboardIdentityImage(
+                        customer,
+                        account,
+                        retailStore,
+                        analytics,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -1158,9 +1177,12 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                               ],
                             ),
                             Text(
-                              analytics?.store.name ??
-                                  account['company_name']?.toString() ??
-                                  '—',
+                              (retailStore['name']?.toString().trim().isNotEmpty ??
+                                      false)
+                                  ? retailStore['name'].toString().trim()
+                                  : analytics?.store.name ??
+                                      account['company_name']?.toString() ??
+                                      '—',
                               textAlign: TextAlign.start,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1420,6 +1442,9 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
           final freshness = data['freshness'] is Map
               ? Map<Object?, Object?>.from(data['freshness'] as Map)
               : <Object?, Object?>{};
+          final retailStore = data['retail_store'] is Map
+              ? Map<Object?, Object?>.from(data['retail_store'] as Map)
+              : <Object?, Object?>{};
 
           final currency = finance['currency']?.toString() ??
               data['currency']?.toString() ??
@@ -1532,6 +1557,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                   creditBalance,
                   purchaseValue,
                   currency,
+                  retailStore,
                   analytics,
                 ),
                 finance: DashboardPanel(
