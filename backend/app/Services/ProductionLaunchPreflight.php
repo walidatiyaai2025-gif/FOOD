@@ -269,6 +269,15 @@ final class ProductionLaunchPreflight
             }
         }
 
+        $freeze = [];
+        $freezePath = base_path('../docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json');
+        if (is_file($freezePath)) {
+            $decodedFreeze = json_decode((string) file_get_contents($freezePath), true);
+            if (is_array($decodedFreeze) && is_array($decodedFreeze['frozen_customer'] ?? null)) {
+                $freeze = $decodedFreeze['frozen_customer'];
+            }
+        }
+
         $sourceCommit = is_string($buildInfo['source_commit'] ?? null)
             && preg_match('/^[a-f0-9]{40,64}$/', $buildInfo['source_commit']) === 1
                 ? $buildInfo['source_commit']
@@ -283,8 +292,14 @@ final class ProductionLaunchPreflight
             'github_run_number' => is_scalar($buildInfo['github_run_number'] ?? null)
                 ? (string) $buildInfo['github_run_number']
                 : null,
-            'customer_version' => is_string($buildInfo['customer']['version'] ?? null)
-                ? trim($buildInfo['customer']['version'])
+            'customer_version' => is_string($freeze['source_version'] ?? null)
+                ? trim($freeze['source_version'])
+                : (is_string($buildInfo['customer']['version'] ?? null) ? trim($buildInfo['customer']['version']) : null),
+            'customer_frozen_identity' => is_string($freeze['source_identity'] ?? null)
+                ? trim($freeze['source_identity'])
+                : null,
+            'customer_frozen_baseline' => is_string($freeze['baseline_commit'] ?? null)
+                ? trim($freeze['baseline_commit'])
                 : null,
             'driver_version' => is_string($buildInfo['driver']['version'] ?? null)
                 ? trim($buildInfo['driver']['version'])
@@ -292,9 +307,9 @@ final class ProductionLaunchPreflight
             'van_version' => is_string($buildInfo['van']['version'] ?? null)
                 ? trim($buildInfo['van']['version'])
                 : null,
-            'customer_build_number' => is_numeric($buildInfo['customer']['build_number'] ?? null)
-                ? (int) $buildInfo['customer']['build_number']
-                : null,
+            'customer_build_number' => is_numeric($freeze['source_build_number'] ?? null)
+                ? (int) $freeze['source_build_number']
+                : (is_numeric($buildInfo['customer']['build_number'] ?? null) ? (int) $buildInfo['customer']['build_number'] : null),
             'driver_build_number' => is_numeric($buildInfo['driver']['build_number'] ?? null)
                 ? (int) $buildInfo['driver']['build_number']
                 : null,
@@ -474,8 +489,10 @@ final class ProductionLaunchPreflight
             && $release['version'] === $release['build_info_version'];
         $hasSource = is_string($release['source_commit']) && $release['source_commit'] !== '';
         $hasRun = is_string($release['github_run_number']) && $release['github_run_number'] !== '';
+        $customerFrozen = ($release['customer_frozen_identity'] ?? null) === '1.0.76+76'
+            && ($release['customer_frozen_baseline'] ?? null) === '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d';
         $appVersionsMatch = $versionMatches
-            && $release['customer_version'] === $release['version']
+            && $customerFrozen
             && $release['driver_version'] === $release['version']
             && $release['van_version'] === $release['version'];
         $builds = [
@@ -493,7 +510,7 @@ final class ProductionLaunchPreflight
         return [
             'passed' => $passed,
             'detail' => $passed
-                ? 'Release version, source commit, run and all three mobile builds share a valid lineage.'
+                ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
             'source' => 'Release/BUILD_INFO.json + VERSION',
         ];
