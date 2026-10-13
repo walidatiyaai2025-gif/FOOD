@@ -235,7 +235,7 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (scope?.isRetail == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return CustomerRoutePaths.marketplace;
+          return CustomerRouteLocations.retailHome(scope!);
         case CustomerFooterDestination.products:
           return Uri(
             path: CustomerRoutePaths.products,
