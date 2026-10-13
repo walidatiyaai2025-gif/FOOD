@@ -359,7 +359,6 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               content.add(
                 _WholesaleProductGrid(
                   rows: rows,
-                  gridMode: true,
                   storeId: storeId,
                   sourceLocation: widget.location,
                   session: widget.session,
