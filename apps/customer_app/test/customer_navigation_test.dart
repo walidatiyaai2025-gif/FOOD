@@ -72,9 +72,10 @@ void main() {
     );
   });
 
-  test('auth return validation preserves exact channel-correct internal targets', () {
-    const b2bTarget =
-        '/b2b/products/42?store_id=7&campaign=october%20launch';
+  test(
+      'auth return validation preserves exact channel-correct internal targets',
+      () {
+    const b2bTarget = '/b2b/products/42?store_id=7&campaign=october%20launch';
 
     expect(
       safeCustomerReturnLocation(
@@ -92,7 +93,8 @@ void main() {
     );
   });
 
-  test('auth return validation rejects external, cross-channel and login loops', () {
+  test('auth return validation rejects external, cross-channel and login loops',
+      () {
     expect(
       safeCustomerReturnLocation(
         'https://evil.example/b2b/products/42?store_id=7',
@@ -134,7 +136,8 @@ void main() {
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
@@ -180,7 +183,8 @@ void main() {
 
     expect(find.byType(PlatformMarketplaceScreen), findsOneWidget);
     expect(find.text('فودكس للأعمال'), findsNothing);
-    expect(find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
   });
 
   testWidgets('successful Retail merchant login lands on store Shopping Home',
@@ -297,8 +301,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
-        initialRoute:
-            '/checkout/address-payment?channel=retail&store_id=7',
+        initialRoute: '/checkout/address-payment?channel=retail&store_id=7',
       ),
     );
     await tester.pumpAndSettle();
@@ -308,7 +311,8 @@ void main() {
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('customer-auth-remember-me')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-auth-remember-me')),
+        findsOneWidget);
     expect(find.textContaining('/auth/checkout'), findsNothing);
     expect(find.textContaining('next='), findsNothing);
   });
@@ -451,7 +455,8 @@ void main() {
     );
   });
 
-  testWidgets('platform-wide customer can enter Retail protected routes from one Wholesale session',
+  testWidgets(
+      'platform-wide customer can enter Retail protected routes from one Wholesale session',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -468,7 +473,8 @@ void main() {
     expect(find.text('حسابي'), findsWidgets);
   });
 
-  testWidgets('platform-wide customer can enter Wholesale protected routes from one Retail session',
+  testWidgets(
+      'platform-wide customer can enter Wholesale protected routes from one Retail session',
       (tester) async {
     await tester.pumpWidget(
       const FoodexCustomerApp(
@@ -599,7 +605,6 @@ class _RecordingB2bApi implements B2bApi {
     };
   }
 }
-
 
 class _MemoryPendingActionStore implements CustomerPendingActionStore {
   CustomerPendingAction? value;

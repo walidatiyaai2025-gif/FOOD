@@ -123,7 +123,8 @@ void main() {
     client.close();
   });
 
-  test('etag validation still contacts the server before using cache', () async {
+  test('etag validation still contacts the server before using cache',
+      () async {
     var networkCalls = 0;
     String? validator;
     final client = CustomerLowDataHttpClient(
