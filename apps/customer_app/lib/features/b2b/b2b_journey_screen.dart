@@ -334,7 +334,8 @@ class B2bJourneyScreen extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
-                padding: definition.pattern == CustomerRoutePaths.b2bAccountStatement
+                padding: definition.pattern == CustomerRoutePaths.b2bAccountStatement ||
+                        definition.pattern == CustomerRoutePaths.b2bPurchaseReports
                     ? const EdgeInsets.fromLTRB(
                         CustomerUiSpacing.page,
                         0,
@@ -3018,7 +3019,6 @@ class _PurchaseReportRemoteStateState
           }
 
           final summary = _reportMap(data['summary']);
-          final comparison = _reportMap(data['comparison']);
           final trend = _reportRows(data['data']);
           final categories = _reportRows(data['categories']);
           final orders = _reportRows(data['orders']);
@@ -3040,7 +3040,7 @@ class _PurchaseReportRemoteStateState
             key: const ValueKey('b2b-purchases-report'),
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _filters(context),
+              _filters(context, summary, currency),
               if (loading) const LinearProgressIndicator(),
               if (stale) ...[
                 const SizedBox(height: 10),
@@ -3057,12 +3057,6 @@ class _PurchaseReportRemoteStateState
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
-              _summary(context, summary, currency),
-              if (comparison.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _comparison(context, comparison, currency),
-              ],
               if (isEmpty) ...[
                 const SizedBox(height: 10),
                 Card(
@@ -3074,9 +3068,9 @@ class _PurchaseReportRemoteStateState
                 ),
               ] else ...[
                 const SizedBox(height: 10),
-                _trend(context, trend, currency),
-                const SizedBox(height: 10),
                 _categories(context, categories, currency),
+                const SizedBox(height: 10),
+                _trend(context, trend, currency),
                 if (orders.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   _orders(
@@ -3093,212 +3087,277 @@ class _PurchaseReportRemoteStateState
         },
       );
 
-  Widget _filters(BuildContext context) => Card(
+  Widget _filters(
+    BuildContext context,
+    Map<Object?, Object?> summary,
+    String currency,
+  ) =>
+      Card(
         key: const ValueKey('b2b-purchases-filters'),
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                context.tr('b2b.purchase_reports.period'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ChoiceChip(
-                    key: const ValueKey('b2b-purchases-current-period'),
-                    label:
-                        Text(context.tr('b2b.purchase_reports.current_period')),
-                    selected: _period == _PurchaseReportPeriod.current,
-                    onSelected: (_) =>
-                        _applyPeriod(_PurchaseReportPeriod.current),
-                  ),
-                  ChoiceChip(
-                    key: const ValueKey('b2b-purchases-previous-period'),
-                    label: Text(
-                        context.tr('b2b.purchase_reports.previous_period')),
-                    selected: _period == _PurchaseReportPeriod.previous,
-                    onSelected: (_) =>
-                        _applyPeriod(_PurchaseReportPeriod.previous),
-                  ),
-                  ChoiceChip(
-                    key: const ValueKey('b2b-purchases-all-periods'),
-                    label: Text(context.tr('b2b.purchase_reports.all_time')),
-                    selected: _period == _PurchaseReportPeriod.all,
-                    onSelected: (_) => _applyPeriod(_PurchaseReportPeriod.all),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
+              Row(
                 key: const ValueKey('b2b-purchases-date-actions-row'),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    OutlinedButton.icon(
+                children: [
+                  Text(
+                    context.tr('b2b.purchase_reports.period'),
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: OutlinedButton.icon(
                       key: const ValueKey('b2b-purchases-from'),
                       onPressed: () => _pickDate(from: true),
-                      icon: const Icon(Icons.calendar_today_outlined),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 12,
+                      ),
                       label: Text(
                         '${context.tr('b2b.purchase_reports.from')}: '
                         '${_from == null ? '—' : _isoDate(_from!)}',
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9.2,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: OutlinedButton.icon(
                       key: const ValueKey('b2b-purchases-to'),
                       onPressed: () => _pickDate(from: false),
-                      icon: const Icon(Icons.event_available_outlined),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(
+                        Icons.event_available_outlined,
+                        size: 12,
+                      ),
                       label: Text(
                         '${context.tr('b2b.purchase_reports.to')}: '
                         '${_to == null ? '—' : _isoDate(_to!)}',
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9.2,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
+                  ),
+                  const SizedBox(width: 3),
+                  SizedBox.square(
+                    dimension: 30,
+                    child: IconButton(
                       key: const ValueKey('b2b-purchases-refresh'),
                       tooltip: context.tr('b2b.purchase_reports.refresh'),
                       onPressed: _reload,
+                      padding: EdgeInsets.zero,
+                      iconSize: 16,
                       icon: const Icon(Icons.refresh),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: _compactPeriodChip(
+                      keyName: 'current-period',
+                      label: context.tr('b2b.purchase_reports.current_period'),
+                      selected: _period == _PurchaseReportPeriod.current,
+                      onPressed: () =>
+                          _applyPeriod(_PurchaseReportPeriod.current),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _compactPeriodChip(
+                      keyName: 'previous-period',
+                      label: context.tr('b2b.purchase_reports.previous_period'),
+                      selected: _period == _PurchaseReportPeriod.previous,
+                      onPressed: () =>
+                          _applyPeriod(_PurchaseReportPeriod.previous),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _compactPeriodChip(
+                      keyName: 'all-periods',
+                      label: context.tr('b2b.purchase_reports.all_time'),
+                      selected: _period == _PurchaseReportPeriod.all,
+                      onPressed: () =>
+                          _applyPeriod(_PurchaseReportPeriod.all),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 7),
+              Row(
+                key: const ValueKey('b2b-purchases-summary'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'total',
+                      icon: Icons.shopping_bag_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.total_purchases',
+                      ),
+                      value: _reportMoney(
+                        summary['total_purchases'],
+                        currency,
+                      ),
+                    ),
+                  ),
+                  _purchaseMetricDivider(),
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'orders',
+                      icon: Icons.inventory_2_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.order_count',
+                      ),
+                      value: summary['order_count']?.toString() ?? '0',
+                    ),
+                  ),
+                  _purchaseMetricDivider(),
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'invoices',
+                      icon: Icons.receipt_long_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.invoice_count',
+                      ),
+                      value: summary['invoice_count']?.toString() ?? '0',
+                    ),
+                  ),
+                  _purchaseMetricDivider(),
+                  Expanded(
+                    child: _purchaseMetric(
+                      keyName: 'average',
+                      icon: Icons.query_stats_outlined,
+                      label: context.tr(
+                        'b2b.purchase_reports.average_order',
+                      ),
+                      value: _reportMoney(
+                        summary['average_order_value'],
+                        currency,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       );
 
-  Widget _summary(
-    BuildContext context,
-    Map<Object?, Object?> summary,
-    String currency,
-  ) {
-    final values =
-        <({String keyName, String label, String value, IconData icon})>[
-      (
-        keyName: 'total',
-        label: context.tr('b2b.purchase_reports.total_purchases'),
-        value: _reportMoney(summary['total_purchases'], currency),
-        icon: Icons.shopping_bag_outlined,
-      ),
-      (
-        keyName: 'orders',
-        label: context.tr('b2b.purchase_reports.order_count'),
-        value: summary['order_count']?.toString() ?? '0',
-        icon: Icons.inventory_2_outlined,
-      ),
-      (
-        keyName: 'invoices',
-        label: context.tr('b2b.purchase_reports.invoice_count'),
-        value: summary['invoice_count']?.toString() ?? '0',
-        icon: Icons.receipt_long_outlined,
-      ),
-      (
-        keyName: 'average',
-        label: context.tr('b2b.purchase_reports.average_order'),
-        value: _reportMoney(summary['average_order_value'], currency),
-        icon: Icons.query_stats_outlined,
-      ),
-    ];
-
-    return Card(
-      key: const ValueKey('b2b-purchases-summary'),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final tileWidth = constraints.maxWidth >= 520
-                ? (constraints.maxWidth - 24) / 4
-                : (constraints.maxWidth - 8) / 2;
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: values
-                  .map(
-                    (item) => SizedBox(
-                      width: tileWidth,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            key: ValueKey(
-                              'b2b-purchases-summary-${item.keyName}',
-                            ),
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(item.icon, size: 20),
-                              const SizedBox(height: 8),
-                              Text(
-                                item.label,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.value,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
+  Widget _compactPeriodChip({
+    required String keyName,
+    required String label,
+    required bool selected,
+    required VoidCallback onPressed,
+  }) =>
+      ChoiceChip(
+        key: ValueKey('b2b-purchases-$keyName'),
+        selected: selected,
+        onSelected: (_) => onPressed(),
+        visualDensity: VisualDensity.compact,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 1),
+        label: SizedBox(
+          width: double.infinity,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 8.4,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _comparison(
-    BuildContext context,
-    Map<Object?, Object?> comparison,
-    String currency,
-  ) {
-    final change = _reportDouble(comparison['change_amount']);
-    final percent = comparison['change_percent'];
-    final prefix = change > 0 ? '+' : '';
-    final percentText =
-        percent == null ? '—' : '${_reportDouble(percent).toStringAsFixed(1)}%';
+  Widget _purchaseMetric({
+    required String keyName,
+    required IconData icon,
+    required String label,
+    required String value,
+  }) =>
+      Column(
+        key: ValueKey('b2b-purchases-summary-$keyName'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: CustomerUiColors.deepGreenStrong,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: CustomerUiColors.muted,
+              fontSize: 7.2,
+              fontWeight: FontWeight.w700,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: const TextStyle(
+                color: CustomerUiColors.ink,
+                fontSize: 9.2,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      );
 
-    return Card(
-      key: const ValueKey('b2b-purchases-comparison'),
-      child: ListTile(
-        leading: Icon(change >= 0 ? Icons.trending_up : Icons.trending_down),
-        title: Text(context.tr('b2b.purchase_reports.comparison')),
-        subtitle: Text(
-          '${context.tr('b2b.purchase_reports.previous_period_total')}: '
-          '${_reportMoney(comparison['total_purchases'], currency)}',
-        ),
-        trailing: Text(
-          '$prefix${_reportMoney(change, currency)}\n$percentText',
-          textAlign: TextAlign.end,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-      ),
-    );
-  }
+  Widget _purchaseMetricDivider() => Container(
+        width: 1,
+        height: 44,
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        color: CustomerUiColors.border,
+      );
 
   Widget _trend(
     BuildContext context,
