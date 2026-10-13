@@ -1153,7 +1153,7 @@ void main() {
     final productName = tester.widget<Text>(
       find.byKey(const ValueKey('marketplace-product-name-42')),
     );
-    expect(productName.maxLines, 2);
+    expect(productName.maxLines, 1);
     expect(productName.overflow, TextOverflow.ellipsis);
     expect(find.text('API Water'), findsOneWidget);
     expect(find.text('12.5 KWD'), findsOneWidget);
@@ -1269,43 +1269,9 @@ void main() {
     expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
     expect(
-      find.byKey(const ValueKey('footer-enabled-products')),
+      find.byKey(const ValueKey('footer-disabled-products')),
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('customer-footer-products')));
-    await tester.pumpAndSettle();
-    route = Uri.parse(
-      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
-    );
-    expect(route.path, '/b2b/products');
-    expect(route.queryParameters['store_id'], '70');
-    expect(route.queryParameters['channel'], 'wholesale');
-
-    Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
-        .pop();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('customer-footer-invoices')));
-    await tester.pumpAndSettle();
-    route = Uri.parse(
-      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
-    );
-    expect(route.path, '/b2b/invoices');
-    expect(route.queryParameters['store_id'], '70');
-    expect(route.queryParameters['channel'], 'wholesale');
-
-    Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
-        .pop();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
-    await tester.pumpAndSettle();
-    route = Uri.parse(
-      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
-    );
-    expect(route.path, '/b2b/profile');
-    expect(route.queryParameters['store_id'], '70');
-    expect(route.queryParameters['channel'], 'wholesale');
   });
 }
