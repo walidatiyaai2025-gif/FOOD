@@ -33,17 +33,19 @@ class CustomerAccountHeader extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              maxLines: compact ? 2 : 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: CustomerUiColors.white.withValues(alpha: 0.82),
-                    fontSize: 12,
-                    height: 1.1,
-                  ),
-            ),
+            if (subtitle.trim().isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: compact ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: CustomerUiColors.white.withValues(alpha: 0.82),
+                      fontSize: 12,
+                      height: 1.1,
+                    ),
+              ),
+            ],
           ],
         );
 
