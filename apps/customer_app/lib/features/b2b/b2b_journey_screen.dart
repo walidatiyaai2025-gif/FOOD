@@ -3668,12 +3668,12 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
 
     return Column(
       children: [
-        FoodexDonutChart(
-          key: const ValueKey('b2b-purchases-category-donut'),
-          values: values,
+        FoodexBarChart(
+          key: const ValueKey('b2b-purchases-category-bars'),
+          groups: values.map((value) => <double>[value]).toList(growable: false),
           semanticLabel: context.tr('b2b.purchase_reports.categories'),
-          size: 138,
-          strokeWidth: 18,
+          height: 138,
+          gap: 10,
         ),
         const SizedBox(height: 12),
         DefaultTextStyle.merge(
