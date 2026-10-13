@@ -671,7 +671,7 @@ class _RoundHeaderIcon extends StatelessWidget {
       );
 }
 
-class _WholesaleBannerCarousel extends StatelessWidget {
+class _WholesaleBannerCarousel extends StatefulWidget {
   const _WholesaleBannerCarousel({
     required this.banners,
     required this.fallbackTitle,
@@ -687,13 +687,65 @@ class _WholesaleBannerCarousel extends StatelessWidget {
   final VoidCallback? onCta;
 
   @override
+  State<_WholesaleBannerCarousel> createState() =>
+      _WholesaleBannerCarouselState();
+}
+
+class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
+  static const Duration _autoSlideEvery = Duration(seconds: 5);
+  static const Duration _autoSlideDuration = Duration(milliseconds: 450);
+
+  final PageController _pageController = PageController();
+  Timer? _autoSlideTimer;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleAutoSlide();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleBannerCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.banners.length != widget.banners.length) {
+      _currentPage = 0;
+      _autoSlideTimer?.cancel();
+      _scheduleAutoSlide();
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
+    }
+  }
+
+  void _scheduleAutoSlide() {
+    if (widget.banners.length <= 1) return;
+    _autoSlideTimer = Timer.periodic(_autoSlideEvery, (_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final nextPage = (_currentPage + 1) % widget.banners.length;
+      _pageController.animateToPage(
+        nextPage,
+        duration: _autoSlideDuration,
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (banners.isEmpty) {
+    if (widget.banners.isEmpty) {
       return _WholesaleHero(
-        title: fallbackTitle,
-        cta: cta,
-        palette: palette,
-        onCta: onCta,
+        title: widget.fallbackTitle,
+        cta: widget.cta,
+        palette: widget.palette,
+        onCta: widget.onCta,
       );
     }
 
@@ -701,18 +753,21 @@ class _WholesaleBannerCarousel extends StatelessWidget {
       key: const ValueKey('wholesale-home-banner-carousel'),
       height: 178.5,
       child: PageView.builder(
-        itemCount: banners.length,
+        controller: _pageController,
+        itemCount: widget.banners.length,
+        onPageChanged: (index) => _currentPage = index,
         itemBuilder: (context, index) {
-          final banner = banners[index];
+          final banner = widget.banners[index];
           final bannerTitle = banner['title']?.toString().trim();
           return _WholesaleHero(
+            key: ValueKey('wholesale-home-banner-$index'),
             title: bannerTitle != null && bannerTitle.isNotEmpty
                 ? bannerTitle
-                : fallbackTitle,
-            cta: cta,
+                : widget.fallbackTitle,
+            cta: widget.cta,
             imageUrl: banner['image_url']?.toString(),
-            palette: palette,
-            onCta: onCta,
+            palette: widget.palette,
+            onCta: widget.onCta,
           );
         },
       ),
@@ -727,6 +782,7 @@ class _WholesaleHero extends StatelessWidget {
     required this.palette,
     this.imageUrl,
     this.onCta,
+    super.key,
   });
 
   final String title;
@@ -746,7 +802,6 @@ class _WholesaleHero extends StatelessWidget {
         height: 168.3,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
           gradient: LinearGradient(
             colors: [palette.primary, palette.primaryDark],
           ),
