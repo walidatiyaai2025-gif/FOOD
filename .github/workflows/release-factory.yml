@@ -16,6 +16,8 @@ on:
 
 permissions:
   contents: write
+  actions: write
+  pull-requests: write
 
 concurrency:
   group: foodex-release-factory-${{ github.ref_name }}
@@ -356,50 +358,6 @@ jobs:
           path: Release/
           if-no-files-found: error
           retention-days: 30
-      - name: Synchronize Dashboard update to main
-        if: ${{ github.event_name == 'push' || inputs.publish }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          stage="$(mktemp -d)"
-          cp -a Release/. "$stage/"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git switch -C release-dashboard-sync origin/main
-
-          main_version="$(tr -d '[:space:]' < VERSION)"
-          if [[ "$main_version" != "$CURRENT_VERSION" ]]; then
-            echo "::error::main is already at $main_version; refusing to write FOODEX $CURRENT_VERSION Dashboard artifacts."
-            exit 1
-          fi
-
-          mkdir -p Release/Updates
-          cp -a "$stage/Updates/FOODEX-Update.zip" Release/Updates/
-          cp -a "$stage/Updates/FOODEX-Update.json" Release/Updates/
-          cp -a "$stage/Updates/FOODEX-Update.sha256.txt" Release/Updates/
-          cp -a "$stage/Updates/FOODEX-Update.files.txt" Release/Updates/
-
-          git add -f \
-            Release/Updates/FOODEX-Update.zip \
-            Release/Updates/FOODEX-Update.json \
-            Release/Updates/FOODEX-Update.sha256.txt \
-            Release/Updates/FOODEX-Update.files.txt
-
-          if git diff --cached --quiet; then
-            echo "main already contains the validated Dashboard update."
-          else
-            git commit -m "release: sync Dashboard update $CURRENT_VERSION to main [skip ci]"
-            git push origin "HEAD:refs/heads/main"
-          fi
-
-          # Keep the exact assembled bundle available for the following
-          # generated-branch and immutable-release publication steps.
-          rm -rf Release
-          mkdir -p Release
-          cp -a "$stage/." Release/
-
       - name: Publish generated bundle branch
         if: ${{ github.event_name == 'push' || inputs.publish }}
         shell: bash
@@ -454,3 +412,94 @@ jobs:
             gh release create "$tag" --target "$SOURCE_COMMIT" --title "FOODEX $CURRENT_VERSION" --notes "$notes"
           fi
           gh release upload "$tag"             Release/FOODEX-Customer-$CURRENT_VERSION.apk             Release/FOODEX-Driver-$CURRENT_VERSION.apk             Release/FOODEX-Van-$CURRENT_VERSION.apk             Release/FOODEX-Laravel-Setup.zip             Release/LATEST_RELEASE.json             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             --clobber
+
+      - name: Synchronize Dashboard update through protected main
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sync_branch="release/${CURRENT_VERSION}-dashboard-update-sync"
+          stage="$(mktemp -d)"
+          mkdir -p "$stage/Updates"
+          cp -a Release/Updates/FOODEX-Update.zip "$stage/Updates/"
+          cp -a Release/Updates/FOODEX-Update.json "$stage/Updates/"
+          cp -a Release/Updates/FOODEX-Update.sha256.txt "$stage/Updates/"
+          cp -a Release/Updates/FOODEX-Update.files.txt "$stage/Updates/"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          base_sha="$(git rev-parse origin/main)"
+          git switch -C "$sync_branch" origin/main
+
+          main_version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$main_version" != "$CURRENT_VERSION" ]]; then
+            echo "::error::main is already at $main_version; refusing to sync FOODEX $CURRENT_VERSION Dashboard artifacts."
+            exit 1
+          fi
+
+          mkdir -p Release/Updates
+          cp -a "$stage/Updates/." Release/Updates/
+          git add -f \
+            Release/Updates/FOODEX-Update.zip \
+            Release/Updates/FOODEX-Update.json \
+            Release/Updates/FOODEX-Update.sha256.txt \
+            Release/Updates/FOODEX-Update.files.txt
+
+          if git diff --cached --quiet; then
+            echo "main already contains the validated FOODEX $CURRENT_VERSION Dashboard update."
+            exit 0
+          fi
+
+          git commit -m "release: sync Dashboard update $CURRENT_VERSION"
+          head_sha="$(git rev-parse HEAD)"
+          git push --force origin "HEAD:refs/heads/$sync_branch"
+
+          pr_number="$(gh pr list --state open --base main --head "$sync_branch" --json number --jq '.[0].number // empty')"
+          if [[ -z "$pr_number" ]]; then
+            gh pr create \
+              --base main \
+              --head "$sync_branch" \
+              --title "release: sync Dashboard update $CURRENT_VERSION" \
+              --body "Synchronize the exact Dashboard update artifacts already published in GitHub Release v$CURRENT_VERSION back to protected main."
+            pr_number="$(gh pr list --state open --base main --head "$sync_branch" --json number --jq '.[0].number')"
+          fi
+
+          gh workflow run release-sync-gate.yml \
+            --ref "$sync_branch" \
+            -f base_sha="$base_sha" \
+            -f head_sha="$head_sha" \
+            -f branch="$sync_branch"
+
+          run_id=""
+          for attempt in {1..30}; do
+            run_id="$(gh run list \
+              --workflow release-sync-gate.yml \
+              --branch "$sync_branch" \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"$head_sha\") | .databaseId" | head -n 1)"
+            if [[ -n "$run_id" ]]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ -z "$run_id" ]]; then
+            echo "::error::Could not locate the release sync gate run for $head_sha."
+            exit 1
+          fi
+
+          gh run watch "$run_id" --exit-status
+
+          pr_head="$(gh pr view "$pr_number" --json headRefOid --jq '.headRefOid')"
+          if [[ "$pr_head" != "$head_sha" ]]; then
+            echo "::error::Sync PR head moved from $head_sha to $pr_head; refusing automatic merge."
+            exit 1
+          fi
+
+          gh pr merge "$pr_number" --squash --delete-branch
+
