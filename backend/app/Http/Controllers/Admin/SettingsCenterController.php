@@ -46,6 +46,7 @@ final class SettingsCenterController extends Controller
             'assistant' => $superAdmin || $canOperationalSettings,
             'translations' => $superAdmin || $user->hasPermission('translations.manage'),
             'foodex_reset' => $superAdmin,
+            'production_dataset' => $superAdmin,
             'system_update' => $superAdmin || $user->hasPermission('system.update'),
             'lookups' => $superAdmin
                 || $user->hasPermission('lookups.view')
@@ -98,6 +99,7 @@ final class SettingsCenterController extends Controller
                 'description' => __('admin.settings_center.groups.platform_description'),
                 'items' => [
                     ['key' => 'foodex_reset', 'icon' => 'RST', 'title' => __('foodex_reset.title'), 'description' => __('foodex_reset.description'), 'route' => 'admin.foodex-reset.index', 'params' => [], 'fragment' => null, 'allowed' => $access['foodex_reset']],
+                    ['key' => 'production_dataset', 'icon' => 'DATA', 'title' => __('production_dataset_switch.title'), 'description' => __('production_dataset_switch.description'), 'route' => 'admin.production-dataset-switch.index', 'params' => [], 'fragment' => null, 'allowed' => $access['production_dataset']],
                     ['key' => 'system_update', 'icon' => 'UPD', 'title' => __('admin.settings_center.items.system_update'), 'description' => __('admin.settings_center.items.system_update_description'), 'route' => 'admin.system-update.index', 'params' => [], 'fragment' => null, 'allowed' => $access['system_update']],
                 ],
             ],
