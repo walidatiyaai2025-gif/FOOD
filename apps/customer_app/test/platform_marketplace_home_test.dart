@@ -548,7 +548,6 @@ void main() {
     );
   });
 
-
   testWidgets('marketplace category chip opens scoped Wholesale catalog',
       (tester) async {
     final client = MockClient((request) async {
@@ -607,7 +606,6 @@ void main() {
     expect(route.queryParameters['source'], 'marketplace');
     expect(route.queryParameters['category_id'], '9');
   });
-
 
   testWidgets(
       'marketplace header stays responsive with scan and locale controls at 390px',
@@ -718,8 +716,6 @@ void main() {
     expect(requestedLocale, const Locale('en'));
   });
 
-
-
   testWidgets(
       'marketplace header routes every navigation icon in the main Wholesale context',
       (tester) async {
@@ -820,7 +816,6 @@ void main() {
     expect(profileRoute.queryParameters['store_id'], '70');
     expect(profileRoute.queryParameters['source'], 'marketplace');
   });
-
 
   testWidgets(
       'signed-in marketplace keeps store switcher open and management routes follow origin store',
@@ -945,7 +940,6 @@ void main() {
     expect(route.queryParameters['store_id'], '70');
   });
 
-
   testWidgets(
       'marketplace auth menu reads the live app session after login without a stale guest route',
       (tester) async {
@@ -1009,7 +1003,6 @@ void main() {
       findsNothing,
     );
   });
-
 
   testWidgets(
       'marketplace reference home binds authoritative API content at narrow phone width',
