@@ -301,7 +301,6 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     content.add(
                       _WholesaleProductGrid(
                         rows: sectionRows,
-                        gridMode: true,
                         storeId: storeId,
                         sourceLocation: widget.location,
                         session: widget.session,
@@ -941,7 +940,6 @@ class _WholesaleBrandRail extends StatelessWidget {
 class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
     required this.rows,
-    required this.gridMode,
     required this.storeId,
     required this.sourceLocation,
     required this.session,
@@ -955,7 +953,6 @@ class _WholesaleProductGrid extends StatelessWidget {
   });
 
   final List<Map<String, dynamic>> rows;
-  final bool gridMode;
   final int storeId;
   final String sourceLocation;
   final CustomerSession session;
@@ -1388,7 +1385,6 @@ class _WholesaleCatalogDesignScreenState
   String? sectionFilter;
   Set<int> productFilterIds = <int>{};
   String sortMode = 'default';
-  bool gridMode = true;
   int visibleLimit = 24;
   bool stale = false;
   Map<String, dynamic>? _lastPayload;
@@ -1893,18 +1889,6 @@ class _WholesaleCatalogDesignScreenState
                                 ),
                               ),
                             ),
-                            IconButton(
-                              key:
-                                  const ValueKey('wholesale-catalog-grid-view'),
-                              tooltip: context.tr('b2b.catalog.grid_view'),
-                              isSelected: gridMode,
-                              selectedIcon: Icon(
-                                Icons.grid_view_rounded,
-                                color: palette.primary,
-                              ),
-                              onPressed: () => setState(() => gridMode = true),
-                              icon: const Icon(Icons.grid_view_outlined),
-                            ),
                           ],
                         ),
                       ],
@@ -1941,7 +1925,6 @@ class _WholesaleCatalogDesignScreenState
                     ),
                   _WholesaleProductGrid(
                     rows: displayedRows,
-                    gridMode: gridMode,
                     storeId: storeId,
                     sourceLocation: widget.location,
                     session: widget.session,
