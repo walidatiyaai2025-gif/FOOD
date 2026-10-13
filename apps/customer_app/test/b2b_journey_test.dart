@@ -2708,6 +2708,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('#77'), findsOneWidget);
+
+      final distributionTitle = tester.widget<Text>(
+        find.text('توزيع المشتريات'),
+      );
+      expect(distributionTitle.style?.fontSize, lessThanOrEqualTo(12));
+
+      final reportOrderNumber = tester.widget<Text>(
+        find.text('#77'),
+      );
+      expect(reportOrderNumber.style?.fontSize, lessThanOrEqualTo(11));
+
       expect(api.lastPath, contains('store_id=7'));
 
       await tester.tap(
