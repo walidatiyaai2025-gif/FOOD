@@ -13,12 +13,14 @@ class FoodexLaunchCatalogSeeder extends Seeder
     public const CATALOG_CODE = 'foodex-launch';
     public const SKU_PREFIX = 'FDX-LAUNCH-';
     public const BANNER_PATH = 'foodex-launch/banners/hero.webp';
+    public const PROVENANCE_LEDGER = 'seeders/fixtures/foodex-launch-catalog-provenance.json';
 
     public function run(): void
     {
         DB::transaction(function (): void {
             $fixture = $this->fixture();
             $this->assertSeedable($fixture);
+            $this->assertProvenanceLedger($fixture);
 
             $storeId = $this->ensureStore();
             $catalogId = $this->ensureCatalog($storeId);
@@ -181,6 +183,50 @@ class FoodexLaunchCatalogSeeder extends Seeder
         $fixture = require database_path('seeders/fixtures/foodex-launch-catalog.php');
 
         return $fixture;
+    }
+
+    /** @return array<string, mixed> */
+    public function provenanceLedger(): array
+    {
+        $path = database_path(self::PROVENANCE_LEDGER);
+        if (! is_file($path)) {
+            throw new RuntimeException('FOODEX launch provenance ledger is missing.');
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (! is_array($decoded)) {
+            throw new RuntimeException('FOODEX launch provenance ledger is invalid JSON.');
+        }
+
+        return $decoded;
+    }
+
+    /** @param array<string, mixed> $fixture */
+    private function assertProvenanceLedger(array $fixture): void
+    {
+        $ledger = $this->provenanceLedger();
+        $entries = (array) ($ledger['entries'] ?? []);
+        $allowed = ['official', 'inferred', 'derived', 'reconstructed_asset'];
+        $coverage = [];
+
+        foreach ($entries as $entry) {
+            $sku = (string) ($entry['product_identifier'] ?? '');
+            $field = (string) ($entry['field'] ?? '');
+            $state = (string) ($entry['provenance_state'] ?? '');
+            if ($sku === '' || $field === '' || ! in_array($state, $allowed, true)) {
+                throw new RuntimeException('FOODEX launch provenance ledger contains an invalid entry.');
+            }
+            $coverage[$sku][$field] = true;
+        }
+
+        foreach ($fixture['products'] as $index => $product) {
+            $sku = self::SKU_PREFIX.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+            foreach (['price', 'carton_count', 'image'] as $field) {
+                if (! ($coverage[$sku][$field] ?? false)) {
+                    throw new RuntimeException("FOODEX launch provenance missing {$sku}:{$field}.");
+                }
+            }
+        }
     }
 
     /** @param array<string, mixed> $fixture */
