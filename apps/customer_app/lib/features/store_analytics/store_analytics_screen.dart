@@ -1226,13 +1226,22 @@ class _StoreAnalyticsRouteScreenState extends State<StoreAnalyticsRouteScreen> {
         _state = analytics_api.StoreAnalyticsConsumerState.fromData(data);
       });
     } on analytics_api.StoreAnalyticsApiException catch (error) {
+      debugPrint(
+        'StoreAnalytics load failed: code=${error.code} '
+        'status=${error.statusCode ?? '-'} '
+        'retailStoreId=${widget.retailStoreId ?? '-'}',
+      );
       if (!mounted) return;
       setState(() {
         _state = error.isNoEntitlement
             ? const analytics_api.StoreAnalyticsConsumerState.noEntitlement()
             : analytics_api.StoreAnalyticsConsumerState.error(error.code);
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint(
+        'StoreAnalytics load failed: error=${error.runtimeType} '
+        'retailStoreId=${widget.retailStoreId ?? '-'}',
+      );
       if (!mounted) return;
       setState(() {
         _state =
