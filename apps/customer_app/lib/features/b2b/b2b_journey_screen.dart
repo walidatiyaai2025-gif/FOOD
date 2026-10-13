@@ -4878,40 +4878,35 @@ class _MoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const tones = <(Color, Color)>[
-      (Color(0xFFE7F8D7), Color(0xFF067A3A)),
-      (Color(0xFFFFF1CC), Color(0xFF9A6200)),
-      (Color(0xFFE8F1FF), Color(0xFF2E5FA8)),
-      (Color(0xFFF1E9FF), Color(0xFF7150A8)),
-      (Color(0xFFE5F7F4), Color(0xFF16766C)),
+    const tones = <Color>[
+      Color(0xFF067A3A),
+      Color(0xFF9A6200),
+      Color(0xFF2E5FA8),
+      Color(0xFF7150A8),
+      Color(0xFF16766C),
     ];
     final tone = tones[item.tone % tones.length];
 
     return Material(
-      color: CustomerUiColors.white,
-      borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
+      color: Colors.transparent,
       child: InkWell(
         onTap: item.onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          padding: const EdgeInsets.fromLTRB(4.5, 5.5, 4.5, 4.5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-            border: Border.all(color: _B2bMorePageState.border),
-            boxShadow: CustomerUiElevation.cardShadow,
-          ),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(3, 4, 3, 2),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: tone.$1,
-                  borderRadius: BorderRadius.circular(9),
+              Expanded(
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    color: tone,
+                    size: 27,
+                  ),
                 ),
-                child: Icon(item.icon, color: tone.$2, size: 15.5),
               ),
-              const Spacer(),
+              const SizedBox(height: 2),
               Text(
                 item.label,
                 maxLines: 2,
@@ -4919,7 +4914,7 @@ class _MoreCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: _B2bMorePageState.ink,
-                  fontSize: 6.25,
+                  fontSize: 7.5,
                   fontWeight: FontWeight.w800,
                   height: 1.08,
                 ),
