@@ -288,7 +288,7 @@ class CustomerAppRouter {
             definition.pattern == CustomerRoutePaths.entry) {
           final uri = Uri.parse(requestedLocation);
           return UnifiedCustomerAuthScreen(
-            nextRoute: CustomerRoutePaths.b2bDashboard,
+            nextRoute: CustomerRoutePaths.marketplace,
             actionApi: actionApi,
             onAuthenticated: onUnifiedAuthenticated ??
                 (token, preferences) async => onPlatformRegistered(token),
