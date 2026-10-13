@@ -15,19 +15,28 @@ void main() {
     CustomerDataModeController.instance.resetForTesting();
   });
 
-  test('low-data client reuses cached JSON and serves it while offline',
+  test('healthy connectivity is network-first even when a cache exists',
       () async {
     var networkCalls = 0;
+    final lowDataHeaders = <String?>[];
     final metrics = CustomerNetworkMetrics();
     final client = CustomerLowDataHttpClient(
       MockClient((request) async {
         networkCalls += 1;
+        lowDataHeaders.add(
+          request.headers.entries
+              .where(
+                (entry) => entry.key.toLowerCase() == 'x-foodex-low-data',
+              )
+              .map((entry) => entry.value)
+              .firstOrNull,
+        );
         return http.Response(
-          '{"data":[{"id":1,"name":"Cached"}]}',
+          '{"version":$networkCalls}',
           200,
           headers: <String, String>{
             'content-type': 'application/json',
-            'etag': '"products-v1"',
+            'etag': '"products-v$networkCalls"',
           },
         );
       }),
@@ -39,16 +48,19 @@ void main() {
     final uri = Uri.parse('https://foodex.example/api/v1/products?store=7');
 
     final first = await client.get(uri);
-    expect(first.statusCode, 200);
+    expect(first.body, '{"version":1}');
     expect(networkCalls, 1);
     expect(first.headers['x-foodex-cache'], isNull);
 
     final second = await client.get(uri);
-    expect(second.statusCode, 200);
-    expect(second.headers['x-foodex-cache'], 'hit');
-    expect(networkCalls, 1);
+    expect(second.body, '{"version":2}');
+    expect(networkCalls, 2);
+    expect(second.headers['x-foodex-cache'], isNull);
+    expect(lowDataHeaders, everyElement('0'));
 
     CustomerDataModeController.instance
+      ..observeFailure()
+      ..observeFailure()
       ..observeFailure()
       ..observeFailure();
     expect(
@@ -58,18 +70,97 @@ void main() {
 
     final offline = await client.get(uri);
     expect(offline.statusCode, 200);
+    expect(offline.body, '{"version":2}');
     expect(offline.headers['x-foodex-cache'], 'offline');
-    expect(networkCalls, 1);
+    expect(networkCalls, 2);
 
     final snapshot = metrics.snapshot;
-    expect(snapshot.networkRequestCount, 1);
-    expect(snapshot.cacheHits, 2);
+    expect(snapshot.networkRequestCount, 2);
+    expect(snapshot.cacheHits, 1);
     expect(snapshot.downloadedBytes, greaterThan(0));
 
     client.close();
   });
 
-  test('weak connectivity degrades to lite and polling pauses in background',
+  test('cached data is fallback only after a live network failure', () async {
+    var networkCalls = 0;
+    final client = CustomerLowDataHttpClient(
+      MockClient((request) async {
+        networkCalls += 1;
+        if (networkCalls == 1) {
+          return http.Response(
+            '{"data":[{"id":1,"name":"Live"}]}',
+            200,
+            headers: const <String, String>{
+              'content-type': 'application/json',
+              'etag': '"products-v1"',
+            },
+          );
+        }
+        throw http.ClientException('network unavailable', request.url);
+      }),
+      dataMode: CustomerDataModeController.instance,
+      cache: CustomerHttpResponseCache(maxEntries: 8),
+    );
+
+    final uri = Uri.parse('https://foodex.example/api/v1/products?store=7');
+    final first = await client.get(uri);
+    expect(first.headers['x-foodex-cache'], isNull);
+
+    final fallback = await client.get(uri);
+    expect(networkCalls, 2);
+    expect(fallback.statusCode, 200);
+    expect(fallback.headers['x-foodex-cache'], 'fallback');
+    expect(fallback.body, first.body);
+    expect(
+      CustomerDataModeController.instance.effectiveMode,
+      CustomerDataMode.lite,
+    );
+
+    client.close();
+  });
+
+  test('etag validation still contacts the server before using cache', () async {
+    var networkCalls = 0;
+    String? validator;
+    final client = CustomerLowDataHttpClient(
+      MockClient((request) async {
+        networkCalls += 1;
+        validator = request.headers.entries
+            .where((entry) => entry.key.toLowerCase() == 'if-none-match')
+            .map((entry) => entry.value)
+            .firstOrNull;
+        if (networkCalls == 2) {
+          return http.Response('', 304);
+        }
+        return http.Response(
+          '{"data":[{"id":1}]}',
+          200,
+          headers: const <String, String>{
+            'content-type': 'application/json',
+            'etag': '"products-v1"',
+          },
+        );
+      }),
+      dataMode: CustomerDataModeController.instance,
+      cache: CustomerHttpResponseCache(maxEntries: 8),
+    );
+
+    final uri = Uri.parse('https://foodex.example/api/v1/products?store=7');
+    final first = await client.get(uri);
+    expect(first.statusCode, 200);
+
+    final validated = await client.get(uri);
+    expect(networkCalls, 2);
+    expect(validator, '"products-v1"');
+    expect(validated.statusCode, 200);
+    expect(validated.headers['x-foodex-cache'], 'validated');
+    expect(validated.body, first.body);
+
+    client.close();
+  });
+
+  test('weak connectivity becomes lite before repeated failure becomes offline',
       () {
     final controller = CustomerDataModeController.instance;
 
@@ -86,9 +177,15 @@ void main() {
     controller
       ..setBackgrounded(false)
       ..observeFailure()
+      ..observeFailure()
       ..observeFailure();
 
+    expect(controller.effectiveMode, CustomerDataMode.lite);
+    expect(controller.networkOffline, isFalse);
+
+    controller.observeFailure();
     expect(controller.effectiveMode, CustomerDataMode.offline);
+    expect(controller.networkOffline, isTrue);
     expect(controller.allowsRefresh, isFalse);
   });
 
@@ -104,6 +201,8 @@ void main() {
     );
 
     CustomerDataModeController.instance
+      ..observeFailure()
+      ..observeFailure()
       ..observeFailure()
       ..observeFailure();
 
@@ -151,14 +250,15 @@ void main() {
     expect(responses.every((response) => response.statusCode == 200), isTrue);
     expect(networkCalls, 1);
     expect(
-      responses.where((response) => response.headers['x-foodex-cache'] == 'coalesced'),
+      responses.where(
+        (response) => response.headers['x-foodex-cache'] == 'coalesced',
+      ),
       hasLength(1),
     );
     expect(metrics.snapshot.dedupedRequests, 1);
 
     client.close();
   });
-
 
   test('foreground cache-miss GET concurrency is capped at three', () async {
     var active = 0;
@@ -192,7 +292,11 @@ void main() {
     expect(maxActive, 3);
 
     gates.first.complete(
-      http.Response('{}', 200, headers: const {'content-type': 'application/json'}),
+      http.Response(
+        '{}',
+        200,
+        headers: const {'content-type': 'application/json'},
+      ),
     );
 
     for (var spin = 0; spin < 10 && gates.length < 4; spin++) {
@@ -219,5 +323,4 @@ void main() {
 
     client.close();
   });
-
 }
