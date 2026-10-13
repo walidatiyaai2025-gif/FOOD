@@ -82,14 +82,41 @@ final class MobileStoreAnalyticsService
             ],
         ];
 
+        $merchantRecommendations = collect((array) data_get(
+            $dashboard,
+            'merchant_intelligence.recommendations',
+            [],
+        ));
+
         $attention = [
             'low_stock' => array_values((array) ($dashboard['low_stock'] ?? [])),
-            'merchant_summary' => (array) data_get($dashboard, 'merchant_intelligence.summary', []),
-            'merchant_attention' => collect((array) data_get(
-                $dashboard,
-                'merchant_intelligence.attention',
-                [],
-            ))
+            'merchant_summary' => [
+                'reorder_now' => $merchantRecommendations
+                    ->filter(static fn (array $row): bool =>
+                        (string) data_get($row, 'recommendation.action', '') === 'reorder_now')
+                    ->count(),
+                'reorder_soon' => $merchantRecommendations
+                    ->filter(static fn (array $row): bool =>
+                        (string) data_get($row, 'recommendation.action', '') === 'reorder_soon')
+                    ->count(),
+                'blocked' => $merchantRecommendations
+                    ->filter(static fn (array $row): bool =>
+                        str_starts_with(
+                            (string) data_get($row, 'recommendation.state', ''),
+                            'blocked',
+                        ))
+                    ->count(),
+                'expected_reorder_spend' => round(
+                    (float) $merchantRecommendations->sum(
+                        static fn (array $row): float =>
+                            (float) data_get($row, 'recommendation.expected_cost', 0),
+                    ),
+                    3,
+                ),
+            ],
+            'merchant_attention' => $merchantRecommendations
+                ->filter(static fn (array $row): bool =>
+                    (string) data_get($row, 'recommendation.action', 'healthy') !== 'healthy')
                 ->take(5)
                 ->map(static fn (array $row): array => [
                     'product_id' => (int) ($row['retail_product_id'] ?? 0),
