@@ -157,6 +157,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
     this.tooltip,
     this.selected = false,
     this.semanticLabel,
+    this.iconSize = 24,
     super.key,
   });
 
@@ -165,6 +166,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
   final String? tooltip;
   final bool selected;
   final String? semanticLabel;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -185,6 +187,7 @@ class CustomerOutlineIconButton extends StatelessWidget {
               onPressed: onPressed,
               icon: Icon(
                 icon,
+                size: iconSize,
                 color: selected
                     ? CustomerUiColors.deepGreenStrong
                     : CustomerUiColors.inkSoft,
