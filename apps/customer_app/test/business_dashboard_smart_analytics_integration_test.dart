@@ -11,12 +11,20 @@ import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 import 'package:foodex_customer_app/features/b2b/b2b_journey_screen.dart';
 import 'package:foodex_customer_app/features/b2b/business_dashboard_smart_analytics_launcher.dart';
 
-Map<String, Object?> _dashboardPayload() => <String, Object?>{
+Map<String, Object?> _dashboardPayload({
+  String? logoUrl = 'https://dashboard.foodex.test/downtown-store.png',
+}) =>
+    <String, Object?>{
       'customer': <String, Object?>{
         'name': 'Merchant Owner',
         'email': 'owner@example.test',
       },
       'account': <String, Object?>{'company_name': 'Merchant Company'},
+      'retail_store': <String, Object?>{
+        'id': 22,
+        'name': 'Downtown Store',
+        'logo_url': logoUrl,
+      },
       'finance': <String, Object?>{
         'currency': 'KWD',
         'balance': 0,
@@ -142,7 +150,9 @@ Map<String, Object?> _analyticsPayload({
 class _RetailDashboardApi extends HttpB2bApi {
   _RetailDashboardApi({
     required this.hasNewInsights,
-    this.logoUrl = 'https://cdn.foodex.test/downtown-store.png',
+    this.logoUrl = 'https://analytics.foodex.test/downtown-store.png',
+    this.dashboardLogoUrl =
+        'https://dashboard.foodex.test/downtown-store.png',
   }) : super(
           baseUrl: 'https://api.foodex.test',
           token: 'test-token',
@@ -151,6 +161,7 @@ class _RetailDashboardApi extends HttpB2bApi {
 
   final bool hasNewInsights;
   final String? logoUrl;
+  final String? dashboardLogoUrl;
   final List<String> paths = <String>[];
 
   @override
@@ -164,7 +175,7 @@ class _RetailDashboardApi extends HttpB2bApi {
         logoUrl: logoUrl,
       );
     }
-    return _dashboardPayload();
+    return _dashboardPayload(logoUrl: dashboardLogoUrl);
   }
 }
 
@@ -294,7 +305,10 @@ void main() {
         find.byType(BusinessDashboardStoreLogo),
       );
       expect(storeLogo.storeName, 'Downtown Store');
-      expect(storeLogo.logoUrl, 'https://cdn.foodex.test/downtown-store.png');
+      expect(
+        storeLogo.logoUrl,
+        'https://dashboard.foodex.test/downtown-store.png',
+      );
 
       await tester.tap(
         find.byKey(const ValueKey('business-smart-analytics-launcher')),
@@ -338,7 +352,11 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        final api = _RetailDashboardApi(hasNewInsights: false, logoUrl: null);
+        final api = _RetailDashboardApi(
+          hasNewInsights: false,
+          logoUrl: null,
+          dashboardLogoUrl: null,
+        );
         await tester.pumpWidget(_app(api, locale: locale));
         await _pumpRemote(tester);
 
