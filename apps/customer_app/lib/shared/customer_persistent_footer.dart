@@ -10,6 +10,7 @@ enum CustomerFooterDestination {
   products,
   cart,
   orders,
+  favorites,
   invoices,
   account,
 }
@@ -130,6 +131,12 @@ class CustomerPersistentFooter extends StatelessWidget {
               activeIcon: Icons.receipt_long_rounded,
             ),
             _FooterItem(
+              destination: CustomerFooterDestination.favorites,
+              label: context.tr('customer.profile.favorites'),
+              icon: Icons.favorite_border_rounded,
+              activeIcon: Icons.favorite_rounded,
+            ),
+            _FooterItem(
               destination: CustomerFooterDestination.invoices,
               label: context.tr('customer.nav.invoices'),
               icon: Icons.description_outlined,
@@ -236,6 +243,8 @@ class CustomerPersistentFooter extends StatelessWidget {
           return CustomerRouteLocations.retailCart(scope!);
         case CustomerFooterDestination.orders:
           return CustomerRouteLocations.retailOrders(scope!);
+        case CustomerFooterDestination.favorites:
+          return CustomerRouteLocations.retailFavorites(scope!);
         case CustomerFooterDestination.invoices:
           return CustomerRouteLocations.retailProfile(scope!);
         case CustomerFooterDestination.account:
@@ -256,6 +265,8 @@ class CustomerPersistentFooter extends StatelessWidget {
           return CustomerRouteLocations.wholesaleCart(scope!);
         case CustomerFooterDestination.orders:
           return CustomerRouteLocations.wholesaleOrders(scope!);
+        case CustomerFooterDestination.favorites:
+          return CustomerRouteLocations.wholesaleFavorites(scope!);
         case CustomerFooterDestination.invoices:
           return Uri(
             path: CustomerRoutePaths.b2bInvoices,
@@ -275,6 +286,8 @@ class CustomerPersistentFooter extends StatelessWidget {
         return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
         return CustomerRoutePaths.b2bOrders;
+      case CustomerFooterDestination.favorites:
+        return CustomerRoutePaths.b2bFavorites;
       case CustomerFooterDestination.invoices:
         return CustomerRoutePaths.b2bInvoices;
       case CustomerFooterDestination.account:
