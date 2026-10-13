@@ -43,7 +43,8 @@ final class ProductionDatasetSnapshot
     {
         return Cache::lock('foodex:production-dataset-snapshot', 1800)->block(2, function () use ($actor, $request): array {
             $existing = $this->readMetadata();
-            if (in_array($existing['state'] ?? null, [self::SNAPSHOT_READY, self::LAUNCH_ACTIVE], true)) {
+            if (($existing['verified'] ?? false) === true
+                && in_array($existing['state'] ?? null, [self::SNAPSHOT_READY, self::LAUNCH_ACTIVE], true)) {
                 $this->verify($existing);
                 return $this->status();
             }
