@@ -47,6 +47,7 @@ void main() {
         'home',
         'products',
         'orders',
+        'favorites',
         'invoices',
         'account',
       ]) {
@@ -59,6 +60,7 @@ void main() {
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
+      expect(find.text('Favorites'), findsOneWidget);
       expect(find.text('Invoices'), findsOneWidget);
       expect(find.text('More'), findsOneWidget);
 
@@ -73,6 +75,18 @@ void main() {
       expect(route.path, CustomerRoutePaths.b2bProducts);
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
+
+      await tester.tap(
+        find.byKey(const ValueKey('customer-footer-favorites')),
+      );
+      await tester.pumpAndSettle();
+
+      final favoritesRoute = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(favoritesRoute.path, CustomerRoutePaths.b2bFavorites);
+      expect(favoritesRoute.queryParameters['store_id'], '70');
+      expect(favoritesRoute.queryParameters['channel'], 'wholesale');
     },
   );
 
@@ -169,6 +183,7 @@ void main() {
         'home',
         'products',
         'orders',
+        'favorites',
         'invoices',
         'account',
       ]) {
