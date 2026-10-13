@@ -11,6 +11,12 @@ import 'package:foodex_customer_app/features/retail/retail_customer_journey_scre
 import 'package:foodex_customer_app/features/storefront/platform_marketplace_screen.dart';
 import 'package:foodex_customer_app/features/storefront/wholesale_multistore_screens.dart';
 
+Future<void> _pumpCustomerFrames(WidgetTester tester) async {
+  for (var frame = 0; frame < 30; frame++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+}
+
 void main() {
   test('reference route patterns are represented in one route registry', () {
     final patterns = customerRouteDefinitions
@@ -132,7 +138,7 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/entry'),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(
       find.byKey(const ValueKey('unified-customer-auth-screen')),
@@ -154,7 +160,7 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('customer-auth-language-toggle')),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('Customer sign in'), findsWidgets);
     expect(find.byKey(const ValueKey('customer-auth-guest')), findsNothing);
@@ -170,7 +176,7 @@ void main() {
         storefrontApi: const _CanonicalWholesaleHomeStorefrontApi(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('unified-auth-email')),
@@ -182,9 +188,9 @@ void main() {
     );
     final submit = find.byKey(const ValueKey('unified-auth-submit'));
     await tester.ensureVisible(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
     await tester.tap(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.byType(WholesaleHomeDesignScreen), findsOneWidget);
     expect(find.byType(PlatformMarketplaceScreen), findsNothing);
@@ -203,7 +209,7 @@ void main() {
         storefrontApi: const _CanonicalWholesaleHomeStorefrontApi(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('unified-auth-email')),
@@ -215,9 +221,9 @@ void main() {
     );
     final submit = find.byKey(const ValueKey('unified-auth-submit'));
     await tester.ensureVisible(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
     await tester.tap(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.byType(WholesaleHomeDesignScreen), findsOneWidget);
     expect(find.byType(RetailCustomerJourneyScreen), findsNothing);
@@ -229,7 +235,7 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/entry?entry=register'),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.byKey(const ValueKey('unified-auth-name')), findsOneWidget);
     expect(find.byKey(const ValueKey('unified-auth-phone')), findsOneWidget);
@@ -244,11 +250,11 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/entry'),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     final submit = find.byKey(const ValueKey('unified-auth-submit'));
     await tester.ensureVisible(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
     await tester.tap(submit);
     await tester.pump();
 
@@ -264,7 +270,7 @@ void main() {
         actionApi: _LockedCustomerActionApi(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('unified-auth-email')),
@@ -276,9 +282,9 @@ void main() {
     );
     final submit = find.byKey(const ValueKey('unified-auth-submit'));
     await tester.ensureVisible(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
     await tester.tap(submit);
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(
       find.text('الحساب مقفل حاليًا. تواصل مع الدعم أو حاول لاحقًا.'),
@@ -313,7 +319,7 @@ void main() {
         initialRoute: '/checkout/address-payment?channel=retail&store_id=7',
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(
@@ -331,7 +337,7 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(initialRoute: '/b2b/dashboard'),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
@@ -367,7 +373,7 @@ void main() {
         pendingActionStore: pending,
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(
       find.byKey(const ValueKey('b2b-product-detail-data')),
@@ -383,7 +389,7 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(
       find.byKey(const ValueKey('unified-customer-auth-screen')),
@@ -401,7 +407,7 @@ void main() {
       'test-password',
     );
     await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('سلة الجملة'), findsOneWidget);
   });
@@ -414,7 +420,7 @@ void main() {
         initialRoute: '/profile?channel=retail&store_id=7',
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('حسابي'), findsWidgets);
     expect(find.text('/profile'), findsNothing);
@@ -432,7 +438,7 @@ void main() {
         initialRoute: '/b2b/orders/101',
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('تفاصيل الطلب'), findsOneWidget);
     expect(
@@ -450,7 +456,7 @@ void main() {
         initialRoute: '/b2b/dashboard',
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(
       find.byKey(const ValueKey('unified-customer-auth-screen')),
@@ -477,7 +483,7 @@ void main() {
         initialRoute: '/profile?channel=retail&store_id=7',
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('حسابي'), findsWidgets);
   });
@@ -486,16 +492,17 @@ void main() {
       'platform-wide customer can enter Wholesale protected routes from one Retail session',
       (tester) async {
     await tester.pumpWidget(
-      const FoodexCustomerApp(
+      FoodexCustomerApp(
         session: CustomerSession.authenticated(
           CustomerChannel.b2c,
           accessToken: 'token',
           platformWide: true,
         ),
         initialRoute: '/b2b/dashboard',
+        b2bApi: _RecordingB2bApi(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpCustomerFrames(tester);
 
     expect(find.text('فودكس للأعمال'), findsOneWidget);
     expect(find.text('/b2b/dashboard'), findsNothing);
@@ -638,7 +645,6 @@ class _MemoryPendingActionStore implements CustomerPendingActionStore {
     value = action;
   }
 }
-
 
 class _CanonicalWholesaleHomeStorefrontApi implements StorefrontApi {
   const _CanonicalWholesaleHomeStorefrontApi();

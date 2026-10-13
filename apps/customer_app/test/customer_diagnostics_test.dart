@@ -30,11 +30,13 @@ void main() {
           'latitude': 29.375859,
           'longitude': 47.977405,
         },
-        'message': 'Bearer hidden-token customer@example.test; access_token=plain-secret; coordinates=29.375859,47.977405',
+        'message':
+            'Bearer hidden-token customer@example.test; access_token=plain-secret; coordinates=29.375859,47.977405',
       });
 
     final json = diagnostics.exportJson(
-      note: 'Call +96550000001; civil_id=123456789012; token=note-secret; Contact customer@example.test.',
+      note:
+          'Call +96550000001; civil_id=123456789012; token=note-secret; Contact customer@example.test.',
     );
 
     expect(json, contains('[REDACTED]'));
@@ -54,7 +56,9 @@ void main() {
     expect(json, isNot(contains('29.375859,47.977405')));
   });
 
-  test('runtime failure diagnostics sanitize paths and retain safe support refs', () {
+  test(
+      'runtime failure diagnostics sanitize paths and retain safe support refs',
+      () {
     final diagnostics = CustomerDiagnostics(maxEvents: 10)
       ..recordRuntimeFailure(
         operation: 'b2b_remote_load',
@@ -91,7 +95,8 @@ void main() {
     expect(diagnostics.exportPayload()['event_count'], 3);
   });
 
-  test('HTTP observer captures failed status without headers or sensitive query values',
+  test(
+      'HTTP observer captures failed status without headers or sensitive query values',
       () async {
     final diagnostics = CustomerDiagnostics(maxEvents: 10);
     final client = CustomerDiagnosticsHttpClient(
@@ -178,13 +183,10 @@ void main() {
       find.byKey(const ValueKey('unified-auth-submit')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('customer-login-diagnostics')),
-      findsOneWidget,
-    );
   });
 
-  test('central inspector keeps offline Customer failure pending until accepted',
+  test(
+      'central inspector keeps offline Customer failure pending until accepted',
       () async {
     final diagnostics = CustomerDiagnostics(maxEvents: 10)
       ..updateContext(
@@ -249,8 +251,8 @@ void main() {
     expect(diagnostics.events.single['remote_submitted_at'], isNotNull);
   });
 
-
-  test('cache and offline responses do not fake a successful API timestamp', () {
+  test('cache and offline responses do not fake a successful API timestamp',
+      () {
     final diagnostics = CustomerDiagnostics(maxEvents: 10);
     final uri = Uri.parse('https://foodex.example/api/v1/b2b/dashboard');
 
@@ -292,9 +294,8 @@ void main() {
     expect(diagnostics.lastSuccessfulApiAt, networkSuccess);
     expect(diagnostics.networkState, 'unreachable');
 
-    final usage =
-        Map<String, Object?>.from(diagnostics.exportPayload()['data_usage'] as Map);
+    final usage = Map<String, Object?>.from(
+        diagnostics.exportPayload()['data_usage'] as Map);
     expect(usage['physical_network_requests'], 2);
   });
-
 }

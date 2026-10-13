@@ -62,8 +62,7 @@ class CustomerProductCardSkeleton extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 1.35,
+              Expanded(
                 child: CustomerSkeletonBox(
                   height: 180,
                   radius: CustomerUiRadii.lg,
@@ -153,7 +152,8 @@ class CustomerStateView extends StatelessWidget {
                       ),
                 ),
               ],
-              if (actionLabel?.trim().isNotEmpty == true && onAction != null) ...[
+              if (actionLabel?.trim().isNotEmpty == true &&
+                  onAction != null) ...[
                 const SizedBox(height: CustomerUiSpacing.md),
                 OutlinedButton(
                   onPressed: onAction,

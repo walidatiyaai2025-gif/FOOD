@@ -56,7 +56,8 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
@@ -76,6 +77,9 @@ void main() {
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
 
+      Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+          .pop();
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('customer-footer-favorites')),
       );
@@ -271,7 +275,7 @@ void main() {
         }
         expect(
           find.byKey(const ValueKey('customer-footer-home')),
-          findsNothing,
+          findsOneWidget,
         );
         expect(
           tester

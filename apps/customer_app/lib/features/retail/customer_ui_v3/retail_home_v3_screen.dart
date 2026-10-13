@@ -700,7 +700,8 @@ class _RetailBestSellerTickerHeaderState
                 builder: (context, child) {
                   final travel = constraints.maxWidth + textWidth;
                   final dx = isArabic
-                      ? constraints.maxWidth - (_marqueeController.value * travel)
+                      ? constraints.maxWidth -
+                          (_marqueeController.value * travel)
                       : -textWidth + (_marqueeController.value * travel);
                   return Transform.translate(
                     offset: Offset(dx, 0),
@@ -733,19 +734,22 @@ class _RetailBestSellerTickerHeaderState
   @override
   Widget build(BuildContext context) {
     final products = widget.products;
-    final product = products.isEmpty ? null : products[_index % products.length];
+    final product =
+        products.isEmpty ? null : products[_index % products.length];
     final tone = _tones[_index % _tones.length];
 
     return Row(
       key: const ValueKey('retail-best-seller-ticker-header'),
       children: [
-        Text(
-          widget.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: CustomerUiColors.deepGreenStrong,
-              ),
+        Flexible(
+          child: Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: CustomerUiColors.deepGreenStrong,
+                ),
+          ),
         ),
         if (product != null) ...[
           const SizedBox(width: CustomerUiSpacing.sm),

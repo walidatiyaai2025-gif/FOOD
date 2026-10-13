@@ -1,0 +1,34 @@
+# FOODEX 1.0.76 Update Notes
+
+FOODEX 1.0.76 promotes the frozen final Customer APK lineage from #1376 into the synchronized release stream.
+
+## What is included
+
+- Final approved Customer runtime with App Review and authenticated Smart Store Analytics.
+- Online-first networking with cache fallback, single biometric login entry, persistent Home navigation and three-column product grids.
+- Latest compact Customer commerce, account, invoice, address and Dashboard-managed store branding changes already integrated on main.
+- Synchronized Customer, Driver and Van source identity at `1.0.76+76`.
+- Dashboard update generated for direct upgrade from `1.0.75`.
+
+## Release artifacts
+
+The canonical Release Factory must generate the Dashboard Update ZIP and Customer, Driver and Van APKs from the same exact release lineage. Publication remains blocked until required validation gates are green.
+
+
+- Canonical Dart formatting applied to the Customer release-touch files before final promotion.
+
+- Final validation retriggered after formatter parity with the Customer CI environment.
+
+- Final Customer release-scope Dart formatting was normalized by the exact CI Flutter environment.
+
+- Targeted Customer CI fixes were revalidated after canonical formatting.
+
+- Final validation retriggered after canonical Customer formatting on the exact CI dependency graph.
+
+- Canonical formatter pass completed after targeted Customer CI fixes.
+
+- Final Customer test-alignment pass completed against the frozen 1.0.76 runtime.
+
+- Final Customer release validation rerun after canonical formatting and B2B test alignment.
+
+- Final Customer regression alignment was canonical-formatted and revalidated before promotion.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.76 - 2026-10-13
+
+- Promote the frozen final Customer APK lineage from #1376 into synchronized FOODEX 1.0.76, preserving the approved customer runtime while carrying App Review and Smart Store Analytics integration.
+- Include the completed Customer UX/runtime corrections on main: online-first networking with cache fallback, single biometric login flow, persistent Home navigation, three-column product grids, compact commerce/account/invoice surfaces, location-first address editing, Dashboard-managed store logo, and dimmed Shopping until store selection.
+- Preserve authenticated Smart Store Analytics and APP-PREVIEW acceptance from the exact final Customer lineage without introducing additional Customer feature changes.
+- Synchronize Customer, Driver and Van source identities at 1.0.76+76 and rebuild the Dashboard update and Android artifacts from the same exact release commit.
+- Dashboard update targets direct upgrade from 1.0.75 while retaining the cumulative updater boundary and release validation gates.
+
 ## 1.0.75 - 2026-10-13
 
 - Promote the authoritative FOODEX main lineage after the completed 1.0.74 Dashboard update into synchronized release 1.0.75.

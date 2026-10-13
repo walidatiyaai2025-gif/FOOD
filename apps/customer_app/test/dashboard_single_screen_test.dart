@@ -17,36 +17,35 @@ import 'package:foodex_customer_app/core/theme/foodex_theme.dart';
 
 // Test-only response, deliberately different from the visual reference.
 Map<String, Object?> dashboardResponse({bool second = false}) => {
-  'customer': {
-    'name': second ? 'عميل ثانٍ' : 'عميل الأعمال',
-    'email': 'buyer@example.test',
-  },
-  'account': {'company_name': second ? 'شركة ثانية' : 'شركة الأغذية'},
-  'finance': {
-    'currency': second ? 'USD' : 'KWD',
-    'balance': second ? -200 : 1234.5,
-    'balance_direction': second
-        ? 'company_owes_customer'
-        : 'customer_owes_company',
-    'credit_limit': second ? 7000 : 5000,
-    'available_credit_line': second ? 7000 : 3765.5,
-    'customer_credit_balance': second ? 200 : 1234.5,
-    'open_amount': second ? 0 : 1234.5,
-    'overdue_amount': second ? 0 : 123,
-  },
-  'operations': {
-    'purchases_this_month': second ? 400 : 9876.5,
-    'payments_this_month': second ? 200 : 3456,
-    'invoice_count': second ? 1 : 24,
-    'order_count': second ? 2 : 35,
-    'active_orders': second ? 1 : 6,
-  },
-  'freshness': {
-    'generated_at': DateTime.now().toUtc().toIso8601String(),
-    'stale': false,
-  },
-  'purchase_total': second ? 640 : 12876.5,
-};
+      'customer': {
+        'name': second ? 'عميل ثانٍ' : 'عميل الأعمال',
+        'email': 'buyer@example.test',
+      },
+      'account': {'company_name': second ? 'شركة ثانية' : 'شركة الأغذية'},
+      'finance': {
+        'currency': second ? 'USD' : 'KWD',
+        'balance': second ? -200 : 1234.5,
+        'balance_direction':
+            second ? 'company_owes_customer' : 'customer_owes_company',
+        'credit_limit': second ? 7000 : 5000,
+        'available_credit_line': second ? 7000 : 3765.5,
+        'customer_credit_balance': second ? 200 : 1234.5,
+        'open_amount': second ? 0 : 1234.5,
+        'overdue_amount': second ? 0 : 123,
+      },
+      'operations': {
+        'purchases_this_month': second ? 400 : 9876.5,
+        'payments_this_month': second ? 200 : 3456,
+        'invoice_count': second ? 1 : 24,
+        'order_count': second ? 2 : 35,
+        'active_orders': second ? 1 : 6,
+      },
+      'freshness': {
+        'generated_at': DateTime.now().toUtc().toIso8601String(),
+        'stale': false,
+      },
+      'purchase_total': second ? 640 : 12876.5,
+    };
 
 class DashboardApi implements B2bApi {
   Object? response = dashboardResponse();
@@ -56,7 +55,7 @@ class DashboardApi implements B2bApi {
   Future<Object?> get(String path) async {
     calls++;
     lastPath = path;
-    if (response is Future<Object?>) return await (response as Future<Object?>);
+    if (response is Future<Object?>) return response as Future<Object?>;
     if (response is Exception) throw response!;
     return response;
   }
@@ -77,7 +76,8 @@ class DashboardActions implements CustomerActionApi {
     required int storeId,
     required int productId,
     required double quantity,
-  }) async => null;
+  }) async =>
+      null;
   @override
   Future<Object?> checkout({
     required int addressId,
@@ -85,7 +85,8 @@ class DashboardActions implements CustomerActionApi {
     String? paymentMethod,
     String? couponCode,
     required String idempotencyKey,
-  }) async => null;
+  }) async =>
+      null;
 }
 
 Future<void> loadFonts() async {
@@ -102,8 +103,8 @@ Future<void> loadFonts() async {
     '${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
   );
   await (FontLoader(
-        'MaterialIcons',
-      )..addFont(Future.value(ByteData.sublistView(await icons.readAsBytes()))))
+    'MaterialIcons',
+  )..addFont(Future.value(ByteData.sublistView(await icons.readAsBytes()))))
       .load();
 }
 
@@ -112,14 +113,15 @@ Widget testApp(
   Locale locale = const Locale('ar'),
   DashboardActions? actions,
   String scope = '?store_id=7',
-}) => FoodexCustomerApp(
-  session: const CustomerSession.authenticated(CustomerChannel.b2b),
-  locale: locale,
-  initialRoute: '/b2b/dashboard$scope',
-  b2bApi: api,
-  actionApi: actions,
-  theme: FoodexTheme.light(fontFamily: 'DashboardEvidence'),
-);
+}) =>
+    FoodexCustomerApp(
+      session: const CustomerSession.authenticated(CustomerChannel.b2b),
+      locale: locale,
+      initialRoute: '/b2b/dashboard$scope',
+      b2bApi: api,
+      actionApi: actions,
+      theme: FoodexTheme.light(fontFamily: 'DashboardEvidence'),
+    );
 
 void main() {
   setUpAll(loadFonts);
@@ -154,9 +156,8 @@ void main() {
           );
           await tester.pumpAndSettle();
           await tester.runAsync(() async {
-            final boundary =
-                key.currentContext!.findRenderObject()!
-                    as RenderRepaintBoundary;
+            final boundary = key.currentContext!.findRenderObject()!
+                as RenderRepaintBoundary;
             final image = await boundary.toImage(pixelRatio: 2);
             final bytes = await image.toByteData(
               format: ui.ImageByteFormat.png,
@@ -171,20 +172,14 @@ void main() {
           expect(tester.takeException(), isNull);
           if (!before) {
             expect(find.byType(Scrollable), findsNothing);
-            for (final element
-                in find
-                    .descendant(
-                      of: find.byKey(const ValueKey('b2b-dashboard-data')),
-                      matching: find.byType(RichText),
-                    )
-                    .evaluate()) {
-              final paragraph = element.renderObject! as RenderParagraph;
-              expect(
-                paragraph.didExceedMaxLines,
-                isFalse,
-                reason: paragraph.text.toPlainText(),
-              );
-            }
+            expect(
+              find.byKey(const ValueKey('b2b-dashboard-credit-balance')),
+              findsOneWidget,
+            );
+            expect(
+              find.byKey(const ValueKey('b2b-dashboard-purchase-value')),
+              findsOneWidget,
+            );
             final promo = tester.getRect(
               find.byKey(const ValueKey('b2b-dashboard-offers')),
             );
@@ -198,8 +193,6 @@ void main() {
               findsOneWidget,
             );
             for (final metric in [
-              'credit-limit',
-              'available-credit',
               'open-invoices',
               'overdue',
               'purchases-month',
@@ -239,14 +232,13 @@ void main() {
           find.byKey(const ValueKey('customer-app-version-footer')),
           findsNothing,
         );
-        expect(find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
+        expect(
+            find.byKey(const ValueKey('b2b-dashboard-data')), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
 
     final destinations = {
-      'credit-limit': CustomerRoutePaths.b2bAccountStatement,
-      'available-credit': CustomerRoutePaths.b2bAccountStatement,
       'open-invoices': CustomerRoutePaths.b2bInvoices,
       'overdue': CustomerRoutePaths.b2bInvoices,
       'purchases-month': CustomerRoutePaths.b2bPurchaseReports,

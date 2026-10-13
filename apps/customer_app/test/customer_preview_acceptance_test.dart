@@ -14,6 +14,12 @@ import 'package:foodex_customer_app/core/preview/customer_preview_transport.dart
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+Future<void> _pumpCustomerFrames(WidgetTester tester) async {
+  for (var frame = 0; frame < 30; frame++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+}
+
 void main() {
   const widths = <double>[360, 390, 430];
   const locales = <Locale>[Locale('ar'), Locale('en')];
@@ -39,19 +45,18 @@ void main() {
               locale: locale,
             ),
           );
-          await tester.pumpAndSettle();
+          await _pumpCustomerFrames(tester);
 
           expect(tester.takeException(), isNull);
-          expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+          expect(find.byKey(const ValueKey('retail-catalog-search')),
+              findsOneWidget);
 
           final direction = Directionality.of(
             tester.element(find.byKey(const ValueKey('retail-catalog-search'))),
           );
           expect(
             direction,
-            locale.languageCode == 'ar'
-                ? TextDirection.rtl
-                : TextDirection.ltr,
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
           );
         },
       );
@@ -90,8 +95,9 @@ void main() {
       expect(guestApp.previewContext, same(guest));
 
       await tester.pumpWidget(guestApp);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+      await _pumpCustomerFrames(tester);
+      expect(
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       final authenticatedApp = _previewApp(
@@ -103,8 +109,9 @@ void main() {
       expect(authenticatedApp.previewContext, same(authenticated));
 
       await tester.pumpWidget(authenticatedApp);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+      await _pumpCustomerFrames(tester);
+      expect(
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -144,7 +151,7 @@ void main() {
             locale: locale,
           ),
         );
-        await tester.pumpAndSettle();
+        await _pumpCustomerFrames(tester);
 
         expect(tester.takeException(), isNull);
         final scaffold = find.byType(Scaffold).first;
@@ -152,9 +159,7 @@ void main() {
         final direction = Directionality.of(tester.element(scaffold));
         expect(
           direction,
-          locale.languageCode == 'ar'
-              ? TextDirection.rtl
-              : TextDirection.ltr,
+          locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
         );
       },
     );
@@ -291,8 +296,7 @@ class _PreviewAccountApi implements B2cAccountApi {
   const _PreviewAccountApi();
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      Future<Object?>.value(null);
+  dynamic noSuchMethod(Invocation invocation) => Future<Object?>.value(null);
 }
 
 class _PreviewB2bApi implements B2bApi {
@@ -397,7 +401,11 @@ class _PreviewStorefrontApi implements StorefrontApi {
         },
         'hero': null,
         'sections': [
-          {'type': 'categories', 'title_ar': 'التصنيفات', 'title_en': 'Categories'},
+          {
+            'type': 'categories',
+            'title_ar': 'التصنيفات',
+            'title_en': 'Categories'
+          },
           {'type': 'products', 'title_ar': 'المنتجات', 'title_en': 'Products'},
         ],
       };

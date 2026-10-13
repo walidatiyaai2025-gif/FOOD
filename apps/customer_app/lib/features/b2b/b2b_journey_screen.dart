@@ -309,15 +309,19 @@ class B2bJourneyScreen extends StatelessWidget {
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
           body: CustomerCurvedHeaderSurface(
-            header: CustomerAccountHeader(
-              title: content.$1,
-              subtitle: content.$2,
-            ),
+            header: definition.pattern == CustomerRoutePaths.b2bInvoiceDetails
+                ? const SizedBox(height: 1)
+                : CustomerAccountHeader(
+                    title: content.$1,
+                    subtitle: content.$2,
+                  ),
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
-                padding: definition.pattern == CustomerRoutePaths.b2bAccountStatement ||
-                        definition.pattern == CustomerRoutePaths.b2bPurchaseReports
+                padding: definition.pattern ==
+                            CustomerRoutePaths.b2bAccountStatement ||
+                        definition.pattern ==
+                            CustomerRoutePaths.b2bPurchaseReports
                     ? const EdgeInsets.fromLTRB(
                         CustomerUiSpacing.page,
                         0,
@@ -1187,7 +1191,10 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
                               ],
                             ),
                             Text(
-                              (retailStore['name']?.toString().trim().isNotEmpty ??
+                              (retailStore['name']
+                                          ?.toString()
+                                          .trim()
+                                          .isNotEmpty ??
                                       false)
                                   ? retailStore['name'].toString().trim()
                                   : analytics?.store.name ??
@@ -3180,8 +3187,7 @@ class _PurchaseReportRemoteStateState
                       keyName: 'all-periods',
                       label: context.tr('b2b.purchase_reports.all_time'),
                       selected: _period == _PurchaseReportPeriod.all,
-                      onPressed: () =>
-                          _applyPeriod(_PurchaseReportPeriod.all),
+                      onPressed: () => _applyPeriod(_PurchaseReportPeriod.all),
                     ),
                   ),
                 ],
@@ -3434,115 +3440,113 @@ class _PurchaseReportRemoteStateState
                 ),
               ),
             ),
-              ...rows.map((row) {
-                final id = int.tryParse(row['id']?.toString() ?? '');
-                final storeId = int.tryParse(row['store_id']?.toString() ?? '');
-                final orderNumber = row['display_order_number']?.toString() ??
-                    (id == null ? '—' : '#$id');
-                final rowCurrency = row['currency']?.toString();
-                final displayCurrency =
-                    rowCurrency == null || rowCurrency.trim().isEmpty
-                        ? currency
-                        : rowCurrency;
-                final statusLabel =
-                    _localizedOrderStatus(context, row['status']);
-                return ListTile(
-                  key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
-                  leading: const Icon(Icons.receipt_long_outlined, size: 18),
-                  title: Text(
-                    orderNumber,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: bodyStyle?.copyWith(
-                      fontSize: (bodyStyle.fontSize ?? 14) * .75,
-                      fontWeight: FontWeight.w800,
-                    ),
+            ...rows.map((row) {
+              final id = int.tryParse(row['id']?.toString() ?? '');
+              final storeId = int.tryParse(row['store_id']?.toString() ?? '');
+              final orderNumber = row['display_order_number']?.toString() ??
+                  (id == null ? '—' : '#$id');
+              final rowCurrency = row['currency']?.toString();
+              final displayCurrency =
+                  rowCurrency == null || rowCurrency.trim().isEmpty
+                      ? currency
+                      : rowCurrency;
+              final statusLabel = _localizedOrderStatus(context, row['status']);
+              return ListTile(
+                key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
+                leading: const Icon(Icons.receipt_long_outlined, size: 18),
+                title: Text(
+                  orderNumber,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: bodyStyle?.copyWith(
+                    fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                    fontWeight: FontWeight.w800,
                   ),
-                  subtitle: Text(
-                    '${row['created_at'] ?? ''} · $statusLabel',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: bodySmallStyle?.copyWith(
-                      fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
-                    ),
+                ),
+                subtitle: Text(
+                  '${row['created_at'] ?? ''} · $statusLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: bodySmallStyle?.copyWith(
+                    fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
                   ),
-                  trailing: Text(
-                    _reportMoney(row['grand_total'], displayCurrency),
-                    style: bodyStyle?.copyWith(
-                      fontSize: (bodyStyle.fontSize ?? 14) * .75,
-                      fontWeight: FontWeight.w800,
-                    ),
+                ),
+                trailing: Text(
+                  _reportMoney(row['grand_total'], displayCurrency),
+                  style: bodyStyle?.copyWith(
+                    fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                    fontWeight: FontWeight.w800,
                   ),
-                  onTap: id == null
-                      ? null
-                      : () {
-                          final query = <String, String>{
-                            'channel': 'wholesale',
-                            if (storeId != null) 'store_id': '$storeId',
-                          };
-                          Navigator.of(context).pushNamed(
-                            Uri(
-                              path: '/b2b/orders/$id',
-                              queryParameters: query,
-                            ).toString(),
-                          );
-                        },
-                );
-              }),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Text(
-                    <String>[
-                      context.tr('b2b.purchase_reports.page'),
-                      currentPage.toString(),
-                    ].join(' '),
-                    style: bodySmallStyle?.copyWith(
-                      fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
-                      fontWeight: FontWeight.w700,
-                    ),
+                ),
+                onTap: id == null
+                    ? null
+                    : () {
+                        final query = <String, String>{
+                          'channel': 'wholesale',
+                          if (storeId != null) 'store_id': '$storeId',
+                        };
+                        Navigator.of(context).pushNamed(
+                          Uri(
+                            path: '/b2b/orders/$id',
+                            queryParameters: query,
+                          ).toString(),
+                        );
+                      },
+              );
+            }),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Text(
+                  <String>[
+                    context.tr('b2b.purchase_reports.page'),
+                    currentPage.toString(),
+                  ].join(' '),
+                  style: bodySmallStyle?.copyWith(
+                    fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
+                    fontWeight: FontWeight.w700,
                   ),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      TextButton.icon(
-                        key: const ValueKey('b2b-purchases-previous-page'),
-                        onPressed: currentPage > 1
-                            ? () => _reload(page: currentPage - 1)
-                            : null,
-                        icon: const Icon(Icons.chevron_left),
-                        label: Text(
-                          context.tr('b2b.purchase_reports.previous'),
-                          style: buttonStyle?.copyWith(
-                            fontSize: (buttonStyle.fontSize ?? 14) * .75,
-                          ),
+                ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    TextButton.icon(
+                      key: const ValueKey('b2b-purchases-previous-page'),
+                      onPressed: currentPage > 1
+                          ? () => _reload(page: currentPage - 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_left),
+                      label: Text(
+                        context.tr('b2b.purchase_reports.previous'),
+                        style: buttonStyle?.copyWith(
+                          fontSize: (buttonStyle.fontSize ?? 14) * .75,
                         ),
                       ),
-                      TextButton.icon(
-                        key: const ValueKey('b2b-purchases-next-page'),
-                        onPressed: hasMore
-                            ? () => _reload(page: currentPage + 1)
-                            : null,
-                        icon: const Icon(Icons.chevron_right),
-                        label: Text(
-                          context.tr('b2b.purchase_reports.next'),
-                          style: buttonStyle?.copyWith(
-                            fontSize: (buttonStyle.fontSize ?? 14) * .75,
-                          ),
+                    ),
+                    TextButton.icon(
+                      key: const ValueKey('b2b-purchases-next-page'),
+                      onPressed:
+                          hasMore ? () => _reload(page: currentPage + 1) : null,
+                      icon: const Icon(Icons.chevron_right),
+                      label: Text(
+                        context.tr('b2b.purchase_reports.next'),
+                        style: buttonStyle?.copyWith(
+                          fontSize: (buttonStyle.fontSize ?? 14) * .75,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 
@@ -3639,7 +3643,8 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
       children: [
         FoodexBarChart(
           key: const ValueKey('b2b-purchases-category-bars'),
-          groups: values.map((value) => <double>[value]).toList(growable: false),
+          groups:
+              values.map((value) => <double>[value]).toList(growable: false),
           semanticLabel: context.tr('b2b.purchase_reports.categories'),
           height: 138,
           gap: 10,
@@ -3679,10 +3684,12 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
                     row['category_name']?.toString() ?? '—',
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize:
-                              (Theme.of(context).textTheme.bodyMedium?.fontSize ??
-                                      14) *
-                                  .75,
+                          fontSize: (Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.fontSize ??
+                                  14) *
+                              .75,
                         ),
                   ),
                 ),
@@ -4498,20 +4505,54 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     final items = <_MoreItem>[
-      _MoreItem(Icons.apartment_rounded, context.tr('b2b.profile.company'), _showProfile, tone: 0),
-      _MoreItem(Icons.account_balance_wallet_rounded, context.tr('b2b.profile.financial'), () => _open(widget.dashboardRoute), tone: 1),
-      _MoreItem(Icons.shopping_bag_outlined, context.tr('b2b.profile.orders'), () => _open(widget.ordersRoute), tone: 2),
-      _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'), () => _open(widget.invoicesRoute), tone: 3),
-      _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'), () => _open(widget.statementRoute), tone: 4),
-      _MoreItem(Icons.bar_chart_rounded, context.tr('b2b.profile.purchases_report'), () => _open(widget.purchasesRoute), tone: 2),
-      _MoreItem(Icons.local_fire_department_rounded, context.tr('b2b.top_products.title'), () => _open(widget.topProductsRoute), tone: 3),
-      _MoreItem(Icons.notifications_rounded, context.tr('b2b.profile.notifications'), () => _open(widget.notificationsRoute), tone: 1),
-      _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'), () => _open(widget.addressesRoute), tone: 0),
-      _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'), _showSettings, tone: 4),
-      _MoreItem(Icons.language_rounded, context.tr('b2b.profile.language'), _showSettings, tone: 3),
-      _MoreItem(Icons.support_agent_rounded, context.tr('b2b.profile.support'), () => _open(CustomerRoutePaths.diagnostics), tone: 2),
+      _MoreItem(Icons.apartment_rounded, context.tr('b2b.profile.company'),
+          _showProfile,
+          tone: 0),
+      _MoreItem(
+          Icons.account_balance_wallet_rounded,
+          context.tr('b2b.profile.financial'),
+          () => _open(widget.dashboardRoute),
+          tone: 1),
+      _MoreItem(Icons.shopping_bag_outlined, context.tr('b2b.profile.orders'),
+          () => _open(widget.ordersRoute),
+          tone: 2),
+      _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'),
+          () => _open(widget.invoicesRoute),
+          tone: 3),
+      _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'),
+          () => _open(widget.statementRoute),
+          tone: 4),
+      _MoreItem(
+          Icons.bar_chart_rounded,
+          context.tr('b2b.profile.purchases_report'),
+          () => _open(widget.purchasesRoute),
+          tone: 2),
+      _MoreItem(
+          Icons.local_fire_department_rounded,
+          context.tr('b2b.top_products.title'),
+          () => _open(widget.topProductsRoute),
+          tone: 3),
+      _MoreItem(
+          Icons.notifications_rounded,
+          context.tr('b2b.profile.notifications'),
+          () => _open(widget.notificationsRoute),
+          tone: 1),
+      _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'),
+          () => _open(widget.addressesRoute),
+          tone: 0),
+      _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'),
+          _showSettings,
+          tone: 4),
+      _MoreItem(Icons.language_rounded, context.tr('b2b.profile.language'),
+          _showSettings,
+          tone: 3),
+      _MoreItem(Icons.support_agent_rounded, context.tr('b2b.profile.support'),
+          () => _open(CustomerRoutePaths.diagnostics),
+          tone: 2),
       if (widget.onLogout != null)
-        _MoreItem(Icons.shield_rounded, context.tr('b2b.profile.security'), _showSettings, tone: 1),
+        _MoreItem(Icons.shield_rounded, context.tr('b2b.profile.security'),
+            _showSettings,
+            tone: 1),
     ];
 
     return Directionality(
@@ -5922,9 +5963,8 @@ class _B2bAccountStatementRemoteStateState
   }) =>
       ActionChip(
         key: ValueKey('b2b-statement-preset-$preset'),
-        labelPadding: compact
-            ? const EdgeInsets.symmetric(horizontal: 2)
-            : null,
+        labelPadding:
+            compact ? const EdgeInsets.symmetric(horizontal: 2) : null,
         visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
         label: Text(
           context.tr(labelKey),
@@ -6518,12 +6558,13 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                     child: Text.rich(
                       key: const ValueKey('b2b-invoice-detail-number'),
                       TextSpan(
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onPrimaryContainer,
+                                  fontWeight: FontWeight.w800,
+                                ),
                         children: [
                           TextSpan(
                             text: ar ? 'رقم الفاتورة ' : 'Invoice ',
@@ -6596,9 +6637,11 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   ),
                 ),
               const SizedBox(height: 14),
-              Row(
+              Wrap(
                 textDirection: TextDirection.ltr,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilledButton.icon(
                     key: const ValueKey('b2b-invoice-detail-pdf'),
@@ -6609,11 +6652,10 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.picture_as_pdf_rounded),
-                    label:
-                        Text(ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
+                    label: Text(
+                        ar ? 'تحميل الفاتورة PDF' : 'Download invoice PDF'),
                   ),
-                  if (orderRoute != null) ...[
-                    const SizedBox(width: 8),
+                  if (orderRoute != null)
                     FilledButton.tonalIcon(
                       key: const ValueKey('b2b-invoice-related-order'),
                       onPressed: () =>
@@ -6621,8 +6663,6 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       icon: const Icon(Icons.local_shipping_outlined),
                       label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                     ),
-                  ],
-
                 ],
               ),
             ],
@@ -7422,14 +7462,15 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
             final status = row['display_status']?.toString() ??
                 row['status']?.toString() ??
                 'open';
-            final rawInvoiceNumber =
-                row['display_invoice_number']?.toString().trim().isNotEmpty ==
-                        true
-                    ? row['display_invoice_number'].toString().trim()
-                    : row['invoice_number']?.toString().trim().isNotEmpty ==
-                            true
-                        ? row['invoice_number'].toString().trim()
-                        : row['id']?.toString() ?? '—';
+            final rawInvoiceNumber = row['display_invoice_number']
+                        ?.toString()
+                        .trim()
+                        .isNotEmpty ==
+                    true
+                ? row['display_invoice_number'].toString().trim()
+                : row['invoice_number']?.toString().trim().isNotEmpty == true
+                    ? row['invoice_number'].toString().trim()
+                    : row['id']?.toString() ?? '—';
             final invoiceNumber = rawInvoiceNumber.startsWith('#')
                 ? rawInvoiceNumber.substring(1).trim()
                 : rawInvoiceNumber;
@@ -7469,8 +7510,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: compactStrongStyle?.copyWith(
-                                fontSize:
-                                    (bodyStyle?.fontSize ?? 14) * .70,
+                                fontSize: (bodyStyle?.fontSize ?? 14) * .70,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -7515,8 +7555,7 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
                                 style: compactBodyStyle,
                                 children: [
                                   TextSpan(
-                                    text:
-                                        '${ar ? 'المتبقي' : 'Outstanding'}: ',
+                                    text: '${ar ? 'المتبقي' : 'Outstanding'}: ',
                                   ),
                                   TextSpan(
                                     text: _money(

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
-import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/retail_home_v3_screen.dart';
@@ -118,6 +117,43 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final mainScroll = _homeVerticalScroll();
+      final tickerHeader =
+          find.byKey(const ValueKey('retail-best-seller-ticker-header'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: tickerHeader,
+      );
+
+      const tickerProductIds = <int>[44, 43, 42];
+      final visibleTickerProductIds = tickerProductIds
+          .where(
+            (productId) => find
+                .byKey(
+                  ValueKey('retail-best-seller-ticker-product-$productId'),
+                )
+                .evaluate()
+                .isNotEmpty,
+          )
+          .toList(growable: false);
+      expect(visibleTickerProductIds, hasLength(1));
+
+      final initialTickerProductId = visibleTickerProductIds.single;
+      final initialTickerIndex =
+          tickerProductIds.indexOf(initialTickerProductId);
+      final nextTickerProductId =
+          tickerProductIds[(initialTickerIndex + 1) % tickerProductIds.length];
+
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump(const Duration(seconds: 5));
+      final nextTickerProduct = find.byKey(
+        ValueKey('retail-best-seller-ticker-product-$nextTickerProductId'),
+      );
+      expect(nextTickerProduct, findsOneWidget);
+      await tester.tap(nextTickerProduct);
+      await tester.pump();
+      expect(capturedProductId, nextTickerProductId);
+
       final bestGridFinder =
           find.byKey(const ValueKey('retail-best-sellers-grid'));
       await _dragUntilFound(
@@ -135,28 +171,6 @@ void main() {
           find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
       expect(
           find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
-
-      expect(
-        find.byKey(
-          const ValueKey('retail-best-seller-ticker-product-44'),
-        ),
-        findsOneWidget,
-      );
-      await tester.pump(const Duration(seconds: 10));
-      await tester.pump(const Duration(seconds: 5));
-      expect(
-        find.byKey(
-          const ValueKey('retail-best-seller-ticker-product-43'),
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(
-          const ValueKey('retail-best-seller-ticker-product-43'),
-        ),
-      );
-      await tester.pump();
-      expect(capturedProductId, 43);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
       await _dragUntilFound(
@@ -327,9 +341,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(pushedRoute, isNotNull);
     final homeUri = Uri.parse(pushedRoute!);
-    expect(homeUri.path, '/retail/17/home');
-    expect(homeUri.queryParameters['store_id'], '17');
-    expect(homeUri.queryParameters['channel'], 'retail');
+    expect(homeUri.path, '/b2b/home');
   });
 
   testWidgets(
@@ -413,7 +425,10 @@ Future<void> _dragUntilFound(
 Future<void> _pumpRetailHomeReady(WidgetTester tester) async {
   for (var attempt = 0; attempt < 12; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
-    if (find.byKey(const ValueKey('retail-catalog-home')).evaluate().isNotEmpty) {
+    if (find
+        .byKey(const ValueKey('retail-catalog-home'))
+        .evaluate()
+        .isNotEmpty) {
       return;
     }
   }

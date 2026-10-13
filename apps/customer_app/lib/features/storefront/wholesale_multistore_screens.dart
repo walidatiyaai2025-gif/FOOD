@@ -261,15 +261,15 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     ? custom['hero_cta_ar'].toString()
                     : 'تصفح الكتالوج';
 
-            final sections =
-                (storefront['sections'] as List? ?? const <Object>[])
-                    .whereType<Map>()
-                    .map((row) => Map<String, dynamic>.from(row))
-                    .toList(growable: true)
-                  ..sort(
-                    (left, right) => intValue(left['sort_order'])
-                        .compareTo(intValue(right['sort_order'])),
-                  );
+            final sections = (storefront['sections'] as List? ??
+                    const <Object>[])
+                .whereType<Map>()
+                .map((row) => Map<String, dynamic>.from(row))
+                .toList(growable: true)
+              ..sort(
+                (left, right) => intValue(left['sort_order'])
+                    .compareTo(intValue(right['sort_order'])),
+              );
             final effectiveSections = sections.isEmpty
                 ? <Map<String, dynamic>>[
                     {'type': 'hero', 'sort_order': 10},
@@ -807,9 +807,7 @@ class _WholesaleBannerCarouselState extends State<_WholesaleBannerCarousel> {
                   key: const ValueKey('wholesale-home-banner-indicators'),
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    for (var index = 0;
-                        index < widget.banners.length;
-                        index++)
+                    for (var index = 0; index < widget.banners.length; index++)
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 260),
                         curve: Curves.easeOutCubic,
@@ -901,7 +899,8 @@ class _WholesaleHeroState extends State<_WholesaleHero>
   @override
   void didUpdateWidget(covariant _WholesaleHero oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title || oldWidget.imageUrl != widget.imageUrl) {
+    if (oldWidget.title != widget.title ||
+        oldWidget.imageUrl != widget.imageUrl) {
       if (_reduceMotion) {
         _entranceController.value = 1;
       } else {
@@ -957,8 +956,7 @@ class _WholesaleHeroState extends State<_WholesaleHero>
                       child: Image.network(
                         widget.imageUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const SizedBox.shrink(),
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
                   ),
@@ -978,7 +976,8 @@ class _WholesaleHeroState extends State<_WholesaleHero>
                 if (!_reduceMotion)
                   Positioned(
                     key: const ValueKey('wholesale-home-banner-illumination'),
-                    left: -100 + (MediaQuery.sizeOf(context).width + 200) * glowX,
+                    left:
+                        -100 + (MediaQuery.sizeOf(context).width + 200) * glowX,
                     top: -36,
                     bottom: -36,
                     width: 92,
@@ -1044,8 +1043,7 @@ class _WholesaleHeroState extends State<_WholesaleHero>
                                   ),
                                   const SizedBox(height: 12),
                                   Transform.scale(
-                                    alignment:
-                                        AlignmentDirectional.centerStart,
+                                    alignment: AlignmentDirectional.centerStart,
                                     scale: _reduceMotion ? 1 : ctaScale,
                                     child: _WhitePill(
                                       label: widget.cta,
@@ -1116,8 +1114,7 @@ class _WholesaleCategoryGrid extends StatefulWidget {
   final int storeId;
 
   @override
-  State<_WholesaleCategoryGrid> createState() =>
-      _WholesaleCategoryGridState();
+  State<_WholesaleCategoryGrid> createState() => _WholesaleCategoryGridState();
 }
 
 class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
@@ -1516,7 +1513,8 @@ class _WholesaleBestSellerTickerHeaderState
                 builder: (context, child) {
                   final travel = constraints.maxWidth + textWidth;
                   final dx = isArabic
-                      ? constraints.maxWidth - (_marqueeController.value * travel)
+                      ? constraints.maxWidth -
+                          (_marqueeController.value * travel)
                       : -textWidth + (_marqueeController.value * travel);
                   return Transform.translate(
                     offset: Offset(dx, 0),
@@ -1549,7 +1547,8 @@ class _WholesaleBestSellerTickerHeaderState
   @override
   Widget build(BuildContext context) {
     final products = _products;
-    final product = products.isEmpty ? null : products[_index % products.length];
+    final product =
+        products.isEmpty ? null : products[_index % products.length];
     final tone = _tones[_index % _tones.length];
 
     return Padding(
@@ -1591,11 +1590,7 @@ class _WholesaleBestSellerTickerHeaderState
   }
 }
 
-int _wholesaleProductColumns(int itemCount) {
-  if (itemCount <= 1) return 1;
-  if (itemCount == 2) return 2;
-  return 3;
-}
+int _wholesaleProductColumns(int itemCount) => 3;
 
 class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
@@ -4041,8 +4036,8 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                         children: [
                           IconButton(
                             key: const ValueKey('b2b-cart-back'),
-                            tooltip:
-                                MaterialLocalizations.of(context).backButtonTooltip,
+                            tooltip: MaterialLocalizations.of(context)
+                                .backButtonTooltip,
                             onPressed: () => Navigator.of(context).maybePop(),
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
@@ -4114,8 +4109,7 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                           name: product['name']?.toString() ??
                               row['name']?.toString() ??
                               '',
-                          subtitle:
-                              row['pack_label']?.toString().trim() ?? '',
+                          subtitle: row['pack_label']?.toString().trim() ?? '',
                           imageUrl: product['image_url']?.toString(),
                           quantity: qty,
                           unitPrice:
