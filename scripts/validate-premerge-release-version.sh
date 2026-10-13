@@ -39,6 +39,22 @@ if [[ "$current_version" != "$base_version" ]]; then
   version_changed=true
 fi
 
+customer_freeze_sha="4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d"
+production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
+if [[ "$current_version" == "1.0.77" && -f "$production_hold_file" ]]; then
+  if ! git cat-file -e "$customer_freeze_sha^{commit}" 2>/dev/null; then
+    echo "Customer freeze baseline commit $customer_freeze_sha is not available." >&2
+    exit 1
+  fi
+  if ! git diff --quiet "$customer_freeze_sha" "$head" -- apps/customer_app 2>/dev/null; then
+    echo "FOODEX 1.0.77 production hold forbids any apps/customer_app/** change from frozen baseline $customer_freeze_sha." >&2
+    git diff --name-only "$customer_freeze_sha" "$head" -- apps/customer_app || true
+    exit 1
+  fi
+  echo "Pre-merge release hold contract passed: candidate=1.0.77, Customer tree frozen at $customer_freeze_sha."
+  exit 0
+fi
+
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 release_branch=false
 if [[ "$branch_name" == release/* ]]; then
