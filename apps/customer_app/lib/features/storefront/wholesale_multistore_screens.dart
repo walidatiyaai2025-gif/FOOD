@@ -3578,28 +3578,35 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                   key: const ValueKey('b2b-cart-data'),
                   padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
                   children: [
-                    const FoodexTopBar(title: ''),
-                    const SizedBox(height: 4),
-                    Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F8F4),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    SizedBox(
+                      key: const ValueKey('b2b-cart-header'),
+                      height: 44,
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.warehouse_outlined,
-                            color: Color(0xFF078A43),
-                            size: 19,
+                          IconButton(
+                            key: const ValueKey('b2b-cart-back'),
+                            tooltip:
+                                MaterialLocalizations.of(context).backButtonTooltip,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            visualDensity: VisualDensity.compact,
+                            icon: Icon(
+                              Directionality.of(context) == TextDirection.rtl
+                                  ? Icons.arrow_forward_ios_rounded
+                                  : Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                            ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              context.tr('b2b.cart.store'),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700),
+                              context.tr('b2b.cart.title'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF10233F),
+                                fontSize: 17,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                           if (rows.isNotEmpty && widget.commerceApi != null)
@@ -3608,14 +3615,20 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                               onPressed: () => _clear(rows),
                               icon: const Icon(
                                 Icons.delete_sweep_outlined,
-                                size: 18,
+                                size: 16,
                               ),
                               label: Text(context.tr('b2b.cart.clear')),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                              ),
                             ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     if (rows.isEmpty)
                       FoodexEmptyState(
                         key: const ValueKey('b2b-empty'),
