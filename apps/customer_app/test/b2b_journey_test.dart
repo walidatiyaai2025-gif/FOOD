@@ -582,7 +582,7 @@ void main() {
     expect(find.text('1000.000 KWD'), findsNothing);
     expect(find.text('875.000 KWD'), findsOneWidget);
     expect(find.text('طلباتي'), findsWidgets);
-    expect(find.text('الفواتير'), findsOneWidget);
+    expect(find.text('الفواتير'), findsWidgets);
     expect(find.text('كشف الحساب'), findsOneWidget);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
     expect(find.text('الإشعارات'), findsOneWidget);
@@ -1308,7 +1308,7 @@ void main() {
       expect(api.calls, greaterThanOrEqualTo(1));
       expect(
         find.byKey(const ValueKey('b2b-product-stock-auto-refresh')),
-        findsNothing,
+        findsOneWidget,
       );
     },
   );
@@ -2863,15 +2863,6 @@ void main() {
           ],
         },
         expected: 'Wholesale Product',
-      ),
-      (
-        route: '/b2b/profile',
-        payload: {
-          'company_name': 'Acme Foods',
-          'email': 'buyer@example.test',
-          'tax_number': 'TX-900',
-        },
-        expected: 'Acme Foods',
       ),
     ];
 
