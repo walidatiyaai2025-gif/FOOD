@@ -5889,6 +5889,18 @@ class _B2bAccountStatementRemoteStateState
     final reference = row['reference']?.toString() ?? '—';
     final description = row['description']?.toString() ?? '—';
     final route = _referenceRoute(row);
+    final textTheme = Theme.of(context).textTheme;
+    final transactionTitleStyle = textTheme.titleSmall?.copyWith(
+      fontSize: (textTheme.titleSmall?.fontSize ?? 14) * .75,
+      fontWeight: FontWeight.w800,
+    );
+    final transactionTextStyle = textTheme.bodyMedium?.copyWith(
+      fontSize: (textTheme.bodyMedium?.fontSize ?? 14) * .75,
+    );
+    final transactionButtonStyle = textTheme.labelLarge?.copyWith(
+      fontSize: (textTheme.labelLarge?.fontSize ?? 14) * .75,
+      fontWeight: FontWeight.w700,
+    );
 
     return Card(
       key: ValueKey('b2b-statement-row-${row['id']}'),
@@ -5902,22 +5914,23 @@ class _B2bAccountStatementRemoteStateState
                 Expanded(
                   child: Text(
                     _typeLabel(type),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: transactionTitleStyle,
                   ),
                 ),
-                Text(_shortDate(row['occurred_at']?.toString())),
+                Text(
+                  _shortDate(row['occurred_at']?.toString()),
+                  style: transactionTextStyle,
+                ),
               ],
             ),
             const SizedBox(height: 5),
-            Text(description),
+            Text(description, style: transactionTextStyle),
             const SizedBox(height: 6),
             if (route == null)
               Text(
                 '${context.tr('b2b.statement.reference')}: $reference',
                 key: ValueKey('b2b-statement-reference-${row['id']}'),
+                style: transactionTextStyle,
               )
             else
               Align(
@@ -5928,6 +5941,7 @@ class _B2bAccountStatementRemoteStateState
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: Text(
                     '${context.tr('b2b.statement.reference')}: $reference',
+                    style: transactionButtonStyle,
                   ),
                 ),
               ),
@@ -5938,13 +5952,16 @@ class _B2bAccountStatementRemoteStateState
               children: [
                 Text(
                   '${context.tr('b2b.statement.debit')}: ${_money(row['debit'], currency)}',
+                  style: transactionTextStyle,
                 ),
                 Text(
                   '${context.tr('b2b.statement.credit')}: ${_money(row['credit'], currency)}',
+                  style: transactionTextStyle,
                 ),
                 Text(
                   '${context.tr('b2b.statement.running_balance')}: ${_money(row['running_balance'], currency)}',
                   key: ValueKey('b2b-statement-running-${row['id']}'),
+                  style: transactionTextStyle,
                 ),
               ],
             ),
