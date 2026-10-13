@@ -293,6 +293,8 @@ class AppTranslations extends InheritedWidget {
         'صلاحية الموقع مرفوضة نهائيًا. فعّلها من إعدادات الجهاز أو أدخل العنوان يدويًا.',
     'customer.addresses.location_failed':
         'تعذر تحديد الموقع حاليًا. يمكنك حفظ العنوان يدويًا.',
+    'customer.addresses.reverse_geocode_failed':
+        'تم تحديد الموقع، لكن تعذر تعبئة بيانات العنوان تلقائيًا. يمكنك استكمالها يدويًا.',
     'customer.addresses.required_fields':
         'أدخل العنوان والمدينة ورمز الدولة المكون من حرفين.',
     'customer.settings.title': 'الإعدادات',
@@ -1010,6 +1012,8 @@ class AppTranslations extends InheritedWidget {
         'Location permission is permanently denied. Enable it in device settings or enter the address manually.',
     'customer.addresses.location_failed':
         'Could not get your location. You can save the address manually.',
+    'customer.addresses.reverse_geocode_failed':
+        'Location selected, but the address fields could not be filled automatically. You can complete them manually.',
     'customer.addresses.required_fields':
         'Enter the address, city, and a two-letter country code.',
     'customer.settings.title': 'Settings',
