@@ -24,3 +24,5 @@ The canonical Release Factory must generate the Dashboard Update ZIP and Custome
 - Targeted Customer CI fixes were revalidated after canonical formatting.
 
 - Final validation retriggered after canonical Customer formatting on the exact CI dependency graph.
+
+- Canonical formatter pass completed after targeted Customer CI fixes.
