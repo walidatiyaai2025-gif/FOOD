@@ -60,6 +60,18 @@ class CustomerLiveAdService {
       if (!await _shouldShow(ad)) continue;
       if (!context.mounted) return;
 
+      final imageUrl = ad.imageUrl?.trim();
+      var imageReady = false;
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          await precacheImage(NetworkImage(imageUrl), context);
+          imageReady = true;
+        } catch (_) {
+          imageReady = false;
+        }
+      }
+      if (!context.mounted) return;
+
       await showDialog<void>(
         context: context,
         barrierDismissible: ad.dismissible,
@@ -74,13 +86,12 @@ class CustomerLiveAdService {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (ad.imageUrl != null && ad.imageUrl!.isNotEmpty) ...[
+                    if (imageReady && imageUrl != null) ...[
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          ad.imageUrl!,
+                        child: Image(
+                          image: NetworkImage(imageUrl),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         ),
                       ),
                       const SizedBox(height: 14),
