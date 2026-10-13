@@ -2955,42 +2955,12 @@ class _WholesaleProductDetailsDesignScreenState
                       border: Border.all(color: const Color(0xFFE4ECE7)),
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _InfoPill(
-                            icon: Icons.inventory_2_outlined,
-                            label: context.tr('b2b.minimum_order') +
-                                ' ' +
-                                compactNumber(minimum),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _InfoPill(
-                            icon: isAvailable
-                                ? Icons.verified_rounded
-                                : Icons.remove_shopping_cart_outlined,
-                            label: isAvailable
-                                ? context.tr('b2b.product.inventory') +
-                                    ' ' +
-                                    (availableQuantity == null
-                                        ? context.tr(
-                                            'b2b.product.inventory_unbounded',
-                                          )
-                                        : compactNumber(availableQuantity))
-                                : context.tr('customer.product.out_of_stock'),
-                          ),
-                        ),
-                      ],
+                    child: _InfoPill(
+                      icon: Icons.inventory_2_outlined,
+                      label: context.tr('b2b.minimum_order') +
+                          ' ' +
+                          compactNumber(minimum),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoPill(
-                    icon: Icons.straighten_rounded,
-                    label: context.tr('b2b.product.quantity_step') +
-                        ' ' +
-                        compactNumber(increment),
                   ),
                   if (quantityIssue != null && isAvailable) ...[
                     const SizedBox(height: 8),
