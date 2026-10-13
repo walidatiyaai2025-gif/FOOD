@@ -3379,8 +3379,21 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-settlement-strip')),
         findsOneWidget,
       );
-      expect(find.text('#31'), findsOneWidget);
-      expect(find.textContaining('FOODEX Wholesale'), findsOneWidget);
+      expect(find.text('#31'), findsNothing);
+      expect(find.text('تفاصيل الفاتورة'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('b2b-invoice-detail-number')),
+        findsOneWidget,
+      );
+      final invoiceNumber = tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-invoice-detail-number')),
+      );
+      expect(invoiceNumber.textSpan?.toPlainText(), 'رقم الفاتورة INV-31');
+      expect(
+        find.byKey(const ValueKey('b2b-invoice-seller')),
+        findsNothing,
+      );
+      expect(find.textContaining('FOODEX Wholesale'), findsNothing);
       expect(find.textContaining('Buyer Co'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('b2b-invoice-detail-totals')),
@@ -3417,6 +3430,20 @@ void main() {
         find.byKey(const ValueKey('b2b-invoice-related-order')),
         findsOneWidget,
       );
+
+      final pdfRect = tester.getRect(
+        find.byKey(const ValueKey('b2b-invoice-detail-pdf')),
+      );
+      final relatedRect = tester.getRect(
+        find.byKey(const ValueKey('b2b-invoice-related-order')),
+      );
+      final refreshRect = tester.getRect(
+        find.byKey(const ValueKey('b2b-invoice-detail-refresh')),
+      );
+      expect((pdfRect.center.dy - relatedRect.center.dy).abs(), lessThan(1));
+      expect(pdfRect.left, lessThan(refreshRect.left));
+      expect(relatedRect.left, lessThan(refreshRect.left));
+
       expect(find.textContaining('/api/v1/invoices/31/download'), findsNothing);
     },
   );
