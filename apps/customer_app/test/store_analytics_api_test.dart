@@ -42,7 +42,7 @@ void main() {
       );
       expect(request.url.queryParameters.containsKey('store_id'), isFalse);
       expect(request.url.queryParameters.containsKey('store'), isFalse);
-      expect(request.headers['Authorization'], '***');
+      expect(request.headers['Authorization'], 'Bearer token-123');
       expect(request.headers['X-FOODEX-Customer-Domain'], 'b2b');
       expect(model.store.id, 22);
       expect(model.store.currency, 'EGP');
