@@ -23,26 +23,24 @@ void main() {
       int? addedProductId;
 
       final navigation = RetailCatalogNavigation(
-        openProducts:
-            (
-              BuildContext context, {
-              required int storeId,
-              String? query,
-              int? categoryId,
-            }) {
-              searchStore = storeId;
-              searchQuery = query;
-              capturedCategoryId = categoryId;
-            },
-        openProduct:
-            (
-              BuildContext context, {
-              required int storeId,
-              required int productId,
-            }) {
-              searchStore = storeId;
-              capturedProductId = productId;
-            },
+        openProducts: (
+          BuildContext context, {
+          required int storeId,
+          String? query,
+          int? categoryId,
+        }) {
+          searchStore = storeId;
+          searchQuery = query;
+          capturedCategoryId = categoryId;
+        },
+        openProduct: (
+          BuildContext context, {
+          required int storeId,
+          required int productId,
+        }) {
+          searchStore = storeId;
+          capturedProductId = productId;
+        },
       );
 
       await tester.pumpWidget(
@@ -68,15 +66,14 @@ void main() {
                   storefrontApi: const _FakeStorefrontApi(),
                   isAuthenticated: false,
                   navigation: navigation,
-                  onAddToCart:
-                      ({
-                        required int storeId,
-                        required int productId,
-                        required double quantity,
-                      }) async {
-                        searchStore = storeId;
-                        addedProductId = productId;
-                      },
+                  onAddToCart: ({
+                    required int storeId,
+                    required int productId,
+                    required double quantity,
+                  }) async {
+                    searchStore = storeId;
+                    addedProductId = productId;
+                  },
                 ),
               ),
             ),
@@ -418,8 +415,8 @@ class _FakeCatalogApi implements B2cCatalogApi {
 
   @override
   Future<List<B2cCategory>> categories(int storeId) async => const [
-    B2cCategory(id: 3, name: 'Vegetables'),
-  ];
+        B2cCategory(id: 3, name: 'Vegetables'),
+      ];
 
   @override
   Future<List<B2cProduct>> products(
@@ -428,74 +425,75 @@ class _FakeCatalogApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
-  }) async => const [
-    B2cProduct(
-      id: 42,
-      name: 'Tomato Box',
-      sku: 'TOM-42',
-      price: 3.25,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-    B2cProduct(
-      id: 43,
-      name: 'Mango Pack',
-      sku: 'MAN-43',
-      price: 4.10,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-    B2cProduct(
-      id: 44,
-      name: 'Okra Pack',
-      sku: 'OKR-44',
-      price: 2.95,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-    B2cProduct(
-      id: 45,
-      name: 'French Fries',
-      sku: 'FRY-45',
-      price: 1.80,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-    B2cProduct(
-      id: 46,
-      name: 'Mozzarella',
-      sku: 'MOZ-46',
-      price: 5.30,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-    B2cProduct(
-      id: 47,
-      name: 'Chicken Strips',
-      sku: 'CHK-47',
-      price: 6.40,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-    B2cProduct(
-      id: 48,
-      name: 'Tomato Sauce',
-      sku: 'SAU-48',
-      price: 2.20,
-      currency: 'KWD',
-      categoryId: 3,
-    ),
-  ];
+  }) async =>
+      const [
+        B2cProduct(
+          id: 42,
+          name: 'Tomato Box',
+          sku: 'TOM-42',
+          price: 3.25,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 43,
+          name: 'Mango Pack',
+          sku: 'MAN-43',
+          price: 4.10,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 44,
+          name: 'Okra Pack',
+          sku: 'OKR-44',
+          price: 2.95,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 45,
+          name: 'French Fries',
+          sku: 'FRY-45',
+          price: 1.80,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 46,
+          name: 'Mozzarella',
+          sku: 'MOZ-46',
+          price: 5.30,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 47,
+          name: 'Chicken Strips',
+          sku: 'CHK-47',
+          price: 6.40,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+        B2cProduct(
+          id: 48,
+          name: 'Tomato Sauce',
+          sku: 'SAU-48',
+          price: 2.20,
+          currency: 'KWD',
+          categoryId: 3,
+        ),
+      ];
 
   @override
   Future<List<B2cOffer>> offers(int storeId) async => const [
-    B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10),
-  ];
+        B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10),
+      ];
 
   @override
   Future<List<B2cBanner>> banners(int storeId) async => const [
-    B2cBanner(id: 11, title: 'Fresh every day'),
-  ];
+        B2cBanner(id: 11, title: 'Fresh every day'),
+      ];
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>
@@ -507,16 +505,16 @@ class _FakeStorefrontApi implements StorefrontApi {
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => {
-    'sections': [
-      {
-        'type': 'best_sellers',
-        'config': {
-          'product_ids': [44, 43, 42],
-          'limit': 3,
-        },
-      },
-    ],
-  };
+        'sections': [
+          {
+            'type': 'best_sellers',
+            'config': {
+              'product_ids': [44, 43, 42],
+              'limit': 3,
+            },
+          },
+        ],
+      };
 
   @override
   Future<Map<String, dynamic>> selection({
@@ -524,7 +522,8 @@ class _FakeStorefrontApi implements StorefrontApi {
     String? city,
     String? area,
     bool support = false,
-  }) async => const <String, dynamic>{};
+  }) async =>
+      const <String, dynamic>{};
 
   @override
   Future<Map<String, dynamic>> wholesaleHome(int storeId) async =>
