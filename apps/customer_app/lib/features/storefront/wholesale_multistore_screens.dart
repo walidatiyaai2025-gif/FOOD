@@ -1218,10 +1218,9 @@ class _WholesaleProductGrid extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 12,
-        mainAxisExtent: (showCommerceActions
-                ? (width < 360 ? 270.0 : 282.0)
-                : (width < 360 ? 238.0 : 250.0)) *
-            .85,
+        mainAxisExtent: showCommerceActions
+            ? (width < 360 ? 184.0 : 188.0)
+            : (width < 360 ? 162.0 : 166.0),
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1474,7 +1473,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   ),
                 ),
               ],
-              const SizedBox(height: 6),
+              const Spacer(),
+              const SizedBox(height: 4),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1499,7 +1499,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   if (widget.showCommerceActions) ...[
                     const SizedBox(width: 4),
                     SizedBox.square(
-                      dimension: 36,
+                      dimension: 32,
                       child: Semantics(
                         button: true,
                         label: context.tr('customer.action.add_cart'),
@@ -1510,18 +1510,39 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                               : null,
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size.square(36),
+                            minimumSize: const Size.square(32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: Colors.transparent,
+                            disabledBackgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
                             shape: const CircleBorder(),
                             visualDensity: VisualDensity.compact,
                           ),
-                          child: busy
-                              ? const SizedBox.square(
-                                  dimension: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isAvailable && id > 0
+                                  ? palette.primary
+                                  : palette.muted.withOpacity(.22),
+                            ),
+                            alignment: Alignment.center,
+                            child: busy
+                                ? const SizedBox.square(
+                                    dimension: 8,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.add_rounded,
+                                    size: 10,
+                                    color: Colors.white,
                                   ),
-                                )
-                              : const Icon(Icons.add_rounded, size: 15),
+                          ),
                         ),
                       ),
                     ),
@@ -3800,6 +3821,7 @@ class _CartLine extends StatelessWidget {
                         icon: const Icon(
                           Icons.delete_outline_rounded,
                           size: 20,
+                          color: Color(0xFFD92D20),
                         ),
                       ),
                   ],
