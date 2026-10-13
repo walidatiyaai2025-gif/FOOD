@@ -136,6 +136,28 @@ void main() {
       expect(
           find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
 
+      expect(
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-44'),
+        ),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-43'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-43'),
+        ),
+      );
+      await tester.pump();
+      expect(capturedProductId, 43);
+
       final product = find.byKey(const ValueKey('retail-product-42'));
       await _dragUntilFound(
         tester,
