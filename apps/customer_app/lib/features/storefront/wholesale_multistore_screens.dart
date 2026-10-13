@@ -375,16 +375,29 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   {
                     final sectionRows = _wholesaleRowsForSection(rows, section);
                     content.add(
-                      FoodexSectionHeader(
-                        title: sectionTitle,
-                        palette: palette,
-                        textScale: .8,
-                        spacingScale: .25,
-                        onAction: storeId > 0
-                            ? () =>
-                                openCatalog(_wholesaleSectionFilters(section))
-                            : null,
-                      ),
+                      type == 'best_sellers'
+                          ? _WholesaleBestSellerTickerHeader(
+                              title: sectionTitle,
+                              rows: sectionRows,
+                              palette: palette,
+                              storeId: storeId,
+                              onAction: storeId > 0
+                                  ? () => openCatalog(
+                                        _wholesaleSectionFilters(section),
+                                      )
+                                  : null,
+                            )
+                          : FoodexSectionHeader(
+                              title: sectionTitle,
+                              palette: palette,
+                              textScale: .8,
+                              spacingScale: .25,
+                              onAction: storeId > 0
+                                  ? () => openCatalog(
+                                        _wholesaleSectionFilters(section),
+                                      )
+                                  : null,
+                            ),
                     );
                     content.add(
                       _WholesaleProductGrid(
@@ -1160,6 +1173,172 @@ class _WholesaleBrandRail extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _WholesaleBestSellerTickerHeader extends StatefulWidget {
+  const _WholesaleBestSellerTickerHeader({
+    required this.title,
+    required this.rows,
+    required this.palette,
+    required this.storeId,
+    required this.onAction,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> rows;
+  final FoodexPalette palette;
+  final int storeId;
+  final VoidCallback? onAction;
+
+  @override
+  State<_WholesaleBestSellerTickerHeader> createState() =>
+      _WholesaleBestSellerTickerHeaderState();
+}
+
+class _WholesaleBestSellerTickerHeaderState
+    extends State<_WholesaleBestSellerTickerHeader> {
+  static const _interval = Duration(seconds: 10);
+  static const _tones = <Color>[
+    Color(0xFF087347),
+    Color(0xFF2E5FA8),
+    Color(0xFF8B5A00),
+    Color(0xFF7A4EA3),
+    Color(0xFFB54708),
+  ];
+
+  Timer? _timer;
+  int _index = 0;
+
+  List<Map<String, dynamic>> get _products => widget.rows
+      .where(
+        (row) =>
+            intValue(row['id']) > 0 &&
+            (row['name']?.toString().trim().isNotEmpty ?? false),
+      )
+      .toList(growable: false);
+
+  @override
+  void initState() {
+    super.initState();
+    _restartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WholesaleBestSellerTickerHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.rows.map((row) => intValue(row['id'])).join(',');
+    final newIds = widget.rows.map((row) => intValue(row['id'])).join(',');
+    if (oldIds != newIds) {
+      _index = 0;
+      _restartTimer();
+    }
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    if (_products.length <= 1) return;
+    _timer = Timer.periodic(_interval, (_) {
+      final products = _products;
+      if (!mounted || products.isEmpty) return;
+      setState(() => _index = (_index + 1) % products.length);
+    });
+  }
+
+  void _openProduct(Map<String, dynamic> product) {
+    final id = intValue(product['id']);
+    if (id <= 0 || widget.storeId <= 0) return;
+    Navigator.of(context).pushNamed(
+      '/b2b/products/' +
+          id.toString() +
+          '?store_id=' +
+          widget.storeId.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final products = _products;
+    final product = products.isEmpty ? null : products[_index % products.length];
+    final tone = _tones[_index % _tones.length];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 3.5, 16, 2.25),
+      child: Row(
+        key: const ValueKey('wholesale-best-seller-ticker-header'),
+        children: [
+          Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: widget.palette.text,
+              fontSize: 14.4,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (product != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  child: InkWell(
+                    key: ValueKey(
+                      'wholesale-best-seller-ticker-product-${intValue(product['id'])}',
+                    ),
+                    onTap: () => _openProduct(product),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        product['name'].toString(),
+                        key: ValueKey(
+                          'wholesale-best-seller-ticker-label-${intValue(product['id'])}',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: tone,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                          decoration: TextDecoration.underline,
+                          decorationColor: tone,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ] else
+            const Spacer(),
+          if (widget.onAction != null)
+            TextButton(
+              key: ValueKey('section-action-' + widget.title),
+              onPressed: widget.onAction,
+              child: Text(
+                'عرض الكل',
+                style: TextStyle(
+                  color: widget.palette.primary,
+                  fontSize: 9.6,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
