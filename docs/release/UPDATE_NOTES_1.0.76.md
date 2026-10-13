@@ -30,3 +30,5 @@ The canonical Release Factory must generate the Dashboard Update ZIP and Custome
 - Final Customer test-alignment pass completed against the frozen 1.0.76 runtime.
 
 - Final Customer release validation rerun after canonical formatting and B2B test alignment.
+
+- Final Customer regression alignment was canonical-formatted and revalidated before promotion.
