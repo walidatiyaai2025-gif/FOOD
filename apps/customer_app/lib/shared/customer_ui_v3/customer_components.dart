@@ -556,6 +556,7 @@ class CustomerProductCard extends StatelessWidget {
                                 dimension: 44,
                                 child: Icon(
                                   Icons.add_rounded,
+                                  size: 17,
                                   color: CustomerUiColors.deepGreenStrong,
                                 ),
                               ),
