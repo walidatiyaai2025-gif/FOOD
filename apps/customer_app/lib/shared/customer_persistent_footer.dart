@@ -23,6 +23,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
     this.forceWholesale = false,
     this.keyPrefix = 'customer-footer',
     this.isPlatformHome = false,
+    this.disableProducts = false,
     super.key,
   }) : assert(commerceContext != null || forceWholesale);
 
@@ -32,6 +33,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
   final bool forceWholesale;
   final String keyPrefix;
   final bool isPlatformHome;
+  final bool disableProducts;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +51,7 @@ class CustomerPersistentFooterShell extends StatelessWidget {
               forceWholesale: forceWholesale,
               keyPrefix: keyPrefix,
               isPlatformHome: isPlatformHome,
+              disableProducts: disableProducts,
             ),
         ],
       ),
@@ -63,6 +66,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
     this.forceWholesale = false,
     this.keyPrefix = 'customer-footer',
     this.isPlatformHome = false,
+    this.disableProducts = false,
     super.key,
   }) : assert(commerceContext != null || forceWholesale);
 
@@ -71,6 +75,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
   final bool forceWholesale;
   final String keyPrefix;
   final bool isPlatformHome;
+  final bool disableProducts;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +90,7 @@ class CustomerPersistentFooterDock extends StatelessWidget {
         forceWholesale: forceWholesale,
         keyPrefix: keyPrefix,
         isPlatformHome: isPlatformHome,
+        disableProducts: disableProducts,
       ),
     );
   }
@@ -97,6 +103,7 @@ class CustomerPersistentFooter extends StatelessWidget {
     this.forceWholesale = false,
     this.keyPrefix = 'customer-footer',
     this.isPlatformHome = false,
+    this.disableProducts = false,
     super.key,
   }) : assert(commerceContext != null || forceWholesale);
 
@@ -105,6 +112,7 @@ class CustomerPersistentFooter extends StatelessWidget {
   final bool forceWholesale;
   final String keyPrefix;
   final bool isPlatformHome;
+  final bool disableProducts;
 
   @override
   Widget build(BuildContext context) {
@@ -203,21 +211,30 @@ class CustomerPersistentFooter extends StatelessWidget {
               children: [
                 for (final item in items)
                   Expanded(
-                    child: _FooterButton(
-                      key: ValueKey(
-                        '$keyPrefix-${item.destination.name}',
-                      ),
-                      item: item,
-                      active: item.destination == activeDestination,
-                      onTap: isRetail &&
-                              item.destination == activeDestination &&
-                              (item.destination !=
-                                      CustomerFooterDestination.home ||
-                                  isPlatformHome)
-                          ? null
-                          : () => Navigator.of(context).pushNamed(
-                                _locationFor(item.destination),
-                              ),
+                    child: Builder(
+                      builder: (context) {
+                        final disabled = disableProducts &&
+                            item.destination ==
+                                CustomerFooterDestination.products;
+                        return _FooterButton(
+                          key: ValueKey(
+                            '$keyPrefix-${item.destination.name}',
+                          ),
+                          item: item,
+                          active: item.destination == activeDestination,
+                          enabled: !disabled,
+                          onTap: disabled ||
+                                  (isRetail &&
+                                      item.destination == activeDestination &&
+                                      (item.destination !=
+                                              CustomerFooterDestination.home ||
+                                          isPlatformHome))
+                              ? null
+                              : () => Navigator.of(context).pushNamed(
+                                    _locationFor(item.destination),
+                                  ),
+                        );
+                      },
                     ),
                   ),
               ],
@@ -314,12 +331,14 @@ class _FooterButton extends StatelessWidget {
   const _FooterButton({
     required this.item,
     required this.active,
+    required this.enabled,
     required this.onTap,
     super.key,
   });
 
   final _FooterItem item;
   final bool active;
+  final bool enabled;
   final VoidCallback? onTap;
 
   @override
@@ -331,11 +350,17 @@ class _FooterButton extends StatelessWidget {
 
     return Semantics(
       button: true,
+      enabled: enabled,
       selected: active,
       label: item.label,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
+      child: Opacity(
+        key: ValueKey(
+          enabled ? 'footer-enabled-${item.destination.name}' : 'footer-disabled-${item.destination.name}',
+        ),
+        opacity: enabled ? 1 : .36,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: CustomerUiSpacing.xxs,
             vertical: 5,
@@ -385,6 +410,7 @@ class _FooterButton extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
