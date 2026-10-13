@@ -6622,13 +6622,7 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                       label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                     ),
                   ],
-                  const Spacer(),
-                  IconButton.filledTonal(
-                    key: const ValueKey('b2b-invoice-detail-refresh'),
-                    tooltip: ar ? 'تحديث' : 'Refresh',
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
+
                 ],
               ),
             ],
