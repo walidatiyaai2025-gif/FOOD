@@ -847,7 +847,7 @@ class _WhitePill extends StatelessWidget {
       );
 }
 
-class _WholesaleCategoryGrid extends StatelessWidget {
+class _WholesaleCategoryGrid extends StatefulWidget {
   const _WholesaleCategoryGrid({
     required this.rows,
     required this.palette,
@@ -859,9 +859,52 @@ class _WholesaleCategoryGrid extends StatelessWidget {
   final int storeId;
 
   @override
+  State<_WholesaleCategoryGrid> createState() =>
+      _WholesaleCategoryGridState();
+}
+
+class _WholesaleCategoryGridState extends State<_WholesaleCategoryGrid> {
+  static const double _itemStep = 86;
+  static const Duration _slideEvery = Duration(seconds: 3);
+  static const Duration _slideDuration = Duration(milliseconds: 500);
+
+  final ScrollController _controller = ScrollController();
+  Timer? _autoSlideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoSlideTimer = Timer.periodic(_slideEvery, (_) => _slideNext());
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _slideNext() async {
+    if (!mounted || !_controller.hasClients) return;
+    final position = _controller.position;
+    if (position.maxScrollExtent <= 0) return;
+
+    final next = position.pixels + _itemStep;
+    final target = next >= position.maxScrollExtent - 2
+        ? 0.0
+        : math.min(next, position.maxScrollExtent);
+
+    await _controller.animateTo(
+      target,
+      duration: _slideDuration,
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final byId = <int, Map<String, dynamic>>{};
-    for (final row in rows) {
+    for (final row in widget.rows) {
       final id = intValue(row['category_id']);
       if (id <= 0 || byId.containsKey(id)) continue;
       byId[id] = {
@@ -877,8 +920,10 @@ class _WholesaleCategoryGrid extends StatelessWidget {
       key: const ValueKey('wholesale-home-category-rail'),
       height: 104,
       child: ListView.separated(
+        controller: _controller,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, index) {
@@ -889,13 +934,13 @@ class _WholesaleCategoryGrid extends StatelessWidget {
           return InkWell(
             key: ValueKey('wholesale-category-$id'),
             borderRadius: BorderRadius.circular(18),
-            onTap: storeId > 0
+            onTap: widget.storeId > 0
                 ? () => Navigator.of(context).pushNamed(
                       Uri(
                         path: CustomerRoutePaths.b2bProducts,
                         queryParameters: <String, String>{
                           'channel': 'wholesale',
-                          'store_id': storeId.toString(),
+                          'store_id': widget.storeId.toString(),
                           'category_id': id.toString(),
                         },
                       ).toString(),
@@ -912,7 +957,7 @@ class _WholesaleCategoryGrid extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: palette.soft),
+                      border: Border.all(color: widget.palette.soft),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(.04),
@@ -927,13 +972,13 @@ class _WholesaleCategoryGrid extends StatelessWidget {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Icon(
                               Icons.category_outlined,
-                              color: palette.primary,
+                              color: widget.palette.primary,
                               size: 28,
                             ),
                           )
                         : Icon(
                             Icons.category_outlined,
-                            color: palette.primary,
+                            color: widget.palette.primary,
                             size: 28,
                           ),
                   ),
