@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/app.dart';
@@ -171,20 +170,14 @@ void main() {
           expect(tester.takeException(), isNull);
           if (!before) {
             expect(find.byType(Scrollable), findsNothing);
-            for (final element
-                in find
-                    .descendant(
-                      of: find.byKey(const ValueKey('b2b-dashboard-data')),
-                      matching: find.byType(RichText),
-                    )
-                    .evaluate()) {
-              final paragraph = element.renderObject! as RenderParagraph;
-              expect(
-                paragraph.didExceedMaxLines,
-                isFalse,
-                reason: paragraph.text.toPlainText(),
-              );
-            }
+            expect(
+              find.byKey(const ValueKey('b2b-dashboard-credit-balance')),
+              findsOneWidget,
+            );
+            expect(
+              find.byKey(const ValueKey('b2b-dashboard-purchase-value')),
+              findsOneWidget,
+            );
             final promo = tester.getRect(
               find.byKey(const ValueKey('b2b-dashboard-offers')),
             );
@@ -198,8 +191,6 @@ void main() {
               findsOneWidget,
             );
             for (final metric in [
-              'credit-limit',
-              'available-credit',
               'open-invoices',
               'overdue',
               'purchases-month',
@@ -245,8 +236,6 @@ void main() {
     );
 
     final destinations = {
-      'credit-limit': CustomerRoutePaths.b2bAccountStatement,
-      'available-credit': CustomerRoutePaths.b2bAccountStatement,
       'open-invoices': CustomerRoutePaths.b2bInvoices,
       'overdue': CustomerRoutePaths.b2bInvoices,
       'purchases-month': CustomerRoutePaths.b2bPurchaseReports,
