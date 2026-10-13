@@ -1591,11 +1591,7 @@ class _WholesaleBestSellerTickerHeaderState
   }
 }
 
-int _wholesaleProductColumns(int itemCount) {
-  if (itemCount <= 1) return 1;
-  if (itemCount == 2) return 2;
-  return 3;
-}
+int _wholesaleProductColumns(int itemCount) => 3;
 
 class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
