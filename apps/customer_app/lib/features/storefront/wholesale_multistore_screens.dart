@@ -732,63 +732,86 @@ class _WholesaleHero extends StatelessWidget {
   final VoidCallback? onCta;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-        child: Container(
-          height: 198,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              colors: [palette.primary, palette.primaryDark],
-            ),
+  Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      child: Container(
+        height: 198,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(
+            colors: [palette.primary, palette.primaryDark],
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        height: 1.25,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _WhitePill(label: cta, palette: palette, onTap: onCta),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasImage)
+              Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                  colors: [
+                    Colors.black.withOpacity(hasImage ? .58 : .18),
+                    Colors.black.withOpacity(hasImage ? .26 : .08),
+                    Colors.transparent,
                   ],
                 ),
               ),
-              if (imageUrl != null && imageUrl!.trim().isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    imageUrl!,
-                    width: 100,
-                    height: 112,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.warehouse_rounded,
-                      size: 78,
-                      color: Colors.white.withOpacity(.45),
-                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 230),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          height: 1.25,
+                          fontWeight: FontWeight.w800,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                              color: Color(0x66000000),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _WhitePill(
+                        label: cta,
+                        palette: palette,
+                        onTap: onCta,
+                      ),
+                    ],
                   ),
-                )
-              else
-                Icon(
-                  Icons.warehouse_rounded,
-                  size: 78,
-                  color: Colors.white.withOpacity(.45),
                 ),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _WhitePill extends StatelessWidget {
