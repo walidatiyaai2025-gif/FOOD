@@ -552,7 +552,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.closing_balance': 'الرصيد الختامي',
     'b2b.statement.current_balance': 'الرصيد الحالي',
     'b2b.statement.you_owe': 'عليك',
-    'b2b.statement.owed_to_you': 'لك',
+    'b2b.statement.owed_to_you': 'ليك',
     'b2b.statement.settled': 'مسدد',
     'b2b.statement.transactions': 'حركات الحساب',
     'b2b.statement.reference': 'المرجع',
