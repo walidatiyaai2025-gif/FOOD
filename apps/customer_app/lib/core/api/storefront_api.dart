@@ -86,13 +86,23 @@ class HttpStorefrontApi implements StorefrontApi {
       _asMap(await _get('/api/v1/stores/$storeId/storefront'));
 
   @override
-  Future<Map<String, dynamic>> wholesaleHome(int storeId) async => _asMap(
-        await _get(
-          token == null || token!.isEmpty
-              ? '/api/v1/wholesale/stores/$storeId/storefront'
-              : '/api/v1/b2b/stores/$storeId/storefront',
-        ),
+  Future<Map<String, dynamic>> wholesaleHome(int storeId) async {
+    final publicPath = '/api/v1/wholesale/stores/$storeId/storefront';
+    if (token == null || token!.isEmpty) {
+      return _asMap(await _get(publicPath));
+    }
+
+    try {
+      return _asMap(
+        await _get('/api/v1/b2b/stores/$storeId/storefront'),
       );
+    } on StorefrontApiException catch (error) {
+      if (error.statusCode != 401 && error.statusCode != 403) rethrow;
+      // Home is a public discovery surface. Commercial B2B actions remain
+      // separately authorized by their own endpoints.
+      return _asMap(await _get(publicPath));
+    }
+  }
 
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
