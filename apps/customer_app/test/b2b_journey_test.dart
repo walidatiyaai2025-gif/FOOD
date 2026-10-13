@@ -881,6 +881,15 @@ void main() {
       expect(unavailableAdd, findsOneWidget);
       expect(tester.widget<FilledButton>(unavailableAdd).onPressed, isNull);
 
+      final addVisual = tester.widget<Container>(
+        find.descendant(
+          of: availableAdd,
+          matching: find.byType(Container),
+        ).last,
+      );
+      expect(addVisual.constraints?.maxWidth, 18);
+      expect(addVisual.constraints?.maxHeight, 18);
+
       final productName = tester.widget<Text>(
         find.byKey(const ValueKey('wholesale-product-name-42')),
       );
@@ -1514,10 +1523,17 @@ void main() {
       expect(find.text('Delivery'), findsOneWidget);
       expect(find.text('Tax'), findsOneWidget);
       expect(find.byKey(const ValueKey('b2b-cart-clear')), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('b2b-cart-remove-Bulk Water')),
-        findsOneWidget,
+      final removeButton = find.byKey(
+        const ValueKey('b2b-cart-remove-Bulk Water'),
       );
+      expect(removeButton, findsOneWidget);
+      final removeIcon = tester.widget<Icon>(
+        find.descendant(
+          of: removeButton,
+          matching: find.byIcon(Icons.delete_outline_rounded),
+        ),
+      );
+      expect(removeIcon.color, const Color(0xFFD92D20));
 
       await tester.tap(
         find.byKey(const ValueKey('b2b-cart-remove-Bulk Water')),
