@@ -3437,12 +3437,11 @@ void main() {
       final relatedRect = tester.getRect(
         find.byKey(const ValueKey('b2b-invoice-related-order')),
       );
-      final refreshRect = tester.getRect(
-        find.byKey(const ValueKey('b2b-invoice-detail-refresh')),
-      );
       expect((pdfRect.center.dy - relatedRect.center.dy).abs(), lessThan(1));
-      expect(pdfRect.left, lessThan(refreshRect.left));
-      expect(relatedRect.left, lessThan(refreshRect.left));
+      expect(
+        find.byKey(const ValueKey('b2b-invoice-detail-refresh')),
+        findsNothing,
+      );
 
       expect(find.textContaining('/api/v1/invoices/31/download'), findsNothing);
     },
