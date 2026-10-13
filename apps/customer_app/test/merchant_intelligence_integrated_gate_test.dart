@@ -13,7 +13,7 @@ void main() {
     expect(authority, contains('CustomerRoutePaths.b2bCart'));
     expect(authority, contains('CustomerRoutePaths.b2bCheckout'));
     expect(journey, contains('FoodexBarChart('));
-    expect(journey, contains('FoodexDonutChart('));
+    expect(journey, contains('_PurchaseCategoryDistribution('));
     expect(journey, contains("path: '/b2b/orders/\$id'"));
     expect(journey, contains("'channel': 'wholesale'"));
   });
