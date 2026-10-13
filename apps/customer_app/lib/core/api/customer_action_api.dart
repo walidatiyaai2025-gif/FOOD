@@ -241,7 +241,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
       await future;
       _loggedOutTokens.add(accessToken);
     } finally {
-      _logoutInFlight.remove(accessToken);
+      _logoutInFlight.remove(accessToken)?.ignore();
     }
   }
 
