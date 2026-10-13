@@ -1733,46 +1733,66 @@ IconData _marketplaceCategoryIcon(String rawName) {
       name.contains('ألبان') ||
       name.contains('البان') ||
       name.contains('dairy') ||
-      name.contains('milk')) return Icons.local_drink_outlined;
-  if (name.contains('جبن') || name.contains('cheese'))
+      name.contains('milk')) {
+    return Icons.local_drink_outlined;
+  }
+  if (name.contains('جبن') || name.contains('cheese')) {
     return Icons.breakfast_dining_outlined;
+  }
   if (name.contains('خض') ||
       name.contains('فاكه') ||
       name.contains('veget') ||
-      name.contains('fruit')) return Icons.eco_outlined;
-  if (name.contains('مجمد') || name.contains('frozen'))
+      name.contains('fruit')) {
+    return Icons.eco_outlined;
+  }
+  if (name.contains('مجمد') || name.contains('frozen')) {
     return Icons.ac_unit_rounded;
+  }
   if (name.contains('لحوم') ||
       name.contains('دواجن') ||
       name.contains('meat') ||
-      name.contains('chicken')) return Icons.set_meal_outlined;
+      name.contains('chicken')) {
+    return Icons.set_meal_outlined;
+  }
   if (name.contains('مشروب') ||
       name.contains('عصير') ||
       name.contains('beverage') ||
-      name.contains('drink')) return Icons.local_cafe_outlined;
+      name.contains('drink')) {
+    return Icons.local_cafe_outlined;
+  }
   if (name.contains('مخب') ||
       name.contains('خبز') ||
       name.contains('bakery') ||
-      name.contains('bread')) return Icons.bakery_dining_outlined;
+      name.contains('bread')) {
+    return Icons.bakery_dining_outlined;
+  }
   return Icons.shopping_basket_outlined;
 }
 
 IconData _marketplaceProductIcon(String rawName) {
   final name = rawName.toLowerCase();
-  if (name.contains('لبن') || name.contains('حليب') || name.contains('milk'))
+  if (name.contains('لبن') || name.contains('حليب') || name.contains('milk')) {
     return Icons.local_drink_outlined;
-  if (name.contains('جبن') || name.contains('cheese'))
+  }
+  if (name.contains('جبن') || name.contains('cheese')) {
     return Icons.breakfast_dining_outlined;
-  if (name.contains('مياه') || name.contains('ماء') || name.contains('water'))
+  }
+  if (name.contains('مياه') || name.contains('ماء') || name.contains('water')) {
     return Icons.water_drop_rounded;
-  if (name.contains('زيت') || name.contains('oil'))
+  }
+  if (name.contains('زيت') || name.contains('oil')) {
     return Icons.opacity_rounded;
-  if (name.contains('بيض') || name.contains('egg')) return Icons.egg_outlined;
+  }
+  if (name.contains('بيض') || name.contains('egg')) {
+    return Icons.egg_outlined;
+  }
   if (name.contains('بطاط') ||
       name.contains('خض') ||
       name.contains('فاكه') ||
       name.contains('veget') ||
-      name.contains('fruit')) return Icons.eco_outlined;
+      name.contains('fruit')) {
+    return Icons.eco_outlined;
+  }
   return Icons.inventory_2_outlined;
 }
 
