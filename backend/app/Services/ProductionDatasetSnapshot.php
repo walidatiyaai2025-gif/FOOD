@@ -76,6 +76,7 @@ final class ProductionDatasetSnapshot
                 'verified_at' => now()->toIso8601String(),
             ];
             $this->writeMetadata($metadata);
+            $this->runtime->verifyDatabaseBackup($reference);
             $this->verify($metadata);
             $this->audit->record('system.production_snapshot.created', $actor, null, null, $this->safeAudit($metadata), $request);
 
