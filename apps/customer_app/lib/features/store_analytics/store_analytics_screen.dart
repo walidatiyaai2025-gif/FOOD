@@ -859,6 +859,18 @@ class _KpiGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final delta = data.revenueDeltaPercent;
+    final deltaText = delta == null
+        ? copy.noComparison
+        : '${delta > 0 ? '+' : ''}${foodexCompactDecimal(delta, maxFractionDigits: 1)}% ${copy.vsPrevious}';
+    final deltaTone = delta == null
+        ? CustomerUiColors.muted
+        : delta > 0
+            ? CustomerUiColors.success
+            : delta < 0
+                ? CustomerUiColors.warning
+                : CustomerUiColors.muted;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final gap = CustomerUiSpacing.xs;
@@ -893,6 +905,18 @@ class _KpiGrid extends StatelessWidget {
                 label: copy.averageOrderValue,
                 value: _money(data.averageOrderValue, data.currency, copy),
                 icon: Icons.shopping_bag_outlined,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _KpiCard(
+                key: const ValueKey('store-analytics-kpi-comparison'),
+                label: copy.comparison,
+                value: deltaText,
+                icon: delta != null && delta < 0
+                    ? Icons.trending_down_rounded
+                    : Icons.trending_up_rounded,
+                valueColor: deltaTone,
               ),
             ),
           ],
