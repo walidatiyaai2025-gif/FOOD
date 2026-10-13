@@ -2946,6 +2946,31 @@ void main() {
         find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
         findsOneWidget,
       );
+
+      final invoiceCard = find.byKey(
+        const ValueKey('b2b-statement-row-invoice:31'),
+      );
+      final invoiceTitle = tester.widget<Text>(
+        find.descendant(of: invoiceCard, matching: find.text('فاتورة')),
+      );
+      expect(invoiceTitle.style?.color, CustomerUiColors.warning);
+
+      final referenceButton = find.byKey(
+        const ValueKey('b2b-statement-reference-invoice:31'),
+      );
+      final referenceText = tester.widget<Text>(
+        find.descendant(
+          of: referenceButton,
+          matching: find.textContaining('INV-31'),
+        ),
+      );
+      expect(referenceText.style?.color, CustomerUiColors.deepGreenStrong);
+
+      final runningText = tester.widget<Text>(
+        find.byKey(const ValueKey('b2b-statement-running-invoice:31')),
+      );
+      expect(runningText.style?.color, CustomerUiColors.success);
+
       expect(api.lastPath, contains('/api/v1/b2b/account-statement'));
       expect(api.lastPath, contains('store_id=7'));
 
