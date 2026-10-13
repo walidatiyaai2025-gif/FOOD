@@ -43,6 +43,7 @@ class CustomerAppRouter {
     required this.onPlatformRegistered,
     this.onUnifiedAuthenticated,
     this.onAuthenticatedRouteResume,
+    this.rememberedRetailStoreResolver,
     this.onLogout,
     this.sessionStore,
     this.authPreferences = const CustomerAuthPreferences(),
@@ -98,6 +99,7 @@ class CustomerAppRouter {
   final ValueChanged<String> onPlatformRegistered;
   final CustomerUnifiedAuthenticated? onUnifiedAuthenticated;
   final CustomerAuthenticatedRouteResume? onAuthenticatedRouteResume;
+  final CustomerRememberedRetailStoreResolver? rememberedRetailStoreResolver;
   final Future<void> Function()? onLogout;
   final CustomerSessionStore? sessionStore;
   final CustomerAuthPreferences authPreferences;
@@ -296,6 +298,7 @@ class CustomerAppRouter {
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            rememberedRetailStoreResolver: rememberedRetailStoreResolver,
             onLogout: onLogout,
             onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',
@@ -356,6 +359,7 @@ class CustomerAppRouter {
             preferences: authPreferences,
             biometricAuthenticator: biometricAuthenticator,
             resumeAuthenticatedRoute: onAuthenticatedRouteResume,
+            rememberedRetailStoreResolver: rememberedRetailStoreResolver,
             onLogout: onLogout,
             onLocaleChanged: onLocaleChanged,
             registerInitially: uri.queryParameters['entry'] == 'register',
