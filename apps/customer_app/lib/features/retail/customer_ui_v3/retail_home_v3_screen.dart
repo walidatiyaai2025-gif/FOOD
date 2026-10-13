@@ -345,7 +345,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
   }) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = 368.0 + (scaledDelta * 240.0);
+    final cardExtent = (368.0 + (scaledDelta * 240.0)) * .85;
 
     return GridView.builder(
       key: gridKey,
@@ -579,7 +579,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = 368.0 + (scaledDelta * 240.0);
+    final cardExtent = (368.0 + (scaledDelta * 240.0)) * .85;
 
     return ListView(
       padding: const EdgeInsets.all(CustomerUiSpacing.page),
