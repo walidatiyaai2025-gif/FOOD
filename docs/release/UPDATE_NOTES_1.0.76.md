@@ -13,3 +13,6 @@ FOODEX 1.0.76 promotes the frozen final Customer APK lineage from #1376 into the
 ## Release artifacts
 
 The canonical Release Factory must generate the Dashboard Update ZIP and Customer, Driver and Van APKs from the same exact release lineage. Publication remains blocked until required validation gates are green.
+
+
+- Canonical Dart formatting applied to the Customer release-touch files before final promotion.
