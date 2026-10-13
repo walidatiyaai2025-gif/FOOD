@@ -397,6 +397,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         palette: palette,
                         maxItems: 4,
                         showCommerceActions: true,
+                        homeWholeNumberPrice: true,
                       ),
                     );
                     break;
@@ -459,6 +460,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   palette: palette,
                   maxItems: 4,
                   showCommerceActions: true,
+                  homeWholeNumberPrice: true,
                 ),
               );
             }
@@ -1189,6 +1191,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     this.defaultCurrency = 'EGP',
     this.noResults = false,
     this.showCommerceActions = false,
+    this.homeWholeNumberPrice = false,
   });
 
   final List<Map<String, dynamic>> rows;
@@ -1202,6 +1205,7 @@ class _WholesaleProductGrid extends StatelessWidget {
   final String defaultCurrency;
   final bool noResults;
   final bool showCommerceActions;
+  final bool homeWholeNumberPrice;
 
   @override
   Widget build(BuildContext context) {
@@ -1246,6 +1250,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         palette: palette,
         defaultCurrency: defaultCurrency,
         showCommerceActions: showCommerceActions,
+        homeWholeNumberPrice: homeWholeNumberPrice,
         gridColumns: columns,
       ),
     );
@@ -1263,6 +1268,7 @@ class _WholesaleProductCard extends StatefulWidget {
     required this.palette,
     required this.defaultCurrency,
     required this.showCommerceActions,
+    required this.homeWholeNumberPrice,
     required this.gridColumns,
   });
 
@@ -1275,6 +1281,7 @@ class _WholesaleProductCard extends StatefulWidget {
   final FoodexPalette palette;
   final String defaultCurrency;
   final bool showCommerceActions;
+  final bool homeWholeNumberPrice;
   final int gridColumns;
 
   @override
@@ -1500,12 +1507,19 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                 children: [
                   Expanded(
                     child: Text(
-                      money(
-                        row['account_price'] ??
-                            row['unit_price'] ??
-                            row['price'],
-                        currency: currency,
-                      ),
+                      widget.homeWholeNumberPrice
+                          ? '${doubleValue(
+                              row['account_price'] ??
+                                  row['unit_price'] ??
+                                  row['price'],
+                              0,
+                            ).toStringAsFixed(0)} $currency'
+                          : money(
+                              row['account_price'] ??
+                                  row['unit_price'] ??
+                                  row['price'],
+                              currency: currency,
+                            ),
                       key: ValueKey('wholesale-product-price-$id'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
