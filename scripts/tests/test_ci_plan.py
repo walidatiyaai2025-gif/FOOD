@@ -17,6 +17,9 @@ class CiPlanTest(unittest.TestCase):
     def test_release_contract_expands_all_runtime_areas(self):
         p=module.resolve(self.config,["docs/release/RELEASE_ARTIFACT_CONTRACT.md"],"docs/1253-release")
         for a in ("backend","customer","driver","van"): self.assertTrue(p["areas"][a])
+    def test_customer_freeze_validator_expands_all_runtime_areas(self):
+        p=module.resolve(self.config,["scripts/validate_customer_freeze_contract.py"],"worker/1381-customer-freeze-release-contract")
+        for a in ("backend","customer","driver","van"): self.assertTrue(p["areas"][a])
     def test_branch_override_is_machine_readable(self):
         p=module.resolve(self.config,[],"test/1253-operational-completion-e2e")
         self.assertTrue(p["areas"]["operational_completion_e2e"]); self.assertTrue(p["areas"]["app_preview_visual"]); self.assertTrue(p["areas"]["van"])

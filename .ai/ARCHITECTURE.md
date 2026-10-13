@@ -83,6 +83,11 @@ Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
 
 One FOODEX release is a synchronized lineage. Customer, Driver and Van APKs, Dashboard update assets, manifests, build metadata and applicable Setup/fresh-install evidence must identify the intended same release source/version lineage.
 
+A release may carry one mobile lineage forward only through an explicit
+machine-readable freeze contract. The frozen app keeps its real source
+version/build and tree identity in release metadata; it is never relabeled to
+match the newer platform version. CI must prove the frozen tree has zero diff.
+
 ## Architecture change rule
 
 If a task changes a boundary described here, update this file and add the reason to `DECISIONS.md` in the same PR.

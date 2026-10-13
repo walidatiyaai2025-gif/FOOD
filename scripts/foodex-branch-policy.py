@@ -2,9 +2,9 @@
 from __future__ import annotations
 import argparse, re, sys
 
-KINDS=("feat","fix","chore","docs","refactor","test","ci")
+KINDS=("feat","fix","chore","docs","refactor","test","ci","worker")
 SPECIAL={"feat/assistant-v1-integration","chore/geography-reset-one-shot"}
-STANDARD_RE=re.compile(r"^(feat|fix|chore|docs|refactor|test|ci)/([0-9]+)-[a-z0-9-]+$")
+STANDARD_RE=re.compile(r"^(feat|fix|chore|docs|refactor|test|ci|worker)/([0-9]+)-[a-z0-9-]+$")
 RELEASE_RE=re.compile(r"^release/([0-9]+|[0-9]+\.[0-9]+\.[0-9]+)-[a-z0-9-]+$")
 
 def normalize_slug(value:str)->str:

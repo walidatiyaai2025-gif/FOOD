@@ -23,31 +23,39 @@ grep -q 'iOS' docs/release/RELEASE_CHECKLIST.md
 release_version="$(tr -d '\r\n' < VERSION)"
 [[ "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
-customer_freeze_sha="4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d"
-customer_freeze_tree_sha="7e5828423d2b747afcd607a643c853495024328c"
+customer_freeze_contract="docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json"
 production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
-if [[ "$release_version" == "1.0.77" && -f "$production_hold_file" ]]; then
-  current_customer_tree="$(git rev-parse HEAD:apps/customer_app 2>/dev/null || true)"
-  if [[ "$current_customer_tree" != "$customer_freeze_tree_sha" ]]; then
-    echo "::error::FOODEX 1.0.77 production hold requires apps/customer_app/** tree $customer_freeze_tree_sha from baseline $customer_freeze_sha; current tree is ${current_customer_tree:-missing}."
-    exit 1
-  fi
-  if ! git diff --quiet -- apps/customer_app || ! git diff --cached --quiet -- apps/customer_app || [[ -n "$(git ls-files --others --exclude-standard apps/customer_app)" ]]; then
-    echo "::error::FOODEX 1.0.77 production hold forbids Customer worktree/index/untracked changes."
-    exit 1
-  fi
-  echo "FOODEX 1.0.77 production hold is active; Customer tree is frozen and unchanged ($customer_freeze_tree_sha)."
-  echo "Final synchronized publication remains blocked until #1380 replaces the hold with the frozen-lineage release contract."
-  exit 0
-fi
 customer_version="$(awk '/^version:/ {print $2; exit}' apps/customer_app/pubspec.yaml)"
 driver_version="$(awk '/^version:/ {print $2; exit}' apps/driver_app/pubspec.yaml)"
 van_version="$(awk '/^version:/ {print $2; exit}' apps/van_app/pubspec.yaml)"
-if [[ "$customer_version" != "$driver_version" || "$customer_version" != "$van_version" ]]; then
-  echo "::error::Mobile release identity mismatch: Customer=$customer_version Driver=$driver_version Van=$van_version"
-  exit 1
+
+if [[ "$release_version" == "1.0.77" ]]; then
+  python3 scripts/validate_customer_freeze_contract.py \
+    --contract "$customer_freeze_contract" \
+    --candidate WORKTREE \
+    --metadata-out artifacts/customer-frozen-lineage.json
+  frozen_customer_identity="$(python3 -c 'import json; print(json.load(open("docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json"))["frozen_customer"]["source_identity"])')"
+  if [[ "$customer_version" != "$frozen_customer_identity" ]]; then
+    echo "::error::Frozen Customer identity mismatch: contract=$frozen_customer_identity source=$customer_version"
+    exit 1
+  fi
+  if [[ -f "$production_hold_file" ]]; then
+    echo "FOODEX 1.0.77 production hold is active; Customer $customer_version is frozen and carried forward unchanged."
+    echo "Final publication remains blocked until #1380 authorizes removal of the hold."
+    exit 0
+  fi
+  if [[ "$driver_version" != "$van_version" ]]; then
+    echo "::error::Driver/Van release identity mismatch: Driver=$driver_version Van=$van_version"
+    exit 1
+  fi
+  mobile_release_version="${driver_version%%+*}"
+else
+  if [[ "$customer_version" != "$driver_version" || "$customer_version" != "$van_version" ]]; then
+    echo "::error::Mobile release identity mismatch: Customer=$customer_version Driver=$driver_version Van=$van_version"
+    exit 1
+  fi
+  mobile_release_version="${customer_version%%+*}"
 fi
-mobile_release_version="${customer_version%%+*}"
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
 if [[ "$release_version" != "$mobile_release_version" ]]; then
@@ -57,7 +65,11 @@ fi
 
 customer_ui_version="$(awk -F"'" '/^const customerAppVersion =/ {print $2; exit}' apps/customer_app/lib/core/config/customer_app_release.dart)"
 driver_ui_version="$(awk -F"'" '/static const _appVersion =/ {print $2; exit}' apps/driver_app/lib/app.dart)"
-test "$customer_ui_version" = "$release_version"
+if [[ "$release_version" == "1.0.77" ]]; then
+  test "$customer_ui_version" = "${customer_version%%+*}"
+else
+  test "$customer_ui_version" = "$release_version"
+fi
 test "$driver_ui_version" = "$release_version"
 
 grep -Eq "^# FOODEX ${release_version}.*Release Notes$" docs/release/RELEASE_NOTES.md
@@ -72,5 +84,9 @@ grep -Eq '^DB_USERNAME=[A-Za-z0-9_]+' backend/.env.production.example
 grep -Fq "defaultValue: '$production_origin'" apps/driver_app/lib/core/config/foodex_environment.dart
 ! grep -R -Fq "foodex-validation.invalid" .github/workflows/customer-app-ci.yml .github/workflows/driver-app-ci.yml
 
-echo "Release identity $release_version is synchronized across repository and mobile artifacts."
+if [[ "$release_version" == "1.0.77" ]]; then
+  echo "Release identity $release_version is ready with frozen Customer $customer_version carried forward and Driver/Van $driver_version."
+else
+  echo "Release identity $release_version is synchronized across repository and mobile artifacts."
+fi
 echo 'Release readiness evidence is structurally complete.'
