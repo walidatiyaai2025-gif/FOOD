@@ -363,7 +363,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         if (!completer.isCompleted) completer.complete(false);
         rethrow;
       } finally {
-        _inFlightGets.remove(key);
+        _inFlightGets.remove(key)?.ignore();
       }
     }
 
