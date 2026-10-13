@@ -2559,7 +2559,7 @@ void main() {
   );
 
   testWidgets(
-    'C13 Screen 3 renders period summary trend categories and drill-through',
+    'C13 Screen 3 keeps compact report header then categories trend and orders',
     (tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1;
@@ -2648,11 +2648,45 @@ void main() {
         find.byKey(const ValueKey('b2b-purchases-summary')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
+      for (final metric in <String>['total', 'orders', 'invoices', 'average']) {
+        expect(
+          find.byKey(ValueKey('b2b-purchases-summary-' + metric)),
+          findsOneWidget,
+        );
+      }
+
+      final metricTops = <String>['total', 'orders', 'invoices', 'average']
+          .map(
+            (metric) => tester
+                .getTopLeft(
+                  find.byKey(ValueKey('b2b-purchases-summary-' + metric)),
+                )
+                .dy,
+          )
+          .toList(growable: false);
+      expect(
+        metricTops.every((value) => (value - metricTops.first).abs() < 1),
+        isTrue,
+      );
+
       expect(
         find.byKey(const ValueKey('b2b-purchases-categories')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-purchases-orders')), findsOneWidget);
+
+      final categoriesTop = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-purchases-categories')))
+          .dy;
+      final trendTop = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-purchases-trend')))
+          .dy;
+      final ordersTop = tester
+          .getTopLeft(find.byKey(const ValueKey('b2b-purchases-orders')))
+          .dy;
+      expect(categoriesTop, lessThan(trendTop));
+      expect(trendTop, lessThan(ordersTop));
       expect(
         find.byKey(const ValueKey('b2b-purchases-category-donut')),
         findsOneWidget,
