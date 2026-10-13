@@ -309,10 +309,12 @@ class B2bJourneyScreen extends StatelessWidget {
         Scaffold(
           backgroundColor: CustomerUiColors.mint,
           body: CustomerCurvedHeaderSurface(
-            header: CustomerAccountHeader(
-              title: content.$1,
-              subtitle: content.$2,
-            ),
+            header: definition.pattern == CustomerRoutePaths.b2bInvoiceDetails
+                ? const SizedBox(height: 1)
+                : CustomerAccountHeader(
+                    title: content.$1,
+                    subtitle: content.$2,
+                  ),
             child: SafeArea(
               top: false,
               child: SingleChildScrollView(
