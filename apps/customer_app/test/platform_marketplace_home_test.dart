@@ -1227,6 +1227,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('footer-disabled-products')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('customer-footer-products')),
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey('route-name')), findsNothing);
+
     await tester.tap(find.byKey(const ValueKey('marketplace-store')));
     await tester.pumpAndSettle();
     var route = Uri.parse(
@@ -1247,6 +1257,10 @@ void main() {
     }
     expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
     expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('footer-enabled-products')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('customer-footer-products')));
     await tester.pumpAndSettle();
