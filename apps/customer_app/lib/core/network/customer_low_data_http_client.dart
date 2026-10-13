@@ -142,14 +142,12 @@ class CustomerLowDataHttpClient extends http.BaseClient {
   final CustomerDiagnostics diagnostics;
   final CustomerHttpResponseCache cache;
   final CustomerNetworkMetrics metrics;
-  final Set<String> _revalidating = <String>{};
   final Map<String, Future<bool>> _inFlightGets = <String, Future<bool>>{};
   final List<Completer<void>> _foregroundGetWaiters = <Completer<void>>[];
   int _activeForegroundGets = 0;
-  bool _revalidationInFlight = false;
   DateTime? _circuitOpenUntil;
 
-  static const Duration _circuitCooldown = Duration(seconds: 12);
+  static const Duration _circuitCooldown = Duration(seconds: 5);
   static const int _maxForegroundGets = 3;
 
   CustomerNetworkMetricsSnapshot get metricsSnapshot => metrics.snapshot;
@@ -204,7 +202,8 @@ class CustomerLowDataHttpClient extends http.BaseClient {
 
     final mode = dataMode.effectiveMode;
     request.headers['X-FOODEX-Client'] = 'customer';
-    request.headers['X-FOODEX-Low-Data'] = '1';
+    request.headers['X-FOODEX-Low-Data'] =
+        mode == CustomerDataMode.normal ? '0' : '1';
     request.headers['X-FOODEX-Data-Mode'] = mode.name;
 
     final cacheable = _isCacheableGet(request);
@@ -233,39 +232,26 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       throw http.ClientException('offline_mode_cache_miss', request.url);
     }
 
-    if (cached != null) {
-      metrics.recordCacheHit();
-      final age = DateTime.now().toUtc().difference(cached.storedAt);
-      final freshness = _freshnessFor(request.url.path, mode);
-      if (age >= freshness && dataMode.allowsRefresh) {
-        _scheduleRevalidation(
-          identity!,
-          request.url,
-          Map<String, String>.from(request.headers),
-          cached,
-        );
-      }
-      _recordTransfer(
-        request: request,
-        statusCode: cached.statusCode,
-        downloadedBytes: 0,
-        uploadedBytes: 0,
-        elapsed: Duration.zero,
-        cacheState: age >= freshness ? 'stale' : 'hit',
-      );
-      return _cachedResponse(
-        request,
-        cached,
-        age >= freshness ? 'stale' : 'hit',
-      );
-    }
-
     if (cacheable) {
-      metrics.recordCacheMiss();
+      if (cached == null) {
+        metrics.recordCacheMiss();
+      }
       final key = identity!.key;
 
       if (_isCircuitOpen) {
         metrics.recordCircuitBreakerHit();
+        if (cached != null) {
+          metrics.recordCacheHit(fallback: true);
+          _recordTransfer(
+            request: request,
+            statusCode: cached.statusCode,
+            downloadedBytes: 0,
+            uploadedBytes: 0,
+            elapsed: Duration.zero,
+            cacheState: 'circuit_fallback',
+          );
+          return _cachedResponse(request, cached, 'circuit_fallback');
+        }
         _recordTransfer(
           request: request,
           statusCode: null,
@@ -302,6 +288,18 @@ class CustomerLowDataHttpClient extends http.BaseClient {
 
         if (_isCircuitOpen) {
           metrics.recordCircuitBreakerHit();
+          if (cached != null) {
+            metrics.recordCacheHit(fallback: true);
+            _recordTransfer(
+              request: request,
+              statusCode: cached.statusCode,
+              downloadedBytes: 0,
+              uploadedBytes: 0,
+              elapsed: Duration.zero,
+              cacheState: 'circuit_fallback',
+            );
+            return _cachedResponse(request, cached, 'circuit_fallback');
+          }
           _recordTransfer(
             request: request,
             statusCode: null,
@@ -314,12 +312,35 @@ class CustomerLowDataHttpClient extends http.BaseClient {
         }
       }
 
+      if (cached != null) {
+        final etag = cached.etag;
+        final lastModified = cached.lastModified;
+        if (etag != null && etag.isNotEmpty) {
+          request.headers['If-None-Match'] = etag;
+        }
+        if (lastModified != null && lastModified.isNotEmpty) {
+          request.headers['If-Modified-Since'] = lastModified;
+        }
+      }
+
       final completer = Completer<bool>();
       _inFlightGets[key] = completer.future;
       try {
         final response = await _withForegroundGetSlot(() async {
           if (_isCircuitOpen) {
             metrics.recordCircuitBreakerHit();
+            if (cached != null) {
+              metrics.recordCacheHit(fallback: true);
+              _recordTransfer(
+                request: request,
+                statusCode: cached.statusCode,
+                downloadedBytes: 0,
+                uploadedBytes: 0,
+                elapsed: Duration.zero,
+                cacheState: 'circuit_fallback',
+              );
+              return _cachedResponse(request, cached, 'circuit_fallback');
+            }
             _recordTransfer(
               request: request,
               statusCode: null,
@@ -333,7 +354,7 @@ class CustomerLowDataHttpClient extends http.BaseClient {
           return _networkSend(
             request,
             cacheIdentity: identity,
-            cached: null,
+            cached: cached,
           );
         });
         completer.complete(_isSuccessful(response.statusCode));
@@ -422,8 +443,8 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       return _rebuiltResponse(request, response, bytes);
     } on TimeoutException catch (error) {
       stopwatch.stop();
-      _openCircuit();
       dataMode.observeFailure();
+      if (dataMode.networkOffline) _openCircuit();
       metrics.recordError(timeout: true);
       diagnostics.recordNetworkTransfer(
         method: request.method,
@@ -442,8 +463,8 @@ class CustomerLowDataHttpClient extends http.BaseClient {
       rethrow;
     } catch (error) {
       stopwatch.stop();
-      _openCircuit();
       dataMode.observeFailure();
+      if (dataMode.networkOffline) _openCircuit();
       metrics.recordError(timeout: false);
       diagnostics.recordNetworkTransfer(
         method: request.method,
