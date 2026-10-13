@@ -884,6 +884,18 @@ void main() {
       expect(unavailableAdd, findsOneWidget);
       expect(tester.widget<FilledButton>(unavailableAdd).onPressed, isNull);
 
+      final productName = tester.widget<Text>(
+        find.byKey(const ValueKey('wholesale-product-name-42')),
+      );
+      expect(productName.maxLines, 1);
+      expect(productName.overflow, TextOverflow.ellipsis);
+
+      final priceCenter = tester.getCenter(
+        find.byKey(const ValueKey('wholesale-product-price-42')),
+      );
+      final addCenter = tester.getCenter(availableAdd);
+      expect((priceCenter.dy - addCenter.dy).abs(), lessThan(10));
+
       await tester.tap(availableAdd);
       await tester.pumpAndSettle();
 
