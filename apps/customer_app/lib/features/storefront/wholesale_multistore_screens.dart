@@ -695,7 +695,7 @@ class _WholesaleBannerCarousel extends StatelessWidget {
 
     return SizedBox(
       key: const ValueKey('wholesale-home-banner-carousel'),
-      height: 210,
+      height: 178.5,
       child: PageView.builder(
         itemCount: banners.length,
         itemBuilder: (context, index) {
@@ -736,9 +736,10 @@ class _WholesaleHero extends StatelessWidget {
     final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      padding: const EdgeInsets.fromLTRB(0, 6.8, 0, 3.4),
       child: Container(
-        height: 198,
+        width: double.infinity,
+        height: 168.3,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
