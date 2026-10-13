@@ -12,6 +12,8 @@ import 'core/config/mobile_runtime_visibility.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/network/customer_data_mode.dart';
 import 'core/push/firebase_push_service.dart';
+import 'core/routing/customer_commerce_context.dart';
+import 'core/routing/customer_routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -135,8 +137,23 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
   }
 
   @override
-  Widget build(BuildContext context) => FoodexCustomerApp(
-        session: widget.bootstrap.session,
+  Widget build(BuildContext context) {
+    final session = widget.bootstrap.session;
+    final retailStoreId = session.b2bRetailStoreId;
+    final initialRoute = !session.isAuthenticated
+        ? CustomerRoutePaths.entry
+        : retailStoreId == null
+            ? CustomerRoutePaths.marketplace
+            : CustomerRouteLocations.retailHome(
+                CustomerCommerceContext(
+                  channel: CustomerCommerceChannel.retail,
+                  storeId: retailStoreId,
+                ),
+              );
+
+    return FoodexCustomerApp(
+        session: session,
+        initialRoute: initialRoute,
         sessionStore: widget.sessionStore,
         authPreferences: widget.bootstrap.preferences,
         authPreferenceStore: widget.authPreferenceStore,
@@ -144,4 +161,5 @@ class _CustomerRuntimeBootstrapState extends State<_CustomerRuntimeBootstrap> {
         pushService: _pushService,
         showPersistentFooter: _showPersistentFooter,
       );
+  }
 }
