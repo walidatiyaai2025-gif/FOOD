@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/localization/app_translations.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/shared/customer_persistent_footer.dart';
 
 void main() {
   testWidgets(
-    'Wholesale footer keeps Home visible and Shopping opens Wholesale home',
+    'Wholesale footer keeps Home visible and Shopping opens Wholesale products',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
