@@ -1124,7 +1124,7 @@ void main() {
       expect(find.text('Wholesale Product'), findsOneWidget);
       expect(find.textContaining('7.25 KWD'), findsOneWidget);
       expect(find.textContaining('5'), findsWidgets);
-       expect(find.text('إضافة إلى السلة'), findsOneWidget);
+      expect(find.text('إضافة إلى السلة'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('customer-add-cart')));
       await _pumpCustomerFrames(tester);
@@ -1497,7 +1497,7 @@ void main() {
       expect(api.lastPath, '/api/v1/b2b/orders/4');
       expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
       expect(find.text('#4'), findsOneWidget);
-       await _scrollUntilBuilt(
+      await _scrollUntilBuilt(
         tester,
         find.byKey(const ValueKey('b2b-order-detail')),
         find.text('الدفع عند الاستلام'),

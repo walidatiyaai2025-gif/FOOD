@@ -33,7 +33,8 @@ class PlatformMarketplaceScreen extends StatefulWidget {
   final MarketplaceBarcodeScanner barcodeScanner;
 
   @override
-  State<PlatformMarketplaceScreen> createState() => _PlatformMarketplaceScreenState();
+  State<PlatformMarketplaceScreen> createState() =>
+      _PlatformMarketplaceScreenState();
 }
 
 class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
@@ -90,8 +91,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     // stores missing from placements are appended from the public store list.
     // Authentication never locks the customer into the current store.
     final configuredRetail = _rows(data['retail_banners']);
-    _retailStoreFallback ??=
-        await _loadRetailStoreFallback(baseUrl);
+    _retailStoreFallback ??= await _loadRetailStoreFallback(baseUrl);
     final retailCarousel = _mergeRetailStoreCarousel(
       configuredRetail,
       _retailStoreFallback!,
@@ -111,22 +111,21 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       return _rows(payload['data'])
           .where((store) => _int(store['id']) > 0)
           .map((store) {
-            final id = _int(store['id']);
-            final name = store['name']?.toString().trim() ?? '';
-            return <String, dynamic>{
-              ...store,
-              'id': id,
-              'store_id': id,
-              'title': name,
-              'banner_url': store['banner_url'] ?? store['logo_url'],
-              'channel': 'b2c',
-              'placement_scope': 'guest_store_fallback',
-              'target_type': 'retail_store',
-              'target_id': id,
-              'target_url': '/retail/$id/home',
-            };
-          })
-          .toList(growable: false);
+        final id = _int(store['id']);
+        final name = store['name']?.toString().trim() ?? '';
+        return <String, dynamic>{
+          ...store,
+          'id': id,
+          'store_id': id,
+          'title': name,
+          'banner_url': store['banner_url'] ?? store['logo_url'],
+          'channel': 'b2c',
+          'placement_scope': 'guest_store_fallback',
+          'target_type': 'retail_store',
+          'target_id': id,
+          'target_url': '/retail/$id/home',
+        };
+      }).toList(growable: false);
     } catch (_) {
       return const <Map<String, dynamic>>[];
     }
@@ -250,8 +249,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       Uri.parse(url),
       headers: {
         'Accept': 'application/json',
-        if (token != null && token.isNotEmpty)
-          'Authorization': 'Bearer $token',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       },
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -286,7 +284,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
         }),
       );
       final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
-      if (response.statusCode < 200 || response.statusCode >= 300 || decoded is! Map) {
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          decoded is! Map) {
         throw const _MarketplaceException('registration_failed');
       }
       final token = decoded['token']?.toString() ?? '';
@@ -299,7 +299,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       final pending = _pendingAfterAuth;
       _pendingAfterAuth = null;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('customer.marketplace.registration_success'))),
+        SnackBar(
+            content:
+                Text(context.tr('customer.marketplace.registration_success'))),
       );
       setState(() => _future = _load());
       if (pending != null && pending.isNotEmpty) {
@@ -308,7 +310,9 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('customer.marketplace.registration_failed'))),
+        SnackBar(
+            content:
+                Text(context.tr('customer.marketplace.registration_failed'))),
       );
     }
   }
@@ -317,7 +321,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     final storeId = _int(placement['store_id'] ?? placement['id']);
     if (storeId <= 0) return;
 
-    final placementId = _int(placement['placement_id'] ?? placement['banner_id']);
+    final placementId =
+        _int(placement['placement_id'] ?? placement['banner_id']);
     final commerceContext = CustomerCommerceContext(
       channel: CustomerCommerceChannel.retail,
       storeId: storeId,
@@ -337,30 +342,26 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
   }
 
-  String _cartLocation(CustomerCommerceContext context) =>
-      context.isRetail
-          ? CustomerRouteLocations.retailCart(context)
-          : CustomerRouteLocations.wholesaleCart(context);
+  String _cartLocation(CustomerCommerceContext context) => context.isRetail
+      ? CustomerRouteLocations.retailCart(context)
+      : CustomerRouteLocations.wholesaleCart(context);
 
-  String _ordersLocation(CustomerCommerceContext context) =>
-      context.isRetail
-          ? CustomerRouteLocations.retailOrders(context)
-          : CustomerRouteLocations.wholesaleOrders(context);
+  String _ordersLocation(CustomerCommerceContext context) => context.isRetail
+      ? CustomerRouteLocations.retailOrders(context)
+      : CustomerRouteLocations.wholesaleOrders(context);
 
-  String _profileLocation(CustomerCommerceContext context) =>
-      context.isRetail
-          ? CustomerRouteLocations.retailProfile(context)
-          : CustomerRouteLocations.wholesaleProfile(context);
+  String _profileLocation(CustomerCommerceContext context) => context.isRetail
+      ? CustomerRouteLocations.retailProfile(context)
+      : CustomerRouteLocations.wholesaleProfile(context);
 
   String _notificationsLocation(CustomerCommerceContext context) =>
       context.isRetail
           ? CustomerRouteLocations.retailNotifications(context)
           : CustomerRouteLocations.wholesaleNotifications(context);
 
-  String _storeLocation(CustomerCommerceContext context) =>
-      context.isRetail
-          ? CustomerRouteLocations.retailHome(context)
-          : CustomerRouteLocations.wholesaleHome(context);
+  String _storeLocation(CustomerCommerceContext context) => context.isRetail
+      ? CustomerRouteLocations.retailHome(context)
+      : CustomerRouteLocations.wholesaleHome(context);
 
   void _openWholesaleCategory(int storeId, int categoryId) {
     if (storeId <= 0 || categoryId <= 0) return;
@@ -396,7 +397,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -441,8 +441,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   ? Map<String, dynamic>.from(data['products'] as Map)
                   : <String, dynamic>{};
               final products = _rows(productEnvelope['data']);
-              final offersSection =
-                  _marketplaceSection(sections, 'offers');
+              final offersSection = _marketplaceSection(sections, 'offers');
               final featuredSection =
                   _marketplaceSection(sections, 'featured_products');
               final featuredProducts = _marketplaceFeaturedProducts(
@@ -467,8 +466,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   data['currency']?.toString().trim().isNotEmpty == true
                       ? data['currency'].toString().trim()
                       : 'EGP';
-              final showHomeCollections =
-                  _selectedCategoryId == null &&
+              final showHomeCollections = _selectedCategoryId == null &&
                   _searchController.text.trim().isEmpty;
               final homeCollections = <MapEntry<int, Widget>>[];
               if (showHomeCollections &&
@@ -533,7 +531,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                     slivers: [
                       SliverToBoxAdapter(
                         child: _MarketplaceHeader(
-                          isAuthenticated: () => _currentSession.isAuthenticated,
+                          isAuthenticated: () =>
+                              _currentSession.isAuthenticated,
                           onRegister: _register,
                           onLogin: () => Navigator.of(context).pushNamed(
                             '/auth/checkout?next=/marketplace',
@@ -595,7 +594,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             children: [
                               Expanded(
                                 child: PageView.builder(
-                                  key: const ValueKey('marketplace-store-carousel'),
+                                  key: const ValueKey(
+                                      'marketplace-store-carousel'),
                                   controller: _bannerController,
                                   itemCount: storeSlidesCount,
                                   onPageChanged: (index) {
@@ -730,7 +730,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                           padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
                           sliver: SliverGrid(
                             key: const ValueKey('marketplace-product-grid'),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: productColumns,
                               mainAxisSpacing: 9,
                               crossAxisSpacing: 9,
@@ -961,7 +962,8 @@ class _MarketplaceHeader extends StatelessWidget {
                 right: -2,
                 top: -2,
                 child: Container(
-                  constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+                  constraints:
+                      const BoxConstraints(minWidth: 17, minHeight: 17),
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: const BoxDecoration(
                     color: Color(0xFFFF4747),
@@ -1011,8 +1013,9 @@ class _MarketplaceHeader extends StatelessWidget {
                   key: const ValueKey('marketplace-search'),
                   controller: searchController,
                   focusNode: searchFocus,
-                  textDirection:
-                      localeCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+                  textDirection: localeCode == 'ar'
+                      ? TextDirection.rtl
+                      : TextDirection.ltr,
                   textAlign:
                       localeCode == 'ar' ? TextAlign.right : TextAlign.left,
                   textInputAction: TextInputAction.search,
@@ -1110,8 +1113,7 @@ class _RetailStoreBanner extends StatelessWidget {
     final image = store['banner_url']?.toString().trim();
     final title = store['title']?.toString().trim();
     final name = store['name']?.toString().trim() ?? '';
-    final displayTitle =
-        title != null && title.isNotEmpty ? title : name;
+    final displayTitle = title != null && title.isNotEmpty ? title : name;
     final isArabic =
         Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
 
@@ -1170,8 +1172,7 @@ class _RetailStoreBanner extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
+                padding: const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1302,95 +1303,95 @@ class _WholesaleHero extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-          if (image != null && image.isNotEmpty)
-            Image.network(
-              image,
-              key: const ValueKey('marketplace-wholesale-hero-image'),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => fallback(),
-            )
-          else
-            fallback(),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: AlignmentDirectional.centerStart,
-                end: AlignmentDirectional.centerEnd,
-                colors: [
-                  Color(0xE900452F),
-                  Color(0xA6078A43),
-                  Color(0x24078A43),
-                ],
+              if (image != null && image.isNotEmpty)
+                Image.network(
+                  image,
+                  key: const ValueKey('marketplace-wholesale-hero-image'),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => fallback(),
+                )
+              else
+                fallback(),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: AlignmentDirectional.centerStart,
+                    end: AlignmentDirectional.centerEnd,
+                    colors: [
+                      Color(0xE900452F),
+                      Color(0xA6078A43),
+                      Color(0x24078A43),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0x38FFFFFF),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    isArabic ? 'متجر الجملة' : 'Wholesale store',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x38FFFFFF),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        isArabic ? 'متجر الجملة' : 'Wholesale store',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
-                  ),
+                    const Spacer(),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 225),
+                      child: Text(
+                        title,
+                        key: const ValueKey(
+                          'marketplace-wholesale-hero-title',
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 21,
+                          height: 1.12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 94),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        context.tr('customer.marketplace.browse_guest'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF087347),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 225),
-                  child: Text(
-                    title,
-                    key: const ValueKey(
-                      'marketplace-wholesale-hero-title',
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 21,
-                      height: 1.12,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Container(
-                  constraints: const BoxConstraints(minWidth: 94),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    context.tr('customer.marketplace.browse_guest'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF087347),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
             ],
           ),
         ),
@@ -1497,7 +1498,6 @@ class _MarketplaceCategoryRail extends StatelessWidget {
       );
 }
 
-
 class _MarketplaceOfferSection extends StatelessWidget {
   const _MarketplaceOfferSection({
     required this.title,
@@ -1530,8 +1530,7 @@ class _MarketplaceOfferSection extends StatelessWidget {
                   final name = offer['name']?.toString().trim() ?? '';
                   final type = offer['type']?.toString().trim() ?? '';
                   final value = offer['value'];
-                  final badge =
-                      _marketplaceOfferBadge(type, value, currency);
+                  final badge = _marketplaceOfferBadge(type, value, currency);
 
                   return Container(
                     key: ValueKey('marketplace-offer-$id'),
@@ -1729,24 +1728,51 @@ class _MarketplaceSectionHeader extends StatelessWidget {
 
 IconData _marketplaceCategoryIcon(String rawName) {
   final name = rawName.toLowerCase();
-  if (name.contains('لبن') || name.contains('حليب') || name.contains('ألبان') || name.contains('البان') || name.contains('dairy') || name.contains('milk')) return Icons.local_drink_outlined;
-  if (name.contains('جبن') || name.contains('cheese')) return Icons.breakfast_dining_outlined;
-  if (name.contains('خض') || name.contains('فاكه') || name.contains('veget') || name.contains('fruit')) return Icons.eco_outlined;
-  if (name.contains('مجمد') || name.contains('frozen')) return Icons.ac_unit_rounded;
-  if (name.contains('لحوم') || name.contains('دواجن') || name.contains('meat') || name.contains('chicken')) return Icons.set_meal_outlined;
-  if (name.contains('مشروب') || name.contains('عصير') || name.contains('beverage') || name.contains('drink')) return Icons.local_cafe_outlined;
-  if (name.contains('مخب') || name.contains('خبز') || name.contains('bakery') || name.contains('bread')) return Icons.bakery_dining_outlined;
+  if (name.contains('لبن') ||
+      name.contains('حليب') ||
+      name.contains('ألبان') ||
+      name.contains('البان') ||
+      name.contains('dairy') ||
+      name.contains('milk')) return Icons.local_drink_outlined;
+  if (name.contains('جبن') || name.contains('cheese'))
+    return Icons.breakfast_dining_outlined;
+  if (name.contains('خض') ||
+      name.contains('فاكه') ||
+      name.contains('veget') ||
+      name.contains('fruit')) return Icons.eco_outlined;
+  if (name.contains('مجمد') || name.contains('frozen'))
+    return Icons.ac_unit_rounded;
+  if (name.contains('لحوم') ||
+      name.contains('دواجن') ||
+      name.contains('meat') ||
+      name.contains('chicken')) return Icons.set_meal_outlined;
+  if (name.contains('مشروب') ||
+      name.contains('عصير') ||
+      name.contains('beverage') ||
+      name.contains('drink')) return Icons.local_cafe_outlined;
+  if (name.contains('مخب') ||
+      name.contains('خبز') ||
+      name.contains('bakery') ||
+      name.contains('bread')) return Icons.bakery_dining_outlined;
   return Icons.shopping_basket_outlined;
 }
 
 IconData _marketplaceProductIcon(String rawName) {
   final name = rawName.toLowerCase();
-  if (name.contains('لبن') || name.contains('حليب') || name.contains('milk')) return Icons.local_drink_outlined;
-  if (name.contains('جبن') || name.contains('cheese')) return Icons.breakfast_dining_outlined;
-  if (name.contains('مياه') || name.contains('ماء') || name.contains('water')) return Icons.water_drop_rounded;
-  if (name.contains('زيت') || name.contains('oil')) return Icons.opacity_rounded;
+  if (name.contains('لبن') || name.contains('حليب') || name.contains('milk'))
+    return Icons.local_drink_outlined;
+  if (name.contains('جبن') || name.contains('cheese'))
+    return Icons.breakfast_dining_outlined;
+  if (name.contains('مياه') || name.contains('ماء') || name.contains('water'))
+    return Icons.water_drop_rounded;
+  if (name.contains('زيت') || name.contains('oil'))
+    return Icons.opacity_rounded;
   if (name.contains('بيض') || name.contains('egg')) return Icons.egg_outlined;
-  if (name.contains('بطاط') || name.contains('خض') || name.contains('فاكه') || name.contains('veget') || name.contains('fruit')) return Icons.eco_outlined;
+  if (name.contains('بطاط') ||
+      name.contains('خض') ||
+      name.contains('فاكه') ||
+      name.contains('veget') ||
+      name.contains('fruit')) return Icons.eco_outlined;
   return Icons.inventory_2_outlined;
 }
 
@@ -1941,7 +1967,9 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
         password.text.length < 8 ||
         password.text != confirmation.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('customer.marketplace.registration_validation'))),
+        SnackBar(
+            content: Text(
+                context.tr('customer.marketplace.registration_validation'))),
       );
       return;
     }
@@ -1976,19 +2004,40 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                 const SizedBox(height: 6),
                 Text(context.tr('customer.marketplace.register_subtitle')),
                 const SizedBox(height: 16),
-                TextField(controller: name, decoration: InputDecoration(labelText: context.tr('customer.settings.name'))),
+                TextField(
+                    controller: name,
+                    decoration: InputDecoration(
+                        labelText: context.tr('customer.settings.name'))),
                 const SizedBox(height: 10),
-                TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: context.tr('customer.login.email'))),
+                TextField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                        labelText: context.tr('customer.login.email'))),
                 const SizedBox(height: 10),
-                TextField(controller: phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: context.tr('customer.marketplace.phone'))),
+                TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                        labelText: context.tr('customer.marketplace.phone'))),
                 const SizedBox(height: 10),
-                TextField(controller: password, obscureText: true, decoration: InputDecoration(labelText: context.tr('customer.login.password'))),
+                TextField(
+                    controller: password,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                        labelText: context.tr('customer.login.password'))),
                 const SizedBox(height: 10),
-                TextField(controller: confirmation, obscureText: true, decoration: InputDecoration(labelText: context.tr('customer.marketplace.password_confirmation'))),
+                TextField(
+                    controller: confirmation,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                        labelText: context
+                            .tr('customer.marketplace.password_confirmation'))),
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: _submit,
-                  child: Text(context.tr('customer.marketplace.create_account')),
+                  child:
+                      Text(context.tr('customer.marketplace.create_account')),
                 ),
               ],
             ),
@@ -1996,7 +2045,6 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
         ),
       );
 }
-
 
 Map<String, dynamic>? _marketplaceSection(
   List<Map<String, dynamic>> sections,
@@ -2077,8 +2125,7 @@ String _marketplaceOfferBadge(
       ? value.toInt().toString()
       : value.toStringAsFixed(2);
 
-  if (normalized.contains('percent') ||
-      normalized.contains('percentage')) {
+  if (normalized.contains('percent') || normalized.contains('percentage')) {
     return '$compact%';
   }
 
@@ -2093,7 +2140,8 @@ List<Map<String, dynamic>> _rows(Object? value) {
       .toList(growable: false);
 }
 
-int _int(Object? value) => value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+int _int(Object? value) =>
+    value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
 class _MarketplaceException implements Exception {
   const _MarketplaceException(this.code);

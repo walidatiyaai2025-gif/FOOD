@@ -152,7 +152,8 @@ class CustomerStateView extends StatelessWidget {
                       ),
                 ),
               ],
-              if (actionLabel?.trim().isNotEmpty == true && onAction != null) ...[
+              if (actionLabel?.trim().isNotEmpty == true &&
+                  onAction != null) ...[
                 const SizedBox(height: CustomerUiSpacing.md),
                 OutlinedButton(
                   onPressed: onAction,

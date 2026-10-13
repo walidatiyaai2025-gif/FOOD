@@ -319,8 +319,7 @@ void main() {
     expect(find.text('تواصل معنا'), findsOneWidget);
     expect(find.text('الإصدار 1.0.54'), findsOneWidget);
 
-    final rememberMe =
-        find.byKey(const ValueKey('customer-auth-remember-me'));
+    final rememberMe = find.byKey(const ValueKey('customer-auth-remember-me'));
     await tester.ensureVisible(rememberMe);
     await tester.pumpAndSettle();
     await tester.tap(rememberMe);
@@ -446,8 +445,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final logout =
-        find.byKey(const ValueKey('c13-saved-biometric-logout'));
+    final logout = find.byKey(const ValueKey('c13-saved-biometric-logout'));
     await tester.ensureVisible(logout);
     await tester.pumpAndSettle();
     await tester.tap(logout);
@@ -487,7 +485,8 @@ void main() {
           ),
           biometricAuthenticator:
               const _FakeBiometric(available: true, result: true),
-          rememberedRetailStoreResolver: (token, rememberedRetailStoreId) async {
+          rememberedRetailStoreResolver:
+              (token, rememberedRetailStoreId) async {
             resolverCalls += 1;
             expect(token, 'saved-token');
             expect(rememberedRetailStoreId, 2);
@@ -540,7 +539,8 @@ Widget _testApp({
       locale: locale,
       onGenerateRoute: (settings) => MaterialPageRoute<void>(
         settings: settings,
-        builder: (_) => Text(settings.name ?? '', textDirection: TextDirection.ltr),
+        builder: (_) =>
+            Text(settings.name ?? '', textDirection: TextDirection.ltr),
       ),
       home: AppTranslations(
         locale: locale,
@@ -612,8 +612,7 @@ class _HangingPendingActionStore implements CustomerPendingActionStore {
       Completer<CustomerPendingAction?>().future;
 
   @override
-  Future<void> write(CustomerPendingAction action) =>
-      Completer<void>().future;
+  Future<void> write(CustomerPendingAction action) => Completer<void>().future;
 }
 
 class _ThrowingPendingActionStore implements CustomerPendingActionStore {
