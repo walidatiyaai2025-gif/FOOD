@@ -501,6 +501,9 @@ class _WholesaleHeader extends StatelessWidget {
     required this.searchController,
     required this.searchHint,
     required this.onSearchSubmitted,
+    this.searchKey = const ValueKey('wholesale-home-search'),
+    this.onSearchChanged,
+    this.onClearSearch,
     this.logoUrl,
     this.address,
   });
@@ -513,6 +516,9 @@ class _WholesaleHeader extends StatelessWidget {
   final TextEditingController searchController;
   final String searchHint;
   final ValueChanged<String> onSearchSubmitted;
+  final Key searchKey;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onClearSearch;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -575,10 +581,11 @@ class _WholesaleHeader extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             TextField(
-              key: const ValueKey('wholesale-home-search'),
+              key: searchKey,
               controller: searchController,
               textInputAction: TextInputAction.search,
               onSubmitted: onSearchSubmitted,
+              onChanged: onSearchChanged,
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
                 isDense: true,
@@ -586,7 +593,17 @@ class _WholesaleHeader extends StatelessWidget {
                 fillColor: Colors.white,
                 hintText: searchHint,
                 prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                suffixIcon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                suffixIcon: onClearSearch == null
+                    ? const Icon(Icons.qr_code_scanner_rounded, size: 18)
+                    : IconButton(
+                        key: const ValueKey(
+                          'wholesale-catalog-clear-search',
+                        ),
+                        onPressed: searchController.text.trim().isEmpty
+                            ? null
+                            : onClearSearch,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                      ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
@@ -1775,33 +1792,17 @@ class _WholesaleCatalogDesignScreenState
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
+                    searchController: search,
+                    searchKey: const ValueKey('wholesale-catalog-search'),
+                    searchHint: context.tr('b2b.catalog.search_hint'),
+                    onSearchSubmitted: (_) => _reload(),
+                    onSearchChanged: (_) => setState(() {}),
+                    onClearSearch: () {
+                      search.clear();
+                      _reload();
+                    },
                     onCart: () => Navigator.of(context)
                         .pushNamed('/b2b/cart?store=' + storeId.toString()),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                    child: TextField(
-                      key: const ValueKey('wholesale-catalog-search'),
-                      controller: search,
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _reload(),
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: context.tr('b2b.catalog.search_hint'),
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: IconButton(
-                          key: const ValueKey('wholesale-catalog-clear-search'),
-                          tooltip: context.tr('b2b.catalog.clear_search'),
-                          onPressed: search.text.trim().isEmpty
-                              ? null
-                              : () {
-                                  search.clear();
-                                  _reload();
-                                },
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ),
-                    ),
                   ),
                   if (categories.isNotEmpty)
                     SizedBox(
