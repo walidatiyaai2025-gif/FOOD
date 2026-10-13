@@ -601,7 +601,7 @@ void main() {
     final route = Uri.parse(
       tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
     );
-    expect(route.path, CustomerRoutePaths.b2bProducts);
+    expect(route.path, '/b2b/products');
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
     expect(route.queryParameters['source'], 'marketplace');
