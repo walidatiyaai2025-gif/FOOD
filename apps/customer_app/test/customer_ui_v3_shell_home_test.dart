@@ -117,23 +117,13 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final mainScroll = _homeVerticalScroll();
-      final bestGridFinder =
-          find.byKey(const ValueKey('retail-best-sellers-grid'));
+      final tickerHeader =
+          find.byKey(const ValueKey('retail-best-seller-ticker-header'));
       await _dragUntilFound(
         tester,
         scrollable: mainScroll,
-        target: bestGridFinder,
+        target: tickerHeader,
       );
-      final bestGrid = tester.widget<GridView>(bestGridFinder);
-      final bestDelegate =
-          bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(bestDelegate.crossAxisCount, 3);
-      expect(
-          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
 
       const tickerProductIds = <int>[44, 43, 42];
       final visibleTickerProductIds = tickerProductIds
@@ -163,6 +153,24 @@ void main() {
       await tester.tap(nextTickerProduct);
       await tester.pump();
       expect(capturedProductId, nextTickerProductId);
+
+      final bestGridFinder =
+          find.byKey(const ValueKey('retail-best-sellers-grid'));
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: bestGridFinder,
+      );
+      final bestGrid = tester.widget<GridView>(bestGridFinder);
+      final bestDelegate =
+          bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(bestDelegate.crossAxisCount, 3);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
       await _dragUntilFound(
