@@ -49,9 +49,12 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('customer-auth-remember-me')),
+    final rememberMe = find.byKey(
+      const ValueKey('customer-auth-remember-me'),
     );
+    await tester.ensureVisible(rememberMe);
+    await tester.pumpAndSettle();
+    await tester.tap(rememberMe);
     await tester.enterText(
       find.byKey(const ValueKey('unified-auth-email')),
       'buyer@example.test',
@@ -60,7 +63,10 @@ void main() {
       find.byKey(const ValueKey('unified-auth-password')),
       'secret-pass',
     );
-    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(completedToken, 'platform-token');
@@ -179,7 +185,10 @@ void main() {
       find.byKey(const ValueKey('unified-auth-password')),
       'secret-pass',
     );
-    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(find.text(CustomerRoutePaths.b2bHome), findsOneWidget);
@@ -212,11 +221,14 @@ void main() {
       find.byKey(const ValueKey('unified-auth-password')),
       'secret-pass',
     );
-    await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
+    final submit = find.byKey(const ValueKey('unified-auth-submit'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pumpAndSettle();
 
-    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+    expect(find.text(CustomerRoutePaths.b2bHome), findsOneWidget);
     expect(
       find.byKey(const ValueKey('unified-customer-auth-screen')),
       findsNothing,
@@ -259,8 +271,12 @@ void main() {
       find.textContaining('Biometric verification'),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
-    expect(find.byKey(const ValueKey('unified-auth-email')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('c13-saved-biometric-login-panel')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('unified-auth-submit')), findsNothing);
+    expect(find.byKey(const ValueKey('unified-auth-email')), findsNothing);
   });
 
   testWidgets(
@@ -490,7 +506,7 @@ void main() {
 
     expect(resolverCalls, 1);
     expect(completedRetailStoreId, isNull);
-    expect(find.text(CustomerRoutePaths.marketplace), findsOneWidget);
+    expect(find.text(CustomerRoutePaths.b2bHome), findsOneWidget);
   });
 
   testWidgets('Arabic auth surface remains RTL and customer-only',
