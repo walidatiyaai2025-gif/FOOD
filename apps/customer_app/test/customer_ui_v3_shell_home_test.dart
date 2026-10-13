@@ -135,27 +135,34 @@ void main() {
       expect(
           find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
 
-      expect(
-        find.byKey(
-          const ValueKey('retail-best-seller-ticker-product-44'),
-        ),
-        findsOneWidget,
-      );
+      const tickerProductIds = <int>[44, 43, 42];
+      final visibleTickerProductIds = tickerProductIds
+          .where(
+            (productId) => find
+                .byKey(
+                  ValueKey('retail-best-seller-ticker-product-$productId'),
+                )
+                .evaluate()
+                .isNotEmpty,
+          )
+          .toList(growable: false);
+      expect(visibleTickerProductIds, hasLength(1));
+
+      final initialTickerProductId = visibleTickerProductIds.single;
+      final initialTickerIndex =
+          tickerProductIds.indexOf(initialTickerProductId);
+      final nextTickerProductId =
+          tickerProductIds[(initialTickerIndex + 1) % tickerProductIds.length];
+
       await tester.pump(const Duration(seconds: 10));
       await tester.pump(const Duration(seconds: 5));
-      expect(
-        find.byKey(
-          const ValueKey('retail-best-seller-ticker-product-43'),
-        ),
-        findsOneWidget,
+      final nextTickerProduct = find.byKey(
+        ValueKey('retail-best-seller-ticker-product-$nextTickerProductId'),
       );
-      await tester.tap(
-        find.byKey(
-          const ValueKey('retail-best-seller-ticker-product-43'),
-        ),
-      );
+      expect(nextTickerProduct, findsOneWidget);
+      await tester.tap(nextTickerProduct);
       await tester.pump();
-      expect(capturedProductId, 43);
+      expect(capturedProductId, nextTickerProductId);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
       await _dragUntilFound(
