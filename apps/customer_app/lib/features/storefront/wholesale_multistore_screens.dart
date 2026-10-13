@@ -1163,6 +1163,19 @@ class _WholesaleBrandRail extends StatelessWidget {
   }
 }
 
+int _wholesaleProductColumns(int itemCount) {
+  if (itemCount <= 1) return 1;
+  if (itemCount <= 4) return itemCount;
+
+  if (itemCount % 4 == 0) return 4;
+  if (itemCount % 3 == 0) return 3;
+
+  if (itemCount % 4 != 1) return 4;
+  if (itemCount % 3 != 1) return 3;
+
+  return 2;
+}
+
 class _WholesaleProductGrid extends StatelessWidget {
   const _WholesaleProductGrid({
     required this.rows,
@@ -1206,7 +1219,8 @@ class _WholesaleProductGrid extends StatelessWidget {
 
     final displayRows =
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
-    final width = MediaQuery.sizeOf(context).width;
+    final columns = _wholesaleProductColumns(displayRows.length);
+    final denseFourColumn = columns >= 4;
 
     return GridView.builder(
       key: const ValueKey('wholesale-product-grid'),
@@ -1215,12 +1229,12 @@ class _WholesaleProductGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 12,
+        crossAxisCount: columns,
+        crossAxisSpacing: denseFourColumn ? 5 : 8,
+        mainAxisSpacing: 8,
         mainAxisExtent: showCommerceActions
-            ? (width < 360 ? 184.0 : 188.0)
-            : (width < 360 ? 162.0 : 166.0),
+            ? (denseFourColumn ? 160 : 188)
+            : (denseFourColumn ? 146 : 166),
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1232,6 +1246,7 @@ class _WholesaleProductGrid extends StatelessWidget {
         palette: palette,
         defaultCurrency: defaultCurrency,
         showCommerceActions: showCommerceActions,
+        gridColumns: columns,
       ),
     );
   }
@@ -1248,6 +1263,7 @@ class _WholesaleProductCard extends StatefulWidget {
     required this.palette,
     required this.defaultCurrency,
     required this.showCommerceActions,
+    required this.gridColumns,
   });
 
   final Map<String, dynamic> row;
@@ -1259,6 +1275,7 @@ class _WholesaleProductCard extends StatefulWidget {
   final FoodexPalette palette;
   final String defaultCurrency;
   final bool showCommerceActions;
+  final int gridColumns;
 
   @override
   State<_WholesaleProductCard> createState() => _WholesaleProductCardState();
@@ -1320,6 +1337,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final promotion = row['promotion'] is Map
         ? (row['promotion'] as Map)['name']?.toString().trim()
         : row['promotion_name']?.toString().trim();
+    final denseFourColumn = widget.gridColumns >= 4;
 
     return Material(
       key: ValueKey('wholesale-product-card-$id'),
@@ -1336,7 +1354,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       widget.storeId.toString(),
                 ),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
+          padding: denseFourColumn
+              ? const EdgeInsets.fromLTRB(6, 7, 6, 7)
+              : const EdgeInsets.fromLTRB(10, 10, 10, 11),
           decoration: BoxDecoration(
             border: Border.all(color: palette.soft),
             borderRadius: BorderRadius.circular(18),
@@ -1352,7 +1372,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: 92,
+                height: denseFourColumn ? 72 : 92,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -1446,21 +1466,21 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: denseFourColumn ? 5 : 8),
               Text(
                 row['name']?.toString() ?? '',
                 key: ValueKey('wholesale-product-name-$id'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
+                style: TextStyle(
+                  fontSize: denseFourColumn ? 9.5 : 11,
                   height: 1.15,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF102033),
+                  color: const Color(0xFF102033),
                 ),
               ),
               if (widget.showCommerceActions && category.isNotEmpty) ...[
-                const SizedBox(height: 3),
+                SizedBox(height: denseFourColumn ? 2 : 3),
                 Text(
                   category,
                   key: ValueKey('wholesale-product-category-$id'),
@@ -1468,7 +1488,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: palette.muted,
-                    fontSize: 9,
+                    fontSize: denseFourColumn ? 7.5 : 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1492,14 +1512,14 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       style: TextStyle(
                         color: palette.primary,
                         fontWeight: FontWeight.w900,
-                        fontSize: 14,
+                        fontSize: denseFourColumn ? 10.5 : 14,
                       ),
                     ),
                   ),
                   if (widget.showCommerceActions) ...[
                     const SizedBox(width: 4),
                     SizedBox.square(
-                      dimension: 32,
+                      dimension: denseFourColumn ? 24 : 32,
                       child: Semantics(
                         button: true,
                         label: context.tr('customer.action.add_cart'),
@@ -1510,7 +1530,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                               : null,
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size.square(32),
+                            minimumSize: Size.square(
+                              denseFourColumn ? 24 : 32,
+                            ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: Colors.transparent,
                             disabledBackgroundColor: Colors.transparent,
