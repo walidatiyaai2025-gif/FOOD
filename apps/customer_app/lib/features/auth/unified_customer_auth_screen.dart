@@ -335,14 +335,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         token,
         mergeRetailGuestCart: true,
         retailStoreId: rememberedRetailStoreId,
-        postAuthenticationRoute: rememberedRetailStoreId == null
-            ? widget.nextRoute
-            : CustomerRouteLocations.retailHome(
-                CustomerCommerceContext(
-                  channel: CustomerCommerceChannel.retail,
-                  storeId: rememberedRetailStoreId,
-                ),
-              ),
+        postAuthenticationRoute: CustomerRoutePaths.b2bHome,
       );
     } catch (_) {
       if (mounted) {
@@ -587,20 +580,12 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
 
       final retailStoreId =
           result.retailStoreIds.isEmpty ? null : result.retailStoreIds.first;
-      final postLoginRoute = retailStoreId == null
-          ? CustomerRoutePaths.marketplace
-          : CustomerRouteLocations.retailHome(
-              CustomerCommerceContext(
-                channel: CustomerCommerceChannel.retail,
-                storeId: retailStoreId,
-              ),
-            );
 
       await _finishAuthentication(
         result.token,
         mergeRetailGuestCart: true,
         retailStoreId: retailStoreId,
-        postAuthenticationRoute: postLoginRoute,
+        postAuthenticationRoute: CustomerRoutePaths.b2bHome,
       );
     } on CustomerActionException catch (error) {
       if (!mounted) return;
