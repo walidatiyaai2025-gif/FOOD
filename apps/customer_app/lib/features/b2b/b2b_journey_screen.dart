@@ -4435,8 +4435,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         body: CustomerCurvedHeaderSurface(
           header: CustomerAccountHeader(
             key: const ValueKey('b2b-more-header-title'),
-            title: context.tr('b2b.profile.title'),
-            subtitle: context.tr('b2b.profile.hub_subtitle'),
+            title: context.tr('customer.nav.more'),
+            subtitle: '',
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -4479,37 +4479,10 @@ class _B2bMorePageState extends State<_B2bMorePage> {
               key: const ValueKey('b2b-account-hub'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Align(
-                  alignment: ar ? Alignment.centerRight : Alignment.centerLeft,
-                  child: _BusinessTile(
-                    label: context.tr('b2b.dashboard.title'),
-                    onTap: () => _open(widget.dashboardRoute),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.tr('b2b.profile.title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: ink,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  context.tr('b2b.profile.hub_subtitle'),
-                  style: const TextStyle(
-                    color: muted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 14),
                 _FinanceCard(
                   future: finance,
                   ar: ar,
+                  dashboardRoute: widget.dashboardRoute,
                   statementRoute: widget.statementRoute,
                   open: _open,
                   retry: () => setState(
@@ -4659,65 +4632,11 @@ class _HeaderCircle extends StatelessWidget {
       );
 }
 
-class _BusinessTile extends StatelessWidget {
-  const _BusinessTile({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          key: const ValueKey('b2b-more-business-dashboard'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            width: 166,
-            height: 66,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [
-                  CustomerUiColors.limeSoft,
-                  CustomerUiColors.mintStrong
-                ],
-              ),
-              borderRadius: BorderRadius.circular(CustomerUiRadii.lg),
-              boxShadow: CustomerUiElevation.cardShadow,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.grid_view_rounded,
-                  size: 27,
-                  color: _B2bMorePageState.dark,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: _B2bMorePageState.dark,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-}
-
 class _FinanceCard extends StatelessWidget {
   const _FinanceCard({
     required this.future,
     required this.ar,
+    required this.dashboardRoute,
     required this.statementRoute,
     required this.open,
     required this.retry,
@@ -4725,6 +4644,7 @@ class _FinanceCard extends StatelessWidget {
 
   final Future<Object?> future;
   final bool ar;
+  final String dashboardRoute;
   final String statementRoute;
   final void Function(String) open;
   final VoidCallback retry;
@@ -4817,10 +4737,36 @@ class _FinanceCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         ar ? 'ملخص الحساب المالي' : 'Financial account summary',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _B2bMorePageState.ink,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox.square(
+                      dimension: 34,
+                      child: IconButton(
+                        key: const ValueKey(
+                          'b2b-more-business-dashboard',
+                        ),
+                        tooltip: context.tr('b2b.dashboard.title'),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => open(dashboardRoute),
+                        icon: const Icon(
+                          Icons.grid_view_rounded,
+                          size: 18,
+                          color: _B2bMorePageState.dark,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: _B2bMorePageState.soft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
