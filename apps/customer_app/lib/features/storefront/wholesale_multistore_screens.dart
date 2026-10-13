@@ -1124,9 +1124,10 @@ class _WholesaleProductGrid extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 12,
-        mainAxisExtent: showCommerceActions
-            ? (width < 360 ? 270 : 282)
-            : (width < 360 ? 238 : 250),
+        mainAxisExtent: (showCommerceActions
+                ? (width < 360 ? 270.0 : 282.0)
+                : (width < 360 ? 238.0 : 250.0)) *
+            .85,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
