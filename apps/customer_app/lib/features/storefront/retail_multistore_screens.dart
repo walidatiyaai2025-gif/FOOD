@@ -1222,7 +1222,7 @@ class _RetailProductGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = MediaQuery.sizeOf(context).width < 350 ? 3 : 4;
+    const count = 3;
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       shrinkWrap: true,
