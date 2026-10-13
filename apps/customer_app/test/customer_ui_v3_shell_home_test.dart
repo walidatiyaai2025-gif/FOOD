@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_catalog_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart';
+import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/retail_home_v3_screen.dart';
@@ -84,9 +85,7 @@ void main() {
 
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('retail-catalog-search')),
-        findsOneWidget,
-      );
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
       expect(find.text('Weekend Offer'), findsNothing);
       expect(
@@ -119,9 +118,8 @@ void main() {
       expect(capturedCategoryId, 3);
 
       final mainScroll = _homeVerticalScroll();
-      final bestGridFinder = find.byKey(
-        const ValueKey('retail-best-sellers-grid'),
-      );
+      final bestGridFinder =
+          find.byKey(const ValueKey('retail-best-sellers-grid'));
       await _dragUntilFound(
         tester,
         scrollable: mainScroll,
@@ -132,36 +130,40 @@ void main() {
           bestGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(bestDelegate.crossAxisCount, 3);
       expect(
-        find.byKey(const ValueKey('retail-best-seller-44')),
-        findsOneWidget,
-      );
+          find.byKey(const ValueKey('retail-best-seller-44')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('retail-best-seller-43')),
-        findsOneWidget,
-      );
+          find.byKey(const ValueKey('retail-best-seller-43')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('retail-best-seller-42')),
-        findsOneWidget,
-      );
+          find.byKey(const ValueKey('retail-best-seller-42')), findsOneWidget);
 
       expect(
-        find.byKey(const ValueKey('retail-best-seller-ticker-product-44')),
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-44'),
+        ),
         findsOneWidget,
       );
       await tester.pump(const Duration(seconds: 10));
       await tester.pump(const Duration(seconds: 5));
       expect(
-        find.byKey(const ValueKey('retail-best-seller-ticker-product-43')),
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-43'),
+        ),
         findsOneWidget,
       );
       await tester.tap(
-        find.byKey(const ValueKey('retail-best-seller-ticker-product-43')),
+        find.byKey(
+          const ValueKey('retail-best-seller-ticker-product-43'),
+        ),
       );
       await tester.pump();
       expect(capturedProductId, 43);
 
       final product = find.byKey(const ValueKey('retail-product-42'));
-      await _dragUntilFound(tester, scrollable: mainScroll, target: product);
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: product,
+      );
       await tester.tap(product);
       await tester.pump();
       expect(capturedProductId, 42);
@@ -175,7 +177,11 @@ void main() {
       expect(addedProductId, 42);
 
       final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
-      await _dragUntilFound(tester, scrollable: mainScroll, target: viewMore);
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: viewMore,
+      );
       await tester.tap(viewMore);
       await tester.pump();
       expect(searchStore, 7);
@@ -218,11 +224,14 @@ void main() {
 
       final mainScroll = _homeVerticalScroll();
       final bestGrid = find.byKey(const ValueKey('retail-best-sellers-grid'));
-      await _dragUntilFound(tester, scrollable: mainScroll, target: bestGrid);
-
-      final allGridFinder = find.byKey(
-        const ValueKey('retail-all-products-grid'),
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: bestGrid,
       );
+
+      final allGridFinder =
+          find.byKey(const ValueKey('retail-all-products-grid'));
       await _dragUntilFound(
         tester,
         scrollable: mainScroll,
@@ -234,136 +243,152 @@ void main() {
       expect(allDelegate.crossAxisCount, 3);
 
       final viewMore = find.byKey(const ValueKey('retail-home-view-more'));
-      await _dragUntilFound(tester, scrollable: mainScroll, target: viewMore);
+      await _dragUntilFound(
+        tester,
+        scrollable: mainScroll,
+        target: viewMore,
+      );
       expect(find.text('View more'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets(
-    'Customer VNext Home exposes an explicit retryable offline state',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('en'),
-          home: RetailHomeV3Screen(
-            storeId: 7,
-            catalogApi: _OfflineCatalogApi(),
-            isAuthenticated: false,
-          ),
+  testWidgets('Customer VNext Home exposes an explicit retryable offline state',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        home: RetailHomeV3Screen(
+          storeId: 7,
+          catalogApi: _OfflineCatalogApi(),
+          isAuthenticated: false,
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('retail-home-offline')), findsOneWidget);
-      expect(find.byIcon(Icons.wifi_off_rounded), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'fixed footer reserves business-action space and Home returns to platform store switcher',
-    (tester) async {
-      String? pushedRoute;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          onGenerateRoute: (settings) {
-            pushedRoute = settings.name;
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const Scaffold(body: Text('destination')),
-            );
-          },
-          home: CustomerRetailShell(
-            commerceContext: const CustomerCommerceContext(
-              channel: CustomerCommerceChannel.retail,
-              storeId: 17,
-            ),
-            activeDestination: CustomerRetailDestination.cart,
-            isAuthenticated: true,
-            child: const Scaffold(
-              body: SizedBox.expand(),
-              bottomNavigationBar: SizedBox(
-                key: ValueKey('business-fixed-action'),
-                height: 56,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final actionBottom = tester
-          .getBottomLeft(find.byKey(const ValueKey('business-fixed-action')))
-          .dy;
-      final footerTop = tester
-          .getTopLeft(find.byKey(const ValueKey('customer-persistent-footer')))
-          .dy;
-      expect(actionBottom, lessThanOrEqualTo(footerTop));
-
-      await tester.tap(find.byKey(const ValueKey('retail-shell-nav-home')));
-      await tester.pumpAndSettle();
-      expect(pushedRoute, isNotNull);
-      final homeUri = Uri.parse(pushedRoute!);
-      expect(homeUri.path, '/retail/17/home');
-      expect(homeUri.queryParameters['store_id'], '17');
-      expect(homeUri.queryParameters['channel'], 'retail');
-    },
-  );
+    expect(
+      find.byKey(const ValueKey('retail-home-offline')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.wifi_off_rounded), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
-    'floating navigation preserves authoritative Retail store context',
-    (tester) async {
-      String? pushedRoute;
+      'fixed footer reserves business-action space and Home returns to platform store switcher',
+      (tester) async {
+    String? pushedRoute;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          onGenerateRoute: (settings) {
-            pushedRoute = settings.name;
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const Scaffold(body: Text('destination')),
-            );
-          },
-          home: CustomerRetailShell(
-            commerceContext: const CustomerCommerceContext(
-              channel: CustomerCommerceChannel.retail,
-              storeId: 17,
+    await tester.pumpWidget(
+      MaterialApp(
+        onGenerateRoute: (settings) {
+          pushedRoute = settings.name;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('destination')),
+          );
+        },
+        home: CustomerRetailShell(
+          commerceContext: const CustomerCommerceContext(
+            channel: CustomerCommerceChannel.retail,
+            storeId: 17,
+          ),
+          activeDestination: CustomerRetailDestination.cart,
+          isAuthenticated: true,
+          child: const Scaffold(
+            body: SizedBox.expand(),
+            bottomNavigationBar: SizedBox(
+              key: ValueKey('business-fixed-action'),
+              height: 56,
             ),
-            activeDestination: CustomerRetailDestination.home,
-            isAuthenticated: true,
-            child: const Scaffold(body: SizedBox.expand()),
           ),
         ),
-      );
-      await tester.pump();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('retail-shell-nav-orders')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('retail-shell-nav-account')),
-        findsOneWidget,
-      );
+    final actionBottom = tester
+        .getBottomLeft(
+          find.byKey(const ValueKey('business-fixed-action')),
+        )
+        .dy;
+    final footerTop = tester
+        .getTopLeft(
+          find.byKey(const ValueKey('customer-persistent-footer')),
+        )
+        .dy;
+    expect(actionBottom, lessThanOrEqualTo(footerTop));
 
-      await tester.tap(find.byKey(const ValueKey('retail-shell-nav-products')));
-      await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('retail-shell-nav-home')),
+    );
+    await tester.pumpAndSettle();
+    expect(pushedRoute, isNotNull);
+    final homeUri = Uri.parse(pushedRoute!);
+    expect(homeUri.path, '/retail/17/home');
+    expect(homeUri.queryParameters['store_id'], '17');
+    expect(homeUri.queryParameters['channel'], 'retail');
+  });
 
-      expect(pushedRoute, isNotNull);
-      final uri = Uri.parse(pushedRoute!);
-      expect(uri.path, '/products');
-      expect(uri.queryParameters['store_id'], '17');
-      expect(uri.queryParameters['channel'], 'retail');
-    },
-  );
+  testWidgets(
+      'floating navigation preserves authoritative Retail store context',
+      (tester) async {
+    String? pushedRoute;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        onGenerateRoute: (settings) {
+          pushedRoute = settings.name;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('destination')),
+          );
+        },
+        home: CustomerRetailShell(
+          commerceContext: const CustomerCommerceContext(
+            channel: CustomerCommerceChannel.retail,
+            storeId: 17,
+          ),
+          activeDestination: CustomerRetailDestination.home,
+          isAuthenticated: true,
+          child: const Scaffold(body: SizedBox.expand()),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('retail-shell-nav-orders')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('retail-shell-nav-account')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('retail-shell-nav-products')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(pushedRoute, isNotNull);
+    final uri = Uri.parse(pushedRoute!);
+    expect(uri.path, '/products');
+    expect(uri.queryParameters['store_id'], '17');
+    expect(uri.queryParameters['channel'], 'retail');
+  });
 }
 
 Finder _homeVerticalScroll() {
   final homeList = find.byKey(const ValueKey('retail-home-scroll'));
-  return find.descendant(of: homeList, matching: find.byType(Scrollable)).first;
+  return find
+      .descendant(
+        of: homeList,
+        matching: find.byType(Scrollable),
+      )
+      .first;
 }
 
 Future<void> _dragUntilFound(
@@ -388,10 +413,7 @@ Future<void> _dragUntilFound(
 Future<void> _pumpRetailHomeReady(WidgetTester tester) async {
   for (var attempt = 0; attempt < 12; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
-    if (find
-        .byKey(const ValueKey('retail-catalog-home'))
-        .evaluate()
-        .isNotEmpty) {
+    if (find.byKey(const ValueKey('retail-catalog-home')).evaluate().isNotEmpty) {
       return;
     }
   }
@@ -487,7 +509,12 @@ class _FakeCatalogApi implements B2cCatalogApi {
 
   @override
   Future<List<B2cOffer>> offers(int storeId) async => const [
-        B2cOffer(id: 9, name: 'Weekend Offer', type: 'percentage', value: 10),
+        B2cOffer(
+          id: 9,
+          name: 'Weekend Offer',
+          type: 'percentage',
+          value: 10,
+        ),
       ];
 
   @override
@@ -497,7 +524,12 @@ class _FakeCatalogApi implements B2cCatalogApi {
 
   @override
   Future<B2cProduct> product(int productId, {required int storeId}) async =>
-      B2cProduct(id: productId, name: 'Tomato Box', sku: 'TOM-42', price: 3.25);
+      B2cProduct(
+        id: productId,
+        name: 'Tomato Box',
+        sku: 'TOM-42',
+        price: 3.25,
+      );
 }
 
 class _FakeStorefrontApi implements StorefrontApi {
