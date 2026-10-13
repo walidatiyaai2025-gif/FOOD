@@ -11,7 +11,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  testWidgets('marketplace loads guest platform storefront and opens exact retail store',
+  testWidgets(
+      'marketplace loads guest platform storefront and opens exact retail store',
       (tester) async {
     final requests = <Uri>[];
     final client = MockClient((request) async {
@@ -135,7 +136,8 @@ void main() {
           onGenerateRoute: (settings) => MaterialPageRoute<void>(
             settings: settings,
             builder: (_) => Scaffold(
-              body: Text(settings.name ?? '', key: const ValueKey('route-name')),
+              body:
+                  Text(settings.name ?? '', key: const ValueKey('route-name')),
             ),
           ),
         ),
@@ -160,8 +162,7 @@ void main() {
       find.byKey(const ValueKey('marketplace-banner-carousel')),
       findsOneWidget,
     );
-    final carousel =
-        find.byKey(const ValueKey('marketplace-store-carousel'));
+    final carousel = find.byKey(const ValueKey('marketplace-store-carousel'));
     expect(carousel, findsOneWidget);
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
     expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
@@ -444,7 +445,8 @@ void main() {
     await tester.pumpAndSettle();
     final carousel = find.byKey(const ValueKey('marketplace-store-carousel'));
     expect(carousel, findsOneWidget);
-    expect(find.byKey(const ValueKey('marketplace-wholesale-entry')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-wholesale-entry')),
+        findsOneWidget);
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
     expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
     expect(find.text('Retail Eight Offer').hitTestable(), findsNothing);
@@ -523,7 +525,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      requests.where((uri) => uri.path == '/api/v1/platform/storefront').last
+      requests
+          .where((uri) => uri.path == '/api/v1/platform/storefront')
+          .last
           .queryParameters['q'],
       'W-RICE-42',
     );
@@ -547,7 +551,6 @@ void main() {
       isFalse,
     );
   });
-
 
   testWidgets('marketplace category chip opens scoped Wholesale catalog',
       (tester) async {
@@ -608,7 +611,6 @@ void main() {
     expect(route.queryParameters['category_id'], '9');
   });
 
-
   testWidgets(
       'marketplace header stays responsive with scan and locale controls at 390px',
       (tester) async {
@@ -624,15 +626,15 @@ void main() {
     final client = MockClient((request) async {
       requests.add(request.url);
       return http.Response(
-          jsonEncode({
-            'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
-            'hero': null,
-            'categories': const [],
-            'products': {'data': const []},
-            'retail_banners': const [],
-          }),
-          200,
-        );
+        jsonEncode({
+          'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
+          'hero': null,
+          'categories': const [],
+          'products': {'data': const []},
+          'retail_banners': const [],
+        }),
+        200,
+      );
     });
 
     await tester.pumpWidget(
@@ -667,9 +669,11 @@ void main() {
       ),
       TextDirection.rtl,
     );
-    expect(find.byKey(const ValueKey('marketplace-compact-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('marketplace-compact-header')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-search')), findsOneWidget);
-    expect(find.byKey(const ValueKey('marketplace-brand-title')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('marketplace-brand-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-cart')), findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-orders')), findsOneWidget);
     expect(
@@ -717,8 +721,6 @@ void main() {
     await tester.pump();
     expect(requestedLocale, const Locale('en'));
   });
-
-
 
   testWidgets(
       'marketplace header routes every navigation icon in the main Wholesale context',
@@ -821,7 +823,6 @@ void main() {
     expect(profileRoute.queryParameters['source'], 'marketplace');
   });
 
-
   testWidgets(
       'signed-in marketplace keeps store switcher open and management routes follow origin store',
       (tester) async {
@@ -910,9 +911,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     var route = Uri.parse(
-      tester.widget<Text>(
-        find.byKey(const ValueKey('route-name')),
-      ).data!,
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('route-name')),
+          )
+          .data!,
     );
     expect(route.path, '/cart');
     expect(route.queryParameters['channel'], 'retail');
@@ -936,15 +939,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     route = Uri.parse(
-      tester.widget<Text>(
-        find.byKey(const ValueKey('route-name')),
-      ).data!,
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('route-name')),
+          )
+          .data!,
     );
     expect(route.path, '/b2b/home');
     expect(route.queryParameters['channel'], 'wholesale');
     expect(route.queryParameters['store_id'], '70');
   });
-
 
   testWidgets(
       'marketplace auth menu reads the live app session after login without a stale guest route',
@@ -1009,7 +1013,6 @@ void main() {
       findsNothing,
     );
   });
-
 
   testWidgets(
       'marketplace reference home binds authoritative API content at narrow phone width',
@@ -1098,7 +1101,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('marketplace-categories')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('marketplace-categories')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('marketplace-banner-carousel')),
       findsOneWidget,
@@ -1246,10 +1250,17 @@ void main() {
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
 
-    Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
+    Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+        .pop();
     await tester.pumpAndSettle();
 
-    for (final destination in ['home', 'products', 'orders', 'invoices', 'account']) {
+    for (final destination in [
+      'home',
+      'products',
+      'orders',
+      'invoices',
+      'account'
+    ]) {
       expect(
         find.byKey(ValueKey('customer-footer-$destination')),
         findsOneWidget,
@@ -1271,7 +1282,8 @@ void main() {
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
 
-    Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
+    Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+        .pop();
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('customer-footer-invoices')));
@@ -1283,7 +1295,8 @@ void main() {
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
 
-    Navigator.of(tester.element(find.byKey(const ValueKey('route-name')))).pop();
+    Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+        .pop();
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
@@ -1295,5 +1308,4 @@ void main() {
     expect(route.queryParameters['store_id'], '70');
     expect(route.queryParameters['channel'], 'wholesale');
   });
-
 }

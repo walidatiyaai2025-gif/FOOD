@@ -48,16 +48,15 @@ void main() {
           await _pumpCustomerFrames(tester);
 
           expect(tester.takeException(), isNull);
-          expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+          expect(find.byKey(const ValueKey('retail-catalog-search')),
+              findsOneWidget);
 
           final direction = Directionality.of(
             tester.element(find.byKey(const ValueKey('retail-catalog-search'))),
           );
           expect(
             direction,
-            locale.languageCode == 'ar'
-                ? TextDirection.rtl
-                : TextDirection.ltr,
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
           );
         },
       );
@@ -97,7 +96,8 @@ void main() {
 
       await tester.pumpWidget(guestApp);
       await _pumpCustomerFrames(tester);
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       final authenticatedApp = _previewApp(
@@ -110,7 +110,8 @@ void main() {
 
       await tester.pumpWidget(authenticatedApp);
       await _pumpCustomerFrames(tester);
-      expect(find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -158,9 +159,7 @@ void main() {
         final direction = Directionality.of(tester.element(scaffold));
         expect(
           direction,
-          locale.languageCode == 'ar'
-              ? TextDirection.rtl
-              : TextDirection.ltr,
+          locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
         );
       },
     );
@@ -297,8 +296,7 @@ class _PreviewAccountApi implements B2cAccountApi {
   const _PreviewAccountApi();
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      Future<Object?>.value(null);
+  dynamic noSuchMethod(Invocation invocation) => Future<Object?>.value(null);
 }
 
 class _PreviewB2bApi implements B2bApi {
@@ -403,7 +401,11 @@ class _PreviewStorefrontApi implements StorefrontApi {
         },
         'hero': null,
         'sections': [
-          {'type': 'categories', 'title_ar': 'التصنيفات', 'title_en': 'Categories'},
+          {
+            'type': 'categories',
+            'title_ar': 'التصنيفات',
+            'title_en': 'Categories'
+          },
           {'type': 'products', 'title_ar': 'المنتجات', 'title_en': 'Products'},
         ],
       };

@@ -108,15 +108,12 @@ void main() {
       expect(find.text('ليك'), findsWidgets);
       expect(find.text('عليك'), findsNothing);
 
-      final periodY = tester
-          .getTopLeft(find.text('الفترة'))
-          .dy;
+      final periodY = tester.getTopLeft(find.text('الفترة')).dy;
       final fromY = tester
           .getTopLeft(find.byKey(const ValueKey('b2b-statement-from')))
           .dy;
-      final toY = tester
-          .getTopLeft(find.byKey(const ValueKey('b2b-statement-to')))
-          .dy;
+      final toY =
+          tester.getTopLeft(find.byKey(const ValueKey('b2b-statement-to'))).dy;
       expect((periodY - fromY).abs(), lessThan(10));
       expect((fromY - toY).abs(), lessThan(1));
 
@@ -522,7 +519,8 @@ void main() {
     expect(find.text('Active orders'), findsOneWidget);
   });
 
-  testWidgets('B2B More keeps the compact hub without inline account sections', (
+  testWidgets('B2B More keeps the compact hub without inline account sections',
+      (
     tester,
   ) async {
     final api = _PathB2bApi({
@@ -1023,10 +1021,12 @@ void main() {
       expect(tester.widget<FilledButton>(unavailableAdd).onPressed, isNull);
 
       final addVisual = tester.widget<Container>(
-        find.descendant(
-          of: availableAdd,
-          matching: find.byType(Container),
-        ).last,
+        find
+            .descendant(
+              of: availableAdd,
+              matching: find.byType(Container),
+            )
+            .last,
       );
       expect(addVisual.constraints?.maxWidth, 18);
       expect(addVisual.constraints?.maxHeight, 18);
@@ -2714,7 +2714,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey('b2b-purchases-trend')), findsOneWidget);
-      expect(find.byKey(const ValueKey('b2b-purchases-orders')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('b2b-purchases-orders')), findsOneWidget);
 
       final categoriesTop = tester
           .getTopLeft(find.byKey(const ValueKey('b2b-purchases-categories')))
@@ -3244,8 +3245,7 @@ void main() {
     final outstandingText = tester.widget<Text>(
       find.byKey(const ValueKey('b2b-invoice-outstanding-31')),
     );
-    final outstandingSpans =
-        (outstandingText.textSpan as TextSpan).children!;
+    final outstandingSpans = (outstandingText.textSpan as TextSpan).children!;
     expect(
       (outstandingSpans.last as TextSpan).style?.color,
       CustomerUiColors.destructive,

@@ -645,7 +645,6 @@ class _MemoryPendingActionStore implements CustomerPendingActionStore {
   }
 }
 
-
 class _CanonicalWholesaleHomeStorefrontApi implements StorefrontApi {
   const _CanonicalWholesaleHomeStorefrontApi();
 
