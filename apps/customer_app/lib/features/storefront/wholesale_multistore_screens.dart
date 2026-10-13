@@ -1211,8 +1211,11 @@ class _WholesaleBestSellerTickerHeaderState
   ];
 
   Timer? _timer;
-  late final AnimationController _marquee;
+  AnimationController? _marquee;
   int _index = 0;
+
+  AnimationController get _marqueeController =>
+      _marquee ??= AnimationController(vsync: this, duration: _interval);
 
   List<Map<String, dynamic>> get _products => widget.rows
       .where(
@@ -1225,7 +1228,6 @@ class _WholesaleBestSellerTickerHeaderState
   @override
   void initState() {
     super.initState();
-    _marquee = AnimationController(vsync: this, duration: _interval);
     _restartTicker();
   }
 
@@ -1242,11 +1244,12 @@ class _WholesaleBestSellerTickerHeaderState
 
   void _restartTicker() {
     _timer?.cancel();
-    _marquee.stop();
+    final marquee = _marqueeController;
+    marquee.stop();
     final products = _products;
     if (products.isEmpty) return;
 
-    _marquee.forward(from: 0);
+    marquee.forward(from: 0);
     _timer = Timer.periodic(_interval, (_) {
       final currentProducts = _products;
       if (!mounted || currentProducts.isEmpty) return;
@@ -1255,7 +1258,7 @@ class _WholesaleBestSellerTickerHeaderState
           _index = (_index + 1) % currentProducts.length;
         }
       });
-      _marquee.forward(from: 0);
+      marquee.forward(from: 0);
     });
   }
 
@@ -1300,7 +1303,7 @@ class _WholesaleBestSellerTickerHeaderState
             alignment: Alignment.centerLeft,
             children: [
               AnimatedBuilder(
-                animation: _marquee,
+                animation: _marqueeController,
                 child: SizedBox(
                   width: textWidth,
                   height: 28,
@@ -1331,8 +1334,8 @@ class _WholesaleBestSellerTickerHeaderState
                 builder: (context, child) {
                   final travel = constraints.maxWidth + textWidth;
                   final dx = isArabic
-                      ? constraints.maxWidth - (_marquee.value * travel)
-                      : -textWidth + (_marquee.value * travel);
+                      ? constraints.maxWidth - (_marqueeController.value * travel)
+                      : -textWidth + (_marqueeController.value * travel);
                   return Transform.translate(
                     offset: Offset(dx, 0),
                     child: child,
@@ -1347,9 +1350,17 @@ class _WholesaleBestSellerTickerHeaderState
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _restartTicker();
+    });
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
-    _marquee.dispose();
+    _marquee?.dispose();
     super.dispose();
   }
 
