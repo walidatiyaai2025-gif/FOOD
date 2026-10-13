@@ -3392,30 +3392,39 @@ class _PurchaseReportRemoteStateState
     BuildContext context,
     List<Map<Object?, Object?>> rows,
     String currency,
-  ) =>
-      Card(
-        key: const ValueKey('b2b-purchases-categories'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                context.tr('b2b.purchase_reports.categories'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+  ) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+
+    return Card(
+      key: const ValueKey('b2b-purchases-categories'),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.tr('b2b.purchase_reports.categories'),
+              style: titleStyle?.copyWith(
+                fontSize: (titleStyle.fontSize ?? 16) * .75,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                Text(context.tr('b2b.purchase_reports.no_categories'))
-              else
-                _PurchaseCategoryDistribution(rows: rows, currency: currency),
-            ],
-          ),
+            ),
+            const SizedBox(height: 9),
+            if (rows.isEmpty)
+              Text(
+                context.tr('b2b.purchase_reports.no_categories'),
+                style: bodyStyle?.copyWith(
+                  fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                ),
+              )
+            else
+              _PurchaseCategoryDistribution(rows: rows, currency: currency),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   String _localizedOrderStatus(BuildContext context, Object? rawStatus) {
     final status = rawStatus?.toString().trim().toLowerCase() ?? '';
@@ -3433,24 +3442,29 @@ class _PurchaseReportRemoteStateState
     String currency, {
     required int currentPage,
     required bool hasMore,
-  }) =>
-      Card(
-        key: const ValueKey('b2b-purchases-orders'),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  context.tr('b2b.purchase_reports.recent_orders'),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
+  }) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+    final bodySmallStyle = Theme.of(context).textTheme.bodySmall;
+    final buttonStyle = Theme.of(context).textTheme.labelLarge;
+
+    return Card(
+      key: const ValueKey('b2b-purchases-orders'),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(
+                context.tr('b2b.purchase_reports.recent_orders'),
+                style: titleStyle?.copyWith(
+                  fontSize: (titleStyle.fontSize ?? 16) * .75,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
+            ),
               ...rows.map((row) {
                 final id = int.tryParse(row['id']?.toString() ?? '');
                 final storeId = int.tryParse(row['store_id']?.toString() ?? '');
@@ -3465,21 +3479,31 @@ class _PurchaseReportRemoteStateState
                     _localizedOrderStatus(context, row['status']);
                 return ListTile(
                   key: ValueKey('b2b-purchases-order-${id ?? orderNumber}'),
-                  leading: const Icon(Icons.receipt_long_outlined),
+                  leading: const Icon(Icons.receipt_long_outlined, size: 18),
                   title: Text(
                     orderNumber,
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
+                    style: bodyStyle?.copyWith(
+                      fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   subtitle: Text(
                     '${row['created_at'] ?? ''} · $statusLabel',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: bodySmallStyle?.copyWith(
+                      fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
+                    ),
                   ),
                   trailing: Text(
                     _reportMoney(row['grand_total'], displayCurrency),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: bodyStyle?.copyWith(
+                      fontSize: (bodyStyle.fontSize ?? 14) * .75,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   onTap: id == null
                       ? null
@@ -3508,6 +3532,10 @@ class _PurchaseReportRemoteStateState
                       context.tr('b2b.purchase_reports.page'),
                       currentPage.toString(),
                     ].join(' '),
+                    style: bodySmallStyle?.copyWith(
+                      fontSize: (bodySmallStyle.fontSize ?? 12) * .75,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   Wrap(
                     spacing: 6,
@@ -3519,8 +3547,12 @@ class _PurchaseReportRemoteStateState
                             ? () => _reload(page: currentPage - 1)
                             : null,
                         icon: const Icon(Icons.chevron_left),
-                        label:
-                            Text(context.tr('b2b.purchase_reports.previous')),
+                        label: Text(
+                          context.tr('b2b.purchase_reports.previous'),
+                          style: buttonStyle?.copyWith(
+                            fontSize: (buttonStyle.fontSize ?? 14) * .75,
+                          ),
+                        ),
                       ),
                       TextButton.icon(
                         key: const ValueKey('b2b-purchases-next-page'),
@@ -3528,7 +3560,12 @@ class _PurchaseReportRemoteStateState
                             ? () => _reload(page: currentPage + 1)
                             : null,
                         icon: const Icon(Icons.chevron_right),
-                        label: Text(context.tr('b2b.purchase_reports.next')),
+                        label: Text(
+                          context.tr('b2b.purchase_reports.next'),
+                          style: buttonStyle?.copyWith(
+                            fontSize: (buttonStyle.fontSize ?? 14) * .75,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -3537,7 +3574,8 @@ class _PurchaseReportRemoteStateState
             ],
           ),
         ),
-      );
+    );
+  }
 
   static DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
@@ -3638,8 +3676,17 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
           strokeWidth: 18,
         ),
         const SizedBox(height: 12),
-        FoodexChartLegend(labels: labels),
-        const SizedBox(height: 8),
+        DefaultTextStyle.merge(
+          style: TextStyle(
+            fontSize:
+                (Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14) * .75,
+          ),
+          child: FoodexChartLegend(
+            labels: labels,
+            spacing: 9,
+          ),
+        ),
+        const SizedBox(height: 6),
         ...rows.asMap().entries.map((entry) {
           final row = entry.value;
           final color = FoodexChartPalette
@@ -3662,15 +3709,24 @@ class _PurchaseCategoryDistribution extends StatelessWidget {
                   child: Text(
                     row['category_name']?.toString() ?? '—',
                     overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize:
+                              (Theme.of(context).textTheme.bodyMedium?.fontSize ??
+                                      14) *
+                                  .75,
+                        ),
                   ),
                 ),
                 Text(
                   '${percentage.toStringAsFixed(1)}% · '
                   '${_reportMoney(row['purchase_total'], currency)}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize:
+                            (Theme.of(context).textTheme.bodySmall?.fontSize ??
+                                    12) *
+                                .75,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ],
             ),
