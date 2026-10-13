@@ -77,7 +77,8 @@ void main() {
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
 
-      await tester.pageBack();
+      Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+          .pop();
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('customer-footer-favorites')),
