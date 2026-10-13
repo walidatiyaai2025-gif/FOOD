@@ -1243,7 +1243,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('marketplace-store')));
     await tester.pumpAndSettle();
-    var route = Uri.parse(
+    final route = Uri.parse(
       tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
     );
     expect(route.path, '/b2b/home');
