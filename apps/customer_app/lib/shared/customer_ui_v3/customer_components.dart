@@ -295,7 +295,7 @@ class CustomerProductImage extends StatelessWidget {
   const CustomerProductImage({
     this.imageUrl,
     this.fallbackAsset,
-    this.aspectRatio = 1.35,
+    this.aspectRatio = 1.75,
     super.key,
   });
 
