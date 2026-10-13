@@ -497,8 +497,8 @@ void main() {
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
     expect(find.text('عليك'), findsOneWidget);
     expect(find.text('125.000 KWD'), findsOneWidget);
-    expect(find.text('1000.000 KWD'), findsOneWidget);
-    expect(find.text('875.000 KWD'), findsWidgets);
+    expect(find.text('1000.000 KWD'), findsNothing);
+    expect(find.text('875.000 KWD'), findsOneWidget);
     expect(find.text('طلباتي'), findsOneWidget);
     expect(find.text('الفواتير'), findsOneWidget);
     expect(find.text('كشف الحساب'), findsOneWidget);
@@ -513,6 +513,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('b2b-profile-logout')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
+    expect(find.text('الإصدار 1.0.75'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);
   });
 
@@ -1689,8 +1691,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Current financial position'), findsOneWidget);
-      expect(find.text('Available purchasing power'), findsOneWidget);
+      expect(find.text('Current financial position'), findsNothing);
+      expect(find.text('Available purchasing power'), findsNothing);
       expect(find.text('Final review'), findsWidgets);
       expect(find.text('Acme Buyer'), findsOneWidget);
       expect(find.text('Wholesale Store'), findsOneWidget);
@@ -2128,7 +2130,9 @@ void main() {
       expect(find.byKey(const ValueKey('b2b-order-detail')), findsOneWidget);
       expect(find.text('Order details'), findsOneWidget);
       expect(find.text('#78'), findsOneWidget);
-      expect(find.text('Wholesale Store'), findsOneWidget);
+      expect(find.text('Wholesale Store'), findsNothing);
+      expect(find.text('2026-10-05'), findsNothing);
+      expect(find.text('Wholesale B2B'), findsNothing);
       expect(find.byKey(const ValueKey('b2b-order-terminal')), findsOneWidget);
       expect(
         Directionality.of(
