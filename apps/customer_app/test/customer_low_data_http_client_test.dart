@@ -7,6 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+String? _headerValue(Map<String, String> headers, String name) {
+  final target = name.toLowerCase();
+  for (final entry in headers.entries) {
+    if (entry.key.toLowerCase() == target) return entry.value;
+  }
+  return null;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -24,12 +32,7 @@ void main() {
       MockClient((request) async {
         networkCalls += 1;
         lowDataHeaders.add(
-          request.headers.entries
-              .where(
-                (entry) => entry.key.toLowerCase() == 'x-foodex-low-data',
-              )
-              .map((entry) => entry.value)
-              .firstOrNull,
+          _headerValue(request.headers, 'x-foodex-low-data'),
         );
         return http.Response(
           '{"version":$networkCalls}',
@@ -126,10 +129,7 @@ void main() {
     final client = CustomerLowDataHttpClient(
       MockClient((request) async {
         networkCalls += 1;
-        validator = request.headers.entries
-            .where((entry) => entry.key.toLowerCase() == 'if-none-match')
-            .map((entry) => entry.value)
-            .firstOrNull;
+        validator = _headerValue(request.headers, 'if-none-match');
         if (networkCalls == 2) {
           return http.Response('', 304);
         }
