@@ -1644,7 +1644,7 @@ double _threeColumnProductExtent({
   final textSafeExtent = 258.0 + (scaledDelta * 72.0);
   final minimumExtent =
       skeletonExtent > textSafeExtent ? skeletonExtent : textSafeExtent;
-  return minimumExtent + cardVerticalSafety;
+  return (minimumExtent + cardVerticalSafety) * .85;
 }
 
 class _BrowseProductCard extends StatelessWidget {
