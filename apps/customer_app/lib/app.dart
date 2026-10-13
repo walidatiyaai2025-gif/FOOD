@@ -17,6 +17,7 @@ import 'core/auth/customer_session.dart';
 import 'core/auth/customer_session_http_client.dart';
 import 'core/auth/customer_session_store.dart';
 import 'core/config/foodex_environment.dart';
+import 'core/config/customer_app_release.dart';
 import 'core/diagnostics/customer_diagnostics.dart';
 import 'core/engagement/notification_campaign_popup_service.dart';
 import 'core/localization/app_translations.dart';
@@ -178,13 +179,10 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   StreamSubscription<FoodexPushAlert>? _pushAlertSubscription;
   late final CustomerNotificationCampaignPopupService _launchCampaignPopups;
   bool _launchCampaignPopupScheduled = false;
-  Timer? _versionFooterTimer;
-  bool _showVersionFooter = false;
   final CustomerDiagnostics _diagnostics = CustomerDiagnostics.instance;
   late final CustomerDiagnosticsHttpClient _diagnosticsHttpClient;
   late final CustomerSessionHttpClient _sessionHttpClient;
 
-  static const _appVersion = '1.0.75';
 
   @override
   void initState() {
@@ -215,12 +213,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
       lowDataHttpClient,
       onUnauthorized: _onSessionExpired,
     );
-    _showVersionFooter = widget.initialRoute != CustomerRoutePaths.splash;
-    if (!_showVersionFooter) {
-      _versionFooterTimer = Timer(const Duration(milliseconds: 1150), () {
-        if (mounted) setState(() => _showVersionFooter = true);
-      });
-    }
     _loadRemoteTranslations();
     _configurePush();
     _configureDiagnostics();
@@ -339,7 +331,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
     _diagnostics.updateContext(
-      appVersion: _appVersion,
+      appVersion: customerAppVersion,
       apiBaseUrl: baseUrl,
       locale: _locale.languageCode,
       authenticated: _session.isAuthenticated,
@@ -586,7 +578,6 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _sessionHttpClient.close();
-    _versionFooterTimer?.cancel();
     unawaited(_pushRouteSubscription?.cancel());
     unawaited(_pushAlertSubscription?.cancel());
     super.dispose();
@@ -603,7 +594,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     final baseUrl = FoodexEnvironment.apiBaseUrl;
     final token = _session.accessToken;
     _diagnostics.updateContext(
-      appVersion: _appVersion,
+      appVersion: customerAppVersion,
       apiBaseUrl: baseUrl,
       locale: _locale.languageCode,
       authenticated: _session.isAuthenticated,
@@ -861,90 +852,7 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
         AppTranslations(
           locale: _locale,
           overrides: _translations,
-          child: Builder(
-            builder: (translatedContext) => Stack(
-              fit: StackFit.expand,
-              children: [
-                if (_showVersionFooter && widget.showPersistentFooter)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      bottom: 34 +
-                          MediaQuery.viewPaddingOf(translatedContext).bottom,
-                    ),
-                    child: child ?? const SizedBox.shrink(),
-                  )
-                else
-                  child ?? const SizedBox.shrink(),
-                if (_showVersionFooter && widget.showPersistentFooter) ...[
-                  PositionedDirectional(
-                    start: 0,
-                    end: 0,
-                    bottom: 0,
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          color: FoodexBrand.surfaceMuted,
-                          border: Border(
-                            top: BorderSide(color: FoodexBrand.border),
-                          ),
-                        ),
-                        child: SafeArea(
-                          top: false,
-                          child: SizedBox(
-                            height: 34,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Text(
-                                  '${translatedContext.tr('customer.version')} $_appVersion',
-                                  key: const ValueKey(
-                                    'customer-app-version-footer',
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(translatedContext)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(
-                                        color: FoodexBrand.muted,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_session.isAuthenticated)
-                    PositionedDirectional(
-                      end: 6,
-                      bottom: 0,
-                      child: SafeArea(
-                        top: false,
-                        child: SizedBox(
-                          height: 34,
-                          child: TextButton.icon(
-                            key: const ValueKey('customer-logout'),
-                            onPressed: () => _logout(actionApi),
-                            icon: const Icon(Icons.logout_rounded, size: 16),
-                            label: Text(
-                              translatedContext.tr('customer.logout'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
+          child: child ?? const SizedBox.shrink(),
         ),
       ),
       initialRoute: widget.initialRoute,
