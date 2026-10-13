@@ -8,7 +8,6 @@ import '../../../core/routing/customer_routes.dart';
 import '../../../shared/customer_ui_v3/customer_ui_v3.dart';
 import '../../customer_account/customer_account_data.dart';
 import '../catalog/retail_catalog_screens.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 class RetailHomeV3Screen extends StatefulWidget {
   const RetailHomeV3Screen({
