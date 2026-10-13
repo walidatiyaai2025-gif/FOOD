@@ -503,7 +503,10 @@ class CustomerProductCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: 11,
+                          height: 1.15,
+                        ),
                   ),
                   const SizedBox(height: CustomerUiSpacing.sm),
                   Row(
