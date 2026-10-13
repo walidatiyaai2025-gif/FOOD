@@ -48,6 +48,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
   List<Map<String, dynamic>>? _retailStoreFallback;
+  CustomerCommerceContext? _lastChosenCommerceContext;
 
   CustomerSession get _currentSession =>
       widget.sessionProvider?.call() ?? widget.session;
@@ -56,7 +57,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     Map<String, dynamic> data,
     CustomerCommerceContext? fallback,
   ) {
-    final remembered = widget.commerceContextProvider?.call();
+    final remembered =
+        _lastChosenCommerceContext ?? widget.commerceContextProvider?.call();
     if (remembered == null) return fallback;
     if (!remembered.isRetail) return remembered;
 
@@ -322,12 +324,14 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       source: CustomerCommerceSource.retailBanner,
       entryPlacementId: placementId > 0 ? placementId : null,
     );
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.retailHome(commerceContext),
     );
   }
 
   void _openWholesaleStore(CustomerCommerceContext commerceContext) {
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.wholesaleHome(commerceContext),
     );
@@ -365,6 +369,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       storeId: storeId,
       source: CustomerCommerceSource.marketplace,
     );
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       Uri(
         path: CustomerRoutePaths.b2bProducts,
@@ -383,6 +388,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
       storeId: storeId,
       source: CustomerCommerceSource.wholesaleEntry,
     );
+    setState(() => _lastChosenCommerceContext = commerceContext);
     Navigator.of(context).pushNamed(
       CustomerRouteLocations.wholesaleProduct(
         commerceContext,
