@@ -6483,6 +6483,105 @@ class _OrderInlineRow extends StatelessWidget {
       );
 }
 
+({IconData icon, Color foreground, Color background, Color line})
+    _orderTimelineVisual(String stage) {
+  switch (stage) {
+    case 'placed':
+    case 'pending':
+      return (
+        icon: Icons.receipt_long_outlined,
+        foreground: const Color(0xFF2563EB),
+        background: const Color(0xFFEFF6FF),
+        line: const Color(0xFFBFDBFE),
+      );
+    case 'confirmed':
+      return (
+        icon: Icons.verified_rounded,
+        foreground: const Color(0xFF0F766E),
+        background: const Color(0xFFECFDF5),
+        line: const Color(0xFFA7F3D0),
+      );
+    case 'accepted':
+      return (
+        icon: Icons.thumb_up_alt_rounded,
+        foreground: const Color(0xFF15803D),
+        background: const Color(0xFFF0FDF4),
+        line: const Color(0xFFBBF7D0),
+      );
+    case 'preparing':
+      return (
+        icon: Icons.inventory_2_outlined,
+        foreground: const Color(0xFFD97706),
+        background: const Color(0xFFFFF7ED),
+        line: const Color(0xFFFED7AA),
+      );
+    case 'ready':
+      return (
+        icon: Icons.task_alt_rounded,
+        foreground: const Color(0xFF7C3AED),
+        background: const Color(0xFFF5F3FF),
+        line: const Color(0xFFDDD6FE),
+      );
+    case 'van_assigned':
+    case 'assigned':
+      return (
+        icon: Icons.local_shipping_outlined,
+        foreground: const Color(0xFF4F46E5),
+        background: const Color(0xFFEEF2FF),
+        line: const Color(0xFFC7D2FE),
+      );
+    case 'awaiting_dispatch':
+      return (
+        icon: Icons.schedule_rounded,
+        foreground: const Color(0xFFB45309),
+        background: const Color(0xFFFFFBEB),
+        line: const Color(0xFFFDE68A),
+      );
+    case 'picked_up':
+      return (
+        icon: Icons.move_to_inbox_rounded,
+        foreground: const Color(0xFF0369A1),
+        background: const Color(0xFFF0F9FF),
+        line: const Color(0xFFBAE6FD),
+      );
+    case 'out_for_delivery':
+      return (
+        icon: Icons.delivery_dining_rounded,
+        foreground: const Color(0xFF0284C7),
+        background: const Color(0xFFE0F2FE),
+        line: const Color(0xFF7DD3FC),
+      );
+    case 'delivered':
+      return (
+        icon: Icons.home_rounded,
+        foreground: const Color(0xFF15803D),
+        background: const Color(0xFFDCFCE7),
+        line: const Color(0xFF86EFAC),
+      );
+    case 'failed':
+      return (
+        icon: Icons.error_rounded,
+        foreground: const Color(0xFFDC2626),
+        background: const Color(0xFFFEE2E2),
+        line: const Color(0xFFFCA5A5),
+      );
+    case 'cancelled':
+      return (
+        icon: Icons.cancel_rounded,
+        foreground: const Color(0xFFB91C1C),
+        background: const Color(0xFFFEF2F2),
+        line: const Color(0xFFFECACA),
+      );
+    default:
+      return (
+        icon: Icons.help_outline_rounded,
+        foreground: const Color(0xFF64748B),
+        background: const Color(0xFFF1F5F9),
+        line: const Color(0xFFCBD5E1),
+      );
+  }
+}
+
 class _B2bOrderTimelineEntry extends StatelessWidget {
   const _B2bOrderTimelineEntry({
     required this.stage,
@@ -6500,94 +6599,109 @@ class _B2bOrderTimelineEntry extends StatelessWidget {
   final bool isLast;
 
   @override
-  Widget build(BuildContext context) => IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 34,
-              child: Column(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF7EF),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF078A43),
-                        width: 2,
-                      ),
+  Widget build(BuildContext context) {
+    final visual = _orderTimelineVisual(stage);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 36,
+            child: Column(
+              children: [
+                Container(
+                  key: ValueKey('b2b-timeline-icon-$stage'),
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: visual.background,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: visual.foreground.withOpacity(.75),
+                      width: 1.6,
                     ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      size: 16,
-                      color: Color(0xFF078A43),
+                    boxShadow: [
+                      BoxShadow(
+                        color: visual.foreground.withOpacity(.12),
+                        blurRadius: 7,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    visual.icon,
+                    size: 16,
+                    color: visual.foreground,
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      color: visual.line,
                     ),
                   ),
-                  if (!isLast)
-                    Expanded(
-                      child: Container(
-                        width: 2,
-                        margin: const EdgeInsets.symmetric(vertical: 3),
-                        color: const Color(0xFFB9DCC8),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _orderStatusText(context, stage),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: visual.foreground,
+                    ),
+                  ),
+                  if (occurredAt.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _friendlyOrderDate(occurredAt),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7785),
                       ),
                     ),
+                  ],
+                  if (vanCode.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      vanCode,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7785),
+                      ),
+                    ),
+                  ],
+                  if (reasonCode.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _failureReasonText(context, reasonCode),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: stage == 'failed' || stage == 'cancelled'
+                            ? visual.foreground
+                            : const Color(0xFF6B7785),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _orderStatusText(context, stage),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF18352A),
-                      ),
-                    ),
-                    if (occurredAt.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        _friendlyOrderDate(occurredAt),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7785),
-                        ),
-                      ),
-                    ],
-                    if (vanCode.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        vanCode,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7785),
-                        ),
-                      ),
-                    ],
-                    if (reasonCode.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        _failureReasonText(context, reasonCode),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7785),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _OrderDetailCard extends StatelessWidget {
