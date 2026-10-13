@@ -6617,8 +6617,9 @@ class _InvoiceDetailRemoteStateState extends State<_InvoiceDetailRemoteState>
                   if (orderRoute != null)
                     FilledButton.tonalIcon(
                       key: const ValueKey('b2b-invoice-related-order'),
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(orderRoute),
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushNamed(orderRoute),
                       icon: const Icon(Icons.local_shipping_outlined),
                       label: Text(ar ? 'الطلب المرتبط' : 'Related order'),
                     ),
