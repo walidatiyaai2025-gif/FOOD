@@ -65,6 +65,7 @@ jobs:
               "Release/Updates/FOODEX-Update.json",
               "Release/Updates/FOODEX-Update.sha256.txt",
               "Release/Updates/FOODEX-Update.files.txt",
+              "docs/release/RELEASE_REGISTRY.json",
           }
           if not changed:
               raise SystemExit("release sync has no changes")
@@ -110,6 +111,14 @@ jobs:
           print(f"Validated FOODEX {version} Dashboard update: {digest}")
           PY
           unzip -tq Release/Updates/FOODEX-Update.zip
+
+      - name: Validate release registry publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          python3 scripts/foodex-branch-policy.py validate "$SYNC_BRANCH" --base main
+          GITHUB_BASE_REF=main GITHUB_HEAD_REF="$SYNC_BRANCH" node .github/scripts/release-registry.js validate
 
       - name: Match exact published GitHub Release assets
         shell: bash

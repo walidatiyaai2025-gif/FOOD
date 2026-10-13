@@ -442,11 +442,71 @@ jobs:
 
           mkdir -p Release/Updates
           cp -a "$stage/Updates/." Release/Updates/
+
+          UPDATE_SHA="$(sha256sum Release/Updates/FOODEX-Update.zip | awk '{print $1}')"
+          UPDATE_SHA="$UPDATE_SHA" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          version=os.environ["CURRENT_VERSION"]
+          update_sha=os.environ["UPDATE_SHA"]
+          source_commit=os.environ["SOURCE_COMMIT"]
+          build_number=os.environ["MOBILE_BUILD_NUMBER"]
+
+          registry_path=Path("docs/release/RELEASE_REGISTRY.json")
+          registry=json.loads(registry_path.read_text(encoding="utf-8"))
+          manifest=json.loads(Path("Release/Updates/FOODEX-Update.json").read_text(encoding="utf-8"))
+
+          if manifest.get("target_version") != version:
+              raise SystemExit(f"Dashboard target_version {manifest.get('target_version')} != {version}")
+          if manifest.get("sha256") != update_sha:
+              raise SystemExit("Dashboard package SHA does not match manifest")
+          previous=manifest.get("minimum_current_version")
+
+          existing=[entry for entry in registry["releases"] if entry.get("version") == version]
+          if existing:
+              if len(existing) != 1:
+                  raise SystemExit(f"Duplicate registry entries for {version}")
+              entry=existing[0]
+              if entry.get("state") != "published":
+                  raise SystemExit(f"Existing {version} registry entry is not published")
+              if entry.get("dashboard_update_sha256") != update_sha:
+                  raise SystemExit(f"Existing {version} registry SHA differs from published package")
+          else:
+              if registry.get("current_version") != previous:
+                  raise SystemExit(
+                      f"Registry current_version {registry.get('current_version')} "
+                      f"does not match update minimum_current_version {previous}"
+                  )
+              notes=f"docs/release/UPDATE_NOTES_{version}.md"
+              if not Path(notes).is_file():
+                  raise SystemExit(f"Missing release notes: {notes}")
+              registry["releases"].append({
+                  "version": version,
+                  "state": "published",
+                  "registration": "generated-release",
+                  "release_notes": notes,
+                  "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+                  "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+                  "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+                  "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+                  "dashboard_update_sha256": update_sha,
+                  "note": (
+                      f"FOODEX {version} synchronized release automatically registered by Release Factory "
+                      f"from source {source_commit}. Dashboard update is directly deployable over {previous}; "
+                      f"Customer/Driver/Van source identities are synchronized at {version}+{build_number}."
+                  ),
+              })
+          registry["current_version"]=version
+          registry_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+          PY
+
           git add -f \
             Release/Updates/FOODEX-Update.zip \
             Release/Updates/FOODEX-Update.json \
             Release/Updates/FOODEX-Update.sha256.txt \
-            Release/Updates/FOODEX-Update.files.txt
+            Release/Updates/FOODEX-Update.files.txt \
+            docs/release/RELEASE_REGISTRY.json
 
           if git diff --cached --quiet; then
             echo "main already contains the validated FOODEX $CURRENT_VERSION Dashboard update."
@@ -463,7 +523,7 @@ jobs:
               --base main \
               --head "$sync_branch" \
               --title "release: sync Dashboard update $CURRENT_VERSION" \
-              --body "Synchronize the exact Dashboard update artifacts already published in GitHub Release v$CURRENT_VERSION back to protected main."
+              --body "Register FOODEX $CURRENT_VERSION as published and synchronize the exact Dashboard update artifacts already published in GitHub Release v$CURRENT_VERSION back to protected main."
             pr_number="$(gh pr list --state open --base main --head "$sync_branch" --json number --jq '.[0].number')"
           fi
 

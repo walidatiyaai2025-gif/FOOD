@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.74",
+  "current_version": "1.0.75",
   "releases": [
     {
       "version": "1.0.40",
@@ -266,6 +266,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "5c8a4f63f133ff4cd0e8f333adf3676f61d31ab217417cc84b7fae3ba1d66c44",
       "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354–#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
+    },
+    {
+      "version": "1.0.75",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.75.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "ad19003d05461c537907e7f6b40cfe6e91157b003f658761e983f6b1da9a98e5",
+      "note": "FOODEX 1.0.75 synchronized release promoted from the authoritative 1.0.75 source lineage. Dashboard update is directly deployable over 1.0.74; Customer/Driver/Van source identities are synchronized at 1.0.75+75. Release Factory now registers the exact published Dashboard artifacts back to protected main."
     }
   ]
 }
