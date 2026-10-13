@@ -466,43 +466,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
-                      onBusinessDashboard: widget.session.isAuthenticated &&
-                              (widget.session
-                                      .allowsChannel(CustomerChannel.b2b) ||
-                                  widget.session.b2bRetailStoreId != null)
-                          ? () => Navigator.of(context).pushNamed(
-                                Uri(
-                                  path: CustomerRoutePaths.b2bDashboard,
-                                  queryParameters: <String, String>{
-                                    'channel': 'wholesale',
-                                    if (storeId > 0)
-                                      'store_id': storeId.toString(),
-                                    if (widget.session.b2bRetailStoreId != null)
-                                      'retail_store_id': widget
-                                          .session.b2bRetailStoreId
-                                          .toString(),
-                                  },
-                                ).toString(),
-                              )
-                          : null,
+                      searchController: search,
+                      searchHint: context.tr(
+                        'customer.products.search_name_sku_barcode',
+                      ),
+                      onSearchSubmitted: (value) =>
+                          setState(() => future = _load(value)),
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                      child: TextField(
-                        controller: search,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (value) =>
-                            setState(() => future = _load(value)),
-                        decoration: InputDecoration(
-                          hintText: context.tr(
-                            'customer.products.search_name_sku_barcode',
-                          ),
-                          prefixIcon: Icon(Icons.search_rounded),
-                          suffixIcon: Icon(Icons.qr_code_scanner_rounded),
-                        ),
-                      ),
                     ),
                     ...content,
                     const SizedBox(height: 22),
@@ -523,7 +494,9 @@ class _WholesaleHeader extends StatelessWidget {
     required this.title,
     required this.onCart,
     required this.palette,
-    this.onBusinessDashboard,
+    required this.searchController,
+    required this.searchHint,
+    required this.onSearchSubmitted,
     this.logoUrl,
     this.address,
   });
@@ -532,149 +505,106 @@ class _WholesaleHeader extends StatelessWidget {
   final String? logoUrl;
   final String? address;
   final VoidCallback onCart;
-  final VoidCallback? onBusinessDashboard;
   final FoodexPalette palette;
+  final TextEditingController searchController;
+  final String searchHint;
+  final ValueChanged<String> onSearchSubmitted;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         color: palette.primaryDark,
-        child: Row(
+        child: Column(
           children: [
-            if (onBusinessDashboard != null) ...[
-              _BusinessDashboardHeaderButton(
-                onTap: onBusinessDashboard!,
-                palette: palette,
-              ),
-              const SizedBox(width: 8),
-            ],
-            if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  logoUrl!,
-                  width: 44,
-                  height: 44,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const SizedBox(width: 44, height: 44),
-                ),
-              ),
-              const SizedBox(width: 9),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: palette.accent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'B2B',
-                  style: TextStyle(
-                    color: palette.primaryDark,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (address != null && address!.trim().isNotEmpty)
-                    Text(
-                      address!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(.78),
-                        fontSize: 10,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const _RoundHeaderIcon(icon: Icons.notifications_none_rounded),
-            const SizedBox(width: 8),
-            _RoundHeaderIcon(icon: Icons.shopping_cart_outlined, onTap: onCart),
-          ],
-        ),
-      );
-}
-
-class _BusinessDashboardHeaderButton extends StatelessWidget {
-  const _BusinessDashboardHeaderButton({
-    required this.onTap,
-    required this.palette,
-  });
-
-  final VoidCallback onTap;
-  final FoodexPalette palette;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          key: const ValueKey('wholesale-business-dashboard-button'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Ink(
-            width: 82,
-            height: 62,
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [
-                  Color.lerp(palette.accent, Colors.white, .18)!,
-                  Color.lerp(palette.accent, Colors.white, .42)!,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(.30)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(.10),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Row(
               children: [
-                Icon(Icons.grid_view_rounded,
-                    size: 23, color: palette.primaryDark),
-                const SizedBox(height: 2),
-                Text(
-                  context.tr('b2b.dashboard.title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: palette.primaryDark,
-                    fontSize: 10,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
+                if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      logoUrl!,
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const SizedBox(width: 36, height: 36),
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.3,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (address != null && address!.trim().isNotEmpty)
+                        Text(
+                          address!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(.78),
+                            fontSize: 9,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const _RoundHeaderIcon(
+                  icon: Icons.notifications_none_rounded,
+                ),
+                const SizedBox(width: 6),
+                _RoundHeaderIcon(
+                  icon: Icons.shopping_cart_outlined,
+                  onTap: onCart,
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            TextField(
+              key: const ValueKey('wholesale-home-search'),
+              controller: searchController,
+              textInputAction: TextInputAction.search,
+              onSubmitted: onSearchSubmitted,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                hintText: searchHint,
+                prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                suffixIcon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: BorderSide(
+                    color: palette.accent,
+                    width: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
 }
@@ -693,9 +623,13 @@ class _RoundHeaderIcon extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, color: Colors.white),
+            width: 32,
+            height: 32,
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 12,
+            ),
           ),
         ),
       );
@@ -729,7 +663,7 @@ class _WholesaleBannerCarousel extends StatelessWidget {
 
     return SizedBox(
       key: const ValueKey('wholesale-home-banner-carousel'),
-      height: 182,
+      height: 210,
       child: PageView.builder(
         itemCount: banners.length,
         itemBuilder: (context, index) {
@@ -769,7 +703,7 @@ class _WholesaleHero extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
         child: Container(
-          height: 170,
+          height: 198,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
