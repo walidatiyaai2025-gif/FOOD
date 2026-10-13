@@ -655,7 +655,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.cart.clear': 'تفريغ السلة',
     'b2b.cart.remove': 'حذف',
     'b2b.cart.unit_price': 'سعر الوحدة',
-    'b2b.cart.line_total': 'إجمالي السطر',
+    'b2b.cart.line_total': 'الإجمالي',
     'b2b.cart.available': 'المتاح',
     'b2b.cart.unavailable': 'غير متاح حاليًا',
     'b2b.cart.subtotal': 'الإجمالي الفرعي',
