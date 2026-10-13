@@ -77,14 +77,9 @@ class CustomerPersistentFooterDock extends StatelessWidget {
     if (media.viewInsets.bottom >= 24) return const SizedBox.shrink();
 
     return ColoredBox(
-      color: CustomerUiColors.mint,
+      color: CustomerUiColors.white,
       child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(
-          CustomerUiSpacing.sm,
-          CustomerUiSpacing.xs,
-          CustomerUiSpacing.sm,
-          CustomerUiSpacing.xs + media.viewPadding.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: media.viewPadding.bottom),
         child: CustomerPersistentFooter(
           commerceContext: commerceContext,
           activeDestination: activeDestination,
@@ -188,13 +183,13 @@ class CustomerPersistentFooter extends StatelessWidget {
       color: CustomerUiColors.white,
       elevation: CustomerUiElevation.floating,
       shadowColor: CustomerUiColors.shadow,
-      borderRadius: BorderRadius.circular(32),
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.hardEdge,
       child: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: CustomerUiColors.white,
-          border: Border.all(color: CustomerUiColors.border),
-          borderRadius: BorderRadius.circular(32),
+          border: Border(
+            top: BorderSide(color: CustomerUiColors.border),
+          ),
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 82),
