@@ -992,14 +992,12 @@ class _WholesaleProductGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: displayRows.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridMode ? 3 : 1,
-        crossAxisSpacing: gridMode ? 8 : 0,
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
         mainAxisSpacing: 12,
         mainAxisExtent: showCommerceActions
-            ? (gridMode ? (width < 360 ? 356 : 370) : (width < 360 ? 350 : 370))
-            : (gridMode
-                ? (width < 360 ? 250 : 264)
-                : (width < 360 ? 260 : 280)),
+            ? (width < 360 ? 270 : 282)
+            : (width < 360 ? 238 : 250),
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
         row: displayRows[index],
@@ -1089,16 +1087,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final row = widget.row;
     final palette = widget.palette;
     final id = intValue(row['id']);
-    final minimum = doubleValue(
-      row['minimum_order_quantity'] ?? row['minimum_quantity'],
-      1,
-    );
-    final increment = doubleValue(row['ordering_increment'], 1);
-    final packSize = doubleValue(row['pack_size'], 1);
-    final packLabel = row['pack_label']?.toString().trim() ?? '';
     final brand = row['brand_name']?.toString().trim() ?? '';
     final category = row['category_name']?.toString().trim() ?? '';
-    final availableQuantity = row['available_quantity'];
     final currency = row['currency']?.toString().trim().isNotEmpty == true
         ? row['currency'].toString().trim().toUpperCase()
         : widget.defaultCurrency;
@@ -1274,93 +1264,35 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                   fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 5),
-              Row(
-                children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 14,
-                    color: palette.primaryDark,
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: Text(
-                      context.tr('b2b.minimum_order') +
-                          ': ' +
-                          compactNumber(minimum),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: palette.muted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
+              if (widget.showCommerceActions) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: SizedBox.square(
+                    dimension: 40,
+                    child: Semantics(
+                      button: true,
+                      label: context.tr('customer.action.add_cart'),
+                      child: FilledButton(
+                        key: ValueKey('wholesale-product-add-$id'),
+                        onPressed:
+                            isAvailable && id > 0 && !busy ? _addToCart : null,
+                        style: FilledButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size.square(40),
+                          shape: const CircleBorder(),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        child: busy
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add_rounded, size: 24),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              if (widget.showCommerceActions) ...[
-                const SizedBox(height: 4),
-                Text(
-                  (packLabel.isNotEmpty
-                          ? packLabel
-                          : context.tr('b2b.catalog.pack') +
-                              ' ' +
-                              compactNumber(packSize)) +
-                      ' · ' +
-                      context.tr('b2b.catalog.step') +
-                      ' ' +
-                      compactNumber(increment),
-                  key: ValueKey('wholesale-product-pack-$id'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: palette.muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isAvailable
-                      ? (availableQuantity == null
-                          ? context.tr('b2b.product.inventory_unbounded')
-                          : context.tr('b2b.product.inventory') +
-                              ': ' +
-                              compactNumber(
-                                doubleValue(availableQuantity, 0),
-                              ))
-                      : context.tr('customer.product.out_of_stock'),
-                  key: ValueKey('wholesale-product-availability-$id'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isAvailable ? palette.primaryDark : palette.muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  key: ValueKey('wholesale-product-add-$id'),
-                  onPressed: isAvailable && id > 0 && !busy ? _addToCart : null,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(40),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  icon: busy
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                  label: Text(
-                    isAvailable
-                        ? context.tr('customer.action.add_cart')
-                        : context.tr('customer.product.out_of_stock'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -1972,18 +1904,6 @@ class _WholesaleCatalogDesignScreenState
                               ),
                               onPressed: () => setState(() => gridMode = true),
                               icon: const Icon(Icons.grid_view_outlined),
-                            ),
-                            IconButton(
-                              key:
-                                  const ValueKey('wholesale-catalog-list-view'),
-                              tooltip: context.tr('b2b.catalog.list_view'),
-                              isSelected: !gridMode,
-                              selectedIcon: Icon(
-                                Icons.view_list_rounded,
-                                color: palette.primary,
-                              ),
-                              onPressed: () => setState(() => gridMode = false),
-                              icon: const Icon(Icons.view_list_outlined),
                             ),
                           ],
                         ),
