@@ -18,12 +18,14 @@ class CustomerAddressBookScreen extends StatefulWidget {
   const CustomerAddressBookScreen({
     required this.api,
     this.locationService = const GeolocatorCustomerLocationService(),
+    this.reverseGeocoder = const NominatimCustomerReverseGeocoder(),
     this.mapPinPicker = showCustomerMapPinSelector,
     super.key,
   });
 
   final B2cAccountApi api;
   final CustomerLocationService locationService;
+  final CustomerReverseGeocoder reverseGeocoder;
   final CustomerMapPinPicker mapPinPicker;
 
   @override
@@ -149,8 +151,6 @@ class _CustomerAddressBookScreenState
       'governorate': TextEditingController(
         text: existing?['governorate']?.toString() ?? '',
       ),
-      'block': TextEditingController(text: existing?['block']?.toString() ?? ''),
-      'avenue': TextEditingController(text: existing?['avenue']?.toString() ?? ''),
       'building': TextEditingController(
         text: existing?['building']?.toString() ?? '',
       ),
@@ -189,6 +189,43 @@ class _CustomerAddressBookScreenState
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
+          Future<void> resolveAddress(double lat, double lon) async {
+            try {
+              final resolved = await widget.reverseGeocoder.reverse(
+                latitude: lat,
+                longitude: lon,
+                languageCode:
+                    Localizations.localeOf(dialogContext).languageCode,
+              );
+              if (resolved == null) {
+                setDialogState(() {
+                  dialogError =
+                      'customer.addresses.reverse_geocode_failed';
+                });
+                return;
+              }
+
+              void fill(String key, String? value) {
+                final normalized = value?.trim();
+                if (normalized == null || normalized.isEmpty) return;
+                controllers[key]!.text = normalized;
+              }
+
+              fill('line1', resolved.line1);
+              fill('area', resolved.area);
+              fill('governorate', resolved.governorate);
+              fill('city', resolved.city);
+              fill('country', resolved.country);
+              fill('country_code', resolved.countryCode);
+              fill('building', resolved.building);
+              setDialogState(() => dialogError = null);
+            } catch (_) {
+              setDialogState(() {
+                dialogError = 'customer.addresses.reverse_geocode_failed';
+              });
+            }
+          }
+
           Future<void> useCurrentLocation() async {
             setDialogState(() {
               locating = true;
@@ -202,6 +239,7 @@ class _CustomerAddressBookScreenState
                 accuracy = point.accuracyMeters;
                 source = 'current_location';
               });
+              await resolveAddress(point.latitude, point.longitude);
             } catch (error) {
               setDialogState(() {
                 dialogError = _locationErrorKey(error);
@@ -226,6 +264,7 @@ class _CustomerAddressBookScreenState
                 source = 'map_pin';
                 dialogError = null;
               });
+              await resolveAddress(selected.latitude, selected.longitude);
             } catch (error) {
               setDialogState(() {
                 dialogError = _locationErrorKey(error);
@@ -253,8 +292,6 @@ class _CustomerAddressBookScreenState
               'line1': line1,
               'area': controllers['area']!.text.trim(),
               'governorate': controllers['governorate']!.text.trim(),
-              'block': controllers['block']!.text.trim(),
-              'avenue': controllers['avenue']!.text.trim(),
               'building': controllers['building']!.text.trim(),
               'floor': controllers['floor']!.text.trim(),
               'apartment': controllers['apartment']!.text.trim(),
@@ -284,6 +321,66 @@ class _CustomerAddressBookScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Row(
+                      key: const ValueKey('customer-address-location-actions'),
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const ValueKey(
+                              'customer-address-current-location',
+                            ),
+                            onPressed: locating ? null : useCurrentLocation,
+                            icon: locating
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.my_location_rounded),
+                            label: Text(
+                              context.tr(
+                                'customer.addresses.share_location',
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('customer-address-map'),
+                            onPressed: chooseMap,
+                            icon: const Icon(Icons.map_outlined),
+                            label: Text(
+                              context.tr('customer.addresses.choose_map'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (latitude != null && longitude != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        latitude!.toStringAsFixed(7) +
+                            ', ' +
+                            longitude!.toStringAsFixed(7),
+                        key: const ValueKey('customer-address-coordinates'),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        context.tr(dialogError!),
+                        key: const ValueKey('customer-address-dialog-error'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    const Divider(height: 1),
+                    const SizedBox(height: 10),
                     _field(
                       controller: controllers['label']!,
                       label: context.tr('customer.addresses.label'),
@@ -303,27 +400,25 @@ class _CustomerAddressBookScreenState
                       label: context.tr('customer.addresses.line1'),
                       key: const ValueKey('customer-address-line1'),
                     ),
-                    _field(
-                      controller: controllers['area']!,
-                      label: context.tr('customer.addresses.area'),
-                    ),
-                    _field(
-                      controller: controllers['governorate']!,
-                      label: context.tr('customer.addresses.governorate'),
-                    ),
                     Row(
+                      key: const ValueKey('customer-address-region-row'),
                       children: [
                         Expanded(
                           child: _field(
-                            controller: controllers['block']!,
-                            label: context.tr('customer.addresses.block'),
+                            controller: controllers['governorate']!,
+                            label:
+                                context.tr('customer.addresses.governorate'),
+                            key: const ValueKey(
+                              'customer-address-governorate',
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _field(
-                            controller: controllers['avenue']!,
-                            label: context.tr('customer.addresses.avenue'),
+                            controller: controllers['area']!,
+                            label: context.tr('customer.addresses.area'),
+                            key: const ValueKey('customer-address-area'),
                           ),
                         ),
                       ],
@@ -385,62 +480,7 @@ class _CustomerAddressBookScreenState
                       label: context.tr('customer.addresses.notes'),
                       maxLines: 2,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            key: const ValueKey(
-                              'customer-address-current-location',
-                            ),
-                            onPressed: locating ? null : useCurrentLocation,
-                            icon: locating
-                                ? const SizedBox.square(
-                                    dimension: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.my_location_rounded),
-                            label: Text(
-                              context.tr(
-                                'customer.addresses.share_location',
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            key: const ValueKey('customer-address-map'),
-                            onPressed: chooseMap,
-                            icon: const Icon(Icons.map_outlined),
-                            label: Text(
-                              context.tr('customer.addresses.choose_map'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (latitude != null && longitude != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        latitude!.toStringAsFixed(7) +
-                            ', ' +
-                            longitude!.toStringAsFixed(7),
-                        key: const ValueKey('customer-address-coordinates'),
-                      ),
-                    ],
-                    if (dialogError != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        context.tr(dialogError!),
-                        key: const ValueKey('customer-address-dialog-error'),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ],
+
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       value: makeDefault,
