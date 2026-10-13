@@ -4319,8 +4319,6 @@ class _WholesaleCheckoutDesignScreenState
                       ],
                     ),
                     const SizedBox(height: 14),
-                    _CheckoutFinanceCard(data: data),
-                    const SizedBox(height: 14),
                     Text(
                       context.tr('b2b.checkout.address'),
                       style: const TextStyle(fontWeight: FontWeight.w800),
@@ -4473,71 +4471,6 @@ class _WholesaleCheckoutDesignScreenState
           ),
         ),
       );
-}
-
-class _CheckoutFinanceCard extends StatelessWidget {
-  const _CheckoutFinanceCard({required this.data});
-
-  final Map<String, dynamic> data;
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = data['currency']?.toString() ?? 'EGP';
-    final rows = <(String, Object?)>[
-      (
-        context.tr('b2b.checkout.customer_credit'),
-        data['customer_credit_balance'],
-      ),
-      (context.tr('b2b.checkout.amount_owed'), data['outstanding_receivable']),
-      (context.tr('b2b.checkout.credit_limit'), data['credit_limit']),
-      (
-        context.tr('b2b.checkout.available_credit'),
-        data['available_credit_line'],
-      ),
-      (context.tr('b2b.checkout.purchasing_power'), data['purchasing_power']),
-    ];
-
-    return Container(
-      key: const ValueKey('b2b-checkout-finance'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F8F4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr('b2b.checkout.finance'),
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF006736),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...rows.map(
-            (row) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(row.$1, style: const TextStyle(fontSize: 11)),
-                  ),
-                  Text(
-                    money(row.$2 ?? 0, currency: currency),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _CheckoutReviewCard extends StatelessWidget {
@@ -5566,13 +5499,6 @@ class _WholesaleOrderDetailsDesignScreenState
                                 _friendlyOrderDate(
                                     order['created_at']?.toString()),
                               ),
-                              (context.tr('b2b.order.store'), storeName),
-                              (
-                                context.tr('b2b.order.channel'),
-                                order['channel']?.toString() == 'b2b'
-                                    ? context.tr('b2b.order.channel_b2b')
-                                    : (order['channel']?.toString() ?? '-'),
-                              ),
                               (
                                 context.tr('b2b.order.total'),
                                 money(total, currency: currency),
@@ -5581,14 +5507,6 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.payment_method'),
                                 _paymentMethodText(context, paymentMethod),
                               ),
-                              if ((order['requested_delivery_date']
-                                          ?.toString() ??
-                                      '')
-                                  .isNotEmpty)
-                                (
-                                  context.tr('b2b.order.requested_delivery'),
-                                  order['requested_delivery_date'].toString(),
-                                ),
                             ],
                           ),
                           if (address != null) ...[
@@ -5637,32 +5555,18 @@ class _WholesaleOrderDetailsDesignScreenState
                                 final reasonCode =
                                     event['reason_code']?.toString() ?? '';
 
-                                return ListTile(
+                                return _B2bOrderTimelineEntry(
                                   key: ValueKey(
                                     'b2b-timeline-' +
                                         index.toString() +
                                         '-' +
                                         stage,
                                   ),
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: const Icon(Icons.timeline_rounded),
-                                  title: Text(_orderStatusText(context, stage)),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (occurredAt.isNotEmpty)
-                                        Text(_friendlyOrderDate(occurredAt)),
-                                      if (vanCode.isNotEmpty) Text(vanCode),
-                                      if (reasonCode.isNotEmpty)
-                                        Text(
-                                          _failureReasonText(
-                                            context,
-                                            reasonCode,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                  stage: stage,
+                                  occurredAt: occurredAt,
+                                  vanCode: vanCode,
+                                  reasonCode: reasonCode,
+                                  isLast: index == timeline.length - 1,
                                 );
                               }).toList(growable: false),
                             ),
@@ -6161,6 +6065,113 @@ class _OrderInlineRow extends StatelessWidget {
             Expanded(child: Text(label)),
             const SizedBox(width: 8),
             Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+}
+
+class _B2bOrderTimelineEntry extends StatelessWidget {
+  const _B2bOrderTimelineEntry({
+    required this.stage,
+    required this.occurredAt,
+    required this.vanCode,
+    required this.reasonCode,
+    required this.isLast,
+    super.key,
+  });
+
+  final String stage;
+  final String occurredAt;
+  final String vanCode;
+  final String reasonCode;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 34,
+              child: Column(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7EF),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF078A43),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: Color(0xFF078A43),
+                    ),
+                  ),
+                  if (!isLast)
+                    Expanded(
+                      child: Container(
+                        width: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        color: const Color(0xFFB9DCC8),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _orderStatusText(context, stage),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF18352A),
+                      ),
+                    ),
+                    if (occurredAt.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _friendlyOrderDate(occurredAt),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6B7785),
+                        ),
+                      ),
+                    ],
+                    if (vanCode.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        vanCode,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6B7785),
+                        ),
+                      ),
+                    ],
+                    if (reasonCode.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _failureReasonText(context, reasonCode),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6B7785),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       );
