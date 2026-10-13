@@ -137,7 +137,9 @@ void main() {
       findsOneWidget,
     );
     expect(
-        find.byKey(const ValueKey('c13-business-login-title')), findsNothing);
+      find.byKey(const ValueKey('c13-business-login-title')),
+      findsOneWidget,
+    );
     expect(find.text('تسجيل دخول العميل'), findsWidgets);
     expect(find.text('دخول عميل الأعمال'), findsNothing);
     expect(find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
