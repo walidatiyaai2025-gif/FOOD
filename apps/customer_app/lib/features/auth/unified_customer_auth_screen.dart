@@ -1156,12 +1156,10 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
         const Locale('ar');
     final textDirection =
         locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
-    final isC13BusinessEntry =
-        widget.nextRoute == CustomerRoutePaths.b2bDashboard &&
-            widget.commerceContext == null &&
-            !widget.registerInitially;
-
-    if (isC13BusinessEntry) {
+    // FOODEX has one customer sign-in surface. Registration keeps its
+    // dedicated form, while every sign-in route uses the fingerprint-capable
+    // login experience and resolves the post-auth destination afterwards.
+    if (!_register) {
       return _buildC13BusinessEntry(
         context,
         locale: locale,
