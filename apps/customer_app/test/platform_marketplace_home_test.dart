@@ -549,10 +549,9 @@ void main() {
   });
 
 
-  testWidgets('marketplace category chip filters wholesale API query', (tester) async {
-    final requests = <Uri>[];
+  testWidgets('marketplace category chip opens scoped Wholesale catalog',
+      (tester) async {
     final client = MockClient((request) async {
-      requests.add(request.url);
       return http.Response(
         jsonEncode({
           'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
@@ -577,6 +576,15 @@ void main() {
             onPlatformRegistered: (_) {},
             client: client,
           ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(
+              body: Text(
+                settings.name ?? '',
+                key: const ValueKey('route-name'),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -590,11 +598,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('marketplace-category-9')));
     await tester.pumpAndSettle();
 
-    expect(
-      requests.where((uri) => uri.path == '/api/v1/platform/storefront').last
-          .queryParameters['category_id'],
-      '9',
+    final route = Uri.parse(
+      tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
     );
+    expect(route.path, CustomerRoutePaths.b2bProducts);
+    expect(route.queryParameters['store_id'], '70');
+    expect(route.queryParameters['channel'], 'wholesale');
+    expect(route.queryParameters['source'], 'marketplace');
+    expect(route.queryParameters['category_id'], '9');
   });
 
 
