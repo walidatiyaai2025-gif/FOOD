@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ProductionLaunchPreflight;
+use App\Services\ProductionSnapshotService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ final class ProductionLaunchController extends Controller
             'report' => $preflight->runtimeReport(),
             'release' => $preflight->releaseMetadata(),
             'actor' => $actor,
+            'snapshot' => app(ProductionSnapshotService::class)->status(),
         ]);
     }
 
@@ -58,6 +60,28 @@ final class ProductionLaunchController extends Controller
 
         return redirect('/admin/settings/production-launch')
             ->with('status', __('production_launch.approved'));
+    }
+
+
+    public function snapshot(
+        Request $request,
+        ProductionLaunchPreflight $preflight,
+        ProductionSnapshotService $snapshots,
+    ): RedirectResponse {
+        $actor = $this->authorizeOwner($request);
+        $snapshots->createVerified($actor, $request, $preflight->releaseMetadata());
+
+        return redirect('/admin/settings/production-launch')
+            ->with('status', 'Verified pre-launch snapshot created.');
+    }
+
+    public function restore(Request $request, ProductionSnapshotService $snapshots): RedirectResponse
+    {
+        $actor = $this->authorizeOwner($request);
+        $snapshots->restore($actor, $request);
+
+        return redirect('/admin/settings/production-launch')
+            ->with('status', 'Legacy production dataset restored from the verified snapshot.');
     }
 
     private function authorizeOwner(Request $request): User
