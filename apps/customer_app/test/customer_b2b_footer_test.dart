@@ -6,7 +6,7 @@ import 'package:foodex_customer_app/shared/customer_persistent_footer.dart';
 
 void main() {
   testWidgets(
-    'Wholesale footer has four destinations and Shopping opens Wholesale home',
+    'Wholesale footer keeps Home visible and Shopping opens Wholesale home',
     (tester) async {
       const commerceContext = CustomerCommerceContext(
         channel: CustomerCommerceChannel.wholesale,
@@ -43,6 +43,7 @@ void main() {
       );
 
       for (final destination in [
+        'home',
         'products',
         'orders',
         'invoices',
@@ -53,7 +54,7 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(find.byKey(const ValueKey('customer-footer-home')), findsNothing);
+      expect(find.byKey(const ValueKey('customer-footer-home')), findsOneWidget);
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
@@ -75,7 +76,62 @@ void main() {
   );
 
   testWidgets(
-    'unscoped Wholesale footer still renders canonical four-item navigation',
+    'Marketplace Shopping footer Home returns to platform Home',
+    (tester) async {
+      const commerceContext = CustomerCommerceContext(
+        channel: CustomerCommerceChannel.wholesale,
+        storeId: 70,
+        source: CustomerCommerceSource.marketplace,
+      );
+
+      await tester.pumpWidget(
+        AppTranslations(
+          locale: const Locale('en'),
+          overrides: const {},
+          child: MaterialApp(
+            home: const Scaffold(
+              body: Column(
+                children: [
+                  Spacer(),
+                  CustomerPersistentFooter(
+                    commerceContext: commerceContext,
+                    activeDestination: CustomerFooterDestination.products,
+                  ),
+                ],
+              ),
+            ),
+            onGenerateRoute: (settings) => MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => Scaffold(
+                body: Text(
+                  settings.name ?? '',
+                  key: const ValueKey('route-name'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('customer-footer-home')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('customer-footer-home')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
+        CustomerRoutePaths.marketplace,
+      );
+    },
+  );
+
+  testWidgets(
+    'unscoped Wholesale footer still renders canonical navigation with Home',
     (tester) async {
       await tester.pumpWidget(
         AppTranslations(
@@ -107,6 +163,7 @@ void main() {
       );
 
       for (final destination in [
+        'home',
         'products',
         'orders',
         'invoices',
@@ -119,7 +176,7 @@ void main() {
       }
       expect(
         find.byKey(const ValueKey('customer-footer-home')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
 
