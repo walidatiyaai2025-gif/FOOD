@@ -1272,7 +1272,8 @@ class _RetailProductGrid extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
+                      height: 1.15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
