@@ -559,7 +559,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.debit': 'مدين',
     'b2b.statement.credit': 'دائن',
     'b2b.statement.running_balance': 'الرصيد الجاري',
-    'b2b.statement.export_exact': 'تصدير نفس النتيجة المفلترة',
+    'b2b.statement.export_exact': 'تحميل كشف الحساب',
     'b2b.statement.export_failed': 'تعذر تجهيز ملف كشف الحساب.',
     'b2b.statement.stale': 'تعذر التحديث. يتم عرض آخر كشف حساب مؤكد.',
     'b2b.statement.page': 'صفحة',
@@ -1288,7 +1288,7 @@ class AppTranslations extends InheritedWidget {
     'b2b.statement.debit': 'Debit',
     'b2b.statement.credit': 'Credit',
     'b2b.statement.running_balance': 'Running balance',
-    'b2b.statement.export_exact': 'Export this exact filtered result',
+    'b2b.statement.export_exact': 'Download account statement',
     'b2b.statement.export_failed':
         'Could not prepare the account statement file.',
     'b2b.statement.stale':
