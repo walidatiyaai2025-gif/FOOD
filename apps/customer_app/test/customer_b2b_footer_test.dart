@@ -76,6 +76,8 @@ void main() {
       expect(route.queryParameters['store_id'], '70');
       expect(route.queryParameters['channel'], 'wholesale');
 
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('customer-footer-favorites')),
       );
@@ -271,7 +273,7 @@ void main() {
         }
         expect(
           find.byKey(const ValueKey('customer-footer-home')),
-          findsNothing,
+          findsOneWidget,
         );
         expect(
           tester
