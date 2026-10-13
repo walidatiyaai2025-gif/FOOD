@@ -41,6 +41,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Enforce FOODEX 1.0.77 production hold
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$version" == "1.0.77" && -f docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md ]]; then
+            echo "::error::FOODEX 1.0.77 production publication is held until #1380 certification removes FOODEX_1_0_77_PRODUCTION_HOLD.md."
+            exit 1
+          fi
+
       - name: Validate synchronized release readiness
         run: bash scripts/release-readiness.sh
       - id: plan
