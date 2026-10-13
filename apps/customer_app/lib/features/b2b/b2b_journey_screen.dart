@@ -189,10 +189,14 @@ class B2bJourneyScreen extends StatelessWidget {
             icon: const BackButtonIcon(),
           ),
           title: Text(
-            context.tr('b2b.app.title'),
+            context.tr('b2b.top_products.title'),
+            key: const ValueKey('b2b-top-products-header-title'),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: CustomerUiColors.white,
-              fontSize: 18,
+              fontSize: 12.6,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -201,32 +205,10 @@ class B2bJourneyScreen extends StatelessWidget {
           top: false,
           child: SingleChildScrollView(
             key: const ValueKey('b2b-top-products-scroll'),
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  content.$1,
-                  key: const ValueKey('customer-route-label'),
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: CustomerUiColors.ink,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  content.$2,
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: CustomerUiColors.muted,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-                const SizedBox(height: 16),
                 _TopProductsRemoteState(api: api!, endpoint: _endpoint()!),
               ],
             ),
@@ -362,6 +344,9 @@ class B2bJourneyScreen extends StatelessWidget {
           dashboardRoute: _scopedB2bRoute(CustomerRoutePaths.b2bDashboard),
           purchasesRoute: _scopedB2bRoute(
             CustomerRoutePaths.b2bPurchaseReports,
+          ),
+          topProductsRoute: _scopedB2bRoute(
+            CustomerRoutePaths.b2bTopProducts,
           ),
           invoicesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bInvoices),
           statementRoute: _scopedB2bRoute(
@@ -4321,6 +4306,7 @@ class _B2bMorePage extends StatefulWidget {
     required this.financeEndpoint,
     required this.dashboardRoute,
     required this.purchasesRoute,
+    required this.topProductsRoute,
     required this.invoicesRoute,
     required this.statementRoute,
     required this.ordersRoute,
@@ -4339,6 +4325,7 @@ class _B2bMorePage extends StatefulWidget {
   final String financeEndpoint;
   final String dashboardRoute;
   final String purchasesRoute;
+  final String topProductsRoute;
   final String invoicesRoute;
   final String statementRoute;
   final String ordersRoute;
@@ -4533,6 +4520,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'), () => _open(widget.invoicesRoute), tone: 3),
       _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'), () => _open(widget.statementRoute), tone: 4),
       _MoreItem(Icons.bar_chart_rounded, context.tr('b2b.profile.purchases_report'), () => _open(widget.purchasesRoute), tone: 2),
+      _MoreItem(Icons.local_fire_department_rounded, context.tr('b2b.top_products.title'), () => _open(widget.topProductsRoute), tone: 3),
       _MoreItem(Icons.notifications_rounded, context.tr('b2b.profile.notifications'), () => _open(widget.notificationsRoute), tone: 1),
       _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'), () => _open(widget.addressesRoute), tone: 0),
       _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'), _showSettings, tone: 4),
