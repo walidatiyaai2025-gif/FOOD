@@ -1295,7 +1295,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('سلة الجملة'), findsNothing);
+    expect(find.text('سلة الجملة'), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
     expect(find.text('إتمام الطلب'), findsOneWidget);
   });
 
@@ -1484,7 +1485,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Wholesale cart'), findsNothing);
+      expect(find.text('Wholesale cart'), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-header')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-back')), findsOneWidget);
       expect(find.text('Bulk Water'), findsOneWidget);
       expect(find.text('W-101'), findsNothing);
       expect(find.text('Case 12'), findsOneWidget);
