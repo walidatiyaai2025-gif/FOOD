@@ -303,6 +303,60 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
     }
 
+
+    public function verifyDatabaseBackup(string $backupReference): void
+    {
+        $metadataPath = rtrim($backupReference, '/\\\\').'/database.json';
+        try {
+            $metadata = json_decode((string) file_get_contents($metadataPath), true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException('Database backup verification metadata is invalid.');
+        }
+
+        if (! is_array($metadata) || ! is_string($metadata['driver'] ?? null) || ! is_string($metadata['snapshot'] ?? null)) {
+            throw new RuntimeException('Database backup verification metadata is invalid.');
+        }
+
+        $snapshot = $metadata['snapshot'];
+        if (! is_file($snapshot) || filesize($snapshot) === 0) {
+            throw new RuntimeException('Database backup snapshot is missing or empty.');
+        }
+
+        if ($metadata['driver'] === 'sqlite') {
+            try {
+                $pdo = new \\PDO('sqlite:'.$snapshot, null, null, [\\PDO::ATTR_ERRMODE => \\PDO::ERRMODE_EXCEPTION]);
+                $pdo->query('PRAGMA schema_version')->fetchColumn();
+                $result = $pdo->query('PRAGMA integrity_check')->fetchColumn();
+            } catch (\\Throwable $exception) {
+                throw new RuntimeException('SQLite backup verification failed.', 0, $exception);
+            }
+            if ($result !== 'ok') {
+                throw new RuntimeException('SQLite backup integrity verification failed.');
+            }
+            return;
+        }
+
+        if ($metadata['driver'] === 'mysql') {
+            $this->runProcess([(string) config('foodex.mysql_client_binary', 'mysql'), '--version']);
+            $handle = fopen($snapshot, 'rb');
+            $prefix = $handle === false ? false : fread($handle, 4096);
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            if (! is_string($prefix) || $prefix === '' || (! str_contains($prefix, 'MySQL dump') && ! str_contains($prefix, 'MariaDB dump'))) {
+                throw new RuntimeException('MySQL/MariaDB backup does not have a recognized restorable dump header.');
+            }
+            return;
+        }
+
+        if ($metadata['driver'] === 'pgsql') {
+            $this->runProcess([(string) config('foodex.pg_restore_binary', 'pg_restore'), '--list', $snapshot]);
+            return;
+        }
+
+        throw new RuntimeException('Database backup verification driver is unsupported.');
+    }
+
     public function rollbackDatabase(string $backupReference): void
     {
         $metadataPath = $backupReference.'/database.json';

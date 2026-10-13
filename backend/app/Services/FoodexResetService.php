@@ -41,6 +41,7 @@ class FoodexResetService
         private readonly LaunchCatalog $catalog,
         private readonly AuditLogger $audit,
         private readonly UpdateRuntime $runtime,
+        private readonly ProductionDatasetSnapshot $snapshot,
     ) {}
 
     public function isProduction(): bool
@@ -93,20 +94,21 @@ class FoodexResetService
                 throw ValidationException::withMessages(['reset' => __('foodex_reset.stale')]);
             }
 
-            // Production backups are made BEFORE the first write and must actually succeed.
-            $backup = $this->isProduction() ? $this->runtime->backupDatabase(true) : null;
-            if ($this->isProduction() && $backup === null) {
-                throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
+            // Production launch mutations are forbidden until the exact legacy dataset has a
+            // verified, durable snapshot. Creation is idempotent and happens before first write.
+            if ($this->isProduction()) {
+                $this->snapshot->create($actor, $request);
+                $this->snapshot->assertReady();
             }
 
-            return DB::transaction(function () use ($current, $actor, $request, $backup): array {
+            $result = DB::transaction(function () use ($current, $actor, $request): array {
                 foreach ($this->deletionOrder(array_keys($current['counts'])) as $table) {
                     DB::table($table)->delete();
                 }
                 $this->catalog->reseed();
                 $this->audit->record('system.launch_reset', $actor, null, $current['counts'], [
                     'catalog_fingerprint' => $current['catalog_fingerprint'],
-                    'backup_created' => $backup !== null,
+                    'backup_created' => $this->isProduction(),
                     'operation_id' => $request->session()->get('launch_reset_operation'),
                 ], $request);
 
@@ -122,6 +124,12 @@ class FoodexResetService
 
                 return ['removed' => $current['total']];
             });
+
+            if ($this->isProduction()) {
+                $this->snapshot->markLaunchActive($actor, $request);
+            }
+
+            return $result;
         });
     }
 
