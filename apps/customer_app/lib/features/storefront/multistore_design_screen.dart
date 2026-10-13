@@ -113,7 +113,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             pendingActionStore: pendingActionStore,
             showBottomNavigation: false,
           ),
-          CustomerFooterDestination.products,
+          CustomerFooterDestination.home,
         );
       case CustomerRoutePaths.b2bProducts:
         return withFooter(
