@@ -78,15 +78,12 @@ class CustomerPersistentFooterDock extends StatelessWidget {
 
     return ColoredBox(
       color: CustomerUiColors.white,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: media.viewPadding.bottom),
-        child: CustomerPersistentFooter(
-          commerceContext: commerceContext,
-          activeDestination: activeDestination,
-          forceWholesale: forceWholesale,
-          keyPrefix: keyPrefix,
-          isPlatformHome: isPlatformHome,
-        ),
+      child: CustomerPersistentFooter(
+        commerceContext: commerceContext,
+        activeDestination: activeDestination,
+        forceWholesale: forceWholesale,
+        keyPrefix: keyPrefix,
+        isPlatformHome: isPlatformHome,
       ),
     );
   }
