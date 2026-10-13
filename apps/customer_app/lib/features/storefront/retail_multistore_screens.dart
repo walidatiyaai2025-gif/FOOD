@@ -1257,7 +1257,8 @@ class _RetailProductGrid extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
+                  SizedBox(
+                    height: 72,
                     child: Opacity(
                       opacity: product.isAvailable ? 1 : 0.42,
                       child: FoodexProductImage(
