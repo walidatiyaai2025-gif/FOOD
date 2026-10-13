@@ -667,32 +667,18 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('wholesale-catalog-grid-view')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('wholesale-catalog-list-view')),
-        findsOneWidget,
+        findsNothing,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('wholesale-catalog-list-view')),
-      );
-      await tester.pump();
-      var grid = tester.widget<GridView>(
+      final grid = tester.widget<GridView>(
         find.byKey(const ValueKey('wholesale-product-grid')),
       );
-      var delegate =
+      final delegate =
           grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(delegate.crossAxisCount, 1);
-
-      await tester.tap(
-        find.byKey(const ValueKey('wholesale-catalog-grid-view')),
-      );
-      await tester.pump();
-      grid = tester.widget<GridView>(
-        find.byKey(const ValueKey('wholesale-product-grid')),
-      );
-      delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(delegate.crossAxisCount, 3);
 
       expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
@@ -883,9 +869,9 @@ void main() {
       expect(find.text('Wholesale Water'), findsOneWidget);
       expect(find.text('Beverages'), findsOneWidget);
       expect(find.textContaining('72.50 EGP'), findsOneWidget);
-      expect(find.textContaining('Case 12'), findsOneWidget);
-      expect(find.textContaining('Step 5'), findsOneWidget);
-      expect(find.textContaining('Available quantity: 30'), findsOneWidget);
+      expect(find.textContaining('Case 12'), findsNothing);
+      expect(find.textContaining('Step 5'), findsNothing);
+      expect(find.textContaining('Available quantity: 30'), findsNothing);
 
       final availableAdd = find.byKey(
         const ValueKey('wholesale-product-add-42'),
