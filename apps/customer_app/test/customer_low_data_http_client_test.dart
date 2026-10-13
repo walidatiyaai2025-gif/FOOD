@@ -1,5 +1,7 @@
 import 'dart:async';
 
+// Regression coverage for #1375: online-first remains primary; fallback is only for weak/offline conditions.
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/network/customer_data_mode.dart';
 import 'package:foodex_customer_app/core/network/customer_low_data_http_client.dart';
