@@ -492,7 +492,7 @@ void main() {
       'platform-wide customer can enter Wholesale protected routes from one Retail session',
       (tester) async {
     await tester.pumpWidget(
-      const FoodexCustomerApp(
+      FoodexCustomerApp(
         session: CustomerSession.authenticated(
           CustomerChannel.b2c,
           accessToken: 'token',
