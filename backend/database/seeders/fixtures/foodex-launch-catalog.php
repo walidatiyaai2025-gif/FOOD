@@ -5,6 +5,7 @@ return [
         'document_sha256' => '1333292c13e6bbddacc26f728485021459f914964af29ec589894086241cc523',
         'product_count' => 25,
         'minimum_launch_image_px' => 800,
+        'provenance_version' => '1.0.77',
     ],
     'category' => [
         'slug' => 'foodex-products',
@@ -33,9 +34,9 @@ return [
         ['name_ar'=>'هريسة شطة فرست تشويس جار','name_en'=>'First Choice Harissa Chili Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>185,'source_image'=>'image20.jpeg','source_width'=>388,'source_height'=>388],
         ['name_ar'=>'هوت صوص فرست تشويس جار','name_en'=>'First Choice Hot Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>150,'source_image'=>null],
         ['name_ar'=>'بيتزا صوص فرست تشويس جار','name_en'=>'First Choice Pizza Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>165,'source_image'=>null],
-        ['name_ar'=>'سويت شيلي صوص فرست تشويس جار','name_en'=>'First Choice Sweet Chili Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>null,'source_image'=>null,'review_required'=>['price']],
-        ['name_ar'=>'استربس فرست تشويس 900 جم','name_en'=>'First Choice Strips 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>null,'carton_options'=>[9,12],'price'=>null,'price_options'=>[1485,1980],'source_image'=>'image22.jpeg','source_width'=>402,'source_height'=>402,'review_required'=>['carton_count','price']],
-        ['name_ar'=>'بانيه فرست تشويس 900 جم','name_en'=>'First Choice Pane 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>null,'price'=>30,'source_image'=>null,'review_required'=>['carton_count']],
-        ['name_ar'=>'شيش طاووك فرست تشويس 900 جم','name_en'=>'First Choice Shish Tawook 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>null,'price'=>null,'source_image'=>null,'review_required'=>['carton_count','price']],
+        ['name_ar'=>'سويت شيلي صوص فرست تشويس جار','name_en'=>'First Choice Sweet Chili Sauce Jar','package_ar'=>'5 كجم','package_en'=>'5 kg','carton_count'=>1,'price'=>165,'source_image'=>null,'inferred'=>['price'=>['source_value'=>null,'rule'=>'median_same_package_sauce_price','rationale'=>'Median of official 5 kg sauce prices (150, 180, 185, 150, 165) = 165.']]],
+        ['name_ar'=>'استربس فرست تشويس 900 جم','name_en'=>'First Choice Strips 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>9,'carton_options'=>[9,12],'price'=>1485,'price_options'=>[1485,1980],'source_image'=>'image22.jpeg','source_width'=>402,'source_height'=>402,'inferred'=>['carton_count'=>['source_value'=>null,'rule'=>'paired_option_lowest_carton','rationale'=>'Ambiguous source pair resolved deterministically to the lower carton option.'],'price'=>['source_value'=>null,'rule'=>'paired_option_matching_price','rationale'=>'Price follows the same-position lower carton option: 9 => 1485; 12 => 1980.']]],
+        ['name_ar'=>'بانيه فرست تشويس 900 جم','name_en'=>'First Choice Pane 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>9,'price'=>30,'source_image'=>null,'inferred'=>['carton_count'=>['source_value'=>null,'rule'=>'nearest_900g_poultry_carton','rationale'=>'Use the deterministic resolved carton count from the adjacent 900 g poultry Strips SKU.']]],
+        ['name_ar'=>'شيش طاووك فرست تشويس 900 جم','name_en'=>'First Choice Shish Tawook 900 g','package_ar'=>'900 جم','package_en'=>'900 g','carton_count'=>9,'price'=>1485,'source_image'=>null,'inferred'=>['carton_count'=>['source_value'=>null,'rule'=>'nearest_900g_poultry_carton','rationale'=>'Use the deterministic resolved carton count from the adjacent 900 g poultry Strips SKU.'],'price'=>['source_value'=>null,'rule'=>'nearest_900g_poultry_price','rationale'=>'Use the deterministic resolved price from the adjacent 900 g poultry Strips SKU; official Pane price remains untouched.']]],
     ],
 ];
