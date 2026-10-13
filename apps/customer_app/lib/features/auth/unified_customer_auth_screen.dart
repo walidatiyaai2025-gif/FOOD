@@ -173,9 +173,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   }
 
   CustomerAuthPreferences get _selectedPreferences => CustomerAuthPreferences(
-    rememberMe: _rememberMe || _biometricEnabled,
-    biometricEnabled: _biometricAvailable && _biometricEnabled,
-  );
+        rememberMe: _rememberMe || _biometricEnabled,
+        biometricEnabled: _biometricAvailable && _biometricEnabled,
+      );
 
   Future<void> _resumeAfterAuthentication({
     required String token,
@@ -189,9 +189,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     if (pendingStore != null) {
       try {
         final pending = await pendingStore.take().timeout(
-          const Duration(milliseconds: 750),
-          onTimeout: () => null,
-        );
+              const Duration(milliseconds: 750),
+              onTimeout: () => null,
+            );
         if (pending != null &&
             (commerceContext == null ||
                 commerceContext.sameScope(pending.context))) {
@@ -367,9 +367,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   }
 
   Widget _buildC13SavedBiometricCard(BuildContext context) {
-    final biometricAction = _busy || _checkingBiometric
-        ? null
-        : _authenticateWithBiometrics;
+    final biometricAction =
+        _busy || _checkingBiometric ? null : _authenticateWithBiometrics;
 
     return Container(
       key: const ValueKey('c13-saved-biometric-login-panel'),
@@ -453,18 +452,18 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             context.tr('customer.auth.biometric_saved_title'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: CustomerUiColors.deepGreen,
-              fontWeight: FontWeight.w900,
-            ),
+                  color: CustomerUiColors.deepGreen,
+                  fontWeight: FontWeight.w900,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             context.tr('customer.auth.biometric_saved_hint'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: CustomerUiColors.muted,
-              fontWeight: FontWeight.w500,
-            ),
+                  color: CustomerUiColors.muted,
+                  fontWeight: FontWeight.w500,
+                ),
           ),
           if (_errorKey != null) ...[
             const SizedBox(height: CustomerUiSpacing.sm),
@@ -568,9 +567,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
             : await api.login(username: email);
       }
 
-      final retailStoreId = result.retailStoreIds.isEmpty
-          ? null
-          : result.retailStoreIds.first;
+      final retailStoreId =
+          result.retailStoreIds.isEmpty ? null : result.retailStoreIds.first;
       final postLoginRoute = retailStoreId == null
           ? CustomerRoutePaths.marketplace
           : CustomerRouteLocations.retailHome(
@@ -629,7 +627,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               const SizedBox(height: CustomerUiSpacing.sm),
               Text(
                 body,
-                style: Theme.of(sheetContext).textTheme.bodyMedium
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .bodyMedium
                     ?.copyWith(color: CustomerUiColors.muted),
               ),
               const SizedBox(height: CustomerUiSpacing.lg),
@@ -650,8 +650,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
     required TextDirection textDirection,
   }) {
     final isArabic = locale.languageCode == 'ar';
-    final showRememberedBiometricCard =
-        !_savedBiometricDismissed &&
+    final showRememberedBiometricCard = !_savedBiometricDismissed &&
         widget.preferences.rememberMe &&
         widget.preferences.biometricEnabled &&
         widget.sessionStore != null &&
@@ -759,7 +758,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                     'c13-business-login-title',
                                   ),
                                   textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.titleMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                                 const SizedBox(height: 4),
@@ -769,7 +770,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                     'unified-customer-auth-subtitle',
                                   ),
                                   textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(color: CustomerUiColors.muted),
                                 ),
                                 const SizedBox(height: 14),
@@ -811,9 +814,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                       ),
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                            vertical: 18,
-                                          ),
+                                        horizontal: 20,
+                                        vertical: 18,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: CustomerUiSpacing.sm),
@@ -852,9 +855,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                       ),
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                            vertical: 18,
-                                          ),
+                                        horizontal: 20,
+                                        vertical: 18,
+                                      ),
                                     ),
                                     onSubmitted: (_) => _submit(),
                                   ),
@@ -869,8 +872,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                           onTap: _busy
                                               ? null
                                               : () => toggleRemember(
-                                                  !_rememberMe,
-                                                ),
+                                                    !_rememberMe,
+                                                  ),
                                           borderRadius: BorderRadius.circular(
                                             16,
                                           ),
@@ -886,9 +889,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                                   onChanged: _busy
                                                       ? null
                                                       : (value) =>
-                                                            toggleRemember(
-                                                              value ?? false,
-                                                            ),
+                                                          toggleRemember(
+                                                            value ?? false,
+                                                          ),
                                                   visualDensity:
                                                       VisualDensity.compact,
                                                 ),
@@ -915,15 +918,15 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                           ),
                                           onPressed:
                                               _biometricAvailable && !_busy
-                                              ? biometricPressed
-                                              : null,
+                                                  ? biometricPressed
+                                                  : null,
                                           icon: _checkingBiometric
                                               ? const SizedBox.square(
                                                   dimension: 18,
                                                   child:
                                                       CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                      ),
+                                                    strokeWidth: 2,
+                                                  ),
                                                 )
                                               : Image.asset(
                                                   'assets/branding/login_reference/fingerprint_icon.png',
@@ -945,7 +948,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                             side: BorderSide(
                                               color: _biometricEnabled
                                                   ? CustomerUiColors
-                                                        .deepGreenSoft
+                                                      .deepGreenSoft
                                                   : CustomerUiColors.border,
                                             ),
                                             shape: RoundedRectangleBorder(
@@ -1018,13 +1021,13 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                     onPressed: _busy
                                         ? null
                                         : () => _showC13InfoSheet(
-                                            title: isArabic
-                                                ? 'نسيت كلمة المرور؟'
-                                                : 'Forgot password?',
-                                            body: isArabic
-                                                ? 'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الأعمال المعتمد.'
-                                                : 'Contact FOODEX administration to reset the password for your approved business account.',
-                                          ),
+                                              title: isArabic
+                                                  ? 'نسيت كلمة المرور؟'
+                                                  : 'Forgot password?',
+                                              body: isArabic
+                                                  ? 'تواصل مع إدارة FOODEX لإعادة تعيين كلمة مرور حساب الأعمال المعتمد.'
+                                                  : 'Contact FOODEX administration to reset the password for your approved business account.',
+                                            ),
                                     style: OutlinedButton.styleFrom(
                                       minimumSize: const Size.fromHeight(52),
                                       foregroundColor:
@@ -1054,13 +1057,13 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                     onPressed: _busy
                                         ? null
                                         : () => _showC13InfoSheet(
-                                            title: isArabic
-                                                ? 'تواصل معنا'
-                                                : 'Contact us',
-                                            body: isArabic
-                                                ? 'حسابات الأعمال تُنشأ وتُعتمد من لوحة الإدارة. تواصل مع مسؤول FOODEX لتفعيل الحساب أو المساعدة في الدخول.'
-                                                : 'Business accounts are created and approved from the management dashboard. Contact your FOODEX administrator for activation or sign-in help.',
-                                          ),
+                                              title: isArabic
+                                                  ? 'تواصل معنا'
+                                                  : 'Contact us',
+                                              body: isArabic
+                                                  ? 'حسابات الأعمال تُنشأ وتُعتمد من لوحة الإدارة. تواصل مع مسؤول FOODEX لتفعيل الحساب أو المساعدة في الدخول.'
+                                                  : 'Business accounts are created and approved from the management dashboard. Contact your FOODEX administrator for activation or sign-in help.',
+                                            ),
                                     style: OutlinedButton.styleFrom(
                                       minimumSize: const Size.fromHeight(54),
                                       foregroundColor:
@@ -1091,7 +1094,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                               Expanded(
                                 child: Text(
                                   'Good Food   A Stronger Tomorrow',
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(color: CustomerUiColors.muted),
                                 ),
                               ),
@@ -1100,7 +1105,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                 key: const ValueKey(
                                   'c13-business-login-version',
                                 ),
-                                style: Theme.of(context).textTheme.bodySmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
                                     ?.copyWith(
                                       color: CustomerUiColors.muted,
                                       fontWeight: FontWeight.w700,
@@ -1140,17 +1147,15 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       _register ? 'customer.auth.register_title' : 'customer.auth.title',
     );
 
-    final locale =
-        AppTranslations.maybeOf(context)?.locale ??
+    final locale = AppTranslations.maybeOf(context)?.locale ??
         Localizations.maybeLocaleOf(context) ??
         const Locale('ar');
-    final textDirection = locale.languageCode == 'ar'
-        ? TextDirection.rtl
-        : TextDirection.ltr;
+    final textDirection =
+        locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
     final isC13BusinessEntry =
         widget.nextRoute == CustomerRoutePaths.b2bDashboard &&
-        widget.commerceContext == null &&
-        !widget.registerInitially;
+            widget.commerceContext == null &&
+            !widget.registerInitially;
 
     if (isC13BusinessEntry) {
       return _buildC13BusinessEntry(
@@ -1174,9 +1179,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               key: const ValueKey('customer-login-diagnostics'),
               onPressed: _busy
                   ? null
-                  : () =>
-                        Navigator.of(context)
-                            .pushNamed(CustomerRoutePaths.diagnostics),
+                  : () => Navigator.of(context)
+                      .pushNamed(CustomerRoutePaths.diagnostics),
               tooltip: context.tr('customer.diagnostics.open'),
               icon: const Icon(Icons.bug_report_outlined),
             ),
@@ -1185,7 +1189,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
               onPressed: _busy
                   ? null
                   : () => Navigator.of(context)
-                        .pushReplacementNamed(CustomerRoutePaths.marketplace),
+                      .pushReplacementNamed(CustomerRoutePaths.marketplace),
               tooltip: context.tr('customer.action.guest'),
               icon: const Icon(Icons.storefront_outlined),
             ),
@@ -1227,9 +1231,9 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                         key: const ValueKey('customer-app-identity'),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: CustomerUiColors.deepGreen,
-                          fontWeight: FontWeight.w900,
-                        ),
+                              color: CustomerUiColors.deepGreen,
+                              fontWeight: FontWeight.w900,
+                            ),
                       ),
                       const SizedBox(height: CustomerUiSpacing.xs),
                       Text(
