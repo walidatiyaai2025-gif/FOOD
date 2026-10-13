@@ -44,19 +44,23 @@ class FunctionalScreenJourneyConvergence1129Test extends TestCase
         $merchantTest = file_get_contents(base_path('tests/Feature/RetailMerchantDashboardTest.php'));
         $analyticsTest = file_get_contents(base_path('tests/Feature/PlatformAnalyticsRolloutContractTest.php'));
         $customer = file_get_contents($root.'/apps/customer_app/lib/features/b2b/b2b_journey_screen.dart');
+        $customerAnalytics = file_get_contents($root.'/apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart');
         $driver = file_get_contents($root.'/apps/driver_app/lib/navigation.dart');
         $van = file_get_contents($root.'/apps/van_app/lib/features/foundation/van_foundation_screen.dart');
 
         $this->assertIsString($merchantTest);
         $this->assertIsString($analyticsTest);
         $this->assertIsString($customer);
+        $this->assertIsString($customerAnalytics);
         $this->assertIsString($driver);
         $this->assertIsString($van);
 
         $this->assertStringContainsString('test_owner_can_apply_reviewed_plan_idempotently_to_existing_wholesale_cart', $merchantTest);
         $this->assertStringContainsString('test_plan_reprices_at_mutation_time_and_blocks_stale_budget', $merchantTest);
         $this->assertStringContainsString('FoodexBarChart(', $customer);
-        $this->assertStringContainsString('FoodexDonutChart(', $customer);
+        $this->assertStringContainsString('FoodexTrendChart(', $customerAnalytics);
+        $this->assertStringContainsString('FoodexBarChart(', $customerAnalytics);
+        $this->assertStringContainsString("ValueKey('store-analytics-screen')", $customerAnalytics);
         $this->assertStringContainsString('_DriverWorkloadChart', $driver);
         $this->assertStringContainsString('driver-home-workload-chart', $driver);
         $this->assertStringContainsString('VanScreenId.orders', $van);
