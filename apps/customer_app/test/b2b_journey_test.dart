@@ -2100,6 +2100,27 @@ void main() {
         find.byKey(const ValueKey('b2b-timeline-3-out_for_delivery')),
         findsOneWidget,
       );
+
+      Icon timelineIcon(String stage) => tester.widget<Icon>(
+            find
+                .descendant(
+                  of: find.byKey(ValueKey('b2b-timeline-icon-' + stage)),
+                  matching: find.byType(Icon),
+                )
+                .first,
+          );
+
+      final placedIcon = timelineIcon('placed');
+      final readyIcon = timelineIcon('ready');
+      final assignedIcon = timelineIcon('van_assigned');
+      final deliveryIcon = timelineIcon('out_for_delivery');
+      expect(placedIcon.icon, Icons.receipt_long_outlined);
+      expect(readyIcon.icon, Icons.task_alt_rounded);
+      expect(assignedIcon.icon, Icons.local_shipping_outlined);
+      expect(deliveryIcon.icon, Icons.delivery_dining_rounded);
+      expect(placedIcon.color, isNot(readyIcon.color));
+      expect(readyIcon.color, isNot(deliveryIcon.color));
+
       expect(find.text('VAN-07'), findsOneWidget);
       expect(find.textContaining('Driver'), findsNothing);
       expect(find.text('تم التأكيد'), findsNothing);
@@ -2120,6 +2141,18 @@ void main() {
         find.byKey(const ValueKey('b2b-timeline-1-delivered')),
         findsOneWidget,
       );
+      final deliveredIcon = tester.widget<Icon>(
+        find
+            .descendant(
+              of: find.byKey(
+                const ValueKey('b2b-timeline-icon-delivered'),
+              ),
+              matching: find.byType(Icon),
+            )
+            .first,
+      );
+      expect(deliveredIcon.icon, Icons.home_rounded);
+      expect(deliveredIcon.color, isNot(deliveryIcon.color));
       expect(find.text('تم التسليم'), findsWidgets);
       expect(find.byKey(const ValueKey('b2b-timeline-1-ready')), findsNothing);
     },
