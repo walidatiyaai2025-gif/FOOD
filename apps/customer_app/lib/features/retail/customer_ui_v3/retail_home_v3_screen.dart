@@ -362,7 +362,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
         final product = products[index];
         final price = product.price == null
             ? product.sku
-            : foodexMoneyText(product.price!, product.currency);
+            : '${product.price!.toStringAsFixed(0)} ${product.currency}';
         return CustomerProductCard(
           key: ValueKey('$keyPrefix-${product.id}'),
           title: product.name,
