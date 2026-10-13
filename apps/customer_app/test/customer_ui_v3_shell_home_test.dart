@@ -412,7 +412,10 @@ Future<void> _dragUntilFound(
 Future<void> _pumpRetailHomeReady(WidgetTester tester) async {
   for (var attempt = 0; attempt < 12; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
-    if (find.byKey(const ValueKey('retail-catalog-home')).evaluate().isNotEmpty) {
+    if (find
+        .byKey(const ValueKey('retail-catalog-home'))
+        .evaluate()
+        .isNotEmpty) {
       return;
     }
   }
