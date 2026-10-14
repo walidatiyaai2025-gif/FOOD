@@ -20,6 +20,7 @@ final class ChatbotAutomationService
         private readonly ChatbotSegmentationService $segmentation,
         private readonly ChatbotSupportCaseService $supportCases,
         private readonly ChatbotOrderDraftService $orderDrafts,
+        private readonly ChatbotFlowEngine $flowEngine,
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $dispatcher,
     ) {}
@@ -131,6 +132,20 @@ final class ChatbotAutomationService
 
         if (($reply['handoff'] ?? false) === true) {
             return $this->handoff($conversationId, $platformCustomerId, (string) ($reply['reason'] ?? 'policy'));
+        }
+
+        $reply = $this->flowEngine->decorate($intent, $this->locale(), $reply);
+        if (isset($reply['_flow']) && is_array($reply['_flow'])) {
+            $this->flowEngine->persist($conversationId, $platformCustomerId, $reply['_flow']);
+            $this->analytics->record(
+                'flow_node_entered',
+                $conversationId,
+                $platformCustomerId,
+                $feature,
+                $intent,
+                $confidence,
+                $reply['_flow'],
+            );
         }
 
         return $this->send(
