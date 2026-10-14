@@ -741,12 +741,13 @@ final class StorefrontRevisionService
                     "payload.sections.{$index}" => ['Storefront section key/type is invalid.'],
                 ]);
             }
-            if (isset($sectionKeys[$key])) {
+            $comparisonKey = strtolower($key);
+            if (isset($sectionKeys[$comparisonKey])) {
                 throw ValidationException::withMessages([
-                    "payload.sections.{$index}.key" => ['Storefront section keys must be unique.'],
+                    "payload.sections.{$index}.key" => ['Storefront section keys must be unique (case-insensitive).'],
                 ]);
             }
-            $sectionKeys[$key] = true;
+            $sectionKeys[$comparisonKey] = true;
 
             if (isset($section['config']) && ! is_array($section['config'])) {
                 throw ValidationException::withMessages([
