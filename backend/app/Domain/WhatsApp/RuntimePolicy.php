@@ -70,6 +70,28 @@ final class RuntimePolicy
         return $state->lifecycle === Lifecycle::ENABLED || $this->isTestNumberAllowed($number, $state);
     }
 
+    public function allowsCallWebhooks(): bool
+    {
+        $state = $this->state();
+
+        return $this->isOperational($state) && $state->has(Capability::CALLS);
+    }
+
+    public function allowsInboundCalls(): bool
+    {
+        $state = $this->state();
+
+        return $this->isOperational($state)
+            && $state->has(Capability::CALLS)
+            && $state->has(Capability::INBOUND)
+            && $state->has(Capability::AGENT_INBOX);
+    }
+
+    public function allowsOutboundCalls(string $number): bool
+    {
+        return $this->allowsOutbound($number, Capability::CALLS);
+    }
+
     public function allowsCampaigns(string $number): bool
     {
         return $this->allowsOutbound($number, Capability::CAMPAIGNS);
