@@ -449,7 +449,15 @@ final class ChatbotAutomationService
             );
         }
 
-        $this->conversations->autoAssign($conversationId);
+        $agentId = $this->conversations->autoAssign($conversationId);
+        if ($agentId !== null && Schema::hasTable('whats_app_chatbot_cases')) {
+            DB::table('whats_app_chatbot_cases')
+                ->where('conversation_id', $conversationId)
+                ->where('status', 'open')
+                ->whereNull('assigned_agent_id')
+                ->update(['assigned_agent_id' => $agentId, 'updated_at' => now()]);
+        }
+
         $this->analytics->record(
             'human_handoff',
             $conversationId,
