@@ -36,7 +36,7 @@ Unresolved P0/P1 risks: **0**.
 | 16 | Audit completeness for sensitive lifecycle/actions | `WhatsAppPolicyTest`, lane-specific feature tests |
 | 17 | Migration/rollback safety | backend fresh-migration CI plus deployment acceptance |
 | 18 | Full Arabic/English operational path | AR/EN translation resources plus localization CI |
-| 19 | Production-like E2E configuration | MySQL/Redis deployment acceptance plus provider transport feature acceptance |
+| 19 | Production-like E2E configuration | `WhatsAppGaProductionAcceptanceTest` on real MySQL/Redis plus provider transport feature acceptance |
 | 20 | Unrelated FOOD release readiness remains independent | `CheckoutDomainTest`, release CI and default-disabled certification acceptance |
 
 The machine-readable canonical matrix is `backend/config/whatsapp_certification.php`. Its 20 ordered checks are hashed; the runtime certification authority fails closed if the manifest is incomplete, reordered, mutated, marked non-PASS, or reports any unresolved P0/P1 risk.
@@ -52,6 +52,6 @@ The machine-readable canonical matrix is `backend/config/whatsapp_certification.
 
 ## Certification test set
 
-The final pull request must pass the normal required repository gate. Backend CI runs the full PHPUnit suite, including all WhatsApp lanes and `WhatsAppGaCertificationTest`, fresh migrations, lint/static analysis/security audit, and the production-services MySQL/Redis deployment suite.
+The final pull request must pass the normal required repository gate. Backend CI runs the full PHPUnit suite, including all WhatsApp lanes and `WhatsAppGaCertificationTest`, fresh migrations, lint/static analysis/security audit, and the production-services MySQL/Redis deployment suite including `WhatsAppGaProductionAcceptanceTest`.
 
 No Meta token, WABA ID, phone-number ID, webhook token, or signing secret is required for boot, build, migration, certification, or unrelated FOOD release validation.
