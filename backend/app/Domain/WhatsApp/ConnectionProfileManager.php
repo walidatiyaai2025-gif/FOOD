@@ -185,7 +185,7 @@ final class ConnectionProfileManager
             $this->audit->record('whatsapp.connection_validation_result', $actor, $locked, null, [
                 'profile_id' => $locked->getKey(),
                 'valid' => $valid,
-                'health_status' => $locked->health_status->value,
+                'health_status' => self::enumValue($locked->health_status),
                 'diagnostic_code' => $this->safeProviderText($result->diagnosticCode, $locked, 120),
                 'checked_at' => $result->checkedAt->format(DATE_ATOM),
             ]);
@@ -221,8 +221,8 @@ final class ConnectionProfileManager
             if ($lockedTarget->is_primary) {
                 return $lockedTarget;
             }
-            if ($lockedTarget->status !== ConnectionProfileStatus::READY
-                || $lockedTarget->health_status !== ConnectionHealthStatus::READY
+            if (self::enumValue($lockedTarget->status) !== ConnectionProfileStatus::READY->value
+                || self::enumValue($lockedTarget->health_status) !== ConnectionHealthStatus::READY->value
                 || $lockedTarget->last_validated_at === null) {
                 $this->audit->record('whatsapp.connection_primary_switch_rejected', $actor, $lockedTarget, null, [
                     'target_profile_id' => $lockedTarget->getKey(),
@@ -360,11 +360,7 @@ final class ConnectionProfileManager
         WhatsAppConnectionProfile $profile,
         int $limit = 500,
     ): string {
-        try {
-            $secret = $profile->credential_secret;
-        } catch (Throwable) {
-            $secret = null;
-        }
+        $secret = $profile->credential_secret;
         if (is_string($secret) && $secret !== '') {
             $value = str_replace($secret, '[REDACTED]', $value);
         }
@@ -412,6 +408,11 @@ final class ConnectionProfileManager
                 $this->assertMetadataHasNoSecrets($value);
             }
         }
+    }
+
+    private static function enumValue(mixed $value): string
+    {
+        return $value instanceof \BackedEnum ? (string) $value->value : (string) $value;
     }
 
     private function safeText(string $value, int $limit = 500): string
