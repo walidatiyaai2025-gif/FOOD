@@ -89,6 +89,7 @@ A phone number is configuration, not application identity.
 - #1404 — transactional notification event engine.
 - #1405 — templates, campaigns, segmentation, consent and opt-out.
 - #1406 — supervisor analytics, SLA, leads, follow-ups and unified timeline.
+- #1428 — Dashboard-global inbound customer-message popup for Customer Service, with light-red centered alert and exact-conversation deep link.
 - #1407 — independent certification and GA activation lock.
 
 ## Parallel execution
@@ -100,7 +101,8 @@ After its contracts are stable:
 - #1402 builds on #1401 connection contracts.
 - #1404 and #1405 build on #1402 transport contracts and can then proceed in parallel.
 - #1406 consumes agent + messaging/campaign data.
-- #1407 runs only after all implementation lanes converge.
+- #1428 consumes the persisted inbound-message + conversation/assignment contracts from #1402/#1403 and must be complete before final certification.
+- #1407 runs only after all implementation lanes, including #1428, converge.
 
 Workers use dedicated branches and target `feature/whatsapp-crm-dark-launch`, not the active FOOD release branch.
 
@@ -124,3 +126,19 @@ After #1407 PASS:
 6. explicit activation changes lifecycle from GA_READY to ENABLED.
 
 No source-code edit or redeployment is required merely to change the connected number or to enable/disable an already certified module.
+
+## Global inbound customer-message popup
+
+Required implementation issue: #1428.
+
+For every new inbound WhatsApp message that has been durably persisted:
+- the responsible Customer Service user receives a global Dashboard popup even if currently on another Dashboard page;
+- popup is centered prominently and uses a light-red / soft-red alert surface;
+- it shows safe customer/conversation context and a short message preview;
+- its primary action opens the exact originating WhatsApp conversation for immediate reply;
+- assignment, RBAC and store/tenant isolation remain authoritative;
+- unassigned conversations follow the existing customer-service routing policy rather than being broadcast globally;
+- webhook replay, page refresh and reconnect must not create duplicate alerts;
+- the popup is additive to the existing #1402 inbound pipeline and #1403 Inbox, never a second ingestion path.
+
+#1407 certification must include an end-to-end proof of this flow before GA_READY.
