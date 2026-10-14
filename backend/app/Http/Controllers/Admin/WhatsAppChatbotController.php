@@ -486,6 +486,8 @@ final class WhatsAppChatbotController extends Controller
             'message_ar' => ['required', 'string', 'max:1000'],
             'message_en' => ['required', 'string', 'max:1000'],
             'primary_action' => ['required', Rule::in(['new_order', 'repeat_order', 'product_search', 'order_tracking', 'complaints', 'human_handoff'])],
+            'menu_actions' => ['nullable', 'array', 'max:6'],
+            'menu_actions.*' => ['string', 'distinct', Rule::in(['new_order', 'repeat_order', 'product_search', 'order_tracking', 'complaints', 'human_handoff'])],
         ];
         if ($withCode) {
             $rules['code'] = ['required', 'string', 'max:64', 'unique:whats_app_chatbot_flows,code'];
@@ -499,23 +501,45 @@ final class WhatsAppChatbotController extends Controller
      */
     private function flowDefinition(array $validated): array
     {
+        $allowedActions = ['new_order', 'repeat_order', 'product_search', 'order_tracking', 'complaints', 'human_handoff'];
+        $menuActions = array_values(array_unique(array_filter(
+            $validated['menu_actions'] ?? [],
+            static fn (mixed $action): bool => is_string($action) && in_array($action, $allowedActions, true),
+        )));
+
+        if ($menuActions === []) {
+            $menuActions = [(string) $validated['primary_action']];
+        } elseif (! in_array((string) $validated['primary_action'], $menuActions, true)) {
+            array_unshift($menuActions, (string) $validated['primary_action']);
+        }
+
+        $actionNodes = [];
+        foreach ($menuActions as $action) {
+            $actionNodes[] = [
+                'id' => 'action_'.$action,
+                'type' => 'action',
+                'action' => $action,
+                'requires_confirmation' => in_array($action, ['new_order', 'repeat_order'], true),
+            ];
+        }
+
         return [
-            'schema' => 1,
+            'schema' => 2,
             'start' => 'welcome',
-            'nodes' => [
+            'nodes' => array_merge([
                 [
                     'id' => 'welcome',
                     'type' => 'message',
                     'content' => ['ar' => $validated['message_ar'], 'en' => $validated['message_en']],
-                    'next' => 'primary_action',
+                    'next' => 'menu',
                 ],
                 [
-                    'id' => 'primary_action',
-                    'type' => 'action',
-                    'action' => $validated['primary_action'],
-                    'requires_confirmation' => in_array($validated['primary_action'], ['new_order', 'repeat_order'], true),
+                    'id' => 'menu',
+                    'type' => 'menu',
+                    'options' => $menuActions,
+                    'next' => 'action_'.$validated['primary_action'],
                 ],
-            ],
+            ], $actionNodes),
         ];
     }
 
