@@ -2,6 +2,11 @@
 
 return [
     'abilities' => [
+        'whatsapp.view' => 'View WhatsApp foundation state',
+        'whatsapp.settings' => 'Manage WhatsApp capabilities and test recipients',
+        'whatsapp.lifecycle' => 'Change WhatsApp test lifecycle',
+        'whatsapp.emergency' => 'Control the global WhatsApp emergency stop',
+        'whatsapp.activate' => 'Activate certified WhatsApp production messaging',
         'platform.manage' => 'Manage platform-wide settings and permissions',
         'security.view' => 'View users, roles and the effective permission matrix',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
