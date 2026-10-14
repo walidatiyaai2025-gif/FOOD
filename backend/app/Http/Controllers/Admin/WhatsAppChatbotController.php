@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\WhatsApp\ChatbotAnalyticsService;
 use App\Domain\WhatsApp\ChatbotFeatureRegistry;
+use App\Domain\WhatsApp\ChatbotIntentService;
 use App\Domain\WhatsApp\ChatbotRuntimePolicy;
 use App\Domain\WhatsApp\ChatbotSegmentationService;
 use App\Http\Controllers\Controller;
@@ -28,6 +29,7 @@ final class WhatsAppChatbotController extends Controller
         private readonly ChatbotFeatureRegistry $features,
         private readonly ChatbotAnalyticsService $analytics,
         private readonly ChatbotSegmentationService $segmentation,
+        private readonly ChatbotIntentService $intents,
     ) {}
 
     public function index(Request $request, ?string $section = null): View
@@ -385,6 +387,23 @@ final class WhatsAppChatbotController extends Controller
         $this->analytics->record('admin_segment_updated', null, null, null, null, null, ['code' => (string) $row->code], (int) $actor->getKey());
 
         return back()->with('status', __('chatbot.admin.saved'));
+    }
+
+    public function testAi(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasPermission('chatbot.ai.view'), 403);
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $action = $this->intents->interpret((string) $validated['message']);
+
+        return back()->with('chatbot_ai_test', [
+            'message' => (string) $validated['message'],
+            'action' => $action->toArray(),
+        ]);
     }
 
     public function preview(Request $request, string $screen): View
