@@ -19,7 +19,7 @@ def git(root: Path, *args: str) -> str:
 
 class CustomerFreezeContractTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.root = Path(self.temp.name)
         git(self.root, "init")
         git(self.root, "config", "user.name", "FOODEX Test")
