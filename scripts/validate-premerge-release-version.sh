@@ -41,6 +41,7 @@ if [[ "$current_version" != "$base_version" ]]; then
 fi
 
 production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
+hold_retirement_promotion=false
 if [[ "$current_version" == "1.0.77" ]]; then
   python3 scripts/validate_customer_freeze_contract.py --candidate "$head"
   frozen_customer_identity="$(python3 -c 'import json; print(json.load(open("docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json"))["frozen_customer"]["source_identity"])')"
@@ -51,6 +52,14 @@ if [[ "$current_version" == "1.0.77" ]]; then
   if [[ -f "$production_hold_file" ]]; then
     echo "Pre-merge release hold contract passed: candidate=1.0.77, Customer $customer_identity carried forward unchanged."
     exit 0
+  fi
+  # FOODEX 1.0.77 advanced VERSION on main while publication was intentionally held.
+  # The terminal promotion is therefore identified by retiring that exact hold,
+  # not by inventing a second version bump. Keep this exception narrow and
+  # machine-verifiable so normal release/* branches still require VERSION drift.
+  if [[ "$base_version" == "1.0.77" ]] \
+    && git cat-file -e "$base:$production_hold_file" 2>/dev/null; then
+    hold_retirement_promotion=true
   fi
 fi
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
@@ -68,8 +77,12 @@ if [[ "$version_changed" != "true" && "$release_branch" != "true" ]]; then
 fi
 
 if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
-  echo "Release branch '$branch_name' must bump VERSION relative to base ($base_version)." >&2
-  exit 1
+  if [[ "$branch_name" == "release/1.0.77-production-program" && "$hold_retirement_promotion" == "true" ]]; then
+    echo "Certified 1.0.77 hold-retirement promotion accepted: base and candidate VERSION remain 1.0.77 while the production HOLD is removed."
+  else
+    echo "Release branch '$branch_name' must bump VERSION relative to base ($base_version)." >&2
+    exit 1
+  fi
 fi
 
 if [[ "$current_version" != "1.0.77" && "$customer_identity" != "$driver_identity" ]]; then
