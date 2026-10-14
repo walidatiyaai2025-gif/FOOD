@@ -326,6 +326,7 @@ Route::prefix('admin')
         Route::get('/b2b/pricing-approvals', [B2bWorkspaceController::class, 'show'])->defaults('module', 'pricing')->name('b2b.pricing-approvals');
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
+        Route::get('/b2b/commercial/sales-control/products', [CommercialDashboardController::class, 'searchSalesControlProducts'])->name('commercial.sales-control.products');
         Route::put('/b2b/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');

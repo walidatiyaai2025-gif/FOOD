@@ -9,6 +9,7 @@ use App\Services\CommercialFeatureFlags;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route as IlluminateRoute;
@@ -28,49 +29,102 @@ final class CommercialDashboardController extends Controller
     {
         [$user, $storeId] = $this->authorizedStore($request, 'catalog.view', true, 'b2b');
 
-        $products = DB::table('store_products')
+        $productCount = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
             ->where('catalogs.channel', 'b2b')
-            ->orderBy('products.name')
-            ->limit(200)
-            ->get(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
+            ->count();
 
-        $legacyCustomerIds = DB::table('b2b_customers')
-            ->whereNotNull('legacy_customer_id')
-            ->pluck('legacy_customer_id')
-            ->map(static fn ($id): int => (int) $id)
-            ->unique()
-            ->values();
+        $selectedProduct = null;
+        $selectedProductId = max(0, (int) $request->query('product', 0));
+        if ($selectedProductId > 0) {
+            $selectedProduct = DB::table('store_products')
+                ->join('products', 'products.id', '=', 'store_products.product_id')
+                ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+                ->where('store_products.store_id', $storeId)
+                ->where('store_products.product_id', $selectedProductId)
+                ->where('catalogs.channel', 'b2b')
+                ->first(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
 
-        $ruleCustomers = DB::table('customers')
-            ->whereIn('id', $legacyCustomerIds)
-            ->orderBy('name')
-            ->limit(300)
-            ->get(['id', 'name', 'email']);
+            abort_if($selectedProduct === null, 404);
+        }
 
-        $ruleGroups = DB::table('commercial_customer_groups')
-            ->where('is_active', true)
-            ->where(function ($query) use ($storeId): void {
-                $query->whereNull('store_id')->orWhere('store_id', $storeId);
-            })
-            ->orderByDesc('priority')
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $products = $selectedProduct === null ? collect() : collect([$selectedProduct]);
+        $selectedProductIds = $products->pluck('id');
+
+        $ruleCustomers = collect();
+        $ruleGroups = collect();
+        if ($selectedProduct !== null) {
+            $legacyCustomerIds = DB::table('b2b_customers')
+                ->whereNotNull('legacy_customer_id')
+                ->pluck('legacy_customer_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->unique()
+                ->values();
+
+            $ruleCustomers = DB::table('customers')
+                ->whereIn('id', $legacyCustomerIds)
+                ->orderBy('name')
+                ->limit(300)
+                ->get(['id', 'name', 'email']);
+
+            $ruleGroups = DB::table('commercial_customer_groups')
+                ->where('is_active', true)
+                ->where(function ($query) use ($storeId): void {
+                    $query->whereNull('store_id')->orWhere('store_id', $storeId);
+                })
+                ->orderByDesc('priority')
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
 
         return $this->render($request, $user, $storeId, 'sales-control', [
             'products' => $products,
-            'policies' => DB::table('product_commercial_policies')->whereIn('product_id', $products->pluck('id'))->get()->keyBy('product_id'),
-            'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
-            'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
-            'commercialRules' => DB::table('product_commercial_rules')->whereIn('product_id', $products->pluck('id'))->orderBy('id')->get()->groupBy('product_id'),
+            'selectedProduct' => $selectedProduct,
+            'productCount' => $productCount,
+            'policies' => DB::table('product_commercial_policies')->whereIn('product_id', $selectedProductIds)->get()->keyBy('product_id'),
+            'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
+            'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
+            'commercialRules' => DB::table('product_commercial_rules')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
             'ruleCustomers' => $ruleCustomers,
             'ruleGroups' => $ruleGroups,
             'featureFlags' => $this->flags->snapshot(),
             'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('commercial'),
         ]);
+    }
+
+    public function searchSalesControlProducts(Request $request): JsonResponse
+    {
+        [, $storeId] = $this->authorizedStore($request, 'catalog.view', true, 'b2b');
+        $term = trim((string) $request->query('q', ''));
+
+        $products = DB::table('store_products')
+            ->join('products', 'products.id', '=', 'store_products.product_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('store_products.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->when($term !== '', function ($query) use ($term): void {
+                $like = '%'.$term.'%';
+                $query->where(function ($search) use ($like): void {
+                    $search->where('products.name', 'like', $like)
+                        ->orWhere('products.sku', 'like', $like);
+                });
+            })
+            ->orderBy('products.name')
+            ->orderBy('products.id')
+            ->limit(30)
+            ->get(['products.id', 'products.sku', 'products.name', 'store_products.is_active'])
+            ->map(static fn (object $product): array => [
+                'id' => (int) $product->id,
+                'name' => (string) $product->name,
+                'sku' => $product->sku !== null ? (string) $product->sku : null,
+                'is_active' => (bool) $product->is_active,
+            ])
+            ->values();
+
+        return response()->json(['products' => $products]);
     }
 
     public function saveSalesControl(Request $request, int $product): RedirectResponse
@@ -223,7 +277,14 @@ final class CommercialDashboardController extends Controller
             $this->audit->record('commercial.product_policy.updated', $user, null, $before, [...$after, 'store_id' => $storeId], $request);
         });
 
-        return back()->with('status', __('commercial.status.sales_control_saved'));
+        $returnParams = ['store_id' => $storeId, 'product' => $product];
+        if ($request->boolean('support_access')) {
+            $returnParams['support_access'] = 1;
+        }
+
+        return redirect()
+            ->route('admin.commercial.sales-control', $returnParams)
+            ->with('status', __('commercial.status.sales_control_saved'));
     }
 
     public function flashOffers(Request $request): View

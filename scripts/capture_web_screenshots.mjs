@@ -467,9 +467,26 @@ async function exerciseCommercialRuntimeInteractions(page, locale, pageErrors = 
     throw new Error(`Sales Control interaction evidence route failed (${locale})`);
   }
 
+  const selector = page.locator('[data-sales-product-selector]');
+  const searchInput = page.locator('[data-sales-product-search]');
+  if (await selector.count() !== 1 || await searchInput.count() !== 1) {
+    throw new Error(`Sales Control searchable product selector missing (${locale})`);
+  }
+  if (await page.locator('.commercial-policy-form').count() !== 0) {
+    throw new Error(`Sales Control rendered a product editor before selection (${locale})`);
+  }
+
+  await searchInput.focus();
+  const firstProduct = page.locator('[data-sales-product-results] .sales-product-option').first();
+  await firstProduct.waitFor({ state: 'visible' });
+  await Promise.all([
+    page.waitForURL((url) => url.searchParams.has('product'), { waitUntil: 'networkidle' }),
+    firstProduct.click(),
+  ]);
+
   const policyForm = page.locator('.commercial-policy-form').first();
   if (await policyForm.count() !== 1) {
-    throw new Error(`Sales Control did not render an authoritative product policy form (${locale})`);
+    throw new Error(`Sales Control did not render exactly one selected product policy form (${locale})`);
   }
 
   const unitRows = policyForm.locator('[data-selling-unit-row]');
