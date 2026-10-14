@@ -98,14 +98,14 @@ return [
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view', 'finance.view',
+            'stores.view', 'customers.view', 'orders.view',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.conversations.reassign',
             'whatsapp.internal_notes.manage', 'whatsapp.customer_service.supervise',
             'whatsapp.agent_status.manage', 'whatsapp.assignment_rules.manage',
-            'stores.view', 'customers.view', 'orders.view', 'finance.view',
+            'stores.view', 'customers.view', 'orders.view',
         ],
         'B2B_ADMIN' => [
             'stores.view',
