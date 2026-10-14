@@ -10,6 +10,8 @@ use Throwable;
 
 final class MetaCloudWhatsAppProvider implements WhatsAppProvider
 {
+    public function __construct(private readonly WhatsAppMediaService $media) {}
+
     public function validate(WhatsAppConnectionProfile $profile): ConnectionValidationResult
     {
         $token = $this->accessToken($profile);
@@ -119,7 +121,7 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
                 ->timeout($this->timeout())
                 ->post(
                     $this->graphUrl($profile, $phoneId).'/messages',
-                    $this->messagePayload($message),
+                    $this->messagePayload($profile, $message),
                 );
         } catch (ConnectionException) {
             throw new ProviderTransportException(
@@ -127,6 +129,8 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
                 false,
                 true,
             );
+        } catch (ProviderTransportException $exception) {
+            throw $exception;
         } catch (Throwable) {
             throw new ProviderTransportException('Meta transport failed before confirmation.', true);
         }
@@ -232,7 +236,10 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
     }
 
     /** @return array<string, mixed> */
-    private function messagePayload(OutboundMessage $message): array
+    private function messagePayload(
+        WhatsAppConnectionProfile $profile,
+        OutboundMessage $message,
+    ): array
     {
         $base = [
             'messaging_product' => 'whatsapp',
@@ -267,12 +274,16 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
             $media = [];
             $mediaId = trim((string) ($message->metadata['media_id'] ?? ''));
             $mediaLink = trim((string) ($message->metadata['link'] ?? ''));
+            if ($mediaId === '' && $mediaLink === '' && ! empty($message->metadata['local_path'])) {
+                $mediaId = $this->media->uploadToMeta($profile, $message->metadata);
+            }
+
             if ($mediaId !== '') {
                 $media['id'] = $mediaId;
             } elseif ($mediaLink !== '') {
                 $media['link'] = $mediaLink;
             } else {
-                throw new ProviderTransportException('Media ID or link is required.', false);
+                throw new ProviderTransportException('Media ID, link or local attachment is required.', false);
             }
 
             if ($message->body !== null && trim($message->body) !== '' && ! in_array($mediaType, ['audio', 'sticker'], true)) {
