@@ -265,7 +265,7 @@ final class WhatsAppInboxController extends Controller
             'X-Content-Type-Options' => 'nosniff',
         ];
 
-        return response()->file(
+        $response = response()->file(
             Storage::disk('local')->path($asset['path']),
             $headers + [
                 'Content-Disposition' => $this->contentDisposition(
@@ -274,6 +274,9 @@ final class WhatsAppInboxController extends Controller
                 ),
             ],
         );
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+
+        return $response;
     }
 
     public function note(Request $request, int $conversation): RedirectResponse
