@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\WhatsApp\CampaignReplyRecorder;
 use App\Domain\WhatsApp\CustomerTimelineService;
+use App\Domain\WhatsApp\LeadFollowUpService;
 use App\Domain\WhatsApp\SupervisorAnalyticsService;
 use App\Models\PlatformCustomer;
 use App\Models\Role;
@@ -14,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 final class WhatsAppSupervisorAnalyticsTest extends TestCase
@@ -265,6 +267,25 @@ final class WhatsAppSupervisorAnalyticsTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_follow_up_rejects_agent_outside_authorized_store_scope(): void
+    {
+        $b2b = $this->store('B2B', 'WA-SUP-FOLLOW-B2B');
+        $b2c = $this->store('B2C', 'WA-SUP-FOLLOW-B2C');
+        $customer = $this->customer($b2b, 'b2b', 'Scoped Followup Customer');
+        $supervisor = $this->globalUser('CUSTOMER_SERVICE_SUPERVISOR', 'Scoped Followup Supervisor');
+        $foreignAgent = $this->storeUser('RETAIL_CUSTOMER_SUPPORT', $b2c, 'Foreign Retail Agent');
+
+        $this->expectException(ValidationException::class);
+
+        app(LeadFollowUpService::class)->createFollowUp($supervisor, [
+            'platform_customer_id' => $customer->id,
+            'store_id' => $b2b,
+            'assigned_agent_id' => $foreignAgent->id,
+            'title' => 'Must not cross store scope',
+            'priority' => 'normal',
+        ]);
+    }
+
     public function test_supervisor_dashboard_renders_arabic_rtl_and_english_ltr(): void
     {
         $this->store('B2B', 'WA-SUP-LOCALE');
@@ -383,6 +404,26 @@ final class WhatsAppSupervisorAnalyticsTest extends TestCase
             'is_active' => true,
         ]);
         $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
+
+        return $user;
+    }
+
+    private function storeUser(string $roleCode, int $storeId, string $name): User
+    {
+        $user = User::factory()->create([
+            'name' => $name,
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $role = Role::query()->where('code', $roleCode)->firstOrFail();
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return $user;
     }
