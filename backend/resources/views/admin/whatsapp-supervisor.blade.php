@@ -118,7 +118,7 @@
                         <tbody>
                         @forelse($dashboard['workload'] as $agent)
                             <tr>
-                                <td>{{ $agent->name }}</td><td>{{ $agent->status }}</td><td>{{ $agent->load }}</td><td>{{ $agent->capacity }}</td>
+                                <td>{{ $agent->name }}</td><td>{{ __('whatsapp_supervisor.agent_statuses.'.strtolower((string) $agent->status)) }}</td><td>{{ $agent->load }}</td><td>{{ $agent->capacity }}</td>
                                 <td>{{ number_format($agent->utilization_percent,1) }}%</td>
                             </tr>
                         @empty
@@ -200,7 +200,7 @@
                                         </select>
                                     </form>
                                 </td>
-                                <td>{{ $lead->source_type }}{{ $lead->source_id?' #'.$lead->source_id:'' }}</td>
+                                <td>{{ __('whatsapp_supervisor.sources.'.strtolower((string) $lead->source_type)) }}{{ $lead->source_id?' #'.$lead->source_id:'' }}</td>
                                 <td>{{ $lead->agent_name ?: '-' }}</td>
                                 <td>{{ $lead->last_activity_at }}</td>
                                 <td><a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.whatsapp-supervisor.index',array_merge(request()->except('customer_id'),['customer_id'=>$lead->platform_customer_id])) }}">{{ __('whatsapp_supervisor.view_timeline') }}</a></td>
@@ -212,7 +212,7 @@
                 <div class="card-body border-top">
                     <form method="post" action="{{ route('admin.whatsapp-supervisor.leads.store') }}" class="row g-2 align-items-end">
                         @csrf
-                        <div class="col-4"><label class="form-label">Customer ID</label><input class="form-control" type="number" min="1" required name="platform_customer_id"></div>
+                        <div class="col-4"><label class="form-label">{{ __('whatsapp_supervisor.customer_id') }}</label><input class="form-control" type="number" min="1" required name="platform_customer_id"></div>
                         <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.temperature') }}</label><select class="form-select" name="temperature">@foreach(['cold','warm','hot'] as $temp)<option value="{{ $temp }}">{{ __('whatsapp_supervisor.'.$temp) }}</option>@endforeach</select></div>
                         <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.status') }}</label><select class="form-select" name="status">@foreach(['open','converted','lost'] as $leadStatus)<option value="{{ $leadStatus }}">{{ __('whatsapp_supervisor.lead_statuses.'.$leadStatus) }}</option>@endforeach</select></div>
                         <input type="hidden" name="source_type" value="manual">
@@ -239,7 +239,7 @@
                                     <form method="post" action="{{ route('admin.whatsapp-supervisor.follow-ups.transition',['followUp'=>$followUp->id]) }}">
                                         @csrf @method('PATCH')<input type="hidden" name="status" value="completed"><button class="btn btn-sm btn-outline-success">{{ __('whatsapp_supervisor.complete') }}</button>
                                     </form>
-                                    @else<span class="badge bg-secondary">{{ $followUp->status }}</span>@endif
+                                    @else<span class="badge bg-secondary">{{ __('whatsapp_supervisor.follow_up_statuses.'.strtolower((string) $followUp->status)) }}</span>@endif
                                 </td>
                             </tr>
                         @empty<tr><td colspan="4" class="text-muted">{{ __('whatsapp_supervisor.no_data') }}</td></tr>@endforelse
@@ -272,7 +272,7 @@
                         <thead><tr><th>{{ __('whatsapp_supervisor.time') }}</th><th>{{ __('whatsapp_supervisor.event') }}</th><th>{{ __('whatsapp_supervisor.detail') }}</th><th>{{ __('whatsapp_supervisor.status') }}</th></tr></thead>
                         <tbody>
                         @forelse($timeline as $event)
-                            <tr><td class="text-nowrap">{{ $event['occurred_at'] }}</td><td><span class="badge bg-light text-dark">{{ __('whatsapp_supervisor.timeline_kinds.'.$event['kind']) }}</span> {{ $event['title'] }}</td><td>{{ $event['detail'] }}</td><td>{{ $event['status'] }}</td></tr>
+                            <tr><td class="text-nowrap">{{ $event['occurred_at'] }}</td><td><span class="badge bg-light text-dark">{{ __('whatsapp_supervisor.timeline_kinds.'.$event['kind']) }}</span> {{ $event['title'] }}</td><td>{{ $event['detail'] }}</td><td>{{ $event['status']===null?'-':__('whatsapp_supervisor.event_statuses.'.strtolower((string) $event['status'])) }}</td></tr>
                         @empty<tr><td colspan="4" class="text-muted">{{ __('whatsapp_supervisor.no_data') }}</td></tr>@endforelse
                         </tbody>
                     </table>
