@@ -88,6 +88,7 @@ final class ConnectionProfileManager
                 'health_status' => ConnectionHealthStatus::NEVER_TESTED,
                 'last_checked_at' => null,
                 'last_validated_at' => null,
+                'last_webhook_at' => null,
                 'last_provider_error' => null,
                 'health_summary' => null,
                 'validation_metadata' => null,
@@ -141,6 +142,9 @@ final class ConnectionProfileManager
                 'health_status' => ConnectionHealthStatus::NEVER_TESTED,
                 'last_checked_at' => null,
                 'last_validated_at' => null,
+                'last_webhook_at' => ($webhookVerifyToken !== '' || $webhookSigningSecret !== '')
+                    ? null
+                    : $locked->last_webhook_at,
                 'last_provider_error' => null,
                 'health_summary' => null,
                 'validation_metadata' => null,
