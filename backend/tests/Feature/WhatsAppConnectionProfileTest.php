@@ -17,12 +17,14 @@ use App\Models\User;
 use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
 use Database\Seeders\CoreReferenceSeeder;
+use DateTimeImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -376,7 +378,7 @@ final class FakeConnectionValidator implements ConnectionValidator
     public function validate(WhatsAppConnectionProfile $profile): ConnectionValidationResult
     {
         if ($this->throw) {
-            throw new \RuntimeException('provider unavailable');
+            throw new RuntimeException('provider unavailable');
         }
 
         return new ConnectionValidationResult(
@@ -388,7 +390,7 @@ final class FakeConnectionValidator implements ConnectionValidator
             capabilities: $this->valid ? ['messages'] : [],
             diagnosticCode: $this->valid ? 'ok' : 'invalid_credentials',
             message: $this->message ?? ($this->valid ? 'Provider connection validated.' : 'Credentials rejected.'),
-            checkedAt: new \DateTimeImmutable,
+            checkedAt: new DateTimeImmutable,
         );
     }
 }
