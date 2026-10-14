@@ -1,32 +1,46 @@
-# FOODEX 1.0.78 — Dashboard Update Release Notes
+# FOODEX 1.0.79 — WhatsApp CRM GA Release Notes
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.78`.
-- Customer source identity: `1.0.78+78`.
-- Driver source identity: `1.0.78+78`.
-- Van source identity: `1.0.78+78`.
-- The mobile identity synchronization satisfies the repository release-line contract; this 1.0.78 change does not introduce new Customer, Driver, or Van product behavior.
-- The Dashboard Update ZIP remains independently deployable and does not contain `apps/**` mobile source files.
+- Dashboard / repository release: `1.0.79`.
+- Customer source identity: `1.0.79+79`.
+- Driver source identity: `1.0.79+79`.
+- Van source identity: `1.0.79+79`.
+- WhatsApp CRM certification: `FOODEX-WHATSAPP-CRM-GA-1407-V1`.
+- Certification matrix: 20/20 PASS with zero unresolved P0/P1 risks.
 
-## Dashboard scope
+## WhatsApp CRM GA scope
 
-- Make `/admin/operations/orders` the canonical order-management surface.
-- Preserve strict server-side B2B/B2C channel and store isolation: B2B operators cannot read or mutate B2C orders, and Retail operators cannot read or mutate B2B orders.
-- Redirect the legacy B2B/B2C Orders pages to the canonical Operations view while retaining backward-compatible mutation endpoints.
-- Keep order actions under the contextual three-dot menu and only expose actions permitted by the order state and the actor's manage, dispatch, and finance scopes.
-- Preserve B2B Van fulfillment and B2C Driver fulfillment.
-- Add safe pending-order editing through `AdminOrderManagementService`, including authoritative re-pricing and stock validation.
-- Add regression coverage for cross-channel denial, canonical redirects, multi-channel switching, and contextual action rendering.
+- Provider-neutral WhatsApp architecture with the Meta Cloud adapter, durable webhook inbox, queued outbound transport, bounded retry, failure visibility and idempotency.
+- Dynamic connection profiles with encrypted credentials, health validation, atomic primary-number switching and RECEIVE_ONLY / DRAIN migration behavior.
+- Customer Service Agent/Supervisor RBAC, assignment/reassignment, unassigned queue, shared inbox, internal notes, tags, SLA and Customer 360.
+- Dashboard-global inbound-message popup for the responsible Customer Service user, including exact-conversation deep link, RBAC/store isolation and replay deduplication.
+- Optional transactional notifications for order, invoice, payment, refund and cancellation events.
+- Template registry, segmentation, campaigns, consent ledger, opt-out suppression and campaign metrics.
+- Supervisor analytics, lead state, follow-ups and unified customer timeline.
+
+## Production safety
+
+- The module remains `DISABLED` by default after deployment.
+- The emergency outbound stop remains authoritative and is re-engaged during GA_READY certification.
+- Certification never performs production activation.
+- Production `ENABLED` still requires a separate explicit authorized Super Admin action after a valid connection profile is configured/tested and the emergency stop is deliberately cleared.
+- Core FOODEX boot, orders, payments, customers, migrations and release processing do not require Meta/WhatsApp credentials.
+- WhatsApp/provider outages remain isolated from core FOOD transactions.
+
+## Additional Dashboard scope
+
+- Include #1433 searchable single-product Sales Control instead of expanding all products, preserving strict store/RBAC scoping.
 
 ## Deployment and rollback
 
-- Dashboard-only server update package.
-- No database migrations are introduced by #1426.
-- Rollback anchor: branch `rollback/1.0.77-pre-unified-orders`.
-- Rollback baseline SHA: `194c9f0ccfba6be8e45ce7d1f62d6b1e265c5a2f`.
-- If 1.0.78 is rolled back before any later schema-changing release, restore the 1.0.77 Dashboard code package/baseline; no database downgrade is required for this change.
+- This release contains additive WhatsApp CRM database migrations.
+- The generated Dashboard update must include the migrations and all WhatsApp runtime/configuration files.
+- Default-disabled behavior is the first rollback safeguard: deploying 1.0.79 does not create outbound WhatsApp traffic by itself.
+- If code rollback is required, use the normal FOODEX updater/recovery path and preserve conversation/audit data unless an explicit data-removal procedure is separately approved.
+- Customer, Driver and Van identities are synchronized for the release contract; no new mobile product behavior is introduced by the WhatsApp promotion.
 
-## Publication contract
+## Validation contract
 
-The generated `FOODEX-Update.zip`, manifest, file list, and SHA-256 checksum must come from the canonical update workflow on the exact validated 1.0.78 source lineage. Generated artifacts must not be hand-edited or relabeled.
+- Repository Policy, Required CI, localization, backend full tests, MySQL/Redis production acceptance, Store Readiness, Update Bundle validation and required visual evidence must pass on the exact promotion head.
+- The final merge to `main` must be exact-head and may not bypass any failing release gate.
