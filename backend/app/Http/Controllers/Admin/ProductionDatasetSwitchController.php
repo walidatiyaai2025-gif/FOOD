@@ -21,6 +21,7 @@ use Throwable;
 final class ProductionDatasetSwitchController extends Controller
 {
     public const LAUNCH_CONFIRMATION = 'SWITCH TO FOODEX LAUNCH';
+
     public const LEGACY_CONFIRMATION = 'RESTORE LEGACY DATA';
 
     public function index(Request $request, ProductionDatasetSnapshot $snapshot, FoodexResetService $reset): View
@@ -80,7 +81,11 @@ final class ProductionDatasetSwitchController extends Controller
         } finally {
             $request->session()->forget('launch_reset_operation');
             if ($enteredMaintenance && app()->isDownForMaintenance()) {
-                try { $runtime->exitMaintenanceMode(); } catch (Throwable $exception) { report($exception); }
+                try {
+                    $runtime->exitMaintenanceMode();
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
             }
         }
 
@@ -101,12 +106,13 @@ final class ProductionDatasetSwitchController extends Controller
             report($exception);
             throw ValidationException::withMessages(['switch' => __('production_dataset_switch.errors.restore_failed')]);
         }
+
         return redirect()->route('admin.production-dataset-switch.index')->with('status', __('production_dataset_switch.legacy_success'));
     }
 
     private function validateConfirmation(Request $request, string $phrase): void
     {
-        $data = $request->validate(['confirmation'=>['required','string'],'current_password'=>['required','string'],'understood'=>['accepted']]);
+        $data = $request->validate(['confirmation' => ['required', 'string'], 'current_password' => ['required', 'string'], 'understood' => ['accepted']]);
         if (! hash_equals($phrase, $data['confirmation'])) {
             throw ValidationException::withMessages(['confirmation' => __('production_dataset_switch.errors.confirmation')]);
         }
@@ -119,7 +125,8 @@ final class ProductionDatasetSwitchController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User && $actor->is_active && $actor->hasRole('SUPER_ADMIN'), 403);
-        app()->setLocale(in_array($actor->locale, ['ar','en'], true) ? $actor->locale : 'ar');
+        app()->setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
+
         return $actor;
     }
 
