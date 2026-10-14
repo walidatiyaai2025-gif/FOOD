@@ -142,7 +142,7 @@
                                 <h2>{{ __('chatbot.preview.support_title') }}</h2>
                                 <div class="cbp-card cbp-hero">{{ __('chatbot.preview.support_hint') }}</div>
                                 <div class="cbp-grid">
-                                    @foreach(['missing_item','damaged_item','delivery_problem'] as $issue)<button class="cbp-action" type="button" disabled><strong>{{ __('chatbot.customer.'.$issue) }}</strong></button>@endforeach
+                                    @foreach(['missing_item','damaged_item','incorrect_quantity','delivery_problem','invoice_problem','other_problem'] as $issue)<button class="cbp-action" type="button" disabled><strong>{{ __('chatbot.customer.'.$issue) }}</strong></button>@endforeach
                                     <button class="cbp-action" type="button" disabled><strong>{{ __('chatbot.customer.human_handoff') }}</strong></button>
                                 </div>
                             @endif
