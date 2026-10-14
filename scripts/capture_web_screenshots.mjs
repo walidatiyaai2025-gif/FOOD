@@ -8,6 +8,7 @@ const screenshotRoot = path.join(root, 'ScreenShots');
 
 const b2b = [
   ['12_whatsapp_foundation', '/admin/settings/whatsapp'],
+  ['13_whatsapp_agent_inbox', '/admin/whatsapp/inbox'],
   ['02_لوحة_التحكم_الرئيسية', '/admin/b2b/dashboard'],
   ['03_إدارة_المتاجر_وفروع_الجملة', '/admin/b2b/stores'],
   ['04_إدارة_عملاء_الجملة_B2B', '/admin/b2b/clients'],
