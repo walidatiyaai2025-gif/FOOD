@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Schema;
 
 final class ChatbotRuntimePolicy
 {
-    public function __construct(private readonly RuntimePolicy $whatsAppRuntime) {}
+    public function __construct(
+        private readonly RuntimePolicy $whatsAppRuntime,
+        private readonly ChatbotSegmentationService $segmentation,
+    ) {}
 
     /** @return array<string, mixed> */
     public function settings(): array
@@ -25,6 +28,8 @@ final class ChatbotRuntimePolicy
         return [
             'id' => (int) $row->id,
             'enabled' => (bool) $row->enabled,
+            'lifecycle' => strtoupper((string) ($row->lifecycle ?? 'DISABLED')),
+            'pilot_segment_codes' => $this->decodeList($row->pilot_segment_codes ?? null),
             'emergency_stop' => (bool) $row->emergency_stop,
             'mode' => (string) $row->mode,
             'default_locale' => (string) $row->default_locale,
@@ -47,8 +52,11 @@ final class ChatbotRuntimePolicy
     public function enabled(): bool
     {
         $settings = $this->settings();
+        $lifecycle = strtoupper((string) ($settings['lifecycle'] ?? 'DISABLED'));
 
-        return (bool) $settings['enabled'] && ! (bool) $settings['emergency_stop'];
+        return (bool) $settings['enabled']
+            && in_array($lifecycle, ['INTERNAL_TEST', 'PILOT', 'ENABLED'], true)
+            && ! (bool) $settings['emergency_stop'];
     }
 
     public function mode(): string
@@ -74,11 +82,7 @@ final class ChatbotRuntimePolicy
         }
 
         $conversation = DB::table('whats_app_conversations')->where('id', $conversationId)->first();
-        if ($conversation === null) {
-            return false;
-        }
-
-        if ($conversation->primary_agent_id !== null) {
+        if ($conversation === null || $conversation->primary_agent_id !== null) {
             return false;
         }
 
@@ -87,15 +91,25 @@ final class ChatbotRuntimePolicy
                 ->where('conversation_id', $conversationId)
                 ->first();
 
-            if ($session !== null && ((bool) $session->human_takeover || (string) $session->state === 'PAUSED')) {
+            if ($session !== null && ((bool) $session->human_takeover || in_array((string) $session->state, ['PAUSED', 'HANDOFF'], true))) {
                 return false;
             }
         }
 
+        $platformCustomerId = $conversation->platform_customer_id === null
+            ? null
+            : (int) $conversation->platform_customer_id;
+
+        if (strtoupper((string) $settings['lifecycle']) === 'PILOT'
+            && ! $this->customerMatchesPilot($platformCustomerId, $settings['pilot_segment_codes'])) {
+            return false;
+        }
+
         $recipient = $conversation->external_participant_phone ?? null;
-        if ($conversation->platform_customer_id !== null) {
+        if ($platformCustomerId !== null) {
             $recipient = DB::table('platform_customers')
-                ->where('id', $conversation->platform_customer_id)
+                ->where('id', $platformCustomerId)
+                ->where('is_active', true)
                 ->value('phone') ?? $recipient;
         }
 
@@ -128,12 +142,51 @@ final class ChatbotRuntimePolicy
         return $current >= $from || $current < $to;
     }
 
+    /** @param list<string> $pilotSegmentCodes */
+    private function customerMatchesPilot(?int $platformCustomerId, array $pilotSegmentCodes): bool
+    {
+        if ($platformCustomerId === null || $pilotSegmentCodes === []) {
+            return false;
+        }
+
+        return array_intersect(
+            $pilotSegmentCodes,
+            $this->segmentation->codesFor($platformCustomerId),
+        ) !== [];
+    }
+
+    /** @return list<string> */
+    private function decodeList(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_unique(array_filter(
+                $value,
+                static fn (mixed $item): bool => is_string($item) && trim($item) !== '',
+            )));
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded)
+            ? array_values(array_unique(array_filter(
+                $decoded,
+                static fn (mixed $item): bool => is_string($item) && trim($item) !== '',
+            )))
+            : [];
+    }
+
     /** @return array<string, mixed> */
     private function defaults(): array
     {
         return [
             'id' => null,
             'enabled' => false,
+            'lifecycle' => 'DISABLED',
+            'pilot_segment_codes' => [],
             'emergency_stop' => false,
             'mode' => 'hybrid',
             'default_locale' => 'ar',
