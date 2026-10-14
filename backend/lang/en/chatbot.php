@@ -180,6 +180,9 @@ return [
         'support_title' => 'Issue type',
         'missing_item' => 'Missing item',
         'damaged_item' => 'Damaged item',
+        'incorrect_quantity' => 'Incorrect quantity',
+        'invoice_problem' => 'Invoice problem',
+        'other_problem' => 'Other problem',
         'delivery_problem' => 'Delivery problem',
         'handoff_confirmed' => 'The conversation has been handed to Customer Service. The bot will not send autonomous replies while an agent owns the conversation.',
         'statuses' => [
