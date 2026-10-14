@@ -261,7 +261,6 @@ final class WhatsAppProviderTransportTest extends TestCase
             'next_retry_at' => now()->subSecond(),
         ]);
 
-
         $this->assertSame(1, app(TransportRetryService::class)->dispatchDue());
         $this->assertDatabaseHas('whats_app_outbound_dispatches', [
             'id' => $dispatchId,
