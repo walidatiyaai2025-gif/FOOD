@@ -5,7 +5,6 @@ namespace App\Domain\WhatsApp;
 use App\Models\WhatsAppConnectionProfile;
 use DateTimeImmutable;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
