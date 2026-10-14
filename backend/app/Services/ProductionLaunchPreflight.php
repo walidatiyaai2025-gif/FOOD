@@ -251,7 +251,8 @@ final class ProductionLaunchPreflight
      *     van_version:?string,
      *     customer_build_number:?int,
      *     driver_build_number:?int,
-     *     van_build_number:?int
+     *     van_build_number:?int,
+     *     lineage_source:string
      * }
      */
     public function releaseMetadata(): array
