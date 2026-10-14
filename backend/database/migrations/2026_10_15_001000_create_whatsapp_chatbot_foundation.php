@@ -99,6 +99,23 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('whats_app_chatbot_cases', function (Blueprint $table): void {
+            $table->id();
+            $table->uuid('public_id')->unique();
+            $table->foreignId('conversation_id')->constrained('whats_app_conversations')->cascadeOnDelete();
+            $table->foreignId('platform_customer_id')->nullable()->constrained('platform_customers')->nullOnDelete();
+            $table->foreignId('order_id')->nullable()->constrained('orders')->nullOnDelete();
+            $table->string('type', 64)->index();
+            $table->string('status', 24)->default('open')->index();
+            $table->string('priority', 16)->default('normal')->index();
+            $table->text('description')->nullable();
+            $table->json('attachment_metadata')->nullable();
+            $table->foreignId('assigned_agent_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('resolved_at')->nullable();
+            $table->timestamps();
+            $table->index(['platform_customer_id', 'status'], 'wa_chatbot_case_customer_status_idx');
+        });
+
         Schema::create('whats_app_chatbot_events', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('conversation_id')->nullable()->constrained('whats_app_conversations')->nullOnDelete();
@@ -223,6 +240,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('whats_app_chatbot_events');
+        Schema::dropIfExists('whats_app_chatbot_cases');
         Schema::dropIfExists('whats_app_chatbot_sessions');
         Schema::dropIfExists('whats_app_chatbot_segments');
         Schema::dropIfExists('whats_app_chatbot_flow_versions');
