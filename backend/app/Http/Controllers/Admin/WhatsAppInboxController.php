@@ -54,9 +54,9 @@ final class WhatsAppInboxController extends Controller
             $search = trim((string) $filters['q']);
             $query->where(function (Builder $nested) use ($search): void {
                 $nested
-                    ->where('customers.name', 'like', "%{$search}%")
-                    ->orWhere('customers.email', 'like', "%{$search}%")
-                    ->orWhere('customers.phone', 'like', "%{$search}%");
+                    ->where('customers.name', 'like', '%' . $search . '%')
+                    ->orWhere('customers.email', 'like', '%' . $search . '%')
+                    ->orWhere('customers.phone', 'like', '%' . $search . '%');
             });
         }
 
@@ -82,7 +82,7 @@ final class WhatsAppInboxController extends Controller
         }
 
         $conversationList = $query
-            ->orderByRaw("CASE WHEN conversations.primary_agent_id IS NULL THEN 0 ELSE 1 END")
+            ->orderByRaw('CASE WHEN conversations.primary_agent_id IS NULL THEN 0 ELSE 1 END')
             ->orderByDesc('conversations.priority')
             ->orderByRaw('CASE WHEN conversations.waiting_since IS NULL THEN 1 ELSE 0 END')
             ->orderBy('conversations.waiting_since')
@@ -435,7 +435,7 @@ final class WhatsAppInboxController extends Controller
         ?int $customerId,
         array $allowedStoreIds,
         User $actor,
-    ): ?array {
+    ): ?array\n    {
 
         if ($customerId === null) {
             return null;
