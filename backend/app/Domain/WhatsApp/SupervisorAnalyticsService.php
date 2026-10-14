@@ -42,8 +42,7 @@ final class SupervisorAnalyticsService
         $agentId = ! empty($filters['agent_id']) ? (int) $filters['agent_id'] : null;
 
         $conversationQuery = DB::table('whats_app_conversations')
-            ->whereIn('store_id', $storeIds)
-            ->whereBetween('created_at', [$from, $to]);
+            ->whereIn('store_id', $storeIds);
         if ($agentId !== null) {
             $conversationQuery->where('primary_agent_id', $agentId);
         }
@@ -57,12 +56,16 @@ final class SupervisorAnalyticsService
         $firstResponseDurations = [];
         $resolutionDurations = [];
         foreach ($conversations as $conversation) {
-            if ($conversation->first_inbound_at !== null && $conversation->first_agent_response_at !== null) {
-                $firstResponseDurations[] = Carbon::parse((string) $conversation->first_inbound_at)
+            if ($conversation->first_inbound_at !== null
+                && $conversation->first_agent_response_at !== null
+                && Carbon::parse((string) $conversation->first_agent_response_at)->betweenIncluded($from, $to)) {
+                $firstResponseDurations[] = (int) Carbon::parse((string) $conversation->first_inbound_at)
                     ->diffInSeconds(Carbon::parse((string) $conversation->first_agent_response_at));
             }
-            if ($conversation->first_inbound_at !== null && $conversation->resolved_at !== null) {
-                $resolutionDurations[] = Carbon::parse((string) $conversation->first_inbound_at)
+            if ($conversation->first_inbound_at !== null
+                && $conversation->resolved_at !== null
+                && Carbon::parse((string) $conversation->resolved_at)->betweenIncluded($from, $to)) {
+                $resolutionDurations[] = (int) Carbon::parse((string) $conversation->first_inbound_at)
                     ->diffInSeconds(Carbon::parse((string) $conversation->resolved_at));
             }
         }
@@ -76,6 +79,7 @@ final class SupervisorAnalyticsService
             ? collect()
             : DB::table('whats_app_conversation_outcomes')
                 ->whereIn('conversation_id', $conversationIds)
+                ->whereBetween('recorded_at', [$from, $to])
                 ->select('outcome_code', DB::raw('COUNT(*) as total'))
                 ->groupBy('outcome_code')
                 ->orderByDesc('total')
@@ -151,7 +155,7 @@ final class SupervisorAnalyticsService
                 continue;
             }
 
-            $durations[] = $pending[$conversationId]->diffInSeconds($occurred);
+            $durations[] = (int) $pending[$conversationId]->diffInSeconds($occurred);
             unset($pending[$conversationId]);
         }
 
