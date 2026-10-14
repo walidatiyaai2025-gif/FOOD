@@ -44,10 +44,24 @@ final class ChatbotAutomationService
 
         $settings = $this->runtime->settings();
         $this->currentMetadata = $metadata;
-        $classification = $this->intents->classify($body, $metadata);
-        $intent = $classification['intent'];
-        $confidence = $classification['confidence'];
+        $actionRequest = $this->intents->interpret($body, $metadata);
+        $intent = $actionRequest->intent;
+        $confidence = $actionRequest->confidence;
         $mode = $this->runtime->mode();
+
+        $this->analytics->record(
+            'action_interpreted',
+            $conversationId,
+            $platformCustomerId,
+            $this->featureForIntent($intent),
+            $intent,
+            $confidence,
+            [
+                'requested_action' => $actionRequest->requestedAction,
+                'requires_confirmation' => $actionRequest->requiresConfirmation,
+                'entities' => $actionRequest->entities,
+            ],
+        );
 
         if ($mode === 'menu' && ! isset($metadata['interactive_id']) && ! $this->menuTextAllowed((string) $body)) {
             $intent = 'home';
