@@ -6,14 +6,14 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\ProductionDatasetSnapshot;
 use Database\Seeders\CoreReferenceSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ProductionDatasetSnapshotTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     private string $metadataPath;
 
