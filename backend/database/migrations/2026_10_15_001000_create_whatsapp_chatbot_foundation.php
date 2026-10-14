@@ -62,6 +62,17 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('whats_app_chatbot_flow_versions', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('flow_id')->constrained('whats_app_chatbot_flows')->cascadeOnDelete();
+            $table->unsignedInteger('version');
+            $table->string('status', 24);
+            $table->json('definition');
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+            $table->unique(['flow_id', 'version']);
+        });
+
         Schema::create('whats_app_chatbot_segments', function (Blueprint $table): void {
             $table->id();
             $table->string('code', 64)->unique();
@@ -92,6 +103,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('conversation_id')->nullable()->constrained('whats_app_conversations')->nullOnDelete();
             $table->foreignId('platform_customer_id')->nullable()->constrained('platform_customers')->nullOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('event_type', 64)->index();
             $table->string('feature_code', 64)->nullable()->index();
             $table->string('intent', 64)->nullable()->index();
@@ -213,6 +225,7 @@ return new class extends Migration
         Schema::dropIfExists('whats_app_chatbot_events');
         Schema::dropIfExists('whats_app_chatbot_sessions');
         Schema::dropIfExists('whats_app_chatbot_segments');
+        Schema::dropIfExists('whats_app_chatbot_flow_versions');
         Schema::dropIfExists('whats_app_chatbot_flows');
         Schema::dropIfExists('whats_app_chatbot_features');
         Schema::dropIfExists('whats_app_chatbot_settings');
