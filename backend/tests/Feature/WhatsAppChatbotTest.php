@@ -283,6 +283,12 @@ final class WhatsAppChatbotTest extends TestCase
             $events[0]->body,
             $events[0]->metadata,
         )['intent']);
+
+        $action = app(ChatbotIntentService::class)->interpret($events[0]->body, $events[0]->metadata);
+        $this->assertSame('add_product', $action->intent);
+        $this->assertSame('update_order_draft', $action->requestedAction);
+        $this->assertTrue($action->requiresConfirmation);
+        $this->assertSame(42, $action->entities['product_id']);
     }
 
     public function test_guided_product_choice_updates_real_customer_cart_as_a_draft(): void
