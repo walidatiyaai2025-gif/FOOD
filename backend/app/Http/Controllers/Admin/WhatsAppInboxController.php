@@ -192,6 +192,12 @@ final class WhatsAppInboxController extends Controller
             ],
         ]);
 
+        $this->conversations->conversationForActor(
+            $conversation,
+            $actor,
+            'whatsapp.conversations.reply',
+        );
+
         $attachmentMetadata = [];
         $attachment = $request->file('attachment');
         if ($attachment instanceof UploadedFile) {
