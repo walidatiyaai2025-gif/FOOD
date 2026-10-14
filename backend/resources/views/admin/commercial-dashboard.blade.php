@@ -804,6 +804,7 @@
         const results = salesProductSelector.querySelector('[data-sales-product-results]');
         const noResults = salesProductSelector.dataset.noResults || '';
         const searchError = salesProductSelector.dataset.searchError || '';
+        const selectedLabel = input?.defaultValue.trim() || '';
         let searchTimer = null;
         let searchRequest = null;
 
@@ -864,7 +865,8 @@
             searchRequest = new AbortController();
 
             const url = new URL(salesProductSelector.dataset.searchUrl || window.location.href, window.location.origin);
-            url.searchParams.set('q', input.value.trim());
+            const query = input.value.trim();
+            url.searchParams.set('q', selectedLabel !== '' && query === selectedLabel ? '' : query);
 
             try {
                 const response = await fetch(url.toString(), {
@@ -885,6 +887,7 @@
             searchTimer = window.setTimeout(searchProducts, 180);
         });
         input?.addEventListener('focus', () => {
+            if (selectedLabel !== '' && input.value.trim() === selectedLabel) input.select();
             if (results?.hidden) searchProducts();
         });
         input?.addEventListener('keydown', (event) => {
