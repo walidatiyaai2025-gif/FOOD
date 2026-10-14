@@ -428,7 +428,8 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertSee('اتصال واتساب')
             ->assertSee('طلب إذن اتصال')
             ->assertSee('مكالمة واتساب واردة')
-            ->assertSee(route('admin.whatsapp-calls.feed'), false);
+            ->assertSee('wa-call-tools', false)
+            ->assertSee('wa-call-answer', false);
     }
 
     public function test_agent_status_capacity_change_is_audited_through_operational_route(): void
