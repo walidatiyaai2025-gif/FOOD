@@ -20,7 +20,10 @@ final class WebhookIngress
         array $payload,
         string $rawPayload,
     ): ?int {
-        if (! $this->policy->allowsInbound() || ! $this->acceptsInbound($profile)) {
+        $callWebhook = $this->containsCallChanges($payload);
+        if ((! $this->policy->allowsInbound()
+                && ! ($callWebhook && $this->policy->allowsCallWebhooks()))
+            || ! $this->acceptsInbound($profile)) {
             return null;
         }
 
@@ -56,6 +59,24 @@ final class WebhookIngress
             ->onQueue((string) config('whatsapp.transport.queue', 'whatsapp'));
 
         return $eventId;
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function containsCallChanges(array $payload): bool
+    {
+        foreach (($payload['entry'] ?? []) as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+            foreach (($entry['changes'] ?? []) as $change) {
+                if (is_array($change)
+                    && strtolower((string) ($change['field'] ?? '')) === 'calls') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function acceptsInbound(WhatsAppConnectionProfile $profile): bool
