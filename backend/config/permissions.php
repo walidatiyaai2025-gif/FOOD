@@ -7,6 +7,15 @@ return [
         'whatsapp.lifecycle' => 'Change WhatsApp test lifecycle',
         'whatsapp.emergency' => 'Control the global WhatsApp emergency stop',
         'whatsapp.activate' => 'Activate certified WhatsApp production messaging',
+        'whatsapp.inbox.view' => 'View WhatsApp shared inbox',
+        'whatsapp.conversations.view' => 'View WhatsApp conversations in authorized scope',
+        'whatsapp.conversations.reply' => 'Create provider-neutral WhatsApp reply records',
+        'whatsapp.conversations.assign' => 'Assign unassigned WhatsApp conversations',
+        'whatsapp.conversations.reassign' => 'Reassign WhatsApp conversations',
+        'whatsapp.internal_notes.manage' => 'Manage WhatsApp internal notes',
+        'whatsapp.customer_service.supervise' => 'Supervise WhatsApp customer service',
+        'whatsapp.agent_status.manage' => 'Manage WhatsApp Agent status and capacity',
+        'whatsapp.assignment_rules.manage' => 'Manage WhatsApp assignment rules',
         'platform.manage' => 'Manage platform-wide settings and permissions',
         'security.view' => 'View users, roles and the effective permission matrix',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
@@ -86,6 +95,18 @@ return [
 
     'roles' => [
         'SUPER_ADMIN' => ['*'],
+        'CUSTOMER_SERVICE_AGENT' => [
+            'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
+            'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
+            'stores.view', 'customers.view', 'orders.view',
+        ],
+        'CUSTOMER_SERVICE_SUPERVISOR' => [
+            'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
+            'whatsapp.conversations.assign', 'whatsapp.conversations.reassign',
+            'whatsapp.internal_notes.manage', 'whatsapp.customer_service.supervise',
+            'whatsapp.agent_status.manage', 'whatsapp.assignment_rules.manage',
+            'stores.view', 'customers.view', 'orders.view',
+        ],
         'B2B_ADMIN' => [
             'stores.view',
             'b2b.accounts.view', 'b2b.accounts.manage', 'b2b.pricing.view', 'b2b.pricing.manage',
@@ -129,6 +150,7 @@ return [
         'CUSTOMER_SUPPORT' => [
             'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
             'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
+            'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'RETAIL_OPERATIONS' => [
             'assistant.use', 'orders.view', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
@@ -142,6 +164,7 @@ return [
         'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
             'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
+            'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],
         'B2C_DRIVER' => ['deliveries.b2c.execute'],
