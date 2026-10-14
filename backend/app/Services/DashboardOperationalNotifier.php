@@ -365,7 +365,7 @@ final class DashboardOperationalNotifier
                     'payment_id' => (int) $payment->getKey(),
                     'payment_status' => $to,
                     'from_payment_status' => $from,
-                    'amount' => $payment->amount === null ? null : (float) $payment->amount,
+                    'amount' => (float) $payment->amount,
                     'currency' => (string) ($payment->currency ?? $order->currency),
                 ],
             );
