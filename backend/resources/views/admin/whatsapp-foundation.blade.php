@@ -15,7 +15,7 @@
         @include('admin._admin-center-switcher', ['active'=>'administration'])
         <header class="foodex-page-header">
             <div><h1>{{ __('whatsapp.title') }}</h1><p>{{ __('whatsapp.description') }}</p></div>
-            <div class="foodex-header-actions"><a class="primary" href="{{ route('admin.administration.index') }}">{{ __('whatsapp.back') }}</a></div>
+            <div class="foodex-header-actions"><a class="action" href="{{ route('admin.whatsapp.connections.index') }}">{{ __('whatsapp.connections.title') }}</a><a class="primary" href="{{ route('admin.administration.index') }}">{{ __('whatsapp.back') }}</a></div>
         </header>
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
