@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
+use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Admin\WhatsAppInboxController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
@@ -123,6 +124,14 @@ Route::prefix('admin')
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
+        Route::get('/settings/whatsapp/connections', [WhatsAppConnectionController::class, 'index'])->name('whatsapp.connections.index');
+        Route::post('/settings/whatsapp/connections', [WhatsAppConnectionController::class, 'store'])->middleware('throttle:30,1')->name('whatsapp.connections.store');
+        Route::patch('/settings/whatsapp/connections/{profile}', [WhatsAppConnectionController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.connections.update');
+        Route::put('/settings/whatsapp/connections/{profile}/credential', [WhatsAppConnectionController::class, 'replaceCredential'])->middleware('throttle:20,1')->name('whatsapp.connections.credential');
+        Route::post('/settings/whatsapp/connections/{profile}/validate', [WhatsAppConnectionController::class, 'validateConnection'])->middleware('throttle:20,1')->name('whatsapp.connections.validate');
+        Route::post('/settings/whatsapp/connections/{profile}/primary', [WhatsAppConnectionController::class, 'switchPrimary'])->middleware('throttle:10,1')->name('whatsapp.connections.primary');
+        Route::post('/settings/whatsapp/connections/{profile}/receive-only', [WhatsAppConnectionController::class, 'receiveOnly'])->middleware('throttle:20,1')->name('whatsapp.connections.receive-only');
+        Route::post('/settings/whatsapp/connections/{profile}/deactivate', [WhatsAppConnectionController::class, 'deactivate'])->middleware('throttle:20,1')->name('whatsapp.connections.deactivate');
         Route::prefix('whatsapp/inbox')
             ->name('whatsapp-inbox.')
             ->middleware('whatsapp.capability:agent_inbox')
