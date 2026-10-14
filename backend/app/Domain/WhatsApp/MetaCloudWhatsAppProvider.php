@@ -278,7 +278,7 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
             $media = [];
             $mediaId = trim((string) ($message->metadata['media_id'] ?? ''));
             $mediaLink = trim((string) ($message->metadata['link'] ?? ''));
-            if ($mediaId === '' && $mediaLink === '' && !empty($message->metadata['local_path'])) {
+            if ($mediaId === '' && $mediaLink === '' && ! empty($message->metadata['local_path'])) {
                 $mediaId = $this->media->uploadToMeta($profile, $message->metadata);
             }
 
