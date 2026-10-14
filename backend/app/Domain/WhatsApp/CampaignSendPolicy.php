@@ -79,7 +79,6 @@ final class CampaignSendPolicy
                     return;
                 }
             }
-
         }, 3);
 
         if ($pauseReason !== null) {
