@@ -3,7 +3,6 @@
 namespace App\Domain\WhatsApp;
 
 use App\Models\WhatsAppConnectionProfile;
-use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
