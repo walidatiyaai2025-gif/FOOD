@@ -243,7 +243,9 @@ final class WhatsAppProviderTransportTest extends TestCase
         );
 
         Http::fake([
-            'https://graph.facebook.com/*' => Http::response(['error' => ['message' => 'temporary']], 503),
+            'https://graph.facebook.com/*' => Http::sequence()
+                ->push(['error' => ['message' => 'temporary']], 503)
+                ->push(['messages' => [['id' => 'wamid.retry-success']]], 200),
         ]);
 
         $dispatchId = app(OutboundMessageDispatcher::class)->queue($messageId);
@@ -259,11 +261,6 @@ final class WhatsAppProviderTransportTest extends TestCase
             'next_retry_at' => now()->subSecond(),
         ]);
 
-        Http::fake([
-            'https://graph.facebook.com/*' => Http::response([
-                'messages' => [['id' => 'wamid.retry-success']],
-            ], 200),
-        ]);
 
         $this->assertSame(1, app(TransportRetryService::class)->dispatchDue());
         $this->assertDatabaseHas('whats_app_outbound_dispatches', [
