@@ -176,7 +176,8 @@ final class StorefrontDraftEditorService
         $key = trim((string) ($section['key'] ?? ''));
 
         foreach ($sections as $existing) {
-            if (is_array($existing) && (string) ($existing['key'] ?? '') === $key) {
+            if (is_array($existing)
+                && strcasecmp(trim((string) ($existing['key'] ?? '')), $key) === 0) {
                 throw ValidationException::withMessages([
                     'section_key' => ['Section key already exists in this storefront Draft.'],
                 ]);
@@ -215,7 +216,7 @@ final class StorefrontDraftEditorService
         foreach ($sections as $candidateIndex => $existing) {
             if ($candidateIndex !== $index
                 && is_array($existing)
-                && (string) ($existing['key'] ?? '') === $key) {
+                && strcasecmp(trim((string) ($existing['key'] ?? '')), $key) === 0) {
                 throw ValidationException::withMessages([
                     'section_key' => ['Section key already exists in this storefront Draft.'],
                 ]);

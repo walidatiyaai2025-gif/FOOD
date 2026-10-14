@@ -7,6 +7,7 @@ use App\Models\DriverAssignment;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 final class DriverDeliveryEvidenceService
 {
@@ -85,7 +86,8 @@ final class DriverDeliveryEvidenceService
             ->get()
             ->map(function ($proof) use ($assignment): array {
                 /** @var DeliveryProof $proof */
-                $hasImage = is_string($proof->file_path) && trim($proof->file_path) !== '';
+                $proofPath = is_string($proof->file_path) ? trim($proof->file_path) : '';
+                $hasImage = $proofPath !== '' && Storage::disk('public')->exists($proofPath);
 
                 return [
                     'id' => (int) $proof->getKey(),

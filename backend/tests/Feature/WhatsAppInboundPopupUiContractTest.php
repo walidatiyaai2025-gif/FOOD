@@ -15,6 +15,7 @@ final class WhatsAppInboundPopupUiContractTest extends TestCase
         $this->assertIsString($popup);
         $this->assertStringContainsString("@include('admin._whatsapp-inbound-popup')", $brand);
         $this->assertStringContainsString('foodex-whatsapp-inbound-popup-runtime', $popup);
+        $this->assertStringContainsString('allowsAgentInbox()', $popup);
         $this->assertStringContainsString('position:fixed', $popup);
         $this->assertStringContainsString('place-items:center', $popup);
         $this->assertStringContainsString('background:color-mix(in srgb,var(--foodex-red) 9%,var(--foodex-surface))', $popup);

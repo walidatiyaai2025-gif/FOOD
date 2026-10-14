@@ -8,8 +8,10 @@ use App\Domain\WhatsApp\MarketingConsentService;
 use App\Domain\WhatsApp\OutboundPaused;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Http\Middleware\EnsureWhatsAppCapability;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\WhatsAppModuleState;
+use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -110,6 +112,33 @@ final class WhatsAppCampaignTest extends TestCase
             'platform_customer_id' => $second,
             'suppression_reason' => 'test_allowlist',
         ]);
+    }
+
+    public function test_campaign_dashboard_renders_in_current_admin_shell_and_marketing_navigation(): void
+    {
+        $this->enableCampaigns(['+96550000111']);
+
+        $admin = User::factory()->create([
+            'name' => 'Campaign Admin',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-campaigns.index'))
+            ->assertOk()
+            ->assertSee('WhatsApp Campaigns')
+            ->assertSee('foodex-admin-layout', false);
+
+        $marketing = collect(app(AdminNavigation::class)->groupsFor($admin))
+            ->firstWhere('key', 'marketing');
+
+        $this->assertIsArray($marketing);
+        $this->assertContains(
+            'whatsapp_campaigns',
+            array_column($marketing['children'], 'key'),
+        );
     }
 
     public function test_campaign_capability_is_fail_closed_for_route_and_scheduler(): void

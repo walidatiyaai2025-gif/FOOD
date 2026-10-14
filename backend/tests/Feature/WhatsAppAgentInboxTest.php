@@ -10,8 +10,10 @@ use App\Models\User;
 use App\Models\WhatsAppModuleState;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -365,6 +367,71 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertSee('Shared Customer Service Inbox');
     }
 
+    public function test_inbox_can_send_render_and_securely_open_an_attachment(): void
+    {
+        Storage::fake('local');
+
+        $store = $this->store('B2B', 'WA-ATTACHMENT');
+        $customer = $this->customer($store, 'b2b', 'Attachment Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $admin = $this->globalUser('SUPER_ADMIN', 'Attachment Admin');
+        $this->enableInbox();
+
+        $this->actingAs($admin)
+            ->post(route('admin.whatsapp-inbox.reply', ['conversation' => $conversation]), [
+                'attachment' => UploadedFile::fake()->create('invoice.pdf', 12, 'application/pdf'),
+            ])
+            ->assertRedirect(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]));
+
+        $message = DB::table('whats_app_messages')
+            ->where('conversation_id', $conversation)
+            ->where('direction', 'outbound')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($message);
+        $this->assertSame('document', $message->content_type);
+        $metadata = json_decode((string) $message->attachment_metadata, true, 32, JSON_THROW_ON_ERROR);
+        $this->assertSame('document', $metadata['media_type']);
+        $this->assertSame('invoice.pdf', $metadata['filename']);
+        Storage::disk('local')->assertExists($metadata['local_path']);
+
+        $attachmentUrl = route('admin.whatsapp-inbox.attachments.show', [
+            'conversation' => $conversation,
+            'message' => $message->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('invoice.pdf')
+            ->assertSee($attachmentUrl, false);
+
+        $response = $this->actingAs($admin)->get($attachmentUrl)->assertOk();
+        $this->assertStringContainsString('private', (string) $response->headers->get('cache-control'));
+        $this->assertSame('nosniff', $response->headers->get('x-content-type-options'));
+    }
+
+    public function test_inbox_renders_receive_and_make_call_controls_when_calling_is_enabled(): void
+    {
+        $store = $this->store('B2B', 'WA-CALL-UI');
+        $customer = $this->customer($store, 'b2b', 'Voice UI Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $admin = $this->globalUser('SUPER_ADMIN', 'Voice UI Admin');
+        $this->enableInbox(true);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('اتصال واتساب')
+            ->assertSee('طلب إذن اتصال')
+            ->assertSee('مكالمة واتساب واردة')
+            ->assertSee('wa-call-tools', false)
+            ->assertSee('wa-call-answer', false);
+    }
+
     public function test_agent_status_capacity_change_is_audited_through_operational_route(): void
     {
         $this->store('B2B', 'WA-STATUS');
@@ -454,13 +521,15 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
-    private function enableInbox(): void
+    private function enableInbox(bool $calls = false): void
     {
         WhatsAppModuleState::query()->findOrFail(1)->forceFill([
             'lifecycle' => 'INTERNAL_TEST',
             'emergency_stop' => true,
-            'capabilities' => ['agent_inbox' => true],
-            'test_numbers' => [],
+            'capabilities' => $calls
+                ? ['inbound' => true, 'agent_inbox' => true, 'outbound' => true, 'calls' => true]
+                : ['agent_inbox' => true],
+            'test_numbers' => $calls ? ['+96550000000'] : [],
         ])->save();
     }
 

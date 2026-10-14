@@ -115,6 +115,28 @@ class DriverDeliveryEvidenceDashboardTest extends TestCase
         $proof->update(['note' => 'tampered']);
     }
 
+    public function test_missing_proof_file_is_not_advertised_as_downloadable(): void
+    {
+        [$storeId, $order] = $this->orderFixture('EVIDENCE-MISSING-FILE');
+        $admin = $this->storeAdmin($storeId, 'missing-proof-admin@example.test');
+        $driver = $this->driver($storeId, 'missing-proof-driver@example.test');
+        $assignment = $this->assignment($driver, $order, 'delivered', now()->subMinute());
+
+        $this->event(
+            $assignment,
+            $order,
+            'out_for_delivery',
+            'delivered',
+            proofType: 'delivery_image',
+            filePath: 'delivery-proofs/missing-object.jpg',
+        );
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.driver-live-tracking.evidence', $assignment->id))
+            ->assertOk()
+            ->assertJsonPath('data.timeline.0.proof', null);
+    }
+
     public function test_foreign_store_user_cannot_read_evidence_or_proof(): void
     {
         [$storeId, $order] = $this->orderFixture('EVIDENCE-OWNER');

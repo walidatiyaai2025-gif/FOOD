@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
+use App\Http\Controllers\Admin\WhatsAppCallController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
 use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
@@ -167,12 +168,40 @@ Route::prefix('admin')
             ->middleware('whatsapp.capability:agent_inbox')
             ->group(function (): void {
                 Route::get('/', [WhatsAppInboxController::class, 'index'])->name('index');
+                Route::get('/{conversation}/messages/{message}/attachment', [WhatsAppInboxController::class, 'attachment'])
+                    ->whereNumber('conversation')
+                    ->whereNumber('message')
+                    ->name('attachments.show');
                 Route::post('/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->name('reply');
                 Route::post('/{conversation}/notes', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('note');
                 Route::patch('/{conversation}/assignment', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('assign');
                 Route::patch('/{conversation}/status', [WhatsAppInboxController::class, 'transition'])->whereNumber('conversation')->name('transition');
                 Route::post('/{conversation}/tags', [WhatsAppInboxController::class, 'tag'])->whereNumber('conversation')->name('tag');
                 Route::patch('/my-status', [WhatsAppInboxController::class, 'updateMyStatus'])->name('status');
+            });
+        Route::prefix('whatsapp/calls')
+            ->name('whatsapp-calls.')
+            ->middleware('whatsapp.capability:calls')
+            ->group(function (): void {
+                Route::get('/feed', [WhatsAppCallController::class, 'feed'])
+                    ->middleware('throttle:120,1')
+                    ->name('feed');
+                Route::get('/conversations/{conversation}/permission', [WhatsAppCallController::class, 'permission'])
+                    ->whereNumber('conversation')
+                    ->middleware('throttle:60,1')
+                    ->name('permission');
+                Route::post('/conversations/{conversation}/permission', [WhatsAppCallController::class, 'requestPermission'])
+                    ->whereNumber('conversation')
+                    ->middleware('throttle:20,1')
+                    ->name('permission.request');
+                Route::post('/conversations/{conversation}/start', [WhatsAppCallController::class, 'start'])
+                    ->whereNumber('conversation')
+                    ->middleware('throttle:30,1')
+                    ->name('start');
+                Route::post('/{call}/action', [WhatsAppCallController::class, 'action'])
+                    ->whereNumber('call')
+                    ->middleware('throttle:60,1')
+                    ->name('action');
             });
         Route::prefix('whatsapp/supervisor')
             ->name('whatsapp-supervisor.')

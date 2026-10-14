@@ -277,6 +277,42 @@ class StorefrontRevisionTest extends TestCase
         ]);
     }
 
+    public function test_storefront_editor_rejects_case_only_duplicate_section_keys_before_publish(): void
+    {
+        $storeId = $this->retailStore('REV-CASE-KEY');
+        $this->seedStorefront($storeId, '#223344', 'Hero section');
+        $admin = $this->storeAdmin($storeId, 'revision-case-key@example.test');
+
+        $this->actingAs($admin)
+            ->from('/admin/b2c/storefront')
+            ->post(route('admin.b2c.storefront.sections.store'), [
+                'store_id' => $storeId,
+                'section_key' => 'HERO',
+                'section_type' => 'hero',
+                'title_en' => 'Duplicate hero',
+                'sort_order' => 20,
+                'config_json' => '{}',
+                'is_active' => 1,
+            ])
+            ->assertRedirect('/admin/b2c/storefront')
+            ->assertSessionHasErrors('section_key');
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2c')
+            ->where('status', 'draft')
+            ->latest('id')
+            ->firstOrFail();
+
+        $keys = collect((array) ($draft->payload['sections'] ?? []))
+            ->filter(fn (mixed $section): bool => is_array($section))
+            ->pluck('key')
+            ->map(fn (mixed $key): string => strtolower((string) $key))
+            ->all();
+
+        $this->assertSame(1, count(array_filter($keys, fn (string $key): bool => $key === 'hero')));
+    }
+
     public function test_unsupported_schema_cannot_be_published(): void
     {
         $storeId = $this->retailStore('REV-SCHEMA');

@@ -8,7 +8,11 @@ use App\Domain\WhatsApp\MetaCloudWhatsAppProvider;
 use App\Domain\WhatsApp\OutboundMessage;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
 use App\Domain\WhatsApp\TransportRetryService;
+use App\Domain\WhatsApp\WhatsAppCallingService;
+use App\Domain\WhatsApp\WhatsAppMediaService;
+use App\Models\Role;
 use App\Models\User;
+use App\Models\WhatsAppCall;
 use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
 use Database\Seeders\CoreReferenceSeeder;
@@ -17,6 +21,7 @@ use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -94,6 +99,123 @@ final class WhatsAppProviderTransportTest extends TestCase
         $this->assertArrayNotHasKey('credential_secret', $profile->toArray());
         $this->assertArrayNotHasKey('webhook_verify_token', $profile->toArray());
         $this->assertArrayNotHasKey('webhook_signing_secret', $profile->toArray());
+    }
+
+    public function test_meta_media_upload_produces_provider_media_id_for_message_send(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('whatsapp-media/outbound/1/photo.jpg', 'jpeg-bytes');
+        $profile = $this->profile();
+
+        Http::fake(function (HttpRequest $request) {
+            if (str_ends_with($request->url(), '/v26.0/phone-meta-1/media')) {
+                return Http::response(['id' => 'meta-media-1'], 200);
+            }
+
+            if (str_ends_with($request->url(), '/v26.0/phone-meta-1/messages')) {
+                return Http::response(['messages' => [['id' => 'wamid.media-1']]], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $metadata = [
+            'media_type' => 'image',
+            'mime_type' => 'image/jpeg',
+            'filename' => 'photo.jpg',
+            'local_disk' => 'local',
+            'local_path' => 'whatsapp-media/outbound/1/photo.jpg',
+        ];
+        $metadata['media_id'] = app(WhatsAppMediaService::class)->uploadToMeta($profile, $metadata);
+
+        $sent = app(MetaCloudWhatsAppProvider::class)->send(
+            $profile,
+            new OutboundMessage(
+                recipient: '+96550000111',
+                kind: 'media',
+                body: 'Product photo',
+                metadata: $metadata,
+                idempotencyKey: 'wa-media-test-1',
+            ),
+        );
+
+        $this->assertSame('wamid.media-1', $sent->providerMessageId);
+        Http::assertSentCount(2);
+        Http::assertSent(function (HttpRequest $request): bool {
+            return str_ends_with($request->url(), '/v26.0/phone-meta-1/messages')
+                && $request['type'] === 'image'
+                && $request['image']['id'] === 'meta-media-1'
+                && $request['image']['caption'] === 'Product photo';
+        });
+    }
+
+    public function test_inbound_meta_attachment_is_downloaded_once_into_private_storage(): void
+    {
+        Storage::fake('local');
+        $profile = $this->profile();
+        $storeId = $this->store('B2C', 'WA-MEDIA-IN');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000111');
+        $conversationId = $this->conversation($customerId, $storeId);
+
+        $messageId = (int) DB::table('whats_app_messages')->insertGetId([
+            'conversation_id' => $conversationId,
+            'connection_profile_id' => $profile->id,
+            'direction' => 'inbound',
+            'content_type' => 'image',
+            'actor_type' => 'customer',
+            'actor_user_id' => null,
+            'body' => 'Incoming photo',
+            'attachment_metadata' => json_encode([
+                'media_type' => 'image',
+                'id' => 'meta-inbound-media-1',
+                'mime_type' => 'image/jpeg',
+                'filename' => 'customer-photo.jpg',
+            ], JSON_THROW_ON_ERROR),
+            'provider_message_ref' => 'wamid.media-inbound-1',
+            'delivery_status' => 'received',
+            'occurred_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Http::fake(function (HttpRequest $request) {
+            if (str_ends_with($request->url(), '/v26.0/meta-inbound-media-1')) {
+                return Http::response([
+                    'url' => 'https://lookaside.facebook.com/whatsapp/media-1',
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 10,
+                ], 200);
+            }
+
+            if ($request->url() === 'https://lookaside.facebook.com/whatsapp/media-1') {
+                return Http::response('jpeg-bytes', 200, ['Content-Type' => 'image/jpeg']);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $message = DB::table('whats_app_messages')->where('id', $messageId)->firstOrFail();
+        $asset = app(WhatsAppMediaService::class)->materialize($message);
+
+        $this->assertSame('image', $asset['media_type']);
+        $this->assertSame('customer-photo.jpg', $asset['filename']);
+        Storage::disk('local')->assertExists($asset['path']);
+
+        $persisted = json_decode(
+            (string) DB::table('whats_app_messages')->where('id', $messageId)->value('attachment_metadata'),
+            true,
+            32,
+            JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame($asset['path'], $persisted['local_path']);
+
+        Http::assertSentCount(2);
+
+        $again = app(WhatsAppMediaService::class)->materialize(
+            DB::table('whats_app_messages')->where('id', $messageId)->firstOrFail(),
+        );
+        $this->assertSame($asset['path'], $again['path']);
+        Http::assertSentCount(2);
     }
 
     public function test_webhook_verification_signature_and_duplicate_ingestion_are_fail_closed_and_idempotent(): void
@@ -359,6 +481,156 @@ final class WhatsAppProviderTransportTest extends TestCase
         ]);
     }
 
+    public function test_user_initiated_voice_call_webhook_persists_offer_for_authorized_browser_answer(): void
+    {
+        $storeId = $this->store('B2C', 'WA-CALL-IN');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000111');
+        $profile = $this->profile();
+        $this->enableTransport('+96550000111', inbound: true, outbound: false);
+
+        $payload = [
+            'object' => 'whatsapp_business_account',
+            'entry' => [[
+                'changes' => [[
+                    'field' => 'calls',
+                    'value' => [
+                        'metadata' => [
+                            'display_phone_number' => '+96522220000',
+                            'phone_number_id' => 'phone-meta-1',
+                        ],
+                        'contacts' => [[
+                            'profile' => ['name' => 'Voice Customer'],
+                            'wa_id' => '96550000111',
+                        ]],
+                        'calls' => [[
+                            'id' => 'wacid.inbound-1',
+                            'from' => '96550000111',
+                            'to' => '96522220000',
+                            'event' => 'connect',
+                            'direction' => 'USER_INITIATED',
+                            'timestamp' => '1791945600',
+                            'session' => [
+                                'sdp_type' => 'offer',
+                                'sdp' => "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n",
+                            ],
+                        ]],
+                    ],
+                ]],
+            ]],
+        ];
+
+        $this->postSignedWebhook($profile, $payload)->assertOk();
+
+        $call = WhatsAppCall::query()->where('provider_call_id', 'wacid.inbound-1')->firstOrFail();
+        $this->assertSame('USER_INITIATED', $call->direction);
+        $this->assertSame('INCOMING', $call->status);
+        $this->assertSame('offer', $call->remote_sdp_type);
+        $this->assertStringContainsString('m=audio', (string) $call->remote_sdp);
+        $this->assertSame($customerId, (int) $call->platform_customer_id);
+        $this->assertNotNull($call->conversation_id);
+    }
+
+    public function test_business_initiated_voice_call_checks_permission_and_sends_webrtc_offer(): void
+    {
+        $storeId = $this->store('B2C', 'WA-CALL-OUT');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000111');
+        $profile = $this->profile();
+        $this->enableTransport('+96550000111', inbound: true, outbound: true);
+        $conversationId = $this->conversation($customerId, $storeId);
+
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        Http::fake(function (HttpRequest $request) {
+            if ($request->method() === 'GET' && str_contains($request->url(), '/call_permissions')) {
+                return Http::response([
+                    'messaging_product' => 'whatsapp',
+                    'permission' => ['status' => 'temporary', 'expiration_time' => 1792550400],
+                    'actions' => [
+                        ['action_name' => 'start_call', 'can_perform_action' => true],
+                        ['action_name' => 'send_call_permission_request', 'can_perform_action' => false],
+                    ],
+                ], 200);
+            }
+
+            if ($request->method() === 'POST' && str_ends_with($request->url(), '/calls')) {
+                return Http::response([
+                    'messaging_product' => 'whatsapp',
+                    'calls' => [['id' => 'wacid.outbound-1']],
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $call = app(WhatsAppCallingService::class)->startOutbound(
+            $conversationId,
+            $admin,
+            "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n",
+        );
+
+        $this->assertSame('wacid.outbound-1', $call->provider_call_id);
+        $this->assertSame('BUSINESS_INITIATED', $call->direction);
+        $this->assertSame('DIALING', $call->status);
+        $this->assertSame($profile->id, (int) $call->connection_profile_id);
+
+        Http::assertSent(function (HttpRequest $request): bool {
+            return $request->method() === 'POST'
+                && str_ends_with($request->url(), '/v26.0/phone-meta-1/calls')
+                && $request['action'] === 'connect'
+                && $request['to'] === '96550000111'
+                && $request['session']['sdp_type'] === 'offer'
+                && str_contains((string) $request['session']['sdp'], 'm=audio');
+        });
+    }
+
+    public function test_call_permission_request_uses_meta_interactive_permission_message(): void
+    {
+        $storeId = $this->store('B2C', 'WA-CALL-PERMISSION');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000111');
+        $this->profile();
+        $this->enableTransport('+96550000111', inbound: true, outbound: true);
+        $conversationId = $this->conversation($customerId, $storeId);
+
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        Http::fake(function (HttpRequest $request) {
+            if ($request->method() === 'GET' && str_contains($request->url(), '/call_permissions')) {
+                return Http::response([
+                    'permission' => ['status' => 'no_permission'],
+                    'actions' => [
+                        ['action_name' => 'start_call', 'can_perform_action' => false],
+                        ['action_name' => 'send_call_permission_request', 'can_perform_action' => true],
+                    ],
+                ], 200);
+            }
+
+            if ($request->method() === 'POST' && str_ends_with($request->url(), '/messages')) {
+                return Http::response(['messages' => [['id' => 'wamid.permission-1']]], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $result = app(WhatsAppCallingService::class)->requestPermission(
+            $conversationId,
+            $admin,
+            'May FOODEX call you about your order?',
+        );
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('wamid.permission-1', $result['provider_message_id']);
+
+        Http::assertSent(function (HttpRequest $request): bool {
+            return $request->method() === 'POST'
+                && str_ends_with($request->url(), '/v26.0/phone-meta-1/messages')
+                && $request['type'] === 'interactive'
+                && $request['interactive']['type'] === 'call_permission_request'
+                && $request['interactive']['action']['name'] === 'call_permission_request';
+        });
+    }
+
     public function test_transport_migration_is_additive_and_round_trip_safe(): void
     {
         foreach (['whats_app_webhook_events', 'whats_app_outbound_dispatches'] as $table) {
@@ -429,6 +701,7 @@ final class WhatsAppProviderTransportTest extends TestCase
                 'inbound' => $inbound,
                 'agent_inbox' => true,
                 'outbound' => $outbound,
+                'calls' => true,
             ],
             'test_numbers' => $outbound ? [$number] : [],
         ])->save();
