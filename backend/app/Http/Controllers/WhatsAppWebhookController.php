@@ -54,6 +54,7 @@ final class WhatsAppWebhookController extends Controller
             abort(400);
         }
         abort_unless(is_array($payload), 400);
+        abort_unless($this->matchesProfilePhoneId($profile, $payload), 404);
 
         $eventId = $ingress->capture($profile, $payload, $raw);
 
@@ -61,6 +62,52 @@ final class WhatsAppWebhookController extends Controller
             'accepted' => true,
             'event_id' => $eventId,
         ]);
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function matchesProfilePhoneId(
+        WhatsAppConnectionProfile $profile,
+        array $payload,
+    ): bool {
+        $configured = trim((string) ($profile->provider_phone_number_id ?? ''));
+        if ($configured === '') {
+            return false;
+        }
+
+        $observed = [];
+        foreach (($payload['entry'] ?? []) as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+            foreach (($entry['changes'] ?? []) as $change) {
+                if (! is_array($change)) {
+                    continue;
+                }
+                $value = $change['value'] ?? null;
+                if (! is_array($value)) {
+                    continue;
+                }
+                $phoneId = $value['metadata']['phone_number_id'] ?? null;
+                if (is_string($phoneId) || is_numeric($phoneId)) {
+                    $phoneId = trim((string) $phoneId);
+                    if ($phoneId !== '') {
+                        $observed[] = $phoneId;
+                    }
+                }
+            }
+        }
+
+        if ($observed === []) {
+            return true;
+        }
+
+        foreach (array_unique($observed) as $phoneId) {
+            if (! hash_equals($configured, $phoneId)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function isMeta(WhatsAppConnectionProfile $profile): bool
