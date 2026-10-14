@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 final class OutboundMessageDispatcher
 {
+    public function __construct(private readonly RuntimePolicy $policy) {}
+
     public function queue(int $messageId): ?int
     {
         return DB::transaction(function () use ($messageId): ?int {
@@ -67,29 +69,34 @@ final class OutboundMessageDispatcher
                 'metadata' => $metadata,
             ];
 
+            $allowed = $this->policy->allowsOutbound($recipient, Capability::OUTBOUND);
+            $deliveryStatus = $allowed ? 'queued' : 'blocked_policy';
+
             $dispatchId = (int) DB::table('whats_app_outbound_dispatches')->insertGetId([
                 'message_id' => $messageId,
                 'connection_profile_id' => $profile->getKey(),
                 'idempotency_key' => 'wa-message-'.$messageId,
                 'recipient' => $recipient,
                 'payload' => json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'status' => 'queued',
+                'status' => $deliveryStatus,
                 'attempts' => 0,
-                'next_retry_at' => now(),
+                'next_retry_at' => $allowed ? now() : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
             DB::table('whats_app_messages')->where('id', $messageId)->update([
                 'connection_profile_id' => $profile->getKey(),
-                'delivery_status' => 'queued',
+                'delivery_status' => $deliveryStatus,
                 'updated_at' => now(),
             ]);
 
-            DB::afterCommit(static function () use ($dispatchId): void {
-                SendWhatsAppMessage::dispatch($dispatchId)
-                    ->onQueue((string) config('whatsapp.transport.queue', 'whatsapp'));
-            });
+            if ($allowed) {
+                DB::afterCommit(static function () use ($dispatchId): void {
+                    SendWhatsAppMessage::dispatch($dispatchId)
+                        ->onQueue((string) config('whatsapp.transport.queue', 'whatsapp'));
+                });
+            }
 
             return $dispatchId;
         }, 3);
