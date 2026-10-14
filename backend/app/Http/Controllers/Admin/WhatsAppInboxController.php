@@ -70,7 +70,7 @@ final class WhatsAppInboxController extends Controller
             });
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('conversations.status', $filters['status']);
         }
 
@@ -81,13 +81,13 @@ final class WhatsAppInboxController extends Controller
             $query->whereNull('conversations.primary_agent_id');
         }
 
-        if (!empty($filters['store_id'])) {
+        if (! empty($filters['store_id'])) {
             $storeId = (int) $filters['store_id'];
             abort_unless(in_array($storeId, $allowedStoreIds, true), 404);
             $query->where('conversations.store_id', $storeId);
         }
 
-        if (!empty($filters['channel'])) {
+        if (! empty($filters['channel'])) {
             $query->where('conversations.channel', (string) $filters['channel']);
         }
 
