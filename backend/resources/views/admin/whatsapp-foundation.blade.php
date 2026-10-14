@@ -19,7 +19,9 @@
         </header>
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
         @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
-        @if(!$state->available)<p class="foodex-alert error" role="alert">{{ __('whatsapp.unavailable') }}</p>@endif
+        @if(!$state->available)
+        <p class="foodex-alert error" role="alert">{{ __('whatsapp.unavailable') }}</p>
+        @endif
         <section class="panel" aria-labelledby="module-status">
             <h2 id="module-status">{{ __('whatsapp.status') }}</h2>
             <p data-whatsapp-lifecycle="{{ $state->lifecycle->value }}">{{ __('whatsapp.states.'.$state->lifecycle->value) }}</p>
@@ -34,7 +36,9 @@
                 @csrf @method('PUT')
                 <input type="hidden" name="action" value="emergency"><input type="hidden" name="revision" value="{{ $state->revision }}">
                 <input type="hidden" name="emergency_stop" value="{{ $state->emergencyStop ? '0' : '1' }}">
-                @if($state->emergencyStop)<label><input type="checkbox" name="confirm" value="1" required> {{ __('whatsapp.clear_confirm') }}</label>@endif
+                @if($state->emergencyStop)
+                <label><input type="checkbox" name="confirm" value="1" required> {{ __('whatsapp.clear_confirm') }}</label>
+                @endif
                 <button class="primary" type="submit">{{ __('whatsapp.'.($state->emergencyStop ? 'clear_stop' : 'engage_stop')) }}</button>
             </form>
         </section>
