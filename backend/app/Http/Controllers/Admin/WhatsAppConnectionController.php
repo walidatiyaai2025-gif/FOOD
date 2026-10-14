@@ -10,9 +10,11 @@ use App\Models\WhatsAppConnectionProfile;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use JsonException;
+use Throwable;
 
 final class WhatsAppConnectionController extends Controller
 {
@@ -29,6 +31,7 @@ final class WhatsAppConnectionController extends Controller
                 ->get(),
             'canManage' => $actor->hasPermission('whatsapp.settings'),
             'canDangerous' => $actor->hasPermission('whatsapp.settings') && $actor->hasRole('SUPER_ADMIN'),
+            'transportHealth' => $this->transportHealth(),
         ]);
     }
 
@@ -176,6 +179,21 @@ final class WhatsAppConnectionController extends Controller
         }
 
         return $decoded;
+    }
+
+    /** @return array<string, int>|null */
+    private function transportHealth(): ?array
+    {
+        try {
+            return [
+                'outbound_retry' => DB::table('whats_app_outbound_dispatches')->where('status', 'retry_wait')->count(),
+                'outbound_failed' => DB::table('whats_app_outbound_dispatches')->where('status', 'failed')->count(),
+                'webhook_retry' => DB::table('whats_app_webhook_events')->where('status', 'retry_wait')->count(),
+                'webhook_failed' => DB::table('whats_app_webhook_events')->where('status', 'failed')->count(),
+            ];
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function actor(Request $request): User
