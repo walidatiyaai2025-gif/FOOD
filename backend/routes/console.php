@@ -12,7 +12,6 @@ use App\Services\FlashOfferService;
 use App\Services\NotificationCampaignDispatcher;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use Throwable;
 
 Artisan::command('foodex:version', function (): void {
     $this->info(trim((string) @file_get_contents(base_path('../VERSION'))));
