@@ -46,6 +46,38 @@ final class StateManager
         ]);
     }
 
+    public function certifyGaReady(User $actor, int $revision): void
+    {
+        $this->authorize($actor, 'whatsapp.lifecycle', true);
+        $evidence = $this->policy->evidenceReference();
+        if ($evidence === null) {
+            throw ValidationException::withMessages(['lifecycle' => __('whatsapp.certification_required')]);
+        }
+
+        DB::transaction(function () use ($actor, $revision, $evidence): void {
+            $row = $this->lockedRow();
+            if ((int) $row->getAttribute('revision') !== $revision) {
+                throw ValidationException::withMessages(['revision' => __('whatsapp.stale')]);
+            }
+
+            $state = ModuleState::fromModel($row);
+            if (! $state->available || $state->lifecycle === Lifecycle::ENABLED) {
+                throw ValidationException::withMessages(['lifecycle' => __('whatsapp.certification_required')]);
+            }
+
+            $before = $row->attributesToArray();
+            $row->forceFill([
+                'lifecycle' => Lifecycle::GA_READY->value,
+                'emergency_stop' => true,
+                'revision' => $revision + 1,
+            ])->save();
+
+            $after = $row->attributesToArray();
+            $after['certification_evidence'] = $evidence;
+            $this->audit->record('whatsapp.ga_certified', $actor, $row, $before, $after);
+        });
+    }
+
     public function setEmergencyStop(User $actor, bool $stop, int $revision): void
     {
         $this->authorize($actor, 'whatsapp.emergency', true);
