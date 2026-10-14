@@ -107,7 +107,7 @@ $businessLabel = static function ($value): string {
 @if($row['can_edit'])
 <a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
 @endif
-@if($row['invoice_id'])
+@if($row['invoice_id'] && $row['can_view_invoice'])
 <a data-order-invoice href="{{ route('admin.invoices.show',$row['invoice_id']) }}">{{ $isAr ? 'عرض الفاتورة' : 'View invoice' }}</a>
 @endif
 @if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
@@ -212,7 +212,7 @@ $businessLabel = static function ($value): string {
 @if($detail['payment_provider'])<div>{{ strtoupper(str_replace(['_','-'],' ',(string)$detail['payment_provider'])) }}</div>@endif
 @if($detail['payment_amount'] !== null)<small>{{ number_format((float)$detail['payment_amount'],3) }} {{ $detail['payment_currency'] ?: $detail['currency'] }}</small>@endif
 </div>
-@if($detail['invoice_id'])
+@if($detail['invoice_id'] && $detail['can_view_invoice'])
 <div class="timeline-item">
 <strong>{{ $isAr ? 'الفاتورة' : 'Invoice' }} · {{ $detail['invoice_number'] ?: '#'.$detail['invoice_id'] }}</strong>
 <div>{{ $businessLabel($detail['invoice_status']) }}</div>
