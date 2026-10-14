@@ -337,6 +337,54 @@ final class WhatsAppChatbotTest extends TestCase
         $this->assertSame(0, DB::table('orders')->where('customer_id', $legacyId)->count());
     }
 
+    public function test_support_choice_creates_trackable_case_and_pauses_bot_for_handoff(): void
+    {
+        $storeId = $this->store('B2B', 'WA-BOT-SUPPORT');
+        $customerId = $this->customer($storeId, 'b2b', '+96550000555');
+        $conversationId = $this->conversation($customerId, $storeId, '+96550000555');
+
+        DB::table('whats_app_chatbot_settings')->update([
+            'enabled' => true,
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'default_locale' => 'en',
+            'working_from' => null,
+            'working_to' => null,
+            'updated_at' => now(),
+        ]);
+
+        WhatsAppModuleState::query()->findOrFail(1)->forceFill([
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'capabilities' => [
+                Capability::INBOUND->value => true,
+                Capability::OUTBOUND->value => true,
+                Capability::AUTOMATION->value => true,
+            ],
+            'test_numbers' => ['+96550000555'],
+        ])->save();
+
+        $this->assertTrue(app(ChatbotAutomationService::class)->handleInbound(
+            $conversationId,
+            $customerId,
+            'Support',
+            ['interactive_id' => 'chatbot:human_handoff_missing'],
+        ));
+
+        $this->assertDatabaseHas('whats_app_chatbot_cases', [
+            'conversation_id' => $conversationId,
+            'platform_customer_id' => $customerId,
+            'type' => 'missing',
+            'status' => 'open',
+        ]);
+        $this->assertDatabaseHas('whats_app_chatbot_sessions', [
+            'conversation_id' => $conversationId,
+            'state' => 'HANDOFF',
+            'human_takeover' => 1,
+        ]);
+        $this->assertFalse(app(ChatbotRuntimePolicy::class)->canHandleConversation($conversationId));
+    }
+
     public function test_chatbot_schema_is_additive_and_contains_case_audit_and_flow_versioning(): void
     {
         foreach ([
