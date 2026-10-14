@@ -2,8 +2,53 @@
 
 namespace App\Domain\WhatsApp;
 
+use App\Domain\WhatsApp\Data\ChatbotActionRequest;
+
 final class ChatbotIntentService
 {
+    /** @param array<string, mixed> $metadata */
+    public function interpret(?string $body, array $metadata = []): ChatbotActionRequest
+    {
+        $classification = $this->classify($body, $metadata);
+        $intent = $classification['intent'];
+
+        $requestedAction = match ($intent) {
+            'add_product' => 'update_order_draft',
+            'repeat_to_cart' => 'create_reorder_draft',
+            'view_cart' => 'read_order_draft',
+            'new_order' => 'browse_catalog_for_order',
+            'repeat_order' => 'review_previous_order',
+            'product_search', 'prices_offers' => 'read_catalog',
+            'order_tracking' => 'read_orders',
+            'finance' => 'request_finance_verification',
+            'complaints' => 'start_support_flow',
+            'human_handoff' => 'request_human_handoff',
+            'home' => 'show_menu',
+            default => 'safe_fallback',
+        };
+
+        $requiresConfirmation = in_array($intent, [
+            'add_product',
+            'repeat_to_cart',
+            'new_order',
+            'repeat_order',
+        ], true);
+
+        $entities = [];
+        $interactiveId = $metadata['interactive_id'] ?? null;
+        if (is_string($interactiveId) && preg_match('/^chatbot:add_product:(\d+)$/', $interactiveId, $matches) === 1) {
+            $entities['product_id'] = (int) $matches[1];
+        }
+
+        return new ChatbotActionRequest(
+            intent: $intent,
+            confidence: (float) $classification['confidence'],
+            requestedAction: $requestedAction,
+            requiresConfirmation: $requiresConfirmation,
+            entities: $entities,
+        );
+    }
+
     /** @return array{intent:string,confidence:float} */
     public function classify(?string $body, array $metadata = []): array
     {
