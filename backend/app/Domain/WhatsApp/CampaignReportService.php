@@ -204,6 +204,13 @@ final class CampaignReportService
             $query->where('f.assigned_agent_id', $agentId);
         }
 
+        if (! empty($filters['from'])) {
+            $query->where('r.created_at', '>=', Carbon::parse((string) $filters['from'])->startOfDay());
+        }
+        if (! empty($filters['to'])) {
+            $query->where('r.created_at', '<=', Carbon::parse((string) $filters['to'])->endOfDay());
+        }
+
         $paginator = $query->orderBy('r.id')->paginate(50)->withQueryString();
         $paginator->setCollection(
             $paginator->getCollection()->map(fn (object $row): object => $this->decorateRecipient($row)),
@@ -321,6 +328,12 @@ final class CampaignReportService
         $agentId = (int) ($filters['agent_id'] ?? 0);
         if ($agentId > 0) {
             $query->where('f.assigned_agent_id', $agentId);
+        }
+        if (! empty($filters['from'])) {
+            $query->where('r.created_at', '>=', Carbon::parse((string) $filters['from'])->startOfDay());
+        }
+        if (! empty($filters['to'])) {
+            $query->where('r.created_at', '<=', Carbon::parse((string) $filters['to'])->endOfDay());
         }
 
         return $query->orderBy('r.id')->get([
