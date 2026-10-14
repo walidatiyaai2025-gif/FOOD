@@ -103,9 +103,9 @@ final class ConnectionProfileManager
                 'validation_metadata' => null,
                 'configuration_revision' => $locked->configuration_revision + 1,
             ]);
-            if (! $locked->is_primary) {
-                $locked->status = ConnectionProfileStatus::DRAFT;
-            }
+            $locked->status = $locked->is_primary
+                ? ConnectionProfileStatus::DEGRADED
+                : ConnectionProfileStatus::DRAFT;
             $locked->save();
 
             $this->audit->record('whatsapp.connection_credential_replaced', $actor, $locked, $before, [
@@ -163,7 +163,7 @@ final class ConnectionProfileManager
             }
 
             $valid = $result->valid && $result->providerAvailable;
-            $message = $this->safeText($result->message);
+            $message = $this->safeProviderText($result->message, $locked);
             $locked->forceFill([
                 'status' => $valid
                     ? ($locked->is_primary ? ConnectionProfileStatus::ACTIVE : ConnectionProfileStatus::READY)
@@ -174,11 +174,11 @@ final class ConnectionProfileManager
                 'health_summary' => $message,
                 'last_provider_error' => $valid ? null : $message,
                 'validation_metadata' => [
-                    'account_identity' => $this->safeNullable($result->accountIdentity),
-                    'phone_identity' => $this->safeNullable($result->phoneIdentity),
+                    'account_identity' => $this->safeProviderNullable($result->accountIdentity, $locked),
+                    'phone_identity' => $this->safeProviderNullable($result->phoneIdentity, $locked),
                     'provider_available' => $result->providerAvailable,
                     'capabilities' => array_values(array_filter($result->capabilities, 'is_string')),
-                    'diagnostic_code' => $this->safeText($result->diagnosticCode, 120),
+                    'diagnostic_code' => $this->safeProviderText($result->diagnosticCode, $locked, 120),
                 ],
             ])->save();
 
@@ -186,7 +186,7 @@ final class ConnectionProfileManager
                 'profile_id' => $locked->getKey(),
                 'valid' => $valid,
                 'health_status' => $locked->health_status->value,
-                'diagnostic_code' => $this->safeText($result->diagnosticCode, 120),
+                'diagnostic_code' => $this->safeProviderText($result->diagnosticCode, $locked, 120),
                 'checked_at' => $result->checkedAt->format(DATE_ATOM),
             ]);
 
@@ -330,8 +330,8 @@ final class ConnectionProfileManager
             'provider_phone_number_id' => $this->nullIfBlank($attributes['provider_phone_number_id'] ?? null),
             'provider_account_id' => $this->nullIfBlank($attributes['provider_account_id'] ?? null),
             'provider_app_id' => $this->nullIfBlank($attributes['provider_app_id'] ?? null),
-            'provider_metadata' => is_array($attributes['provider_metadata'] ?? null) ? $attributes['provider_metadata'] : [],
-            'webhook_metadata' => is_array($attributes['webhook_metadata'] ?? null) ? $attributes['webhook_metadata'] : [],
+            'provider_metadata' => $this->safeMetadata($attributes['provider_metadata'] ?? null),
+            'webhook_metadata' => $this->safeMetadata($attributes['webhook_metadata'] ?? null),
         ];
     }
 
@@ -353,6 +353,64 @@ final class ConnectionProfileManager
             && (! $superAdmin || $actor->hasRole('SUPER_ADMIN')),
             403,
         );
+    }
+
+    private function safeProviderText(
+        string $value,
+        WhatsAppConnectionProfile $profile,
+        int $limit = 500,
+    ): string {
+        try {
+            $secret = $profile->credential_secret;
+        } catch (Throwable) {
+            $secret = null;
+        }
+        if (is_string($secret) && $secret !== '') {
+            $value = str_replace($secret, '[REDACTED]', $value);
+        }
+
+        return $this->safeText($value, $limit);
+    }
+
+    private function safeProviderNullable(
+        ?string $value,
+        WhatsAppConnectionProfile $profile,
+    ): ?string {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return $this->safeProviderText($value, $profile, 255);
+    }
+
+    /** @return array<string, mixed> */
+    private function safeMetadata(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $this->assertMetadataHasNoSecrets($value);
+
+        return $value;
+    }
+
+    /** @param array<array-key, mixed> $metadata */
+    private function assertMetadataHasNoSecrets(array $metadata): void
+    {
+        foreach ($metadata as $key => $value) {
+            if (is_string($key)) {
+                $normalized = strtolower(str_replace(['-', ' '], '_', $key));
+                if (preg_match('/(^|_)(password|token|secret|credential|authorization|api_key|client_secret|access_token|refresh_token)$/', $normalized) === 1) {
+                    throw ValidationException::withMessages([
+                        'provider_metadata' => __('whatsapp.connections.sensitive_metadata'),
+                    ]);
+                }
+            }
+            if (is_array($value)) {
+                $this->assertMetadataHasNoSecrets($value);
+            }
+        }
     }
 
     private function safeText(string $value, int $limit = 500): string
