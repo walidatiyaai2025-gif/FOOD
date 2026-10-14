@@ -6,7 +6,7 @@
 <title>{{ __('whatsapp.inbox.page_title') }}</title>
 @include('admin._brand-components')
 <style>
-.wa-shell{display:grid;gap:14px}.wa-toolbar,.wa-profile{padding:16px}.wa-toolbar form{display:grid;grid-template-columns:2fr repeat(4,minmax(130px,1fr));gap:10px;align-items:end}
+.wa-shell{display:grid;gap:14px}.wa-controls-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}.wa-toolbar,.wa-profile{padding:16px}.wa-toolbar form{display:grid;grid-template-columns:2fr repeat(2,minmax(130px,1fr));gap:10px;align-items:end}
 .wa-workspace{display:grid;grid-template-columns:minmax(250px,.9fr) minmax(360px,1.6fr) minmax(280px,1fr);gap:14px;min-height:68vh}
 .wa-pane{padding:0;overflow:hidden}.wa-pane-head{padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;justify-content:space-between;gap:10px;align-items:center}.wa-pane-body{padding:14px 16px}
 .wa-list{display:grid}.wa-row{display:block;padding:14px 16px;border-bottom:1px solid var(--foodex-border);text-decoration:none;color:inherit}.wa-row:hover,.wa-row.active{background:var(--foodex-green-soft)}.wa-row-top{display:flex;justify-content:space-between;gap:10px}.wa-row p{margin:4px 0;color:var(--foodex-muted);font-size:12px}
@@ -18,7 +18,8 @@
 .wa-call-overlay{position:fixed;inset:0;background:rgba(15,23,42,.46);display:none;align-items:center;justify-content:center;z-index:99999;padding:18px}.wa-call-overlay.show{display:flex}.wa-call-card{width:min(440px,100%);background:var(--foodex-surface);border-radius:18px;padding:24px;box-shadow:0 22px 70px rgba(15,23,42,.28);text-align:center}.wa-call-icon{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:var(--foodex-green-soft);font-size:32px}.wa-call-card h2{margin:0 0 7px}.wa-call-card p{color:var(--foodex-muted);margin:0 0 18px}.wa-call-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.wa-inline label{display:grid;gap:4px;min-width:130px}
 .wa-360{display:grid;gap:12px}.wa-card{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.wa-card h3{margin:0 0 9px;font-size:14px}.wa-card p{margin:4px 0;font-size:13px}.wa-mini{width:100%;border-collapse:collapse}.wa-mini td{padding:6px 0;border-bottom:1px solid var(--foodex-border);font-size:12px}.wa-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-tag{padding:4px 8px;background:var(--foodex-background);border-radius:999px;font-size:11px;font-weight:700}
 .wa-empty{padding:32px;text-align:center;color:var(--foodex-muted)}.wa-status{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr)) auto;gap:8px;align-items:end}
-@media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}.wa-toolbar form{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}.wa-toolbar form{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.wa-controls-row{grid-template-columns:1fr}}
 @media(max-width:760px){.wa-toolbar form,.wa-status{grid-template-columns:1fr}.wa-workspace{grid-template-columns:1fr}.wa-context{grid-column:auto}.wa-message{max-width:94%}}
 </style>
 </head>
@@ -39,41 +40,6 @@
         @if($errors->any())<div class="foodex-card" style="padding:12px 16px;margin-bottom:12px;color:var(--foodex-red)"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
         <div class="wa-shell">
-            <section class="foodex-card wa-profile">
-                <form method="post" action="{{ route('admin.whatsapp-inbox.status') }}" class="wa-status">
-                    @csrf @method('PATCH')
-                    <label>{{ __('whatsapp.inbox.my_status') }}
-                        <select name="status">
-                            @foreach(['ONLINE','BUSY','AWAY','OFFLINE'] as $status)
-                                <option value="{{ $status }}" @selected(($profile->status??'OFFLINE')===$status)>{{ __('whatsapp.inbox.agent_statuses.'.$status) }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-                    <label>{{ __('whatsapp.inbox.capacity') }}<input type="number" min="1" max="500" name="capacity" value="{{ $profile->capacity??20 }}"></label>
-                    <label>{{ __('whatsapp.inbox.accept_new') }}
-                        <select name="accepts_new"><option value="1" @selected(($profile->accepts_new??1)==1)>{{ __('whatsapp.inbox.yes') }}</option><option value="0" @selected(($profile->accepts_new??1)==0)>{{ __('whatsapp.inbox.no') }}</option></select>
-                    </label>
-                    <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.update') }}</button>
-                </form>
-            </section>
-
-            <section class="foodex-card wa-toolbar">
-                <form method="get">
-                    <label>{{ __('whatsapp.inbox.search') }}<input name="q" value="{{ $filters['q']??'' }}" placeholder="{{ __('whatsapp.inbox.search_placeholder') }}"></label>
-                    <label>{{ __('whatsapp.inbox.status') }}
-                        <select name="status"><option value="">{{ __('whatsapp.inbox.all') }}</option>@foreach(['OPEN','WAITING_FOR_AGENT','WAITING_FOR_CUSTOMER','RESOLVED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($filters['status']??'')===$status)>{{ __('whatsapp.inbox.conversation_statuses.'.$status) }}</option>@endforeach</select>
-                    </label>
-                    <label>{{ __('whatsapp.inbox.assignment') }}
-                        <select name="assignment">@foreach(['all','mine','unassigned'] as $value)<option value="{{ $value }}" @selected(($filters['assignment']??'all')===$value)>{{ __('whatsapp.inbox.assignment_filters.'.$value) }}</option>@endforeach</select>
-                    </label>
-                    <label>{{ __('whatsapp.inbox.store') }}
-                        <select name="store_id"><option value="">{{ __('whatsapp.inbox.all_authorized') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select>
-                    </label>
-                    <label>{{ __('whatsapp.inbox.channel') }}<input name="channel" value="{{ $filters['channel']??'' }}" placeholder="{{ __('whatsapp.inbox.channels.whatsapp') }}"></label>
-                    <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.apply') }}</button>
-                </form>
-            </section>
-
             <div class="wa-workspace">
                 <section class="foodex-card wa-pane">
                     <div class="wa-pane-head"><strong>{{ __('whatsapp.inbox.conversations') }}</strong><span>{{ $conversations->total() }}</span></div>
@@ -226,6 +192,43 @@
                         <div class="wa-empty">{{ __('whatsapp.inbox.no_customer_identity') }}</div>
                     @endif
                     </div>
+                </section>
+            </div>
+
+            <div class="wa-controls-row">
+                <section class="foodex-card wa-profile">
+                    <form method="post" action="{{ route('admin.whatsapp-inbox.status') }}" class="wa-status">
+                        @csrf @method('PATCH')
+                        <label>{{ __('whatsapp.inbox.my_status') }}
+                            <select name="status">
+                                @foreach(['ONLINE','BUSY','AWAY','OFFLINE'] as $status)
+                                    <option value="{{ $status }}" @selected(($profile->status??'OFFLINE')===$status)>{{ __('whatsapp.inbox.agent_statuses.'.$status) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('whatsapp.inbox.capacity') }}<input type="number" min="1" max="500" name="capacity" value="{{ $profile->capacity??20 }}"></label>
+                        <label>{{ __('whatsapp.inbox.accept_new') }}
+                            <select name="accepts_new"><option value="1" @selected(($profile->accepts_new??1)==1)>{{ __('whatsapp.inbox.yes') }}</option><option value="0" @selected(($profile->accepts_new??1)==0)>{{ __('whatsapp.inbox.no') }}</option></select>
+                        </label>
+                        <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.update') }}</button>
+                    </form>
+                </section>
+                
+                <section class="foodex-card wa-toolbar">
+                    <form method="get">
+                        <label>{{ __('whatsapp.inbox.search') }}<input name="q" value="{{ $filters['q']??'' }}" placeholder="{{ __('whatsapp.inbox.search_placeholder') }}"></label>
+                        <label>{{ __('whatsapp.inbox.status') }}
+                            <select name="status"><option value="">{{ __('whatsapp.inbox.all') }}</option>@foreach(['OPEN','WAITING_FOR_AGENT','WAITING_FOR_CUSTOMER','RESOLVED','CLOSED'] as $status)<option value="{{ $status }}" @selected(($filters['status']??'')===$status)>{{ __('whatsapp.inbox.conversation_statuses.'.$status) }}</option>@endforeach</select>
+                        </label>
+                        <label>{{ __('whatsapp.inbox.assignment') }}
+                            <select name="assignment">@foreach(['all','mine','unassigned'] as $value)<option value="{{ $value }}" @selected(($filters['assignment']??'all')===$value)>{{ __('whatsapp.inbox.assignment_filters.'.$value) }}</option>@endforeach</select>
+                        </label>
+                        <label>{{ __('whatsapp.inbox.store') }}
+                            <select name="store_id"><option value="">{{ __('whatsapp.inbox.all_authorized') }}</option>@foreach($stores as $store)<option value="{{ $store->id }}" @selected((string)($filters['store_id']??'')===(string)$store->id)>{{ $store->name }}</option>@endforeach</select>
+                        </label>
+                        <label>{{ __('whatsapp.inbox.channel') }}<input name="channel" value="{{ $filters['channel']??'' }}" placeholder="{{ __('whatsapp.inbox.channels.whatsapp') }}"></label>
+                        <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.apply') }}</button>
+                    </form>
                 </section>
             </div>
         </div>
