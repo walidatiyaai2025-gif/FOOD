@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\TransportRetryService;
 use App\Services\B2BVanFulfillmentCutoverService;
 use App\Services\B2BVanFulfillmentMigrationAudit;
@@ -37,6 +38,15 @@ Artisan::command('foodex:retry-whatsapp-transport', function (TransportRetryServ
 });
 
 Schedule::command('foodex:retry-whatsapp-transport')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Artisan::command('foodex:dispatch-whatsapp-campaigns', function (CampaignService $campaigns): void {
+    $count = $campaigns->dispatchDue();
+    $this->info("Queued {$count} WhatsApp campaign recipient(s).");
+});
+
+Schedule::command('foodex:dispatch-whatsapp-campaigns')
     ->everyMinute()
     ->withoutOverlapping();
 
