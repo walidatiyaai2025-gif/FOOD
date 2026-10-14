@@ -86,7 +86,7 @@ final class SendWhatsAppMessage implements ShouldQueue
                 fn () => $providers->forProfile($profile)->send($profile, $message),
             );
 
-            DB::transaction(function () use ($dispatch, $profile, $result): void {
+            DB::transaction(function () use ($dispatch, $result): void {
                 DB::table('whats_app_outbound_dispatches')->where('id', $dispatch->id)->update([
                     'status' => 'sent',
                     'provider_message_ref' => $result->providerMessageId,
