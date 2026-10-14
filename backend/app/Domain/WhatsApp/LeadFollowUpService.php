@@ -20,11 +20,15 @@ final class LeadFollowUpService
         $customer = DB::table('platform_customers')->where('id', $customerId)->first();
         abort_unless($customer !== null, 404);
 
-        $storeId = isset($data['store_id'])
-            ? (int) $data['store_id']
-            : ($customer->origin_store_id === null ? null : (int) $customer->origin_store_id);
+        $requestedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
+        $conversationId = isset($data['conversation_id']) ? (int) $data['conversation_id'] : null;
+        $storeId = $this->resolveStoreContext($customerId, $requestedStoreId, $conversationId);
 
         $this->assertSupervisor($actor, $storeId);
+        $this->assertAgentScope(
+            isset($data['assigned_agent_id']) ? (int) $data['assigned_agent_id'] : null,
+            $storeId,
+        );
 
         $temperature = strtolower((string) ($data['temperature'] ?? 'cold'));
         $status = strtolower((string) ($data['status'] ?? 'open'));
@@ -207,14 +211,35 @@ final class LeadFollowUpService
     public function createFollowUp(User $actor, array $data): int
     {
         $customerId = isset($data['platform_customer_id']) ? (int) $data['platform_customer_id'] : null;
-        $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
+        $requestedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
+        $conversationId = isset($data['conversation_id']) ? (int) $data['conversation_id'] : null;
 
-        if ($storeId === null && $customerId !== null) {
-            $value = DB::table('platform_customers')->where('id', $customerId)->value('origin_store_id');
-            $storeId = $value === null ? null : (int) $value;
+        if ($customerId === null && isset($data['lead_id'])) {
+            $lead = DB::table('whats_app_leads')->where('id', (int) $data['lead_id'])->first();
+            abort_unless($lead !== null, 404);
+            $customerId = (int) $lead->platform_customer_id;
+            $requestedStoreId ??= $lead->store_id === null ? null : (int) $lead->store_id;
         }
 
+        if ($customerId === null && $conversationId !== null) {
+            $value = DB::table('whats_app_conversations')
+                ->where('id', $conversationId)
+                ->value('platform_customer_id');
+            $customerId = $value === null ? null : (int) $value;
+        }
+
+        if ($customerId === null) {
+            throw ValidationException::withMessages([
+                'platform_customer_id' => [__('whatsapp_supervisor.errors.customer_context_required')],
+            ]);
+        }
+
+        $storeId = $this->resolveStoreContext($customerId, $requestedStoreId, $conversationId);
         $this->assertSupervisor($actor, $storeId);
+        $this->assertAgentScope(
+            isset($data['assigned_agent_id']) ? (int) $data['assigned_agent_id'] : null,
+            $storeId,
+        );
         $now = now();
 
         $id = (int) DB::table('whats_app_follow_ups')->insertGetId([
@@ -298,6 +323,58 @@ final class LeadFollowUpService
             'outcome_code' => trim($outcome),
             'notes' => $notes,
         ]);
+    }
+
+    private function resolveStoreContext(
+        int $customerId,
+        ?int $requestedStoreId,
+        ?int $conversationId,
+    ): ?int {
+        $customer = DB::table('platform_customers')->where('id', $customerId)->first();
+        abort_unless($customer !== null, 404);
+
+        $originStoreId = $customer->origin_store_id === null ? null : (int) $customer->origin_store_id;
+        $conversationStoreId = null;
+
+        if ($conversationId !== null) {
+            $conversation = DB::table('whats_app_conversations')->where('id', $conversationId)->first();
+            abort_unless($conversation !== null, 404);
+
+            if ((int) $conversation->platform_customer_id !== $customerId) {
+                throw ValidationException::withMessages([
+                    'conversation_id' => [__('whatsapp_supervisor.errors.context_scope')],
+                ]);
+            }
+
+            $conversationStoreId = $conversation->store_id === null ? null : (int) $conversation->store_id;
+        }
+
+        $storeId = $requestedStoreId ?? $conversationStoreId ?? $originStoreId;
+
+        foreach ([$requestedStoreId, $conversationStoreId, $originStoreId] as $candidate) {
+            if ($candidate !== null && $storeId !== null && $candidate !== $storeId) {
+                throw ValidationException::withMessages([
+                    'store_id' => [__('whatsapp_supervisor.errors.context_scope')],
+                ]);
+            }
+        }
+
+        return $storeId;
+    }
+
+    private function assertAgentScope(?int $agentId, ?int $storeId): void
+    {
+        if ($agentId === null) {
+            return;
+        }
+
+        $agent = User::query()->whereKey($agentId)->where('is_active', true)->first();
+        if (! $agent instanceof User
+            || ! $agent->hasPermission('whatsapp.conversations.view', $storeId)) {
+            throw ValidationException::withMessages([
+                'assigned_agent_id' => [__('whatsapp.inbox.errors.agent_scope')],
+            ]);
+        }
     }
 
     private function assertSupervisor(User $actor, ?int $storeId): void
