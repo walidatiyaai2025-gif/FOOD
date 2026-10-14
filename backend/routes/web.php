@@ -234,6 +234,9 @@ Route::prefix('admin')
                 Route::put('/runtime', [WhatsAppChatbotController::class, 'updateRuntime'])
                     ->middleware('throttle:30,1')
                     ->name('runtime.update');
+                Route::post('/ai/test', [WhatsAppChatbotController::class, 'testAi'])
+                    ->middleware('throttle:30,1')
+                    ->name('ai.test');
                 Route::patch('/features/{feature}', [WhatsAppChatbotController::class, 'updateFeature'])
                     ->whereNumber('feature')
                     ->middleware('throttle:60,1')
