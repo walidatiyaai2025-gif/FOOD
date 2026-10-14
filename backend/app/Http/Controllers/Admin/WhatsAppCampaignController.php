@@ -529,6 +529,8 @@ final class WhatsAppCampaignController extends Controller
             'store_id' => ['nullable', 'integer', 'min:1'],
             'channel' => ['nullable', Rule::in(['b2b', 'b2c'])],
             'agent_id' => ['nullable', 'integer', 'min:1'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
         ]);
         $rows = $reports->exportRows($actor, $campaign, $filters);
         $base = Str::slug((string) $campaignRow->name) ?: 'campaign-'.$campaign;
