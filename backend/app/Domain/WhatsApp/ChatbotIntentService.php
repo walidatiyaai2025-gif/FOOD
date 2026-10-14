@@ -58,6 +58,10 @@ final class ChatbotIntentService
 
     private function normalizeIntent(string $intent): string
     {
+        if (str_starts_with($intent, 'human_handoff_')) {
+            return 'human_handoff';
+        }
+
         return in_array($intent, [
             'home', 'new_order', 'repeat_order', 'product_search', 'prices_offers',
             'order_tracking', 'finance', 'complaints', 'human_handoff',
