@@ -192,7 +192,7 @@
                                         <input type="hidden" name="store_id" value="{{ $lead->store_id }}">
                                         <input type="hidden" name="conversation_id" value="{{ $lead->conversation_id }}">
                                         <input type="hidden" name="assigned_agent_id" value="{{ $lead->assigned_agent_id }}">
-                                        <input type="hidden" name="status" value="{{ $lead->status }}">
+                                        <input type="hidden" name="status" value="{{ $lead->status }}"> {{-- localization-gate: allow form enum code, not user-facing text --}}
                                         <input type="hidden" name="source_type" value="{{ $lead->source_type }}">
                                         <input type="hidden" name="source_id" value="{{ $lead->source_id }}">
                                         <select class="form-select form-select-sm" name="temperature" onchange="this.form.submit()">
