@@ -356,6 +356,9 @@ return [
         'send_status' => 'Send status',
         'eligibility' => 'Eligibility',
         'open_conversation' => 'Open conversation',
+        'first_reply_time' => 'First reply time',
+        'followup_overdue' => 'Follow-up overdue',
+        'seconds' => 'sec',
         'no_recipients' => 'No recipients match these filters.',
         'compare_campaigns' => 'Compare campaigns',
         'from' => 'From',
@@ -407,6 +410,7 @@ return [
             'completed' => 'Completed',
             'closed' => 'Closed',
             'cancelled' => 'Cancelled',
+            'overdue' => 'Overdue',
         ],
         'suppression_reason_values' => [
             'invalid_phone' => 'Invalid or missing phone',
