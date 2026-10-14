@@ -18,11 +18,22 @@ final class ConnectionProfileManager
     ) {}
 
     /** @param array<string, mixed> $attributes */
-    public function create(User $actor, array $attributes, ?string $secret = null): WhatsAppConnectionProfile
-    {
+    public function create(
+        User $actor,
+        array $attributes,
+        ?string $secret = null,
+        ?string $webhookVerifyToken = null,
+        ?string $webhookSigningSecret = null,
+    ): WhatsAppConnectionProfile {
         $this->authorize($actor);
 
-        return DB::transaction(function () use ($actor, $attributes, $secret): WhatsAppConnectionProfile {
+        return DB::transaction(function () use (
+            $actor,
+            $attributes,
+            $secret,
+            $webhookVerifyToken,
+            $webhookSigningSecret,
+        ): WhatsAppConnectionProfile {
             $profile = new WhatsAppConnectionProfile;
             $profile->forceFill($this->configuration($attributes) + [
                 'status' => ConnectionProfileStatus::DRAFT,
@@ -32,8 +43,14 @@ final class ConnectionProfileManager
                 'primary_slot' => null,
                 'configuration_revision' => 0,
             ]);
-            if (is_string($secret) && $secret !== '') {
-                $profile->credential_secret = $secret;
+            if (is_string($secret) && trim($secret) !== '') {
+                $profile->credential_secret = trim($secret);
+            }
+            if (is_string($webhookVerifyToken) && trim($webhookVerifyToken) !== '') {
+                $profile->webhook_verify_token = trim($webhookVerifyToken);
+            }
+            if (is_string($webhookSigningSecret) && trim($webhookSigningSecret) !== '') {
+                $profile->webhook_signing_secret = trim($webhookSigningSecret);
             }
             $profile->save();
 
@@ -71,6 +88,7 @@ final class ConnectionProfileManager
                 'health_status' => ConnectionHealthStatus::NEVER_TESTED,
                 'last_checked_at' => null,
                 'last_validated_at' => null,
+                'last_webhook_at' => null,
                 'last_provider_error' => null,
                 'health_summary' => null,
                 'validation_metadata' => null,
@@ -83,21 +101,50 @@ final class ConnectionProfileManager
         });
     }
 
-    public function replaceCredential(User $actor, WhatsAppConnectionProfile $profile, string $secret): WhatsAppConnectionProfile
-    {
+    public function replaceCredential(
+        User $actor,
+        WhatsAppConnectionProfile $profile,
+        ?string $secret = null,
+        ?string $webhookVerifyToken = null,
+        ?string $webhookSigningSecret = null,
+    ): WhatsAppConnectionProfile {
         $this->authorize($actor, true);
-        if (trim($secret) === '') {
+
+        $secret = is_string($secret) ? trim($secret) : '';
+        $webhookVerifyToken = is_string($webhookVerifyToken) ? trim($webhookVerifyToken) : '';
+        $webhookSigningSecret = is_string($webhookSigningSecret) ? trim($webhookSigningSecret) : '';
+
+        if ($secret === '' && $webhookVerifyToken === '' && $webhookSigningSecret === '') {
             throw ValidationException::withMessages(['credential_secret' => __('whatsapp.connections.secret_required')]);
         }
 
-        return DB::transaction(function () use ($actor, $profile, $secret): WhatsAppConnectionProfile {
+        return DB::transaction(function () use (
+            $actor,
+            $profile,
+            $secret,
+            $webhookVerifyToken,
+            $webhookSigningSecret,
+        ): WhatsAppConnectionProfile {
             $locked = WhatsAppConnectionProfile::query()->lockForUpdate()->findOrFail($profile->getKey());
             $before = $locked->safeSnapshot();
-            $locked->credential_secret = $secret;
+
+            if ($secret !== '') {
+                $locked->credential_secret = $secret;
+            }
+            if ($webhookVerifyToken !== '') {
+                $locked->webhook_verify_token = $webhookVerifyToken;
+            }
+            if ($webhookSigningSecret !== '') {
+                $locked->webhook_signing_secret = $webhookSigningSecret;
+            }
+
             $locked->forceFill([
                 'health_status' => ConnectionHealthStatus::NEVER_TESTED,
                 'last_checked_at' => null,
                 'last_validated_at' => null,
+                'last_webhook_at' => ($webhookVerifyToken !== '' || $webhookSigningSecret !== '')
+                    ? null
+                    : $locked->last_webhook_at,
                 'last_provider_error' => null,
                 'health_summary' => null,
                 'validation_metadata' => null,
@@ -110,7 +157,8 @@ final class ConnectionProfileManager
 
             $this->audit->record('whatsapp.connection_credential_replaced', $actor, $locked, $before, [
                 'profile_id' => $locked->getKey(),
-                'credential_configured' => true,
+                'credential_configured' => $locked->secretConfigured(),
+                'webhook_secrets_configured' => $locked->webhookSecretsConfigured(),
                 'configuration_revision' => $locked->configuration_revision,
             ]);
 

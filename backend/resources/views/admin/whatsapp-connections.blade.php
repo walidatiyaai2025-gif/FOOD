@@ -36,6 +36,19 @@
             <p class="muted">{{ __('whatsapp.connections.global_policy_wins') }}</p>
         </section>
 
+        @if($transportHealth !== null)
+        <section class="panel" aria-labelledby="whatsapp-transport-health">
+            <h2 id="whatsapp-transport-health">{{ __('whatsapp.connections.transport_health') }}</h2>
+            <p class="muted">{{ __('whatsapp.connections.transport_health_hint') }}</p>
+            <dl>
+                <dt>{{ __('whatsapp.connections.outbound_retry') }}</dt><dd>{{ $transportHealth['outbound_retry'] }}</dd>
+                <dt>{{ __('whatsapp.connections.outbound_failed') }}</dt><dd>{{ $transportHealth['outbound_failed'] }}</dd>
+                <dt>{{ __('whatsapp.connections.webhook_retry') }}</dt><dd>{{ $transportHealth['webhook_retry'] }}</dd>
+                <dt>{{ __('whatsapp.connections.webhook_failed') }}</dt><dd>{{ $transportHealth['webhook_failed'] }}</dd>
+            </dl>
+        </section>
+        @endif
+
         @if($canManage)
         <section class="panel" aria-labelledby="new-connection-profile">
             <h2 id="new-connection-profile">{{ __('whatsapp.connections.create') }}</h2>
@@ -50,6 +63,8 @@
                 <label>{{ __('whatsapp.connections.account_id') }}<input class="foodex-control" name="provider_account_id" maxlength="128" value="{{ old('provider_account_id') }}"></label>
                 <label>{{ __('whatsapp.connections.app_id') }}<input class="foodex-control" name="provider_app_id" maxlength="128" value="{{ old('provider_app_id') }}"></label>
                 <label>{{ __('whatsapp.connections.secret') }}<input class="foodex-control" type="password" name="credential_secret" maxlength="10000" autocomplete="new-password"></label>
+                <label>{{ __('whatsapp.connections.webhook_verify_token') }}<input class="foodex-control" type="password" name="webhook_verify_token" maxlength="10000" autocomplete="new-password"></label>
+                <label>{{ __('whatsapp.connections.webhook_signing_secret') }}<input class="foodex-control" type="password" name="webhook_signing_secret" maxlength="10000" autocomplete="new-password"></label>
                 <label>{{ __('whatsapp.connections.provider_metadata') }}<textarea class="foodex-control" name="provider_metadata" rows="3">{{ old('provider_metadata') }}</textarea></label>
                 <label>{{ __('whatsapp.connections.webhook_metadata') }}<textarea class="foodex-control" name="webhook_metadata" rows="3">{{ old('webhook_metadata') }}</textarea></label>
                 <button class="primary" type="submit">{{ __('whatsapp.connections.create') }}</button>
@@ -79,6 +94,8 @@
                     <dt>{{ __('whatsapp.connections.phone_number_id') }}</dt><dd>{{ $profile->provider_phone_number_id ?: '—' }}</dd>
                     <dt>{{ __('whatsapp.connections.account_id') }}</dt><dd>{{ $profile->provider_account_id ?: '—' }}</dd>
                     <dt>{{ __('whatsapp.connections.secret') }}</dt><dd>{{ $profile->maskedSecret() ?: __('whatsapp.connections.secret_missing') }}</dd>
+                    <dt>{{ __('whatsapp.connections.webhook_secrets') }}</dt><dd>{{ $profile->maskedWebhookSecrets() ?: __('whatsapp.connections.secret_missing') }}</dd>
+                    <dt>{{ __('whatsapp.connections.webhook_url') }}</dt><dd>{{ route('webhooks.whatsapp.meta.ingest', $profile) }}</dd>
                     <dt>{{ __('whatsapp.connections.last_checked') }}</dt><dd>{{ $profile->last_checked_at?->format('Y-m-d H:i:s') ?: '—' }}</dd>
                     <dt>{{ __('whatsapp.connections.last_webhook') }}</dt><dd>{{ $profile->last_webhook_at?->format('Y-m-d H:i:s') ?: '—' }}</dd>
                     <dt>{{ __('whatsapp.connections.last_send') }}</dt><dd>{{ $profile->last_outbound_at?->format('Y-m-d H:i:s') ?: '—' }}</dd>
@@ -116,7 +133,10 @@
                         <summary>{{ __('whatsapp.connections.replace_secret') }}</summary>
                         <form class="foodex-form" method="post" action="{{ route('admin.whatsapp.connections.credential', $profile) }}">
                             @csrf @method('PUT')
-                            <label>{{ __('whatsapp.connections.new_secret') }}<input class="foodex-control" type="password" name="credential_secret" required maxlength="10000" autocomplete="new-password"></label>
+                            <label>{{ __('whatsapp.connections.new_secret') }}<input class="foodex-control" type="password" name="credential_secret" maxlength="10000" autocomplete="new-password"></label>
+                            <label>{{ __('whatsapp.connections.webhook_verify_token') }}<input class="foodex-control" type="password" name="webhook_verify_token" maxlength="10000" autocomplete="new-password"></label>
+                            <label>{{ __('whatsapp.connections.webhook_signing_secret') }}<input class="foodex-control" type="password" name="webhook_signing_secret" maxlength="10000" autocomplete="new-password"></label>
+                            <p class="muted">{{ __('whatsapp.connections.secret_rotation_hint') }}</p>
                             <button class="action" type="submit">{{ __('whatsapp.connections.replace_secret') }}</button>
                         </form>
                     </details>

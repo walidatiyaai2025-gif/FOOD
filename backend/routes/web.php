@@ -43,6 +43,7 @@ use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Admin\WhatsAppInboxController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -84,6 +85,15 @@ Route::withoutMiddleware([
     ShareErrorsFromSession::class,
     ValidateCsrfToken::class,
 ])->group(function (): void {
+    Route::get('/webhooks/whatsapp/meta/{profile}', [WhatsAppWebhookController::class, 'verify'])
+        ->whereNumber('profile')
+        ->middleware('throttle:120,1')
+        ->name('webhooks.whatsapp.meta.verify');
+    Route::post('/webhooks/whatsapp/meta/{profile}', [WhatsAppWebhookController::class, 'ingest'])
+        ->whereNumber('profile')
+        ->middleware('throttle:240,1')
+        ->name('webhooks.whatsapp.meta.ingest');
+
     Route::get('/install', [InstallerController::class, 'show'])->name('install.index');
     Route::post('/install/step/{step}', [InstallerController::class, 'process'])
         ->whereNumber('step')

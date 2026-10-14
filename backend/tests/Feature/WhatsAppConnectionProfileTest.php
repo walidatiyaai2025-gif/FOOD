@@ -238,6 +238,27 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->assertNotNull(WhatsAppConnectionProfile::query()->find($a->id));
     }
 
+    public function test_webhook_configuration_changes_require_fresh_verification(): void
+    {
+        $actor = $this->admin();
+        $profile = $this->createProfile($actor, 'A', '+96550000020', 'access-token');
+        $profile->forceFill(['last_webhook_at' => now()])->save();
+
+        $updated = app(ConnectionProfileManager::class)->replaceCredential(
+            $actor,
+            $profile,
+            webhookSigningSecret: 'rotated-signing-secret',
+        );
+
+        $this->assertNull($updated->last_webhook_at);
+
+        $updated->forceFill(['last_webhook_at' => now()])->save();
+        $data = $this->profileData('A renamed', '+96550000020');
+        $updated = app(ConnectionProfileManager::class)->update($actor, $updated, $data);
+
+        $this->assertNull($updated->last_webhook_at);
+    }
+
     public function test_credential_replacement_requires_super_admin_and_never_exposes_secret(): void
     {
         $actor = $this->admin();
@@ -337,6 +358,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->actingAs($en)->get(route('admin.whatsapp.connections.index'))
             ->assertOk()
             ->assertSee('WhatsApp connections')
+            ->assertSee('Transport delivery health')
             ->assertSee('dir="ltr"', false)
             ->assertDontSee('never-render-me');
 
@@ -344,6 +366,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->actingAs($ar)->get(route('admin.whatsapp.connections.index'))
             ->assertOk()
             ->assertSee('اتصالات واتساب')
+            ->assertSee('صحة نقل رسائل واتساب')
             ->assertSee('dir="rtl"', false)
             ->assertDontSee('never-render-me');
 

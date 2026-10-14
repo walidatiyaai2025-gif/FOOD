@@ -10,12 +10,14 @@ final class WhatsAppConnectionProfile extends Model
 {
     protected $guarded = ['*'];
 
-    protected $hidden = ['credential_secret'];
+    protected $hidden = ['credential_secret', 'webhook_verify_token', 'webhook_signing_secret'];
 
     protected function casts(): array
     {
         return [
             'credential_secret' => 'encrypted',
+            'webhook_verify_token' => 'encrypted',
+            'webhook_signing_secret' => 'encrypted',
             'provider_metadata' => 'array',
             'webhook_metadata' => 'array',
             'validation_metadata' => 'array',
@@ -48,6 +50,20 @@ final class WhatsAppConnectionProfile extends Model
         return $this->secretConfigured() ? '••••••••' : null;
     }
 
+    public function webhookSecretsConfigured(): bool
+    {
+        $verify = $this->getRawOriginal('webhook_verify_token');
+        $signing = $this->getRawOriginal('webhook_signing_secret');
+
+        return is_string($verify) && $verify !== ''
+            && is_string($signing) && $signing !== '';
+    }
+
+    public function maskedWebhookSecrets(): ?string
+    {
+        return $this->webhookSecretsConfigured() ? '••••••••' : null;
+    }
+
     /** @return array<string, mixed> */
     public function safeSnapshot(): array
     {
@@ -68,6 +84,10 @@ final class WhatsAppConnectionProfile extends Model
             'receive_only' => $this->receive_only,
             'configuration_revision' => $this->configuration_revision,
             'credential_configured' => $this->secretConfigured(),
+            'webhook_verify_configured' => is_string($this->getRawOriginal('webhook_verify_token'))
+                && $this->getRawOriginal('webhook_verify_token') !== '',
+            'webhook_signing_configured' => is_string($this->getRawOriginal('webhook_signing_secret'))
+                && $this->getRawOriginal('webhook_signing_secret') !== '',
         ];
     }
 }

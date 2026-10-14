@@ -4,6 +4,9 @@ namespace App\Domain\WhatsApp;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use DateTime;
+use DateTimeInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,19 +19,30 @@ final class ConversationService
     ) {}
 
     public function findOrCreateForInbound(
-        int $platformCustomerId,
+        ?int $platformCustomerId,
         ?int $storeId,
         string $channel = 'whatsapp',
+        ?string $externalParticipantPhone = null,
     ): int {
-        return DB::transaction(function () use ($platformCustomerId, $storeId, $channel): int {
-            $existing = DB::table('whats_app_conversations')
-                ->where('platform_customer_id', $platformCustomerId)
+        return DB::transaction(function () use (
+            $platformCustomerId,
+            $storeId,
+            $channel,
+            $externalParticipantPhone,
+        ): int {
+            $query = DB::table('whats_app_conversations')
                 ->where('store_id', $storeId)
                 ->where('channel', $channel)
-                ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
-                ->lockForUpdate()
-                ->first();
+                ->whereNotIn('status', ['RESOLVED', 'CLOSED']);
 
+            if ($platformCustomerId !== null) {
+                $query->where('platform_customer_id', $platformCustomerId);
+            } else {
+                $query->whereNull('platform_customer_id')
+                    ->where('external_participant_phone', $externalParticipantPhone);
+            }
+
+            $existing = $query->lockForUpdate()->first();
             if ($existing !== null) {
                 return (int) $existing->id;
             }
@@ -37,6 +51,7 @@ final class ConversationService
             $id = (int) DB::table('whats_app_conversations')->insertGetId([
                 'public_id' => (string) Str::uuid(),
                 'platform_customer_id' => $platformCustomerId,
+                'external_participant_phone' => $externalParticipantPhone,
                 'store_id' => $storeId,
                 'channel' => $channel,
                 'status' => 'WAITING_FOR_AGENT',
@@ -66,14 +81,45 @@ final class ConversationService
         ?string $body,
         array $attachmentMetadata = [],
         ?string $providerReference = null,
+        ?int $connectionProfileId = null,
+        ?DateTimeInterface $occurredAt = null,
+        string $contentType = 'text',
     ): int {
-        return DB::transaction(function () use ($conversationId, $body, $attachmentMetadata, $providerReference): int {
+        return DB::transaction(function () use (
+            $conversationId,
+            $body,
+            $attachmentMetadata,
+            $providerReference,
+            $connectionProfileId,
+            $occurredAt,
+            $contentType,
+        ): int {
+            if ($providerReference !== null && $connectionProfileId !== null) {
+                $existing = DB::table('whats_app_messages')
+                    ->where('connection_profile_id', $connectionProfileId)
+                    ->where('provider_message_ref', $providerReference)
+                    ->value('id');
+
+                if ($existing !== null) {
+                    return (int) $existing;
+                }
+            }
+
             $conversation = $this->lockConversation($conversationId);
             $now = now();
+            $occurred = $occurredAt === null
+                ? $now
+                : Carbon::instance(
+                    $occurredAt instanceof DateTime
+                        ? $occurredAt
+                        : DateTime::createFromInterface($occurredAt),
+                );
 
             $messageId = (int) DB::table('whats_app_messages')->insertGetId([
                 'conversation_id' => $conversationId,
+                'connection_profile_id' => $connectionProfileId,
                 'direction' => 'inbound',
+                'content_type' => mb_substr($contentType, 0, 24),
                 'actor_type' => 'customer',
                 'actor_user_id' => null,
                 'body' => $body,
@@ -82,7 +128,7 @@ final class ConversationService
                     : json_encode($attachmentMetadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'provider_message_ref' => $providerReference,
                 'delivery_status' => 'received',
-                'occurred_at' => $now,
+                'occurred_at' => $occurred,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -90,8 +136,8 @@ final class ConversationService
             DB::table('whats_app_conversations')->where('id', $conversationId)->update([
                 'status' => 'WAITING_FOR_AGENT',
                 'waiting_since' => $conversation->waiting_since ?? $now,
-                'first_inbound_at' => $conversation->first_inbound_at ?? $now,
-                'last_inbound_at' => $now,
+                'first_inbound_at' => $conversation->first_inbound_at ?? $occurred,
+                'last_inbound_at' => $occurred,
                 'unread_count' => ((int) $conversation->unread_count) + 1,
                 'lock_version' => ((int) $conversation->lock_version) + 1,
                 'updated_at' => $now,
@@ -129,6 +175,9 @@ final class ConversationService
             $messageId = (int) DB::table('whats_app_messages')->insertGetId([
                 'conversation_id' => $conversationId,
                 'direction' => 'outbound',
+                'content_type' => $attachmentMetadata === []
+                    ? 'text'
+                    : (isset($attachmentMetadata['template_name']) ? 'template' : (string) ($attachmentMetadata['media_type'] ?? 'media')),
                 'actor_type' => 'agent',
                 'actor_user_id' => $actor->getKey(),
                 'body' => trim($body),
