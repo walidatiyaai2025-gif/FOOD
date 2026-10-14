@@ -62,27 +62,34 @@ final class WhatsAppCallController extends Controller
             ->whereIn('id', $ids)
             ->orderByDesc('updated_at')
             ->get()
-            ->map(fn (WhatsAppCall $call): array => [
-                'id' => (int) $call->id,
-                'public_id' => (string) $call->public_id,
-                'conversation_id' => $call->conversation_id === null ? null : (int) $call->conversation_id,
-                'provider_call_id' => $call->provider_call_id,
-                'direction' => (string) $call->direction,
-                'status' => (string) $call->status,
-                'event' => $call->event,
-                'from_phone' => $call->from_phone,
-                'to_phone' => $call->to_phone,
-                'agent_user_id' => $call->agent_user_id === null ? null : (int) $call->agent_user_id,
-                'remote_sdp_type' => $call->remote_sdp_type,
-                'remote_sdp' => $call->remote_sdp,
-                'started_at' => $call->started_at?->toIso8601String(),
-                'answered_at' => $call->answered_at?->toIso8601String(),
-                'ended_at' => $call->ended_at?->toIso8601String(),
-                'duration_seconds' => $call->duration_seconds,
-                'contact_name' => is_array($call->metadata)
-                    ? ($call->metadata['contact_name'] ?? null)
-                    : null,
-            ]);
+            ->map(function ($call): array {
+                $metadataValue = $call->getAttribute('metadata');
+                $metadata = is_array($metadataValue) ? $metadataValue : [];
+
+                return [
+                    'id' => (int) $call->getKey(),
+                    'public_id' => (string) $call->getAttribute('public_id'),
+                    'conversation_id' => $call->getAttribute('conversation_id') === null
+                        ? null
+                        : (int) $call->getAttribute('conversation_id'),
+                    'provider_call_id' => $call->getAttribute('provider_call_id'),
+                    'direction' => (string) $call->getAttribute('direction'),
+                    'status' => (string) $call->getAttribute('status'),
+                    'event' => $call->getAttribute('event'),
+                    'from_phone' => $call->getAttribute('from_phone'),
+                    'to_phone' => $call->getAttribute('to_phone'),
+                    'agent_user_id' => $call->getAttribute('agent_user_id') === null
+                        ? null
+                        : (int) $call->getAttribute('agent_user_id'),
+                    'remote_sdp_type' => $call->getAttribute('remote_sdp_type'),
+                    'remote_sdp' => $call->getAttribute('remote_sdp'),
+                    'started_at' => $this->isoTimestamp($call->getAttribute('started_at')),
+                    'answered_at' => $this->isoTimestamp($call->getAttribute('answered_at')),
+                    'ended_at' => $this->isoTimestamp($call->getAttribute('ended_at')),
+                    'duration_seconds' => $call->getAttribute('duration_seconds'),
+                    'contact_name' => $metadata['contact_name'] ?? null,
+                ];
+            });
 
         return response()->json([
             'ok' => true,
@@ -185,6 +192,19 @@ final class WhatsAppCallController extends Controller
                 'error' => $exception->getMessage(),
             ], $exception->retryable ? 503 : 422);
         }
+    }
+
+    private function isoTimestamp(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format(DATE_ATOM);
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        return null;
     }
 
     private function actor(Request $request): User
