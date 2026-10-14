@@ -225,12 +225,17 @@ final class CampaignContactImportService
                 throw ValidationException::withMessages(['file' => ['XLSX worksheet XML is invalid.']]);
             }
 
+            $namespaces = $sheet->getNamespaces(true);
+            $main = isset($namespaces['']) ? $sheet->children($namespaces['']) : $sheet;
+
             $matrix = [];
             $formulaRows = 0;
-            foreach ($sheet->sheetData->row as $rowNode) {
+            foreach ($main->sheetData->row as $rowNodeRaw) {
+                $rowNode = isset($namespaces['']) ? $rowNodeRaw->children($namespaces['']) : $rowNodeRaw;
                 $values = [];
                 $hasFormula = false;
-                foreach ($rowNode->c as $cell) {
+                foreach ($rowNode->c as $cellRaw) {
+                    $cell = isset($namespaces['']) ? $cellRaw->children($namespaces['']) : $cellRaw;
                     $attributes = $cell->attributes();
                     $reference = (string) ($attributes['r'] ?? '');
                     $index = $this->columnIndex($reference);
@@ -295,14 +300,18 @@ final class CampaignContactImportService
             return [];
         }
 
+        $namespaces = $root->getNamespaces(true);
+        $main = isset($namespaces['']) ? $root->children($namespaces['']) : $root;
         $values = [];
-        foreach ($root->si as $si) {
+        foreach ($main->si as $siRaw) {
+            $si = isset($namespaces['']) ? $siRaw->children($namespaces['']) : $siRaw;
             if (isset($si->t)) {
                 $values[] = (string) $si->t;
                 continue;
             }
             $text = '';
-            foreach ($si->r as $run) {
+            foreach ($si->r as $runRaw) {
+                $run = isset($namespaces['']) ? $runRaw->children($namespaces['']) : $runRaw;
                 $text .= (string) $run->t;
             }
             $values[] = $text;
