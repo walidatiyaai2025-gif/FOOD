@@ -41,6 +41,7 @@ use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
 use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
+use App\Http\Controllers\Admin\WhatsAppInboundAlertController;
 use App\Http\Controllers\Admin\WhatsAppInboxController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
@@ -143,6 +144,22 @@ Route::prefix('admin')
         Route::post('/settings/whatsapp/connections/{profile}/primary', [WhatsAppConnectionController::class, 'switchPrimary'])->middleware('throttle:10,1')->name('whatsapp.connections.primary');
         Route::post('/settings/whatsapp/connections/{profile}/receive-only', [WhatsAppConnectionController::class, 'receiveOnly'])->middleware('throttle:20,1')->name('whatsapp.connections.receive-only');
         Route::post('/settings/whatsapp/connections/{profile}/deactivate', [WhatsAppConnectionController::class, 'deactivate'])->middleware('throttle:20,1')->name('whatsapp.connections.deactivate');
+        Route::prefix('whatsapp/inbound-alerts')
+            ->name('whatsapp-inbound-alerts.')
+            ->middleware('whatsapp.capability:agent_inbox')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppInboundAlertController::class, 'feed'])
+                    ->middleware('throttle:120,1')
+                    ->name('feed');
+                Route::patch('/{alert}/dismiss', [WhatsAppInboundAlertController::class, 'dismiss'])
+                    ->whereNumber('alert')
+                    ->middleware('throttle:120,1')
+                    ->name('dismiss');
+                Route::patch('/{alert}/open', [WhatsAppInboundAlertController::class, 'open'])
+                    ->whereNumber('alert')
+                    ->middleware('throttle:120,1')
+                    ->name('open');
+            });
         Route::prefix('whatsapp/inbox')
             ->name('whatsapp-inbox.')
             ->middleware('whatsapp.capability:agent_inbox')
