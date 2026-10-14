@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\WhatsApp\ChatbotAnalyticsService;
 use App\Domain\WhatsApp\ChatbotFeatureRegistry;
 use App\Domain\WhatsApp\ChatbotRuntimePolicy;
+use App\Domain\WhatsApp\ChatbotSegmentationService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ final class WhatsAppChatbotController extends Controller
         private readonly ChatbotRuntimePolicy $runtime,
         private readonly ChatbotFeatureRegistry $features,
         private readonly ChatbotAnalyticsService $analytics,
+        private readonly ChatbotSegmentationService $segmentation,
     ) {}
 
     public function index(Request $request, ?string $section = null): View
@@ -384,7 +386,9 @@ final class WhatsAppChatbotController extends Controller
             'screen' => $screen,
             'customers' => $customers,
             'customer' => $customer,
-            'features' => $this->features->visibleEnabled(),
+            'features' => $this->features->visibleEnabled(
+                $this->segmentation->codesFor($customer === null ? null : (int) $customer->id),
+            ),
             'products' => $this->previewProducts(),
             'orders' => $customer === null ? collect() : $this->previewOrders((int) $customer->legacy_customer_id),
             'invoices' => $customer === null ? collect() : $this->previewInvoices((int) $customer->id),
