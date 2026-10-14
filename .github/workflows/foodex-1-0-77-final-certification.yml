@@ -1,0 +1,117 @@
+name: FOODEX 1.0.77 Final Certification
+
+on:
+  pull_request:
+    branches:
+      - release/1.0.77-production-program
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    if: ${{ github.head_ref == 'worker/1388-final-certification' }}
+    name: Reversible launch certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FOODEX_RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      FOODEX_RELEASE_RUN_NUMBER: ${{ github.run_number }}
+
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_sqlite, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Prove frozen Customer zero-diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          python3 scripts/validate_customer_freeze_contract.py \
+            --candidate "${{ github.event.pull_request.head.sha }}" \
+            --metadata-out artifacts/customer-frozen-lineage.json
+          git diff --exit-code 4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d \
+            "${{ github.event.pull_request.head.sha }}" -- apps/customer_app
+
+      - name: Validate 1.0.77 candidate release identity
+        shell: bash
+        run: bash scripts/release-readiness.sh
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare certification database
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          php artisan key:generate
+          rm -f database/database.sqlite
+          touch database/database.sqlite
+          php artisan migrate:fresh --force
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+
+      - name: Run focused 1.0.77 certification suite
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan test \
+            tests/Feature/Foodex1077FinalCertificationTest.php \
+            tests/Feature/ProductionDatasetSnapshotTest.php \
+            tests/Feature/ProductionDatasetSwitchTest.php \
+            tests/Feature/FoodexLaunchCatalogSeederTest.php \
+            tests/Feature/ProductionLaunchGateTest.php \
+            tests/Unit/FoodexLaunchCatalogProvenanceTest.php \
+            tests/Unit/ProductionLaunchPreflightTest.php
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          FOODEX_RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          FOODEX_RELEASE_RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Generate source-bound certification report
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s backend/storage/app/certification/FOODEX_1_0_77_FINAL_CERTIFICATION.json
+          python3 scripts/generate-foodex-1-0-77-certification-report.py \
+            --source-sha "${{ github.event.pull_request.head.sha }}" \
+            --run-number "${{ github.run_number }}" \
+            --evidence backend/storage/app/certification/FOODEX_1_0_77_FINAL_CERTIFICATION.json \
+            --output artifacts/FOODEX_1_0_77_FINAL_CERTIFICATION.md
+          grep -F "**Status: PASS**" artifacts/FOODEX_1_0_77_FINAL_CERTIFICATION.md
+          python3 - <<'PY'
+          import json
+          p=json.load(open("artifacts/FOODEX_1_0_77_FINAL_CERTIFICATION.json"))
+          assert p["status"] == "PASS", p
+          assert p["unresolved_risks"] == [], p
+          PY
+
+      - name: Upload final certification evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: foodex-1.0.77-final-certification-${{ github.event.pull_request.head.sha }}
+          path: |
+            artifacts/FOODEX_1_0_77_FINAL_CERTIFICATION.md
+            artifacts/FOODEX_1_0_77_FINAL_CERTIFICATION.json
+            artifacts/customer-frozen-lineage.json
+            backend/storage/app/certification/FOODEX_1_0_77_FINAL_CERTIFICATION.json
+          if-no-files-found: warn
+          retention-days: 90
