@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
+use App\Http\Controllers\Admin\WhatsAppInboxController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -122,6 +123,18 @@ Route::prefix('admin')
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
+        Route::prefix('whatsapp/inbox')
+            ->name('whatsapp-inbox.')
+            ->middleware('whatsapp.capability:agent_inbox')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppInboxController::class, 'index'])->name('index');
+                Route::post('/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->name('reply');
+                Route::post('/{conversation}/notes', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('note');
+                Route::patch('/{conversation}/assignment', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('assign');
+                Route::patch('/{conversation}/status', [WhatsAppInboxController::class, 'transition'])->whereNumber('conversation')->name('transition');
+                Route::post('/{conversation}/tags', [WhatsAppInboxController::class, 'tag'])->whereNumber('conversation')->name('tag');
+                Route::patch('/my-status', [WhatsAppInboxController::class, 'updateMyStatus'])->name('status');
+            });
         Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
             ->name('assistant.')
