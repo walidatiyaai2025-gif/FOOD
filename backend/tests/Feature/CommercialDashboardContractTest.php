@@ -187,7 +187,7 @@ class CommercialDashboardContractTest extends TestCase
     public function test_sales_control_uses_premium_dashboard_shell_instead_of_legacy_standalone_surface(): void
     {
         [$manager, $storeId] = $this->wholesaleManager();
-        $this->flashProduct($storeId, 'b2b');
+        $productId = $this->flashProduct($storeId, 'b2b');
 
         $response = $this->actingAs($manager)
             ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]));
@@ -198,6 +198,20 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('data-foodex-sidebar-toggle', false)
             ->assertSee('Commercial & Sales')
             ->assertSee('Product policies')
+            ->assertSee('data-sales-product-selector', false)
+            ->assertSee('Search and select a product')
+            ->assertSee('data-sales-control-empty', false)
+            ->assertDontSee('data-selling-unit-editor', false)
+            ->assertDontSee('data-availability-editor', false)
+            ->assertDontSee('data-targeting-rule-editor', false)
+            ->assertDontSee('class="commercial-policy-form"', false);
+
+        $selected = $this->actingAs($manager)
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId, 'product' => $productId]));
+
+        $selected
+            ->assertOk()
+            ->assertSee('Flash Product')
             ->assertSee('Availability & channels')
             ->assertSee('Selling unit & break-pack')
             ->assertSee('data-break-pack-selling-unit', false)
@@ -215,15 +229,16 @@ class CommercialDashboardContractTest extends TestCase
         $manager->forceFill(['locale' => 'ar'])->save();
 
         $this->actingAs($manager->fresh())
-            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId, 'product' => $productId]))
             ->assertOk()
             ->assertSee('dir="rtl"', false)
+            ->assertSee('ابحث واختر منتجًا')
             ->assertSee('وحدات البيع')
             ->assertSee('نوافذ الإتاحة')
             ->assertSee('قواعد الاستهداف والحصص');
     }
 
-    public function test_sales_control_is_b2b_scoped_and_legacy_b2c_url_redirects(): void
+    public function test_sales_control_selector_search_is_store_scoped_and_cross_store_ids_are_rejected(): void
     {
         [$wholesaleManager, $wholesaleStoreId] = $this->wholesaleManager();
         $wholesaleProductId = $this->flashProduct($wholesaleStoreId, 'b2b');
@@ -232,10 +247,35 @@ class CommercialDashboardContractTest extends TestCase
         $retailProductId = $this->flashProduct($retailStoreId);
 
         $this->actingAs($wholesaleManager)
-            ->get(route('admin.commercial.sales-control', ['store_id' => $wholesaleStoreId]))
+            ->get(route('admin.commercial.sales-control.products', [
+                'store_id' => $wholesaleStoreId,
+                'q' => 'COMM-FLASH-001-B2B',
+            ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $wholesaleProductId,
+                'name' => 'Flash Product',
+            ])
+            ->assertJsonMissing(['id' => $retailProductId]);
+
+        $this->actingAs($wholesaleManager)
+            ->get(route('admin.commercial.sales-control', [
+                'store_id' => $wholesaleStoreId,
+                'product' => $wholesaleProductId,
+            ]))
             ->assertOk()
             ->assertSee('Flash Product')
-            ->assertSee('action="'.route('admin.commercial.sales-control.save', ['product' => $wholesaleProductId, 'store_id' => $wholesaleStoreId]).'"', false);
+            ->assertSee('action="'.route('admin.commercial.sales-control.save', [
+                'product' => $wholesaleProductId,
+                'store_id' => $wholesaleStoreId,
+            ]).'"', false);
+
+        $this->actingAs($wholesaleManager)
+            ->get(route('admin.commercial.sales-control', [
+                'store_id' => $wholesaleStoreId,
+                'product' => $retailProductId,
+            ]))
+            ->assertNotFound();
 
         $this->actingAs($retailManager)
             ->get('/admin/b2c/commercial/sales-control')
@@ -246,10 +286,48 @@ class CommercialDashboardContractTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_sales_control_save_keeps_selected_product_active_and_updates_only_authorized_product(): void
+    {
+        [$manager, $storeId] = $this->wholesaleManager();
+        $productId = $this->flashProduct($storeId, 'b2b');
+
+        [, $otherStoreId] = $this->retailManager();
+        $otherProductId = $this->flashProduct($otherStoreId);
+
+        $this->actingAs($manager)
+            ->from(route('admin.commercial.sales-control', ['store_id' => $storeId, 'product' => $productId]))
+            ->put(route('admin.commercial.sales-control.save', [
+                'store_id' => $storeId,
+                'product' => $productId,
+            ]), [
+                'status' => 'RESTRICTED',
+                'channels_json' => '["customer","van"]',
+                'break_pack_policy' => 'mixed',
+                'business_timezone' => 'Asia/Kuwait',
+                'week_starts_on' => 1,
+                'selling_units_json' => '[{"code":"PIECE","name":"Piece","conversion_factor":1,"is_base":true,"is_active":true}]',
+                'availability_windows_json' => '[]',
+                'rules_json' => '[]',
+            ])
+            ->assertRedirect(route('admin.commercial.sales-control', [
+                'store_id' => $storeId,
+                'product' => $productId,
+            ]))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseHas('product_commercial_policies', [
+            'product_id' => $productId,
+            'status' => 'RESTRICTED',
+        ]);
+        $this->assertDatabaseMissing('product_commercial_policies', [
+            'product_id' => $otherProductId,
+        ]);
+    }
+
     public function test_platform_admin_keeps_advanced_json_behind_privileged_section(): void
     {
         [, $storeId] = $this->wholesaleManager();
-        $this->flashProduct($storeId, 'b2b');
+        $productId = $this->flashProduct($storeId, 'b2b');
 
         $superAdmin = User::query()->create([
             'name' => 'Commercial Platform Advanced',
@@ -261,7 +339,7 @@ class CommercialDashboardContractTest extends TestCase
         $superAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $this->actingAs($superAdmin)
-            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId]))
+            ->get(route('admin.commercial.sales-control', ['store_id' => $storeId, 'product' => $productId]))
             ->assertOk()
             ->assertSee('data-selling-unit-editor', false)
             ->assertSee('data-availability-editor', false)
@@ -275,10 +353,13 @@ class CommercialDashboardContractTest extends TestCase
     public function test_van_commercial_parity_is_explicit_in_sales_control_and_flash_offer_authoring(): void
     {
         [$wholesaleManager, $wholesaleStoreId] = $this->wholesaleManager();
-        $this->flashProduct($wholesaleStoreId, 'b2b');
+        $wholesaleProductId = $this->flashProduct($wholesaleStoreId, 'b2b');
 
         $this->actingAs($wholesaleManager)
-            ->get(route('admin.commercial.sales-control', ['store_id' => $wholesaleStoreId]))
+            ->get(route('admin.commercial.sales-control', [
+                'store_id' => $wholesaleStoreId,
+                'product' => $wholesaleProductId,
+            ]))
             ->assertOk()
             ->assertSee('data-commercial-channel-picker', false)
             ->assertSee('value="van" data-commercial-channel', false);
