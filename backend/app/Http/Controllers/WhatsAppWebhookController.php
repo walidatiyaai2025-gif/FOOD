@@ -87,7 +87,11 @@ final class WhatsAppWebhookController extends Controller
                 if (! is_array($value)) {
                     continue;
                 }
-                $phoneId = $value['metadata']['phone_number_id'] ?? null;
+                $metadata = $value['metadata'] ?? null;
+                if (! is_array($metadata)) {
+                    continue;
+                }
+                $phoneId = $metadata['phone_number_id'] ?? null;
                 if (is_string($phoneId) || is_numeric($phoneId)) {
                     $phoneId = trim((string) $phoneId);
                     if ($phoneId !== '') {
