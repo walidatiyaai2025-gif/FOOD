@@ -312,7 +312,7 @@ final class SupervisorAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      */
     private function leadMetrics(array $storeIds, array $filters, ?int $agentId): array
     {
