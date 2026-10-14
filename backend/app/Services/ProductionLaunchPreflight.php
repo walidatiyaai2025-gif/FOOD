@@ -567,7 +567,7 @@ final class ProductionLaunchPreflight
             'detail' => $passed
                 ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
-            'source' => ($release['lineage_source'] ?? null) === 'candidate-source'
+            'source' => $release['lineage_source'] === 'candidate-source'
                 ? 'exact candidate source + mobile source identities + frozen Customer contract'
                 : 'Release/BUILD_INFO.json + VERSION',
         ];
