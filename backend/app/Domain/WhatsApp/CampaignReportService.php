@@ -99,6 +99,13 @@ final class CampaignReportService
             ->pluck('total', 'f.status')
             ->map(static fn ($value): int => (int) $value)
             ->all();
+        $followups['overdue'] = DB::table('whats_app_campaign_followups as f')
+            ->join('whats_app_campaign_recipients as r', 'r.id', '=', 'f.campaign_recipient_id')
+            ->where('r.campaign_id', $campaignId)
+            ->whereNotNull('f.due_at')
+            ->where('f.due_at', '<', now())
+            ->whereNotIn('f.status', ['completed', 'closed', 'cancelled'])
+            ->count();
 
         return [
             'campaign' => $campaign,
@@ -197,7 +204,12 @@ final class CampaignReportService
             $query->where('f.assigned_agent_id', $agentId);
         }
 
-        return $query->orderBy('r.id')->paginate(50)->withQueryString();
+        $paginator = $query->orderBy('r.id')->paginate(50)->withQueryString();
+        $paginator->setCollection(
+            $paginator->getCollection()->map(fn (object $row): object => $this->decorateRecipient($row)),
+        );
+
+        return $paginator;
     }
 
     /** @param array<string,mixed> $filters
@@ -333,7 +345,27 @@ final class CampaignReportService
             'f.due_at as followup_due_at',
             'agent.name as agent_name',
             'f.conversation_id',
-        ]);
+        ])->map(fn (object $row): object => $this->decorateRecipient($row));
+    }
+
+    private function decorateRecipient(object $row): object
+    {
+        $row->first_reply_seconds = null;
+        if ($row->sent_at !== null && $row->replied_at !== null) {
+            $row->first_reply_seconds = Carbon::parse((string) $row->sent_at)
+                ->diffInSeconds(Carbon::parse((string) $row->replied_at));
+        }
+
+        $terminalFollowup = in_array(
+            strtolower((string) ($row->followup_status ?? '')),
+            ['completed', 'closed', 'cancelled'],
+            true,
+        );
+        $row->followup_overdue = $row->followup_due_at !== null
+            && ! $terminalFollowup
+            && Carbon::parse((string) $row->followup_due_at)->isPast();
+
+        return $row;
     }
 
     private function optOutCount(int $campaignId, object $campaign): int
