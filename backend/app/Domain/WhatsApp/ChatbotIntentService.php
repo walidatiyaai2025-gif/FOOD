@@ -11,6 +11,16 @@ final class ChatbotIntentService
         if (is_string($interactiveId) && str_starts_with($interactiveId, 'chatbot:')) {
             $intent = substr($interactiveId, strlen('chatbot:'));
 
+            if (str_starts_with($intent, 'add_product:')) {
+                return ['intent' => 'add_product', 'confidence' => 1.0];
+            }
+            if (str_starts_with($intent, 'repeat_to_cart')) {
+                return ['intent' => 'repeat_to_cart', 'confidence' => 1.0];
+            }
+            if ($intent === 'view_cart') {
+                return ['intent' => 'view_cart', 'confidence' => 1.0];
+            }
+
             return ['intent' => $this->normalizeIntent($intent), 'confidence' => 1.0];
         }
 
@@ -65,6 +75,7 @@ final class ChatbotIntentService
         return in_array($intent, [
             'home', 'new_order', 'repeat_order', 'product_search', 'prices_offers',
             'order_tracking', 'finance', 'complaints', 'human_handoff',
+            'add_product', 'repeat_to_cart', 'view_cart',
         ], true) ? $intent : 'fallback';
     }
 
