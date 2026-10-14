@@ -36,6 +36,19 @@
             <p class="muted">{{ __('whatsapp.connections.global_policy_wins') }}</p>
         </section>
 
+        @if($transportHealth !== null)
+        <section class="panel" aria-labelledby="whatsapp-transport-health">
+            <h2 id="whatsapp-transport-health">{{ __('whatsapp.connections.transport_health') }}</h2>
+            <p class="muted">{{ __('whatsapp.connections.transport_health_hint') }}</p>
+            <dl>
+                <dt>{{ __('whatsapp.connections.outbound_retry') }}</dt><dd>{{ $transportHealth['outbound_retry'] }}</dd>
+                <dt>{{ __('whatsapp.connections.outbound_failed') }}</dt><dd>{{ $transportHealth['outbound_failed'] }}</dd>
+                <dt>{{ __('whatsapp.connections.webhook_retry') }}</dt><dd>{{ $transportHealth['webhook_retry'] }}</dd>
+                <dt>{{ __('whatsapp.connections.webhook_failed') }}</dt><dd>{{ $transportHealth['webhook_failed'] }}</dd>
+            </dl>
+        </section>
+        @endif
+
         @if($canManage)
         <section class="panel" aria-labelledby="new-connection-profile">
             <h2 id="new-connection-profile">{{ __('whatsapp.connections.create') }}</h2>
