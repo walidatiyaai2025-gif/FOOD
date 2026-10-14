@@ -385,6 +385,106 @@ final class WhatsAppChatbotTest extends TestCase
         $this->assertFalse(app(ChatbotRuntimePolicy::class)->canHandleConversation($conversationId));
     }
 
+    public function test_campaign_reply_is_attributed_to_the_live_chatbot_flow(): void
+    {
+        $storeId = $this->store('B2B', 'WA-BOT-CAMPAIGN');
+        $customerId = $this->customer($storeId, 'b2b', '+96550000666');
+        $conversationId = $this->conversation($customerId, $storeId, '+96550000666');
+
+        DB::table('whats_app_chatbot_settings')->update([
+            'enabled' => true,
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'default_locale' => 'en',
+            'working_from' => null,
+            'working_to' => null,
+            'updated_at' => now(),
+        ]);
+
+        WhatsAppModuleState::query()->findOrFail(1)->forceFill([
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'capabilities' => [
+                Capability::INBOUND->value => true,
+                Capability::OUTBOUND->value => true,
+                Capability::AUTOMATION->value => true,
+            ],
+            'test_numbers' => ['+96550000666'],
+        ])->save();
+
+        $templateId = (int) DB::table('whats_app_templates')->insertGetId([
+            'name' => 'Chatbot offer',
+            'provider_name' => 'chatbot_offer',
+            'locale' => 'en',
+            'category' => 'marketing',
+            'provider_status' => 'approved',
+            'body_preview' => 'Order now',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $campaignId = (int) DB::table('whats_app_campaigns')->insertGetId([
+            'name' => 'Chatbot Campaign',
+            'template_id' => $templateId,
+            'status' => 'completed',
+            'segment' => json_encode(['all' => true]),
+            'test_mode' => true,
+            'batch_size' => 50,
+            'per_minute_limit' => 100,
+            'max_recipients' => 1000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('whats_app_campaign_recipients')->insert([
+            'campaign_id' => $campaignId,
+            'platform_customer_id' => $customerId,
+            'phone' => '+96550000666',
+            'snapshot' => json_encode(['phone' => '+96550000666']),
+            'eligibility_status' => 'eligible',
+            'send_status' => 'sent',
+            'sent_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $flowId = (int) DB::table('whats_app_chatbot_flows')->insertGetId([
+            'code' => 'campaign_order',
+            'name_ar' => 'طلب الحملة',
+            'name_en' => 'Campaign order',
+            'status' => 'published',
+            'version' => 1,
+            'definition' => json_encode([
+                'schema' => 1,
+                'start' => 'welcome',
+                'nodes' => [
+                    ['id' => 'welcome', 'type' => 'message', 'content' => ['ar' => 'ابدأ', 'en' => 'Start'], 'next' => 'primary_action'],
+                    ['id' => 'primary_action', 'type' => 'action', 'action' => 'new_order', 'requires_confirmation' => true],
+                ],
+            ]),
+            'published_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertTrue(app(ChatbotAutomationService::class)->handleInbound(
+            $conversationId,
+            $customerId,
+            'new order',
+        ));
+
+        $event = DB::table('whats_app_chatbot_events')
+            ->where('event_type', 'campaign_chatbot_entry')
+            ->where('conversation_id', $conversationId)
+            ->first();
+
+        $this->assertNotNull($event);
+        $payload = json_decode((string) $event->payload, true);
+        $this->assertSame($campaignId, $payload['campaign_id']);
+        $this->assertSame($flowId, $payload['flow_id']);
+    }
+
     public function test_chatbot_schema_is_additive_and_contains_case_audit_and_flow_versioning(): void
     {
         foreach ([
