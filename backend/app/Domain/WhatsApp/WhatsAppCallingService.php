@@ -48,12 +48,6 @@ final class WhatsAppCallingService
         $this->guardOutbound($phone);
 
         $profile = $this->primaryProfile();
-        $permission = $this->permissionForPhone($phone, $profile);
-        if (! ($permission['can_request'] ?? false)) {
-            throw ValidationException::withMessages([
-                'call' => ['WhatsApp does not currently allow another call-permission request for this customer.'],
-            ]);
-        }
 
         $text = trim((string) $reason);
         if ($text === '') {
@@ -75,7 +69,6 @@ final class WhatsAppCallingService
         return [
             'ok' => true,
             'provider_message_id' => $this->stringOrNull(data_get($response, 'messages.0.id')),
-            'permission' => $permission,
         ];
     }
 
