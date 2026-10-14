@@ -168,6 +168,10 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
                 if (! is_array($change)) {
                     continue;
                 }
+                if (strtolower((string) ($change['field'] ?? '')) === 'calls') {
+                    // Voice-call signaling is handled by WhatsAppCallingService.
+                    continue;
+                }
                 $value = $change['value'] ?? null;
                 if (! is_array($value)) {
                     continue;
