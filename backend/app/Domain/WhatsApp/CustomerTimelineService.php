@@ -101,14 +101,17 @@ final class CustomerTimelineService
             });
         $events = $events->concat($crm);
 
-        $campaigns = DB::table('whats_app_campaign_recipients as r')
-            ->join('whats_app_campaigns as c', 'c.id', '=', 'r.campaign_id')
-            ->where('r.platform_customer_id', $platformCustomerId)
-            ->whereNotNull('r.queued_at')
-            ->get([
-                'r.id', 'r.send_status', 'r.queued_at', 'r.sent_at', 'r.delivered_at', 'r.read_at', 'r.replied_at',
-                'c.id as campaign_id', 'c.name as campaign_name',
-            ]);
+        $campaigns = $customer->origin_store_id !== null
+            && in_array((int) $customer->origin_store_id, $storeIds, true)
+            ? DB::table('whats_app_campaign_recipients as r')
+                ->join('whats_app_campaigns as c', 'c.id', '=', 'r.campaign_id')
+                ->where('r.platform_customer_id', $platformCustomerId)
+                ->whereNotNull('r.queued_at')
+                ->get([
+                    'r.id', 'r.send_status', 'r.queued_at', 'r.sent_at', 'r.delivered_at', 'r.read_at', 'r.replied_at',
+                    'c.id as campaign_id', 'c.name as campaign_name',
+                ])
+            : collect();
         foreach ($campaigns as $row) {
             foreach ([
                 'queued_at' => 'Campaign queued',
