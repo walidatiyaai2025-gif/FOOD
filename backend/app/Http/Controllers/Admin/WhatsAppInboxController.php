@@ -382,7 +382,7 @@ final class WhatsAppInboxController extends Controller
         return $ids;
     }
 
-    /** @return Collection<int, array{kind:string,id:int,direction:string,actor:mixed,body:mixed,delivery_status:mixed,timestamp:mixed}> */
+    /** @return Collection<int, covariant array<string, mixed>> */
     private function timeline(int $conversationId): Collection
     {
         $messages = DB::table('whats_app_messages as messages')
