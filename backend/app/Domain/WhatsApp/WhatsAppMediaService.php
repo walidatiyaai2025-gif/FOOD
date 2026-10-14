@@ -328,8 +328,8 @@ final class WhatsAppMediaService
     private function graphUrl(WhatsAppConnectionProfile $profile, string $resource): string
     {
         $base = rtrim((string) config('whatsapp.meta.base_url', 'https://graph.facebook.com'), '/');
-        $metadata = $profile->provider_metadata;
-        $metadata = is_array($metadata) ? $metadata : [];
+        $metadataValue = $profile->getAttribute('provider_metadata');
+        $metadata = is_array($metadataValue) ? $metadataValue : [];
         $version = trim((string) ($metadata['graph_version'] ?? config('whatsapp.meta.graph_version', 'v26.0')));
         if (preg_match('/^v\d+\.\d+$/', $version) !== 1) {
             $version = 'v26.0';
