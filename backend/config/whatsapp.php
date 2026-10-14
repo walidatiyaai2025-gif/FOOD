@@ -1,5 +1,16 @@
 <?php
 
+$iceServers = json_decode(
+    (string) env(
+        'WHATSAPP_WEBRTC_ICE_SERVERS_JSON',
+        '[{"urls":"stun:stun.l.google.com:19302"}]',
+    ),
+    true,
+);
+if (! is_array($iceServers)) {
+    $iceServers = [['urls' => 'stun:stun.l.google.com:19302']];
+}
+
 return [
     'transport' => [
         'queue' => env('WHATSAPP_QUEUE', 'whatsapp'),
@@ -16,6 +27,10 @@ return [
     'media' => [
         'max_outbound_mb' => (int) env('WHATSAPP_MEDIA_MAX_OUTBOUND_MB', 16),
         'max_download_mb' => (int) env('WHATSAPP_MEDIA_MAX_DOWNLOAD_MB', 32),
+    ],
+
+    'webrtc' => [
+        'ice_servers' => $iceServers,
     ],
 
     'supervisor' => [
