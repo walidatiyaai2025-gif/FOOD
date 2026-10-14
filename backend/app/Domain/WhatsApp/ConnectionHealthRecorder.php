@@ -18,6 +18,14 @@ final class ConnectionHealthRecorder
 
     public function providerError(WhatsAppConnectionProfile $profile, string $safeMessage): void
     {
+        try {
+            $secret = $profile->credential_secret;
+        } catch (\Throwable) {
+            $secret = null;
+        }
+        if (is_string($secret) && $secret !== '') {
+            $safeMessage = str_replace($secret, '[REDACTED]', $safeMessage);
+        }
         $message = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $safeMessage) ?? '';
         $profile->forceFill([
             'health_status' => ConnectionHealthStatus::DEGRADED,
