@@ -3,15 +3,11 @@
 namespace Tests\Feature;
 
 use App\Domain\WhatsApp\Capability;
-use App\Domain\WhatsApp\ConnectionHealthRecorder;
 use App\Domain\WhatsApp\ConnectionHealthStatus;
 use App\Domain\WhatsApp\ConnectionProfileStatus;
-use App\Domain\WhatsApp\OutboundExecution;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
 use App\Domain\WhatsApp\WebhookIngress;
-use App\Domain\WhatsApp\WhatsAppProviderRegistry;
 use App\Jobs\ProcessWhatsAppWebhook;
-use App\Jobs\SendWhatsAppMessage;
 use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
 use Database\Seeders\CoreReferenceSeeder;
@@ -212,13 +208,7 @@ final class WhatsAppTransportTest extends TestCase
         $this->assertNotNull($first);
         $this->assertSame($first, $second);
         $this->assertSame(1, DB::table('whats_app_outbound_dispatches')->count());
-        Queue::assertPushed(SendWhatsAppMessage::class, 1);
-
-        (new SendWhatsAppMessage((int) $first))->handle(
-            app(WhatsAppProviderRegistry::class),
-            app(OutboundExecution::class),
-            app(ConnectionHealthRecorder::class),
-        );
+        Queue::assertNothingPushed();
 
         $this->assertDatabaseHas('whats_app_outbound_dispatches', [
             'id' => $first,
@@ -226,7 +216,7 @@ final class WhatsAppTransportTest extends TestCase
             'connection_profile_id' => $profile->getKey(),
             'idempotency_key' => 'wa-message-'.$messageId,
             'status' => 'blocked_policy',
-            'attempts' => 1,
+            'attempts' => 0,
         ]);
         $this->assertDatabaseHas('whats_app_messages', [
             'id' => $messageId,
