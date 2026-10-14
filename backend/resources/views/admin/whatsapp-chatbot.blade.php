@@ -306,9 +306,10 @@
                             <button class="foodex-action-primary" type="submit">{{ __('chatbot.admin.update') }}</button>
                         </form>
                     </div>
-                    @foreach(['conversations','customers','bot_replies','handoffs','fallbacks'] as $metric)
+                    @foreach(['conversations','customers','bot_replies','handoffs','fallbacks','draft_actions','support_cases','campaign_entries'] as $metric)
                         <div class="cb-card cb-col-3"><div class="cb-muted">{{ __('chatbot.admin.'.$metric) }}</div><div class="cb-kpi">{{ $analytics[$metric] ?? 0 }}</div></div>
                     @endforeach
+                    <div class="cb-card cb-col-3"><div class="cb-muted">{{ __('chatbot.admin.draft_value') }}</div><div class="cb-kpi">{{ number_format((float)($analytics['draft_value'] ?? 0), 3) }} KWD</div></div>
                     <div class="cb-card cb-col-6">
                         <h2>{{ __('chatbot.admin.feature_usage') }}</h2>
                         @if(($analytics['features'] ?? collect())->isEmpty())<div class="foodex-empty-state">{{ __('chatbot.admin.no_data') }}</div>@else
