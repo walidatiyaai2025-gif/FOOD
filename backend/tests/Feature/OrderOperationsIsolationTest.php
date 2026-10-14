@@ -394,7 +394,6 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertOk()
             ->assertSee('data-order-authoritative-context', false)
             ->assertDontSee('store_id='.$retailStore, false)
-            ->assertDontSee('channel=b2c', false)
             ->assertSee('Customer checkout')
             ->assertDontSee('customer_checkout');
 
@@ -1096,14 +1095,15 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_legacy_order_pages_redirect_to_the_canonical_unified_operations_page(): void
+    public function test_legacy_order_pages_use_the_canonical_unified_operations_controller(): void
     {
         $store = $this->store('OPS-LEGACY-REDIRECT');
         $retailAdmin = $this->storeAdmin($store, 'ops-legacy-retail@example.test');
 
         $this->actingAs($retailAdmin)
             ->get('/admin/b2c/orders')
-            ->assertRedirect('/admin/operations/orders?channel=b2c');
+            ->assertOk()
+            ->assertViewIs('admin.order-operations');
 
         $wholesaleAdmin = User::query()->create([
             'name' => 'Wholesale Legacy Redirect Admin',
@@ -1116,7 +1116,8 @@ class OrderOperationsIsolationTest extends TestCase
 
         $this->actingAs($wholesaleAdmin)
             ->get('/admin/b2b/orders')
-            ->assertRedirect('/admin/operations/orders?channel=b2b');
+            ->assertOk()
+            ->assertViewIs('admin.order-operations');
     }
 
     public function test_pending_retail_order_exposes_contextual_three_dot_edit_action(): void
