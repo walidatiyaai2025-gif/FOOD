@@ -376,5 +376,4 @@ final class SupervisorAnalyticsService
             'rows' => $rows,
         ];
     }
-
 }
