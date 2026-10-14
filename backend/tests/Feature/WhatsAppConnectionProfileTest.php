@@ -297,7 +297,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
     public function test_health_failure_is_normalized_and_does_not_break_unrelated_food(): void
     {
         $actor = $this->admin();
-        $profile = $this->createProfile($actor, 'A', '+96550000015', 'a');
+        $profile = $this->createProfile($actor, 'A', '+96550000015', 'health-check-secret');
         $this->validator->throw = true;
 
         $this->assertFalse(app(ConnectionProfileManager::class)->validate($actor, $profile));
@@ -313,7 +313,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $actor = $this->admin();
         $profile = app(ConnectionProfileManager::class)->switchPrimary(
             $actor,
-            $this->createProfile($actor, 'A', '+96550000016', 'a'),
+            $this->createProfile($actor, 'A', '+96550000016', 'transport-health-secret'),
         );
         $recorder = app(ConnectionHealthRecorder::class);
 
