@@ -5,6 +5,7 @@ use App\Services\B2BVanFulfillmentMigrationAudit;
 use App\Services\FlashOfferNotificationDispatcher;
 use App\Services\FlashOfferService;
 use App\Services\NotificationCampaignDispatcher;
+use App\Domain\WhatsApp\TransportRetryService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -27,6 +28,15 @@ Artisan::command('foodex:dispatch-flash-offer-notifications', function (): void 
 });
 
 Schedule::command('foodex:dispatch-flash-offer-notifications')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Artisan::command('foodex:retry-whatsapp-transport', function (TransportRetryService $retry): void {
+    $count = $retry->dispatchDue();
+    $this->info("Dispatched {$count} due WhatsApp transport retry job(s).");
+});
+
+Schedule::command('foodex:retry-whatsapp-transport')
     ->everyMinute()
     ->withoutOverlapping();
 
