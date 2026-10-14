@@ -43,6 +43,7 @@ use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Admin\WhatsAppInboundAlertController;
 use App\Http\Controllers\Admin\WhatsAppInboxController;
+use App\Http\Controllers\Admin\WhatsAppSupervisorController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use App\Http\Controllers\WhatsAppWebhookController;
@@ -171,6 +172,16 @@ Route::prefix('admin')
                 Route::patch('/{conversation}/status', [WhatsAppInboxController::class, 'transition'])->whereNumber('conversation')->name('transition');
                 Route::post('/{conversation}/tags', [WhatsAppInboxController::class, 'tag'])->whereNumber('conversation')->name('tag');
                 Route::patch('/my-status', [WhatsAppInboxController::class, 'updateMyStatus'])->name('status');
+            });
+        Route::prefix('whatsapp/supervisor')
+            ->name('whatsapp-supervisor.')
+            ->middleware('whatsapp.capability:agent_inbox')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppSupervisorController::class, 'index'])->name('index');
+                Route::post('/leads', [WhatsAppSupervisorController::class, 'saveLead'])->name('leads.store');
+                Route::post('/follow-ups', [WhatsAppSupervisorController::class, 'createFollowUp'])->name('follow-ups.store');
+                Route::patch('/follow-ups/{followUp}', [WhatsAppSupervisorController::class, 'transitionFollowUp'])->whereNumber('followUp')->name('follow-ups.transition');
+                Route::put('/conversations/{conversation}/outcome', [WhatsAppSupervisorController::class, 'recordOutcome'])->whereNumber('conversation')->name('outcomes.store');
             });
         Route::prefix('whatsapp/campaigns')
             ->name('whatsapp-campaigns.')

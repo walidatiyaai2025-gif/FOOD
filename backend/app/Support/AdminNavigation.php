@@ -94,6 +94,7 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
+                $this->whatsAppSupervisorItem($user),
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'finance', 'admin.b2c_workspace.modules.finance', 'finance.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
@@ -238,6 +239,22 @@ class AdminNavigation
             'whatsapp.inbox_title',
             'admin.whatsapp-inbox.index',
             'whatsapp.inbox.view',
+        );
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function whatsAppSupervisorItem(User $user): ?array
+    {
+        if (! app(RuntimePolicy::class)->allowsAgentInbox()) {
+            return null;
+        }
+
+        return $this->routeItemScoped(
+            $user,
+            'whatsapp_supervisor',
+            'whatsapp_supervisor.nav_title',
+            'admin.whatsapp-supervisor.index',
+            'whatsapp.customer_service.supervise',
         );
     }
 

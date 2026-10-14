@@ -6,7 +6,10 @@ use Illuminate\Support\Facades\DB;
 
 final class CampaignReplyRecorder
 {
-    public function __construct(private readonly MarketingConsentService $consent) {}
+    public function __construct(
+        private readonly MarketingConsentService $consent,
+        private readonly LeadFollowUpService $crm,
+    ) {}
 
     public function record(
         ?int $platformCustomerId,
@@ -54,6 +57,14 @@ final class CampaignReplyRecorder
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+
+            $this->crm->recordCampaignReply(
+                $platformCustomerId,
+                $conversationId,
+                (int) $recipient->campaign_id,
+                (int) $recipient->id,
+                $agentId === null ? null : (int) $agentId,
+            );
         }, 3);
     }
 }
