@@ -181,7 +181,7 @@ final class WhatsAppInboxController extends Controller
 
         return $this->backToConversation(
             $conversation,
-            $this->message('تمت إضافة الرد إلى عقد النقل بدون ادعاء الإرسال.', 'Reply queued for transport without claiming provider delivery.'),
+            __('whatsapp.inbox.flash.reply_queued'),
         );
     }
 
@@ -200,7 +200,7 @@ final class WhatsAppInboxController extends Controller
 
         return $this->backToConversation(
             $conversation,
-            $this->message('تم حفظ الملاحظة الداخلية.', 'Internal note saved.'),
+            __('whatsapp.inbox.flash.note_saved'),
         );
     }
 
@@ -227,7 +227,7 @@ final class WhatsAppInboxController extends Controller
 
         return $this->backToConversation(
             $conversation,
-            $this->message('تم تحديث الإسناد بأمان.', 'Assignment updated safely.'),
+            __('whatsapp.inbox.flash.assignment_updated'),
         );
     }
 
@@ -247,8 +247,8 @@ final class WhatsAppInboxController extends Controller
         return $this->backToConversation(
             $conversation,
             $validated['action'] === 'reopen'
-                ? $this->message('تمت إعادة فتح المحادثة.', 'Conversation reopened.')
-                : $this->message('تم حل المحادثة.', 'Conversation resolved.'),
+                ? __('whatsapp.inbox.flash.reopened')
+                : __('whatsapp.inbox.flash.resolved'),
         );
     }
 
@@ -289,7 +289,7 @@ final class WhatsAppInboxController extends Controller
 
         return redirect()
             ->route('admin.whatsapp-inbox.index')
-            ->with('status', $this->message('تم تحديث حالة الوكيل.', 'Agent status updated.'));
+            ->with('status', __('whatsapp.inbox.flash.agent_status_updated'));
     }
 
     public function tag(Request $request, int $conversation): RedirectResponse
@@ -322,7 +322,7 @@ final class WhatsAppInboxController extends Controller
 
         return $this->backToConversation(
             $conversation,
-            $this->message('تم تحديث الوسوم.', 'Tags updated.'),
+            __('whatsapp.inbox.flash.tags_updated'),
         );
     }
 
@@ -396,7 +396,10 @@ final class WhatsAppInboxController extends Controller
                 'kind' => 'message',
                 'id' => (int) $row->id,
                 'direction' => (string) $row->direction,
-                'actor' => $row->actor_name ?? $row->actor_type,
+                'actor' => $row->actor_name
+                    ?? ($row->actor_type === 'customer'
+                        ? __('whatsapp.inbox.customer_actor')
+                        : __('whatsapp.inbox.system_actor')),
                 'body' => $row->body,
                 'delivery_status' => $row->delivery_status,
                 'timestamp' => $row->occurred_at,
@@ -415,7 +418,7 @@ final class WhatsAppInboxController extends Controller
                 'kind' => 'note',
                 'id' => (int) $row->id,
                 'direction' => 'internal',
-                'actor' => $row->actor_name ?? 'System',
+                'actor' => $row->actor_name ?? __('whatsapp.inbox.system_actor'),
                 'body' => $row->body,
                 'delivery_status' => null,
                 'timestamp' => $row->created_at,
@@ -548,8 +551,4 @@ final class WhatsAppInboxController extends Controller
             ->with('status', $status);
     }
 
-    private function message(string $ar, string $en): string
-    {
-        return app()->getLocale() === 'ar' ? $ar : $en;
-    }
 }
