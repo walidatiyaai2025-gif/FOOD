@@ -120,6 +120,47 @@ final class WhatsAppTransportTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_signed_webhook_for_different_phone_profile_is_rejected(): void
+    {
+        Queue::fake();
+        $this->enableInternalTest();
+        $profile = $this->profile();
+
+        $payload = [
+            'object' => 'whatsapp_business_account',
+            'entry' => [[
+                'changes' => [[
+                    'field' => 'messages',
+                    'value' => [
+                        'metadata' => [
+                            'display_phone_number' => '+96522220000',
+                            'phone_number_id' => 'different-phone-id',
+                        ],
+                        'messages' => [],
+                    ],
+                ]],
+            ]],
+        ];
+        $raw = json_encode($payload, JSON_THROW_ON_ERROR);
+        $signature = 'sha256='.hash_hmac('sha256', $raw, 'signing-secret');
+
+        $this->call(
+            'POST',
+            route('webhooks.whatsapp.meta.ingest', $profile),
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_HUB_SIGNATURE_256' => $signature,
+            ],
+            $raw,
+        )->assertNotFound();
+
+        $this->assertSame(0, DB::table('whats_app_webhook_events')->count());
+        Queue::assertNothingPushed();
+    }
+
     public function test_outbound_dispatch_is_idempotent_and_disabled_policy_never_calls_meta(): void
     {
         Queue::fake();
