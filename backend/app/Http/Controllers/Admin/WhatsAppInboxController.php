@@ -441,7 +441,7 @@ final class WhatsAppInboxController extends Controller
         ?int $customerId,
         array $allowedStoreIds,
         User $actor,
-    ): ?array\n    {
+    ): ?array {
 
         if ($customerId === null) {
             return null;
