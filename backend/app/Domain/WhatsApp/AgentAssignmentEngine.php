@@ -51,7 +51,7 @@ final class AgentAssignmentEngine
 
         if (! $agent instanceof User || ! $agent->hasPermission('whatsapp.conversations.view', $storeId)) {
             throw ValidationException::withMessages([
-                'agent_id' => ['Agent is outside the authorized conversation scope.'],
+                'agent_id' => [__('whatsapp.inbox.errors.agent_scope')],
             ]);
         }
 
@@ -60,14 +60,14 @@ final class AgentAssignmentEngine
             || ! (bool) $profile->accepts_new
             || strtoupper((string) $profile->status) !== 'ONLINE') {
             throw ValidationException::withMessages([
-                'agent_id' => ['Agent is unavailable for new assignments.'],
+                'agent_id' => [__('whatsapp.inbox.errors.agent_unavailable')],
             ]);
         }
 
         $load = $this->activeLoad($agentId);
         if ($load >= max(1, (int) $profile->capacity)) {
             throw ValidationException::withMessages([
-                'agent_id' => ['Agent has reached configured capacity.'],
+                'agent_id' => [__('whatsapp.inbox.errors.agent_capacity')],
             ]);
         }
 
@@ -151,7 +151,7 @@ final class AgentAssignmentEngine
     {
         $status = strtoupper($status);
         if (! in_array($status, ['ONLINE', 'BUSY', 'OFFLINE', 'AWAY'], true)) {
-            throw ValidationException::withMessages(['status' => ['Invalid agent status.']]);
+            throw ValidationException::withMessages(['status' => [__('whatsapp.inbox.errors.invalid_agent_status')]]);
         }
 
         DB::table('whats_app_agent_profiles')->updateOrInsert(
