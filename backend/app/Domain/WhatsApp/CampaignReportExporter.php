@@ -85,8 +85,10 @@ final class CampaignReportExporter
             'Failed at',
             'Replied at',
             'Failure reason',
+            'First reply seconds',
             'Follow-up status',
             'Follow-up due at',
+            'Follow-up overdue',
             'Agent',
             'Conversation ID',
         ];
@@ -113,8 +115,10 @@ final class CampaignReportExporter
             $row->failed_at,
             $row->replied_at,
             $row->last_error,
+            $row->first_reply_seconds,
             $row->followup_status,
             $row->followup_due_at,
+            $row->followup_overdue ? 'yes' : 'no',
             $row->agent_name,
             $row->conversation_id,
         ];
