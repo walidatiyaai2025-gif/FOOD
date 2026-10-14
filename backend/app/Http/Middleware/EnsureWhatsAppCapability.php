@@ -18,6 +18,7 @@ final class EnsureWhatsAppCapability
         $allowed = match (Capability::tryFrom($capability)) {
             Capability::INBOUND => $this->policy->allowsInbound(),
             Capability::AGENT_INBOX => $this->policy->allowsAgentInbox(),
+            Capability::CAMPAIGNS => $this->policy->allowsCampaignManagement(),
             default => false,
         };
         abort_unless($allowed, 404);
