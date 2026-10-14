@@ -240,12 +240,12 @@ final class ConversationService
                 ]);
             }
 
-            $oldAssignment = DB::table('whats_app_customer_assignments')
-                ->where('platform_customer_id', $conversation->platform_customer_id)
-                ->lockForUpdate()
-                ->first();
-
+            $oldAssignment = null;
             if ($conversation->platform_customer_id !== null) {
+                $oldAssignment = DB::table('whats_app_customer_assignments')
+                    ->where('platform_customer_id', $conversation->platform_customer_id)
+                    ->lockForUpdate()
+                    ->first();
                 $version = $oldAssignment === null ? 0 : ((int) $oldAssignment->version) + 1;
                 DB::table('whats_app_customer_assignments')->updateOrInsert(
                     ['platform_customer_id' => $conversation->platform_customer_id],
