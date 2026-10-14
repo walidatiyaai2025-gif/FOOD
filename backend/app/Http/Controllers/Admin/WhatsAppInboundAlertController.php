@@ -14,7 +14,9 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 final class WhatsAppInboundAlertController extends Controller
 {
-    public function __construct(private readonly ConversationService $conversations) {}
+    public function __construct(
+        private readonly ConversationService $conversations,
+    ) {}
 
     public function feed(Request $request): JsonResponse
     {
