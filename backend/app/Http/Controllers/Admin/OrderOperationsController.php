@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Jobs\DispatchPushNotification;
 use App\Models\AuditLog;
+use App\Models\B2bCustomer;
 use App\Models\DriverAssignment;
+use App\Models\Invoice;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderDispatchState;
@@ -16,6 +18,7 @@ use App\Models\OrderVanAssignment;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalLookupService;
@@ -40,14 +43,30 @@ final class OrderOperationsController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $scope,
+        private readonly B2bAccountLedgerService $accountLedger,
         private readonly DriverDeliveryEvidenceService $deliveryEvidence,
         private readonly VanDeliveryEvidenceService $vanDeliveryEvidence,
         private readonly OperationalLookupService $lookups,
     ) {}
 
+    public function b2bIndex(Request $request): View
+    {
+        $request->merge(['channel' => 'b2b']);
+
+        return $this->index($request);
+    }
+
+    public function b2cIndex(Request $request): View
+    {
+        $request->merge(['channel' => 'b2c']);
+
+        return $this->index($request);
+    }
+
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
+        $availableChannels = $this->availableOperationalChannels($actor, 'orders.view');
 
         $statusOptions = $this->orderStatusOptions();
         $statusCodes = array_values(array_unique(array_map(
@@ -70,10 +89,13 @@ final class OrderOperationsController extends Controller
         $operationalChannel = isset($data['channel'])
             ? (string) $data['channel']
             : $this->defaultOperationalChannel($actor);
+        $this->assertOperationalChannelAllowed($availableChannels, $operationalChannel);
         $data['channel'] = $operationalChannel;
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
+        $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
+        $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
         $storeIds = array_values(array_unique(array_merge(
             $scopes['b2b'],
             $scopes['b2c'],
@@ -158,7 +180,14 @@ final class OrderOperationsController extends Controller
             ->all();
 
         $rows = collect($orders->items())
-            ->map(fn (Order $order): array => $this->row($order, $statusLabels, $activeStatusCodes, $dispatchScopes))
+            ->map(fn (Order $order): array => $this->row(
+                $order,
+                $statusLabels,
+                $activeStatusCodes,
+                $dispatchScopes,
+                $manageScopes,
+                $financeScopes,
+            ))
             ->all();
 
         $stores = DB::table('stores')
@@ -208,7 +237,15 @@ final class OrderOperationsController extends Controller
                 ->whereKey((int) $data['order'])
                 ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
                 ->firstOrFail();
-            $detail = $this->detail($actor, $detailOrder, $statusLabels, $activeStatusCodes, $dispatchScopes);
+            $detail = $this->detail(
+                $actor,
+                $detailOrder,
+                $statusLabels,
+                $activeStatusCodes,
+                $dispatchScopes,
+                $manageScopes,
+                $financeScopes,
+            );
         }
 
         return view('admin.order-operations', [
@@ -219,6 +256,15 @@ final class OrderOperationsController extends Controller
             'orders' => $orders,
             'rows' => $rows,
             'stores' => $stores,
+            'storeId' => $selectedStoreId ?? (count($storeIds) === 1 ? $storeIds[0] : null),
+            'storeIds' => $selectedStoreId !== null ? [$selectedStoreId] : $storeIds,
+            'availableStores' => $stores
+                ->map(static fn (object $store): array => [
+                    'id' => (int) $store->id,
+                    'name' => (string) $store->name,
+                    'code' => (string) $store->code,
+                ])
+                ->all(),
             'drivers' => $drivers,
             'vans' => $vans,
             'detail' => $detail,
@@ -230,6 +276,8 @@ final class OrderOperationsController extends Controller
             'statusTabs' => $statusTabs,
             'statusTotal' => array_sum($statusCounts),
             'selectedStatus' => $selectedStatus,
+            'selectedChannel' => $operationalChannel,
+            'availableChannels' => $availableChannels,
             'newOrderWizard' => $this->newOrderWizard($actor),
             'isAr' => app()->getLocale() === 'ar',
         ]);
@@ -395,6 +443,24 @@ final class OrderOperationsController extends Controller
             ));
     }
 
+    public function update(
+        Request $request,
+        int $order,
+        AdminOrderManagementService $orders,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.manage');
+        $orders->update($request, $actor, $model);
+
+        return redirect()
+            ->route('admin.operations.orders.index', [
+                'channel' => strtolower((string) $model->channel),
+                'store_id' => (int) $model->store_id,
+                'order' => (int) $model->getKey(),
+            ])
+            ->with('status', $this->msg('تم تحديث الطلب.', 'Order updated.'));
+    }
+
     /** @return array{0:string,1:int} */
     private function newOrderScope(Request $request, User $actor): array
     {
@@ -493,17 +559,28 @@ final class OrderOperationsController extends Controller
         if ($channel === 'b2b') {
             $customers = DB::table('b2b_customers')
                 ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+                ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+                ->leftJoin('stores as retail_customer_store', 'retail_customer_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
                 ->where('b2b_accounts.status', 'active')
+                ->where(function ($query): void {
+                    $query->whereNotNull('b2b_accounts.price_tier_id')
+                        ->orWhereNotNull('retail_wholesale_accounts.retail_store_id');
+                })
+                ->orderByRaw('retail_customer_store.id IS NULL')
                 ->orderBy('b2b_accounts.company_name')
                 ->orderBy('b2b_customers.name')
                 ->get([
                     'b2b_customers.id',
                     'b2b_customers.name',
                     'b2b_accounts.company_name',
+                    'retail_wholesale_accounts.retail_store_id',
+                    'retail_customer_store.name as retail_store_name',
                 ])
-                ->map(static fn (object $row): array => [
+                ->map(fn (object $row): array => [
                     'id' => (int) $row->id,
-                    'name' => trim(($row->company_name ? $row->company_name.' · ' : '').$row->name),
+                    'name' => $row->retail_store_id === null
+                        ? trim(($row->company_name ? $row->company_name.' · ' : '').$row->name)
+                        : ($this->msg('التجزئة · ', 'Retail · ').($row->retail_store_name ?: '#'.$row->retail_store_id)),
                 ])
                 ->values()
                 ->all();
@@ -1008,6 +1085,8 @@ final class OrderOperationsController extends Controller
         array $statusLabels,
         array $activeStatusCodes,
         array $dispatchScopes,
+        array $manageScopes,
+        array $financeScopes,
     ): array {
 
         $assignment = DriverAssignment::query()
@@ -1060,7 +1139,64 @@ final class OrderOperationsController extends Controller
         $payment = DB::table('payments')
             ->where('order_id', $order->getKey())
             ->latest('id')
-            ->first(['status', 'provider']);
+            ->first(['status', 'provider', 'amount', 'currency']);
+
+        $invoice = DB::table('invoices')
+            ->where('order_id', $order->getKey())
+            ->latest('id')
+            ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+
+        $channel = strtolower((string) $order->channel);
+        $canManage = in_array(
+            (int) $order->store_id,
+            $manageScopes[$channel] ?? [],
+            true,
+        );
+        $canViewInvoice = in_array(
+            (int) $order->store_id,
+            $financeScopes[$channel] ?? [],
+            true,
+        );
+        $canEdit = $canManage
+            && (string) $order->status === 'pending'
+            && $order->commercial_locked_at === null
+            && ($payment->status ?? null) !== 'paid'
+            && ! DB::table('invoices')
+                ->where('order_id', $order->getKey())
+                ->whereIn('status', ['issued', 'reissued'])
+                ->exists();
+
+        $settlement = null;
+        if ($channel === 'b2b' && $order->b2b_customer_id !== null) {
+            $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
+            if (
+                $customer instanceof B2bCustomer
+                && DB::table('b2b_accounts')
+                    ->where('b2b_customer_id', $customer->getKey())
+                    ->where('status', 'active')
+                    ->exists()
+            ) {
+                $finance = $this->accountLedger->summary($customer, (int) $order->store_id);
+                $invoiceOutstanding = null;
+                if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
+                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
+                    if ($invoiceModel instanceof Invoice) {
+                        $amounts = $this->accountLedger->invoiceAmounts($invoiceModel);
+                        $invoiceOutstanding = (float) $amounts['outstanding_amount'];
+                    }
+                }
+
+                $settlement = [
+                    'currency' => (string) ($finance['currency'] ?? $order->currency),
+                    'customer_credit_balance' => (float) ($finance['customer_credit_balance'] ?? 0),
+                    'aggregate_outstanding' => (float) ($finance['outstanding_receivable'] ?? 0),
+                    'credit_limit' => (float) ($finance['credit_limit'] ?? 0),
+                    'available_credit_line' => (float) ($finance['available_credit_line'] ?? 0),
+                    'invoice_outstanding' => $invoiceOutstanding,
+                    'remainder_method' => is_string($order->payment_method) ? $order->payment_method : null,
+                ];
+            }
+        }
 
         $store = DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
         $storeLabel = $store === null
@@ -1086,7 +1222,7 @@ final class OrderOperationsController extends Controller
             'id' => (int) $order->getKey(),
             'number' => DisplayNumber::reference($order->getKey()),
             'internal_number' => (string) $order->order_number,
-            'channel' => strtolower((string) $order->channel),
+            'channel' => $channel,
             'store_id' => (int) $order->store_id,
             'store' => $storeLabel,
             'source' => $source,
@@ -1106,6 +1242,17 @@ final class OrderOperationsController extends Controller
             'updated_at' => $order->updated_at,
             'payment_status' => $payment?->status,
             'payment_provider' => $payment?->provider,
+            'payment_amount' => $payment?->amount === null ? null : (float) $payment->amount,
+            'payment_currency' => $payment?->currency,
+            'invoice_id' => $invoice?->id === null ? null : (int) $invoice->id,
+            'invoice_number' => $invoice?->invoice_number,
+            'invoice_status' => $invoice?->status,
+            'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
+            'invoice_currency' => $invoice?->currency,
+            'can_view_invoice' => $canViewInvoice,
+            'settlement' => $settlement,
+            'can_manage' => $canManage,
+            'can_edit' => $canEdit,
             'assignment_id' => $assignment?->getKey(),
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
@@ -1138,8 +1285,17 @@ final class OrderOperationsController extends Controller
         array $statusLabels,
         array $activeStatusCodes,
         array $dispatchScopes,
+        array $manageScopes,
+        array $financeScopes,
     ): array {
-        $row = $this->row($order, $statusLabels, $activeStatusCodes, $dispatchScopes);
+        $row = $this->row(
+            $order,
+            $statusLabels,
+            $activeStatusCodes,
+            $dispatchScopes,
+            $manageScopes,
+            $financeScopes,
+        );
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $history = OrderStatusHistory::query()
@@ -1301,8 +1457,35 @@ final class OrderOperationsController extends Controller
                 ->all();
         }
 
+        $items = DB::table('order_items')
+            ->where('order_id', $order->getKey())
+            ->orderBy('id')
+            ->get(['product_id', 'sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total', 'currency'])
+            ->map(static fn (object $item): array => [
+                'product_id' => (int) $item->product_id,
+                'sku' => (string) $item->sku_snapshot,
+                'name' => (string) $item->name_snapshot,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'line_total' => (float) $item->line_total,
+                'currency' => (string) $item->currency,
+            ])
+            ->all();
+
         return [
             ...$row,
+            'customer_id' => strtolower((string) $order->channel) === 'b2b'
+                ? (int) $order->b2b_customer_id
+                : (int) $order->b2c_customer_id,
+            'warehouse_id' => $order->warehouse_id === null ? null : (int) $order->warehouse_id,
+            'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'payment_method' => $order->payment_method,
+            'coupon_code' => data_get($order->pricing_snapshot, 'coupon.code'),
+            'customer_note' => $order->customer_note,
+            'items' => $items,
+            'edit_options' => $row['can_edit']
+                ? $this->newOrderStoreData(strtolower((string) $order->channel), (int) $order->store_id)
+                : null,
             'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
@@ -1414,18 +1597,53 @@ final class OrderOperationsController extends Controller
         });
     }
 
-    private function defaultOperationalChannel(User $actor): string
+    /** @return list<array{code:string,label:string}> */
+    private function availableOperationalChannels(User $actor, string $permission): array
     {
-        $b2b = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2b');
-        $b2c = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2c');
-
+        $channels = [];
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $b2b = array_values(array_filter(
+            $this->scope->allowedStoreIds($actor, $permission, 'b2b'),
+            static fn (int $storeId): bool => $storeId === $principalStoreId,
+        ));
         if ($b2b !== []) {
-            return 'b2b';
+            $channels[] = [
+                'code' => 'b2b',
+                'label' => $this->msg('B2B · الجملة', 'B2B · Wholesale'),
+            ];
         }
 
-        abort_if($b2c === [], 403);
+        if ($this->scope->allowedStoreIds($actor, $permission, 'b2c') !== []) {
+            $channels[] = [
+                'code' => 'b2c',
+                'label' => $this->msg('B2C · التجزئة', 'B2C · Retail'),
+            ];
+        }
 
-        return 'b2c';
+        abort_if($channels === [], 403);
+
+        return $channels;
+    }
+
+    /** @param list<array{code:string,label:string}> $availableChannels */
+    private function assertOperationalChannelAllowed(array $availableChannels, string $channel): void
+    {
+        $codes = array_column($availableChannels, 'code');
+
+        if ($channel === 'all') {
+            abort_unless(count($codes) > 1, 403);
+
+            return;
+        }
+
+        abort_unless(in_array($channel, $codes, true), 403);
+    }
+
+    private function defaultOperationalChannel(User $actor): string
+    {
+        $channels = $this->availableOperationalChannels($actor, 'orders.view');
+
+        return (string) $channels[0]['code'];
     }
 
     private function actor(Request $request): User

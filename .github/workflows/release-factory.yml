@@ -13,6 +13,7 @@ on:
       - main
     paths:
       - VERSION
+      - docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md
 
 permissions:
   contents: write
@@ -30,12 +31,28 @@ jobs:
     outputs:
       version: ${{ steps.plan.outputs.version }}
       build_number: ${{ steps.plan.outputs.build_number }}
+      customer_version: ${{ steps.plan.outputs.customer_version }}
+      customer_build_number: ${{ steps.plan.outputs.customer_build_number }}
+      customer_source_commit: ${{ steps.plan.outputs.customer_source_commit }}
+      customer_tree_sha: ${{ steps.plan.outputs.customer_tree_sha }}
+      customer_lineage_mode: ${{ steps.plan.outputs.customer_lineage_mode }}
       base_ref: ${{ steps.plan.outputs.base_ref }}
       previous_version: ${{ steps.plan.outputs.previous_version }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Enforce FOODEX 1.0.77 production hold
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$version" == "1.0.77" && -f docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md ]]; then
+            echo "::error::FOODEX 1.0.77 production publication is held until #1380 certification removes FOODEX_1_0_77_PRODUCTION_HOLD.md."
+            exit 1
+          fi
+
       - name: Validate synchronized release readiness
         run: bash scripts/release-readiness.sh
       - id: plan
@@ -46,11 +63,49 @@ jobs:
           customer="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
           driver="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
           van="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml | tr -d '"')"
-          test "$customer" = "$driver"
-          test "$customer" = "$van"
-          test "${customer%%+*}" = "$version"
-          build_number="${customer##*+}"
+          if [[ "$version" == "1.0.77" ]]; then
+            mkdir -p artifacts
+            python3 scripts/validate_customer_freeze_contract.py \
+              --candidate HEAD \
+              --metadata-out artifacts/customer-frozen-lineage.json
+            readarray -t frozen < <(python3 - <<'PY'
+          import json
+          data=json.load(open("docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json"))
+          customer=data["frozen_customer"]
+          print(customer["source_version"])
+          print(customer["source_build_number"])
+          print(customer["source_identity"])
+          print(customer["baseline_commit"])
+          print(customer["tree_sha"])
+          print(customer["lineage_mode"])
+          PY
+            )
+            customer_version="${frozen[0]}"
+            customer_build_number="${frozen[1]}"
+            test "$customer" = "${frozen[2]}"
+            customer_source_commit="${frozen[3]}"
+            customer_tree_sha="${frozen[4]}"
+            customer_lineage_mode="${frozen[5]}"
+            test "$driver" = "$van"
+            test "${driver%%+*}" = "$version"
+            build_number="${driver##*+}"
+            if [[ -f docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md && "${{ github.event_name == 'push' || inputs.publish }}" == "true" ]]; then
+              echo "::error::FOODEX 1.0.77 production hold blocks publication until #1380 authorizes release composition."
+              exit 1
+            fi
+          else
+            test "$customer" = "$driver"
+            test "$customer" = "$van"
+            test "${customer%%+*}" = "$version"
+            customer_version="${customer%%+*}"
+            customer_build_number="${customer##*+}"
+            customer_source_commit="$GITHUB_SHA"
+            customer_tree_sha="$(git rev-parse HEAD:apps/customer_app)"
+            customer_lineage_mode="synchronized"
+            build_number="$customer_build_number"
+          fi
           [[ "$build_number" =~ ^[1-9][0-9]*$ ]]
+          [[ "$customer_build_number" =~ ^[1-9][0-9]*$ ]]
 
           previous_tag="$(git tag --merged HEAD --list 'v*' --sort=-v:refname | grep -vx "v$version" | head -n 1 || true)"
           if [[ -n "$previous_tag" ]]; then
@@ -63,9 +118,14 @@ jobs:
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+          echo "customer_version=$customer_version" >> "$GITHUB_OUTPUT"
+          echo "customer_build_number=$customer_build_number" >> "$GITHUB_OUTPUT"
+          echo "customer_source_commit=$customer_source_commit" >> "$GITHUB_OUTPUT"
+          echo "customer_tree_sha=$customer_tree_sha" >> "$GITHUB_OUTPUT"
+          echo "customer_lineage_mode=$customer_lineage_mode" >> "$GITHUB_OUTPUT"
           echo "base_ref=$base_ref" >> "$GITHUB_OUTPUT"
           echo "previous_version=$previous_version" >> "$GITHUB_OUTPUT"
-          echo "FOODEX release factory: $previous_version -> $version+$build_number from $GITHUB_SHA"
+          echo "FOODEX release factory: $previous_version -> $version+$build_number from $GITHUB_SHA; Customer=$customer_version+$customer_build_number ($customer_lineage_mode)"
 
   mobile:
     name: Build mobile artifacts
@@ -88,8 +148,8 @@ jobs:
       app: ${{ matrix.app }}
       project: ${{ matrix.project }}
       display: ${{ matrix.display }}
-      version: ${{ needs.plan.outputs.version }}
-      build_number: ${{ needs.plan.outputs.build_number }}
+      version: ${{ matrix.app == 'customer' && needs.plan.outputs.customer_version || needs.plan.outputs.version }}
+      build_number: ${{ matrix.app == 'customer' && needs.plan.outputs.customer_build_number || needs.plan.outputs.build_number }}
 
   previews:
     name: Build ${{ matrix.app }} dashboard preview
@@ -298,6 +358,11 @@ jobs:
     env:
       CURRENT_VERSION: ${{ needs.plan.outputs.version }}
       MOBILE_BUILD_NUMBER: ${{ needs.plan.outputs.build_number }}
+      CUSTOMER_VERSION: ${{ needs.plan.outputs.customer_version }}
+      CUSTOMER_BUILD_NUMBER: ${{ needs.plan.outputs.customer_build_number }}
+      CUSTOMER_SOURCE_COMMIT: ${{ needs.plan.outputs.customer_source_commit }}
+      CUSTOMER_TREE_SHA: ${{ needs.plan.outputs.customer_tree_sha }}
+      CUSTOMER_LINEAGE_MODE: ${{ needs.plan.outputs.customer_lineage_mode }}
       SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v7
@@ -323,17 +388,36 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p Release/Updates
-          for display in Customer Driver Van; do
-            src="release-input/mobile/FOODEX-$display.apk"
-            test -s "$src"
-            cp "$src" "Release/FOODEX-$display.apk"
-            cp "$src" "Release/FOODEX-$display-$CURRENT_VERSION.apk"
-          done
+          customer_src="release-input/mobile/FOODEX-Customer.apk"
+          driver_src="release-input/mobile/FOODEX-Driver.apk"
+          van_src="release-input/mobile/FOODEX-Van.apk"
+          test -s "$customer_src" && test -s "$driver_src" && test -s "$van_src"
+          cp "$customer_src" Release/FOODEX-Customer.apk
+          cp "$customer_src" "Release/FOODEX-Customer-$CUSTOMER_VERSION.apk"
+          cp "$driver_src" Release/FOODEX-Driver.apk
+          cp "$driver_src" "Release/FOODEX-Driver-$CURRENT_VERSION.apk"
+          cp "$van_src" Release/FOODEX-Van.apk
+          cp "$van_src" "Release/FOODEX-Van-$CURRENT_VERSION.apk"
           cp release-input/setup/FOODEX-Laravel-Setup.zip Release/FOODEX-Laravel-Setup.zip
           cp release-input/fresh/Release/FRESH_INSTALL_EVIDENCE.json Release/FRESH_INSTALL_EVIDENCE.json
           cp release-input/update/FOODEX-Update.* Release/Updates/
 
-          python3 scripts/write-trial-bundle-manifest.py             --version "$CURRENT_VERSION"             --source-commit "$SOURCE_COMMIT"             --run-number "$GITHUB_RUN_NUMBER"             --mobile-build-number "$MOBILE_BUILD_NUMBER"             --api-base-url https://foodex.50sols.com             --customer "Release/FOODEX-Customer-$CURRENT_VERSION.apk"             --driver "Release/FOODEX-Driver-$CURRENT_VERSION.apk"             --van "Release/FOODEX-Van-$CURRENT_VERSION.apk"             --setup Release/FOODEX-Laravel-Setup.zip             --output Release/BUILD_INFO.json
+          python3 scripts/write-trial-bundle-manifest.py \
+            --version "$CURRENT_VERSION" \
+            --source-commit "$SOURCE_COMMIT" \
+            --run-number "$GITHUB_RUN_NUMBER" \
+            --mobile-build-number "$MOBILE_BUILD_NUMBER" \
+            --customer-version "$CUSTOMER_VERSION" \
+            --customer-build-number "$CUSTOMER_BUILD_NUMBER" \
+            --customer-source-commit "$CUSTOMER_SOURCE_COMMIT" \
+            --customer-tree-sha "$CUSTOMER_TREE_SHA" \
+            --customer-lineage "$CUSTOMER_LINEAGE_MODE" \
+            --api-base-url https://foodex.50sols.com \
+            --customer "Release/FOODEX-Customer-$CUSTOMER_VERSION.apk" \
+            --driver "Release/FOODEX-Driver-$CURRENT_VERSION.apk" \
+            --van "Release/FOODEX-Van-$CURRENT_VERSION.apk" \
+            --setup Release/FOODEX-Laravel-Setup.zip \
+            --output Release/BUILD_INFO.json
 
           python3 - <<'PY'
           import hashlib,json,os
@@ -341,16 +425,29 @@ jobs:
           root=Path("Release")
           version=os.environ["CURRENT_VERSION"]
           build=int(os.environ["MOBILE_BUILD_NUMBER"])
-          def entry(display):
-              p=root/f"FOODEX-{display}-{version}.apk"
+          customer_version=os.environ["CUSTOMER_VERSION"]
+          customer_build=int(os.environ["CUSTOMER_BUILD_NUMBER"])
+          def entry(display, app_version, app_build):
+              p=root/f"FOODEX-{display}-{app_version}.apk"
               alias=root/f"FOODEX-{display}.apk"
               assert hashlib.sha256(p.read_bytes()).digest()==hashlib.sha256(alias.read_bytes()).digest()
-              return {"app":display.lower(),"version":version,"build_number":build,"file":p.name,"latest_alias":alias.name,"bytes":p.stat().st_size,"sha256":hashlib.sha256(p.read_bytes()).hexdigest()}
-          payload={"schema_version":1,"version":version,"build_number":build,"source_commit":os.environ["SOURCE_COMMIT"],"dashboard_update":{"directory":"Updates","package":"FOODEX-Update.zip","manifest":"FOODEX-Update.json"},"android_apps":[entry("Customer"),entry("Driver"),entry("Van")]}
+              return {"app":display.lower(),"version":app_version,"build_number":app_build,"file":p.name,"latest_alias":alias.name,"bytes":p.stat().st_size,"sha256":hashlib.sha256(p.read_bytes()).hexdigest()}
+          customer=entry("Customer",customer_version,customer_build)
+          customer.update({"release_version":version,"lineage_mode":os.environ["CUSTOMER_LINEAGE_MODE"],"source_commit":os.environ["CUSTOMER_SOURCE_COMMIT"],"tree_sha":os.environ["CUSTOMER_TREE_SHA"]})
+          payload={"schema_version":1,"version":version,"build_number":build,"source_commit":os.environ["SOURCE_COMMIT"],"dashboard_update":{"directory":"Updates","package":"FOODEX-Update.zip","manifest":"FOODEX-Update.json"},"android_apps":[customer,entry("Driver",version,build),entry("Van",version,build)]}
           (root/"LATEST_RELEASE.json").write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
           PY
 
-          python3 scripts/validate_release_artifact_contract.py             --release-dir Release             --version "$CURRENT_VERSION"             --build-number "$MOBILE_BUILD_NUMBER"             --source-commit "$SOURCE_COMMIT"
+          freeze_args=()
+          if [[ "$CURRENT_VERSION" == "1.0.77" ]]; then
+            freeze_args+=(--customer-freeze-contract docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json)
+          fi
+          python3 scripts/validate_release_artifact_contract.py \
+            --release-dir Release \
+            --version "$CURRENT_VERSION" \
+            --build-number "$MOBILE_BUILD_NUMBER" \
+            --source-commit "$SOURCE_COMMIT" \
+            "${freeze_args[@]}"
       - name: Upload synchronized release bundle
         uses: actions/upload-artifact@v4
         with:
@@ -411,7 +508,7 @@ jobs:
           else
             gh release create "$tag" --target "$SOURCE_COMMIT" --title "FOODEX $CURRENT_VERSION" --notes "$notes"
           fi
-          gh release upload "$tag"             Release/FOODEX-Customer-$CURRENT_VERSION.apk             Release/FOODEX-Driver-$CURRENT_VERSION.apk             Release/FOODEX-Van-$CURRENT_VERSION.apk             Release/FOODEX-Laravel-Setup.zip             Release/LATEST_RELEASE.json             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             --clobber
+          gh release upload "$tag"             "Release/FOODEX-Customer-$CUSTOMER_VERSION.apk"             Release/FOODEX-Driver-$CURRENT_VERSION.apk             Release/FOODEX-Van-$CURRENT_VERSION.apk             Release/FOODEX-Laravel-Setup.zip             Release/LATEST_RELEASE.json             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             --clobber
 
       - name: Synchronize Dashboard update through protected main
         if: ${{ github.event_name == 'push' || inputs.publish }}
@@ -452,6 +549,7 @@ jobs:
           update_sha=os.environ["UPDATE_SHA"]
           source_commit=os.environ["SOURCE_COMMIT"]
           build_number=os.environ["MOBILE_BUILD_NUMBER"]
+          customer_identity=f"{os.environ['CUSTOMER_VERSION']}+{os.environ['CUSTOMER_BUILD_NUMBER']}"
 
           registry_path=Path("docs/release/RELEASE_REGISTRY.json")
           registry=json.loads(registry_path.read_text(encoding="utf-8"))
@@ -494,7 +592,7 @@ jobs:
                   "note": (
                       f"FOODEX {version} synchronized release automatically registered by Release Factory "
                       f"from source {source_commit}. Dashboard update is directly deployable over {previous}; "
-                      f"Customer/Driver/Van source identities are synchronized at {version}+{build_number}."
+                      f"Customer {customer_identity} is frozen/carried forward; Driver/Van are synchronized at {version}+{build_number}."
                   ),
               })
           registry["current_version"]=version

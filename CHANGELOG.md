@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.78 - 2026-10-14
+- Unify Dashboard order management on `/admin/operations/orders` while preserving strict server-side B2B/B2C channel isolation and store scope.
+- Redirect legacy B2B and B2C order pages to the canonical Operations surface and remove duplicate order-management navigation entries.
+- Keep contextual order actions under the three-dot menu, including permitted edit/re-price, status, B2B Van dispatch, B2C Driver dispatch/reminder, and finance-authorized invoice access.
+- Add pending-order editing through the existing authoritative `AdminOrderManagementService`; paid, issued/locked, and non-pending orders remain non-editable.
+- Add regression coverage for cross-channel denial, canonical legacy redirects, and contextual action rendering.
+- Dashboard-only update: no database migrations and no Customer, Driver, or Van runtime source changes.
+
+## 1.0.77 - 2026-10-14 — PRODUCTION HOLD
+
+- Make FOODEX 1.0.77 the only valid next production-launch target; 1.0.76 remains historical evidence and is superseded for production launch.
+- Preserve the Customer application exactly at frozen baseline `4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d`; 1.0.77 release composition must not modify `apps/customer_app/**`.
+- Complete the real FOODEX catalog, image-fidelity reconstruction, inferred-value disclosure, verified pre-launch snapshot, reversible Production/Legacy switch and authoritative launch-report gates under #1380.
+- Hold all final 1.0.77 publication until independent certification proves Customer zero-diff, exact Legacy restoration and successful re-launch from the integrated source.
+
 ## 1.0.76 - 2026-10-13
 
 - Promote the frozen final Customer APK lineage from #1376 into synchronized FOODEX 1.0.76, preserving the approved customer runtime while carrying App Review and Smart Store Analytics integration.

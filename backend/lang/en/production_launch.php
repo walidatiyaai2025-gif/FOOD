@@ -9,6 +9,7 @@ return [
     'ready' => 'All mandatory production checks passed. Owner confirmation is now available.',
     'blocked' => 'Launch remains blocked. Resolve every failed readiness check before approval.',
     'approved' => 'Production launch approval was recorded with the current release lineage.',
+    'report' => ['download' => 'Download full 1.0.77 launch report'],
     'refresh' => 'Refresh readiness checks',
     'status' => [
         'passed' => 'Passed',
@@ -46,6 +47,12 @@ return [
             'title' => 'Release lineage integrity',
             'description' => 'VERSION, build metadata, source commit, release run and all three mobile builds are consistent.',
         ],
+        'customer_frozen_lineage' => ['title' => 'Customer frozen lineage', 'description' => 'Customer is byte-identical to frozen 1.0.76+76 and carried forward without mutation.'],
+        'catalog_provenance' => ['title' => 'Catalog provenance', 'description' => 'All 25 products and every inferred field are explicitly sourced or disclosed.'],
+        'reconstructed_image_quality' => ['title' => 'Reconstructed image quality', 'description' => 'Production image derivatives are complete, mapped and attested for this source.'],
+        'prelaunch_snapshot' => ['title' => 'Verified pre-launch snapshot', 'description' => 'A verified recoverable snapshot exists before any launch mutation.'],
+        'restore_verification' => ['title' => 'Restore verification', 'description' => 'Rollback restoration has exact-source verification evidence.'],
+        'dataset_switch_readiness' => ['title' => 'Dataset switch readiness', 'description' => 'Production/Legacy switching is installed and backed by the verified snapshot.'],
         'official_seed' => [
             'title' => 'Official FOODEX seed',
             'description' => 'The authoritative launch catalog is installed and its completeness is attested for this exact release source.',

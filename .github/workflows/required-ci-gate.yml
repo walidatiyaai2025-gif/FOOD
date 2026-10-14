@@ -78,8 +78,27 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_foodex_skill_router.py'
           python3 -m unittest discover -s scripts/tests -p 'test_one_push_green_contract.py'
           python3 -m unittest discover -s scripts/tests -p 'test_mobile_ci_scope.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_customer_freeze_contract.py'
           bash -n scripts/validate-fresh-setup.sh
-          python3 -m py_compile scripts/mobile-ci-scope.py scripts/build-update-bundle.py
+          python3 -m py_compile scripts/mobile-ci-scope.py scripts/build-update-bundle.py scripts/validate_customer_freeze_contract.py
+
+      - name: Enforce FOODEX 1.0.77 frozen Customer lineage
+        if: ${{ github.base_ref == 'release/1.0.77-production-program' || github.head_ref == 'release/1.0.77-production-program' || startsWith(github.head_ref, 'worker/138') }}
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          python3 scripts/validate_customer_freeze_contract.py \
+            --candidate "${{ github.event.pull_request.head.sha }}" \
+            --metadata-out artifacts/customer-frozen-lineage.json
+
+      - name: Upload frozen Customer lineage evidence
+        if: ${{ always() && (github.base_ref == 'release/1.0.77-production-program' || github.head_ref == 'release/1.0.77-production-program' || startsWith(github.head_ref, 'worker/138')) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-frozen-lineage-${{ github.event.pull_request.head.sha }}
+          path: artifacts/customer-frozen-lineage.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Prevent post-merge main release failures
         shell: bash

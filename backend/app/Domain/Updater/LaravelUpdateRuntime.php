@@ -109,8 +109,28 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $source = (string) config('database.connections.sqlite.database');
             $snapshot = $backupDirectory.'/database.sqlite';
 
-            if ($source === ':memory:' || ! is_file($source) || ! copy($source, $snapshot)) {
+            if ($source === ':memory:' || ! is_file($source)) {
                 throw new RuntimeException('SQLite database backup failed.');
+            }
+
+            $pdo = DB::connection()->getPdo();
+            if ($pdo->inTransaction()) {
+                throw new RuntimeException('SQLite database backup requires a committed database state.');
+            }
+
+            $quotedSnapshot = $pdo->quote($snapshot);
+            if (! is_string($quotedSnapshot) || $quotedSnapshot === '') {
+                throw new RuntimeException('SQLite database backup path could not be prepared.');
+            }
+
+            try {
+                $pdo->exec('VACUUM INTO '.$quotedSnapshot);
+            } catch (\Throwable $exception) {
+                throw new RuntimeException('SQLite database backup failed.', 0, $exception);
+            }
+
+            if (! is_file($snapshot) || filesize($snapshot) === 0) {
+                throw new RuntimeException('SQLite database backup did not produce a valid snapshot.');
             }
 
             $this->writeDatabaseMetadata($backupDirectory, 'sqlite', $snapshot);
@@ -303,6 +323,62 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
     }
 
+    public function verifyDatabaseBackup(string $backupReference): void
+    {
+        $metadataPath = rtrim($backupReference, '/\\\\').'/database.json';
+        try {
+            $metadata = json_decode((string) file_get_contents($metadataPath), true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException('Database backup verification metadata is invalid.');
+        }
+
+        if (! is_array($metadata) || ! is_string($metadata['driver'] ?? null) || ! is_string($metadata['snapshot'] ?? null)) {
+            throw new RuntimeException('Database backup verification metadata is invalid.');
+        }
+
+        $snapshot = $metadata['snapshot'];
+        if (! is_file($snapshot) || filesize($snapshot) === 0) {
+            throw new RuntimeException('Database backup snapshot is missing or empty.');
+        }
+
+        if ($metadata['driver'] === 'sqlite') {
+            try {
+                $pdo = new \PDO('sqlite:'.$snapshot, null, null, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+                $pdo->query('PRAGMA schema_version')->fetchColumn();
+                $result = $pdo->query('PRAGMA integrity_check')->fetchColumn();
+            } catch (\Throwable $exception) {
+                throw new RuntimeException('SQLite backup verification failed.', 0, $exception);
+            }
+            if ($result !== 'ok') {
+                throw new RuntimeException('SQLite backup integrity verification failed.');
+            }
+
+            return;
+        }
+
+        if ($metadata['driver'] === 'mysql') {
+            $this->runProcess([(string) config('foodex.mysql_client_binary', 'mysql'), '--version']);
+            $handle = fopen($snapshot, 'rb');
+            $prefix = $handle === false ? false : fread($handle, 4096);
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            if (! is_string($prefix) || $prefix === '' || (! str_contains($prefix, 'MySQL dump') && ! str_contains($prefix, 'MariaDB dump'))) {
+                throw new RuntimeException('MySQL/MariaDB backup does not have a recognized restorable dump header.');
+            }
+
+            return;
+        }
+
+        if ($metadata['driver'] === 'pgsql') {
+            $this->runProcess([(string) config('foodex.pg_restore_binary', 'pg_restore'), '--list', $snapshot]);
+
+            return;
+        }
+
+        throw new RuntimeException('Database backup verification driver is unsupported.');
+    }
+
     public function rollbackDatabase(string $backupReference): void
     {
         $metadataPath = $backupReference.'/database.json';
@@ -324,6 +400,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         if ($metadata['driver'] === 'sqlite') {
             $database = (string) config('database.connections.sqlite.database');
             DB::purge();
+
+            foreach ([$database.'-wal', $database.'-shm', $database.'-journal'] as $sidecar) {
+                if (is_file($sidecar) && ! @unlink($sidecar)) {
+                    throw new RuntimeException('SQLite rollback sidecar could not be removed.');
+                }
+            }
 
             if (! is_file($snapshot) || ! copy($snapshot, $database)) {
                 throw new RuntimeException('SQLite database rollback failed.');

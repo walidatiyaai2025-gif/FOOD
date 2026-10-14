@@ -13,13 +13,18 @@ class FoodexLaunchCatalogSeeder extends Seeder
     public const CATALOG_CODE = 'foodex-launch';
     public const SKU_PREFIX = 'FDX-LAUNCH-';
     public const BANNER_PATH = 'foodex-launch/banners/hero.webp';
+    public const PROVENANCE_LEDGER = 'seeders/fixtures/foodex-launch-catalog-provenance.json';
+    public const IMAGE_MANIFEST = 'seeders/fixtures/foodex-launch-image-manifest.json';
+    public const IMAGE_BUNDLE_DIRECTORY = 'seeders/fixtures/foodex-launch-image-bundle';
 
     public function run(): void
     {
-        DB::transaction(function (): void {
-            $fixture = $this->fixture();
-            $this->assertSeedable($fixture);
+        $fixture = $this->fixture();
+        $this->assertSeedable($fixture);
+        $this->assertProvenanceLedger($fixture);
+        $imageBundle = $this->validatedImageBundle($fixture);
 
+        DB::transaction(function () use ($fixture, $imageBundle): void {
             $storeId = $this->ensureStore();
             $catalogId = $this->ensureCatalog($storeId);
             $categoryId = $this->ensureCategory($catalogId, $fixture['category']);
@@ -33,6 +38,8 @@ class FoodexLaunchCatalogSeeder extends Seeder
                 $ordinal = $index + 1;
                 $sku = self::SKU_PREFIX.str_pad((string) $ordinal, 3, '0', STR_PAD_LEFT);
                 $brandKey = ($source['brand'] ?? 'FIRST_CHOICE') === 'FOODEX' ? 'FOODEX' : 'FIRST_CHOICE';
+                $imageAsset = $imageBundle['entries_by_sku'][$sku];
+                $imageBytes = $imageBundle['asset_bytes_by_sku'][$sku];
 
                 DB::table('products')->updateOrInsert(
                     ['catalog_id' => $catalogId, 'sku' => $sku],
@@ -104,7 +111,11 @@ class FoodexLaunchCatalogSeeder extends Seeder
                         ->delete();
                 }
 
-                $imagePath = 'foodex-launch/products/'.str_pad((string) $ordinal, 3, '0', STR_PAD_LEFT).'.webp';
+                $imagePath = (string) $imageAsset['public_path'];
+                if (! Storage::disk('public')->put($imagePath, $imageBytes)) {
+                    throw new RuntimeException("FOODEX launch image staging failed for {$sku}.");
+                }
+
                 DB::table('product_images')->updateOrInsert(
                     ['product_id' => $productId, 'sort_order' => 1],
                     [
@@ -126,15 +137,24 @@ class FoodexLaunchCatalogSeeder extends Seeder
     /**
      * Production launch readiness is intentionally stricter than seedability.
      *
-     * @return array{ready:bool,unresolved_source_fields:list<string>,missing_images:list<string>,low_resolution_images:list<string>,banner_ready:bool}
+     * @return array{
+     *     ready:bool,
+     *     unresolved_source_fields:list<string>,
+     *     missing_images:list<string>,
+     *     low_resolution_images:list<string>,
+     *     checksum_mismatches:list<string>,
+     *     image_provenance_errors:list<string>,
+     *     product_images_ready:bool,
+     *     image_manifest_sha256:?string,
+     *     image_bundle_sha256:?string,
+     *     banner_ready:bool
+     * }
      */
     public function readiness(): array
     {
         $fixture = $this->fixture();
         $minimum = (int) $fixture['source']['minimum_launch_image_px'];
         $unresolved = [];
-        $missingImages = [];
-        $lowResolution = [];
 
         foreach ($fixture['products'] as $index => $source) {
             $ordinal = $index + 1;
@@ -145,23 +165,21 @@ class FoodexLaunchCatalogSeeder extends Seeder
             if (($source['image_review_required'] ?? false) === true) {
                 $unresolved[] = $sku.':image_mapping';
             }
-
-            $relative = 'foodex-launch/products/'.str_pad((string) $ordinal, 3, '0', STR_PAD_LEFT).'.webp';
-            $quality = $this->imageQuality($relative, $minimum);
-            if ($quality === 'missing') {
-                $missingImages[] = $sku;
-            } elseif ($quality === 'low_resolution') {
-                $lowResolution[] = $sku;
-            }
         }
 
+        $imageAudit = $this->imageManifestAudit($fixture, $minimum);
         $bannerReady = $this->imageQuality(self::BANNER_PATH, $minimum) === 'ready';
 
         return [
-            'ready' => $unresolved === [] && $missingImages === [] && $lowResolution === [] && $bannerReady,
+            'ready' => $unresolved === [] && $imageAudit['product_images_ready'] && $bannerReady,
             'unresolved_source_fields' => $unresolved,
-            'missing_images' => $missingImages,
-            'low_resolution_images' => $lowResolution,
+            'missing_images' => $imageAudit['missing_images'],
+            'low_resolution_images' => $imageAudit['low_resolution_images'],
+            'checksum_mismatches' => $imageAudit['checksum_mismatches'],
+            'image_provenance_errors' => $imageAudit['image_provenance_errors'],
+            'product_images_ready' => $imageAudit['product_images_ready'],
+            'image_manifest_sha256' => $imageAudit['image_manifest_sha256'],
+            'image_bundle_sha256' => $imageAudit['image_bundle_sha256'],
             'banner_ready' => $bannerReady,
         ];
     }
@@ -181,6 +199,66 @@ class FoodexLaunchCatalogSeeder extends Seeder
         $fixture = require database_path('seeders/fixtures/foodex-launch-catalog.php');
 
         return $fixture;
+    }
+
+    /** @return array<string, mixed> */
+    public function imageManifest(): array
+    {
+        $path = database_path(self::IMAGE_MANIFEST);
+        if (! is_file($path)) {
+            throw new RuntimeException('FOODEX launch image manifest is missing.');
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (! is_array($decoded)) {
+            throw new RuntimeException('FOODEX launch image manifest is invalid JSON.');
+        }
+
+        return $decoded;
+    }
+
+    /** @return array<string, mixed> */
+    public function provenanceLedger(): array
+    {
+        $path = database_path(self::PROVENANCE_LEDGER);
+        if (! is_file($path)) {
+            throw new RuntimeException('FOODEX launch provenance ledger is missing.');
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (! is_array($decoded)) {
+            throw new RuntimeException('FOODEX launch provenance ledger is invalid JSON.');
+        }
+
+        return $decoded;
+    }
+
+    /** @param array<string, mixed> $fixture */
+    private function assertProvenanceLedger(array $fixture): void
+    {
+        $ledger = $this->provenanceLedger();
+        $entries = (array) ($ledger['entries'] ?? []);
+        $allowed = ['official', 'inferred', 'derived', 'reconstructed_asset'];
+        $coverage = [];
+
+        foreach ($entries as $entry) {
+            $sku = (string) ($entry['product_identifier'] ?? '');
+            $field = (string) ($entry['field'] ?? '');
+            $state = (string) ($entry['provenance_state'] ?? '');
+            if ($sku === '' || $field === '' || ! in_array($state, $allowed, true)) {
+                throw new RuntimeException('FOODEX launch provenance ledger contains an invalid entry.');
+            }
+            $coverage[$sku][$field] = true;
+        }
+
+        foreach ($fixture['products'] as $index => $product) {
+            $sku = self::SKU_PREFIX.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+            foreach (['price', 'carton_count', 'image'] as $field) {
+                if (! ($coverage[$sku][$field] ?? false)) {
+                    throw new RuntimeException("FOODEX launch provenance missing {$sku}:{$field}.");
+                }
+            }
+        }
     }
 
     /** @param array<string, mixed> $fixture */
@@ -205,6 +283,272 @@ class FoodexLaunchCatalogSeeder extends Seeder
                 throw new RuntimeException('Missing carton quantity must be explicitly unresolved at row '.($index + 1).'.');
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed> $fixture
+     * @return array{
+     *     entries_by_sku:array<string, array<string, mixed>>,
+     *     asset_bytes_by_sku:array<string, string>
+     * }
+     */
+    private function validatedImageBundle(array $fixture): array
+    {
+        $audit = $this->imageManifestAudit(
+            $fixture,
+            (int) $fixture['source']['minimum_launch_image_px'],
+        );
+
+        if (! $audit['product_images_ready']) {
+            throw new RuntimeException(
+                'FOODEX launch image bundle is not production-ready: '.
+                json_encode([
+                    'missing_images' => $audit['missing_images'],
+                    'low_resolution_images' => $audit['low_resolution_images'],
+                    'checksum_mismatches' => $audit['checksum_mismatches'],
+                    'image_provenance_errors' => $audit['image_provenance_errors'],
+                ], JSON_UNESCAPED_UNICODE),
+            );
+        }
+
+        return [
+            'entries_by_sku' => $audit['entries_by_sku'],
+            'asset_bytes_by_sku' => $audit['asset_bytes_by_sku'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $fixture
+     * @return array{
+     *     product_images_ready:bool,
+     *     missing_images:list<string>,
+     *     low_resolution_images:list<string>,
+     *     checksum_mismatches:list<string>,
+     *     image_provenance_errors:list<string>,
+     *     image_manifest_sha256:?string,
+     *     image_bundle_sha256:?string,
+     *     entries_by_sku:array<string, array<string, mixed>>,
+     *     asset_bytes_by_sku:array<string, string>
+     * }
+     */
+    private function imageManifestAudit(array $fixture, int $minimum): array
+    {
+        $missingImages = [];
+        $lowResolution = [];
+        $checksumMismatches = [];
+        $provenanceErrors = [];
+        $entriesBySku = [];
+        $assetBytesBySku = [];
+
+        $manifestPath = database_path(self::IMAGE_MANIFEST);
+        $manifestSha = is_file($manifestPath) ? hash_file('sha256', $manifestPath) : null;
+        $bundleSha = null;
+
+        try {
+            $manifest = $this->imageManifest();
+            $bundle = $this->readImageBundle($manifest);
+            $bundleSha = $bundle['sha256'];
+            $assets = $bundle['assets'];
+        } catch (RuntimeException $exception) {
+            return [
+                'product_images_ready' => false,
+                'missing_images' => [],
+                'low_resolution_images' => [],
+                'checksum_mismatches' => [],
+                'image_provenance_errors' => ['manifest_or_bundle:'.$exception->getMessage()],
+                'image_manifest_sha256' => $manifestSha,
+                'image_bundle_sha256' => $bundleSha,
+                'entries_by_sku' => [],
+                'asset_bytes_by_sku' => [],
+            ];
+        }
+
+        if (($manifest['schema_version'] ?? null) !== 1) {
+            $provenanceErrors[] = 'manifest:schema_version';
+        }
+        if (($manifest['release'] ?? null) !== '1.0.77') {
+            $provenanceErrors[] = 'manifest:release';
+        }
+        if (($manifest['source_document']['sha256'] ?? null) !== ($fixture['source']['document_sha256'] ?? null)) {
+            $provenanceErrors[] = 'manifest:source_document_sha256';
+        }
+        if (($manifest['minimum_launch_image_px'] ?? null) !== $minimum) {
+            $provenanceErrors[] = 'manifest:minimum_launch_image_px';
+        }
+
+        $entries = (array) ($manifest['entries'] ?? []);
+        if (count($entries) !== 25) {
+            $provenanceErrors[] = 'manifest:entry_count';
+        }
+        if (count($assets) !== 25) {
+            $provenanceErrors[] = 'bundle:asset_count';
+        }
+
+        foreach ($entries as $entry) {
+            $sku = (string) ($entry['product_identifier'] ?? '');
+            if ($sku === '' || isset($entriesBySku[$sku])) {
+                $provenanceErrors[] = $sku === '' ? 'manifest:blank_sku' : $sku.':duplicate';
+                continue;
+            }
+            $entriesBySku[$sku] = (array) $entry;
+        }
+
+        foreach ($fixture['products'] as $index => $source) {
+            $ordinal = $index + 1;
+            $number = str_pad((string) $ordinal, 3, '0', STR_PAD_LEFT);
+            $sku = self::SKU_PREFIX.$number;
+            $entry = $entriesBySku[$sku] ?? null;
+
+            if (! is_array($entry)) {
+                $missingImages[] = $sku;
+                continue;
+            }
+
+            $expectedSource = $source['source_image'] ?? null;
+            $expectedMethod = is_string($expectedSource)
+                ? 'content_preserving_upscale_lanczos_unsharp'
+                : 'source_missing_placeholder';
+
+            if (($entry['product_name'] ?? null) !== ($source['name_en'] ?? null)) {
+                $provenanceErrors[] = $sku.':product_name';
+            }
+            if (($entry['source_image'] ?? null) !== $expectedSource) {
+                $provenanceErrors[] = $sku.':source_image';
+            }
+            if (($entry['method'] ?? null) !== $expectedMethod) {
+                $provenanceErrors[] = $sku.':method';
+            }
+            if (($entry['bundle_key'] ?? null) !== $number) {
+                $provenanceErrors[] = $sku.':bundle_key';
+            }
+            if (($entry['public_path'] ?? null) !== 'foodex-launch/products/'.$number.'.webp') {
+                $provenanceErrors[] = $sku.':public_path';
+            }
+
+            if (is_string($expectedSource)) {
+                $sourceDimensions = (array) ($entry['source_dimensions'] ?? []);
+                if (($sourceDimensions['width'] ?? null) !== ($source['source_width'] ?? null)
+                    || ($sourceDimensions['height'] ?? null) !== ($source['source_height'] ?? null)) {
+                    $provenanceErrors[] = $sku.':source_dimensions';
+                }
+                if (! preg_match('/^[0-9a-f]{64}$/', (string) ($entry['source_sha256'] ?? ''))) {
+                    $provenanceErrors[] = $sku.':source_sha256';
+                }
+            } else {
+                if (($entry['source_dimensions'] ?? null) !== null) {
+                    $provenanceErrors[] = $sku.':placeholder_source_dimensions';
+                }
+                if (($entry['source_sha256'] ?? null) !== null) {
+                    $provenanceErrors[] = $sku.':placeholder_source_sha256';
+                }
+            }
+
+            $encoded = $assets[$number] ?? null;
+            if (! is_string($encoded) || $encoded === '') {
+                $missingImages[] = $sku;
+                continue;
+            }
+
+            $bytes = base64_decode($encoded, true);
+            if (! is_string($bytes)) {
+                $checksumMismatches[] = $sku;
+                continue;
+            }
+
+            $actualSha = hash('sha256', $bytes);
+            $expectedSha = (string) ($entry['sha256'] ?? '');
+            if (! preg_match('/^[0-9a-f]{64}$/', $expectedSha) || $actualSha !== $expectedSha) {
+                $checksumMismatches[] = $sku;
+            }
+
+            if (($entry['bytes'] ?? null) !== strlen($bytes)) {
+                $provenanceErrors[] = $sku.':byte_length';
+            }
+
+            $dimensions = @getimagesizefromstring($bytes);
+            if (! is_array($dimensions)
+                || ($dimensions['mime'] ?? null) !== 'image/webp'
+                || $dimensions[0] < $minimum
+                || $dimensions[1] < $minimum) {
+                $lowResolution[] = $sku;
+            }
+
+            $declaredDimensions = (array) ($entry['derivative_dimensions'] ?? []);
+            if (! is_array($dimensions)
+                || ($declaredDimensions['width'] ?? null) !== $dimensions[0]
+                || ($declaredDimensions['height'] ?? null) !== $dimensions[1]) {
+                $provenanceErrors[] = $sku.':derivative_dimensions';
+            }
+
+            $assetBytesBySku[$sku] = $bytes;
+        }
+
+        $productImagesReady = $missingImages === []
+            && $lowResolution === []
+            && $checksumMismatches === []
+            && $provenanceErrors === []
+            && count($entriesBySku) === 25
+            && count($assetBytesBySku) === 25;
+
+        return [
+            'product_images_ready' => $productImagesReady,
+            'missing_images' => array_values(array_unique($missingImages)),
+            'low_resolution_images' => array_values(array_unique($lowResolution)),
+            'checksum_mismatches' => array_values(array_unique($checksumMismatches)),
+            'image_provenance_errors' => array_values(array_unique($provenanceErrors)),
+            'image_manifest_sha256' => $manifestSha,
+            'image_bundle_sha256' => $bundleSha,
+            'entries_by_sku' => $entriesBySku,
+            'asset_bytes_by_sku' => $assetBytesBySku,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $manifest
+     * @return array{sha256:string,assets:array<string,string>}
+     */
+    private function readImageBundle(array $manifest): array
+    {
+        $directory = database_path(self::IMAGE_BUNDLE_DIRECTORY);
+        $parts = glob($directory.'/*.part') ?: [];
+        sort($parts, SORT_STRING);
+
+        $expectedPartCount = (int) ($manifest['bundle']['part_count'] ?? 0);
+        if ($expectedPartCount < 1 || count($parts) !== $expectedPartCount) {
+            throw new RuntimeException('FOODEX launch image bundle part count does not match the manifest.');
+        }
+
+        $content = '';
+        foreach ($parts as $part) {
+            $chunk = @file_get_contents($part);
+            if (! is_string($chunk)) {
+                throw new RuntimeException('FOODEX launch image bundle contains an unreadable part.');
+            }
+            $content .= $chunk;
+        }
+
+        $actualSha = hash('sha256', $content);
+        $expectedSha = (string) ($manifest['bundle']['sha256'] ?? '');
+        if (! preg_match('/^[0-9a-f]{64}$/', $expectedSha) || ! hash_equals($expectedSha, $actualSha)) {
+            throw new RuntimeException('FOODEX launch image bundle checksum mismatch.');
+        }
+
+        $decoded = json_decode($content, true);
+        if (! is_array($decoded)
+            || ($decoded['schema_version'] ?? null) !== 1
+            || ($decoded['encoding'] ?? null) !== 'base64'
+            || ! is_array($decoded['assets'] ?? null)) {
+            throw new RuntimeException('FOODEX launch image bundle payload is invalid.');
+        }
+
+        if (($manifest['bundle']['decoded_asset_count'] ?? null) !== count($decoded['assets'])) {
+            throw new RuntimeException('FOODEX launch image bundle asset count does not match the manifest.');
+        }
+
+        return [
+            'sha256' => $actualSha,
+            'assets' => $decoded['assets'],
+        ];
     }
 
     private function ensureStore(): int

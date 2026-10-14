@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\LookupManagementController;
 use App\Http\Controllers\Admin\MobileAppDownloadController;
 use App\Http\Controllers\Admin\MobileSettingsController;
 use App\Http\Controllers\Admin\OrderOperationsController;
+use App\Http\Controllers\Admin\ProductionDatasetSwitchController;
 use App\Http\Controllers\Admin\ProductionLaunchController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
@@ -288,6 +289,7 @@ Route::prefix('admin')
         Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
         Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::get('/b2b/dashboard', [B2bWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2b.dashboard');
+        Route::get('/b2b/orders', [OrderOperationsController::class, 'b2bIndex'])->name('b2b.orders.canonical');
         Route::post('/b2b/orders/quote', [B2bWorkspaceController::class, 'quoteOrder'])->name('b2b.orders.quote');
         Route::post('/b2b/orders', [B2bWorkspaceController::class, 'storeOrder'])->name('b2b.orders.store');
         Route::patch('/b2b/orders/{order}', [B2bWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2b.orders.update');
@@ -327,6 +329,7 @@ Route::prefix('admin')
         Route::put('/b2b/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
+        Route::get('/b2c/orders', [OrderOperationsController::class, 'b2cIndex'])->name('b2c.orders.canonical');
         Route::post('/b2c/merchant-intelligence/suggested-cart', [B2cWorkspaceController::class, 'applySuggestedWholesaleCart'])->name('b2c.merchant-intelligence.cart');
         Route::redirect('/b2c/commercial/sales-control', '/admin/b2b/commercial/sales-control', 302)->name('commercial.sales-control.legacy');
         Route::put('/b2c/commercial/feature-flags', [CommercialDashboardController::class, 'saveFeatureFlags'])->name('commercial.feature-flags.save');
@@ -420,6 +423,7 @@ Route::prefix('admin')
             ->name('operations.orders.van-proofs.show');
         Route::post('/operations/orders/quote', [OrderOperationsController::class, 'quoteNewOrder'])->name('operations.orders.quote');
         Route::post('/operations/orders', [OrderOperationsController::class, 'storeNewOrder'])->name('operations.orders.store');
+        Route::patch('/operations/orders/{order}', [OrderOperationsController::class, 'update'])->whereNumber('order')->name('operations.orders.update');
         Route::post('/operations/orders/{order}/remind-driver', [OrderOperationsController::class, 'remindDriver'])->whereNumber('order')->name('operations.orders.remind');
         Route::post('/operations/orders/{order}/status', [OrderOperationsController::class, 'transition'])->whereNumber('order')->name('operations.orders.transition');
         Route::patch('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'dispatch'])->whereNumber('order')->name('operations.orders.dispatch');
@@ -467,7 +471,11 @@ Route::prefix('admin')
         Route::post('/settings/mobile/reviewer/{reviewer}/test', [StoreSubmissionController::class, 'testReviewer'])->whereNumber('reviewer')->name('mobile-settings.reviewer.test');
         Route::get('/settings/foodex-reset', [FoodexResetController::class, 'index'])->name('foodex-reset.index');
         Route::post('/settings/foodex-reset', [FoodexResetController::class, 'store'])->block(920, 1)->middleware('throttle:3,1')->name('foodex-reset.store');
+        Route::get('/settings/production-dataset', [ProductionDatasetSwitchController::class, 'index'])->name('production-dataset-switch.index');
+        Route::post('/settings/production-dataset/launch', [ProductionDatasetSwitchController::class, 'launch'])->block(920, 1)->middleware('throttle:3,1')->name('production-dataset-switch.launch');
+        Route::post('/settings/production-dataset/legacy', [ProductionDatasetSwitchController::class, 'legacy'])->block(1820, 1)->middleware('throttle:3,1')->name('production-dataset-switch.legacy');
         Route::get('/settings/production-launch', [ProductionLaunchController::class, 'index'])->name('production-launch.index');
+        Route::get('/settings/production-launch/report', [ProductionLaunchController::class, 'report'])->name('production-launch.report');
         Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
         Route::post('/settings/system-update', [SystemUpdateController::class, 'store'])->name('system-update.store');

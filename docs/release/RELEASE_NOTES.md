@@ -1,27 +1,32 @@
-# FOODEX 1.0.76 Release Notes
-
-Synchronized promotion of the frozen final Customer lineage from #1376 to FOODEX 1.0.76.
+# FOODEX 1.0.78 — Dashboard Update Release Notes
 
 ## Release identity
 
-- Dashboard / repository release: `1.0.76`
-- Customer source identity: `1.0.76+76`
-- Driver source identity: `1.0.76+76`
-- Van source identity: `1.0.76+76`
-- Dashboard Update ZIP: direct update over FOODEX 1.0.75
-- Android artifacts: Customer, Driver and Van APKs built from the same release lineage
-- Production API: `https://foodex.50sols.com`
-- Forbidden legacy API: `https://vanfoodex.50sols.com`
+- Dashboard / repository release: `1.0.78`.
+- Customer source identity: `1.0.78+78`.
+- Driver source identity: `1.0.78+78`.
+- Van source identity: `1.0.78+78`.
+- The mobile identity synchronization satisfies the repository release-line contract; this 1.0.78 change does not introduce new Customer, Driver, or Van product behavior.
+- The Dashboard Update ZIP remains independently deployable and does not contain `apps/**` mobile source files.
 
-## Included changes
+## Dashboard scope
 
-- Promote the approved final Customer runtime while preserving the frozen Customer feature scope.
-- Carry App Review and authenticated Smart Store Analytics into the synchronized release lineage.
-- Include the integrated online-first networking, single biometric login, persistent Home navigation, three-column grids and latest compact Customer surfaces already merged on main.
-- Preserve production preflight, protected reset/reseed and exact-head release validation.
+- Make `/admin/operations/orders` the canonical order-management surface.
+- Preserve strict server-side B2B/B2C channel and store isolation: B2B operators cannot read or mutate B2C orders, and Retail operators cannot read or mutate B2B orders.
+- Redirect the legacy B2B/B2C Orders pages to the canonical Operations view while retaining backward-compatible mutation endpoints.
+- Keep order actions under the contextual three-dot menu and only expose actions permitted by the order state and the actor's manage, dispatch, and finance scopes.
+- Preserve B2B Van fulfillment and B2C Driver fulfillment.
+- Add safe pending-order editing through `AdminOrderManagementService`, including authoritative re-pricing and stock validation.
+- Add regression coverage for cross-channel denial, canonical redirects, multi-channel switching, and contextual action rendering.
 
-## Validation contract
+## Deployment and rollback
 
-- Repository Policy, Required CI, localization, backend/MySQL, Customer/mobile validation, runtime evidence, update-bundle validation and fresh-install checks must pass on the exact release lineage.
-- The generated `FOODEX-Update.zip` must target `1.0.76`, support direct update from `1.0.75`, and report no full redeploy requirement unless the generator explicitly detects one.
-- Release Factory must publish Dashboard/Setup assets plus Customer, Driver and Van Android artifacts from the synchronized release.
+- Dashboard-only server update package.
+- No database migrations are introduced by #1426.
+- Rollback anchor: branch `rollback/1.0.77-pre-unified-orders`.
+- Rollback baseline SHA: `194c9f0ccfba6be8e45ce7d1f62d6b1e265c5a2f`.
+- If 1.0.78 is rolled back before any later schema-changing release, restore the 1.0.77 Dashboard code package/baseline; no database downgrade is required for this change.
+
+## Publication contract
+
+The generated `FOODEX-Update.zip`, manifest, file list, and SHA-256 checksum must come from the canonical update workflow on the exact validated 1.0.78 source lineage. Generated artifacts must not be hand-edited or relabeled.

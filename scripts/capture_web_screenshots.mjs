@@ -41,6 +41,7 @@ const b2c = [
   ['16_مركز_الإعدادات', '/admin/settings'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
+  ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
 ];
 
 async function ensureDir(dir) {
@@ -713,6 +714,13 @@ async function captureLocale(browser, locale) {
     'B2C_Admin',
     'production-launch',
     '/admin/settings/production-launch',
+  );
+  await captureResponsiveRoute(
+    page,
+    locale,
+    'B2C_Admin',
+    'production-dataset',
+    '/admin/settings/production-dataset',
   );
 
   const customer360Response = await page.goto(
