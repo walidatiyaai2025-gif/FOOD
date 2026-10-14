@@ -316,19 +316,19 @@ final class SupervisorAnalyticsService
      */
     private function leadMetrics(array $storeIds, array $filters, ?int $agentId): array
     {
-        $query = DB::table('whats_app_leads as l')
-            ->leftJoin('platform_customers as pc', 'pc.id', '=', 'l.platform_customer_id')
-            ->leftJoin('users as u', 'u.id', '=', 'l.assigned_agent_id')
+        $base = DB::table('whats_app_leads as l')
             ->whereIn('l.store_id', $storeIds);
 
         if (! empty($filters['lead_temperature'])) {
-            $query->where('l.temperature', (string) $filters['lead_temperature']);
+            $base->where('l.temperature', (string) $filters['lead_temperature']);
         }
         if ($agentId !== null) {
-            $query->where('l.assigned_agent_id', $agentId);
+            $base->where('l.assigned_agent_id', $agentId);
         }
 
-        $rows = $query
+        $rows = (clone $base)
+            ->leftJoin('platform_customers as pc', 'pc.id', '=', 'l.platform_customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 'l.assigned_agent_id')
             ->orderByRaw("CASE l.temperature WHEN 'hot' THEN 0 WHEN 'warm' THEN 1 ELSE 2 END")
             ->orderByDesc('l.last_activity_at')
             ->limit(100)
@@ -337,11 +337,11 @@ final class SupervisorAnalyticsService
             ]);
 
         return [
-            'total' => $rows->count(),
-            'cold' => $rows->where('temperature', 'cold')->count(),
-            'warm' => $rows->where('temperature', 'warm')->count(),
-            'hot' => $rows->where('temperature', 'hot')->count(),
-            'converted' => $rows->where('status', 'converted')->count(),
+            'total' => (clone $base)->count(),
+            'cold' => (clone $base)->where('l.temperature', 'cold')->count(),
+            'warm' => (clone $base)->where('l.temperature', 'warm')->count(),
+            'hot' => (clone $base)->where('l.temperature', 'hot')->count(),
+            'converted' => (clone $base)->where('l.status', 'converted')->count(),
             'rows' => $rows,
         ];
     }
@@ -349,28 +349,32 @@ final class SupervisorAnalyticsService
     /** @param list<int> $storeIds */
     private function followUpMetrics(array $storeIds, ?int $agentId): array
     {
-        $query = DB::table('whats_app_follow_ups as f')
-            ->leftJoin('platform_customers as pc', 'pc.id', '=', 'f.platform_customer_id')
-            ->leftJoin('users as u', 'u.id', '=', 'f.assigned_agent_id')
+        $base = DB::table('whats_app_follow_ups as f')
             ->whereIn('f.store_id', $storeIds);
         if ($agentId !== null) {
-            $query->where('f.assigned_agent_id', $agentId);
+            $base->where('f.assigned_agent_id', $agentId);
         }
 
-        $rows = $query
+        $rows = (clone $base)
+            ->leftJoin('platform_customers as pc', 'pc.id', '=', 'f.platform_customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 'f.assigned_agent_id')
             ->orderByRaw("CASE f.status WHEN 'open' THEN 0 ELSE 1 END")
             ->orderByRaw('CASE WHEN f.due_at IS NULL THEN 1 ELSE 0 END')
             ->orderBy('f.due_at')
             ->limit(100)
             ->get(['f.*', 'pc.name as customer_name', 'u.name as agent_name']);
 
-        $open = $rows->where('status', 'open');
+        $open = (clone $base)->where('f.status', 'open');
 
         return [
-            'open' => $open->count(),
-            'overdue' => $open->filter(static fn (object $row): bool => $row->due_at !== null && Carbon::parse((string) $row->due_at)->lt(now()))->count(),
-            'completed' => $rows->where('status', 'completed')->count(),
+            'open' => (clone $open)->count(),
+            'overdue' => (clone $open)
+                ->whereNotNull('f.due_at')
+                ->where('f.due_at', '<', now())
+                ->count(),
+            'completed' => (clone $base)->where('f.status', 'completed')->count(),
             'rows' => $rows,
         ];
     }
+
 }
