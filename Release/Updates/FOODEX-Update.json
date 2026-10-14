@@ -2,27 +2,27 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.77",
-  "minimum_current_version": "1.0.75",
-  "source_base": "926436fd96d74eeaca20a89927e37a04a99285b9",
-  "source_commit": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
-  "sha256": "eda8e909fb2dd8d7888b1bb09aafdd1265185744de1c3d92049aa3e34c481539",
+  "target_version": "1.0.78",
+  "minimum_current_version": "1.0.77",
+  "source_base": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
+  "source_commit": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
+  "sha256": "1c8e664bb3cebae5b16ffe532329592612d8da149d582e740d36439bc41d8723",
   "contains_migrations": false,
   "migrations": [],
   "delta": {
-    "file_count": 454,
-    "source_file_count": 354,
+    "file_count": 439,
+    "source_file_count": 339,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Make FOODEX 1.0.77 the only valid next production-launch target; 1.0.76 remains historical evidence and is superseded for production launch. Preserve the Customer application exactly at frozen baseline `4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d`; 1.0.77 release composition must not modify `apps/customer_app/**`. Complete the real FOODEX catalog, image-fidelity reconstruction, inferred-value disclosure, verified pre-launch snapshot, reversible Production/Legacy switch and authoritative launch-report gates under #1380. Hold all final 1.0.77 publication until independent certification proves Customer zero-diff, exact Legacy restoration and successful re-launch from the integrated source.",
+  "release_notes": "Unify Dashboard order management on `/admin/operations/orders` while preserving strict server-side B2B/B2C channel isolation and store scope. Redirect legacy B2B and B2C order pages to the canonical Operations surface and remove duplicate order-management navigation entries. Keep contextual order actions under the three-dot menu, including permitted edit/re-price, status, B2B Van dispatch, B2C Driver dispatch/reminder, and finance-authorized invoice access. Add pending-order editing through the existing authoritative `AdminOrderManagementService`; paid, issued/locked, and non-pending orders remain non-editable. Add regression coverage for cross-channel denial, canonical legacy redirects, and contextual action rendering. Dashboard-only update: no database migrations and no Customer, Driver, or Van runtime source changes.",
   "dashboard_fields": {
-    "target_version": "1.0.77",
-    "minimum_current_version": "1.0.75",
-    "source_commit": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
-    "sha256": "eda8e909fb2dd8d7888b1bb09aafdd1265185744de1c3d92049aa3e34c481539",
+    "target_version": "1.0.78",
+    "minimum_current_version": "1.0.77",
+    "source_commit": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
+    "sha256": "1c8e664bb3cebae5b16ffe532329592612d8da149d582e740d36439bc41d8723",
     "contains_migrations": false,
-    "release_notes": "Make FOODEX 1.0.77 the only valid next production-launch target; 1.0.76 remains historical evidence and is superseded for production launch. Preserve the Customer application exactly at frozen baseline `4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d`; 1.0.77 release composition must not modify `apps/customer_app/**`. Complete the real FOODEX catalog, image-fidelity reconstruction, inferred-value disclosure, verified pre-launch snapshot, reversible Production/Legacy switch and authoritative launch-report gates under #1380. Hold all final 1.0.77 publication until independent certification proves Customer zero-diff, exact Legacy restoration and successful re-launch from the integrated source."
+    "release_notes": "Unify Dashboard order management on `/admin/operations/orders` while preserving strict server-side B2B/B2C channel isolation and store scope. Redirect legacy B2B and B2C order pages to the canonical Operations surface and remove duplicate order-management navigation entries. Keep contextual order actions under the three-dot menu, including permitted edit/re-price, status, B2B Van dispatch, B2C Driver dispatch/reminder, and finance-authorized invoice access. Add pending-order editing through the existing authoritative `AdminOrderManagementService`; paid, issued/locked, and non-pending orders remain non-editable. Add regression coverage for cross-channel denial, canonical legacy redirects, and contextual action rendering. Dashboard-only update: no database migrations and no Customer, Driver, or Van runtime source changes."
   }
 }
