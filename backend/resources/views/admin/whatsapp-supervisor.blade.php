@@ -11,7 +11,7 @@
 .wa-supervisor-shell .row{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--foodex-space-3);min-width:0}
 .wa-supervisor-shell .g-2{gap:var(--foodex-space-2)}.wa-supervisor-shell .g-3{gap:var(--foodex-space-3)}
 .wa-supervisor-shell .col-12{grid-column:span 12}.wa-supervisor-shell .col-8{grid-column:span 8}.wa-supervisor-shell .col-6{grid-column:span 6}.wa-supervisor-shell .col-4{grid-column:span 4}.wa-supervisor-shell .col-3{grid-column:span 3}.wa-supervisor-shell .col-2{grid-column:span 2}
-.wa-supervisor-shell .card{min-width:0;overflow:hidden}.wa-supervisor-shell .card-header{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);padding:var(--foodex-space-3) var(--foodex-space-4);border-bottom:1px solid var(--foodex-border);background:#fafbfc}
+.wa-supervisor-shell .card{min-width:0;overflow:hidden}.wa-supervisor-shell .card-header{display:flex;align-items:center;justify-content:space-between;gap:var(--foodex-space-3);padding:var(--foodex-space-3) var(--foodex-space-4);border-bottom:1px solid var(--foodex-border);background:var(--foodex-background)}
 .wa-supervisor-shell .card-body{padding:var(--foodex-space-4)}.wa-supervisor-shell .h-100{height:100%}
 .wa-supervisor-shell .mb-0{margin-bottom:0}.wa-supervisor-shell .mb-1{margin-bottom:var(--foodex-space-1)}.wa-supervisor-shell .mb-2{margin-bottom:var(--foodex-space-2)}.wa-supervisor-shell .mb-3{margin-bottom:var(--foodex-space-3)}
 .wa-supervisor-shell .small{font-size:var(--foodex-text-xs)}.wa-supervisor-shell .text-muted{color:var(--foodex-muted)}.wa-supervisor-shell .text-nowrap{white-space:nowrap}
@@ -23,10 +23,10 @@
 .wa-supervisor-shell .table-responsive{width:100%;max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}
 .wa-supervisor-shell .foodex-table{border:0;border-radius:0}.wa-supervisor-shell .foodex-table th,.wa-supervisor-shell .foodex-table td{vertical-align:middle}
 .wa-supervisor-shell .btn{min-height:38px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding:0 var(--foodex-space-3);display:inline-flex;align-items:center;justify-content:center;gap:var(--foodex-space-1);font:inherit;font-weight:var(--foodex-font-weight-medium);text-decoration:none;cursor:pointer;background:var(--foodex-surface);color:var(--foodex-ink)}
-.wa-supervisor-shell .btn-primary{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}.wa-supervisor-shell .btn-outline-primary{border-color:var(--foodex-green);color:var(--foodex-green-dark)}.wa-supervisor-shell .btn-outline-secondary{color:var(--foodex-muted)}.wa-supervisor-shell .btn-outline-success{border-color:var(--foodex-green);color:var(--foodex-green-dark)}
+.wa-supervisor-shell .btn-outline-primary{border-color:var(--foodex-green);color:var(--foodex-green-dark)}.wa-supervisor-shell .btn-outline-secondary{color:var(--foodex-muted)}.wa-supervisor-shell .btn-outline-success{border-color:var(--foodex-green);color:var(--foodex-green-dark)}
 .wa-supervisor-shell .btn-sm{min-height:34px;padding-inline:var(--foodex-space-2);font-size:var(--foodex-text-xs)}.wa-supervisor-shell .w-100{width:100%}
-.wa-supervisor-shell .alert{padding:var(--foodex-space-3) var(--foodex-space-4);border-radius:var(--foodex-radius-md);border:1px solid var(--foodex-border)}.wa-supervisor-shell .alert-success{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-supervisor-shell .alert-danger{background:var(--foodex-orange-soft);color:#9a4b0b}
-.wa-supervisor-shell .badge{white-space:nowrap}.wa-supervisor-shell .bg-warning{background:var(--foodex-orange-soft)!important;color:#9a4b0b!important}.wa-supervisor-shell .bg-secondary,.wa-supervisor-shell .bg-light{background:var(--foodex-background)!important;color:var(--foodex-muted)!important}
+.wa-supervisor-shell .alert{padding:var(--foodex-space-3) var(--foodex-space-4);border-radius:var(--foodex-radius-md);border:1px solid var(--foodex-border)}.wa-supervisor-shell .alert-success{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-supervisor-shell .alert-danger{background:var(--foodex-orange-soft);color:var(--foodex-orange)}
+.wa-supervisor-shell .badge{white-space:nowrap}.wa-supervisor-shell .bg-warning{background:var(--foodex-orange-soft)!important;color:var(--foodex-orange)!important}.wa-supervisor-shell .bg-secondary,.wa-supervisor-shell .bg-light{background:var(--foodex-background)!important;color:var(--foodex-muted)!important}
 .wa-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}.wa-kpi-grid>div{grid-column:auto!important}
 .wa-split-7-5{grid-template-columns:minmax(0,7fr) minmax(0,5fr)!important}.wa-split-7-5>.col-12{grid-column:auto!important}
 @media(min-width:768px){
@@ -104,7 +104,7 @@
                     </select>
                 </div>
                 <div class="col-4 col-md-1">
-                    <button class="btn btn-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button>
+                    <button class="foodex-action-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button>
                 </div>
             </form>
         </div>
@@ -187,9 +187,16 @@
                     <form method="post" action="{{ route('admin.whatsapp-supervisor.outcomes.store',['conversation'=>0]) }}" onsubmit="this.action=this.action.replace('/0/outcome','/'+this.elements['conversation_id'].value+'/outcome')">
                         @csrf @method('PUT')
                         <div class="row g-2">
-                            <div class="col-4"><input class="form-control" type="number" min="1" required name="conversation_id" placeholder="{{ __('whatsapp_supervisor.conversation_id') }}"></div>
+                            <div class="col-4">
+                                <select class="form-select" required name="conversation_id" aria-label="{{ __('whatsapp_supervisor.select_conversation') }}">
+                                    <option value="">{{ __('whatsapp_supervisor.select_conversation') }}</option>
+                                    @foreach($conversationOptions as $conversation)
+                                        <option value="{{ $conversation->id }}">{{ $conversation->customer_name ?: __('whatsapp.inbox.unknown_customer') }} · {{ $conversation->store_name ?: '-' }} · {{ __('whatsapp.inbox.conversation_statuses.'.$conversation->status) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="col-4"><input class="form-control" required name="outcome_code" maxlength="64" placeholder="{{ __('whatsapp_supervisor.outcome') }}"></div>
-                            <div class="col-4"><button class="btn btn-outline-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
+                            <div class="col-4"><button class="foodex-action-secondary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
                             <div class="col-12"><input class="form-control" name="notes" maxlength="4000" placeholder="{{ __('whatsapp_supervisor.detail') }}"></div>
                         </div>
                     </form>
@@ -247,7 +254,7 @@
                                 <td>{{ __('whatsapp_supervisor.sources.'.strtolower((string) $lead->source_type)) }}{{ $lead->source_id?' #'.$lead->source_id:'' }}</td>
                                 <td>{{ $lead->agent_name ?: '-' }}</td>
                                 <td>{{ $lead->last_activity_at }}</td>
-                                <td><a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.whatsapp-supervisor.index',array_merge(request()->except('customer_id'),['customer_id'=>$lead->platform_customer_id])) }}">{{ __('whatsapp_supervisor.view_timeline') }}</a></td>
+                                <td><a class="foodex-action-secondary" href="{{ route('admin.whatsapp-supervisor.index',array_merge(request()->except('customer_id'),['customer_id'=>$lead->platform_customer_id])) }}">{{ __('whatsapp_supervisor.view_timeline') }}</a></td>
                             </tr>
                         @empty<tr><td colspan="6" class="text-muted">{{ __('whatsapp_supervisor.no_data') }}</td></tr>@endforelse
                         </tbody>
@@ -256,11 +263,19 @@
                 <div class="card-body border-top">
                     <form method="post" action="{{ route('admin.whatsapp-supervisor.leads.store') }}" class="row g-2 align-items-end">
                         @csrf
-                        <div class="col-4"><label class="form-label">{{ __('whatsapp_supervisor.customer_id') }}</label><input class="form-control" type="number" min="1" required name="platform_customer_id"></div>
+                        <div class="col-4">
+                            <label class="form-label">{{ __('whatsapp_supervisor.customer') }}</label>
+                            <select class="form-select" required name="platform_customer_id">
+                                <option value="">{{ __('whatsapp_supervisor.select_customer') }}</option>
+                                @foreach($customerOptions as $customerOption)
+                                    <option value="{{ $customerOption->id }}">{{ $customerOption->name }}{{ $customerOption->phone ? ' · '.$customerOption->phone : '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.temperature') }}</label><select class="form-select" name="temperature">@foreach(['cold','warm','hot'] as $temp)<option value="{{ $temp }}">{{ __('whatsapp_supervisor.'.$temp) }}</option>@endforeach</select></div>
                         <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.status') }}</label><select class="form-select" name="status">@foreach(['open','converted','lost'] as $leadStatus)<option value="{{ $leadStatus }}">{{ __('whatsapp_supervisor.lead_statuses.'.$leadStatus) }}</option>@endforeach</select></div>
                         <input type="hidden" name="source_type" value="manual">
-                        <div class="col-2"><button class="btn btn-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
+                        <div class="col-2"><button class="foodex-action-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
                     </form>
                 </div>
             </div>
@@ -281,7 +296,7 @@
                                 <td>
                                     @if($followUp->status==='open')
                                     <form method="post" action="{{ route('admin.whatsapp-supervisor.follow-ups.transition',['followUp'=>$followUp->id]) }}">
-                                        @csrf @method('PATCH')<input type="hidden" name="status" value="completed"><button class="btn btn-sm btn-outline-success">{{ __('whatsapp_supervisor.complete') }}</button>
+                                        @csrf @method('PATCH')<input type="hidden" name="status" value="completed"><button class="foodex-action-secondary">{{ __('whatsapp_supervisor.complete') }}</button>
                                     </form>
                                     @else<span class="badge bg-secondary">{{ __('whatsapp_supervisor.follow_up_statuses.'.strtolower((string) $followUp->status)) }}</span>@endif
                                 </td>
@@ -293,13 +308,27 @@
                 <div class="card-body border-top">
                     <form method="post" action="{{ route('admin.whatsapp-supervisor.follow-ups.store') }}" class="row g-2">
                         @csrf
-                        <div class="col-6"><input class="form-control" type="number" min="1" name="platform_customer_id" placeholder="{{ __('whatsapp_supervisor.customer_id') }}"></div>
-                        <div class="col-6"><input class="form-control" type="number" min="1" name="assigned_agent_id" placeholder="{{ __('whatsapp_supervisor.agent_id') }}"></div>
+                        <div class="col-6">
+                            <select class="form-select" required name="platform_customer_id" aria-label="{{ __('whatsapp_supervisor.select_customer') }}">
+                                <option value="">{{ __('whatsapp_supervisor.select_customer') }}</option>
+                                @foreach($customerOptions as $customerOption)
+                                    <option value="{{ $customerOption->id }}">{{ $customerOption->name }}{{ $customerOption->phone ? ' · '.$customerOption->phone : '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select class="form-select" name="assigned_agent_id" aria-label="{{ __('whatsapp_supervisor.agent') }}">
+                                <option value="">{{ __('whatsapp.inbox.unassigned') }}</option>
+                                @foreach($dashboard['workload'] as $agentOption)
+                                    <option value="{{ $agentOption->id }}">{{ $agentOption->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-12"><input class="form-control" required name="title" maxlength="191" placeholder="{{ __('whatsapp_supervisor.follow_ups') }}"></div>
                         <div class="col-6"><input class="form-control" type="datetime-local" name="due_at"></div>
                         <div class="col-3"><select class="form-select" name="priority">@foreach(['normal','high','urgent','low'] as $priority)<option value="{{ $priority }}">{{ __('whatsapp_supervisor.priorities.'.$priority) }}</option>@endforeach</select></div>
                         <input type="hidden" name="source_type" value="manual">
-                        <div class="col-3"><button class="btn btn-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
+                        <div class="col-3"><button class="foodex-action-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
                     </form>
                 </div>
             </div>
