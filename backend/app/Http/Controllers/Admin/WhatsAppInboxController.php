@@ -163,6 +163,12 @@ final class WhatsAppInboxController extends Controller
                 ->first(),
             'canSupervise' => $actor->hasRole('SUPER_ADMIN')
                 || $actor->hasPermission('whatsapp.customer_service.supervise'),
+            'selectedIsResolved' => $selected !== null
+                && in_array($selected->status, ['RESOLVED', 'CLOSED'], true),
+            'transitionAction' => $selected !== null
+                && in_array($selected->status, ['RESOLVED', 'CLOSED'], true)
+                    ? 'reopen'
+                    : 'resolve',
         ]);
     }
 
