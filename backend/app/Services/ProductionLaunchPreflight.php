@@ -285,7 +285,7 @@ final class ProductionLaunchPreflight
         $buildInfoVersion = is_string($buildInfo['version'] ?? null)
             ? trim($buildInfo['version'])
             : null;
-        $candidateMode = is_string($version) && $version !== '' && $buildInfoVersion !== $version;
+        $candidateMode = is_string($version) && $buildInfoVersion !== $version;
 
         $lineageSource = 'published-build-info';
         $sourceCommit = is_string($buildInfo['source_commit'] ?? null)
