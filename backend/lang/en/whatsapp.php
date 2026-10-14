@@ -328,4 +328,18 @@ return [
             'INVALID' => 'Invalid',
         ],
     ],
+    'inbound_popup' => [
+        'title' => 'New WhatsApp message',
+        'open' => 'Open conversation',
+        'dismiss' => 'Dismiss',
+        'close' => 'Close alert',
+        'store' => 'Store',
+        'more_waiting' => 'more messages waiting',
+        'photo_received' => 'Photo received',
+        'document_received' => 'Document received',
+        'voice_received' => 'Voice message received',
+        'video_received' => 'Video received',
+        'media_received' => 'Media received',
+        'message_received' => 'Message received',
+    ],
 ];
