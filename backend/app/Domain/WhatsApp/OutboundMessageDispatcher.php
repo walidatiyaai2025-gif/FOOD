@@ -69,7 +69,8 @@ final class OutboundMessageDispatcher
                 'metadata' => $metadata,
             ];
 
-            $allowed = $this->policy->allowsOutbound($recipient, Capability::OUTBOUND);
+            $purpose = $this->purpose($metadata);
+            $allowed = $this->policy->allowsOutbound($recipient, $purpose);
             $deliveryStatus = $allowed ? 'queued' : 'blocked_policy';
 
             $dispatchId = (int) DB::table('whats_app_outbound_dispatches')->insertGetId([
@@ -119,6 +120,17 @@ final class OutboundMessageDispatcher
         $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
 
         return $digits === '' ? null : '+'.$digits;
+    }
+
+    /** @param array<string, mixed> $metadata */
+    private function purpose(array $metadata): Capability
+    {
+        return match (strtolower(trim((string) ($metadata['purpose'] ?? '')))) {
+            'transactional' => Capability::TRANSACTIONAL,
+            'campaigns' => Capability::CAMPAIGNS,
+            'automation' => Capability::AUTOMATION,
+            default => Capability::OUTBOUND,
+        };
     }
 
     /** @return array<string, mixed> */
