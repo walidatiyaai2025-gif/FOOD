@@ -112,7 +112,6 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->assertSame(ConnectionProfileStatus::DRAFT, $updated->status);
     }
 
-
     public function test_sensitive_metadata_keys_are_rejected_and_provider_diagnostics_are_credential_redacted(): void
     {
         $actor = $this->admin();
