@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\Admin\ProductionDatasetSwitchController;
 use App\Models\User;
 use Database\Seeders\FoodexCustomerVNextFixtureSeeder;
 use Database\Seeders\FoodexLaunchSeeder;
@@ -464,7 +465,7 @@ final class ProductionLaunchPreflight
     private function datasetSwitchReadinessCheck(): array
     {
         $snapshot = $this->snapshotCheck();
-        $controller = class_exists(\App\Http\Controllers\Admin\ProductionDatasetSwitchController::class);
+        $controller = class_exists(ProductionDatasetSwitchController::class);
         $passed = $controller && $snapshot['passed'];
 
         return [
