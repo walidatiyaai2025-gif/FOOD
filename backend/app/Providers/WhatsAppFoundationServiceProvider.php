@@ -11,6 +11,6 @@ final class WhatsAppFoundationServiceProvider extends ServiceProvider
     public function register(): void
     {
         // No database queries, credentials, transports, listeners or scheduled work at boot.
-        $this->app->bind(CertificationAuthority::class, UncertifiedProgram::class);
+        $this->app->bind(CertificationAuthority::class, UncertifiedProgram::class);\n        $this->app->bind(ConnectionValidator::class, UnavailableConnectionValidator::class);
     }
 }
