@@ -90,6 +90,7 @@ return [
         'not_ready' => 'Only a freshly validated Ready profile can become primary.',
         'primary_requires_switch' => 'Switch the primary connection before changing this profile state.',
         'invalid_phone' => 'Enter a valid international number beginning with + and country code.',
+        'sensitive_metadata' => 'Store credentials only in the dedicated credential field; secret or token keys are not allowed in metadata.',
         'invalid_metadata' => 'Provider and webhook metadata must be JSON objects or arrays.',
         'states' => [
             'DRAFT' => 'Draft',
