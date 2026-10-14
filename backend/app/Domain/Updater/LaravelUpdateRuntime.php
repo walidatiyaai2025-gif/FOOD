@@ -323,7 +323,6 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
     }
 
-
     public function verifyDatabaseBackup(string $backupReference): void
     {
         $metadataPath = rtrim($backupReference, '/\\\\').'/database.json';
@@ -353,6 +352,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             if ($result !== 'ok') {
                 throw new RuntimeException('SQLite backup integrity verification failed.');
             }
+
             return;
         }
 
@@ -366,11 +366,13 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             if (! is_string($prefix) || $prefix === '' || (! str_contains($prefix, 'MySQL dump') && ! str_contains($prefix, 'MariaDB dump'))) {
                 throw new RuntimeException('MySQL/MariaDB backup does not have a recognized restorable dump header.');
             }
+
             return;
         }
 
         if ($metadata['driver'] === 'pgsql') {
             $this->runProcess([(string) config('foodex.pg_restore_binary', 'pg_restore'), '--list', $snapshot]);
+
             return;
         }
 
