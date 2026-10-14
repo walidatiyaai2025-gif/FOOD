@@ -252,6 +252,15 @@ final class OrderOperationsController extends Controller
             'orders' => $orders,
             'rows' => $rows,
             'stores' => $stores,
+            'storeId' => $selectedStoreId ?? (count($storeIds) === 1 ? $storeIds[0] : null),
+            'storeIds' => $selectedStoreId !== null ? [$selectedStoreId] : $storeIds,
+            'availableStores' => $stores
+                ->map(static fn (object $store): array => [
+                    'id' => (int) $store->id,
+                    'name' => (string) $store->name,
+                    'code' => (string) $store->code,
+                ])
+                ->all(),
             'drivers' => $drivers,
             'vans' => $vans,
             'detail' => $detail,
@@ -546,17 +555,28 @@ final class OrderOperationsController extends Controller
         if ($channel === 'b2b') {
             $customers = DB::table('b2b_customers')
                 ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+                ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+                ->leftJoin('stores as retail_customer_store', 'retail_customer_store.id', '=', 'retail_wholesale_accounts.retail_store_id')
                 ->where('b2b_accounts.status', 'active')
+                ->where(function ($query): void {
+                    $query->whereNotNull('b2b_accounts.price_tier_id')
+                        ->orWhereNotNull('retail_wholesale_accounts.retail_store_id');
+                })
+                ->orderByRaw('retail_customer_store.id IS NULL')
                 ->orderBy('b2b_accounts.company_name')
                 ->orderBy('b2b_customers.name')
                 ->get([
                     'b2b_customers.id',
                     'b2b_customers.name',
                     'b2b_accounts.company_name',
+                    'retail_wholesale_accounts.retail_store_id',
+                    'retail_customer_store.name as retail_store_name',
                 ])
-                ->map(static fn (object $row): array => [
+                ->map(fn (object $row): array => [
                     'id' => (int) $row->id,
-                    'name' => trim(($row->company_name ? $row->company_name.' · ' : '').$row->name),
+                    'name' => $row->retail_store_id === null
+                        ? trim(($row->company_name ? $row->company_name.' · ' : '').$row->name)
+                        : ($this->msg('التجزئة · ', 'Retail · ').($row->retail_store_name ?: '#'.$row->retail_store_id)),
                 ])
                 ->values()
                 ->all();
