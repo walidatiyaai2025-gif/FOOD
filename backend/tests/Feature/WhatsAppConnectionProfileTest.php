@@ -112,6 +112,38 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->assertSame(ConnectionProfileStatus::DRAFT, $updated->status);
     }
 
+
+    public function test_sensitive_metadata_keys_are_rejected_and_provider_diagnostics_are_credential_redacted(): void
+    {
+        $actor = $this->admin();
+
+        try {
+            app(ConnectionProfileManager::class)->create($actor, array_replace(
+                $this->profileData('Unsafe metadata', '+96550000018'),
+                ['provider_metadata' => ['nested' => ['access_token' => 'do-not-store-here']]],
+            ));
+            $this->fail('Credential-shaped metadata was accepted.');
+        } catch (ValidationException) {
+            $this->assertSame(0, WhatsAppConnectionProfile::query()->count());
+        }
+
+        $secret = 'provider-secret-xyz';
+        $profile = $this->createProfile($actor, 'Diagnostic redaction', '+96550000019', $secret);
+        $this->validator->valid = false;
+        $this->validator->health = ConnectionHealthStatus::INVALID_CREDENTIALS;
+        $this->validator->message = 'Provider rejected token '.$secret;
+
+        $this->assertFalse(app(ConnectionProfileManager::class)->validate($actor, $profile));
+        $profile->refresh();
+
+        $this->assertStringNotContainsString($secret, (string) $profile->last_provider_error);
+        $this->assertStringContainsString('[REDACTED]', (string) $profile->last_provider_error);
+        $this->assertStringNotContainsString($secret, AuditLog::query()->get()->toJson());
+
+        app(ConnectionHealthRecorder::class)->providerError($profile, 'Transport echoed '.$secret);
+        $this->assertStringNotContainsString($secret, (string) $profile->fresh()->last_provider_error);
+    }
+
     public function test_default_runtime_validator_never_fakes_provider_success(): void
     {
         $this->app->forgetInstance(ConnectionValidator::class);
@@ -340,6 +372,8 @@ final class FakeConnectionValidator implements ConnectionValidator
 
     public ConnectionHealthStatus $health = ConnectionHealthStatus::READY;
 
+    public ?string $message = null;
+
     public function validate(WhatsAppConnectionProfile $profile): ConnectionValidationResult
     {
         if ($this->throw) {
@@ -354,7 +388,7 @@ final class FakeConnectionValidator implements ConnectionValidator
             providerAvailable: $this->valid,
             capabilities: $this->valid ? ['messages'] : [],
             diagnosticCode: $this->valid ? 'ok' : 'invalid_credentials',
-            message: $this->valid ? 'Provider connection validated.' : 'Credentials rejected.',
+            message: $this->message ?? ($this->valid ? 'Provider connection validated.' : 'Credentials rejected.'),
             checkedAt: new \DateTimeImmutable,
         );
     }
