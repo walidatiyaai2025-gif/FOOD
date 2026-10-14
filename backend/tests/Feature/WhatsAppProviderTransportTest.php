@@ -352,6 +352,15 @@ final class WhatsAppProviderTransportTest extends TestCase
             'provider_message_ref' => 'wamid.status-1',
             'delivery_status' => 'read',
         ]);
+
+        $statusPayload['entry'][0]['changes'][0]['value']['statuses'][0]['status'] = 'delivered';
+        $statusPayload['entry'][0]['changes'][0]['value']['statuses'][0]['timestamp'] = '1791945599';
+        $this->postSignedWebhook($profile, $statusPayload)->assertOk();
+
+        $this->assertDatabaseHas('whats_app_messages', [
+            'id' => $messageId,
+            'delivery_status' => 'read',
+        ]);
     }
 
     public function test_transport_migration_is_additive_and_round_trip_safe(): void
