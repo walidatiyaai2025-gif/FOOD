@@ -6,6 +6,7 @@ use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\MarketingConsentService;
 use App\Domain\WhatsApp\TemplateRegistryService;
 use App\Http\Controllers\Controller;
+use App\Support\AdminNavigation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,9 +40,14 @@ final class WhatsAppCampaignController extends Controller
             return response()->json(['campaigns' => $rows, 'templates' => $templates]);
         }
 
+        $actor = $request->user();
+
         return view('admin.whatsapp-campaigns.index', [
             'campaigns' => $rows,
             'templates' => $templates,
+            'user' => $actor,
+            'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
+            'navContext' => 'whatsapp_campaigns',
         ]);
     }
 
