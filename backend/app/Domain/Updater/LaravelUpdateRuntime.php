@@ -109,8 +109,28 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $source = (string) config('database.connections.sqlite.database');
             $snapshot = $backupDirectory.'/database.sqlite';
 
-            if ($source === ':memory:' || ! is_file($source) || ! copy($source, $snapshot)) {
+            if ($source === ':memory:' || ! is_file($source)) {
                 throw new RuntimeException('SQLite database backup failed.');
+            }
+
+            $pdo = DB::connection()->getPdo();
+            if ($pdo->inTransaction()) {
+                throw new RuntimeException('SQLite database backup requires a committed database state.');
+            }
+
+            $quotedSnapshot = $pdo->quote($snapshot);
+            if (! is_string($quotedSnapshot) || $quotedSnapshot === '') {
+                throw new RuntimeException('SQLite database backup path could not be prepared.');
+            }
+
+            try {
+                $pdo->exec('VACUUM INTO '.$quotedSnapshot);
+            } catch (\Throwable $exception) {
+                throw new RuntimeException('SQLite database backup failed.', 0, $exception);
+            }
+
+            if (! is_file($snapshot) || filesize($snapshot) === 0) {
+                throw new RuntimeException('SQLite database backup did not produce a valid snapshot.');
             }
 
             $this->writeDatabaseMetadata($backupDirectory, 'sqlite', $snapshot);
@@ -378,6 +398,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         if ($metadata['driver'] === 'sqlite') {
             $database = (string) config('database.connections.sqlite.database');
             DB::purge();
+
+            foreach ([$database.'-wal', $database.'-shm', $database.'-journal'] as $sidecar) {
+                if (is_file($sidecar) && ! @unlink($sidecar)) {
+                    throw new RuntimeException('SQLite rollback sidecar could not be removed.');
+                }
+            }
 
             if (! is_file($snapshot) || ! copy($snapshot, $database)) {
                 throw new RuntimeException('SQLite database rollback failed.');
