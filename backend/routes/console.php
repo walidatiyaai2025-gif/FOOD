@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\WhatsApp\CampaignService;
+use App\Domain\WhatsApp\CertificationAuthority;
 use App\Domain\WhatsApp\StateManager;
 use App\Domain\WhatsApp\TransportRetryService;
 use App\Models\User;
@@ -11,6 +12,7 @@ use App\Services\FlashOfferService;
 use App\Services\NotificationCampaignDispatcher;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Throwable;
 
 Artisan::command('foodex:version', function (): void {
     $this->info(trim((string) @file_get_contents(base_path('../VERSION'))));
@@ -38,7 +40,7 @@ Artisan::command(
     'foodex:certify-whatsapp-ga {user : SUPER_ADMIN user ID} {revision : Current WhatsApp module revision}',
     function (StateManager $manager): int {
         $user = User::query()->find((int) $this->argument('user'));
-        if (! $user instanceof User) {
+        if ($user === null) {
             $this->error('Certification actor not found.');
 
             return 2;
@@ -46,13 +48,13 @@ Artisan::command(
 
         try {
             $manager->certifyGaReady($user, (int) $this->argument('revision'));
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             $this->error('WhatsApp GA certification rejected: '.$exception->getMessage());
 
             return 1;
         }
 
-        $reference = app(\App\Domain\WhatsApp\CertificationAuthority::class)->validEvidenceReference();
+        $reference = app(CertificationAuthority::class)->validEvidenceReference();
         $this->info('WhatsApp CRM promoted to GA_READY with certificate '.$reference.'.');
         $this->warn('Emergency outbound stop is engaged. Production remains disabled until explicit Super Admin activation.');
 
