@@ -65,6 +65,7 @@ final class ProductionLaunchReport
             return null;
         }
         $decoded = json_decode((string) file_get_contents($path), true);
+
         return is_array($decoded) ? $decoded : null;
     }
 }

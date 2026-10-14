@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\Admin\ProductionDatasetSwitchController;
 use App\Models\User;
 use Database\Seeders\FoodexCustomerVNextFixtureSeeder;
 use Database\Seeders\FoodexLaunchSeeder;
@@ -250,7 +251,8 @@ final class ProductionLaunchPreflight
      *     van_version:?string,
      *     customer_build_number:?int,
      *     driver_build_number:?int,
-     *     van_build_number:?int
+     *     van_build_number:?int,
+     *     lineage_source:string
      * }
      */
     public function releaseMetadata(): array
@@ -464,7 +466,7 @@ final class ProductionLaunchPreflight
     private function datasetSwitchReadinessCheck(): array
     {
         $snapshot = $this->snapshotCheck();
-        $controller = class_exists(\App\Http\Controllers\Admin\ProductionDatasetSwitchController::class);
+        $controller = class_exists(ProductionDatasetSwitchController::class);
         $passed = $controller && $snapshot['passed'];
 
         return [
@@ -530,7 +532,8 @@ final class ProductionLaunchPreflight
      *     van_version:?string,
      *     customer_build_number:?int,
      *     driver_build_number:?int,
-     *     van_build_number:?int
+     *     van_build_number:?int,
+     *     lineage_source:string
      * } $release
      * @return array{passed:bool,detail:string,source:string}
      */
@@ -564,7 +567,7 @@ final class ProductionLaunchPreflight
             'detail' => $passed
                 ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
-            'source' => ($release['lineage_source'] ?? null) === 'candidate-source'
+            'source' => $release['lineage_source'] === 'candidate-source'
                 ? 'exact candidate source + mobile source identities + frozen Customer contract'
                 : 'Release/BUILD_INFO.json + VERSION',
         ];

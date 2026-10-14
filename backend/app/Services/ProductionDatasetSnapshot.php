@@ -15,10 +15,15 @@ use Throwable;
 final class ProductionDatasetSnapshot
 {
     public const NO_SNAPSHOT = 'no_snapshot';
+
     public const SNAPSHOT_READY = 'snapshot_ready';
+
     public const LAUNCH_ACTIVE = 'launch_active';
+
     public const RESTORING = 'restoring';
+
     public const LEGACY_RESTORED = 'legacy_restored';
+
     public const FAILED = 'failed';
 
     public function __construct(
@@ -50,6 +55,7 @@ final class ProductionDatasetSnapshot
             if (($existing['verified'] ?? false) === true
                 && in_array($existing['state'] ?? null, [self::SNAPSHOT_READY, self::LAUNCH_ACTIVE], true)) {
                 $this->verify($existing);
+
                 return $this->status();
             }
 
@@ -71,7 +77,7 @@ final class ProductionDatasetSnapshot
                 'database' => DB::connection()->getDatabaseName(),
                 'connection' => (string) config('database.default'),
                 'source_release' => trim((string) @file_get_contents(base_path('../VERSION'))),
-                'source_sha' => (string) config('foodex.release_source_sha', env('FOODEX_RELEASE_SOURCE_SHA', 'unknown')),
+                'source_sha' => (string) (config('foodex.release_source_sha') ?: 'unknown'),
                 'backup_reference' => $reference,
                 'snapshot_file' => $snapshot,
                 'size' => $size,
@@ -120,6 +126,7 @@ final class ProductionDatasetSnapshot
             $metadata = $this->readMetadata();
             if (($metadata['state'] ?? null) === self::LEGACY_RESTORED) {
                 $this->verify($metadata);
+
                 return $this->status();
             }
             if (($metadata['state'] ?? null) !== self::LAUNCH_ACTIVE) {
@@ -145,6 +152,7 @@ final class ProductionDatasetSnapshot
                 if ($enteredMaintenance) {
                     $this->runtime->exitMaintenanceMode();
                 }
+
                 return $this->status();
             } catch (Throwable $exception) {
                 $metadata['state'] = self::FAILED;
@@ -190,6 +198,7 @@ final class ProductionDatasetSnapshot
         if (! is_string($snapshot) || ! is_file($snapshot)) {
             throw new RuntimeException('Snapshot payload is missing.');
         }
+
         return $snapshot;
     }
 
@@ -209,6 +218,7 @@ final class ProductionDatasetSnapshot
         } catch (JsonException) {
             throw new RuntimeException('Snapshot metadata is invalid.');
         }
+
         return is_array($value) ? $value : ['state' => self::NO_SNAPSHOT];
     }
 

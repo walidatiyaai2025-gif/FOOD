@@ -50,10 +50,12 @@ def audit_lane(lane: dict[str, object]) -> None:
     web = text("backend/routes/web.php")
 
     check("identifier", ident in native, f"{ident} is locked in native configuration", key)
+    lane_version = str(lane.get("version", EXPECTED_VERSION))
+    lane_build = str(lane.get("build", EXPECTED_BUILD))
     check(
         "version_build",
-        f"version: {EXPECTED_VERSION}+{EXPECTED_BUILD}" in pubspec,
-        f"binary metadata is {EXPECTED_VERSION}+{EXPECTED_BUILD}",
+        f"version: {lane_version}+{lane_build}" in pubspec,
+        f"binary metadata is {lane_version}+{lane_build}",
         key,
     )
     check(

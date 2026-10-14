@@ -1,4 +1,4 @@
-# FOODEX 1.0.77 Release Notes — PRODUCTION HOLD
+# FOODEX 1.0.77 — PRODUCTION HOLD Release Notes
 
 **Status: NOT RELEASED.** FOODEX 1.0.76 remains historical evidence but is superseded as the production-launch target. No 1.0.77 Dashboard Update or APK is approved until all #1380 gates pass.
 

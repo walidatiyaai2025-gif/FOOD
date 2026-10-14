@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -40,7 +39,6 @@ class FoodexResetService
     public function __construct(
         private readonly LaunchCatalog $catalog,
         private readonly AuditLogger $audit,
-        private readonly UpdateRuntime $runtime,
         private readonly ProductionDatasetSnapshot $snapshot,
     ) {}
 
