@@ -95,7 +95,7 @@ class ProductionDatasetSwitchTest extends TestCase
             ->assertOk()
             ->assertSee('data-active-mode="legacy"', false)
             ->assertSee(ProductionDatasetSwitchController::LAUNCH_CONFIRMATION)
-            ->assertDontSee('name="confirmation" autocomplete="off" required disabled', false);
+            ->assertSee('data-switch-form="launch" data-switch-enabled="true"', false);
     }
 
     private function writeState(string $state, bool $verified): void
