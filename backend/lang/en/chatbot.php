@@ -74,6 +74,8 @@ return [
         'message_ar' => 'Arabic start message',
         'message_en' => 'English start message',
         'primary_action' => 'Primary action',
+        'menu_actions' => 'Menu actions and order',
+        'drag_hint' => 'Enable the actions you want, then drag them to control the customer-facing order.',
         'create_flow' => 'Create flow',
         'edit_flow' => 'Edit flow',
         'publish' => 'Publish',
