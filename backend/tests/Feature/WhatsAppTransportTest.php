@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Domain\WhatsApp\Capability;
+use App\Domain\WhatsApp\ConnectionHealthRecorder;
 use App\Domain\WhatsApp\ConnectionHealthStatus;
 use App\Domain\WhatsApp\ConnectionProfileStatus;
-use App\Domain\WhatsApp\ConnectionHealthRecorder;
 use App\Domain\WhatsApp\OutboundExecution;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
 use App\Domain\WhatsApp\WebhookIngress;
