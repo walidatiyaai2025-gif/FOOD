@@ -393,6 +393,7 @@ Route::prefix('admin')
         Route::get('/settings/production-dataset', [ProductionDatasetSwitchController::class, 'index'])->name('production-dataset-switch.index');
         Route::post('/settings/production-dataset/launch', [ProductionDatasetSwitchController::class, 'launch'])->block(920, 1)->middleware('throttle:3,1')->name('production-dataset-switch.launch');
         Route::post('/settings/production-dataset/legacy', [ProductionDatasetSwitchController::class, 'legacy'])->block(1820, 1)->middleware('throttle:3,1')->name('production-dataset-switch.legacy');
+        Route::get('/settings/production-launch', [ProductionLaunchController::class, 'index'])->name('production-launch.index');
         Route::get('/settings/production-launch/report', [ProductionLaunchController::class, 'report'])->name('production-launch.report');
         Route::post('/settings/production-launch', [ProductionLaunchController::class, 'store'])->middleware('throttle:3,1')->name('production-launch.store');
         Route::get('/settings/system-update', [SystemUpdateController::class, 'index'])->name('system-update.index');
