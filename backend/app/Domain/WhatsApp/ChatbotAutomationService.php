@@ -5,9 +5,13 @@ namespace App\Domain\WhatsApp;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 final class ChatbotAutomationService
 {
+    /** @var array<string, mixed> */
+    private array $currentMetadata = [];
+
     public function __construct(
         private readonly ChatbotRuntimePolicy $runtime,
         private readonly ChatbotFeatureRegistry $features,
@@ -15,6 +19,7 @@ final class ChatbotAutomationService
         private readonly ChatbotAnalyticsService $analytics,
         private readonly ChatbotSegmentationService $segmentation,
         private readonly ChatbotSupportCaseService $supportCases,
+        private readonly ChatbotOrderDraftService $orderDrafts,
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $dispatcher,
     ) {}
@@ -36,6 +41,7 @@ final class ChatbotAutomationService
         }
 
         $settings = $this->runtime->settings();
+        $this->currentMetadata = $metadata;
         $classification = $this->intents->classify($body, $metadata);
         $intent = $classification['intent'];
         $confidence = $classification['confidence'];
@@ -143,7 +149,10 @@ final class ChatbotAutomationService
     {
         return match ($intent) {
             'new_order', 'product_search' => $this->productReply($conversationId, $platformCustomerId),
-            'repeat_order' => $this->reorderReply($platformCustomerId),
+            'repeat_order' => $this->reorderReply($conversationId, $platformCustomerId),
+            'add_product' => $this->addProductReply($conversationId, $platformCustomerId),
+            'repeat_to_cart' => $this->repeatToCartReply($conversationId, $platformCustomerId),
+            'view_cart' => $this->cartReply($conversationId, $platformCustomerId),
             'prices_offers' => $this->priceReply($conversationId, $platformCustomerId),
             'order_tracking' => $this->orderReply($platformCustomerId),
             'finance' => $this->financeReply($platformCustomerId),
@@ -165,7 +174,8 @@ final class ChatbotAutomationService
             ->leftJoin('store_products', function ($join) use ($storeId): void {
                 $join->on('store_products.product_id', '=', 'products.id');
                 if ($storeId !== null) {
-                    $join->where('store_products.store_id', $storeId);
+                    $join->where('store_products.store_id', $storeId)
+                        ->where('store_products.is_active', true);
                 } else {
                     $join->whereRaw('1 = 0');
                 }
@@ -173,25 +183,45 @@ final class ChatbotAutomationService
             ->where('products.is_active', true)
             ->select('products.id', 'products.name', 'products.sku', 'store_products.price')
             ->orderBy('products.name')
-            ->limit(5);
+            ->limit(10);
 
         $products = $query->get();
         if ($products->isEmpty()) {
             return ['body' => $this->t('no_products'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
+        $rows = [];
         $lines = [$this->t('product_intro')];
         foreach ($products as $product) {
             $price = $product->price === null ? $this->t('price_on_request') : number_format((float) $product->price, 3);
             $lines[] = '• '.$product->name.' — '.$price;
+            if ($platformCustomerId !== null && $product->price !== null) {
+                $rows[] = [
+                    'id' => 'chatbot:add_product:'.$product->id,
+                    'title' => mb_substr((string) $product->name, 0, 24),
+                    'description' => mb_substr((string) $product->sku.' · '.$price, 0, 72),
+                ];
+            }
         }
         $lines[] = $this->t('product_hint');
 
-        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
+        $interactive = $rows === [] ? $this->homeInteractive($platformCustomerId) : [
+            'type' => 'list',
+            'body' => ['text' => $this->t('choose_product')],
+            'action' => [
+                'button' => $this->t('choose'),
+                'sections' => [[
+                    'title' => $this->t('products'),
+                    'rows' => $rows,
+                ]],
+            ],
+        ];
+
+        return ['body' => implode("\n", $lines), 'interactive' => $interactive];
     }
 
     /** @return array<string, mixed> */
-    private function reorderReply(?int $platformCustomerId): array
+    private function reorderReply(int $conversationId, ?int $platformCustomerId): array
     {
         $customer = $this->customer($platformCustomerId);
         if ($customer === null) {
@@ -208,13 +238,105 @@ final class ChatbotAutomationService
         }
 
         $items = DB::table('order_items')->where('order_id', $order->id)->orderBy('id')->get();
-        $lines = [
-            $this->t('reorder_intro').' #'.$order->order_number,
-        ];
+        $lines = [$this->t('reorder_intro').' #'.$order->order_number];
         foreach ($items->take(8) as $item) {
             $lines[] = '• '.$item->name_snapshot.' × '.rtrim(rtrim(number_format((float) $item->quantity, 3), '0'), '.');
         }
         $lines[] = $this->t('draft_only');
+
+        return [
+            'body' => implode("\n", $lines),
+            'interactive' => [
+                'type' => 'list',
+                'body' => ['text' => $this->t('reorder_confirm_prompt')],
+                'action' => [
+                    'button' => $this->t('choose'),
+                    'sections' => [[
+                        'title' => $this->t('reorder_actions'),
+                        'rows' => [
+                            ['id' => 'chatbot:repeat_to_cart', 'title' => mb_substr($this->t('add_previous_to_cart'), 0, 24)],
+                            ['id' => 'chatbot:view_cart', 'title' => mb_substr($this->t('view_cart'), 0, 24)],
+                        ],
+                    ]],
+                ],
+            ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function addProductReply(int $conversationId, ?int $platformCustomerId): array
+    {
+        if ($platformCustomerId === null) {
+            return ['body' => $this->t('identity_required'), 'handoff' => true, 'reason' => 'identity_required'];
+        }
+
+        $productId = $this->interactiveNumericId('chatbot:add_product:');
+        if ($productId === null) {
+            return ['body' => $this->t('product_unavailable'), 'interactive' => $this->homeInteractive($platformCustomerId)];
+        }
+
+        try {
+            $this->orderDrafts->addProduct($conversationId, $platformCustomerId, $productId);
+        } catch (ValidationException) {
+            return ['body' => $this->t('product_unavailable'), 'interactive' => $this->homeInteractive($platformCustomerId)];
+        }
+
+        return $this->cartReply($conversationId, $platformCustomerId, $this->t('added_to_cart'));
+    }
+
+    /** @return array<string, mixed> */
+    private function repeatToCartReply(int $conversationId, ?int $platformCustomerId): array
+    {
+        if ($platformCustomerId === null) {
+            return ['body' => $this->t('identity_required'), 'handoff' => true, 'reason' => 'identity_required'];
+        }
+
+        try {
+            $result = $this->orderDrafts->repeatLatestOrder($conversationId, $platformCustomerId);
+        } catch (ValidationException) {
+            return ['body' => $this->t('no_previous_order'), 'interactive' => $this->homeInteractive($platformCustomerId)];
+        }
+
+        $prefix = $this->t('reorder_added');
+        if (($result['skipped'] ?? 0) > 0) {
+            $prefix .= ' '.$this->t('some_items_skipped');
+        }
+
+        return $this->cartReply($conversationId, $platformCustomerId, $prefix);
+    }
+
+    /** @return array<string, mixed> */
+    private function cartReply(int $conversationId, ?int $platformCustomerId, ?string $prefix = null): array
+    {
+        if ($platformCustomerId === null) {
+            return ['body' => $this->t('identity_required'), 'handoff' => true, 'reason' => 'identity_required'];
+        }
+
+        try {
+            $items = $this->orderDrafts->items($conversationId, $platformCustomerId);
+        } catch (ValidationException) {
+            return ['body' => $this->t('identity_required'), 'handoff' => true, 'reason' => 'identity_required'];
+        }
+
+        $lines = [];
+        if ($prefix !== null) {
+            $lines[] = $prefix;
+        }
+        $lines[] = $this->t('cart_summary');
+
+        $total = 0.0;
+        foreach ($items->take(12) as $item) {
+            $quantity = (float) $item->quantity;
+            $price = (float) ($item->unit_price_snapshot ?? 0);
+            $total += $quantity * $price;
+            $lines[] = '• '.$item->name.' × '.rtrim(rtrim(number_format($quantity, 3), '0'), '.').' — '.number_format($quantity * $price, 3);
+        }
+        if ($items->isEmpty()) {
+            $lines[] = $this->t('empty_cart');
+        } else {
+            $lines[] = $this->t('estimated_total').': '.number_format($total, 3).' KWD';
+            $lines[] = $this->t('draft_only');
+        }
 
         return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
     }
@@ -430,8 +552,8 @@ final class ChatbotAutomationService
     private function featureForIntent(string $intent): ?string
     {
         return match ($intent) {
-            'new_order' => 'new_order',
-            'repeat_order' => 'repeat_order',
+            'new_order', 'add_product', 'view_cart' => 'new_order',
+            'repeat_order', 'repeat_to_cart' => 'repeat_order',
             'product_search' => 'product_search',
             'prices_offers' => 'prices_offers',
             'order_tracking' => 'order_tracking',
@@ -470,6 +592,18 @@ final class ChatbotAutomationService
         $translated = Lang::get($key, [], $this->locale());
 
         return $translated === $key ? $status : (string) $translated;
+    }
+
+    private function interactiveNumericId(string $prefix): ?int
+    {
+        $id = $this->currentMetadata['interactive_id'] ?? null;
+        if (! is_string($id) || ! str_starts_with($id, $prefix)) {
+            return null;
+        }
+
+        $value = substr($id, strlen($prefix));
+
+        return ctype_digit($value) && (int) $value > 0 ? (int) $value : null;
     }
 
     /** @param array<string, mixed> $metadata */
