@@ -1122,7 +1122,7 @@ final class OrderOperationsController extends Controller
         $canEdit = $canManage
             && (string) $order->status === 'pending'
             && $order->commercial_locked_at === null
-            && ($payment?->status ?? null) !== 'paid'
+            && ($payment->status ?? null) !== 'paid'
             && ! DB::table('invoices')
                 ->where('order_id', $order->getKey())
                 ->whereIn('status', ['issued', 'reissued'])
