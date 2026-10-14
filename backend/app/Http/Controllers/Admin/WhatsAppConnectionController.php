@@ -65,7 +65,7 @@ final class WhatsAppConnectionController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $data = $request->validate(['credential_secret' => ['required', 'string', 'max:10000']]);
-        $manager->replaceCredential($actor, $profile, $data['credential_secret']);
+        $manager->replaceCredential($actor, $profile, (string) $data['credential_secret']);
 
         return $this->back(__('whatsapp.connections.credential_replaced'));
     }
@@ -92,7 +92,7 @@ final class WhatsAppConnectionController extends Controller
             'old_profile_action' => ['required', Rule::in(['drain', 'inactive'])],
             'confirm' => ['accepted'],
         ]);
-        $manager->switchPrimary($actor, $profile, $data['old_profile_action']);
+        $manager->switchPrimary($actor, $profile, (string) $data['old_profile_action']);
 
         return $this->back(__('whatsapp.connections.primary_switched'));
     }
