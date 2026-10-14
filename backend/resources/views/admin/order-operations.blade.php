@@ -35,8 +35,19 @@ $businessLabel = static function ($value): string {
 
 @include('admin._order-new-wizard')
 
-@php($tabQuery=request()->except(['status','page','order']))
-@php($dispatchQueueQuery=request()->except(['status','dispatch_status','channel','page','order']))
+@php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','page','order']))
+@php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
+@if(count($availableChannels ?? []) > 1)
+<nav class="status-tabs" aria-label="{{ $isAr ? 'قنوات الطلبات' : 'Order channels' }}" data-order-channel-tabs data-order-channel-selected="{{ $selectedChannel }}">
+@foreach($availableChannels as $channelOption)
+<a class="status-tab" data-order-channel-tab="{{ $channelOption['code'] }}" href="{{ route('admin.operations.orders.index',array_merge($channelQuery,['channel'=>$channelOption['code']])) }}" @if($selectedChannel===$channelOption['code']) aria-current="page" @endif><span>{{ $channelOption['label'] }}</span></a>
+@endforeach
+<a class="status-tab" data-order-channel-tab="all" href="{{ route('admin.operations.orders.index',array_merge($channelQuery,['channel'=>'all'])) }}" @if($selectedChannel==='all') aria-current="page" @endif><span>{{ $isAr ? 'كل القنوات' : 'All channels' }}</span></a>
+</nav>
+@endif
+
+@php($tabQuery=request()->except(['status','page','order','edit']))
+@php($dispatchQueueQuery=request()->except(['status','dispatch_status','channel','page','order','edit']))
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
 <a class="status-tab" data-order-status-tab="all" href="{{ route('admin.operations.orders.index',$tabQuery) }}" @if($selectedStatus===null) aria-current="page" @endif>
 <span>{{ __('order_operations.all') }}</span><span class="status-tab-count">{{ $statusTotal }}</span>
@@ -46,7 +57,9 @@ $businessLabel = static function ($value): string {
 <span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
-<a class="status-tab" data-order-dispatch-workspace href="{{ route('admin.operations.orders.index',array_merge($dispatchQueueQuery,['channel'=>'b2b','dispatch_status'=>'awaiting_dispatch'])) }}" @if(request('channel')==='b2b' && request('dispatch_status')==='awaiting_dispatch') aria-current="page" @endif><span>{{ __('order_operations.dispatch.awaiting_queue') }}</span></a>
+@if($channelCodes->contains('b2b') && $selectedChannel !== 'b2c')
+<a class="status-tab" data-order-dispatch-workspace href="{{ route('admin.operations.orders.index',array_merge($dispatchQueueQuery,['channel'=>'b2b','dispatch_status'=>'awaiting_dispatch'])) }}" @if($selectedChannel==='b2b' && request('dispatch_status')==='awaiting_dispatch') aria-current="page" @endif><span>{{ __('order_operations.dispatch.awaiting_queue') }}</span></a>
+@endif
 </nav>
 
 <form method="get" class="filters foodex-card">
@@ -90,7 +103,18 @@ $businessLabel = static function ($value): string {
 <details class="row-actions" data-order-row-actions>
 <summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
 <div class="row-action-menu">
-<a href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id']])) }}">{{ __('order_operations.view_order') }}</a>
+<a href="{{ route('admin.operations.orders.index',array_merge(request()->except('edit'),['order'=>$row['id']])) }}">{{ __('order_operations.view_order') }}</a>
+@if($row['can_edit'])
+<a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
+@endif
+@if($row['invoice_id'])
+<a data-order-invoice href="{{ route('admin.invoices.show',$row['invoice_id']) }}">{{ $isAr ? 'عرض الفاتورة' : 'View invoice' }}</a>
+@endif
+@if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
+<form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
+<button type="submit">{{ $isAr ? 'تذكير السائق' : 'Remind driver' }}</button>
+</form>
+@endif
 @if($row['can_dispatch'])
 @if($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
@@ -143,7 +167,7 @@ $businessLabel = static function ($value): string {
 {{ $orders->links() }}
 
 @if($detail)
-@php($detailCloseQuery=request()->except(['order']))
+@php($detailCloseQuery=request()->except(['order','edit']))
 <dialog class="order-detail-drawer" open aria-label="{{ __('order_operations.view_order') }}">
 <div class="order-detail-drawer-shell">
 <div class="order-detail-drawer-head"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.filters.reset') }}">×</a></div>
@@ -179,6 +203,24 @@ $businessLabel = static function ($value): string {
 @else
 <div class="foodex-empty-state">{{ __('order_operations.detail.no_snapshot') }}</div>
 @endif
+</div>
+<div class="foodex-card panel" data-order-financials>
+<h2>{{ $isAr ? 'الدفع والفاتورة' : 'Payment & invoice' }}</h2>
+<div class="timeline">
+<div class="timeline-item">
+<strong>{{ $isAr ? 'الدفع' : 'Payment' }} · {{ $businessLabel($detail['payment_status']) }}</strong>
+@if($detail['payment_provider'])<div>{{ strtoupper(str_replace(['_','-'],' ',(string)$detail['payment_provider'])) }}</div>@endif
+@if($detail['payment_amount'] !== null)<small>{{ number_format((float)$detail['payment_amount'],3) }} {{ $detail['payment_currency'] ?: $detail['currency'] }}</small>@endif
+</div>
+@if($detail['invoice_id'])
+<div class="timeline-item">
+<strong>{{ $isAr ? 'الفاتورة' : 'Invoice' }} · {{ $detail['invoice_number'] ?: '#'.$detail['invoice_id'] }}</strong>
+<div>{{ $businessLabel($detail['invoice_status']) }}</div>
+@if($detail['invoice_total'] !== null)<small>{{ number_format((float)$detail['invoice_total'],3) }} {{ $detail['invoice_currency'] ?: $detail['currency'] }}</small>@endif
+<div style="margin-top:8px"><a class="foodex-primary" href="{{ route('admin.invoices.show',$detail['invoice_id']) }}">{{ $isAr ? 'فتح الفاتورة والتحصيل' : 'Open invoice & settlement' }}</a></div>
+</div>
+@endif
+</div>
 </div>
 <div class="foodex-card panel" data-order-dispatch-detail>
 <h2>{{ __('order_operations.dispatch.current_assignment') }}</h2>
@@ -242,6 +284,62 @@ $businessLabel = static function ($value): string {
 <div class="timeline-item"><strong>{{ \App\Support\DisplayNumber::money($collection['amount'], $collection['currency']) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
 @empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_collections') }}</div>@endforelse
 </div>
+</div>
+@endif
+@if(request('edit') && $detail['can_edit'] && $detail['edit_options'])
+@php($editOptions=$detail['edit_options'])
+<div class="foodex-card panel" data-order-edit-panel>
+<h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }} · {{ $detail['number'] }}</h2>
+<p>{{ $isAr ? 'يتم إعادة التسعير والتحقق من المخزون عند الحفظ. التعديل متاح للطلبات المعلقة غير المقفلة فقط.' : 'Saving re-prices and re-validates stock. Editing is limited to unlocked pending orders.' }}</p>
+<form method="post" action="{{ route('admin.operations.orders.update',$detail['id']) }}" data-order-edit-form>
+@csrf @method('PATCH')
+<div class="new-order-grid">
+<label class="new-order-field"><span>{{ $isAr ? 'العميل' : 'Customer' }}</span><select name="customer_id" required>
+@foreach($editOptions['customers'] as $customer)<option value="{{ $customer['id'] }}" @selected((int)$detail['customer_id']===(int)$customer['id'])>{{ $customer['name'] }}</option>@endforeach
+</select></label>
+@if($detail['channel']==='b2b')
+<label class="new-order-field"><span>{{ $isAr ? 'مخزن الصرف' : 'Source warehouse' }}</span><select name="warehouse_id" required>
+@foreach($editOptions['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}" @selected((int)$detail['warehouse_id']===(int)$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
+</select></label>
+@endif
+<label class="new-order-field"><span>{{ $isAr ? 'العنوان' : 'Address' }}</span><select name="address_id">
+<option value="">{{ $isAr ? 'بدون عنوان / استلام' : 'No address / pickup' }}</option>
+@foreach($editOptions['addresses'] as $address)<option value="{{ $address['id'] }}" @selected((int)$detail['address_id']===(int)$address['id'])>{{ $address['label'] }}</option>@endforeach
+</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</span><select name="payment_method" required>
+@foreach($newOrderWizard['payment_methods'] as $method)<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>@endforeach
+</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'كود الكوبون' : 'Coupon code' }}</span><input name="coupon_code" maxlength="80" value="{{ $detail['coupon_code'] }}"></label>
+</div>
+<label class="new-order-field" style="margin-top:14px"><span>{{ $isAr ? 'ملاحظة الطلب' : 'Order note' }}</span><textarea name="customer_note" maxlength="1000" rows="3">{{ $detail['customer_note'] }}</textarea></label>
+<h3>{{ $isAr ? 'الأصناف والكميات' : 'Items & quantities' }}</h3>
+<div class="new-order-lines" data-edit-order-lines>
+@foreach($detail['items'] as $index=>$item)
+<div class="new-order-line" data-edit-order-line>
+<label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span><select name="items[{{ $index }}][product_id]" data-edit-product required>
+@foreach($editOptions['products'] as $product)<option value="{{ $product['id'] }}" @selected((int)$item['product_id']===(int)$product['id'])>{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
+</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'الكمية' : 'Quantity' }}</span><input type="number" min="0.001" step="0.001" name="items[{{ $index }}][quantity]" value="{{ $item['quantity'] }}" required></label>
+<button type="button" class="btn secondary" data-edit-remove-line>{{ $isAr ? 'حذف' : 'Remove' }}</button>
+</div>
+@endforeach
+</div>
+<template data-edit-line-template>
+<div class="new-order-line" data-edit-order-line>
+<label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span><select data-edit-product required>
+<option value="">{{ $isAr ? 'اختر المنتج' : 'Select product' }}</option>
+@foreach($editOptions['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
+</select></label>
+<label class="new-order-field"><span>{{ $isAr ? 'الكمية' : 'Quantity' }}</span><input type="number" min="0.001" step="0.001" value="1" required></label>
+<button type="button" class="btn secondary" data-edit-remove-line>{{ $isAr ? 'حذف' : 'Remove' }}</button>
+</div>
+</template>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+<button type="button" class="btn secondary" data-edit-add-line>+ {{ $isAr ? 'إضافة صنف' : 'Add item' }}</button>
+<button type="submit" class="foodex-primary">{{ $isAr ? 'حفظ وإعادة التسعير' : 'Save & re-price' }}</button>
+<a class="btn secondary" href="{{ route('admin.operations.orders.index',array_merge(request()->except('edit'),['order'=>$detail['id']])) }}">{{ $isAr ? 'إلغاء التعديل' : 'Cancel edit' }}</a>
+</div>
+</form>
 </div>
 @endif
 <div class="foodex-card panel"><h2>{{ __('order_operations.detail.status_timeline') }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $businessLabel($entry['from']) }} → {{ $businessLabel($entry['to']) }}</strong><div>{{ $businessLabel($entry['note']) }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_history') }}</div>@endforelse</div></div>
@@ -312,3 +410,26 @@ $businessLabel = static function ($value): string {
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
 </body></html>
+@if($detail && request('edit') && $detail['can_edit'])
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const box=document.querySelector('[data-edit-order-lines]');
+ const tpl=document.querySelector('[data-edit-line-template]');
+ const add=document.querySelector('[data-edit-add-line]');
+ if(!box||!tpl||!add)return;
+ const reindex=()=>box.querySelectorAll('[data-edit-order-line]').forEach((row,index)=>{
+   const select=row.querySelector('select[data-edit-product]');
+   const qty=row.querySelector('input[type="number"]');
+   if(select)select.name='items['+index+'][product_id]';
+   if(qty)qty.name='items['+index+'][quantity]';
+ });
+ const bind=(row)=>row.querySelector('[data-edit-remove-line]')?.addEventListener('click',()=>{
+   if(box.querySelectorAll('[data-edit-order-line]').length<=1)return;
+   row.remove();reindex();
+ });
+ box.querySelectorAll('[data-edit-order-line]').forEach(bind);
+ add.addEventListener('click',()=>{const fragment=tpl.content.cloneNode(true);const row=fragment.querySelector('[data-edit-order-line]');box.appendChild(fragment);bind(row);reindex();});
+ reindex();
+});
+</script>
+@endif
