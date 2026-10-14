@@ -1,11 +1,11 @@
 <?php
 
+use App\Domain\WhatsApp\TransportRetryService;
 use App\Services\B2BVanFulfillmentCutoverService;
 use App\Services\B2BVanFulfillmentMigrationAudit;
 use App\Services\FlashOfferNotificationDispatcher;
 use App\Services\FlashOfferService;
 use App\Services\NotificationCampaignDispatcher;
-use App\Domain\WhatsApp\TransportRetryService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
