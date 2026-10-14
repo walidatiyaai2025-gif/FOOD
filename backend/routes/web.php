@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
+use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -119,6 +120,8 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
+        Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
+        Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
         Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
             ->name('assistant.')
