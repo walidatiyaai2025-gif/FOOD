@@ -24,15 +24,17 @@ final class TransportRetryService
         $outboundEnabled = ! $state->emergencyStop && $state->has(Capability::OUTBOUND);
         $inboundEnabled = $state->has(Capability::INBOUND);
 
-        $outbound = $outboundEnabled
-            ? DB::table('whats_app_outbound_dispatches')
-            ->where('status', 'retry_wait')
-            ->whereNotNull('next_retry_at')
-            ->where('next_retry_at', '<=', now())
-            ->orderBy('next_retry_at')
+        $outbound = [];
+        if ($outboundEnabled) {
+            $outbound = DB::table('whats_app_outbound_dispatches')
+                ->where('status', 'retry_wait')
+                ->whereNotNull('next_retry_at')
+                ->where('next_retry_at', '<=', now())
+                ->orderBy('next_retry_at')
                 ->limit($limit)
                 ->pluck('id')
-            : collect();
+                ->all();
+        }
 
         foreach ($outbound as $id) {
             SendWhatsAppMessage::dispatch((int) $id)->onQueue($queue);
