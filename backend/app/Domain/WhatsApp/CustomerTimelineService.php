@@ -136,7 +136,9 @@ final class CustomerTimelineService
         $transactional = DB::table('whats_app_transactional_events')
             ->where('platform_customer_id', $platformCustomerId)
             ->whereIn('store_id', $storeIds)
-            ->get(['id', 'event_name', 'event_key', 'status', 'occurred_at' => DB::raw('COALESCE(processed_at, queued_at, created_at)'), 'store_id']);
+            ->select(['id', 'event_name', 'event_key', 'status', 'store_id'])
+            ->addSelect(DB::raw('COALESCE(processed_at, queued_at, created_at) as occurred_at'))
+            ->get();
         foreach ($transactional as $row) {
             $events->push([
                 'kind' => 'transactional',
