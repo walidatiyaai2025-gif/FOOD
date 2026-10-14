@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "1.0.75",
-  "build_number": 75,
-  "source_commit": "926436fd96d74eeaca20a89927e37a04a99285b9",
+  "version": "1.0.77",
+  "build_number": 77,
+  "source_commit": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
   "dashboard_update": {
     "directory": "Updates",
     "package": "FOODEX-Update.zip",
@@ -11,30 +11,34 @@
   "android_apps": [
     {
       "app": "customer",
-      "version": "1.0.75",
-      "build_number": 75,
-      "file": "FOODEX-Customer-1.0.75.apk",
+      "version": "1.0.76",
+      "build_number": 76,
+      "file": "FOODEX-Customer-1.0.76.apk",
       "latest_alias": "FOODEX-Customer.apk",
-      "bytes": 80263115,
-      "sha256": "589a27e5c6d50838704f3c2d512e688001dc10d8acad12bbab50ff8928dc2480"
+      "bytes": 80624031,
+      "sha256": "238676a3a2f83a182e3cc09bb16c19ea2968b9ee74048d628683d13021e4daad",
+      "release_version": "1.0.77",
+      "lineage_mode": "carried_forward",
+      "source_commit": "4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d",
+      "tree_sha": "7e5828423d2b747afcd607a643c853495024328c"
     },
     {
       "app": "driver",
-      "version": "1.0.75",
-      "build_number": 75,
-      "file": "FOODEX-Driver-1.0.75.apk",
+      "version": "1.0.77",
+      "build_number": 77,
+      "file": "FOODEX-Driver-1.0.77.apk",
       "latest_alias": "FOODEX-Driver.apk",
-      "bytes": 58720204,
-      "sha256": "a8c207ccc7f977daa5cee23948962f4d54a574be36f561b8831d0f6ee82d6e1e"
+      "bytes": 58720308,
+      "sha256": "acb589d17426ed53d089c044aa617461cfafdba46b9e9d7af60b4cb0ff997bdb"
     },
     {
       "app": "van",
-      "version": "1.0.75",
-      "build_number": 75,
-      "file": "FOODEX-Van-1.0.75.apk",
+      "version": "1.0.77",
+      "build_number": 77,
+      "file": "FOODEX-Van-1.0.77.apk",
       "latest_alias": "FOODEX-Van.apk",
-      "bytes": 57995859,
-      "sha256": "4037c8bf22c1b4c7116f98e9bae0285a286527049956321e43600dd6cf7a8d90"
+      "bytes": 57995907,
+      "sha256": "35ef5cd09077e6f12fa81baa0225f2083df92c6f5c39d8fc77f7bee037f63c7e"
     }
   ]
 }
