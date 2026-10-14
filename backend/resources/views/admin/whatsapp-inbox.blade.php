@@ -306,6 +306,71 @@
         return payload;
     };
 
+    const normalizedSdp = value => {
+        const source = String(value || '');
+        const hadTrailingBreak = /(?:\r\n|\r|\n)$/.test(source);
+        const lines = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        while (lines.length && lines[lines.length - 1] === '') lines.pop();
+        const result = lines.join('\r\n');
+        return result + (hadTrailingBreak ? '\r\n' : '');
+    };
+
+    const chromiumUnsignedSsrcFallback = value => {
+        const source = normalizedSdp(value);
+        const oversized = new Set();
+
+        for (const line of source.split('\r\n')) {
+            const match = line.match(/^a=ssrc:(\d+)(?:\s|$)/);
+            if (!match) continue;
+
+            const ssrc = Number(match[1]);
+            if (Number.isSafeInteger(ssrc) && ssrc > 0x7fffffff && ssrc <= 0xffffffff) {
+                oversized.add(match[1]);
+            }
+        }
+
+        if (!oversized.size) {
+            return {changed: false, sdp: source};
+        }
+
+        const filtered = source.split('\r\n').filter(line => {
+            const ssrc = line.match(/^a=ssrc:(\d+)(?:\s|$)/);
+            if (ssrc && oversized.has(ssrc[1])) return false;
+
+            if (line.startsWith('a=ssrc-group:')) {
+                const ids = line.trim().split(/\s+/).slice(1);
+                if (ids.some(id => oversized.has(id))) return false;
+            }
+
+            return true;
+        });
+
+        return {changed: true, sdp: filtered.join('\r\n')};
+    };
+
+    const setRemoteDescriptionCompat = async (pc, description) => {
+        const candidate = {
+            ...description,
+            sdp: normalizedSdp(description?.sdp),
+        };
+
+        try {
+            await pc.setRemoteDescription(candidate);
+            return;
+        } catch (error) {
+            const syntaxFailure = error?.errorDetail === 'sdp-syntax-error'
+                || /Failed to parse SessionDescription|Invalid SDP line/i.test(String(error?.message || ''));
+
+            const fallback = chromiumUnsignedSsrcFallback(candidate.sdp);
+            if (!syntaxFailure || !fallback.changed) throw error;
+
+            // Chromium currently rejects some RFC-valid unsigned 32-bit SSRC values
+            // above INT32_MAX. Keep Meta's SDP unchanged in storage/signaling and
+            // remove only the offending source-signaling lines for browser parsing.
+            await pc.setRemoteDescription({...candidate, sdp: fallback.sdp});
+        }
+    };
+
     const waitForIce = pc => new Promise(resolve => {
         if (pc.iceGatheringState === 'complete') { resolve(); return; }
         const timeout = setTimeout(() => {
@@ -428,7 +493,7 @@
         answerButton && (answerButton.disabled = true);
         try {
             const pc = await createPeer();
-            await pc.setRemoteDescription({type: 'offer', sdp: incomingCall.remote_sdp});
+            await setRemoteDescriptionCompat(pc, {type: 'offer', sdp: incomingCall.remote_sdp});
             remoteDescriptionApplied = true;
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
@@ -515,7 +580,7 @@
                         && String(active.remote_sdp_type).toLowerCase() === 'answer'
                         && peer
                         && !remoteDescriptionApplied) {
-                        await peer.setRemoteDescription({type: 'answer', sdp: active.remote_sdp});
+                        await setRemoteDescriptionCompat(peer, {type: 'answer', sdp: active.remote_sdp});
                         remoteDescriptionApplied = true;
                         setStatus(text.connecting, true);
                     } else if (String(active.status).toUpperCase() === 'ACCEPTED') {
