@@ -77,7 +77,7 @@ final class ProductionDatasetSnapshot
                 'database' => DB::connection()->getDatabaseName(),
                 'connection' => (string) config('database.default'),
                 'source_release' => trim((string) @file_get_contents(base_path('../VERSION'))),
-                'source_sha' => (string) config('foodex.release_source_sha', env('FOODEX_RELEASE_SOURCE_SHA', 'unknown')),
+                'source_sha' => (string) (config('foodex.release_source_sha') ?: 'unknown'),
                 'backup_reference' => $reference,
                 'snapshot_file' => $snapshot,
                 'size' => $size,
