@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'title' => 'Order Management',
+    'title' => 'Orders · Order Management',
     'description' => 'Monitor and operate every order allowed by the current platform/store scope.',
-    'new_order' => 'New Order',
+    'new_order' => 'Create new order',
     'statuses' => 'Order statuses',
     'all' => 'All',
     'filters' => [

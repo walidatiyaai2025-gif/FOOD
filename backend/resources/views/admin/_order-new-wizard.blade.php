@@ -11,7 +11,7 @@
 <div class="new-order-backdrop" data-new-order-modal data-open="0" aria-hidden="true">
 <section class="new-order-dialog" role="dialog" aria-modal="true" aria-labelledby="new-order-title">
 <div class="new-order-head">
-<div><h2 id="new-order-title">{{ $isAr ? 'إنشاء طلب جديد' : 'Create New Order' }}</h2><p style="margin:6px 0 0">{{ $isAr ? 'أكمل الخطوات بالترتيب. لا يتم إنشاء أي طلب قبل التأكيد النهائي.' : 'Complete each step in order. Nothing is created until final confirmation.' }}</p></div>
+<div><h2 id="new-order-title">{{ $isAr ? 'إنشاء طلب جديد' : 'Create new order' }}</h2><p style="margin:6px 0 0">{{ $isAr ? 'أكمل الخطوات بالترتيب. لا يتم إنشاء أي طلب قبل التأكيد النهائي.' : 'Complete each step in order. Nothing is created until final confirmation.' }}</p></div>
 <button type="button" class="new-order-close" data-new-order-cancel aria-label="{{ $isAr ? 'إغلاق' : 'Close' }}">×</button>
 </div>
 
@@ -32,7 +32,7 @@
 <label class="new-order-field"><span>{{ $isAr?'القناة':'Channel' }}</span><select name="channel" data-wizard-channel required><option value="">{{ $isAr?'اختر القناة':'Select channel' }}</option></select></label>
 <label class="new-order-field"><span>{{ $isAr?'المتجر':'Store' }}</span><select name="store_id" data-wizard-store required><option value="">{{ $isAr?'اختر المتجر':'Select store' }}</option></select></label>
 </div>
-<label class="new-order-field" data-wizard-warehouse-wrap style="margin-top:14px;display:none"><span>{{ $isAr?'مخزن الصرف':'Source warehouse' }}</span><select name="warehouse_id" data-wizard-warehouse><option value="">{{ $isAr?'اختر المخزن':'Select warehouse' }}</option></select></label>
+<label class="new-order-field" data-wizard-warehouse-wrap style="margin-top:14px;display:none"><span>{{ $isAr?'مخزن الصرف':'Source warehouse' }}</span><select name="warehouse_id" data-wizard-warehouse><option value="">{{ $isAr?'اختر مخزن الصرف':'Select source warehouse' }}</option></select></label>
 </section>
 
 <section class="new-order-step" data-wizard-step="1" data-active="0">
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         warehouseWrap.style.display = isB2b ? '' : 'none';
         warehouseSelect.required = isB2b;
         warehouseSelect.innerHTML = '';
-        warehouseSelect.appendChild(makeOption('', isAr ? 'اختر المخزن' : 'Select warehouse'));
+        warehouseSelect.appendChild(makeOption('', isAr ? 'اختر مخزن الصرف' : 'Select source warehouse'));
         (currentStore?.warehouses || []).forEach((item) => warehouseSelect.appendChild(makeOption(item.id, item.code + ' · ' + item.name)));
         if (isB2b && warehouseSelect.options.length === 2) warehouseSelect.selectedIndex = 1;
 

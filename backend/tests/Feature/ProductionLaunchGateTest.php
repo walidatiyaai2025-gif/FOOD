@@ -393,7 +393,7 @@ PHP);
         $payload = app(ProductionLaunchReport::class)
             ->build(app(ProductionLaunchPreflight::class));
 
-        $this->assertSame('1.0.77', $payload['release']);
+        $this->assertSame(trim((string) file_get_contents(base_path('../VERSION'))), $payload['release']);
         $this->assertTrue($payload['stale_if_source_sha_changes']);
         $this->assertArrayHasKey('source_sha', $payload);
         $this->assertArrayHasKey('all_fields', $payload['catalog']);
@@ -403,29 +403,55 @@ PHP);
         $this->assertArrayHasKey('blockers', $payload);
     }
 
-    public function test_release_metadata_uses_exact_candidate_source_and_frozen_customer_identity(): void
+    public function test_release_metadata_uses_exact_candidate_source_and_current_release_identity(): void
     {
         $release = app(ProductionLaunchPreflight::class)->releaseMetadata();
+        $version = trim((string) file_get_contents(base_path('../VERSION')));
+        $customer = $this->mobileIdentity('customer');
+        $driver = $this->mobileIdentity('driver');
+        $van = $this->mobileIdentity('van');
 
-        $this->assertSame('1.0.77', $release['version']);
-        $this->assertSame('1.0.77', $release['build_info_version']);
+        $this->assertSame($version, $release['version']);
+        $this->assertSame($version, $release['build_info_version']);
         $this->assertSame(str_repeat('c', 40), $release['source_commit']);
         $this->assertSame('1388', $release['github_run_number']);
         $this->assertSame('candidate-source', $release['lineage_source']);
-        $this->assertSame('1.0.76', $release['customer_version']);
-        $this->assertSame(76, $release['customer_build_number']);
-        $this->assertSame('1.0.76+76', $release['customer_frozen_identity']);
-        $this->assertSame('1.0.77', $release['driver_version']);
-        $this->assertSame(77, $release['driver_build_number']);
-        $this->assertSame('1.0.77', $release['van_version']);
-        $this->assertSame(77, $release['van_build_number']);
-        $this->assertSame(
-            '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d',
-            $release['customer_frozen_baseline'],
-        );
+
+        if ($version === '1.0.77') {
+            $this->assertSame('1.0.76', $release['customer_version']);
+            $this->assertSame(76, $release['customer_build_number']);
+            $this->assertSame('1.0.76+76', $release['customer_frozen_identity']);
+            $this->assertSame(
+                '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d',
+                $release['customer_frozen_baseline'],
+            );
+        } else {
+            $this->assertSame($customer['version'], $release['customer_version']);
+            $this->assertSame($customer['build'], $release['customer_build_number']);
+            $this->assertNull($release['customer_frozen_identity']);
+            $this->assertNull($release['customer_frozen_baseline']);
+        }
+
+        $this->assertSame($driver['version'], $release['driver_version']);
+        $this->assertSame($driver['build'], $release['driver_build_number']);
+        $this->assertSame($van['version'], $release['van_version']);
+        $this->assertSame($van['build'], $release['van_build_number']);
 
         $report = app(ProductionLaunchPreflight::class)->runtimeReport();
         $this->assertTrue($report['checks']['release_lineage']['passed']);
+        $this->assertTrue($report['checks']['customer_frozen_lineage']['passed']);
+    }
+
+    /** @return array{version:string,build:int} */
+    private function mobileIdentity(string $app): array
+    {
+        $contents = (string) file_get_contents(base_path("../apps/{$app}_app/pubspec.yaml"));
+        $this->assertSame(1, preg_match('/^version:\\s*(\\d+\\.\\d+\\.\\d+)\\+(\\d+)\\s*$/m', $contents, $matches));
+
+        return [
+            'version' => $matches[1],
+            'build' => (int) $matches[2],
+        ];
     }
 
     private function superAdmin(string $locale = 'en'): User

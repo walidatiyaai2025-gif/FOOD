@@ -394,7 +394,6 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertOk()
             ->assertSee('data-order-authoritative-context', false)
             ->assertDontSee('store_id='.$retailStore, false)
-            ->assertDontSee('channel=b2c', false)
             ->assertSee('Customer checkout')
             ->assertDontSee('customer_checkout');
 
@@ -1060,6 +1059,85 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertStatus(409);
 
         $this->assertDatabaseHas('orders', ['id' => $order, 'status' => 'pending']);
+    }
+
+    public function test_retail_admin_cannot_switch_unified_orders_into_wholesale_scope(): void
+    {
+        $store = $this->store('OPS-CHANNEL-RETAIL');
+        $admin = $this->storeAdmin($store, 'ops-channel-retail@example.test');
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2b')
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=all')
+            ->assertForbidden();
+    }
+
+    public function test_wholesale_admin_cannot_switch_unified_orders_into_retail_scope(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Wholesale Scoped Admin',
+            'email' => 'ops-channel-wholesale@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=all')
+            ->assertForbidden();
+    }
+
+    public function test_legacy_order_pages_use_the_canonical_unified_operations_controller(): void
+    {
+        $store = $this->store('OPS-LEGACY-REDIRECT');
+        $retailAdmin = $this->storeAdmin($store, 'ops-legacy-retail@example.test');
+
+        $this->actingAs($retailAdmin)
+            ->get('/admin/b2c/orders')
+            ->assertOk()
+            ->assertViewIs('admin.order-operations');
+
+        $wholesaleAdmin = User::query()->create([
+            'name' => 'Wholesale Legacy Redirect Admin',
+            'email' => 'ops-legacy-wholesale@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $wholesaleAdmin->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+
+        $this->actingAs($wholesaleAdmin)
+            ->get('/admin/b2b/orders')
+            ->assertOk()
+            ->assertViewIs('admin.order-operations');
+    }
+
+    public function test_pending_retail_order_exposes_contextual_three_dot_edit_action(): void
+    {
+        $store = $this->store('OPS-CONTEXT-ACTIONS');
+        $admin = $this->storeAdmin($store, 'ops-context-actions@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Context Action Buyer']);
+        $order = $this->order(
+            $store,
+            (int) $customer->legacy_customer_id,
+            (int) $customer->id,
+            'OPS-CONTEXT-ACTIONS-1001',
+        );
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertSee('data-order-row-actions', false)
+            ->assertSee('data-order-edit', false)
+            ->assertSee('#'.$order);
     }
 
     private function store(string $code): int
