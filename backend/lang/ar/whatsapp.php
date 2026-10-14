@@ -130,6 +130,7 @@ return [
             'queued' => 'في قائمة الإرسال',
             'retry_wait' => 'بانتظار إعادة المحاولة',
             'blocked_policy' => 'محظورة بسياسة التشغيل',
+            'blocked_no_profile' => 'لا يوجد اتصال واتساب نشط للإرسال',
             'blocked_recipient' => 'رقم المستلم غير صالح',
             'sent' => 'مرسلة',
             'delivered' => 'تم التسليم',
