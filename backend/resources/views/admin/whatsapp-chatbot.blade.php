@@ -255,6 +255,24 @@
                             @if($canManageAi)<div class="cb-field full"><button class="foodex-action-primary" type="submit">{{ __('chatbot.admin.save') }}</button></div>@endif
                         </form>
                     </div>
+                    <div class="cb-card cb-col-12">
+                        <h2>{{ __('chatbot.admin.ai_test_console') }}</h2>
+                        <p class="cb-muted">{{ __('chatbot.admin.ai_test_hint') }}</p>
+                        <form class="foodex-form cb-form-grid" method="post" action="{{ route('admin.whatsapp-chatbot.ai.test') }}">
+                            @csrf
+                            <div class="cb-field full"><label for="cb-ai-test">{{ __('chatbot.admin.test_message') }}</label><textarea class="foodex-control" id="cb-ai-test" name="message" rows="3" required maxlength="1000">{{ old('message', session('chatbot_ai_test.message')) }}</textarea></div>
+                            <div class="cb-field full"><button class="foodex-action-secondary" type="submit">{{ __('chatbot.admin.run_test') }}</button></div>
+                        </form>
+                        @if(session('chatbot_ai_test.action'))
+                            @php($testAction = session('chatbot_ai_test.action'))
+                            <div class="cb-state" style="margin-top:var(--foodex-space-3)">
+                                <div><strong>{{ __('chatbot.admin.detected_intent') }}</strong><div>{{ $testAction['intent'] ?? '—' }}</div></div>
+                                <div><strong>{{ __('chatbot.admin.requested_action') }}</strong><div>{{ $testAction['requested_action'] ?? '—' }}</div></div>
+                                <div><strong>{{ __('chatbot.admin.confidence') }}</strong><div>{{ number_format((float)($testAction['confidence'] ?? 0) * 100, 1) }}%</div></div>
+                                <div><strong>{{ __('chatbot.admin.confirmation') }}</strong><div>{{ !empty($testAction['requires_confirmation']) ? __('chatbot.admin.required') : __('chatbot.admin.not_required') }}</div></div>
+                            </div>
+                        @endif
+
                 </section>
             @elseif($section === 'segments')
                 <section class="cb-grid">
