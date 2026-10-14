@@ -299,6 +299,24 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             ->assertDontSee('segment JSON');
     }
 
+    public function test_campaign_builder_and_reports_keep_ar_en_and_responsive_contracts(): void
+    {
+        $builder = file_get_contents(resource_path('views/admin/whatsapp-campaigns/index.blade.php'));
+        $report = file_get_contents(resource_path('views/admin/whatsapp-campaigns/report.blade.php'));
+        $english = require lang_path('en/whatsapp.php');
+        $arabic = require lang_path('ar/whatsapp.php');
+
+        $this->assertIsString($builder);
+        $this->assertIsString($report);
+        $this->assertStringContainsString('@media(max-width:700px)', $builder);
+        $this->assertStringContainsString('@media(max-width:700px)', $report);
+        $this->assertStringContainsString('data-pagination="server"', $report);
+        $this->assertSame('Create WhatsApp campaign', $english['campaigns']['create_campaign']);
+        $this->assertSame('إنشاء حملة واتساب', $arabic['campaigns']['create_campaign']);
+        $this->assertSame('Reports', $english['campaigns']['reports']);
+        $this->assertSame('التقارير', $arabic['campaigns']['reports']);
+    }
+
     private function superAdmin(): User
     {
         $user = User::factory()->create(['locale' => 'en', 'is_active' => true]);
