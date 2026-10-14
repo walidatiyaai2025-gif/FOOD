@@ -11,7 +11,8 @@
 .wa-list{display:grid}.wa-row{display:block;padding:14px 16px;border-bottom:1px solid var(--foodex-border);text-decoration:none;color:inherit}.wa-row:hover,.wa-row.active{background:var(--foodex-green-soft)}.wa-row-top{display:flex;justify-content:space-between;gap:10px}.wa-row p{margin:4px 0;color:var(--foodex-muted);font-size:12px}
 .wa-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:var(--foodex-background)}.wa-badge.wait{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.wa-badge.open{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-badge.resolved{background:var(--foodex-background);color:var(--foodex-muted)}.wa-unread{min-width:22px;height:22px;border-radius:99px;background:var(--foodex-green-dark);color:var(--foodex-surface);text-align:center;line-height:22px;font-size:11px}
 .wa-timeline{display:grid;gap:10px;max-height:46vh;overflow:auto;padding:16px}.wa-message{max-width:82%;padding:11px 13px;border-radius:14px;background:var(--foodex-background)}.wa-message.outbound{margin-inline-start:auto;background:var(--foodex-green-soft)}.wa-message.note{max-width:100%;background:var(--foodex-orange-soft);border:1px dashed var(--foodex-orange)}.wa-message small{display:block;color:var(--foodex-muted);margin-top:5px}
-.wa-compose{border-top:1px solid var(--foodex-border);padding:14px 16px;display:grid;gap:10px}.wa-compose textarea{width:100%;min-height:82px}.wa-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.wa-inline label{display:grid;gap:4px;min-width:130px}
+.wa-attachment{display:grid;gap:7px;margin-bottom:8px}.wa-attachment img,.wa-attachment video{display:block;max-width:min(360px,100%);max-height:320px;border-radius:12px;border:1px solid var(--foodex-border);background:var(--foodex-surface)}.wa-attachment audio{width:min(360px,100%)}.wa-attachment-link{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;font-weight:700}.wa-attachment-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
+.wa-compose{border-top:1px solid var(--foodex-border);padding:14px 16px;display:grid;gap:10px}.wa-compose textarea{width:100%;min-height:82px}.wa-compose-file{display:grid;gap:5px;margin:9px 0}.wa-compose-file input{width:100%;padding:9px;border:1px dashed var(--foodex-border);border-radius:10px;background:var(--foodex-surface)}.wa-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.wa-inline label{display:grid;gap:4px;min-width:130px}
 .wa-360{display:grid;gap:12px}.wa-card{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.wa-card h3{margin:0 0 9px;font-size:14px}.wa-card p{margin:4px 0;font-size:13px}.wa-mini{width:100%;border-collapse:collapse}.wa-mini td{padding:6px 0;border-bottom:1px solid var(--foodex-border);font-size:12px}.wa-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-tag{padding:4px 8px;background:var(--foodex-background);border-radius:999px;font-size:11px;font-weight:700}
 .wa-empty{padding:32px;text-align:center;color:var(--foodex-muted)}.wa-status{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr)) auto;gap:8px;align-items:end}
 @media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}.wa-toolbar form{grid-template-columns:repeat(3,1fr)}}
@@ -120,7 +121,39 @@
                         @forelse($timeline as $item)
                             <div class="wa-message {{ $item['kind']==='note'?'note':$item['direction'] }}">
                                 @if($item['kind']==='note')<strong>🔒 {{ __('whatsapp.inbox.internal_note') }}</strong>@endif
-                                <div>{{ $item['body'] ?: __('whatsapp.inbox.attachment') }}</div>
+                                @if(!empty($item['attachment']))
+                                    @php($attachment=$item['attachment'])
+                                    <div class="wa-attachment">
+                                        @if(in_array($attachment['media_type'], ['image','sticker'], true))
+                                            <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
+                                                <img src="{{ $attachment['url'] }}" alt="{{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}" loading="lazy">
+                                            </a>
+                                        @elseif($attachment['media_type']==='video')
+                                            <video controls preload="metadata">
+                                                <source src="{{ $attachment['url'] }}" @if($attachment['mime_type']) type="{{ $attachment['mime_type'] }}" @endif>
+                                            </video>
+                                        @elseif($attachment['media_type']==='audio')
+                                            <audio controls preload="metadata">
+                                                <source src="{{ $attachment['url'] }}" @if($attachment['mime_type']) type="{{ $attachment['mime_type'] }}" @endif>
+                                            </audio>
+                                        @else
+                                            <a class="wa-attachment-link" href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
+                                                <span>📎</span>
+                                                <span class="wa-attachment-name">{{ $attachment['filename'] ?: __('whatsapp.inbox.attachment') }}</span>
+                                            </a>
+                                        @endif
+                                        @if($attachment['filename'] && $attachment['media_type']!=='document')
+                                            <a class="wa-attachment-link" href="{{ $attachment['url'] }}" target="_blank" rel="noopener">
+                                                <span>📎</span><span class="wa-attachment-name">{{ $attachment['filename'] }}</span>
+                                            </a>
+                                        @endif
+                                    </div>
+                                @endif
+                                @if(filled($item['body']))
+                                    <div>{{ $item['body'] }}</div>
+                                @elseif(empty($item['attachment']))
+                                    <div>{{ __('whatsapp.inbox.attachment') }}</div>
+                                @endif
                                 <small>{{ $item['actor'] }} · {{ $item['timestamp'] }} @if($item['delivery_status']) · {{ __('whatsapp.inbox.delivery_statuses.'.$item['delivery_status']) }}@endif</small>
                             </div>
                         @empty
@@ -129,8 +162,13 @@
                     </div>
 
                     <div class="wa-compose">
-                        <form method="post" action="{{ route('admin.whatsapp-inbox.reply',['conversation'=>$selected->id]) }}">@csrf
-                            <label><strong>{{ __('whatsapp.inbox.customer_reply') }}</strong><textarea name="body" required maxlength="5000"></textarea></label>
+                        <form method="post" enctype="multipart/form-data" action="{{ route('admin.whatsapp-inbox.reply',['conversation'=>$selected->id]) }}">@csrf
+                            <label><strong>{{ __('whatsapp.inbox.customer_reply') }}</strong><textarea name="body" maxlength="5000" placeholder="{{ __('whatsapp.inbox.caption_optional') }}"></textarea></label>
+                            <label class="wa-compose-file">
+                                <strong>{{ __('whatsapp.inbox.send_attachment') }}</strong>
+                                <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp4,.3gp,.mp3,.m4a,.aac,.amr,.ogg,.opus">
+                                <small>{{ __('whatsapp.inbox.attachment_hint') }}</small>
+                            </label>
                             <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.queue_transport') }}</button>
                             <small>{{ __('whatsapp.inbox.transport_hint') }}</small>
                         </form>
