@@ -118,6 +118,7 @@ class ProductionDatasetSwitchTest extends TestCase
             'password' => 'password', 'locale' => 'en', 'is_active' => true,
         ]);
         $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
         return $user;
     }
 }
