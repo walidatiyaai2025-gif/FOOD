@@ -120,6 +120,16 @@ return [
         'agent' => 'الوكيل',
         'system' => 'النظام',
     ],
+    'crm_event_types' => [
+        'lead_created' => 'تم إنشاء عميل محتمل',
+        'lead_temperature_changed' => 'تم تغيير درجة العميل المحتمل',
+        'lead_status_changed' => 'تم تغيير حالة العميل المحتمل',
+        'followup_created' => 'تم إنشاء متابعة',
+        'followup_open' => 'تمت إعادة فتح المتابعة',
+        'followup_completed' => 'تم إكمال المتابعة',
+        'followup_cancelled' => 'تم إلغاء المتابعة',
+        'conversation_outcome_recorded' => 'تم تسجيل نتيجة المحادثة',
+    ],
     'timeline_titles' => [
         'internal_note' => 'ملاحظة داخلية',
         'assignment' => 'إسناد',
