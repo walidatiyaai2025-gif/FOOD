@@ -66,14 +66,40 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
 
-      - name: Run focused 1.0.77 certification suite
+      - name: Run destructive reversible-launch certification
         working-directory: backend
         shell: bash
         run: |
           set -euo pipefail
+          php artisan test tests/Feature/Foodex1077FinalCertificationTest.php
+          php artisan up
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          FOODEX_RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          FOODEX_RELEASE_RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Re-prove snapshot contract in an isolated database process
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan migrate:fresh --force
+          php artisan test tests/Feature/ProductionDatasetSnapshotTest.php
+          php artisan up
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          FOODEX_RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          FOODEX_RELEASE_RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Run non-destructive 1.0.77 gate and catalog suite
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan migrate:fresh --force
           php artisan test \
-            tests/Feature/Foodex1077FinalCertificationTest.php \
-            tests/Feature/ProductionDatasetSnapshotTest.php \
             tests/Feature/ProductionDatasetSwitchTest.php \
             tests/Feature/FoodexLaunchCatalogSeederTest.php \
             tests/Feature/ProductionLaunchGateTest.php \
