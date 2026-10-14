@@ -37,11 +37,19 @@ final class WhatsAppConnectionController extends Controller
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('whatsapp.settings'), 403);
         $attributes = $this->connectionInput($request);
-        $secret = $request->validate([
+        $secrets = $request->validate([
             'credential_secret' => ['nullable', 'string', 'max:10000'],
-        ])['credential_secret'] ?? null;
+            'webhook_verify_token' => ['nullable', 'string', 'max:10000'],
+            'webhook_signing_secret' => ['nullable', 'string', 'max:10000'],
+        ]);
 
-        $manager->create($actor, $attributes, is_string($secret) ? $secret : null);
+        $manager->create(
+            $actor,
+            $attributes,
+            isset($secrets['credential_secret']) ? (string) $secrets['credential_secret'] : null,
+            isset($secrets['webhook_verify_token']) ? (string) $secrets['webhook_verify_token'] : null,
+            isset($secrets['webhook_signing_secret']) ? (string) $secrets['webhook_signing_secret'] : null,
+        );
 
         return $this->back(__('whatsapp.connections.created'));
     }
@@ -64,8 +72,18 @@ final class WhatsAppConnectionController extends Controller
         ConnectionProfileManager $manager,
     ): RedirectResponse {
         $actor = $this->actor($request);
-        $data = $request->validate(['credential_secret' => ['required', 'string', 'max:10000']]);
-        $manager->replaceCredential($actor, $profile, (string) $data['credential_secret']);
+        $data = $request->validate([
+            'credential_secret' => ['nullable', 'string', 'max:10000'],
+            'webhook_verify_token' => ['nullable', 'string', 'max:10000'],
+            'webhook_signing_secret' => ['nullable', 'string', 'max:10000'],
+        ]);
+        $manager->replaceCredential(
+            $actor,
+            $profile,
+            isset($data['credential_secret']) ? (string) $data['credential_secret'] : null,
+            isset($data['webhook_verify_token']) ? (string) $data['webhook_verify_token'] : null,
+            isset($data['webhook_signing_secret']) ? (string) $data['webhook_signing_secret'] : null,
+        );
 
         return $this->back(__('whatsapp.connections.credential_replaced'));
     }
