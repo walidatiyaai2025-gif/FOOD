@@ -261,6 +261,10 @@ final class WhatsAppProviderTransportTest extends TestCase
             'attempts' => 2,
             'provider_message_ref' => 'wamid.retry-success',
         ]);
+        $profile = WhatsAppConnectionProfile::query()->where('is_primary', true)->firstOrFail();
+        $this->assertSame(ConnectionProfileStatus::ACTIVE, $profile->status);
+        $this->assertSame(ConnectionHealthStatus::READY, $profile->health_status);
+        $this->assertNull($profile->last_provider_error);
         $this->assertSame(1, DB::table('whats_app_messages')->where('id', $messageId)->count());
         $this->get('/health')->assertOk();
     }
