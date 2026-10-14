@@ -9,6 +9,8 @@ return [
     'dark_launch' => 'W7 · تشغيل تجريبي مخفي',
     'conversation_id' => 'معرف المحادثة',
     'customer_id' => 'معرف العميل',
+    'select_customer' => 'اختر العميل',
+    'select_conversation' => 'اختر المحادثة',
     'agent_id' => 'معرف الوكيل',
     'filters' => 'عوامل التصفية',
     'all_stores' => 'كل المتاجر المسموح بها',
