@@ -211,7 +211,7 @@ Route::prefix('admin')
         Route::patch('/profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
         Route::patch('/profile/locale', [AdminProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::get('/b2b/dashboard', [B2bWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2b.dashboard');
-        Route::redirect('/b2b/orders', '/admin/operations/orders?channel=b2b', 302)->name('b2b.orders.canonical');
+        Route::get('/b2b/orders', [OrderOperationsController::class, 'b2bIndex'])->name('b2b.orders.canonical');
         Route::post('/b2b/orders/quote', [B2bWorkspaceController::class, 'quoteOrder'])->name('b2b.orders.quote');
         Route::post('/b2b/orders', [B2bWorkspaceController::class, 'storeOrder'])->name('b2b.orders.store');
         Route::patch('/b2b/orders/{order}', [B2bWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2b.orders.update');
@@ -251,7 +251,7 @@ Route::prefix('admin')
         Route::put('/b2b/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
-        Route::redirect('/b2c/orders', '/admin/operations/orders?channel=b2c', 302)->name('b2c.orders.canonical');
+        Route::get('/b2c/orders', [OrderOperationsController::class, 'b2cIndex'])->name('b2c.orders.canonical');
         Route::post('/b2c/merchant-intelligence/suggested-cart', [B2cWorkspaceController::class, 'applySuggestedWholesaleCart'])->name('b2c.merchant-intelligence.cart');
         Route::redirect('/b2c/commercial/sales-control', '/admin/b2b/commercial/sales-control', 302)->name('commercial.sales-control.legacy');
         Route::put('/b2c/commercial/feature-flags', [CommercialDashboardController::class, 'saveFeatureFlags'])->name('commercial.feature-flags.save');
