@@ -3,6 +3,7 @@
 namespace App\Domain\WhatsApp;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
 
 final class ChatbotAutomationService
@@ -127,6 +128,8 @@ final class ChatbotAutomationService
                 $join->on('store_products.product_id', '=', 'products.id');
                 if ($storeId !== null) {
                     $join->where('store_products.store_id', $storeId);
+                } else {
+                    $join->whereRaw('1 = 0');
                 }
             })
             ->where('products.is_active', true)
@@ -259,9 +262,9 @@ final class ChatbotAutomationService
                     'sections' => [[
                         'title' => $this->t('support_title'),
                         'rows' => [
-                            ['id' => 'chatbot:human_handoff', 'title' => $this->t('missing_item')],
-                            ['id' => 'chatbot:human_handoff', 'title' => $this->t('damaged_item')],
-                            ['id' => 'chatbot:human_handoff', 'title' => $this->t('delivery_problem')],
+                            ['id' => 'chatbot:human_handoff_missing', 'title' => $this->t('missing_item')],
+                            ['id' => 'chatbot:human_handoff_damaged', 'title' => $this->t('damaged_item')],
+                            ['id' => 'chatbot:human_handoff_delivery', 'title' => $this->t('delivery_problem')],
                         ],
                     ]],
                 ],
@@ -429,20 +432,27 @@ final class ChatbotAutomationService
 
     private function localeKey(string $prefix): string
     {
-        return $prefix.'_'.(app()->getLocale() === 'ar' ? 'ar' : 'en');
+        return $prefix.'_'.$this->locale();
     }
 
     private function t(string $key): string
     {
-        return (string) __('chatbot.customer.'.$key);
+        return (string) Lang::get('chatbot.customer.'.$key, [], $this->locale());
     }
 
     private function status(string $status): string
     {
         $key = 'chatbot.customer.statuses.'.strtolower($status);
-        $translated = __($key);
+        $translated = Lang::get($key, [], $this->locale());
 
         return $translated === $key ? $status : (string) $translated;
+    }
+
+    private function locale(): string
+    {
+        $locale = strtolower((string) ($this->runtime->settings()['default_locale'] ?? 'ar'));
+
+        return in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
     }
 
     private function menuTextAllowed(string $body): bool
