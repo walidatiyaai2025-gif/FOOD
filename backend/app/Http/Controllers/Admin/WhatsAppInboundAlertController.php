@@ -78,6 +78,7 @@ final class WhatsAppInboundAlertController extends Controller
                         'seen_at' => now(),
                         'updated_at' => now(),
                     ]);
+
                 continue;
             }
 
