@@ -10,7 +10,7 @@
             <h1 class="h3 mb-1">{{ __('whatsapp_supervisor.heading') }}</h1>
             <p class="text-muted mb-0">{{ __('whatsapp_supervisor.description') }}</p>
         </div>
-        <span class="badge bg-warning text-dark">W7 · DARK LAUNCH</span>
+        <span class="badge bg-warning text-dark">{{ __('whatsapp_supervisor.dark_launch') }}</span>
     </div>
 
     @if(session('status'))
@@ -143,7 +143,7 @@
                     <form method="post" action="{{ route('admin.whatsapp-supervisor.outcomes.store',['conversation'=>0]) }}" onsubmit="this.action=this.action.replace('/0/outcome','/'+this.elements['conversation_id'].value+'/outcome')">
                         @csrf @method('PUT')
                         <div class="row g-2">
-                            <div class="col-4"><input class="form-control" type="number" min="1" required name="conversation_id" placeholder="Conversation ID"></div>
+                            <div class="col-4"><input class="form-control" type="number" min="1" required name="conversation_id" placeholder="{{ __('whatsapp_supervisor.conversation_id') }}"></div>
                             <div class="col-4"><input class="form-control" required name="outcome_code" maxlength="64" placeholder="{{ __('whatsapp_supervisor.outcome') }}"></div>
                             <div class="col-4"><button class="btn btn-outline-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
                             <div class="col-12"><input class="form-control" name="notes" maxlength="4000" placeholder="{{ __('whatsapp_supervisor.detail') }}"></div>
@@ -214,7 +214,7 @@
                         @csrf
                         <div class="col-4"><label class="form-label">Customer ID</label><input class="form-control" type="number" min="1" required name="platform_customer_id"></div>
                         <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.temperature') }}</label><select class="form-select" name="temperature">@foreach(['cold','warm','hot'] as $temp)<option value="{{ $temp }}">{{ __('whatsapp_supervisor.'.$temp) }}</option>@endforeach</select></div>
-                        <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.status') }}</label><select class="form-select" name="status"><option value="open">open</option><option value="converted">converted</option><option value="lost">lost</option></select></div>
+                        <div class="col-3"><label class="form-label">{{ __('whatsapp_supervisor.status') }}</label><select class="form-select" name="status">@foreach(['open','converted','lost'] as $leadStatus)<option value="{{ $leadStatus }}">{{ __('whatsapp_supervisor.lead_statuses.'.$leadStatus) }}</option>@endforeach</select></div>
                         <input type="hidden" name="source_type" value="manual">
                         <div class="col-2"><button class="btn btn-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
                     </form>
@@ -249,11 +249,11 @@
                 <div class="card-body border-top">
                     <form method="post" action="{{ route('admin.whatsapp-supervisor.follow-ups.store') }}" class="row g-2">
                         @csrf
-                        <div class="col-6"><input class="form-control" type="number" min="1" name="platform_customer_id" placeholder="Customer ID"></div>
-                        <div class="col-6"><input class="form-control" type="number" min="1" name="assigned_agent_id" placeholder="Agent ID"></div>
+                        <div class="col-6"><input class="form-control" type="number" min="1" name="platform_customer_id" placeholder="{{ __('whatsapp_supervisor.customer_id') }}"></div>
+                        <div class="col-6"><input class="form-control" type="number" min="1" name="assigned_agent_id" placeholder="{{ __('whatsapp_supervisor.agent_id') }}"></div>
                         <div class="col-12"><input class="form-control" required name="title" maxlength="191" placeholder="{{ __('whatsapp_supervisor.follow_ups') }}"></div>
                         <div class="col-6"><input class="form-control" type="datetime-local" name="due_at"></div>
-                        <div class="col-3"><select class="form-select" name="priority"><option>normal</option><option>high</option><option>urgent</option><option>low</option></select></div>
+                        <div class="col-3"><select class="form-select" name="priority">@foreach(['normal','high','urgent','low'] as $priority)<option value="{{ $priority }}">{{ __('whatsapp_supervisor.priorities.'.$priority) }}</option>@endforeach</select></div>
                         <input type="hidden" name="source_type" value="manual">
                         <div class="col-3"><button class="btn btn-primary w-100" type="submit">{{ __('whatsapp_supervisor.apply') }}</button></div>
                     </form>
@@ -272,7 +272,7 @@
                         <thead><tr><th>{{ __('whatsapp_supervisor.time') }}</th><th>{{ __('whatsapp_supervisor.event') }}</th><th>{{ __('whatsapp_supervisor.detail') }}</th><th>{{ __('whatsapp_supervisor.status') }}</th></tr></thead>
                         <tbody>
                         @forelse($timeline as $event)
-                            <tr><td class="text-nowrap">{{ $event['occurred_at'] }}</td><td><span class="badge bg-light text-dark">{{ $event['kind'] }}</span> {{ $event['title'] }}</td><td>{{ $event['detail'] }}</td><td>{{ $event['status'] }}</td></tr>
+                            <tr><td class="text-nowrap">{{ $event['occurred_at'] }}</td><td><span class="badge bg-light text-dark">{{ __('whatsapp_supervisor.timeline_kinds.'.$event['kind']) }}</span> {{ $event['title'] }}</td><td>{{ $event['detail'] }}</td><td>{{ $event['status'] }}</td></tr>
                         @empty<tr><td colspan="4" class="text-muted">{{ __('whatsapp_supervisor.no_data') }}</td></tr>@endforelse
                         </tbody>
                     </table>
