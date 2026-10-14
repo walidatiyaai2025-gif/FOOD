@@ -324,10 +324,10 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         if ($metadata['driver'] === 'sqlite') {
             try {
-                $pdo = new \\PDO('sqlite:'.$snapshot, null, null, [\\PDO::ATTR_ERRMODE => \\PDO::ERRMODE_EXCEPTION]);
+                $pdo = new \PDO('sqlite:'.$snapshot, null, null, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
                 $pdo->query('PRAGMA schema_version')->fetchColumn();
                 $result = $pdo->query('PRAGMA integrity_check')->fetchColumn();
-            } catch (\\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 throw new RuntimeException('SQLite backup verification failed.', 0, $exception);
             }
             if ($result !== 'ok') {
