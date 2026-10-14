@@ -120,6 +120,16 @@ return [
         'agent' => 'Agent',
         'system' => 'System',
     ],
+    'crm_event_types' => [
+        'lead_created' => 'Lead created',
+        'lead_temperature_changed' => 'Lead temperature changed',
+        'lead_status_changed' => 'Lead status changed',
+        'followup_created' => 'Follow-up created',
+        'followup_open' => 'Follow-up reopened',
+        'followup_completed' => 'Follow-up completed',
+        'followup_cancelled' => 'Follow-up cancelled',
+        'conversation_outcome_recorded' => 'Conversation outcome recorded',
+    ],
     'timeline_titles' => [
         'internal_note' => 'Internal note',
         'assignment' => 'Assignment',
