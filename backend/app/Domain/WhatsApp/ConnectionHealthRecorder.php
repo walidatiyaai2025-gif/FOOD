@@ -18,11 +18,7 @@ final class ConnectionHealthRecorder
 
     public function providerError(WhatsAppConnectionProfile $profile, string $safeMessage): void
     {
-        try {
-            $secret = $profile->credential_secret;
-        } catch (\Throwable) {
-            $secret = null;
-        }
+        $secret = $profile->credential_secret;
         if (is_string($secret) && $secret !== '') {
             $safeMessage = str_replace($secret, '[REDACTED]', $safeMessage);
         }
