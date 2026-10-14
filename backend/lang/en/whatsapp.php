@@ -124,6 +124,10 @@ return [
             'received' => 'Received',
             'pending_transport' => 'Pending transport',
             'pending' => 'Pending',
+            'queued' => 'Queued',
+            'retry_wait' => 'Waiting to retry',
+            'blocked_policy' => 'Blocked by runtime policy',
+            'blocked_recipient' => 'Invalid recipient',
             'sent' => 'Sent',
             'delivered' => 'Delivered',
             'read' => 'Read',
@@ -192,6 +196,7 @@ return [
     ],
 
     'campaigns' => [
+        'nav_title' => 'WhatsApp Campaigns',
         'page_title' => 'WhatsApp Campaigns · FOODEX',
         'heading' => 'WhatsApp Campaigns',
         'description' => 'Templates, consent, recipient snapshots and campaign safety metrics.',
