@@ -6,6 +6,7 @@ use App\Domain\WhatsApp\AgentAssignmentEngine;
 use App\Domain\WhatsApp\ConversationService;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
 use App\Domain\WhatsApp\ProviderTransportException;
+use App\Domain\WhatsApp\RuntimePolicy;
 use App\Domain\WhatsApp\WhatsAppMediaService;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformCustomer;
@@ -33,6 +34,7 @@ final class WhatsAppInboxController extends Controller
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $outbound,
         private readonly WhatsAppMediaService $media,
+        private readonly RuntimePolicy $policy,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -177,6 +179,16 @@ final class WhatsAppInboxController extends Controller
                 && in_array($selected->status, ['RESOLVED', 'CLOSED'], true)
                     ? 'reopen'
                     : 'resolve',
+            'callsEnabled' => $this->policy->allowsCallWebhooks(),
+            'inboundCallsEnabled' => $this->policy->allowsInboundCalls(),
+            'canDialCalls' => $actor->hasPermission(
+                'whatsapp.calls.dial',
+                $selected?->store_id === null ? null : (int) $selected->store_id,
+            ),
+            'canManageCalls' => $actor->hasPermission(
+                'whatsapp.calls.manage',
+                $selected?->store_id === null ? null : (int) $selected->store_id,
+            ),
         ]);
     }
 
