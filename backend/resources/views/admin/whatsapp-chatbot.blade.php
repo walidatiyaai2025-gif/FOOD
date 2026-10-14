@@ -272,7 +272,7 @@
                                 <div><strong>{{ __('chatbot.admin.confirmation') }}</strong><div>{{ !empty($testAction['requires_confirmation']) ? __('chatbot.admin.required') : __('chatbot.admin.not_required') }}</div></div>
                             </div>
                         @endif
-
+                    </div>
                 </section>
             @elseif($section === 'segments')
                 <section class="cb-grid">
