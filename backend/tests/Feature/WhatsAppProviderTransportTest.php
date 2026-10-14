@@ -8,6 +8,7 @@ use App\Domain\WhatsApp\MetaCloudWhatsAppProvider;
 use App\Domain\WhatsApp\OutboundMessage;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
 use App\Domain\WhatsApp\TransportRetryService;
+use App\Domain\WhatsApp\WhatsAppMediaService;
 use App\Models\User;
 use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
@@ -17,6 +18,7 @@ use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -94,6 +96,120 @@ final class WhatsAppProviderTransportTest extends TestCase
         $this->assertArrayNotHasKey('credential_secret', $profile->toArray());
         $this->assertArrayNotHasKey('webhook_verify_token', $profile->toArray());
         $this->assertArrayNotHasKey('webhook_signing_secret', $profile->toArray());
+    }
+
+    public function test_meta_provider_uploads_private_attachment_before_sending_media_message(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('whatsapp-media/outbound/1/photo.jpg', 'jpeg-bytes');
+        $profile = $this->profile();
+
+        Http::fake(function (HttpRequest $request) {
+            if (str_ends_with($request->url(), '/v26.0/phone-meta-1/media')) {
+                return Http::response(['id' => 'meta-media-1'], 200);
+            }
+
+            if (str_ends_with($request->url(), '/v26.0/phone-meta-1/messages')) {
+                return Http::response(['messages' => [['id' => 'wamid.media-1']]], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $sent = app(MetaCloudWhatsAppProvider::class)->send(
+            $profile,
+            new OutboundMessage(
+                recipient: '+96550000111',
+                kind: 'media',
+                body: 'Product photo',
+                metadata: [
+                    'media_type' => 'image',
+                    'mime_type' => 'image/jpeg',
+                    'filename' => 'photo.jpg',
+                    'local_disk' => 'local',
+                    'local_path' => 'whatsapp-media/outbound/1/photo.jpg',
+                ],
+                idempotencyKey: 'wa-media-test-1',
+            ),
+        );
+
+        $this->assertSame('wamid.media-1', $sent->providerMessageId);
+        Http::assertSentCount(2);
+        Http::assertSent(function (HttpRequest $request): bool {
+            return str_ends_with($request->url(), '/v26.0/phone-meta-1/messages')
+                && $request['type'] === 'image'
+                && $request['image']['id'] === 'meta-media-1'
+                && $request['image']['caption'] === 'Product photo';
+        });
+    }
+
+    public function test_inbound_meta_attachment_is_downloaded_once_into_private_storage(): void
+    {
+        Storage::fake('local');
+        $profile = $this->profile();
+        $storeId = $this->store('B2C', 'WA-MEDIA-IN');
+        $customerId = $this->customer($storeId, 'b2c', '+96550000111');
+        $conversationId = $this->conversation($customerId, $storeId);
+
+        $messageId = (int) DB::table('whats_app_messages')->insertGetId([
+            'conversation_id' => $conversationId,
+            'connection_profile_id' => $profile->id,
+            'direction' => 'inbound',
+            'content_type' => 'image',
+            'actor_type' => 'customer',
+            'actor_user_id' => null,
+            'body' => 'Incoming photo',
+            'attachment_metadata' => json_encode([
+                'media_type' => 'image',
+                'id' => 'meta-inbound-media-1',
+                'mime_type' => 'image/jpeg',
+                'filename' => 'customer-photo.jpg',
+            ], JSON_THROW_ON_ERROR),
+            'provider_message_ref' => 'wamid.media-inbound-1',
+            'delivery_status' => 'received',
+            'occurred_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Http::fake(function (HttpRequest $request) {
+            if (str_ends_with($request->url(), '/v26.0/meta-inbound-media-1')) {
+                return Http::response([
+                    'url' => 'https://lookaside.facebook.com/whatsapp/media-1',
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 10,
+                ], 200);
+            }
+
+            if ($request->url() === 'https://lookaside.facebook.com/whatsapp/media-1') {
+                return Http::response('jpeg-bytes', 200, ['Content-Type' => 'image/jpeg']);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $message = DB::table('whats_app_messages')->where('id', $messageId)->firstOrFail();
+        $asset = app(WhatsAppMediaService::class)->materialize($message);
+
+        $this->assertSame('image', $asset['media_type']);
+        $this->assertSame('customer-photo.jpg', $asset['filename']);
+        Storage::disk('local')->assertExists($asset['path']);
+
+        $persisted = json_decode(
+            (string) DB::table('whats_app_messages')->where('id', $messageId)->value('attachment_metadata'),
+            true,
+            32,
+            JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame($asset['path'], $persisted['local_path']);
+
+        Http::assertSentCount(2);
+
+        $again = app(WhatsAppMediaService::class)->materialize(
+            DB::table('whats_app_messages')->where('id', $messageId)->firstOrFail(),
+        );
+        $this->assertSame($asset['path'], $again['path']);
+        Http::assertSentCount(2);
     }
 
     public function test_webhook_verification_signature_and_duplicate_ingestion_are_fail_closed_and_idempotent(): void
