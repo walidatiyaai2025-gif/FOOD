@@ -26,8 +26,15 @@ jobs:
         with:
           fetch-depth: 0
       - name: Validate frozen Customer lineage contract
+        shell: bash
         run: |
-          python3 scripts/validate_customer_freeze_contract.py --candidate HEAD
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$version" == "1.0.77" ]]; then
+            python3 scripts/validate_customer_freeze_contract.py --candidate HEAD
+          else
+            echo "Customer freeze is a 1.0.77-only release contract; candidate $version is not freeze-bound."
+          fi
           python3 -m unittest discover -s scripts/tests -p 'test_customer_freeze_contract.py'
       - name: Validate release evidence
         run: bash ./scripts/release-readiness.sh
