@@ -21,6 +21,7 @@ final class ChatbotAutomationService
         private readonly ChatbotSupportCaseService $supportCases,
         private readonly ChatbotOrderDraftService $orderDrafts,
         private readonly ChatbotFlowEngine $flowEngine,
+        private readonly ChatbotCampaignAttributionService $campaignAttribution,
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $dispatcher,
     ) {}
@@ -135,6 +136,25 @@ final class ChatbotAutomationService
         }
 
         $reply = $this->flowEngine->decorate($intent, $this->locale(), $reply);
+        $campaign = $this->campaignAttribution->latestForCustomer($platformCustomerId);
+        if ($campaign !== null) {
+            $this->analytics->record(
+                'campaign_chatbot_entry',
+                $conversationId,
+                $platformCustomerId,
+                $feature,
+                $intent,
+                $confidence,
+                $campaign + [
+                    'interactive_id' => is_string($metadata['interactive_id'] ?? null)
+                        ? mb_substr((string) $metadata['interactive_id'], 0, 191)
+                        : null,
+                    'flow_id' => isset($reply['_flow']['id']) ? (int) $reply['_flow']['id'] : null,
+                    'flow_version' => isset($reply['_flow']['version']) ? (int) $reply['_flow']['version'] : null,
+                ],
+            );
+        }
+
         if (isset($reply['_flow']) && is_array($reply['_flow'])) {
             $this->flowEngine->persist($conversationId, $platformCustomerId, $reply['_flow']);
             $this->analytics->record(
@@ -291,10 +311,25 @@ final class ChatbotAutomationService
         }
 
         try {
-            $this->orderDrafts->addProduct($conversationId, $platformCustomerId, $productId);
+            $result = $this->orderDrafts->addProduct($conversationId, $platformCustomerId, $productId);
         } catch (ValidationException) {
             return ['body' => $this->t('product_unavailable'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
+
+        $this->analytics->record(
+            'draft_product_added',
+            $conversationId,
+            $platformCustomerId,
+            'new_order',
+            'add_product',
+            1.0,
+            [
+                'product_id' => $productId,
+                'cart_id' => $result['cart_id'],
+                'item_count' => $result['item_count'],
+                'draft_value' => $result['total'],
+            ],
+        );
 
         return $this->cartReply($conversationId, $platformCustomerId, $this->t('added_to_cart'));
     }
@@ -311,6 +346,21 @@ final class ChatbotAutomationService
         } catch (ValidationException) {
             return ['body' => $this->t('no_previous_order'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
+
+        $this->analytics->record(
+            'draft_reorder_created',
+            $conversationId,
+            $platformCustomerId,
+            'repeat_order',
+            'repeat_to_cart',
+            1.0,
+            [
+                'cart_id' => $result['cart_id'],
+                'item_count' => $result['item_count'],
+                'draft_value' => $result['total'],
+                'skipped' => $result['skipped'] ?? 0,
+            ],
+        );
 
         $prefix = $this->t('reorder_added');
         if (($result['skipped'] ?? 0) > 0) {
