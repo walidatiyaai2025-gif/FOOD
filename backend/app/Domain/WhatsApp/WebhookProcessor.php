@@ -11,12 +11,24 @@ final class WebhookProcessor
     public function __construct(
         private readonly WhatsAppProviderRegistry $providers,
         private readonly ConversationService $conversations,
+        private readonly RuntimePolicy $policy,
     ) {}
 
     public function process(int $eventId): void
     {
         $row = DB::table('whats_app_webhook_events')->where('id', $eventId)->first();
-        if ($row === null || $row->status === 'processed' || $row->status === 'failed') {
+        if ($row === null || in_array($row->status, ['processed', 'failed', 'blocked_policy'], true)) {
+            return;
+        }
+
+        if (! $this->policy->allowsInbound()) {
+            DB::table('whats_app_webhook_events')->where('id', $eventId)->update([
+                'status' => 'blocked_policy',
+                'last_error' => 'WhatsApp inbound is blocked by lifecycle policy.',
+                'next_retry_at' => null,
+                'updated_at' => now(),
+            ]);
+
             return;
         }
 
