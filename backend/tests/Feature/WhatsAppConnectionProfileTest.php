@@ -11,6 +11,7 @@ use App\Domain\WhatsApp\ConnectionValidationResult;
 use App\Domain\WhatsApp\ConnectionValidator;
 use App\Domain\WhatsApp\Lifecycle;
 use App\Domain\WhatsApp\RuntimePolicy;
+use App\Domain\WhatsApp\UnavailableConnectionValidator;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
@@ -148,7 +149,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
     public function test_default_runtime_validator_never_fakes_provider_success(): void
     {
         $this->app->forgetInstance(ConnectionValidator::class);
-        $this->app->bind(ConnectionValidator::class, \App\Domain\WhatsApp\UnavailableConnectionValidator::class);
+        $this->app->bind(ConnectionValidator::class, UnavailableConnectionValidator::class);
         $actor = $this->admin();
         $profile = $this->createProfile($actor, 'No adapter', '+96550000003', 'placeholder');
 
