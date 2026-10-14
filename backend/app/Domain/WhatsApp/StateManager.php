@@ -61,7 +61,11 @@ final class StateManager
             }
 
             $state = ModuleState::fromModel($row);
-            if (! $state->available || $state->lifecycle === Lifecycle::ENABLED) {
+            if (! $state->available || ! in_array($state->lifecycle, [
+                Lifecycle::DISABLED,
+                Lifecycle::INTERNAL_TEST,
+                Lifecycle::PILOT,
+            ], true)) {
                 throw ValidationException::withMessages(['lifecycle' => __('whatsapp.certification_required')]);
             }
 
