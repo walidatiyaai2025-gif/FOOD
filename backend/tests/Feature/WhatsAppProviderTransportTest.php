@@ -432,7 +432,6 @@ final class WhatsAppProviderTransportTest extends TestCase
         $user = User::factory()->create([
             'name' => 'WhatsApp Customer',
             'email' => 'wa-'.Str::uuid().'@example.test',
-            'phone' => $phone,
             'locale' => 'en',
             'is_active' => true,
             'is_platform_customer' => true,
