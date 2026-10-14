@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Jobs\DispatchPushNotification;
 use App\Models\AuditLog;
+use App\Models\B2bCustomer;
 use App\Models\DriverAssignment;
+use App\Models\Invoice;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderDispatchState;
@@ -16,6 +18,7 @@ use App\Models\OrderVanAssignment;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
+use App\Services\B2bAccountLedgerService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalLookupService;
@@ -40,6 +43,7 @@ final class OrderOperationsController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $scope,
+        private readonly B2bAccountLedgerService $accountLedger,
         private readonly DriverDeliveryEvidenceService $deliveryEvidence,
         private readonly VanDeliveryEvidenceService $vanDeliveryEvidence,
         private readonly OperationalLookupService $lookups,
@@ -1162,6 +1166,38 @@ final class OrderOperationsController extends Controller
                 ->whereIn('status', ['issued', 'reissued'])
                 ->exists();
 
+        $settlement = null;
+        if ($channel === 'b2b' && $order->b2b_customer_id !== null) {
+            $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
+            if (
+                $customer instanceof B2bCustomer
+                && DB::table('b2b_accounts')
+                    ->where('b2b_customer_id', $customer->getKey())
+                    ->where('status', 'active')
+                    ->exists()
+            ) {
+                $finance = $this->accountLedger->summary($customer, (int) $order->store_id);
+                $invoiceOutstanding = null;
+                if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
+                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
+                    if ($invoiceModel instanceof Invoice) {
+                        $amounts = $this->accountLedger->invoiceAmounts($invoiceModel);
+                        $invoiceOutstanding = (float) $amounts['outstanding_amount'];
+                    }
+                }
+
+                $settlement = [
+                    'currency' => (string) ($finance['currency'] ?? $order->currency),
+                    'customer_credit_balance' => (float) ($finance['customer_credit_balance'] ?? 0),
+                    'aggregate_outstanding' => (float) ($finance['outstanding_receivable'] ?? 0),
+                    'credit_limit' => (float) ($finance['credit_limit'] ?? 0),
+                    'available_credit_line' => (float) ($finance['available_credit_line'] ?? 0),
+                    'invoice_outstanding' => $invoiceOutstanding,
+                    'remainder_method' => is_string($order->payment_method) ? $order->payment_method : null,
+                ];
+            }
+        }
+
         $store = DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
         $storeLabel = $store === null
             ? '#'.$order->store_id
@@ -1214,6 +1250,7 @@ final class OrderOperationsController extends Controller
             'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
             'invoice_currency' => $invoice?->currency,
             'can_view_invoice' => $canViewInvoice,
+            'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
             'assignment_id' => $assignment?->getKey(),
