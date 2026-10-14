@@ -328,7 +328,7 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertOk()
             ->assertSee('WA-ORDER-001')
             ->assertSee('WA-INV-001')
-            ->assertSee('cash_on_delivery');
+            ->assertSee('Cash on delivery');
 
         $this->assertSame(1, DB::table('orders')->where('order_number', 'WA-ORDER-001')->count());
         $this->assertSame(1, DB::table('invoices')->where('invoice_number', 'WA-INV-001')->count());
