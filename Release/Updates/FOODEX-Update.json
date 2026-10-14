@@ -2,27 +2,27 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.75",
-  "minimum_current_version": "1.0.74",
-  "source_base": "d606e8b6a2423b666e414570a9879255e3a95feb",
-  "source_commit": "926436fd96d74eeaca20a89927e37a04a99285b9",
-  "sha256": "ad19003d05461c537907e7f6b40cfe6e91157b003f658761e983f6b1da9a98e5",
+  "target_version": "1.0.77",
+  "minimum_current_version": "1.0.75",
+  "source_base": "926436fd96d74eeaca20a89927e37a04a99285b9",
+  "source_commit": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
+  "sha256": "eda8e909fb2dd8d7888b1bb09aafdd1265185744de1c3d92049aa3e34c481539",
   "contains_migrations": false,
   "migrations": [],
   "delta": {
-    "file_count": 431,
-    "source_file_count": 331,
+    "file_count": 454,
+    "source_file_count": 354,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Promote the authoritative FOODEX main lineage after the completed 1.0.74 Dashboard update into synchronized release 1.0.75. Preserve the full Customer VNext program and Mobile Smart Store Analytics stack already integrated on main, including Retail EGP analytics, Dashboard-managed store branding, compact mobile analytics UI, insight badge/pulse behavior, production launch controls, protected reset/reseed, and final certification gates. Rebuild the Dashboard update and Customer, Driver and Van Android artifacts from one exact release lineage with mobile source identity 1.0.75+75. Keep production Launch/reset safeguards fail-closed; release promotion does not bypass owner-data, asset, backup, migration or green-preflight requirements. Dashboard update targets direct upgrade from 1.0.74 while retaining the cumulative updater boundary.",
+  "release_notes": "Make FOODEX 1.0.77 the only valid next production-launch target; 1.0.76 remains historical evidence and is superseded for production launch. Preserve the Customer application exactly at frozen baseline `4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d`; 1.0.77 release composition must not modify `apps/customer_app/**`. Complete the real FOODEX catalog, image-fidelity reconstruction, inferred-value disclosure, verified pre-launch snapshot, reversible Production/Legacy switch and authoritative launch-report gates under #1380. Hold all final 1.0.77 publication until independent certification proves Customer zero-diff, exact Legacy restoration and successful re-launch from the integrated source.",
   "dashboard_fields": {
-    "target_version": "1.0.75",
-    "minimum_current_version": "1.0.74",
-    "source_commit": "926436fd96d74eeaca20a89927e37a04a99285b9",
-    "sha256": "ad19003d05461c537907e7f6b40cfe6e91157b003f658761e983f6b1da9a98e5",
+    "target_version": "1.0.77",
+    "minimum_current_version": "1.0.75",
+    "source_commit": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
+    "sha256": "eda8e909fb2dd8d7888b1bb09aafdd1265185744de1c3d92049aa3e34c481539",
     "contains_migrations": false,
-    "release_notes": "Promote the authoritative FOODEX main lineage after the completed 1.0.74 Dashboard update into synchronized release 1.0.75. Preserve the full Customer VNext program and Mobile Smart Store Analytics stack already integrated on main, including Retail EGP analytics, Dashboard-managed store branding, compact mobile analytics UI, insight badge/pulse behavior, production launch controls, protected reset/reseed, and final certification gates. Rebuild the Dashboard update and Customer, Driver and Van Android artifacts from one exact release lineage with mobile source identity 1.0.75+75. Keep production Launch/reset safeguards fail-closed; release promotion does not bypass owner-data, asset, backup, migration or green-preflight requirements. Dashboard update targets direct upgrade from 1.0.74 while retaining the cumulative updater boundary."
+    "release_notes": "Make FOODEX 1.0.77 the only valid next production-launch target; 1.0.76 remains historical evidence and is superseded for production launch. Preserve the Customer application exactly at frozen baseline `4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d`; 1.0.77 release composition must not modify `apps/customer_app/**`. Complete the real FOODEX catalog, image-fidelity reconstruction, inferred-value disclosure, verified pre-launch snapshot, reversible Production/Legacy switch and authoritative launch-report gates under #1380. Hold all final 1.0.77 publication until independent certification proves Customer zero-diff, exact Legacy restoration and successful re-launch from the integrated source."
   }
 }
