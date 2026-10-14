@@ -47,7 +47,8 @@ The canonical fast path is `.github/workflows/release-factory.yml`.
 When `VERSION` is promoted, or when the canonical distribution workflow is manually dispatched for a release, the workflow must automatically:
 
 1. read and validate the FOODEX version;
-2. require Customer, Driver and Van mobile versions/build numbers to match;
+2. require Customer, Driver and Van mobile versions/build numbers to match,
+   except for a machine-verified frozen lineage as defined below;
 3. build all three Android APKs once, in parallel, and retain those exact build outputs for final assembly;
 4. validate each APK's application identity and version;
 5. create the versioned APK filenames under `Release/`;
@@ -58,6 +59,32 @@ When `VERSION` is promoted, or when the canonical distribution workflow is manua
 10. refresh the generated distribution branch/artifact so the `Release/` folder always represents the latest release.
 
 No manual follow-up request for "give me the latest APK" is part of the normal release process.
+
+## Frozen mobile lineage exception
+
+A first-class mobile application may be carried forward unchanged into a newer
+Dashboard/platform release only when an issue-scoped, machine-readable freeze
+contract explicitly authorizes it. This is a narrow exception to synchronized
+version numbering, not an exception to synchronized source provenance.
+
+For FOODEX 1.0.77 the authoritative contract is
+`docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json`:
+
+- `apps/customer_app/**` must have a zero diff from the recorded baseline commit
+  and must resolve to the recorded Git tree SHA;
+- CI must validate that invariant on every 1.0.77 program PR and again during
+  release assembly;
+- the Customer APK is built with its frozen source version/build, not relabeled
+  as the platform release version;
+- `BUILD_INFO.json` and `LATEST_RELEASE.json` must record the Customer source
+  commit, tree SHA, source version/build, platform release version and
+  `carried_forward` lineage mode;
+- Driver and Van remain synchronized to the platform release version/build;
+- the release remains incomplete if the carried-forward Customer artifact is
+  missing, has the wrong identity, or does not match the recorded lineage.
+
+No workflow may satisfy a platform version bump by editing the frozen app or by
+passing a newer `--build-name`/`--build-number` to disguise its actual identity.
 
 ## Three-app parity gate
 

@@ -128,8 +128,92 @@ class ReleaseArtifactContractTest(unittest.TestCase):
             source_commit=SOURCE_COMMIT,
         )
 
+    def configure_frozen_customer(self) -> Path:
+        frozen_version = "1.0.57"
+        frozen_build = 57
+        baseline = "b" * 40
+        tree_sha = "c" * 40
+        old = self.release / f"FOODEX-Customer-{VERSION}.apk"
+        frozen = self.release / f"FOODEX-Customer-{frozen_version}.apk"
+        old.rename(frozen)
+
+        build_path = self.release / "BUILD_INFO.json"
+        build_info = json.loads(build_path.read_text(encoding="utf-8"))
+        build_info["customer"].update(
+            {
+                "file": frozen.name,
+                "version": frozen_version,
+                "build_number": frozen_build,
+                "release_version": VERSION,
+                "lineage_mode": "carried_forward",
+                "source_commit": baseline,
+                "tree_sha": tree_sha,
+            }
+        )
+        build_path.write_text(json.dumps(build_info), encoding="utf-8")
+
+        latest_path = self.release / "LATEST_RELEASE.json"
+        latest = json.loads(latest_path.read_text(encoding="utf-8"))
+        customer = next(item for item in latest["android_apps"] if item["app"] == "customer")
+        customer.update(
+            {
+                "file": frozen.name,
+                "version": frozen_version,
+                "build_number": frozen_build,
+                "release_version": VERSION,
+                "lineage_mode": "carried_forward",
+                "source_commit": baseline,
+                "tree_sha": tree_sha,
+            }
+        )
+        latest_path.write_text(json.dumps(latest), encoding="utf-8")
+
+        contract = Path(self.temp.name) / "customer-freeze.json"
+        contract.write_text(
+            json.dumps(
+                {
+                    "release_version": VERSION,
+                    "frozen_customer": {
+                        "source_version": frozen_version,
+                        "source_build_number": frozen_build,
+                        "baseline_commit": baseline,
+                        "tree_sha": tree_sha,
+                        "lineage_mode": "carried_forward",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return contract
+
     def test_complete_release_passes(self) -> None:
         self.validate()
+
+    def test_frozen_customer_may_be_truthfully_carried_into_newer_platform_release(self) -> None:
+        contract = self.configure_frozen_customer()
+        validate_release(
+            self.release,
+            version=VERSION,
+            build_number=BUILD_NUMBER,
+            source_commit=SOURCE_COMMIT,
+            customer_freeze_contract=contract,
+        )
+
+    def test_frozen_customer_cannot_be_claimed_as_platform_version(self) -> None:
+        contract = self.configure_frozen_customer()
+        latest_path = self.release / "LATEST_RELEASE.json"
+        latest = json.loads(latest_path.read_text(encoding="utf-8"))
+        customer = next(item for item in latest["android_apps"] if item["app"] == "customer")
+        customer["version"] = VERSION
+        latest_path.write_text(json.dumps(latest), encoding="utf-8")
+        with self.assertRaisesRegex(ContractError, "customer version"):
+            validate_release(
+                self.release,
+                version=VERSION,
+                build_number=BUILD_NUMBER,
+                source_commit=SOURCE_COMMIT,
+                customer_freeze_contract=contract,
+            )
 
     def test_missing_van_artifact_fails(self) -> None:
         (self.release / f"FOODEX-Van-{VERSION}.apk").unlink()

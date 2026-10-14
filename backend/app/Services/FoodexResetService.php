@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Updater\UpdateRuntime;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -39,7 +40,8 @@ class FoodexResetService
     public function __construct(
         private readonly LaunchCatalog $catalog,
         private readonly AuditLogger $audit,
-        private readonly ProductionSnapshotService $snapshots,
+        private readonly UpdateRuntime $runtime,
+        private readonly ProductionDatasetSnapshot $snapshot,
     ) {}
 
     public function isProduction(): bool
@@ -92,23 +94,21 @@ class FoodexResetService
                 throw ValidationException::withMessages(['reset' => __('foodex_reset.stale')]);
             }
 
-            // Production backups are made BEFORE the first write and must actually succeed.
-            $backup = $this->isProduction()
-                ? $this->snapshots->createVerified($actor, $request)
-                : null;
-            if ($this->isProduction() && ! is_array($backup)) {
-                throw ValidationException::withMessages(['reset' => __('foodex_reset.blocked')]);
+            // Production launch mutations are forbidden until the exact legacy dataset has a
+            // verified, durable snapshot. Creation is idempotent and happens before first write.
+            if ($this->isProduction()) {
+                $this->snapshot->create($actor, $request);
+                $this->snapshot->assertReady();
             }
 
-            return DB::transaction(function () use ($current, $actor, $request, $backup): array {
+            $result = DB::transaction(function () use ($current, $actor, $request): array {
                 foreach ($this->deletionOrder(array_keys($current['counts'])) as $table) {
                     DB::table($table)->delete();
                 }
                 $this->catalog->reseed();
                 $this->audit->record('system.launch_reset', $actor, null, $current['counts'], [
                     'catalog_fingerprint' => $current['catalog_fingerprint'],
-                    'backup_created' => $backup !== null,
-                    'snapshot_id' => is_array($backup) ? ($backup['snapshot_id'] ?? null) : null,
+                    'backup_created' => $this->isProduction(),
                     'operation_id' => $request->session()->get('launch_reset_operation'),
                 ], $request);
 
@@ -122,12 +122,14 @@ class FoodexResetService
                     }
                 });
 
-                if (is_array($backup)) {
-                    DB::afterCommit(fn () => $this->snapshots->markLaunchActive());
-                }
-
                 return ['removed' => $current['total']];
             });
+
+            if ($this->isProduction()) {
+                $this->snapshot->markLaunchActive($actor, $request);
+            }
+
+            return $result;
         });
     }
 

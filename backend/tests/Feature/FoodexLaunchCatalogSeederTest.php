@@ -12,7 +12,7 @@ class FoodexLaunchCatalogSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_official_catalog_is_deterministic_and_rerunnable_without_inventing_missing_source_values(): void
+    public function test_launch_catalog_is_deterministic_and_rerunnable_with_documented_assumptions(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         $this->seed(FoodexLaunchCatalogSeeder::class);
@@ -36,7 +36,7 @@ class FoodexLaunchCatalogSeederTest extends TestCase
                 ->count(),
         );
         $this->assertSame(
-            3,
+            0,
             DB::table('store_products')
                 ->join('products', 'products.id', '=', 'store_products.product_id')
                 ->where('store_products.store_id', $storeId)
@@ -52,18 +52,13 @@ class FoodexLaunchCatalogSeederTest extends TestCase
         );
     }
 
-    public function test_launch_readiness_fails_closed_for_unresolved_source_values_and_missing_high_resolution_assets(): void
+    public function test_launch_readiness_has_no_source_blockers_and_fails_closed_for_missing_high_resolution_assets(): void
     {
         $seeder = app(FoodexLaunchCatalogSeeder::class);
         $readiness = $seeder->readiness();
 
         $this->assertFalse($readiness['ready']);
-        $this->assertContains('FDX-LAUNCH-022:price', $readiness['unresolved_source_fields']);
-        $this->assertContains('FDX-LAUNCH-023:price', $readiness['unresolved_source_fields']);
-        $this->assertContains('FDX-LAUNCH-023:carton_count', $readiness['unresolved_source_fields']);
-        $this->assertContains('FDX-LAUNCH-024:carton_count', $readiness['unresolved_source_fields']);
-        $this->assertContains('FDX-LAUNCH-025:price', $readiness['unresolved_source_fields']);
-        $this->assertContains('FDX-LAUNCH-025:carton_count', $readiness['unresolved_source_fields']);
+        $this->assertSame([], $readiness['unresolved_source_fields']);
         $this->assertCount(25, $readiness['missing_images']);
         $this->assertFalse($readiness['banner_ready']);
     }

@@ -20,6 +20,12 @@ final class ProductionLaunchPreflight
         'schema_migrations',
         'environment_configuration',
         'release_lineage',
+        'customer_frozen_lineage',
+        'catalog_provenance',
+        'reconstructed_image_quality',
+        'prelaunch_snapshot',
+        'restore_verification',
+        'dataset_switch_readiness',
         'official_seed',
         'product_image_quality',
         'clean_production_data',
@@ -82,6 +88,20 @@ final class ProductionLaunchPreflight
             'schema_migrations' => $this->schemaCheck(),
             'environment_configuration' => $this->environmentCheck(),
             'release_lineage' => $this->releaseLineageCheck($release),
+            'customer_frozen_lineage' => $this->customerFrozenLineageCheck($sourceCommit),
+            'catalog_provenance' => $this->catalogProvenanceCheck(),
+            'reconstructed_image_quality' => $this->attestationCheck(
+                storage_path('app/private/launch-gate/reconstructed-image-quality.json'),
+                '#1382 image manifest',
+                $sourceCommit,
+            ),
+            'prelaunch_snapshot' => $this->snapshotCheck(),
+            'restore_verification' => $this->attestationCheck(
+                storage_path('app/private/launch-gate/restore-verification.json'),
+                '#1384 restore verification',
+                $sourceCommit,
+            ),
+            'dataset_switch_readiness' => $this->datasetSwitchReadinessCheck(),
             'official_seed' => $this->officialSeedCheck($sourceCommit),
             'product_image_quality' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/product-image-quality.json'),
@@ -224,6 +244,8 @@ final class ProductionLaunchPreflight
      *     source_commit:?string,
      *     github_run_number:?string,
      *     customer_version:?string,
+     *     customer_frozen_identity:?string,
+     *     customer_frozen_baseline:?string,
      *     driver_version:?string,
      *     van_version:?string,
      *     customer_build_number:?int,
@@ -249,6 +271,15 @@ final class ProductionLaunchPreflight
             }
         }
 
+        $freeze = [];
+        $freezePath = base_path('../docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json');
+        if (is_file($freezePath)) {
+            $decodedFreeze = json_decode((string) file_get_contents($freezePath), true);
+            if (is_array($decodedFreeze) && is_array($decodedFreeze['frozen_customer'] ?? null)) {
+                $freeze = $decodedFreeze['frozen_customer'];
+            }
+        }
+
         $sourceCommit = is_string($buildInfo['source_commit'] ?? null)
             && preg_match('/^[a-f0-9]{40,64}$/', $buildInfo['source_commit']) === 1
                 ? $buildInfo['source_commit']
@@ -263,8 +294,14 @@ final class ProductionLaunchPreflight
             'github_run_number' => is_scalar($buildInfo['github_run_number'] ?? null)
                 ? (string) $buildInfo['github_run_number']
                 : null,
-            'customer_version' => is_string($buildInfo['customer']['version'] ?? null)
-                ? trim($buildInfo['customer']['version'])
+            'customer_version' => is_string($freeze['source_version'] ?? null)
+                ? trim($freeze['source_version'])
+                : (is_string($buildInfo['customer']['version'] ?? null) ? trim($buildInfo['customer']['version']) : null),
+            'customer_frozen_identity' => is_string($freeze['source_identity'] ?? null)
+                ? trim($freeze['source_identity'])
+                : null,
+            'customer_frozen_baseline' => is_string($freeze['baseline_commit'] ?? null)
+                ? trim($freeze['baseline_commit'])
                 : null,
             'driver_version' => is_string($buildInfo['driver']['version'] ?? null)
                 ? trim($buildInfo['driver']['version'])
@@ -272,15 +309,122 @@ final class ProductionLaunchPreflight
             'van_version' => is_string($buildInfo['van']['version'] ?? null)
                 ? trim($buildInfo['van']['version'])
                 : null,
-            'customer_build_number' => is_numeric($buildInfo['customer']['build_number'] ?? null)
-                ? (int) $buildInfo['customer']['build_number']
-                : null,
+            'customer_build_number' => is_numeric($freeze['source_build_number'] ?? null)
+                ? (int) $freeze['source_build_number']
+                : (is_numeric($buildInfo['customer']['build_number'] ?? null) ? (int) $buildInfo['customer']['build_number'] : null),
             'driver_build_number' => is_numeric($buildInfo['driver']['build_number'] ?? null)
                 ? (int) $buildInfo['driver']['build_number']
                 : null,
             'van_build_number' => is_numeric($buildInfo['van']['build_number'] ?? null)
                 ? (int) $buildInfo['van']['build_number']
                 : null,
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function customerFrozenLineageCheck(?string $expectedSourceSha): array
+    {
+        $path = base_path('../docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json');
+        $manifest = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+        $frozen = is_array($manifest) && is_array($manifest['frozen_customer'] ?? null)
+            ? $manifest['frozen_customer']
+            : [];
+        $contract = is_array($manifest)
+            && ($manifest['release_version'] ?? null) === '1.0.77'
+            && ($frozen['baseline_commit'] ?? null) === '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d'
+            && ($frozen['policy'] ?? null) === 'zero-diff'
+            && ($frozen['lineage_mode'] ?? null) === 'carried_forward'
+            && ($frozen['source_identity'] ?? null) === '1.0.76+76';
+
+        $attestation = $this->attestationCheck(
+            storage_path('app/private/launch-gate/customer-frozen-lineage.json'),
+            'FOODEX 1.0.77 Customer zero-diff certification',
+            $expectedSourceSha,
+        );
+        $passed = $contract && $attestation['passed'];
+
+        return [
+            'passed' => $passed,
+            'detail' => $passed
+                ? 'Customer is certified byte-identical to frozen baseline 4de5a24b (1.0.76+76 carried forward).'
+                : 'Customer frozen-lineage contract or exact-source zero-diff attestation is missing/stale.',
+            'source' => 'FOODEX_1_0_77_CUSTOMER_FREEZE.json + exact-source attestation',
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function catalogProvenanceCheck(): array
+    {
+        $path = database_path('seeders/fixtures/foodex-launch-catalog-provenance.json');
+        $ledger = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+        $entries = is_array($ledger) && is_array($ledger['entries'] ?? null) ? $ledger['entries'] : [];
+        $products = array_values(array_unique(array_filter(array_map(
+            static fn ($entry): ?string => is_array($entry) && is_string($entry['product_identifier'] ?? null)
+                ? $entry['product_identifier']
+                : null,
+            $entries,
+        ))));
+        $inferred = array_values(array_filter(
+            $entries,
+            static fn ($entry): bool => is_array($entry) && ($entry['provenance_state'] ?? null) === 'inferred',
+        ));
+        $inferredComplete = $inferred !== [] && collect($inferred)->every(
+            static fn (array $entry): bool => array_key_exists('final_value', $entry)
+                && is_string($entry['rationale'] ?? null)
+                && trim($entry['rationale']) !== '',
+        );
+        $passed = is_array($ledger)
+            && ($ledger['release'] ?? null) === '1.0.77'
+            && count($products) === 25
+            && $inferredComplete;
+
+        return [
+            'passed' => $passed,
+            'detail' => $passed
+                ? count($entries).' catalog field records cover 25 products; '.count($inferred).' inferred fields are explicitly disclosed.'
+                : 'Catalog provenance ledger is missing, incomplete, wrong-release, or hides inferred values.',
+            'source' => 'foodex-launch-catalog-provenance.json',
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function snapshotCheck(): array
+    {
+        try {
+            $status = app(ProductionDatasetSnapshot::class)->status();
+        } catch (\Throwable) {
+            $status = [];
+        }
+        $state = $status['state'] ?? ProductionDatasetSnapshot::NO_SNAPSHOT;
+        $passed = ($status['verified'] ?? false) === true
+            && is_string($status['snapshot_id'] ?? null)
+            && in_array($state, [
+                ProductionDatasetSnapshot::SNAPSHOT_READY,
+                ProductionDatasetSnapshot::LEGACY_RESTORED,
+            ], true);
+
+        return [
+            'passed' => $passed,
+            'detail' => $passed
+                ? 'Verified pre-launch snapshot is available; state='.$state.'.'
+                : 'A verified pre-launch snapshot is required before owner approval.',
+            'source' => 'ProductionDatasetSnapshot runtime metadata',
+        ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function datasetSwitchReadinessCheck(): array
+    {
+        $snapshot = $this->snapshotCheck();
+        $controller = class_exists(\App\Http\Controllers\Admin\ProductionDatasetSwitchController::class);
+        $passed = $controller && $snapshot['passed'];
+
+        return [
+            'passed' => $passed,
+            'detail' => $passed
+                ? 'Reversible Production/Legacy switch is installed and backed by a verified snapshot.'
+                : 'Dataset switch is unavailable or has no verified rollback snapshot.',
+            'source' => 'ProductionDatasetSwitchController + ProductionDatasetSnapshot',
         ];
     }
 
@@ -332,6 +476,8 @@ final class ProductionLaunchPreflight
      *     source_commit:?string,
      *     github_run_number:?string,
      *     customer_version:?string,
+     *     customer_frozen_identity:?string,
+     *     customer_frozen_baseline:?string,
      *     driver_version:?string,
      *     van_version:?string,
      *     customer_build_number:?int,
@@ -347,8 +493,10 @@ final class ProductionLaunchPreflight
             && $release['version'] === $release['build_info_version'];
         $hasSource = is_string($release['source_commit']) && $release['source_commit'] !== '';
         $hasRun = is_string($release['github_run_number']) && $release['github_run_number'] !== '';
+        $customerFrozen = ($release['customer_frozen_identity'] ?? null) === '1.0.76+76'
+            && ($release['customer_frozen_baseline'] ?? null) === '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d';
         $appVersionsMatch = $versionMatches
-            && $release['customer_version'] === $release['version']
+            && $customerFrozen
             && $release['driver_version'] === $release['version']
             && $release['van_version'] === $release['version'];
         $builds = [
@@ -366,7 +514,7 @@ final class ProductionLaunchPreflight
         return [
             'passed' => $passed,
             'detail' => $passed
-                ? 'Release version, source commit, run and all three mobile builds share a valid lineage.'
+                ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
             'source' => 'Release/BUILD_INFO.json + VERSION',
         ];

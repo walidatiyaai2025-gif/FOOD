@@ -17,6 +17,7 @@ current_version="$(tr -d '[:space:]' < VERSION)"
 base_version="$(git show "$base:VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
 customer_identity="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
 driver_identity="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
+van_identity="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml | tr -d '"')"
 
 if [[ -z "$current_version" || -z "$base_version" ]]; then
   echo "VERSION must exist in both base and candidate." >&2
@@ -39,21 +40,18 @@ if [[ "$current_version" != "$base_version" ]]; then
   version_changed=true
 fi
 
-customer_freeze_sha="4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d"
-customer_freeze_tree_sha="7e5828423d2b747afcd607a643c853495024328c"
 production_hold_file="docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md"
-if [[ "$current_version" == "1.0.77" && -f "$production_hold_file" ]]; then
-  current_customer_tree="$(git rev-parse HEAD:apps/customer_app 2>/dev/null || true)"
-  if [[ "$current_customer_tree" != "$customer_freeze_tree_sha" ]]; then
-    echo "FOODEX 1.0.77 production hold requires Customer tree $customer_freeze_tree_sha from frozen baseline $customer_freeze_sha; current tree is ${current_customer_tree:-missing}." >&2
+if [[ "$current_version" == "1.0.77" ]]; then
+  python3 scripts/validate_customer_freeze_contract.py --candidate "$head"
+  frozen_customer_identity="$(python3 -c 'import json; print(json.load(open("docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json"))["frozen_customer"]["source_identity"])')"
+  if [[ "$customer_identity" != "$frozen_customer_identity" ]]; then
+    echo "Frozen Customer identity must remain $frozen_customer_identity; got $customer_identity." >&2
     exit 1
   fi
-  if ! git diff --quiet -- apps/customer_app || ! git diff --cached --quiet -- apps/customer_app || [[ -n "$(git ls-files --others --exclude-standard apps/customer_app)" ]]; then
-    echo "FOODEX 1.0.77 production hold forbids Customer worktree/index/untracked changes." >&2
-    exit 1
+  if [[ -f "$production_hold_file" ]]; then
+    echo "Pre-merge release hold contract passed: candidate=1.0.77, Customer $customer_identity carried forward unchanged."
+    exit 0
   fi
-  echo "Pre-merge release hold contract passed: candidate=1.0.77, Customer tree frozen at $customer_freeze_sha ($customer_freeze_tree_sha)."
-  exit 0
 fi
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 release_branch=false
@@ -74,8 +72,13 @@ if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
   exit 1
 fi
 
-if [[ "$customer_identity" != "$driver_identity" ]]; then
-  echo "Customer and Driver mobile version identities must match for release work." >&2
+if [[ "$current_version" != "1.0.77" && "$customer_identity" != "$driver_identity" ]]; then
+  echo "Customer and Driver mobile version identities must match for non-frozen release work." >&2
+  exit 1
+fi
+
+if [[ "$driver_identity" != "$van_identity" ]]; then
+  echo "Driver and Van mobile version identities must match for release work." >&2
   exit 1
 fi
 
@@ -84,4 +87,8 @@ if [[ "${driver_identity%%+*}" != "$current_version" ]]; then
   exit 1
 fi
 
-echo "Pre-merge release version contract passed (release_intent=true, base=$base_version, candidate=$current_version)."
+if [[ "$current_version" == "1.0.77" ]]; then
+  echo "Pre-merge release version contract passed (release_intent=true, candidate=1.0.77, Customer=$customer_identity carried_forward, Driver/Van=$driver_identity)."
+else
+  echo "Pre-merge release version contract passed (release_intent=true, base=$base_version, candidate=$current_version)."
+fi
