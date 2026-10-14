@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\WhatsApp\CampaignSendPolicy;
 use App\Domain\WhatsApp\Capability;
 use App\Domain\WhatsApp\ConnectionHealthRecorder;
 use App\Domain\WhatsApp\OutboundExecution;
@@ -71,6 +72,11 @@ final class SendWhatsAppMessage implements ShouldQueue
         $payload = json_decode((string) $dispatch->payload, true);
         $payload = is_array($payload) ? $payload : [];
         $metadata = isset($payload['metadata']) && is_array($payload['metadata']) ? $payload['metadata'] : [];
+        $purpose = Capability::tryFrom((string) ($metadata['purpose'] ?? ''));
+        if ($purpose === null || ! $purpose->isOutbound()) {
+            $purpose = Capability::OUTBOUND;
+        }
+
         $message = new OutboundMessage(
             recipient: (string) $dispatch->recipient,
             kind: (string) ($payload['kind'] ?? 'text'),
@@ -82,8 +88,22 @@ final class SendWhatsAppMessage implements ShouldQueue
         try {
             $result = $execution->run(
                 $message->recipient,
-                $this->purpose($metadata),
-                fn () => $providers->forProfile($profile)->send($profile, $message),
+                $purpose,
+                function () use ($providers, $profile, $message, $metadata, $purpose) {
+                    if ($purpose === Capability::CAMPAIGNS) {
+                        $recipientId = (int) ($metadata['campaign_recipient_id'] ?? 0);
+                        if ($recipientId < 1) {
+                            throw new OutboundPaused('whatsapp.campaign_recipient_missing');
+                        }
+
+                        app(CampaignSendPolicy::class)->assertRecipientCanSend(
+                            $recipientId,
+                            $message->recipient,
+                        );
+                    }
+
+                    return $providers->forProfile($profile)->send($profile, $message);
+                },
             );
 
             DB::transaction(function () use ($dispatch, $result): void {
@@ -103,6 +123,10 @@ final class SendWhatsAppMessage implements ShouldQueue
                 ]);
             });
 
+            if ($purpose === Capability::CAMPAIGNS) {
+                app(CampaignSendPolicy::class)->markSentByMessage((int) $dispatch->message_id);
+            }
+
             $health->outboundSucceeded($profile);
         } catch (OutboundPaused) {
             DB::table('whats_app_outbound_dispatches')->where('id', $dispatch->id)->update([
@@ -121,17 +145,6 @@ final class SendWhatsAppMessage implements ShouldQueue
             $this->terminalFailure($dispatch, 'Unexpected provider transport failure.');
             $health->providerError($profile, 'Unexpected provider transport failure.');
         }
-    }
-
-    /** @param array<string, mixed> $metadata */
-    private function purpose(array $metadata): Capability
-    {
-        return match (strtolower(trim((string) ($metadata['purpose'] ?? '')))) {
-            'transactional' => Capability::TRANSACTIONAL,
-            'campaigns' => Capability::CAMPAIGNS,
-            'automation' => Capability::AUTOMATION,
-            default => Capability::OUTBOUND,
-        };
     }
 
     private function providerFailure(
@@ -158,6 +171,10 @@ final class SendWhatsAppMessage implements ShouldQueue
             'updated_at' => now(),
         ]);
 
+        if (! $retry) {
+            app(CampaignSendPolicy::class)->markFailedByMessage((int) $dispatch->message_id);
+        }
+
         $health->providerError($profile, $message);
     }
 
@@ -173,5 +190,6 @@ final class SendWhatsAppMessage implements ShouldQueue
             'delivery_status' => 'failed',
             'updated_at' => now(),
         ]);
+        app(CampaignSendPolicy::class)->markFailedByMessage((int) $dispatch->message_id);
     }
 }

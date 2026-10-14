@@ -16,6 +16,9 @@ return [
         'whatsapp.customer_service.supervise' => 'Supervise WhatsApp customer service',
         'whatsapp.agent_status.manage' => 'Manage WhatsApp Agent status and capacity',
         'whatsapp.assignment_rules.manage' => 'Manage WhatsApp assignment rules',
+        'whatsapp.campaigns.view' => 'View WhatsApp campaigns and marketing metrics',
+        'whatsapp.campaigns.manage' => 'Manage WhatsApp templates, consent, segments and campaigns',
+        'whatsapp.campaigns.send' => 'Schedule, pause, cancel and dispatch WhatsApp campaigns',
         'platform.manage' => 'Manage platform-wide settings and permissions',
         'security.view' => 'View users, roles and the effective permission matrix',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
@@ -105,6 +108,7 @@ return [
             'whatsapp.conversations.assign', 'whatsapp.conversations.reassign',
             'whatsapp.internal_notes.manage', 'whatsapp.customer_service.supervise',
             'whatsapp.agent_status.manage', 'whatsapp.assignment_rules.manage',
+            'whatsapp.campaigns.view', 'whatsapp.campaigns.manage', 'whatsapp.campaigns.send',
             'stores.view', 'customers.view', 'orders.view',
         ],
         'B2B_ADMIN' => [

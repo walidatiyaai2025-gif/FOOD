@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
+use App\Http\Controllers\Admin\WhatsAppCampaignController;
 use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Admin\WhatsAppInboxController;
@@ -153,6 +154,20 @@ Route::prefix('admin')
                 Route::patch('/{conversation}/status', [WhatsAppInboxController::class, 'transition'])->whereNumber('conversation')->name('transition');
                 Route::post('/{conversation}/tags', [WhatsAppInboxController::class, 'tag'])->whereNumber('conversation')->name('tag');
                 Route::patch('/my-status', [WhatsAppInboxController::class, 'updateMyStatus'])->name('status');
+            });
+        Route::prefix('whatsapp/campaigns')
+            ->name('whatsapp-campaigns.')
+            ->middleware('whatsapp.capability:campaigns')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppCampaignController::class, 'index'])->name('index');
+                Route::post('/preview', [WhatsAppCampaignController::class, 'preview'])->name('preview');
+                Route::post('/templates', [WhatsAppCampaignController::class, 'storeTemplate'])->name('templates.store');
+                Route::post('/consents', [WhatsAppCampaignController::class, 'storeConsent'])->name('consents.store');
+                Route::post('/', [WhatsAppCampaignController::class, 'storeCampaign'])->name('store');
+                Route::post('/{campaign}/snapshot', [WhatsAppCampaignController::class, 'snapshot'])->whereNumber('campaign')->name('snapshot');
+                Route::post('/{campaign}/schedule', [WhatsAppCampaignController::class, 'schedule'])->whereNumber('campaign')->name('schedule');
+                Route::post('/{campaign}/pause', [WhatsAppCampaignController::class, 'pause'])->whereNumber('campaign')->name('pause');
+                Route::post('/{campaign}/cancel', [WhatsAppCampaignController::class, 'cancel'])->whereNumber('campaign')->name('cancel');
             });
         Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')

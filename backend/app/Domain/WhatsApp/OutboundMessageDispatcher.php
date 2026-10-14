@@ -69,7 +69,11 @@ final class OutboundMessageDispatcher
                 'metadata' => $metadata,
             ];
 
-            $purpose = $this->purpose($metadata);
+            $purpose = Capability::tryFrom((string) ($metadata['purpose'] ?? ''));
+            if ($purpose === null || ! $purpose->isOutbound()) {
+                $purpose = Capability::OUTBOUND;
+            }
+
             $allowed = $this->policy->allowsOutbound($recipient, $purpose);
             $deliveryStatus = $allowed ? 'queued' : 'blocked_policy';
 
@@ -120,17 +124,6 @@ final class OutboundMessageDispatcher
         $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
 
         return $digits === '' ? null : '+'.$digits;
-    }
-
-    /** @param array<string, mixed> $metadata */
-    private function purpose(array $metadata): Capability
-    {
-        return match (strtolower(trim((string) ($metadata['purpose'] ?? '')))) {
-            'transactional' => Capability::TRANSACTIONAL,
-            'campaigns' => Capability::CAMPAIGNS,
-            'automation' => Capability::AUTOMATION,
-            default => Capability::OUTBOUND,
-        };
     }
 
     /** @return array<string, mixed> */

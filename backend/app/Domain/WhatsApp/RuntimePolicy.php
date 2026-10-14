@@ -75,6 +75,16 @@ final class RuntimePolicy
         return $this->allowsOutbound($number, Capability::CAMPAIGNS);
     }
 
+    public function allowsCampaignManagement(): bool
+    {
+        $state = $this->state();
+
+        return $this->isOperational($state)
+            && ! $state->emergencyStop
+            && $state->has(Capability::OUTBOUND)
+            && $state->has(Capability::CAMPAIGNS);
+    }
+
     public function allowsTransactionalNotifications(string $number): bool
     {
         return $this->allowsOutbound($number, Capability::TRANSACTIONAL);
