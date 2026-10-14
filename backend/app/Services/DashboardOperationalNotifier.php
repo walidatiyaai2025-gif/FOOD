@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\WhatsApp\TransactionalNotificationEngine;
 use App\Models\DriverAssignment;
 use App\Models\Invoice;
 use App\Models\Notification;
@@ -17,6 +18,7 @@ final class DashboardOperationalNotifier
     public function __construct(
         private readonly OrderLifecycleNotificationService $lifecycle,
         private readonly OperationalTenantScope $tenantScope,
+        private readonly TransactionalNotificationEngine $whatsAppTransactions,
     ) {}
 
     public function platformCustomerRegistered(PlatformCustomer $customer): void
@@ -127,6 +129,13 @@ final class DashboardOperationalNotifier
         );
 
         $this->lifecycle->customerOrderCreated($order);
+
+        $this->whatsAppTransactions->forOrder(
+            $order,
+            'order.created',
+            'order-created:'.$order->getKey(),
+            ['status' => (string) $order->status, 'source' => $source],
+        );
     }
 
     public function orderStatusChanged(Order $order, string $from, string $to): void
@@ -140,11 +149,12 @@ final class DashboardOperationalNotifier
             ->where('to_status', $to)
             ->orderByDesc('id')
             ->value('id');
+        $eventKey = 'order-status:'.($historyId ?: $order->getKey().':'.$from.':'.$to.':'.(string) $order->updated_at);
 
         $this->notifyOrderAudience(
             $order,
             'order.status_changed',
-            'order-status:'.($historyId ?: $order->getKey().':'.$from.':'.$to.':'.(string) $order->updated_at),
+            $eventKey,
             'orders.view',
             'تحديث الطلب '.DisplayNumber::reference($order->getKey()),
             'Order update '.DisplayNumber::reference($order->getKey()),
@@ -154,6 +164,16 @@ final class DashboardOperationalNotifier
         );
 
         $this->lifecycle->orderStatusChanged($order, $from, $to);
+
+        $transactionalEvent = TransactionalNotificationEngine::orderEventForStatus($to);
+        if ($transactionalEvent !== null) {
+            $this->whatsAppTransactions->forOrder(
+                $order,
+                $transactionalEvent,
+                $eventKey,
+                ['from_status' => $from, 'to_status' => $to],
+            );
+        }
     }
 
     public function driverAssigned(
@@ -275,10 +295,12 @@ final class DashboardOperationalNotifier
             'voided' => 'Invoice voided for order ',
         ];
 
+        $invoiceEventKey = 'invoice:'.$invoice->getKey().':'.$event;
+
         $this->notifyOrderAudience(
             $order,
             'invoice.'.$event,
-            'invoice:'.$invoice->getKey().':'.$event,
+            $invoiceEventKey,
             'finance.view',
             $titlesAr[$event].DisplayNumber::reference($order->getKey()),
             $titlesEn[$event].DisplayNumber::reference($order->getKey()),
@@ -291,6 +313,21 @@ final class DashboardOperationalNotifier
                 'deep_link' => route('admin.invoices.show', ['invoice' => $invoice->getKey()], false),
             ],
         );
+
+        if (in_array($event, ['issued', 'reissued'], true)) {
+            $this->whatsAppTransactions->forOrder(
+                $order,
+                'invoice.issued',
+                $invoiceEventKey,
+                [
+                    'invoice_id' => (int) $invoice->getKey(),
+                    'invoice_number' => (string) $invoice->invoice_number,
+                    'invoice_total' => (float) $invoice->total,
+                    'currency' => (string) $invoice->currency,
+                    'invoice_event' => $event,
+                ],
+            );
+        }
     }
 
     public function paymentStatusChanged(Order $order, Payment $payment, string $from, string $to): void
@@ -299,10 +336,12 @@ final class DashboardOperationalNotifier
             return;
         }
 
+        $eventKey = 'payment:'.$payment->getKey().':'.$from.':'.$to.':'.(string) $payment->updated_at;
+
         $this->notifyOrderAudience(
             $order,
             'payment.status_changed',
-            'payment:'.$payment->getKey().':'.$from.':'.$to.':'.(string) $payment->updated_at,
+            $eventKey,
             'finance.view',
             'تحديث دفع الطلب '.DisplayNumber::reference($order->getKey()),
             'Payment update for order '.DisplayNumber::reference($order->getKey()),
@@ -315,6 +354,22 @@ final class DashboardOperationalNotifier
                 'payment_status' => $to,
             ],
         );
+
+        $transactionalEvent = TransactionalNotificationEngine::paymentEventForStatus($to);
+        if ($transactionalEvent !== null) {
+            $this->whatsAppTransactions->forOrder(
+                $order,
+                $transactionalEvent,
+                $eventKey,
+                [
+                    'payment_id' => (int) $payment->getKey(),
+                    'payment_status' => $to,
+                    'from_payment_status' => $from,
+                    'amount' => $payment->amount === null ? null : (float) $payment->amount,
+                    'currency' => (string) ($payment->currency ?? $order->currency),
+                ],
+            );
+        }
     }
 
     private function notifyOrderAudience(

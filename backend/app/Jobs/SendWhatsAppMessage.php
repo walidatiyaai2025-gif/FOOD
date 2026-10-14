@@ -82,7 +82,7 @@ final class SendWhatsAppMessage implements ShouldQueue
         try {
             $result = $execution->run(
                 $message->recipient,
-                Capability::OUTBOUND,
+                $this->purpose($metadata),
                 fn () => $providers->forProfile($profile)->send($profile, $message),
             );
 
@@ -121,6 +121,17 @@ final class SendWhatsAppMessage implements ShouldQueue
             $this->terminalFailure($dispatch, 'Unexpected provider transport failure.');
             $health->providerError($profile, 'Unexpected provider transport failure.');
         }
+    }
+
+    /** @param array<string, mixed> $metadata */
+    private function purpose(array $metadata): Capability
+    {
+        return match (strtolower(trim((string) ($metadata['purpose'] ?? '')))) {
+            'transactional' => Capability::TRANSACTIONAL,
+            'campaigns' => Capability::CAMPAIGNS,
+            'automation' => Capability::AUTOMATION,
+            default => Capability::OUTBOUND,
+        };
     }
 
     private function providerFailure(
