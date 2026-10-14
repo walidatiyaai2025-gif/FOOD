@@ -48,6 +48,35 @@ final class WhatsAppSupervisorController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 
+        $customerOptions = DB::table('platform_customers')
+            ->whereIn('origin_store_id', $storeIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->orderBy('id')
+            ->limit(200)
+            ->get(['id', 'name', 'phone', 'origin_store_id']);
+
+        $conversationOptionsQuery = DB::table('whats_app_conversations as c')
+            ->leftJoin('platform_customers as pc', 'pc.id', '=', 'c.platform_customer_id')
+            ->leftJoin('stores as s', 's.id', '=', 'c.store_id')
+            ->whereIn('c.store_id', $storeIds)
+            ->orderByDesc('c.updated_at')
+            ->limit(200);
+
+        if (! empty($filters['agent_id'])) {
+            $conversationOptionsQuery->where('c.primary_agent_id', (int) $filters['agent_id']);
+        }
+
+        $conversationOptions = $conversationOptionsQuery->get([
+            'c.id',
+            'c.public_id',
+            'c.status',
+            'c.store_id',
+            'pc.name as customer_name',
+            'pc.phone as customer_phone',
+            's.name as store_name',
+        ]);
+
         $customerTimeline = collect();
         $timelineCustomer = null;
         if (! empty($filters['customer_id'])) {
@@ -65,6 +94,8 @@ final class WhatsAppSupervisorController extends Controller
             'filters' => $filters,
             'dashboard' => $dashboard,
             'stores' => $stores,
+            'customerOptions' => $customerOptions,
+            'conversationOptions' => $conversationOptions,
             'timeline' => $customerTimeline,
             'timelineCustomer' => $timelineCustomer,
         ]);
