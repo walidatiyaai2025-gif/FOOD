@@ -48,6 +48,17 @@
         .feature-flag .flag-copy{display:grid;gap:2px}.feature-flag small{color:var(--foodex-muted);font-weight:500}
         .feature-save{display:flex;justify-content:flex-end;margin-top:10px}
         .commercial-product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:14px}
+        .sales-product-selector{display:grid;gap:8px;margin-top:14px}
+        .sales-product-selector label{display:grid;gap:6px;font-size:.8rem;font-weight:800}
+        .sales-product-combobox{position:relative;max-width:760px}
+        .sales-product-combobox input{width:100%;min-height:46px;padding-inline:14px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fff}
+        .sales-product-results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 6px);max-height:320px;overflow:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;box-shadow:var(--foodex-shadow-md)}
+        .sales-product-results[hidden]{display:none}
+        .sales-product-option,.sales-product-result-message{width:100%;border:0;background:transparent;text-align:start;padding:10px 12px;border-radius:9px}
+        .sales-product-option{cursor:pointer;display:grid;gap:3px}
+        .sales-product-option:hover,.sales-product-option:focus{outline:none;background:var(--foodex-green-soft)}
+        .sales-product-option strong{font-size:.88rem}.sales-product-option small,.sales-product-result-message{color:var(--foodex-muted)}
+        @media(max-width:767px){.commercial-product-grid{grid-template-columns:1fr}.sales-product-results{max-height:260px}}
         .commercial-product{padding:0;overflow:hidden}
         .commercial-product-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 18px;border-bottom:1px solid var(--foodex-border);background:linear-gradient(145deg,#fff,#fbfcfd)}
         .commercial-product-head h3{margin:0 0 4px;font-size:1rem}.commercial-product-body{padding:18px;display:grid;gap:16px}
@@ -192,7 +203,29 @@
                     <h2>{{ __('commercial.sales.policies_title') }}</h2>
                     <p class="muted">{{ __('commercial.sales.policies_description') }}</p>
                 </div>
-                <span class="commercial-status">{{ __('commercial.sales.products_count', ['count' => $products->count()]) }}</span>
+                <span class="commercial-status">{{ __('commercial.sales.products_count', ['count' => $productCount]) }}</span>
+            </div>
+            <div class="sales-product-selector"
+                 data-sales-product-selector
+                 data-search-url="{{ route('admin.commercial.sales-control.products', $scope) }}"
+                 data-no-results="{{ __('commercial.sales.product_selector_no_results') }}"
+                 data-search-error="{{ __('commercial.sales.product_selector_error') }}">
+                <label for="sales-control-product-search">{{ __('commercial.sales.product_selector_label') }}</label>
+                <div class="sales-product-combobox">
+                    <input
+                        id="sales-control-product-search"
+                        type="search"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-controls="sales-control-product-results"
+                        aria-expanded="false"
+                        autocomplete="off"
+                        data-sales-product-search
+                        placeholder="{{ __('commercial.sales.product_selector_placeholder') }}"
+                        value="{{ $selectedProduct ? $selectedProduct->name.($selectedProduct->sku ? ' · '.$selectedProduct->sku : '') : '' }}">
+                    <div id="sales-control-product-results" class="sales-product-results" role="listbox" data-sales-product-results hidden></div>
+                </div>
+                <div class="muted" data-sales-product-hint>{{ $selectedProduct ? __('commercial.sales.product_selector_selected_hint') : __('commercial.sales.product_selector_hint') }}</div>
             </div>
         </section>
         <div class="commercial-product-grid">
@@ -444,12 +477,17 @@
                 </article>
             @endforeach
         </div>
-        @if($products->isEmpty())
-            <div class="commercial-empty">
+        @if($selectedProduct === null)
+            <div class="commercial-empty" data-sales-control-empty>
                 <div>
-                    <strong>{{ __('commercial.sales.empty_title') }}</strong>
-                    <p>{{ __('commercial.sales.empty_description') }}</p>
-                    <div style="margin-top:14px"><a class="foodex-primary" href="{{ route('admin.b2c.module', ['module'=>'products'] + $scope) }}">{{ __('commercial.sales.open_products') }}</a></div>
+                    @if($productCount > 0)
+                        <strong>{{ __('commercial.sales.select_product_title') }}</strong>
+                        <p>{{ __('commercial.sales.select_product_description') }}</p>
+                    @else
+                        <strong>{{ __('commercial.sales.empty_title') }}</strong>
+                        <p>{{ __('commercial.sales.empty_description') }}</p>
+                        <div style="margin-top:14px"><a class="foodex-primary" href="{{ route('admin.b2c.module', ['module'=>'products'] + $scope) }}">{{ __('commercial.sales.open_products') }}</a></div>
+                    @endif
                 </div>
             </div>
         @endif
@@ -759,6 +797,106 @@
 <script>
 (() => {
     document.documentElement.dataset.foodexCommercialScriptInit = '1';
+
+    const salesProductSelector = document.querySelector('[data-sales-product-selector]');
+    if (salesProductSelector) {
+        const input = salesProductSelector.querySelector('[data-sales-product-search]');
+        const results = salesProductSelector.querySelector('[data-sales-product-results]');
+        const noResults = salesProductSelector.dataset.noResults || '';
+        const searchError = salesProductSelector.dataset.searchError || '';
+        let searchTimer = null;
+        let searchRequest = null;
+
+        const closeResults = () => {
+            if (!results || !input) return;
+            results.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+        };
+
+        const showMessage = (message) => {
+            if (!results || !input) return;
+            results.replaceChildren();
+            const row = document.createElement('div');
+            row.className = 'sales-product-result-message';
+            row.setAttribute('role', 'option');
+            row.setAttribute('aria-disabled', 'true');
+            row.textContent = message;
+            results.appendChild(row);
+            results.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+        };
+
+        const renderProducts = (products) => {
+            if (!results || !input) return;
+            results.replaceChildren();
+            if (!Array.isArray(products) || products.length === 0) {
+                showMessage(noResults);
+                return;
+            }
+
+            products.forEach((product) => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'sales-product-option';
+                option.setAttribute('role', 'option');
+
+                const name = document.createElement('strong');
+                name.textContent = product.name || '';
+                const sku = document.createElement('small');
+                sku.textContent = product.sku || '—';
+
+                option.append(name, sku);
+                option.addEventListener('click', () => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('product', String(product.id));
+                    window.location.assign(url.toString());
+                });
+                results.appendChild(option);
+            });
+
+            results.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+        };
+
+        const searchProducts = async () => {
+            if (!input || !results) return;
+            if (searchRequest) searchRequest.abort();
+            searchRequest = new AbortController();
+
+            const url = new URL(salesProductSelector.dataset.searchUrl || window.location.href, window.location.origin);
+            url.searchParams.set('q', input.value.trim());
+
+            try {
+                const response = await fetch(url.toString(), {
+                    headers: { Accept: 'application/json' },
+                    signal: searchRequest.signal,
+                });
+                if (!response.ok) throw new Error('product-search-failed');
+                const payload = await response.json();
+                renderProducts(payload.products || []);
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                showMessage(searchError);
+            }
+        };
+
+        input?.addEventListener('input', () => {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(searchProducts, 180);
+        });
+        input?.addEventListener('focus', () => {
+            if (results?.hidden) searchProducts();
+        });
+        input?.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeResults();
+                input.blur();
+            }
+        });
+        document.addEventListener('click', (event) => {
+            if (!salesProductSelector.contains(event.target)) closeResults();
+        });
+    }
     document.querySelectorAll('[data-commercial-channel-picker]').forEach((picker) => {
         const output = picker.querySelector('[data-commercial-channels-json]');
         const boxes = [...picker.querySelectorAll('[data-commercial-channel]')];
