@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Services\FoodexResetService;
 use App\Services\ProductionDatasetSnapshot;
 use Database\Seeders\CoreReferenceSeeder;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -15,13 +14,23 @@ use Tests\TestCase;
 
 class Foodex1077FinalCertificationTest extends TestCase
 {
-    use DatabaseTruncation;
+    private string $databasePath;
 
     private string $metadataPath;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->databasePath = storage_path('framework/testing/final-certification-db-'.bin2hex(random_bytes(5)).'.sqlite');
+        touch($this->databasePath);
+        config([
+            'database.default' => 'sqlite',
+            'database.connections.sqlite.database' => $this->databasePath,
+        ]);
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
+        $this->artisan('migrate:fresh', ['--force' => true])->assertExitCode(0);
         $this->seed(CoreReferenceSeeder::class);
 
         $this->metadataPath = storage_path('framework/testing/final-certification-'.bin2hex(random_bytes(5)).'.json');
@@ -39,6 +48,12 @@ class Foodex1077FinalCertificationTest extends TestCase
     protected function tearDown(): void
     {
         @unlink($this->metadataPath);
+        DB::disconnect('sqlite');
+
+        foreach ([$this->databasePath, $this->databasePath.'-wal', $this->databasePath.'-shm', $this->databasePath.'-journal'] as $path) {
+            @unlink($path);
+        }
+
         parent::tearDown();
     }
 
