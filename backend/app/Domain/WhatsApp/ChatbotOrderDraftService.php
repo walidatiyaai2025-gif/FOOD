@@ -12,7 +12,7 @@ final class ChatbotOrderDraftService
     public function addProduct(int $conversationId, int $platformCustomerId, int $productId, float $quantity = 1): array
     {
         $quantity = max(1, min(999, $quantity));
-        [$legacyCustomerId, $storeId] = $this->customerContext($conversationId, $platformCustomerId);
+        [$legacyCustomerId, $storeId, $channel] = $this->customerContext($conversationId, $platformCustomerId);
 
         $product = DB::table('products')
             ->join('store_products', 'store_products.product_id', '=', 'products.id')
@@ -29,7 +29,7 @@ final class ChatbotOrderDraftService
             ]);
         }
 
-        $cartId = $this->cart($storeId, $legacyCustomerId);
+        $cartId = $this->cart($storeId, $legacyCustomerId, $channel);
         DB::transaction(function () use ($cartId, $productId, $quantity, $product): void {
             $existing = DB::table('cart_items')
                 ->where('cart_id', $cartId)
@@ -74,7 +74,7 @@ final class ChatbotOrderDraftService
             ]);
         }
 
-        $cartId = $this->cart($storeId, $legacyCustomerId);
+        $cartId = $this->cart($storeId, $legacyCustomerId, $channel);
         $items = DB::table('order_items')->where('order_id', $order->id)->orderBy('id')->limit(100)->get();
         $skipped = 0;
 
@@ -114,7 +114,7 @@ final class ChatbotOrderDraftService
         $cartId = DB::table('carts')
             ->where('store_id', $storeId)
             ->where('customer_id', $legacyCustomerId)
-            ->where('channel', 'b2b')
+            ->where('channel', $channel)
             ->orderByDesc('updated_at')
             ->value('id');
 
@@ -136,7 +136,7 @@ final class ChatbotOrderDraftService
             ->get();
     }
 
-    /** @return array{0:int,1:int} */
+    /** @return array{0:int,1:int,2:string} */
     private function customerContext(int $conversationId, int $platformCustomerId): array
     {
         $customer = DB::table('platform_customers')
@@ -155,15 +155,18 @@ final class ChatbotOrderDraftService
             ]);
         }
 
-        return [(int) $customer->legacy_customer_id, (int) $conversation->store_id];
+        $channel = strtolower((string) (DB::table('customers')->where('id', $customer->legacy_customer_id)->value('type') ?? 'b2b'));
+        $channel = in_array($channel, ['b2b', 'b2c'], true) ? $channel : 'b2b';
+
+        return [(int) $customer->legacy_customer_id, (int) $conversation->store_id, $channel];
     }
 
-    private function cart(int $storeId, int $legacyCustomerId): int
+    private function cart(int $storeId, int $legacyCustomerId, string $channel): int
     {
         $id = DB::table('carts')
             ->where('store_id', $storeId)
             ->where('customer_id', $legacyCustomerId)
-            ->where('channel', 'b2b')
+            ->where('channel', $channel)
             ->orderByDesc('updated_at')
             ->value('id');
 
@@ -175,7 +178,7 @@ final class ChatbotOrderDraftService
             'store_id' => $storeId,
             'customer_id' => $legacyCustomerId,
             'guest_token' => null,
-            'channel' => 'b2b',
+            'channel' => $channel,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
