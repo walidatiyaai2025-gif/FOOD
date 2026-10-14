@@ -10,9 +10,10 @@ enum Capability: string
     case CAMPAIGNS = 'campaigns';
     case AUTOMATION = 'automation';
     case OUTBOUND = 'outbound';
+    case CALLS = 'calls';
 
     public function isOutbound(): bool
     {
-        return in_array($this, [self::OUTBOUND, self::TRANSACTIONAL, self::CAMPAIGNS, self::AUTOMATION], true);
+        return in_array($this, [self::OUTBOUND, self::TRANSACTIONAL, self::CAMPAIGNS, self::AUTOMATION, self::CALLS], true);
     }
 }
