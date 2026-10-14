@@ -18,10 +18,10 @@ return new class extends Migration
         });
 
         Schema::table('whats_app_messages', function (Blueprint $table): void {
-            $table->foreignId('connection_profile_id')
+            $table->unsignedBigInteger('connection_profile_id')
                 ->nullable()
                 ->after('conversation_id')
-                ->constrained('whats_app_connection_profiles');
+                ->index();
             $table->string('content_type', 24)->default('text')->after('direction');
             $table->unique(
                 ['connection_profile_id', 'provider_message_ref'],
@@ -31,7 +31,7 @@ return new class extends Migration
 
         Schema::create('whats_app_webhook_events', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('connection_profile_id')->constrained('whats_app_connection_profiles')->cascadeOnDelete();
+            $table->unsignedBigInteger('connection_profile_id')->index();
             $table->string('event_hash', 64);
             $table->string('event_type', 64)->nullable();
             $table->json('payload');
@@ -49,8 +49,8 @@ return new class extends Migration
 
         Schema::create('whats_app_outbound_dispatches', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('message_id')->unique()->constrained('whats_app_messages')->cascadeOnDelete();
-            $table->foreignId('connection_profile_id')->nullable()->constrained('whats_app_connection_profiles');
+            $table->unsignedBigInteger('message_id')->unique();
+            $table->unsignedBigInteger('connection_profile_id')->nullable()->index();
             $table->string('idempotency_key', 96)->unique();
             $table->string('recipient', 32);
             $table->json('payload');
@@ -73,8 +73,8 @@ return new class extends Migration
 
         Schema::table('whats_app_messages', function (Blueprint $table): void {
             $table->dropUnique('wa_messages_profile_provider_ref_unique');
-            $table->dropConstrainedForeignId('connection_profile_id');
-            $table->dropColumn('content_type');
+            $table->dropIndex(['connection_profile_id']);
+            $table->dropColumn(['connection_profile_id', 'content_type']);
         });
 
         Schema::table('whats_app_conversations', function (Blueprint $table): void {
