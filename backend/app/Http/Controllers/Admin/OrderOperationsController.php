@@ -45,6 +45,20 @@ final class OrderOperationsController extends Controller
         private readonly OperationalLookupService $lookups,
     ) {}
 
+    public function b2bIndex(Request $request): View
+    {
+        $request->merge(['channel' => 'b2b']);
+
+        return $this->index($request);
+    }
+
+    public function b2cIndex(Request $request): View
+    {
+        $request->merge(['channel' => 'b2c']);
+
+        return $this->index($request);
+    }
+
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
