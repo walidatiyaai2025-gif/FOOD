@@ -173,9 +173,17 @@ return new class extends Migration
             'whatsapp.customer_service.supervise',
             'whatsapp.agent_status.manage',
             'whatsapp.assignment_rules.manage',
+            'stores.view',
+            'customers.view',
+            'orders.view',
         ])->pluck('id', 'code');
         $roles = DB::table('roles')
-            ->whereIn('code', ['CUSTOMER_SERVICE_AGENT', 'CUSTOMER_SERVICE_SUPERVISOR'])
+            ->whereIn('code', [
+                'CUSTOMER_SERVICE_AGENT',
+                'CUSTOMER_SERVICE_SUPERVISOR',
+                'CUSTOMER_SUPPORT',
+                'RETAIL_CUSTOMER_SUPPORT',
+            ])
             ->pluck('id', 'code');
 
         $agentCodes = [
@@ -185,11 +193,18 @@ return new class extends Migration
             'whatsapp.conversations.assign',
             'whatsapp.internal_notes.manage',
         ];
+        $serviceAgentCodes = array_merge($agentCodes, [
+            'stores.view',
+            'customers.view',
+            'orders.view',
+        ]);
         $supervisorCodes = array_keys($permissions->all());
 
         foreach ([
-            'CUSTOMER_SERVICE_AGENT' => $agentCodes,
+            'CUSTOMER_SERVICE_AGENT' => $serviceAgentCodes,
             'CUSTOMER_SERVICE_SUPERVISOR' => $supervisorCodes,
+            'CUSTOMER_SUPPORT' => $agentCodes,
+            'RETAIL_CUSTOMER_SUPPORT' => $agentCodes,
         ] as $roleCode => $codes) {
             $roleId = $roles[$roleCode] ?? null;
             if ($roleId === null) {
