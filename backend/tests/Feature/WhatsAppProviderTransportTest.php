@@ -101,7 +101,7 @@ final class WhatsAppProviderTransportTest extends TestCase
         $this->assertArrayNotHasKey('webhook_signing_secret', $profile->toArray());
     }
 
-    public function test_meta_provider_uploads_private_attachment_before_sending_media_message(): void
+    public function test_meta_media_upload_produces_provider_media_id_for_message_send(): void
     {
         Storage::fake('local');
         Storage::disk('local')->put('whatsapp-media/outbound/1/photo.jpg', 'jpeg-bytes');
@@ -119,19 +119,22 @@ final class WhatsAppProviderTransportTest extends TestCase
             return Http::response([], 404);
         });
 
+        $metadata = [
+            'media_type' => 'image',
+            'mime_type' => 'image/jpeg',
+            'filename' => 'photo.jpg',
+            'local_disk' => 'local',
+            'local_path' => 'whatsapp-media/outbound/1/photo.jpg',
+        ];
+        $metadata['media_id'] = app(WhatsAppMediaService::class)->uploadToMeta($profile, $metadata);
+
         $sent = app(MetaCloudWhatsAppProvider::class)->send(
             $profile,
             new OutboundMessage(
                 recipient: '+96550000111',
                 kind: 'media',
                 body: 'Product photo',
-                metadata: [
-                    'media_type' => 'image',
-                    'mime_type' => 'image/jpeg',
-                    'filename' => 'photo.jpg',
-                    'local_disk' => 'local',
-                    'local_path' => 'whatsapp-media/outbound/1/photo.jpg',
-                ],
+                metadata: $metadata,
                 idempotencyKey: 'wa-media-test-1',
             ),
         );
