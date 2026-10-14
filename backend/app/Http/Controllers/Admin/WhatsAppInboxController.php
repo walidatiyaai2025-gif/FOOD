@@ -556,3 +556,4 @@ final class WhatsAppInboxController extends Controller
             ->route('admin.whatsapp-inbox.index', ['conversation' => $conversation])
             ->with('status', $status);
     }
+}
