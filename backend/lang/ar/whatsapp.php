@@ -328,4 +328,18 @@ return [
             'INVALID' => 'غير صالح',
         ],
     ],
+    'inbound_popup' => [
+        'title' => 'رسالة واتساب جديدة',
+        'open' => 'فتح المحادثة',
+        'dismiss' => 'إغلاق',
+        'close' => 'إغلاق التنبيه',
+        'store' => 'المتجر',
+        'more_waiting' => 'رسائل أخرى بالانتظار',
+        'photo_received' => 'تم استلام صورة',
+        'document_received' => 'تم استلام مستند',
+        'voice_received' => 'تم استلام رسالة صوتية',
+        'video_received' => 'تم استلام فيديو',
+        'media_received' => 'تم استلام ملف وسائط',
+        'message_received' => 'تم استلام رسالة',
+    ],
 ];

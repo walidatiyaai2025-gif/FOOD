@@ -859,3 +859,4 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 @include('admin._new-order-popup')
+@include('admin._whatsapp-inbound-popup')

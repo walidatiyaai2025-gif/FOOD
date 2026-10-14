@@ -16,6 +16,7 @@ final class ConversationService
     public function __construct(
         private readonly AgentAssignmentEngine $assignments,
         private readonly AuditLogger $audit,
+        private readonly InboundMessageAlertService $inboundAlerts,
     ) {}
 
     public function findOrCreateForInbound(
@@ -146,6 +147,10 @@ final class ConversationService
             if ($conversation->primary_agent_id === null) {
                 $this->autoAssign($conversationId);
             }
+
+            // #1428: create the Dashboard alert only after the inbound message
+            // and any deterministic assignment have been durably persisted.
+            $this->inboundAlerts->recordForPersistedMessage($messageId);
 
             return $messageId;
         }, 3);
