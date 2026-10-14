@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Services\FoodexResetService;
 use App\Services\ProductionDatasetSnapshot;
 use Database\Seeders\CoreReferenceSeeder;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class Foodex1077FinalCertificationTest extends TestCase
 {
-    use DatabaseMigrations;
+    use DatabaseTruncation;
 
     private string $metadataPath;
 
