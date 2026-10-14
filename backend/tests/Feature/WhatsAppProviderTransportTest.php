@@ -49,6 +49,17 @@ final class WhatsAppProviderTransportTest extends TestCase
         });
 
         $provider = app(MetaCloudWhatsAppProvider::class);
+        $unconfirmed = $provider->validate($profile);
+        $this->assertFalse($unconfirmed->valid);
+        $this->assertSame(ConnectionHealthStatus::WEBHOOK_UNCONFIRMED, $unconfirmed->health);
+
+        $verifyUrl = route('webhooks.whatsapp.meta.verify', $profile);
+        $this->get($verifyUrl.'?hub.mode=subscribe&hub.verify_token=verify-token&hub.challenge=ready')
+            ->assertOk()
+            ->assertSeeText('ready');
+
+        $profile->refresh();
+        $this->assertNotNull($profile->last_webhook_at);
         $validation = $provider->validate($profile);
 
         $this->assertTrue($validation->valid);
