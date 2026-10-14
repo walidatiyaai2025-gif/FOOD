@@ -261,30 +261,15 @@ final class ChatbotAutomationService
             return ['body' => $this->t('feature_unavailable'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
-        $customer = $this->customer($platformCustomerId);
-        if ($customer === null) {
+        if ($this->customer($platformCustomerId) === null) {
             return ['body' => $this->t('finance_secure'), 'handoff' => true, 'reason' => 'finance_identity'];
         }
 
-        $invoices = DB::table('invoices')
-            ->where('platform_customer_id', (int) $customer->id)
-            ->orderByDesc('issued_at')
-            ->limit(3)
-            ->get();
-
-        if ($invoices->isEmpty()) {
-            return ['body' => $this->t('no_invoices'), 'interactive' => $this->homeInteractive($platformCustomerId)];
-        }
-
-        $lines = [$this->t('finance_intro')];
-        foreach ($invoices as $invoice) {
-            $number = $invoice->invoice_number ?? ('#'.$invoice->id);
-            $total = $invoice->total ?? 0;
-            $lines[] = '• '.$number.' — '.number_format((float) $total, 3);
-        }
-        $lines[] = $this->t('finance_secure');
-
-        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
+        return [
+            'body' => $this->t('finance_secure'),
+            'handoff' => true,
+            'reason' => 'finance_verification_required',
+        ];
     }
 
     /** @return array<string, mixed> */
