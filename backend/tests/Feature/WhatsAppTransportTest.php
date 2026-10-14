@@ -6,7 +6,9 @@ use App\Domain\WhatsApp\Capability;
 use App\Domain\WhatsApp\ConnectionHealthStatus;
 use App\Domain\WhatsApp\ConnectionProfileStatus;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
+use App\Domain\WhatsApp\TransportRetryService;
 use App\Domain\WhatsApp\WebhookIngress;
+use App\Domain\WhatsApp\WebhookProcessor;
 use App\Jobs\ProcessWhatsAppWebhook;
 use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
@@ -154,6 +156,85 @@ final class WhatsAppTransportTest extends TestCase
         )->assertNotFound();
 
         $this->assertSame(0, DB::table('whats_app_webhook_events')->count());
+        Queue::assertNothingPushed();
+    }
+
+    public function test_in_flight_webhook_is_blocked_if_module_is_disabled_before_processing(): void
+    {
+        Queue::fake();
+        $this->enableInternalTest();
+        $profile = $this->profile();
+
+        $payload = [
+            'object' => 'whatsapp_business_account',
+            'entry' => [[
+                'changes' => [[
+                    'field' => 'messages',
+                    'value' => [
+                        'metadata' => [
+                            'display_phone_number' => '+96555555555',
+                            'phone_number_id' => 'phone-id-1',
+                        ],
+                        'messages' => [[
+                            'from' => '96550000001',
+                            'id' => 'wamid.in-flight',
+                            'timestamp' => '1791945600',
+                            'type' => 'text',
+                            'text' => ['body' => 'Should stay blocked'],
+                        ]],
+                    ],
+                ]],
+            ]],
+        ];
+        $raw = json_encode($payload, JSON_THROW_ON_ERROR);
+        $eventId = app(WebhookIngress::class)->capture($profile, $payload, $raw);
+        $this->assertNotNull($eventId);
+
+        WhatsAppModuleState::query()->findOrFail(1)->forceFill([
+            'lifecycle' => 'DISABLED',
+            'emergency_stop' => true,
+        ])->save();
+
+        app(WebhookProcessor::class)->process((int) $eventId);
+
+        $this->assertDatabaseHas('whats_app_webhook_events', [
+            'id' => $eventId,
+            'status' => 'blocked_policy',
+        ]);
+        $this->assertSame(0, DB::table('whats_app_messages')->count());
+    }
+
+    public function test_retry_scheduler_is_inert_while_module_is_disabled(): void
+    {
+        Queue::fake();
+        $now = now();
+
+        DB::table('whats_app_outbound_dispatches')->insert([
+            'message_id' => 900001,
+            'connection_profile_id' => null,
+            'idempotency_key' => 'disabled-retry-outbound',
+            'recipient' => '+96555555555',
+            'payload' => '{}',
+            'status' => 'retry_wait',
+            'attempts' => 1,
+            'next_retry_at' => $now->copy()->subMinute(),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        DB::table('whats_app_webhook_events')->insert([
+            'connection_profile_id' => 900001,
+            'event_hash' => hash('sha256', 'disabled-retry-webhook'),
+            'event_type' => 'whatsapp_business_account',
+            'payload' => '{}',
+            'status' => 'retry_wait',
+            'attempts' => 1,
+            'received_at' => $now,
+            'next_retry_at' => $now->copy()->subMinute(),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $this->assertSame(0, app(TransportRetryService::class)->dispatchDue());
         Queue::assertNothingPushed();
     }
 
