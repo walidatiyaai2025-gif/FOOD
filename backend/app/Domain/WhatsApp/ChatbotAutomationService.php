@@ -486,9 +486,12 @@ final class ChatbotAutomationService
                     'sections' => [[
                         'title' => $this->t('support_title'),
                         'rows' => [
-                            ['id' => 'chatbot:human_handoff_missing', 'title' => $this->t('missing_item')],
-                            ['id' => 'chatbot:human_handoff_damaged', 'title' => $this->t('damaged_item')],
-                            ['id' => 'chatbot:human_handoff_delivery', 'title' => $this->t('delivery_problem')],
+                            ['id' => 'chatbot:human_handoff_missing', 'title' => mb_substr($this->t('missing_item'), 0, 24)],
+                            ['id' => 'chatbot:human_handoff_damaged', 'title' => mb_substr($this->t('damaged_item'), 0, 24)],
+                            ['id' => 'chatbot:human_handoff_quantity', 'title' => mb_substr($this->t('incorrect_quantity'), 0, 24)],
+                            ['id' => 'chatbot:human_handoff_delivery', 'title' => mb_substr($this->t('delivery_problem'), 0, 24)],
+                            ['id' => 'chatbot:human_handoff_invoice', 'title' => mb_substr($this->t('invoice_problem'), 0, 24)],
+                            ['id' => 'chatbot:human_handoff_other', 'title' => mb_substr($this->t('other_problem'), 0, 24)],
                         ],
                     ]],
                 ],
@@ -704,7 +707,10 @@ final class ChatbotAutomationService
         return match ($id) {
             'chatbot:human_handoff_missing' => 'missing',
             'chatbot:human_handoff_damaged' => 'damaged',
+            'chatbot:human_handoff_quantity' => 'incorrect_quantity',
             'chatbot:human_handoff_delivery' => 'delivery',
+            'chatbot:human_handoff_invoice' => 'invoice',
+            'chatbot:human_handoff_other' => 'other',
             default => null,
         };
     }
