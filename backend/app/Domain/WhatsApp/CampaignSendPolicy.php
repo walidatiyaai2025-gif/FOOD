@@ -10,7 +10,7 @@ final class CampaignSendPolicy
 
     public function assertRecipientCanSend(int $recipientId, string $recipientPhone): void
     {
-        DB::transaction(function () use ($recipientId, $recipientPhone): void {
+        $pauseReason = DB::transaction(function () use ($recipientId, $recipientPhone): ?string {
             $recipient = DB::table('whats_app_campaign_recipients')
                 ->where('id', $recipientId)
                 ->lockForUpdate()
@@ -18,7 +18,7 @@ final class CampaignSendPolicy
 
             if ($recipient === null || $recipient->eligibility_status !== 'eligible'
                 || ! in_array($recipient->send_status, ['pending', 'queued'], true)) {
-                throw new OutboundPaused('whatsapp.campaign_recipient_not_eligible');
+                return 'whatsapp.campaign_recipient_not_eligible';
             }
 
             $campaign = DB::table('whats_app_campaigns')
@@ -27,19 +27,19 @@ final class CampaignSendPolicy
                 ->first();
 
             if ($campaign === null || $campaign->status !== 'running') {
-                throw new OutboundPaused('whatsapp.campaign_not_running');
+                return 'whatsapp.campaign_not_running';
             }
 
             $template = DB::table('whats_app_templates')->where('id', $campaign->template_id)->first();
             if ($template === null || ! $template->is_active || $template->provider_status !== 'approved') {
                 $this->suppress($recipientId, 'template_unavailable');
-                throw new OutboundPaused('whatsapp.campaign_template_unavailable');
+                return 'whatsapp.campaign_template_unavailable';
             }
 
             $normalized = $this->consent->normalizePhone($recipientPhone);
             if ($normalized === null || $normalized !== $recipient->phone) {
                 $this->suppress($recipientId, 'invalid_phone');
-                throw new OutboundPaused('whatsapp.campaign_invalid_phone');
+                return 'whatsapp.campaign_invalid_phone';
             }
 
             DB::table('platform_customers')
@@ -50,7 +50,7 @@ final class CampaignSendPolicy
             if (! $this->consent->isEligible((int) $recipient->platform_customer_id, $normalized)) {
                 $state = $this->consent->state((int) $recipient->platform_customer_id);
                 $this->suppress($recipientId, $state === MarketingConsentService::OPTED_OUT ? 'opted_out' : 'no_consent');
-                throw new OutboundPaused('whatsapp.campaign_consent_required');
+                return 'whatsapp.campaign_consent_required';
             }
 
             if ($campaign->test_mode) {
@@ -62,10 +62,16 @@ final class CampaignSendPolicy
                 )));
                 if (! in_array($normalized, $allowlist, true)) {
                     $this->suppress($recipientId, 'test_allowlist');
-                    throw new OutboundPaused('whatsapp.campaign_test_allowlist');
+                    return 'whatsapp.campaign_test_allowlist';
                 }
             }
+
+            return null;
         }, 3);
+
+        if ($pauseReason !== null) {
+            throw new OutboundPaused($pauseReason);
+        }
     }
 
     public function markSentByMessage(int $messageId): void
