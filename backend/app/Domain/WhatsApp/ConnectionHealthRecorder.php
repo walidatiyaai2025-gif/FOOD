@@ -13,7 +13,12 @@ final class ConnectionHealthRecorder
 
     public function outboundSucceeded(WhatsAppConnectionProfile $profile): void
     {
-        $profile->forceFill(['last_outbound_at' => now(), 'last_provider_error' => null])->save();
+        $profile->forceFill([
+            'last_outbound_at' => now(),
+            'last_provider_error' => null,
+            'health_status' => ConnectionHealthStatus::READY,
+            'status' => $profile->is_primary ? ConnectionProfileStatus::ACTIVE : $profile->status,
+        ])->save();
     }
 
     public function providerError(WhatsAppConnectionProfile $profile, string $safeMessage): void
