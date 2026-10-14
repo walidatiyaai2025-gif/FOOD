@@ -412,6 +412,25 @@ final class WhatsAppAgentInboxTest extends TestCase
         $this->assertSame('nosniff', $response->headers->get('x-content-type-options'));
     }
 
+    public function test_inbox_renders_receive_and_make_call_controls_when_calling_is_enabled(): void
+    {
+        $store = $this->store('B2B', 'WA-CALL-UI');
+        $customer = $this->customer($store, 'b2b', 'Voice UI Customer');
+        $conversation = $this->conversation($customer->id, $store);
+        $admin = $this->globalUser('SUPER_ADMIN', 'Voice UI Admin');
+        $this->enableInbox(true);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.whatsapp-inbox.index', ['conversation' => $conversation]))
+            ->assertOk()
+            ->assertSee('اتصال واتساب')
+            ->assertSee('طلب إذن اتصال')
+            ->assertSee('مكالمة واتساب واردة')
+            ->assertSee(route('admin.whatsapp-calls.feed'), false);
+    }
+
     public function test_agent_status_capacity_change_is_audited_through_operational_route(): void
     {
         $this->store('B2B', 'WA-STATUS');
@@ -501,13 +520,15 @@ final class WhatsAppAgentInboxTest extends TestCase
         }
     }
 
-    private function enableInbox(): void
+    private function enableInbox(bool $calls = false): void
     {
         WhatsAppModuleState::query()->findOrFail(1)->forceFill([
             'lifecycle' => 'INTERNAL_TEST',
             'emergency_stop' => true,
-            'capabilities' => ['agent_inbox' => true],
-            'test_numbers' => [],
+            'capabilities' => $calls
+                ? ['inbound' => true, 'agent_inbox' => true, 'outbound' => true, 'calls' => true]
+                : ['agent_inbox' => true],
+            'test_numbers' => $calls ? ['+96550000000'] : [],
         ])->save();
     }
 
