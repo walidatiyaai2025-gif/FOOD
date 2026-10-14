@@ -12,6 +12,7 @@ final class WebhookProcessor
         private readonly WhatsAppProviderRegistry $providers,
         private readonly ConversationService $conversations,
         private readonly RuntimePolicy $policy,
+        private readonly WhatsAppCallingService $calls,
         private readonly MarketingConsentService $consent,
         private readonly CampaignReplyRecorder $campaignReplies,
     ) {}
@@ -23,10 +24,15 @@ final class WebhookProcessor
             return;
         }
 
-        if (! $this->policy->allowsInbound()) {
+        $payload = json_decode((string) $row->payload, true);
+        $isCallWebhook = is_array($payload) && $this->containsCallChanges($payload);
+
+        if ($isCallWebhook ? ! $this->policy->allowsCallWebhooks() : ! $this->policy->allowsInbound()) {
             DB::table('whats_app_webhook_events')->where('id', $eventId)->update([
                 'status' => 'blocked_policy',
-                'last_error' => 'WhatsApp inbound is blocked by lifecycle policy.',
+                'last_error' => $isCallWebhook
+                    ? 'WhatsApp calling is blocked by lifecycle policy.'
+                    : 'WhatsApp inbound is blocked by lifecycle policy.',
                 'next_retry_at' => null,
                 'updated_at' => now(),
             ]);
@@ -47,6 +53,10 @@ final class WebhookProcessor
             $payload = json_decode((string) $row->payload, true, 64, JSON_THROW_ON_ERROR);
             if (! is_array($payload)) {
                 throw new \RuntimeException('Invalid webhook payload.');
+            }
+
+            if ($this->containsCallChanges($payload)) {
+                $this->calls->ingestWebhook($profile, $payload);
             }
 
             foreach ($this->providers->forProfile($profile)->normalizeWebhook($profile, $payload) as $event) {
@@ -76,6 +86,24 @@ final class WebhookProcessor
                 'updated_at' => now(),
             ]);
         }
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function containsCallChanges(array $payload): bool
+    {
+        foreach (($payload['entry'] ?? []) as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+            foreach (($entry['changes'] ?? []) as $change) {
+                if (is_array($change)
+                    && strtolower((string) ($change['field'] ?? '')) === 'calls') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function applyInboundMessage(
