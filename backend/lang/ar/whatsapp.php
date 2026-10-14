@@ -356,6 +356,9 @@ return [
         'send_status' => 'حالة الإرسال',
         'eligibility' => 'الأهلية',
         'open_conversation' => 'فتح المحادثة',
+        'first_reply_time' => 'زمن أول رد',
+        'followup_overdue' => 'المتابعة متأخرة',
+        'seconds' => 'ث',
         'no_recipients' => 'لا يوجد مستلمون مطابقون لهذه الفلاتر.',
         'compare_campaigns' => 'مقارنة الحملات',
         'from' => 'من',
@@ -407,6 +410,7 @@ return [
             'completed' => 'مكتمل',
             'closed' => 'مغلق',
             'cancelled' => 'ملغي',
+            'overdue' => 'متأخر',
         ],
         'suppression_reason_values' => [
             'invalid_phone' => 'رقم هاتف مفقود أو غير صالح',
