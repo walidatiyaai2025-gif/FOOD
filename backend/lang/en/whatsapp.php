@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'inbox_title' => 'Customer Service Inbox',
     'title' => 'WhatsApp foundation',
     'description' => 'Experimental controls. Production messaging stays locked until independent certification.',
     'status' => 'Module status',
