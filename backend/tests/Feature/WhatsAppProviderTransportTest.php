@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 final class WhatsAppProviderTransportTest extends TestCase
@@ -528,7 +529,7 @@ final class WhatsAppProviderTransportTest extends TestCase
     private function postSignedWebhook(
         WhatsAppConnectionProfile $profile,
         array $payload,
-    ): \Illuminate\Testing\TestResponse {
+    ): TestResponse {
         $raw = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         $signature = 'sha256='.hash_hmac('sha256', $raw, 'signing-secret');
 
