@@ -124,6 +124,6 @@ final class WhatsAppGaCertificationTest extends TestCase
         $state = app(RuntimePolicy::class)->state();
         $this->assertSame(Lifecycle::GA_READY, $state->lifecycle);
         $this->assertTrue($state->emergencyStop);
-        $this->assertStringContainsString(config('whatsapp_certification.reference'), Artisan::output());
+        $this->assertDatabaseHas('audit_logs', ['event' => 'whatsapp.ga_certified']);
     }
 }
