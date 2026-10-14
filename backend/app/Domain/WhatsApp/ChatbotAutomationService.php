@@ -13,6 +13,8 @@ final class ChatbotAutomationService
         private readonly ChatbotFeatureRegistry $features,
         private readonly ChatbotIntentService $intents,
         private readonly ChatbotAnalyticsService $analytics,
+        private readonly ChatbotSegmentationService $segmentation,
+        private readonly ChatbotSupportCaseService $supportCases,
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $dispatcher,
     ) {}
@@ -59,15 +61,11 @@ final class ChatbotAutomationService
                 $conversationId,
                 $platformCustomerId,
                 (string) ($settings[$this->localeKey('fallback')] ?? ''),
-                $this->homeInteractive(),
+                $this->homeInteractive($platformCustomerId),
                 'home',
                 'fallback',
                 $confidence,
             );
-        }
-
-        if ($intent === 'human_handoff') {
-            return $this->handoff($conversationId, $platformCustomerId, 'customer_request');
         }
 
         $feature = $this->featureForIntent($intent);
@@ -76,10 +74,50 @@ final class ChatbotAutomationService
                 $conversationId,
                 $platformCustomerId,
                 $this->t('feature_unavailable'),
-                $this->homeInteractive(),
+                $this->homeInteractive($platformCustomerId),
                 'home',
                 $intent,
                 $confidence,
+            );
+        }
+
+        if ($intent === 'human_handoff') {
+            $complaintType = $this->complaintType($metadata);
+            if ($complaintType !== null) {
+                $caseId = $this->supportCases->create(
+                    $conversationId,
+                    $platformCustomerId,
+                    $complaintType,
+                    $body,
+                    $metadata,
+                );
+                $this->analytics->record(
+                    'support_case_created',
+                    $conversationId,
+                    $platformCustomerId,
+                    'complaints',
+                    'human_handoff',
+                    $confidence,
+                    ['case_id' => $caseId, 'type' => $complaintType],
+                );
+            }
+
+            if (! (bool) $settings['human_handoff_enabled']) {
+                return $this->send(
+                    $conversationId,
+                    $platformCustomerId,
+                    $complaintType === null ? $this->t('feature_unavailable') : $this->t('case_created'),
+                    $this->homeInteractive($platformCustomerId),
+                    'complaints',
+                    'complaints',
+                    $confidence,
+                );
+            }
+
+            return $this->handoff(
+                $conversationId,
+                $platformCustomerId,
+                $complaintType === null ? 'customer_request' : 'complaint_'.$complaintType,
             );
         }
 
@@ -104,21 +142,21 @@ final class ChatbotAutomationService
     private function reply(int $conversationId, ?int $platformCustomerId, string $intent): array
     {
         return match ($intent) {
-            'new_order', 'product_search' => $this->productReply($conversationId),
+            'new_order', 'product_search' => $this->productReply($conversationId, $platformCustomerId),
             'repeat_order' => $this->reorderReply($platformCustomerId),
-            'prices_offers' => $this->priceReply($conversationId),
+            'prices_offers' => $this->priceReply($conversationId, $platformCustomerId),
             'order_tracking' => $this->orderReply($platformCustomerId),
             'finance' => $this->financeReply($platformCustomerId),
             'complaints' => $this->supportReply(),
             default => [
                 'body' => $this->welcome(),
-                'interactive' => $this->homeInteractive(),
+                'interactive' => $this->homeInteractive($platformCustomerId),
             ],
         };
     }
 
     /** @return array<string, mixed> */
-    private function productReply(int $conversationId): array
+    private function productReply(int $conversationId, ?int $platformCustomerId): array
     {
         $conversation = DB::table('whats_app_conversations')->where('id', $conversationId)->first();
         $storeId = $conversation?->store_id === null ? null : (int) $conversation->store_id;
@@ -139,7 +177,7 @@ final class ChatbotAutomationService
 
         $products = $query->get();
         if ($products->isEmpty()) {
-            return ['body' => $this->t('no_products'), 'interactive' => $this->homeInteractive()];
+            return ['body' => $this->t('no_products'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
         $lines = [$this->t('product_intro')];
@@ -149,7 +187,7 @@ final class ChatbotAutomationService
         }
         $lines[] = $this->t('product_hint');
 
-        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive()];
+        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
     }
 
     /** @return array<string, mixed> */
@@ -166,7 +204,7 @@ final class ChatbotAutomationService
             ->first();
 
         if ($order === null) {
-            return ['body' => $this->t('no_previous_order'), 'interactive' => $this->homeInteractive()];
+            return ['body' => $this->t('no_previous_order'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
         $items = DB::table('order_items')->where('order_id', $order->id)->orderBy('id')->get();
@@ -178,13 +216,13 @@ final class ChatbotAutomationService
         }
         $lines[] = $this->t('draft_only');
 
-        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive()];
+        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
     }
 
     /** @return array<string, mixed> */
-    private function priceReply(int $conversationId): array
+    private function priceReply(int $conversationId, ?int $platformCustomerId): array
     {
-        $reply = $this->productReply($conversationId);
+        $reply = $this->productReply($conversationId, $platformCustomerId);
         $reply['body'] = $this->t('price_intro')."\n".$reply['body'];
 
         return $reply;
@@ -205,7 +243,7 @@ final class ChatbotAutomationService
             ->get();
 
         if ($orders->isEmpty()) {
-            return ['body' => $this->t('no_orders'), 'interactive' => $this->homeInteractive()];
+            return ['body' => $this->t('no_orders'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
         $lines = [$this->t('orders_intro')];
@@ -213,14 +251,14 @@ final class ChatbotAutomationService
             $lines[] = '• #'.$order->order_number.' — '.$this->status((string) $order->status).' — '.number_format((float) $order->grand_total, 3).' '.$order->currency;
         }
 
-        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive()];
+        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
     }
 
     /** @return array<string, mixed> */
     private function financeReply(?int $platformCustomerId): array
     {
         if (! $this->features->enabled('finance')) {
-            return ['body' => $this->t('feature_unavailable'), 'interactive' => $this->homeInteractive()];
+            return ['body' => $this->t('feature_unavailable'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
         $customer = $this->customer($platformCustomerId);
@@ -235,7 +273,7 @@ final class ChatbotAutomationService
             ->get();
 
         if ($invoices->isEmpty()) {
-            return ['body' => $this->t('no_invoices'), 'interactive' => $this->homeInteractive()];
+            return ['body' => $this->t('no_invoices'), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
         $lines = [$this->t('finance_intro')];
@@ -246,7 +284,7 @@ final class ChatbotAutomationService
         }
         $lines[] = $this->t('finance_secure');
 
-        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive()];
+        return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
     }
 
     /** @return array<string, mixed> */
@@ -358,9 +396,10 @@ final class ChatbotAutomationService
     }
 
     /** @return array<string, mixed> */
-    private function homeInteractive(): array
+    private function homeInteractive(?int $platformCustomerId = null): array
     {
         $rows = [];
+        $segmentCodes = $this->segmentation->codesFor($platformCustomerId);
         $labels = [
             'new_order' => $this->t('new_order'),
             'repeat_order' => $this->t('repeat_order'),
@@ -372,7 +411,7 @@ final class ChatbotAutomationService
             'human_handoff' => $this->t('human_handoff'),
         ];
 
-        foreach ($this->features->visibleEnabled() as $feature) {
+        foreach ($this->features->visibleEnabled($segmentCodes) as $feature) {
             if (! isset($labels[$feature->code])) {
                 continue;
             }
@@ -446,6 +485,22 @@ final class ChatbotAutomationService
         $translated = Lang::get($key, [], $this->locale());
 
         return $translated === $key ? $status : (string) $translated;
+    }
+
+    /** @param array<string, mixed> $metadata */
+    private function complaintType(array $metadata): ?string
+    {
+        $id = $metadata['interactive_id'] ?? null;
+        if (! is_string($id)) {
+            return null;
+        }
+
+        return match ($id) {
+            'chatbot:human_handoff_missing' => 'missing',
+            'chatbot:human_handoff_damaged' => 'damaged',
+            'chatbot:human_handoff_delivery' => 'delivery',
+            default => null,
+        };
     }
 
     private function locale(): string
