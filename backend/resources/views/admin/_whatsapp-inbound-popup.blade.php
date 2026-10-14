@@ -2,7 +2,7 @@
 <style id="foodex-whatsapp-inbound-popup-styles">
 .foodex-whatsapp-inbound-popup{position:fixed;z-index:12500;inset:0;display:grid;place-items:center;padding:24px;pointer-events:none}
 .foodex-whatsapp-inbound-popup[hidden]{display:none!important}
-.foodex-whatsapp-inbound-card{pointer-events:auto;width:min(520px,calc(100vw - 32px));display:grid;gap:14px;padding:20px;background:#fff1f2;color:var(--foodex-ink);border:1px solid rgba(239,83,80,.34);border-radius:var(--foodex-radius-card);box-shadow:0 26px 72px rgba(23,32,51,.28)}
+.foodex-whatsapp-inbound-card{pointer-events:auto;width:min(520px,calc(100vw - 32px));display:grid;gap:14px;padding:20px;background:color-mix(in srgb,var(--foodex-red) 9%,var(--foodex-surface));color:var(--foodex-ink);border:1px solid rgba(239,83,80,.34);border-radius:var(--foodex-radius-card);box-shadow:0 26px 72px rgba(23,32,51,.28)}
 .foodex-whatsapp-inbound-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .foodex-whatsapp-inbound-title{display:flex;align-items:center;gap:10px;font-size:1.08rem;font-weight:var(--foodex-font-weight-bold)}
 .foodex-whatsapp-inbound-dot{width:11px;height:11px;border-radius:999px;background:var(--foodex-red);box-shadow:0 0 0 6px rgba(239,83,80,.12)}
