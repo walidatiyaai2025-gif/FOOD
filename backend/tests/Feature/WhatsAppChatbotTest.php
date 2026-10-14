@@ -70,6 +70,8 @@ final class WhatsAppChatbotTest extends TestCase
                 'scope' => 'runtime',
                 'revision' => 0,
                 'enabled' => 1,
+                'lifecycle' => 'INTERNAL_TEST',
+                'pilot_segment_codes' => [],
                 'emergency_stop' => 0,
                 'mode' => 'hybrid',
                 'default_locale' => 'ar',
@@ -81,6 +83,7 @@ final class WhatsAppChatbotTest extends TestCase
 
         $this->assertDatabaseHas('whats_app_chatbot_settings', [
             'enabled' => 1,
+            'lifecycle' => 'INTERNAL_TEST',
             'emergency_stop' => 0,
             'mode' => 'hybrid',
             'revision' => 1,
@@ -171,6 +174,7 @@ final class WhatsAppChatbotTest extends TestCase
 
         DB::table('whats_app_chatbot_settings')->update([
             'enabled' => true,
+            'lifecycle' => 'INTERNAL_TEST',
             'emergency_stop' => false,
             'working_from' => null,
             'working_to' => null,
@@ -191,6 +195,54 @@ final class WhatsAppChatbotTest extends TestCase
         ])->save();
 
         $this->assertTrue(app(ChatbotRuntimePolicy::class)->canHandleConversation($conversationId));
+    }
+
+    public function test_pilot_runtime_only_handles_customers_in_selected_segments(): void
+    {
+        $storeId = $this->store('B2B', 'WA-BOT-PILOT');
+        $customerId = $this->customer($storeId, 'b2b', '+96550000444');
+        $conversationId = $this->conversation($customerId, $storeId, '+96550000444');
+
+        DB::table('whats_app_chatbot_segments')->insert([
+            'code' => 'active_restaurants',
+            'name_ar' => 'مطاعم نشطة',
+            'name_en' => 'Active restaurants',
+            'enabled' => true,
+            'priority' => 10,
+            'rules' => json_encode(['customer_type' => 'b2b', 'min_orders' => 0, 'dormant_days' => 0]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('whats_app_chatbot_settings')->update([
+            'enabled' => true,
+            'lifecycle' => 'PILOT',
+            'pilot_segment_codes' => json_encode(['active_restaurants']),
+            'emergency_stop' => false,
+            'working_from' => null,
+            'working_to' => null,
+            'updated_at' => now(),
+        ]);
+
+        WhatsAppModuleState::query()->findOrFail(1)->forceFill([
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'capabilities' => [
+                Capability::INBOUND->value => true,
+                Capability::OUTBOUND->value => true,
+                Capability::AUTOMATION->value => true,
+            ],
+            'test_numbers' => ['+96550000444'],
+        ])->save();
+
+        $this->assertTrue(app(ChatbotRuntimePolicy::class)->canHandleConversation($conversationId));
+
+        DB::table('whats_app_chatbot_settings')->update([
+            'pilot_segment_codes' => json_encode(['different_segment']),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertFalse(app(ChatbotRuntimePolicy::class)->canHandleConversation($conversationId));
     }
 
     public function test_interactive_meta_reply_is_normalized_into_chatbot_action_id(): void
@@ -242,6 +294,7 @@ final class WhatsAppChatbotTest extends TestCase
 
         DB::table('whats_app_chatbot_settings')->update([
             'enabled' => true,
+            'lifecycle' => 'INTERNAL_TEST',
             'emergency_stop' => false,
             'default_locale' => 'en',
             'working_from' => null,
@@ -299,6 +352,8 @@ final class WhatsAppChatbotTest extends TestCase
             $this->assertTrue(Schema::hasTable($table));
         }
 
+        $this->assertTrue(Schema::hasColumn('whats_app_chatbot_settings', 'lifecycle'));
+        $this->assertTrue(Schema::hasColumn('whats_app_chatbot_settings', 'pilot_segment_codes'));
         $this->assertTrue(Schema::hasColumn('whats_app_chatbot_events', 'actor_user_id'));
         $this->assertTrue(Schema::hasColumn('whats_app_chatbot_cases', 'public_id'));
     }
