@@ -17,7 +17,7 @@ final class WhatsAppInboundPopupUiContractTest extends TestCase
         $this->assertStringContainsString('foodex-whatsapp-inbound-popup-runtime', $popup);
         $this->assertStringContainsString('position:fixed', $popup);
         $this->assertStringContainsString('place-items:center', $popup);
-        $this->assertStringContainsString('background:#fff1f2', $popup);
+        $this->assertStringContainsString('background:color-mix(in srgb,var(--foodex-red) 9%,var(--foodex-surface))', $popup);
         $this->assertStringContainsString('var(--foodex-red)', $popup);
         $this->assertStringContainsString("__('whatsapp.inbound_popup.open')", $popup);
         $this->assertStringContainsString('BroadcastChannel', $popup);
