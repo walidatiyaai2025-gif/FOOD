@@ -13,6 +13,11 @@ return [
         'timeout_seconds' => (int) env('WHATSAPP_META_TIMEOUT_SECONDS', 10),
     ],
 
+    'media' => [
+        'max_outbound_mb' => (int) env('WHATSAPP_MEDIA_MAX_OUTBOUND_MB', 16),
+        'max_download_mb' => (int) env('WHATSAPP_MEDIA_MAX_DOWNLOAD_MB', 32),
+    ],
+
     'supervisor' => [
         'sla_first_response_minutes' => (int) env('WHATSAPP_SLA_FIRST_RESPONSE_MINUTES', 5),
         'sla_response_minutes' => (int) env('WHATSAPP_SLA_RESPONSE_MINUTES', 15),
