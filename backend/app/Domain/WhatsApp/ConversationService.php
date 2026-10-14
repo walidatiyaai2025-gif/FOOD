@@ -262,7 +262,7 @@ final class ConversationService
                         'is_active' => true,
                         'version' => $version,
                         'updated_at' => now(),
-                        'created_at' => $oldAssignment?->created_at ?? now(),
+                        'created_at' => $oldAssignment->created_at ?? now(),
                     ],
                 );
             }
@@ -372,7 +372,7 @@ final class ConversationService
                         'is_active' => true,
                         'version' => $version,
                         'updated_at' => $now,
-                        'created_at' => $oldAssignment?->created_at ?? $now,
+                        'created_at' => $oldAssignment->created_at ?? $now,
                     ],
                 );
             }
