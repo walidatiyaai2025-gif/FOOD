@@ -180,6 +180,9 @@ return [
         'support_title' => 'نوع المشكلة',
         'missing_item' => 'منتج ناقص',
         'damaged_item' => 'منتج تالف',
+        'incorrect_quantity' => 'كمية غير صحيحة',
+        'invoice_problem' => 'مشكلة في الفاتورة',
+        'other_problem' => 'مشكلة أخرى',
         'delivery_problem' => 'مشكلة في التوصيل',
         'handoff_confirmed' => 'تم تحويل المحادثة لخدمة العملاء. لن يرسل البوت ردودًا تلقائية أثناء استلام الموظف للمحادثة.',
         'statuses' => [
