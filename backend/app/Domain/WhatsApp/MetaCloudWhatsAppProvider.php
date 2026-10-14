@@ -76,6 +76,20 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
             );
         }
 
+        if ($profile->last_webhook_at === null) {
+            return new ConnectionValidationResult(
+                valid: false,
+                health: ConnectionHealthStatus::WEBHOOK_UNCONFIRMED,
+                accountIdentity: $this->stringOrNull($response->json('verified_name')),
+                phoneIdentity: $this->stringOrNull($response->json('display_phone_number')),
+                providerAvailable: true,
+                capabilities: ['text', 'template', 'media'],
+                diagnosticCode: 'webhook_not_confirmed',
+                message: 'Meta API is reachable, but the configured webhook callback has not been verified.',
+                checkedAt: new DateTimeImmutable,
+            );
+        }
+
         return new ConnectionValidationResult(
             valid: true,
             health: ConnectionHealthStatus::READY,
