@@ -48,6 +48,7 @@ final class OrderOperationsController extends Controller
     public function index(Request $request): View
     {
         $actor = $this->actor($request);
+        $availableChannels = $this->availableOperationalChannels($actor, 'orders.view');
 
         $statusOptions = $this->orderStatusOptions();
         $statusCodes = array_values(array_unique(array_map(
@@ -70,9 +71,11 @@ final class OrderOperationsController extends Controller
         $operationalChannel = isset($data['channel'])
             ? (string) $data['channel']
             : $this->defaultOperationalChannel($actor);
+        $this->assertOperationalChannelAllowed($availableChannels, $operationalChannel);
         $data['channel'] = $operationalChannel;
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
+        $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
         $storeIds = array_values(array_unique(array_merge(
             $scopes['b2b'],
@@ -158,7 +161,13 @@ final class OrderOperationsController extends Controller
             ->all();
 
         $rows = collect($orders->items())
-            ->map(fn (Order $order): array => $this->row($order, $statusLabels, $activeStatusCodes, $dispatchScopes))
+            ->map(fn (Order $order): array => $this->row(
+                $order,
+                $statusLabels,
+                $activeStatusCodes,
+                $dispatchScopes,
+                $manageScopes,
+            ))
             ->all();
 
         $stores = DB::table('stores')
@@ -208,7 +217,14 @@ final class OrderOperationsController extends Controller
                 ->whereKey((int) $data['order'])
                 ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
                 ->firstOrFail();
-            $detail = $this->detail($actor, $detailOrder, $statusLabels, $activeStatusCodes, $dispatchScopes);
+            $detail = $this->detail(
+                $actor,
+                $detailOrder,
+                $statusLabels,
+                $activeStatusCodes,
+                $dispatchScopes,
+                $manageScopes,
+            );
         }
 
         return view('admin.order-operations', [
@@ -230,6 +246,8 @@ final class OrderOperationsController extends Controller
             'statusTabs' => $statusTabs,
             'statusTotal' => array_sum($statusCounts),
             'selectedStatus' => $selectedStatus,
+            'selectedChannel' => $operationalChannel,
+            'availableChannels' => $availableChannels,
             'newOrderWizard' => $this->newOrderWizard($actor),
             'isAr' => app()->getLocale() === 'ar',
         ]);
@@ -393,6 +411,24 @@ final class OrderOperationsController extends Controller
                 'تم إنشاء الطلب '.DisplayNumber::reference($order->getKey()).'.',
                 'Order '.DisplayNumber::reference($order->getKey()).' created.',
             ));
+    }
+
+    public function update(
+        Request $request,
+        int $order,
+        AdminOrderManagementService $orders,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.manage');
+        $orders->update($request, $actor, $model);
+
+        return redirect()
+            ->route('admin.operations.orders.index', [
+                'channel' => strtolower((string) $model->channel),
+                'store_id' => (int) $model->store_id,
+                'order' => (int) $model->getKey(),
+            ])
+            ->with('status', $this->msg('تم تحديث الطلب.', 'Order updated.'));
     }
 
     /** @return array{0:string,1:int} */
@@ -1008,6 +1044,7 @@ final class OrderOperationsController extends Controller
         array $statusLabels,
         array $activeStatusCodes,
         array $dispatchScopes,
+        array $manageScopes,
     ): array {
 
         $assignment = DriverAssignment::query()
@@ -1060,7 +1097,27 @@ final class OrderOperationsController extends Controller
         $payment = DB::table('payments')
             ->where('order_id', $order->getKey())
             ->latest('id')
-            ->first(['status', 'provider']);
+            ->first(['status', 'provider', 'amount', 'currency']);
+
+        $invoice = DB::table('invoices')
+            ->where('order_id', $order->getKey())
+            ->latest('id')
+            ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+
+        $channel = strtolower((string) $order->channel);
+        $canManage = in_array(
+            (int) $order->store_id,
+            $manageScopes[$channel] ?? [],
+            true,
+        );
+        $canEdit = $canManage
+            && (string) $order->status === 'pending'
+            && $order->commercial_locked_at === null
+            && ($payment?->status ?? null) !== 'paid'
+            && ! DB::table('invoices')
+                ->where('order_id', $order->getKey())
+                ->whereIn('status', ['issued', 'reissued'])
+                ->exists();
 
         $store = DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
         $storeLabel = $store === null
@@ -1086,7 +1143,7 @@ final class OrderOperationsController extends Controller
             'id' => (int) $order->getKey(),
             'number' => DisplayNumber::reference($order->getKey()),
             'internal_number' => (string) $order->order_number,
-            'channel' => strtolower((string) $order->channel),
+            'channel' => $channel,
             'store_id' => (int) $order->store_id,
             'store' => $storeLabel,
             'source' => $source,
@@ -1106,6 +1163,15 @@ final class OrderOperationsController extends Controller
             'updated_at' => $order->updated_at,
             'payment_status' => $payment?->status,
             'payment_provider' => $payment?->provider,
+            'payment_amount' => $payment?->amount === null ? null : (float) $payment->amount,
+            'payment_currency' => $payment?->currency,
+            'invoice_id' => $invoice?->id === null ? null : (int) $invoice->id,
+            'invoice_number' => $invoice?->invoice_number,
+            'invoice_status' => $invoice?->status,
+            'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
+            'invoice_currency' => $invoice?->currency,
+            'can_manage' => $canManage,
+            'can_edit' => $canEdit,
             'assignment_id' => $assignment?->getKey(),
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
@@ -1138,8 +1204,15 @@ final class OrderOperationsController extends Controller
         array $statusLabels,
         array $activeStatusCodes,
         array $dispatchScopes,
+        array $manageScopes,
     ): array {
-        $row = $this->row($order, $statusLabels, $activeStatusCodes, $dispatchScopes);
+        $row = $this->row(
+            $order,
+            $statusLabels,
+            $activeStatusCodes,
+            $dispatchScopes,
+            $manageScopes,
+        );
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
         $history = OrderStatusHistory::query()
@@ -1301,8 +1374,35 @@ final class OrderOperationsController extends Controller
                 ->all();
         }
 
+        $items = DB::table('order_items')
+            ->where('order_id', $order->getKey())
+            ->orderBy('id')
+            ->get(['product_id', 'sku_snapshot', 'name_snapshot', 'quantity', 'unit_price', 'line_total', 'currency'])
+            ->map(static fn (object $item): array => [
+                'product_id' => (int) $item->product_id,
+                'sku' => (string) $item->sku_snapshot,
+                'name' => (string) $item->name_snapshot,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'line_total' => (float) $item->line_total,
+                'currency' => (string) $item->currency,
+            ])
+            ->all();
+
         return [
             ...$row,
+            'customer_id' => strtolower((string) $order->channel) === 'b2b'
+                ? (int) $order->b2b_customer_id
+                : (int) $order->b2c_customer_id,
+            'warehouse_id' => $order->warehouse_id === null ? null : (int) $order->warehouse_id,
+            'address_id' => $order->address_id === null ? null : (int) $order->address_id,
+            'payment_method' => $order->payment_method,
+            'coupon_code' => data_get($order->pricing_snapshot, 'coupon.code'),
+            'customer_note' => $order->customer_note,
+            'items' => $items,
+            'edit_options' => $row['can_edit']
+                ? $this->newOrderStoreData(strtolower((string) $order->channel), (int) $order->store_id)
+                : null,
             'delivery_address' => $deliveryAddress,
             'history' => $history,
             'assignments' => $assignments,
@@ -1414,18 +1514,53 @@ final class OrderOperationsController extends Controller
         });
     }
 
-    private function defaultOperationalChannel(User $actor): string
+    /** @return list<array{code:string,label:string}> */
+    private function availableOperationalChannels(User $actor, string $permission): array
     {
-        $b2b = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2b');
-        $b2c = $this->scope->allowedStoreIds($actor, 'orders.view', 'b2c');
-
+        $channels = [];
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        $b2b = array_values(array_filter(
+            $this->scope->allowedStoreIds($actor, $permission, 'b2b'),
+            static fn (int $storeId): bool => $storeId === $principalStoreId,
+        ));
         if ($b2b !== []) {
-            return 'b2b';
+            $channels[] = [
+                'code' => 'b2b',
+                'label' => $this->msg('B2B · الجملة', 'B2B · Wholesale'),
+            ];
         }
 
-        abort_if($b2c === [], 403);
+        if ($this->scope->allowedStoreIds($actor, $permission, 'b2c') !== []) {
+            $channels[] = [
+                'code' => 'b2c',
+                'label' => $this->msg('B2C · التجزئة', 'B2C · Retail'),
+            ];
+        }
 
-        return 'b2c';
+        abort_if($channels === [], 403);
+
+        return $channels;
+    }
+
+    /** @param list<array{code:string,label:string}> $availableChannels */
+    private function assertOperationalChannelAllowed(array $availableChannels, string $channel): void
+    {
+        $codes = array_column($availableChannels, 'code');
+
+        if ($channel === 'all') {
+            abort_unless(count($codes) > 1, 403);
+
+            return;
+        }
+
+        abort_unless(in_array($channel, $codes, true), 403);
+    }
+
+    private function defaultOperationalChannel(User $actor): string
+    {
+        $channels = $this->availableOperationalChannels($actor, 'orders.view');
+
+        return (string) $channels[0]['code'];
     }
 
     private function actor(Request $request): User
