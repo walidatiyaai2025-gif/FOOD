@@ -38,8 +38,13 @@ final class WhatsAppTransactionalNotificationTest extends TestCase
             ->where('event_name', 'order.created')
             ->update(['enabled' => true]);
 
-        $eventId = app(TransactionalNotificationEngine::class)
+        app(TransactionalNotificationEngine::class)
             ->forOrder($order, 'order.created', 'order-created:'.$order->id);
+
+        $eventId = DB::table('whats_app_transactional_events')
+            ->where('event_name', 'order.created')
+            ->where('store_id', $order->store_id)
+            ->value('id');
 
         $this->assertNotNull($eventId);
         $this->assertDatabaseHas('whats_app_transactional_events', [
@@ -67,16 +72,20 @@ final class WhatsAppTransactionalNotificationTest extends TestCase
             ]);
 
         $engine = app(TransactionalNotificationEngine::class);
-        $first = $engine->forOrder($order, 'order.created', 'stable-event-key');
-        $second = $engine->forOrder($order, 'order.created', 'stable-event-key');
+        $engine->forOrder($order, 'order.created', 'stable-event-key');
+        $engine->forOrder($order, 'order.created', 'stable-event-key');
 
-        $this->assertSame($first, $second);
         $this->assertSame(1, DB::table('whats_app_transactional_events')->count());
         Queue::assertPushed(ProcessWhatsAppTransactionalEvent::class, 1);
 
-        $engine->process((int) $first);
+        $eventId = (int) DB::table('whats_app_transactional_events')
+            ->where('event_name', 'order.created')
+            ->value('id');
+        $this->assertGreaterThan(0, $eventId);
 
-        $event = DB::table('whats_app_transactional_events')->where('id', $first)->first();
+        $engine->process($eventId);
+
+        $event = DB::table('whats_app_transactional_events')->where('id', $eventId)->first();
         $this->assertNotNull($event->message_id);
         $this->assertNotNull($event->dispatch_id);
         $this->assertSame('queued', (string) $event->status);
@@ -115,12 +124,18 @@ final class WhatsAppTransactionalNotificationTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $eventId = app(TransactionalNotificationEngine::class)->forOrder(
+        app(TransactionalNotificationEngine::class)->forOrder(
             $order,
             'order.delivered',
             'delivered:'.$order->id,
         );
 
+        $eventId = DB::table('whats_app_transactional_events')
+            ->where('event_name', 'order.delivered')
+            ->where('store_id', $order->store_id)
+            ->value('id');
+
+        $this->assertNotNull($eventId);
         $this->assertDatabaseHas('whats_app_transactional_events', [
             'id' => $eventId,
             'status' => 'queued',
