@@ -82,6 +82,7 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
+                $this->whatsAppCampaignsItem($user),
                 $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
@@ -237,6 +238,22 @@ class AdminNavigation
             'whatsapp.inbox_title',
             'admin.whatsapp-inbox.index',
             'whatsapp.inbox.view',
+        );
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function whatsAppCampaignsItem(User $user): ?array
+    {
+        if (! app(RuntimePolicy::class)->allowsCampaignManagement()) {
+            return null;
+        }
+
+        return $this->routeItem(
+            $user,
+            'whatsapp_campaigns',
+            'whatsapp.campaigns.nav_title',
+            'admin.whatsapp-campaigns.index',
+            'whatsapp.campaigns.view',
         );
     }
 
