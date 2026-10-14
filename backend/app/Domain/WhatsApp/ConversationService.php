@@ -4,6 +4,9 @@ namespace App\Domain\WhatsApp;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use DateTime;
+use DateTimeInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -79,7 +82,7 @@ final class ConversationService
         array $attachmentMetadata = [],
         ?string $providerReference = null,
         ?int $connectionProfileId = null,
-        ?\DateTimeInterface $occurredAt = null,
+        ?DateTimeInterface $occurredAt = null,
         string $contentType = 'text',
     ): int {
         return DB::transaction(function () use (
@@ -106,10 +109,10 @@ final class ConversationService
             $now = now();
             $occurred = $occurredAt === null
                 ? $now
-                : \Illuminate\Support\Carbon::instance(
-                    $occurredAt instanceof \DateTime
+                : Carbon::instance(
+                    $occurredAt instanceof DateTime
                         ? $occurredAt
-                        : \DateTime::createFromInterface($occurredAt),
+                        : DateTime::createFromInterface($occurredAt),
                 );
 
             $messageId = (int) DB::table('whats_app_messages')->insertGetId([
