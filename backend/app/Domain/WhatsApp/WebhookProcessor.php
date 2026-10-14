@@ -12,6 +12,8 @@ final class WebhookProcessor
         private readonly WhatsAppProviderRegistry $providers,
         private readonly ConversationService $conversations,
         private readonly RuntimePolicy $policy,
+        private readonly MarketingConsentService $consent,
+        private readonly CampaignReplyRecorder $campaignReplies,
     ) {}
 
     public function process(int $eventId): void
@@ -119,6 +121,12 @@ final class WebhookProcessor
             $event->occurredAt,
             $event->contentType ?? 'unknown',
         );
+
+        if ($this->consent->isOptOutText($event->body)) {
+            $this->consent->optOutByPhone($phone);
+        } else {
+            $this->campaignReplies->record($customerId, $conversationId, $event->body);
+        }
     }
 
     private function applyStatus(
@@ -161,6 +169,28 @@ final class WebhookProcessor
                         : null,
                     'updated_at' => now(),
                 ]);
+            }
+
+            $campaignRecipient = DB::table('whats_app_campaign_recipients')
+                ->where('message_id', $message->id)
+                ->first();
+            if ($campaignRecipient !== null && in_array($nextStatus, ['sent', 'delivered', 'read', 'failed'], true)) {
+                $now = now();
+                $updates = ['send_status' => $nextStatus, 'updated_at' => $now];
+                if ($nextStatus === 'sent') {
+                    $updates['sent_at'] = $campaignRecipient->sent_at ?? $now;
+                } elseif ($nextStatus === 'delivered') {
+                    $updates['delivered_at'] = $campaignRecipient->delivered_at ?? $now;
+                } elseif ($nextStatus === 'read') {
+                    $updates['delivered_at'] = $campaignRecipient->delivered_at ?? $now;
+                    $updates['read_at'] = $campaignRecipient->read_at ?? $now;
+                } elseif ($nextStatus === 'failed') {
+                    $updates['failed_at'] = $campaignRecipient->failed_at ?? $now;
+                }
+
+                DB::table('whats_app_campaign_recipients')
+                    ->where('id', $campaignRecipient->id)
+                    ->update($updates);
             }
         });
     }
