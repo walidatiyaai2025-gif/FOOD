@@ -89,7 +89,7 @@ final class ProductionLaunchPreflight
             'schema_migrations' => $this->schemaCheck(),
             'environment_configuration' => $this->environmentCheck(),
             'release_lineage' => $this->releaseLineageCheck($release),
-            'customer_frozen_lineage' => $this->customerFrozenLineageCheck($sourceCommit),
+            'customer_frozen_lineage' => $this->customerReleaseLineageCheck($sourceCommit, $release['version']),
             'catalog_provenance' => $this->catalogProvenanceCheck(),
             'reconstructed_image_quality' => $this->attestationCheck(
                 storage_path('app/private/launch-gate/reconstructed-image-quality.json'),
@@ -285,7 +285,7 @@ final class ProductionLaunchPreflight
         $buildInfoVersion = is_string($buildInfo['version'] ?? null)
             ? trim($buildInfo['version'])
             : null;
-        $candidateMode = $version === '1.0.77' && $buildInfoVersion !== $version;
+        $candidateMode = is_string($version) && $version !== '' && $buildInfoVersion !== $version;
 
         $lineageSource = 'published-build-info';
         $sourceCommit = is_string($buildInfo['source_commit'] ?? null)
@@ -308,6 +308,13 @@ final class ProductionLaunchPreflight
             ? (int) $buildInfo['van']['build_number']
             : null;
 
+        $customerVersion = is_string($buildInfo['customer']['version'] ?? null)
+            ? trim($buildInfo['customer']['version'])
+            : null;
+        $customerBuildNumber = is_numeric($buildInfo['customer']['build_number'] ?? null)
+            ? (int) $buildInfo['customer']['build_number']
+            : null;
+
         if ($candidateMode) {
             $lineageSource = 'candidate-source';
             $buildInfoVersion = $version;
@@ -323,33 +330,38 @@ final class ProductionLaunchPreflight
                 ? trim((string) $candidateRun)
                 : null;
 
+            $customer = $this->mobileSourceIdentity('customer_app');
             $driver = $this->mobileSourceIdentity('driver_app');
             $van = $this->mobileSourceIdentity('van_app');
+            $customerVersion = $customer['version'];
             $driverVersion = $driver['version'];
             $vanVersion = $van['version'];
+            $customerBuildNumber = $customer['build_number'];
             $driverBuildNumber = $driver['build_number'];
             $vanBuildNumber = $van['build_number'];
         }
+
+        $freezeApplies = $version === '1.0.77';
 
         return [
             'version' => $version,
             'build_info_version' => $buildInfoVersion,
             'source_commit' => $sourceCommit,
             'github_run_number' => $githubRunNumber,
-            'customer_version' => is_string($freeze['source_version'] ?? null)
+            'customer_version' => $freezeApplies && is_string($freeze['source_version'] ?? null)
                 ? trim($freeze['source_version'])
-                : (is_string($buildInfo['customer']['version'] ?? null) ? trim($buildInfo['customer']['version']) : null),
-            'customer_frozen_identity' => is_string($freeze['source_identity'] ?? null)
+                : $customerVersion,
+            'customer_frozen_identity' => $freezeApplies && is_string($freeze['source_identity'] ?? null)
                 ? trim($freeze['source_identity'])
                 : null,
-            'customer_frozen_baseline' => is_string($freeze['baseline_commit'] ?? null)
+            'customer_frozen_baseline' => $freezeApplies && is_string($freeze['baseline_commit'] ?? null)
                 ? trim($freeze['baseline_commit'])
                 : null,
             'driver_version' => $driverVersion,
             'van_version' => $vanVersion,
-            'customer_build_number' => is_numeric($freeze['source_build_number'] ?? null)
+            'customer_build_number' => $freezeApplies && is_numeric($freeze['source_build_number'] ?? null)
                 ? (int) $freeze['source_build_number']
-                : (is_numeric($buildInfo['customer']['build_number'] ?? null) ? (int) $buildInfo['customer']['build_number'] : null),
+                : $customerBuildNumber,
             'driver_build_number' => $driverBuildNumber,
             'van_build_number' => $vanBuildNumber,
             'lineage_source' => $lineageSource,
@@ -369,6 +381,20 @@ final class ProductionLaunchPreflight
             'version' => $matches[1],
             'build_number' => (int) $matches[2],
         ];
+    }
+
+    /** @return array{passed:bool,detail:string,source:string} */
+    private function customerReleaseLineageCheck(?string $expectedSourceSha, ?string $version): array
+    {
+        if ($version !== '1.0.77') {
+            return [
+                'passed' => true,
+                'detail' => 'The 1.0.77 Customer freeze contract does not apply to this release.',
+                'source' => 'release version policy',
+            ];
+        }
+
+        return $this->customerFrozenLineageCheck($expectedSourceSha);
     }
 
     /** @return array{passed:bool,detail:string,source:string} */
@@ -544,10 +570,13 @@ final class ProductionLaunchPreflight
             && $release['version'] === $release['build_info_version'];
         $hasSource = is_string($release['source_commit']) && $release['source_commit'] !== '';
         $hasRun = is_string($release['github_run_number']) && $release['github_run_number'] !== '';
-        $customerFrozen = ($release['customer_frozen_identity'] ?? null) === '1.0.76+76'
-            && ($release['customer_frozen_baseline'] ?? null) === '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d';
+        $freezeApplies = $release['version'] === '1.0.77';
+        $customerMatches = $freezeApplies
+            ? (($release['customer_frozen_identity'] ?? null) === '1.0.76+76'
+                && ($release['customer_frozen_baseline'] ?? null) === '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d')
+            : $release['customer_version'] === $release['version'];
         $appVersionsMatch = $versionMatches
-            && $customerFrozen
+            && $customerMatches
             && $release['driver_version'] === $release['version']
             && $release['van_version'] === $release['version'];
         $builds = [
@@ -565,10 +594,14 @@ final class ProductionLaunchPreflight
         return [
             'passed' => $passed,
             'detail' => $passed
-                ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
+                ? ($freezeApplies
+                    ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
+                    : 'Release lineage is synchronized across Dashboard, Customer, Driver and Van identities.')
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
             'source' => $release['lineage_source'] === 'candidate-source'
-                ? 'exact candidate source + mobile source identities + frozen Customer contract'
+                ? ($freezeApplies
+                    ? 'exact candidate source + mobile source identities + frozen Customer contract'
+                    : 'exact candidate source + synchronized mobile source identities')
                 : 'Release/BUILD_INFO.json + VERSION',
         ];
     }
