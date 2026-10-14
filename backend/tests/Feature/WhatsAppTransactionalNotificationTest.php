@@ -8,7 +8,9 @@ use App\Domain\WhatsApp\ConnectionProfileStatus;
 use App\Domain\WhatsApp\TransactionalNotificationEngine;
 use App\Jobs\ProcessWhatsAppTransactionalEvent;
 use App\Jobs\SendWhatsAppMessage;
+use App\Models\Customer;
 use App\Models\Order;
+use App\Models\User;
 use App\Models\WhatsAppConnectionProfile;
 use App\Models\WhatsAppModuleState;
 use Database\Seeders\CoreReferenceSeeder;
@@ -151,29 +153,36 @@ final class WhatsAppTransactionalNotificationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $userId = (int) DB::table('users')->insertGetId([
+        $user = User::factory()->create([
             'name' => 'Transactional Customer',
-            'username' => 'wa_tx_'.uniqid(),
             'email' => uniqid().'@example.test',
-            'password' => bcrypt('password'),
             'locale' => $locale,
             'is_active' => true,
             'is_platform_customer' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
+        ]);
+        $legacy = Customer::query()->create([
+            'user_id' => $user->id,
+            'type' => 'b2c',
+            'name' => $user->name,
+            'phone' => $phone,
+            'email' => $user->email,
         ]);
         $customerId = (int) DB::table('b2c_customers')->insertGetId([
-            'user_id' => $userId,
+            'legacy_customer_id' => $legacy->id,
+            'user_id' => $user->id,
             'store_id' => $storeId,
-            'name' => 'Transactional Customer',
+            'name' => $user->name,
             'phone' => $phone,
-            'email' => uniqid().'@customer.test',
-            'is_active' => true,
+            'email' => $user->email,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         DB::table('platform_customers')->insert([
-            'user_id' => $userId,
+            'user_id' => $user->id,
+            'legacy_customer_id' => $legacy->id,
+            'name' => $user->name,
+            'phone' => $phone,
+            'email' => $user->email,
             'origin_channel' => 'b2c',
             'origin_store_id' => $storeId,
             'registration_source' => 'test',
@@ -186,6 +195,7 @@ final class WhatsAppTransactionalNotificationTest extends TestCase
         $order = new Order;
         $order->forceFill([
             'store_id' => $storeId,
+            'customer_id' => $legacy->id,
             'b2c_customer_id' => $customerId,
             'channel' => 'b2c',
             'order_number' => 'TX-'.uniqid(),
@@ -198,7 +208,7 @@ final class WhatsAppTransactionalNotificationTest extends TestCase
             'grand_total' => 11,
         ])->save();
 
-        return [$order->fresh(), $userId];
+        return [$order->fresh(), (int) $user->id];
     }
 
     private function profile(): void
