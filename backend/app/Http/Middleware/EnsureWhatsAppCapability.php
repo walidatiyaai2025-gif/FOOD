@@ -19,6 +19,7 @@ final class EnsureWhatsAppCapability
             Capability::INBOUND => $this->policy->allowsInbound(),
             Capability::AGENT_INBOX => $this->policy->allowsAgentInbox(),
             Capability::CAMPAIGNS => $this->policy->allowsCampaignManagement(),
+            Capability::CALLS => $this->policy->allowsCallWebhooks(),
             default => false,
         };
         abort_unless($allowed, 404);
