@@ -38,7 +38,8 @@ final class CustomerTimelineService
                 'kind' => 'message',
                 'source_id' => (int) $row->id,
                 'store_id' => (int) $row->store_id,
-                'title' => strtoupper((string) $row->direction).' · '.($row->actor_name ?? $row->actor_type),
+                'title' => __('whatsapp_supervisor.directions.'.strtolower((string) $row->direction))
+                    .' · '.($row->actor_name ?? __('whatsapp_supervisor.actors.'.strtolower((string) $row->actor_type))),
                 'detail' => $row->body,
                 'status' => $row->delivery_status,
                 'occurred_at' => $row->occurred_at,
@@ -56,7 +57,8 @@ final class CustomerTimelineService
                 'kind' => 'internal_note',
                 'source_id' => (int) $row->id,
                 'store_id' => (int) $row->store_id,
-                'title' => 'Internal note · '.($row->actor_name ?? 'System'),
+                'title' => __('whatsapp_supervisor.timeline_titles.internal_note')
+                    .' · '.($row->actor_name ?? __('whatsapp_supervisor.actors.system')),
                 'detail' => $row->body,
                 'status' => null,
                 'occurred_at' => $row->created_at,
@@ -73,7 +75,8 @@ final class CustomerTimelineService
                 'kind' => 'assignment',
                 'source_id' => (int) $row->id,
                 'store_id' => (int) $row->store_id,
-                'title' => 'Assignment · '.($row->agent_name ?? 'Unassigned'),
+                'title' => __('whatsapp_supervisor.timeline_titles.assignment')
+                    .' · '.($row->agent_name ?? __('whatsapp.inbox.unassigned')),
                 'detail' => $row->reason,
                 'status' => $row->source,
                 'occurred_at' => $row->occurred_at,
@@ -92,7 +95,7 @@ final class CustomerTimelineService
                     'kind' => 'crm',
                     'source_id' => (int) $row->id,
                     'store_id' => $row->store_id === null ? null : (int) $row->store_id,
-                    'title' => str_replace('_', ' ', ucfirst((string) $row->event_type)),
+                    'title' => __('whatsapp_supervisor.crm_event_types.'.strtolower((string) $row->event_type)),
                     'detail' => is_array($payload) ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
                     'status' => null,
                     'occurred_at' => $row->occurred_at,
@@ -114,11 +117,11 @@ final class CustomerTimelineService
             : collect();
         foreach ($campaigns as $row) {
             foreach ([
-                'queued_at' => 'Campaign queued',
-                'sent_at' => 'Campaign sent',
-                'delivered_at' => 'Campaign delivered',
-                'read_at' => 'Campaign read',
-                'replied_at' => 'Campaign replied',
+                'queued_at' => __('whatsapp_supervisor.timeline_titles.campaign_queued'),
+                'sent_at' => __('whatsapp_supervisor.timeline_titles.campaign_sent'),
+                'delivered_at' => __('whatsapp_supervisor.timeline_titles.campaign_delivered'),
+                'read_at' => __('whatsapp_supervisor.timeline_titles.campaign_read'),
+                'replied_at' => __('whatsapp_supervisor.timeline_titles.campaign_replied'),
             ] as $column => $title) {
                 if ($row->{$column} === null) {
                     continue;
@@ -147,7 +150,7 @@ final class CustomerTimelineService
                 'kind' => 'transactional',
                 'source_id' => (int) $row->id,
                 'store_id' => $row->store_id === null ? null : (int) $row->store_id,
-                'title' => 'Transactional · '.(string) $row->event_name,
+                'title' => __('whatsapp_supervisor.timeline_titles.transactional').' · '.(string) $row->event_name,
                 'detail' => (string) $row->event_key,
                 'status' => (string) $row->status,
                 'occurred_at' => $row->occurred_at,
@@ -164,7 +167,7 @@ final class CustomerTimelineService
                 'kind' => 'order',
                 'source_id' => (int) $row->id,
                 'store_id' => (int) $row->store_id,
-                'title' => 'Order '.$row->order_number,
+                'title' => __('whatsapp_supervisor.timeline_titles.order').' '.$row->order_number,
                 'detail' => trim((string) $row->currency.' '.number_format((float) $row->grand_total, 3)),
                 'status' => (string) $row->status,
                 'occurred_at' => $row->created_at,
@@ -187,7 +190,7 @@ final class CustomerTimelineService
                     'kind' => 'invoice',
                     'source_id' => (int) $row->id,
                     'store_id' => (int) $row->store_id,
-                    'title' => 'Invoice '.$row->invoice_number,
+                    'title' => __('whatsapp_supervisor.timeline_titles.invoice').' '.$row->invoice_number,
                     'detail' => trim((string) $row->currency.' '.number_format((float) $row->total, 3)),
                     'status' => (string) $row->status,
                     'occurred_at' => $row->issued_at,
@@ -205,7 +208,7 @@ final class CustomerTimelineService
                     'kind' => 'payment',
                     'source_id' => (int) $row->id,
                     'store_id' => (int) $row->store_id,
-                    'title' => 'Payment · '.(string) $row->provider,
+                    'title' => __('whatsapp_supervisor.timeline_titles.payment').' · '.(string) $row->provider,
                     'detail' => trim((string) $row->currency.' '.number_format((float) $row->amount, 3)),
                     'status' => (string) $row->status,
                     'occurred_at' => $row->created_at,
