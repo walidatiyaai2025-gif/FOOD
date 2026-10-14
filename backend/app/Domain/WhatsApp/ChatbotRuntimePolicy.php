@@ -64,6 +64,11 @@ final class ChatbotRuntimePolicy
             return false;
         }
 
+        $settings = $this->settings();
+        if (! $this->withinWorkingHours($settings) && (bool) $settings['after_hours_handoff']) {
+            return false;
+        }
+
         if (! Schema::hasTable('whats_app_conversations')) {
             return false;
         }
@@ -97,6 +102,31 @@ final class ChatbotRuntimePolicy
         return is_string($recipient)
             && $recipient !== ''
             && $this->whatsAppRuntime->allowsOutbound($recipient, Capability::AUTOMATION);
+    }
+
+    /** @param array<string, mixed> $settings */
+    private function withinWorkingHours(array $settings): bool
+    {
+        $from = $settings['working_from'] ?? null;
+        $to = $settings['working_to'] ?? null;
+        if (! is_string($from) || ! is_string($to) || trim($from) === '' || trim($to) === '') {
+            return true;
+        }
+
+        $now = now();
+        $current = $now->format('H:i');
+        $from = substr($from, 0, 5);
+        $to = substr($to, 0, 5);
+
+        if ($from === $to) {
+            return true;
+        }
+
+        if ($from < $to) {
+            return $current >= $from && $current < $to;
+        }
+
+        return $current >= $from || $current < $to;
     }
 
     /** @return array<string, mixed> */
