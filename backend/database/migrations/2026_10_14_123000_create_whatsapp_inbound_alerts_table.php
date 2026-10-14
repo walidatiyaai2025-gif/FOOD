@@ -10,9 +10,13 @@ return new class extends Migration
     {
         Schema::create('whats_app_inbound_alerts', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('message_id')->constrained('whats_app_messages')->cascadeOnDelete();
-            $table->foreignId('conversation_id')->constrained('whats_app_conversations')->cascadeOnDelete();
-            $table->foreignId('recipient_user_id')->constrained('users')->cascadeOnDelete();
+            // Keep the extension migration independent from the #1403
+            // foundation rollback order. Authorization and existence are
+            // revalidated at delivery time; these indexed logical references
+            // intentionally do not add foreign-key constraints to older tables.
+            $table->unsignedBigInteger('message_id');
+            $table->unsignedBigInteger('conversation_id')->index();
+            $table->unsignedBigInteger('recipient_user_id');
             $table->string('state', 16)->default('pending')->index();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamp('seen_at')->nullable();
