@@ -16,6 +16,7 @@ final class ChatbotAnalyticsService
         ?string $intent = null,
         ?float $confidence = null,
         array $payload = [],
+        ?int $actorUserId = null,
     ): void {
         if (! Schema::hasTable('whats_app_chatbot_events')) {
             return;
@@ -24,6 +25,7 @@ final class ChatbotAnalyticsService
         DB::table('whats_app_chatbot_events')->insert([
             'conversation_id' => $conversationId,
             'platform_customer_id' => $platformCustomerId,
+            'actor_user_id' => $actorUserId,
             'event_type' => mb_substr($eventType, 0, 64),
             'feature_code' => $featureCode === null ? null : mb_substr($featureCode, 0, 64),
             'intent' => $intent === null ? null : mb_substr($intent, 0, 64),
