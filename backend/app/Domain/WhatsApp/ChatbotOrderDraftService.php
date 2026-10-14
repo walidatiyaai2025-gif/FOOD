@@ -62,7 +62,7 @@ final class ChatbotOrderDraftService
     /** @return array{cart_id:int,item_count:int,total:float,skipped:int} */
     public function repeatLatestOrder(int $conversationId, int $platformCustomerId): array
     {
-        [$legacyCustomerId, $storeId] = $this->customerContext($conversationId, $platformCustomerId);
+        [$legacyCustomerId, $storeId, $channel] = $this->customerContext($conversationId, $platformCustomerId);
         $order = DB::table('orders')
             ->where('customer_id', $legacyCustomerId)
             ->orderByDesc('created_at')
@@ -110,7 +110,7 @@ final class ChatbotOrderDraftService
     /** @return Collection<int, object> */
     public function items(int $conversationId, int $platformCustomerId): Collection
     {
-        [$legacyCustomerId, $storeId] = $this->customerContext($conversationId, $platformCustomerId);
+        [$legacyCustomerId, $storeId, $channel] = $this->customerContext($conversationId, $platformCustomerId);
         $cartId = DB::table('carts')
             ->where('store_id', $storeId)
             ->where('customer_id', $legacyCustomerId)
