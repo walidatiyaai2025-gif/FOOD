@@ -167,6 +167,10 @@ Route::prefix('admin')
             ->middleware('whatsapp.capability:agent_inbox')
             ->group(function (): void {
                 Route::get('/', [WhatsAppInboxController::class, 'index'])->name('index');
+                Route::get('/{conversation}/messages/{message}/attachment', [WhatsAppInboxController::class, 'attachment'])
+                    ->whereNumber('conversation')
+                    ->whereNumber('message')
+                    ->name('attachments.show');
                 Route::post('/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->name('reply');
                 Route::post('/{conversation}/notes', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('note');
                 Route::patch('/{conversation}/assignment', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('assign');
