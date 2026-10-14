@@ -16,6 +16,8 @@ return [
     // Temporary pilot convenience. Disable before public production rollout.
     'mobile_trial_username_login' => (bool) env('FOODEX_MOBILE_TRIAL_USERNAME_LOGIN', true),
     'platform_wholesale_store_code' => env('FOODEX_PLATFORM_WHOLESALE_STORE_CODE', ''),
+    'release_source_sha' => env('FOODEX_RELEASE_SOURCE_SHA', env('GITHUB_SHA')),
+    'release_run_number' => env('FOODEX_RELEASE_RUN_NUMBER', env('GITHUB_RUN_NUMBER')),
     'launch' => [
         'enabled' => (bool) env('FOODEX_PRODUCTION_LAUNCH_ENABLED', false),
         'provider_ready' => (bool) env('FOODEX_PRODUCTION_PROVIDER_READY', false),

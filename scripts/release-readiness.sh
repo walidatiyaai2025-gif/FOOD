@@ -42,7 +42,7 @@ if [[ "$release_version" == "1.0.77" ]]; then
   if [[ -f "$production_hold_file" ]]; then
     echo "FOODEX 1.0.77 production hold is active; Customer $customer_version is frozen and carried forward unchanged."
     echo "Final publication remains blocked until #1380 authorizes removal of the hold."
-    exit 0
+    echo "Structural candidate readiness checks continue; HOLD must never mask a broken Driver/Van or release identity."
   fi
   if [[ "$driver_version" != "$van_version" ]]; then
     echo "::error::Driver/Van release identity mismatch: Driver=$driver_version Van=$van_version"

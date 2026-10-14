@@ -280,20 +280,60 @@ final class ProductionLaunchPreflight
             }
         }
 
+        $buildInfoVersion = is_string($buildInfo['version'] ?? null)
+            ? trim($buildInfo['version'])
+            : null;
+        $candidateMode = $version === '1.0.77' && $buildInfoVersion !== $version;
+
+        $lineageSource = 'published-build-info';
         $sourceCommit = is_string($buildInfo['source_commit'] ?? null)
             && preg_match('/^[a-f0-9]{40,64}$/', $buildInfo['source_commit']) === 1
                 ? $buildInfo['source_commit']
                 : null;
+        $githubRunNumber = is_scalar($buildInfo['github_run_number'] ?? null)
+            ? (string) $buildInfo['github_run_number']
+            : null;
+        $driverVersion = is_string($buildInfo['driver']['version'] ?? null)
+            ? trim($buildInfo['driver']['version'])
+            : null;
+        $vanVersion = is_string($buildInfo['van']['version'] ?? null)
+            ? trim($buildInfo['van']['version'])
+            : null;
+        $driverBuildNumber = is_numeric($buildInfo['driver']['build_number'] ?? null)
+            ? (int) $buildInfo['driver']['build_number']
+            : null;
+        $vanBuildNumber = is_numeric($buildInfo['van']['build_number'] ?? null)
+            ? (int) $buildInfo['van']['build_number']
+            : null;
+
+        if ($candidateMode) {
+            $lineageSource = 'candidate-source';
+            $buildInfoVersion = $version;
+
+            $candidateSource = config('foodex.release_source_sha');
+            $sourceCommit = is_string($candidateSource)
+                && preg_match('/^[a-f0-9]{40,64}$/', $candidateSource) === 1
+                    ? $candidateSource
+                    : null;
+
+            $candidateRun = config('foodex.release_run_number');
+            $githubRunNumber = is_scalar($candidateRun) && trim((string) $candidateRun) !== ''
+                ? trim((string) $candidateRun)
+                : null;
+
+            $driver = $this->mobileSourceIdentity('driver_app');
+            $van = $this->mobileSourceIdentity('van_app');
+            $driverVersion = $driver['version'];
+            $vanVersion = $van['version'];
+            $driverBuildNumber = $driver['build_number'];
+            $vanBuildNumber = $van['build_number'];
+        }
 
         return [
             'version' => $version,
-            'build_info_version' => is_string($buildInfo['version'] ?? null)
-                ? trim($buildInfo['version'])
-                : null,
+            'build_info_version' => $buildInfoVersion,
             'source_commit' => $sourceCommit,
-            'github_run_number' => is_scalar($buildInfo['github_run_number'] ?? null)
-                ? (string) $buildInfo['github_run_number']
-                : null,
+            'github_run_number' => $githubRunNumber,
             'customer_version' => is_string($freeze['source_version'] ?? null)
                 ? trim($freeze['source_version'])
                 : (is_string($buildInfo['customer']['version'] ?? null) ? trim($buildInfo['customer']['version']) : null),
@@ -303,21 +343,29 @@ final class ProductionLaunchPreflight
             'customer_frozen_baseline' => is_string($freeze['baseline_commit'] ?? null)
                 ? trim($freeze['baseline_commit'])
                 : null,
-            'driver_version' => is_string($buildInfo['driver']['version'] ?? null)
-                ? trim($buildInfo['driver']['version'])
-                : null,
-            'van_version' => is_string($buildInfo['van']['version'] ?? null)
-                ? trim($buildInfo['van']['version'])
-                : null,
+            'driver_version' => $driverVersion,
+            'van_version' => $vanVersion,
             'customer_build_number' => is_numeric($freeze['source_build_number'] ?? null)
                 ? (int) $freeze['source_build_number']
                 : (is_numeric($buildInfo['customer']['build_number'] ?? null) ? (int) $buildInfo['customer']['build_number'] : null),
-            'driver_build_number' => is_numeric($buildInfo['driver']['build_number'] ?? null)
-                ? (int) $buildInfo['driver']['build_number']
-                : null,
-            'van_build_number' => is_numeric($buildInfo['van']['build_number'] ?? null)
-                ? (int) $buildInfo['van']['build_number']
-                : null,
+            'driver_build_number' => $driverBuildNumber,
+            'van_build_number' => $vanBuildNumber,
+            'lineage_source' => $lineageSource,
+        ];
+    }
+
+    /** @return array{version:?string,build_number:?int} */
+    private function mobileSourceIdentity(string $appDirectory): array
+    {
+        $path = base_path('../apps/'.$appDirectory.'/pubspec.yaml');
+        $contents = is_file($path) ? (string) file_get_contents($path) : '';
+        if (preg_match('/^version:\\s*(\\d+\\.\\d+\\.\\d+)\\+(\\d+)\\s*$/m', $contents, $matches) !== 1) {
+            return ['version' => null, 'build_number' => null];
+        }
+
+        return [
+            'version' => $matches[1],
+            'build_number' => (int) $matches[2],
         ];
     }
 
@@ -516,7 +564,9 @@ final class ProductionLaunchPreflight
             'detail' => $passed
                 ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
-            'source' => 'Release/BUILD_INFO.json + VERSION',
+            'source' => ($release['lineage_source'] ?? null) === 'candidate-source'
+                ? 'exact candidate source + mobile source identities + frozen Customer contract'
+                : 'Release/BUILD_INFO.json + VERSION',
         ];
     }
 
