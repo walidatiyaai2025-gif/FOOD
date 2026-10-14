@@ -9,6 +9,7 @@ use App\Domain\WhatsApp\OutboundExecution;
 use App\Domain\WhatsApp\OutboundPaused;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Domain\WhatsApp\StateManager;
+use App\Http\Middleware\EnsureWhatsAppCapability;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
@@ -18,6 +19,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -61,6 +63,23 @@ final class WhatsAppPolicyTest extends TestCase
         $this->assertNull($policy->evidenceReference());
         $this->get('/health')->assertOk();
         Http::assertNothingSent();
+    }
+
+    public function test_operational_routes_fail_closed_while_disabled(): void
+    {
+        Route::middleware(EnsureWhatsAppCapability::class.':inbound')
+            ->get('/_acceptance/whatsapp/inbound', fn () => 'ok');
+
+        $this->get('/_acceptance/whatsapp/inbound')->assertNotFound();
+
+        $this->configureRow();
+        $this->get('/_acceptance/whatsapp/inbound')->assertOk()->assertSeeText('ok');
+
+        WhatsAppModuleState::query()->findOrFail(1)
+            ->forceFill(['lifecycle' => Lifecycle::DISABLED->value])
+            ->save();
+
+        $this->get('/_acceptance/whatsapp/inbound')->assertNotFound();
     }
 
     public function test_all_states_capabilities_and_emergency_stop_fail_closed_without_certification(): void
