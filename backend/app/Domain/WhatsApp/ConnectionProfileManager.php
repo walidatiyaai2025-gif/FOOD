@@ -177,7 +177,7 @@ final class ConnectionProfileManager
                     'account_identity' => $this->safeProviderNullable($result->accountIdentity, $locked),
                     'phone_identity' => $this->safeProviderNullable($result->phoneIdentity, $locked),
                     'provider_available' => $result->providerAvailable,
-                    'capabilities' => array_values(array_filter($result->capabilities, 'is_string')),
+                    'capabilities' => $result->capabilities,
                     'diagnostic_code' => $this->safeProviderText($result->diagnosticCode, $locked, 120),
                 ],
             ])->save();
@@ -383,7 +383,7 @@ final class ConnectionProfileManager
         return $this->safeProviderText($value, $profile, 255);
     }
 
-    /** @return array<string, mixed> */
+    /** @return array<array-key, mixed> */
     private function safeMetadata(mixed $value): array
     {
         if (! is_array($value)) {
@@ -400,8 +400,9 @@ final class ConnectionProfileManager
     {
         foreach ($metadata as $key => $value) {
             if (is_string($key)) {
-                $normalized = strtolower(str_replace(['-', ' '], '_', $key));
-                if (preg_match('/(^|_)(password|token|secret|credential|authorization|api_key|client_secret|access_token|refresh_token)$/', $normalized) === 1) {
+                $snake = preg_replace('/(?<!^)([A-Z])/', '_$1', $key) ?? $key;
+                $normalized = strtolower(str_replace(['-', ' '], '_', $snake));
+                if (preg_match('/(^|_)(password|token|secret|credential|authorization|api_key|client_secret|access_token|refresh_token)($|_)/', $normalized) === 1) {
                     throw ValidationException::withMessages([
                         'provider_metadata' => __('whatsapp.connections.sensitive_metadata'),
                     ]);
@@ -418,15 +419,6 @@ final class ConnectionProfileManager
         $clean = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
 
         return mb_substr(trim($clean), 0, $limit);
-    }
-
-    private function safeNullable(?string $value): ?string
-    {
-        if ($value === null || trim($value) === '') {
-            return null;
-        }
-
-        return $this->safeText($value, 255);
     }
 
     private function nullIfBlank(mixed $value): ?string
