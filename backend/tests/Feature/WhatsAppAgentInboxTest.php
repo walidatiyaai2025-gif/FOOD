@@ -44,6 +44,7 @@ final class WhatsAppAgentInboxTest extends TestCase
         $conversation = $this->conversation($customer->id, $store);
         $supervisor = $this->globalUser('CUSTOMER_SERVICE_SUPERVISOR', 'Supervisor');
         $agent = $this->onlineAgent('Agent One');
+        $backup = $this->onlineAgent('Backup Agent');
 
         app(ConversationService::class)->assign(
             $conversation,
@@ -51,6 +52,7 @@ final class WhatsAppAgentInboxTest extends TestCase
             $agent->id,
             0,
             'manual acceptance',
+            $backup->id,
         );
 
         $this->assertDatabaseHas('whats_app_conversations', [
@@ -62,6 +64,7 @@ final class WhatsAppAgentInboxTest extends TestCase
         $this->assertDatabaseHas('whats_app_customer_assignments', [
             'platform_customer_id' => $customer->id,
             'primary_agent_id' => $agent->id,
+            'backup_agent_id' => $backup->id,
             'source' => 'manual',
             'is_active' => 1,
         ]);
@@ -362,6 +365,32 @@ final class WhatsAppAgentInboxTest extends TestCase
             ->assertSee('Shared Customer Service Inbox');
     }
 
+    public function test_agent_status_capacity_change_is_audited_through_operational_route(): void
+    {
+        $this->store('B2B', 'WA-STATUS');
+        $agent = $this->onlineAgent('Status Agent', 10);
+        $this->enableInbox();
+
+        $this->actingAs($agent)
+            ->patch(route('admin.whatsapp-inbox.status'), [
+                'status' => 'BUSY',
+                'capacity' => 7,
+                'accepts_new' => 0,
+            ])
+            ->assertRedirect(route('admin.whatsapp-inbox.index'));
+
+        $this->assertDatabaseHas('whats_app_agent_profiles', [
+            'user_id' => $agent->id,
+            'status' => 'BUSY',
+            'capacity' => 7,
+            'accepts_new' => 0,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'whatsapp.agent_status_changed',
+            'user_id' => $agent->id,
+        ]);
+    }
+
     public function test_assignment_rules_can_target_store_channel_and_fall_back_safely(): void
     {
         $store = $this->store('B2B', 'WA-RULE');
@@ -388,9 +417,9 @@ final class WhatsAppAgentInboxTest extends TestCase
         $this->assertNotSame($first->id, $preferred->id);
     }
 
-    public function test_migration_is_additive_and_declares_safe_module_rollback(): void
+    public function test_migration_is_additive_and_rollback_is_deterministic(): void
     {
-        foreach ([
+        $tables = [
             'whats_app_agent_profiles',
             'whats_app_customer_assignments',
             'whats_app_conversations',
@@ -399,18 +428,30 @@ final class WhatsAppAgentInboxTest extends TestCase
             'whats_app_tags',
             'whats_app_assignment_rules',
             'whats_app_assignment_history',
-        ] as $table) {
+        ];
+
+        foreach ($tables as $table) {
             $this->assertTrue(Schema::hasTable($table), $table.' must exist after migration.');
         }
 
-        $source = file_get_contents(database_path(
+        $migration = require database_path(
             'migrations/2026_10_14_081500_create_whatsapp_agent_inbox_foundation.php',
-        ));
-        $this->assertIsString($source);
-        $this->assertStringContainsString("Schema::dropIfExists('whats_app_conversations')", $source);
-        $this->assertStringNotContainsString("Schema::dropIfExists('customers')", $source);
-        $this->assertStringNotContainsString("Schema::dropIfExists('orders')", $source);
-        $this->assertStringNotContainsString("Schema::dropIfExists('payments')", $source);
+        );
+
+        $migration->down();
+
+        foreach ($tables as $table) {
+            $this->assertFalse(Schema::hasTable($table), $table.' must roll back.');
+        }
+        $this->assertTrue(Schema::hasTable('customers'));
+        $this->assertTrue(Schema::hasTable('orders'));
+        $this->assertTrue(Schema::hasTable('payments'));
+
+        $migration->up();
+
+        foreach ($tables as $table) {
+            $this->assertTrue(Schema::hasTable($table), $table.' must restore deterministically.');
+        }
     }
 
     private function enableInbox(): void
@@ -441,7 +482,7 @@ final class WhatsAppAgentInboxTest extends TestCase
     {
         $user = User::factory()->create([
             'name' => $name,
-            'email' => Str::slug($name).'-'.Str::lower(Str::random(5)).'@example.test',
+            'email' => Str::slug($name).'@example.test',
             'locale' => 'en',
             'is_active' => true,
             'is_platform_customer' => true,
@@ -451,7 +492,7 @@ final class WhatsAppAgentInboxTest extends TestCase
             'user_id' => $user->id,
             'type' => $channel,
             'name' => $name,
-            'phone' => '+9655'.random_int(1000000, 9999999),
+            'phone' => '+96550000000',
             'email' => $user->email,
             'created_at' => now(),
             'updated_at' => now(),
@@ -461,7 +502,7 @@ final class WhatsAppAgentInboxTest extends TestCase
             'user_id' => $user->id,
             'legacy_customer_id' => $legacyId,
             'name' => $name,
-            'phone' => '+9655'.random_int(1000000, 9999999),
+            'phone' => '+96550000000',
             'email' => $user->email,
             'origin_channel' => $channel,
             'origin_store_id' => $storeId,
