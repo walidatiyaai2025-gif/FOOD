@@ -131,6 +131,7 @@ final class WhatsAppInboxController extends Controller
                     ? null
                     : (int) $selected->platform_customer_id,
                 $allowedStoreIds,
+                $actor,
             );
 
             $agents = $this->agents->summaries(
@@ -427,8 +428,12 @@ final class WhatsAppInboxController extends Controller
     }
 
     /** @param list<int> $allowedStoreIds */
-    private function customerContext(?int $customerId, array $allowedStoreIds): ?array
-    {
+    private function customerContext(
+        ?int $customerId,
+        array $allowedStoreIds,
+        User $actor,
+    ): ?array {
+
         if ($customerId === null) {
             return null;
         }
@@ -447,9 +452,14 @@ final class WhatsAppInboxController extends Controller
             ->where('customer_id', $legacyCustomerId)
             ->whereIn('store_id', $allowedStoreIds);
 
+        $financeStoreIds = array_values(array_intersect(
+            $allowedStoreIds,
+            $this->scope->allowedStoreIds($actor, 'finance.view'),
+        ));
+
         $invoicesBase = DB::table('invoices')
             ->where('customer_id', $legacyCustomerId)
-            ->whereIn('store_id', $allowedStoreIds);
+            ->whereIn('store_id', $financeStoreIds);
 
         $orders = (clone $ordersBase)
             ->orderByDesc('created_at')
@@ -482,7 +492,7 @@ final class WhatsAppInboxController extends Controller
         $payments = DB::table('payments')
             ->join('invoices', 'invoices.id', '=', 'payments.invoice_id')
             ->where('invoices.customer_id', $legacyCustomerId)
-            ->whereIn('invoices.store_id', $allowedStoreIds)
+            ->whereIn('invoices.store_id', $financeStoreIds)
             ->orderByDesc('payments.created_at')
             ->limit(5)
             ->get([
