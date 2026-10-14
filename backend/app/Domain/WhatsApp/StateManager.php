@@ -21,8 +21,8 @@ final class StateManager
         $this->mutate($actor, $revision, 'whatsapp.lifecycle_changed', ['lifecycle' => $lifecycle->value]);
     }
 
-    /** @param array<string, bool> $capabilities
-     * @param  list<string>  $testNumbers
+    /** @param array<array-key, mixed> $capabilities
+     * @param  list<mixed>  $testNumbers
      */
     public function configure(User $actor, array $capabilities, array $testNumbers, int $revision): void
     {
