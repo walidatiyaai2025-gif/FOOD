@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\WhatsApp\ConnectionHealthRecorder;
 use App\Domain\WhatsApp\WebhookIngress;
 use App\Models\WhatsAppConnectionProfile;
 use Illuminate\Http\JsonResponse;
@@ -11,8 +12,11 @@ use JsonException;
 
 final class WhatsAppWebhookController extends Controller
 {
-    public function verify(Request $request, WhatsAppConnectionProfile $profile): Response
-    {
+    public function verify(
+        Request $request,
+        WhatsAppConnectionProfile $profile,
+        ConnectionHealthRecorder $health,
+    ): Response {
         abort_unless($this->isMeta($profile), 404);
 
         $configured = $profile->webhook_verify_token;
@@ -29,6 +33,8 @@ final class WhatsAppWebhookController extends Controller
             && is_string($challenge),
             403,
         );
+
+        $health->webhookSucceeded($profile);
 
         return response($challenge, 200)->header('Content-Type', 'text/plain');
     }
