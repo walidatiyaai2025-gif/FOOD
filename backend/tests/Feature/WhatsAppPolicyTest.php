@@ -60,7 +60,7 @@ final class WhatsAppPolicyTest extends TestCase
         $this->assertFalse($policy->allowsOutbound('+96555555555'));
         $this->assertFalse($policy->allowsInbound());
         $this->assertFalse($policy->allowsAgentInbox());
-        $this->assertNull($policy->evidenceReference());
+        $this->assertSame(config('whatsapp_certification.reference'), $policy->evidenceReference());
         $this->get('/health')->assertOk();
         Http::assertNothingSent();
     }
@@ -84,6 +84,7 @@ final class WhatsAppPolicyTest extends TestCase
 
     public function test_all_states_capabilities_and_emergency_stop_fail_closed_without_certification(): void
     {
+        $this->mock(CertificationAuthority::class)->shouldReceive('validEvidenceReference')->andReturn(null);
         $policy = app(RuntimePolicy::class);
         foreach (Lifecycle::cases() as $lifecycle) {
             foreach ([false, true] as $stop) {
@@ -124,6 +125,7 @@ final class WhatsAppPolicyTest extends TestCase
 
     public function test_production_activation_is_impossible_even_with_forged_readiness(): void
     {
+        $this->mock(CertificationAuthority::class)->shouldReceive('validEvidenceReference')->andReturn(null);
         $actor = $this->admin();
         foreach (Lifecycle::cases() as $state) {
             $this->configureRow(['lifecycle' => $state->value]);
