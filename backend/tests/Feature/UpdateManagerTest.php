@@ -220,6 +220,11 @@ final class RecordingUpdateRuntime implements UpdateRuntime
         $this->record('rollback_files');
     }
 
+    public function verifyDatabaseBackup(string $backupReference): void
+    {
+        $this->record('verify_database_backup');
+    }
+
     public function rollbackDatabase(string $backupReference): void
     {
         $this->record('rollback_database');

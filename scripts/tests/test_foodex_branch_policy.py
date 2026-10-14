@@ -11,6 +11,8 @@ class BranchPolicyTest(unittest.TestCase):
         self.assertEqual("fix/1253-customer-network-storm-release",module.build_name(1253,"fix","Customer network storm release"))
     def test_rejects_missing_issue(self): self.assertFalse(module.is_valid("fix/customer-network-storm-release"))
     def test_accepts_issue_scoped(self): self.assertTrue(module.is_valid("ci/1253-one-push-green"))
+    def test_accepts_program_worker_branch(self):
+        self.assertTrue(module.is_valid("worker/1381-customer-freeze-release-contract","release/1.0.77-production-program"))
     def test_main_only_release_baseline(self):
         self.assertTrue(module.is_valid("main","release/1.0.68-update"))
         self.assertFalse(module.is_valid("main","main"))

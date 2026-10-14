@@ -52,6 +52,7 @@ def validate_release(
     version: str,
     build_number: int,
     source_commit: str,
+    customer_freeze_contract: Path | None = None,
 ) -> None:
     release_dir = release_dir.resolve()
     if not release_dir.is_dir():
@@ -88,20 +89,58 @@ def validate_release(
             _fail(f"LATEST_RELEASE contains duplicate app entry: {app_name}")
         latest_by_app[app_name] = item
 
-    expected_apps = {
-        "customer": "Customer",
-        "driver": "Driver",
-        "van": "Van",
+    expected_apps: dict[str, dict[str, object]] = {
+        "customer": {
+            "display": "Customer",
+            "version": version,
+            "build_number": build_number,
+            "lineage_mode": "synchronized",
+            "source_commit": source_commit,
+        },
+        "driver": {
+            "display": "Driver",
+            "version": version,
+            "build_number": build_number,
+            "lineage_mode": "synchronized",
+            "source_commit": source_commit,
+        },
+        "van": {
+            "display": "Van",
+            "version": version,
+            "build_number": build_number,
+            "lineage_mode": "synchronized",
+            "source_commit": source_commit,
+        },
     }
+
+    if customer_freeze_contract is not None:
+        contract = _load_json(customer_freeze_contract)
+        _require_equal("Customer freeze release_version", contract.get("release_version"), version)
+        frozen = contract.get("frozen_customer")
+        if not isinstance(frozen, dict):
+            _fail("Customer freeze contract is missing frozen_customer")
+        _require_equal("Customer freeze lineage_mode", frozen.get("lineage_mode"), "carried_forward")
+        expected_apps["customer"] = {
+            "display": "Customer",
+            "version": frozen.get("source_version"),
+            "build_number": frozen.get("source_build_number"),
+            "lineage_mode": "carried_forward",
+            "source_commit": frozen.get("baseline_commit"),
+            "tree_sha": frozen.get("tree_sha"),
+        }
+
     _require_equal(
         "LATEST_RELEASE app set",
         sorted(latest_by_app),
         sorted(expected_apps),
     )
 
-    for key, display in expected_apps.items():
+    for key, expected in expected_apps.items():
+        display = str(expected["display"])
+        app_version = str(expected["version"])
+        app_build_number = int(expected["build_number"])
         alias = release_dir / f"FOODEX-{display}.apk"
-        versioned = release_dir / f"FOODEX-{display}-{version}.apk"
+        versioned = release_dir / f"FOODEX-{display}-{app_version}.apk"
         _require_file(alias)
         _require_file(versioned)
 
@@ -112,18 +151,40 @@ def validate_release(
         info = build_info.get(key)
         if not isinstance(info, dict):
             _fail(f"BUILD_INFO is missing {key} metadata")
-        _require_equal(f"BUILD_INFO {key} version", info.get("version"), version)
-        _require_equal(f"BUILD_INFO {key} build_number", info.get("build_number"), build_number)
+        _require_equal(f"BUILD_INFO {key} version", info.get("version"), app_version)
+        _require_equal(
+            f"BUILD_INFO {key} build_number", info.get("build_number"), app_build_number
+        )
         _require_equal(f"BUILD_INFO {key} file", info.get("file"), versioned.name)
         _require_equal(f"BUILD_INFO {key} bytes", info.get("bytes"), versioned.stat().st_size)
         _require_equal(f"BUILD_INFO {key} sha256", info.get("sha256"), versioned_digest)
 
+        if expected["lineage_mode"] == "carried_forward":
+            _require_equal(
+                "BUILD_INFO customer release_version", info.get("release_version"), version
+            )
+            _require_equal(
+                "BUILD_INFO customer lineage_mode",
+                info.get("lineage_mode"),
+                "carried_forward",
+            )
+            _require_equal(
+                "BUILD_INFO customer source_commit",
+                info.get("source_commit"),
+                expected["source_commit"],
+            )
+            _require_equal(
+                "BUILD_INFO customer tree_sha", info.get("tree_sha"), expected["tree_sha"]
+            )
+
         latest_info = latest_by_app[key]
-        _require_equal(f"LATEST_RELEASE {key} version", latest_info.get("version"), version)
+        _require_equal(
+            f"LATEST_RELEASE {key} version", latest_info.get("version"), app_version
+        )
         _require_equal(
             f"LATEST_RELEASE {key} build_number",
             latest_info.get("build_number"),
-            build_number,
+            app_build_number,
         )
         _require_equal(f"LATEST_RELEASE {key} file", latest_info.get("file"), versioned.name)
         _require_equal(
@@ -141,6 +202,27 @@ def validate_release(
             latest_info.get("sha256"),
             versioned_digest,
         )
+        if expected["lineage_mode"] == "carried_forward":
+            _require_equal(
+                "LATEST_RELEASE customer release_version",
+                latest_info.get("release_version"),
+                version,
+            )
+            _require_equal(
+                "LATEST_RELEASE customer lineage_mode",
+                latest_info.get("lineage_mode"),
+                "carried_forward",
+            )
+            _require_equal(
+                "LATEST_RELEASE customer source_commit",
+                latest_info.get("source_commit"),
+                expected["source_commit"],
+            )
+            _require_equal(
+                "LATEST_RELEASE customer tree_sha",
+                latest_info.get("tree_sha"),
+                expected["tree_sha"],
+            )
 
     setup = release_dir / "FOODEX-Laravel-Setup.zip"
     _require_file(setup)
@@ -195,6 +277,7 @@ def main() -> None:
     parser.add_argument("--version", required=True)
     parser.add_argument("--build-number", required=True, type=int)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--customer-freeze-contract", type=Path)
     args = parser.parse_args()
 
     try:
@@ -203,13 +286,14 @@ def main() -> None:
             version=args.version,
             build_number=args.build_number,
             source_commit=args.source_commit,
+            customer_freeze_contract=args.customer_freeze_contract,
         )
     except ContractError as exc:
         raise SystemExit(f"Release artifact contract failed: {exc}") from exc
 
     print(
         "Release artifact contract PASS: Dashboard + Customer + Driver + Van "
-        f"{args.version}+{args.build_number} from {args.source_commit}"
+        f"for FOODEX {args.version}+{args.build_number} from {args.source_commit}"
     )
 
 

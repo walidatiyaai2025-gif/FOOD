@@ -20,6 +20,8 @@ on:
       - "scripts/build-dashboard-update.sh"
       - "scripts/write-trial-bundle-manifest.py"
       - "scripts/validate_release_artifact_contract.py"
+      - "scripts/validate_customer_freeze_contract.py"
+      - "docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json"
       - "scripts/tests/test_release_artifact_contract.py"
       - "Release/README.md"
       - "Release/INSTALL-FIRST.txt"
@@ -158,6 +160,11 @@ jobs:
         run: |
           set -euo pipefail
           current_version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$current_version" == "1.0.77" ]]; then
+            python3 scripts/validate_customer_freeze_contract.py --candidate HEAD
+            echo "::error::FOODEX 1.0.77 carries a frozen Customer lineage and must use the canonical Release Factory; legacy Trial Distribution cannot relabel Customer 1.0.76 as 1.0.77."
+            exit 1
+          fi
           customer_identity="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
           driver_identity="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
           van_identity="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml | tr -d '"')"

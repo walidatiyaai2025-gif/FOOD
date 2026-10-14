@@ -22,6 +22,8 @@ interface UpdateRuntime
 
     public function rollbackFiles(string $backupReference): void;
 
+    public function verifyDatabaseBackup(string $backupReference): void;
+
     public function rollbackDatabase(string $backupReference): void;
 
     public function exitMaintenanceMode(): void;

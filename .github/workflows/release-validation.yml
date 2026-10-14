@@ -5,9 +5,13 @@ on:
     paths:
       - 'docs/release/**'
       - 'scripts/release-readiness.sh'
+      - 'scripts/validate-premerge-release-version.sh'
+      - 'scripts/validate_customer_freeze_contract.py'
       - 'scripts/write-trial-bundle-manifest.py'
       - 'scripts/validate_release_artifact_contract.py'
+      - 'scripts/tests/test_customer_freeze_contract.py'
       - 'scripts/tests/test_release_artifact_contract.py'
+      - '.github/workflows/release-factory.yml'
       - '.github/workflows/trial-distribution.yml'
       - '.github/workflows/release-validation.yml'
 
@@ -19,6 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Validate frozen Customer lineage contract
+        run: |
+          python3 scripts/validate_customer_freeze_contract.py --candidate HEAD
+          python3 -m unittest discover -s scripts/tests -p 'test_customer_freeze_contract.py'
       - name: Validate release evidence
         run: bash ./scripts/release-readiness.sh
       - name: Validate synchronized release artifact contract tests

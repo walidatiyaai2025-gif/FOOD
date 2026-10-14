@@ -41,7 +41,7 @@
   "expansions": [
     {
       "id": "release-contract",
-      "path_regex": "^(\\.github/workflows/(release-validation|trial-distribution)\\.yml|\\.github/workflows/app-preview-acceptance-ci\\.yml|scripts/(release-readiness\\.sh|write-trial-bundle-manifest\\.py|validate_release_artifact_contract\\.py)|scripts/tests/test_release_artifact_contract\\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\\.md$)",
+      "path_regex": "^(\\.github/workflows/(release-validation|trial-distribution)\\.yml|\\.github/workflows/app-preview-acceptance-ci\\.yml|scripts/(release-readiness\\.sh|validate-premerge-release-version\\.sh|write-trial-bundle-manifest\\.py|validate_(customer_freeze_contract|release_artifact_contract)\\.py)|scripts/tests/test_(customer_freeze_contract|release_artifact_contract)\\.py|docs/release/|docs/quality/APP_PREVIEW_FINAL_ACCEPTANCE\\.md$)",
       "enable": [
         "backend",
         "customer",

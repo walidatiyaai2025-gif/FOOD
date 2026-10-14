@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ProductionLaunchPreflight;
+use App\Services\ProductionLaunchReport;
 use Database\Seeders\CoreReferenceSeeder;
 use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,6 +25,10 @@ class ProductionLaunchGateTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        config([
+            'foodex.release_source_sha' => str_repeat('c', 40),
+            'foodex.release_run_number' => '1388',
+        ]);
 
         Route::middleware('web')->get(
             '/__production-launch-test',
@@ -147,10 +152,7 @@ PHP);
 
     public function test_attestation_must_match_exact_release_source_sha(): void
     {
-        $buildInfoPath = base_path('../Release/BUILD_INFO.json');
-        $buildInfo = json_decode((string) file_get_contents($buildInfoPath), true);
-        $this->assertIsArray($buildInfo);
-        $sourceSha = $buildInfo['source_commit'] ?? null;
+        $sourceSha = app(ProductionLaunchPreflight::class)->releaseMetadata()['source_commit'];
         $this->assertIsString($sourceSha);
 
         $directory = storage_path('app/private/launch-gate');
@@ -184,12 +186,7 @@ PHP);
 
     public function test_official_seed_requires_runtime_readiness_even_with_matching_attestation(): void
     {
-        $buildInfo = json_decode(
-            (string) file_get_contents(base_path('../Release/BUILD_INFO.json')),
-            true,
-        );
-        $this->assertIsArray($buildInfo);
-        $sourceSha = $buildInfo['source_commit'] ?? null;
+        $sourceSha = app(ProductionLaunchPreflight::class)->releaseMetadata()['source_commit'];
         $this->assertIsString($sourceSha);
 
         $directory = storage_path('app/private/launch-gate');
@@ -240,12 +237,7 @@ PHP);
 
     public function test_provider_readiness_requires_runtime_opt_in_and_exact_release_attestation(): void
     {
-        $buildInfo = json_decode(
-            (string) file_get_contents(base_path('../Release/BUILD_INFO.json')),
-            true,
-        );
-        $this->assertIsArray($buildInfo);
-        $sourceSha = $buildInfo['source_commit'] ?? null;
+        $sourceSha = app(ProductionLaunchPreflight::class)->releaseMetadata()['source_commit'];
         $this->assertIsString($sourceSha);
 
         $directory = storage_path('app/private/launch-gate');
@@ -374,6 +366,66 @@ PHP);
                 unlink($path);
             }
         }
+    }
+
+    public function test_1_0_77_reversible_launch_checks_are_mandatory_and_fail_closed(): void
+    {
+        $report = app(ProductionLaunchPreflight::class)->decide([]);
+
+        foreach ([
+            'customer_frozen_lineage',
+            'catalog_provenance',
+            'reconstructed_image_quality',
+            'prelaunch_snapshot',
+            'restore_verification',
+            'dataset_switch_readiness',
+        ] as $code) {
+            $this->assertContains($code, ProductionLaunchPreflight::REQUIRED_CHECKS);
+            $this->assertFalse($report['checks'][$code]['passed']);
+            $this->assertContains($code, $report['blockers']);
+        }
+
+        $this->assertFalse($report['ready']);
+    }
+
+    public function test_launch_report_discloses_catalog_inferences_and_is_source_bound(): void
+    {
+        $payload = app(ProductionLaunchReport::class)
+            ->build(app(ProductionLaunchPreflight::class));
+
+        $this->assertSame('1.0.77', $payload['release']);
+        $this->assertTrue($payload['stale_if_source_sha_changes']);
+        $this->assertArrayHasKey('source_sha', $payload);
+        $this->assertArrayHasKey('all_fields', $payload['catalog']);
+        $this->assertNotEmpty($payload['catalog']['inferred_fields']);
+        $this->assertGreaterThan(0, $payload['catalog']['inferred_count']);
+        $this->assertArrayHasKey('snapshot', $payload['rollback']);
+        $this->assertArrayHasKey('blockers', $payload);
+    }
+
+    public function test_release_metadata_uses_exact_candidate_source_and_frozen_customer_identity(): void
+    {
+        $release = app(ProductionLaunchPreflight::class)->releaseMetadata();
+
+        $this->assertSame('1.0.77', $release['version']);
+        $this->assertSame('1.0.77', $release['build_info_version']);
+        $this->assertSame(str_repeat('c', 40), $release['source_commit']);
+        $this->assertSame('1388', $release['github_run_number']);
+        $this->assertSame('candidate-source', $release['lineage_source']);
+        $this->assertSame('1.0.76', $release['customer_version']);
+        $this->assertSame(76, $release['customer_build_number']);
+        $this->assertSame('1.0.76+76', $release['customer_frozen_identity']);
+        $this->assertSame('1.0.77', $release['driver_version']);
+        $this->assertSame(77, $release['driver_build_number']);
+        $this->assertSame('1.0.77', $release['van_version']);
+        $this->assertSame(77, $release['van_build_number']);
+        $this->assertSame(
+            '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d',
+            $release['customer_frozen_baseline'],
+        );
+
+        $report = app(ProductionLaunchPreflight::class)->runtimeReport();
+        $this->assertTrue($report['checks']['release_lineage']['passed']);
     }
 
     private function superAdmin(string $locale = 'en'): User
