@@ -241,6 +241,10 @@ Route::prefix('admin')
                 Route::post('/flows', [WhatsAppChatbotController::class, 'storeFlow'])
                     ->middleware('throttle:30,1')
                     ->name('flows.store');
+                Route::patch('/flows/{flow}', [WhatsAppChatbotController::class, 'updateFlow'])
+                    ->whereNumber('flow')
+                    ->middleware('throttle:30,1')
+                    ->name('flows.update');
                 Route::post('/flows/{flow}/publish', [WhatsAppChatbotController::class, 'publishFlow'])
                     ->whereNumber('flow')
                     ->middleware('throttle:30,1')
