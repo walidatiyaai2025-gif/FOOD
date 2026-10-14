@@ -218,10 +218,30 @@ Route::prefix('admin')
             ->middleware('whatsapp.capability:campaigns')
             ->group(function (): void {
                 Route::get('/', [WhatsAppCampaignController::class, 'index'])->name('index');
+                Route::get('/customers', [WhatsAppCampaignController::class, 'customers'])
+                    ->middleware('throttle:120,1')
+                    ->name('customers');
                 Route::post('/preview', [WhatsAppCampaignController::class, 'preview'])->name('preview');
+                Route::post('/audience/import/preview', [WhatsAppCampaignController::class, 'importPreview'])
+                    ->middleware('throttle:20,1')
+                    ->name('audience.import.preview');
+                Route::post('/audience/import/{batch}/commit', [WhatsAppCampaignController::class, 'importCommit'])
+                    ->whereNumber('batch')
+                    ->middleware('throttle:20,1')
+                    ->name('audience.import.commit');
+                Route::post('/audience/manual', [WhatsAppCampaignController::class, 'manualContacts'])
+                    ->middleware('throttle:30,1')
+                    ->name('audience.manual');
                 Route::post('/templates', [WhatsAppCampaignController::class, 'storeTemplate'])->name('templates.store');
                 Route::post('/consents', [WhatsAppCampaignController::class, 'storeConsent'])->name('consents.store');
                 Route::post('/', [WhatsAppCampaignController::class, 'storeCampaign'])->name('store');
+                Route::get('/{campaign}/report', [WhatsAppCampaignController::class, 'report'])
+                    ->whereNumber('campaign')
+                    ->name('report');
+                Route::get('/{campaign}/export/{format}', [WhatsAppCampaignController::class, 'export'])
+                    ->whereNumber('campaign')
+                    ->whereIn('format', ['csv', 'xlsx'])
+                    ->name('export');
                 Route::post('/{campaign}/snapshot', [WhatsAppCampaignController::class, 'snapshot'])->whereNumber('campaign')->name('snapshot');
                 Route::post('/{campaign}/schedule', [WhatsAppCampaignController::class, 'schedule'])->whereNumber('campaign')->name('schedule');
                 Route::post('/{campaign}/pause', [WhatsAppCampaignController::class, 'pause'])->whereNumber('campaign')->name('pause');
