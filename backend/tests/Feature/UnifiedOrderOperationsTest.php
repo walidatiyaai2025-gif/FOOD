@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2cCustomerService;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -20,17 +21,22 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_legacy_order_pages_redirect_to_canonical_operations_page(): void
+    public function test_legacy_order_pages_are_canonical_aliases_of_operations_page(): void
     {
         $super = $this->superAdmin('unified-routes@example.test');
 
+        app(WholesalePrincipal::class)->storeId();
+        $this->retailStore('UNIFIED-ROUTE-RETAIL');
+
         $this->actingAs($super)
             ->get('/admin/b2b/orders')
-            ->assertRedirect('/admin/operations/orders?channel=b2b');
+            ->assertOk()
+            ->assertViewIs('admin.order-operations');
 
         $this->actingAs($super)
             ->get('/admin/b2c/orders')
-            ->assertRedirect('/admin/operations/orders?channel=b2c');
+            ->assertOk()
+            ->assertViewIs('admin.order-operations');
     }
 
     public function test_retail_admin_cannot_open_wholesale_or_all_channel_scope(): void
@@ -82,6 +88,8 @@ class UnifiedOrderOperationsTest extends TestCase
     public function test_multi_channel_admin_gets_channel_switcher_and_scoped_all_view(): void
     {
         $super = $this->superAdmin('unified-super@example.test');
+        app(WholesalePrincipal::class)->storeId();
+        $this->retailStore('UNIFIED-SUPER-RETAIL');
 
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=all')
