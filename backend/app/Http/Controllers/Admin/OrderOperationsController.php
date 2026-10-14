@@ -77,6 +77,7 @@ final class OrderOperationsController extends Controller
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
+        $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
         $storeIds = array_values(array_unique(array_merge(
             $scopes['b2b'],
             $scopes['b2c'],
@@ -167,6 +168,7 @@ final class OrderOperationsController extends Controller
                 $activeStatusCodes,
                 $dispatchScopes,
                 $manageScopes,
+                $financeScopes,
             ))
             ->all();
 
@@ -224,6 +226,7 @@ final class OrderOperationsController extends Controller
                 $activeStatusCodes,
                 $dispatchScopes,
                 $manageScopes,
+                $financeScopes,
             );
         }
 
@@ -1045,6 +1048,7 @@ final class OrderOperationsController extends Controller
         array $activeStatusCodes,
         array $dispatchScopes,
         array $manageScopes,
+        array $financeScopes,
     ): array {
 
         $assignment = DriverAssignment::query()
@@ -1110,6 +1114,11 @@ final class OrderOperationsController extends Controller
             $manageScopes[$channel] ?? [],
             true,
         );
+        $canViewInvoice = in_array(
+            (int) $order->store_id,
+            $financeScopes[$channel] ?? [],
+            true,
+        );
         $canEdit = $canManage
             && (string) $order->status === 'pending'
             && $order->commercial_locked_at === null
@@ -1170,6 +1179,7 @@ final class OrderOperationsController extends Controller
             'invoice_status' => $invoice?->status,
             'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
             'invoice_currency' => $invoice?->currency,
+            'can_view_invoice' => $canViewInvoice,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
             'assignment_id' => $assignment?->getKey(),
@@ -1205,6 +1215,7 @@ final class OrderOperationsController extends Controller
         array $activeStatusCodes,
         array $dispatchScopes,
         array $manageScopes,
+        array $financeScopes,
     ): array {
         $row = $this->row(
             $order,
@@ -1212,6 +1223,7 @@ final class OrderOperationsController extends Controller
             $activeStatusCodes,
             $dispatchScopes,
             $manageScopes,
+            $financeScopes,
         );
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
