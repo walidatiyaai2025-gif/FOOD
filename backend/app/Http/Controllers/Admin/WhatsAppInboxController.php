@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\WhatsApp\AgentAssignmentEngine;
 use App\Domain\WhatsApp\ConversationService;
 use App\Domain\WhatsApp\OutboundMessageDispatcher;
+use App\Domain\WhatsApp\ProviderTransportException;
+use App\Domain\WhatsApp\WhatsAppMediaService;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformCustomer;
 use App\Models\User;
@@ -15,9 +17,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class WhatsAppInboxController extends Controller
 {
@@ -27,6 +32,7 @@ final class WhatsAppInboxController extends Controller
         private readonly AgentAssignmentEngine $agents,
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $outbound,
+        private readonly WhatsAppMediaService $media,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -178,19 +184,77 @@ final class WhatsAppInboxController extends Controller
     {
         $actor = $this->actor($request);
         $validated = $request->validate([
-            'body' => ['required', 'string', 'max:5000'],
+            'body' => ['nullable', 'string', 'max:5000', 'required_without:attachment'],
+            'attachment' => [
+                'nullable',
+                'file',
+                'max:'.max(1024, (int) config('whatsapp.media.max_outbound_mb', 16) * 1024),
+            ],
         ]);
+
+        $attachmentMetadata = [];
+        $attachment = $request->file('attachment');
+        if ($attachment instanceof UploadedFile) {
+            // conversationForActor inside appendOutboundPending remains authoritative;
+            // storing first only creates a private file that is never publicly addressable.
+            $attachmentMetadata = $this->media->storeOutbound($attachment, $conversation);
+        }
 
         $messageId = $this->conversations->appendOutboundPending(
             $conversation,
             $actor,
-            (string) $validated['body'],
+            trim((string) ($validated['body'] ?? '')),
+            $attachmentMetadata,
         );
         $this->outbound->queue($messageId);
 
         return $this->backToConversation(
             $conversation,
             __('whatsapp.inbox.flash.reply_queued'),
+        );
+    }
+
+    public function attachment(Request $request, int $conversation, int $message): BinaryFileResponse
+    {
+        $actor = $this->actor($request);
+        $this->conversations->conversationForActor(
+            $conversation,
+            $actor,
+            'whatsapp.conversations.view',
+        );
+
+        $row = DB::table('whats_app_messages')
+            ->where('id', $message)
+            ->where('conversation_id', $conversation)
+            ->first();
+        abort_unless($row !== null, 404);
+
+        try {
+            $asset = $this->media->materialize($row);
+        } catch (ProviderTransportException $exception) {
+            abort($exception->retryable ? 503 : 404);
+        }
+
+        abort_unless(
+            $asset['disk'] === 'local'
+                && Storage::disk('local')->exists($asset['path']),
+            404,
+        );
+
+        $headers = [
+            'Content-Type' => $asset['mime_type'],
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        return response()->file(
+            Storage::disk('local')->path($asset['path']),
+            $headers + [
+                'Content-Disposition' => $this->contentDisposition(
+                    $asset['media_type'],
+                    $asset['filename'],
+                ),
+            ],
         );
     }
 
@@ -394,6 +458,7 @@ final class WhatsAppInboxController extends Controller
             ->get([
                 'messages.id',
                 'messages.direction',
+                'messages.content_type',
                 'messages.actor_type',
                 'messages.body',
                 'messages.attachment_metadata',
@@ -401,18 +466,33 @@ final class WhatsAppInboxController extends Controller
                 'messages.occurred_at',
                 'users.name as actor_name',
             ])
-            ->map(static fn (object $row): array => [
-                'kind' => 'message',
-                'id' => (int) $row->id,
-                'direction' => (string) $row->direction,
-                'actor' => $row->actor_name
-                    ?? ($row->actor_type === 'customer'
-                        ? __('whatsapp.inbox.customer_actor')
-                        : __('whatsapp.inbox.system_actor')),
-                'body' => $row->body,
-                'delivery_status' => $row->delivery_status,
-                'timestamp' => $row->occurred_at,
-            ]);
+            ->map(function (object $row) use ($conversationId): array {
+                $metadata = $this->decodeAttachmentMetadata($row->attachment_metadata);
+                $mediaType = strtolower(trim((string) ($metadata['media_type'] ?? $row->content_type ?? '')));
+                $hasAttachment = in_array($mediaType, ['image', 'document', 'video', 'audio', 'sticker', 'media'], true);
+
+                return [
+                    'kind' => 'message',
+                    'id' => (int) $row->id,
+                    'direction' => (string) $row->direction,
+                    'actor' => $row->actor_name
+                        ?? ($row->actor_type === 'customer'
+                            ? __('whatsapp.inbox.customer_actor')
+                            : __('whatsapp.inbox.system_actor')),
+                    'body' => $row->body,
+                    'delivery_status' => $row->delivery_status,
+                    'timestamp' => $row->occurred_at,
+                    'attachment' => $hasAttachment ? [
+                        'media_type' => $mediaType,
+                        'mime_type' => (string) ($metadata['mime_type'] ?? ''),
+                        'filename' => trim((string) ($metadata['filename'] ?? '')),
+                        'url' => route('admin.whatsapp-inbox.attachments.show', [
+                            'conversation' => $conversationId,
+                            'message' => (int) $row->id,
+                        ]),
+                    ] : null,
+                ];
+            });
 
         $notes = DB::table('whats_app_internal_notes as notes')
             ->leftJoin('users', 'users.id', '=', 'notes.author_user_id')
@@ -537,6 +617,34 @@ final class WhatsAppInboxController extends Controller
             'invoices_count' => (clone $invoicesBase)->count(),
             'ownership' => $ownership,
         ];
+    }
+
+    /** @return array<string,mixed> */
+    private function decodeAttachmentMetadata(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function contentDisposition(string $mediaType, string $filename): string
+    {
+        $disposition = in_array($mediaType, ['image', 'video', 'audio', 'sticker'], true)
+            ? 'inline'
+            : 'attachment';
+        $safe = str_replace(['"', "\r", "\n"], '', $filename);
+        if ($safe === '') {
+            $safe = 'whatsapp-attachment';
+        }
+
+        return $disposition.'; filename="'.addcslashes($safe, "\\\"").'"';
     }
 
     private function actor(Request $request): User
