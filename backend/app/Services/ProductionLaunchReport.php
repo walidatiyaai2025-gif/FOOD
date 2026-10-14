@@ -31,12 +31,14 @@ final class ProductionLaunchReport
 
         return [
             'schema_version' => 1,
-            'release' => '1.0.77',
+            'release' => $release['version'],
             'source_sha' => $sourceSha,
             'generated_at' => now()->toIso8601String(),
             'stale_if_source_sha_changes' => true,
             'release_identity' => $release,
-            'customer_frozen_identity' => $this->jsonFile(base_path('../docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json')),
+            'customer_frozen_identity' => $release['version'] === '1.0.77'
+                ? $this->jsonFile(base_path('../docs/release/FOODEX_1_0_77_CUSTOMER_FREEZE.json'))
+                : null,
             'gate' => $gate,
             'catalog' => [
                 'release' => is_array($ledger) ? ($ledger['release'] ?? null) : null,
