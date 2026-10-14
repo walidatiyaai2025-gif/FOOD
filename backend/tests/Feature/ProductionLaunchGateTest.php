@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ProductionLaunchPreflight;
+use App\Services\ProductionLaunchReport;
 use Database\Seeders\CoreReferenceSeeder;
 use Database\Seeders\FoodexLaunchSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -389,7 +390,7 @@ PHP);
 
     public function test_launch_report_discloses_catalog_inferences_and_is_source_bound(): void
     {
-        $payload = app(\App\Services\ProductionLaunchReport::class)
+        $payload = app(ProductionLaunchReport::class)
             ->build(app(ProductionLaunchPreflight::class));
 
         $this->assertSame('1.0.77', $payload['release']);
