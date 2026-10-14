@@ -81,7 +81,10 @@
                                 </span>
                                 <p class="cb-muted">{{ __('chatbot.admin.runtime_guard') }}</p>
                             </div>
-                            <strong>{{ __('chatbot.admin.mode_'.($settings['mode'] ?? 'hybrid')) }}</strong>
+                            <div>
+                                <strong>{{ __('chatbot.admin.lifecycle_'.strtolower($settings['lifecycle'] ?? 'DISABLED')) }}</strong>
+                                <div class="cb-muted">{{ __('chatbot.admin.mode_'.($settings['mode'] ?? 'hybrid')) }}</div>
+                            </div>
                         </div>
                     </div>
                     <div class="cb-card cb-col-4">
@@ -96,6 +99,23 @@
                             <input type="hidden" name="revision" value="{{ $settings['revision'] }}">
                             <input type="hidden" name="enabled" value="0">
                             <div class="cb-field"><label class="cb-switch-row"><input type="checkbox" name="enabled" value="1" @checked($settings['enabled']) @disabled(!$canManageRuntime)> {{ __('chatbot.admin.enabled') }}</label></div>
+                            <div class="cb-field">
+                                <label for="cb-lifecycle">{{ __('chatbot.admin.lifecycle') }}</label>
+                                <select class="foodex-control" id="cb-lifecycle" name="lifecycle" @disabled(!$canManageRuntime)>
+                                    @foreach(['DISABLED','INTERNAL_TEST','PILOT','ENABLED'] as $lifecycle)
+                                        <option value="{{ $lifecycle }}" @selected(($settings['lifecycle'] ?? 'DISABLED') === $lifecycle)>{{ __('chatbot.admin.lifecycle_'.strtolower($lifecycle)) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="cb-field full">
+                                <label for="cb-pilot-segments">{{ __('chatbot.admin.pilot_segments') }}</label>
+                                <select class="foodex-control" id="cb-pilot-segments" name="pilot_segment_codes[]" multiple @disabled(!$canManageRuntime)>
+                                    @foreach($segments as $segment)
+                                        <option value="{{ $segment->code }}" @selected(in_array($segment->code, $settings['pilot_segment_codes'] ?? [], true))>{{ app()->getLocale()==='ar' ? $segment->name_ar : $segment->name_en }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="cb-muted">{{ __('chatbot.admin.rollout_guard') }}</small>
+                            </div>
                             <input type="hidden" name="emergency_stop" value="0">
                             <div class="cb-field"><label class="cb-switch-row"><input type="checkbox" name="emergency_stop" value="1" @checked($settings['emergency_stop']) @disabled(!$canManageRuntime)> {{ __('chatbot.admin.emergency_stop') }}</label></div>
                             <div class="cb-field">
