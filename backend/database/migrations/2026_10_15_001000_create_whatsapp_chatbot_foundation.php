@@ -12,6 +12,8 @@ return new class extends Migration
         Schema::create('whats_app_chatbot_settings', function (Blueprint $table): void {
             $table->id();
             $table->boolean('enabled')->default(false);
+            $table->string('lifecycle', 24)->default('DISABLED')->index();
+            $table->json('pilot_segment_codes')->nullable();
             $table->boolean('emergency_stop')->default(false);
             $table->string('mode', 16)->default('hybrid');
             $table->string('default_locale', 8)->default('ar');
@@ -136,6 +138,8 @@ return new class extends Migration
         $now = now();
         DB::table('whats_app_chatbot_settings')->insert([
             'enabled' => false,
+            'lifecycle' => 'DISABLED',
+            'pilot_segment_codes' => null,
             'emergency_stop' => false,
             'mode' => 'hybrid',
             'default_locale' => 'ar',
