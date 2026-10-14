@@ -3,11 +3,11 @@
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\StateManager;
 use App\Domain\WhatsApp\TransportRetryService;
+use App\Models\User;
 use App\Services\B2BVanFulfillmentCutoverService;
 use App\Services\B2BVanFulfillmentMigrationAudit;
 use App\Services\FlashOfferNotificationDispatcher;
 use App\Services\FlashOfferService;
-use App\Models\User;
 use App\Services\NotificationCampaignDispatcher;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
