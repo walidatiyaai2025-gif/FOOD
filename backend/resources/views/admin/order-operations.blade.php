@@ -115,6 +115,37 @@ $businessLabel = static function ($value): string {
 <button type="submit">{{ $isAr ? 'تذكير السائق' : 'Remind driver' }}</button>
 </form>
 @endif
+
+@if($row['channel']==='b2b' && $row['status']==='pending' && $row['can_manage'])
+<div data-b2b-customer-service-approval style="display:grid;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--foodex-border)">
+<strong>{{ $isAr ? 'قرار خدمة العملاء' : 'Customer Service approval' }}</strong>
+<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
+<input type="hidden" name="status" value="confirmed">
+<input type="hidden" name="note" value="customer_service_approved">
+<button class="foodex-primary" type="submit">{{ $isAr ? 'اعتماد الطلب' : 'Approve order' }}</button>
+</form>
+<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
+<input type="hidden" name="status" value="cancelled">
+<input name="note" maxlength="1000" required placeholder="{{ $isAr ? 'سبب الرفض (إلزامي)' : 'Rejection reason (required)' }}">
+<button class="danger btn" type="submit">{{ $isAr ? 'رفض الطلب' : 'Reject order' }}</button>
+</form>
+</div>
+@endif
+
+@if($row['channel']==='b2b' && $row['settlement'])
+@php($settlement=$row['settlement'])
+<div data-b2b-settlement-review style="display:grid;gap:5px;margin-top:8px;padding:9px;border-top:1px solid var(--foodex-border)">
+<strong>{{ $isAr ? 'مراجعة التسوية المالية' : 'Financial settlement review' }}</strong>
+<div>{{ $isAr ? 'رصيد العميل المتاح' : 'Customer credit balance' }}: <strong>{{ number_format((float)$settlement['customer_credit_balance'],3) }} {{ $settlement['currency'] }}</strong></div>
+<div>{{ $isAr ? 'إجمالي المديونية الحالية' : 'Aggregate outstanding' }}: <strong>{{ number_format((float)$settlement['aggregate_outstanding'],3) }} {{ $settlement['currency'] }}</strong></div>
+<div>{{ $isAr ? 'حد الائتمان' : 'Credit limit' }}: <strong>{{ number_format((float)$settlement['credit_limit'],3) }} {{ $settlement['currency'] }}</strong></div>
+<div>{{ $isAr ? 'الحد المتاح' : 'Available credit line' }}: <strong>{{ number_format((float)$settlement['available_credit_line'],3) }} {{ $settlement['currency'] }}</strong></div>
+@if($settlement['invoice_outstanding']!==null)
+<div>{{ $isAr ? 'المتبقي على الفاتورة' : 'Invoice outstanding' }}: <strong>{{ number_format((float)$settlement['invoice_outstanding'],3) }} {{ $settlement['currency'] }}</strong></div>
+@endif
+</div>
+@endif
+
 @if($row['can_dispatch'])
 @if($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
@@ -149,7 +180,7 @@ $businessLabel = static function ($value): string {
 </form>
 @endif
 @endif
-@if($row['can_manage'])
+@if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
 <select name="status" required aria-label="{{ __('order_operations.next_status') }}"><option value="">{{ __('order_operations.choose_next_status') }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
