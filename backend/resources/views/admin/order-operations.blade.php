@@ -149,6 +149,7 @@ $businessLabel = static function ($value): string {
 </form>
 @endif
 @endif
+@if($row['can_manage'])
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
 <select name="status" required aria-label="{{ __('order_operations.next_status') }}"><option value="">{{ __('order_operations.choose_next_status') }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
@@ -156,6 +157,7 @@ $businessLabel = static function ($value): string {
 </form>
 @else
 <span class="badge {{ $row['status'] }}">{{ __('order_operations.terminal') }}</span>
+@endif
 @endif
 </div>
 </details>
