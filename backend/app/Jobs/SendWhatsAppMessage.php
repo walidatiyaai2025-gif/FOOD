@@ -9,6 +9,7 @@ use App\Domain\WhatsApp\OutboundExecution;
 use App\Domain\WhatsApp\OutboundMessage;
 use App\Domain\WhatsApp\OutboundPaused;
 use App\Domain\WhatsApp\ProviderTransportException;
+use App\Domain\WhatsApp\WhatsAppMediaService;
 use App\Domain\WhatsApp\WhatsAppProviderRegistry;
 use App\Models\WhatsAppConnectionProfile;
 use Illuminate\Bus\Queueable;
@@ -32,6 +33,7 @@ final class SendWhatsAppMessage implements ShouldQueue
 
     public function handle(
         WhatsAppProviderRegistry $providers,
+        WhatsAppMediaService $media,
         OutboundExecution $execution,
         ConnectionHealthRecorder $health,
     ): void {
@@ -77,15 +79,22 @@ final class SendWhatsAppMessage implements ShouldQueue
             $purpose = Capability::OUTBOUND;
         }
 
-        $message = new OutboundMessage(
-            recipient: (string) $dispatch->recipient,
-            kind: (string) ($payload['kind'] ?? 'text'),
-            body: isset($payload['body']) ? (string) $payload['body'] : null,
-            metadata: $metadata,
-            idempotencyKey: (string) $dispatch->idempotency_key,
-        );
-
         try {
+            if ((string) ($payload['kind'] ?? 'text') === 'media'
+                && trim((string) ($metadata['media_id'] ?? '')) === ''
+                && trim((string) ($metadata['link'] ?? '')) === ''
+                && trim((string) ($metadata['local_path'] ?? '')) !== '') {
+                $metadata['media_id'] = $media->uploadToMeta($profile, $metadata);
+            }
+
+            $message = new OutboundMessage(
+                recipient: (string) $dispatch->recipient,
+                kind: (string) ($payload['kind'] ?? 'text'),
+                body: isset($payload['body']) ? (string) $payload['body'] : null,
+                metadata: $metadata,
+                idempotencyKey: (string) $dispatch->idempotency_key,
+            );
+
             $result = $execution->run(
                 $message->recipient,
                 $purpose,
