@@ -31,6 +31,11 @@ final class WhatsAppConnectionProfile extends Model
         ];
     }
 
+    private static function enumValue(mixed $value): string
+    {
+        return $value instanceof \BackedEnum ? (string) $value->value : (string) $value;
+    }
+
     public function secretConfigured(): bool
     {
         $raw = $this->getRawOriginal('credential_secret');
@@ -57,8 +62,8 @@ final class WhatsAppConnectionProfile extends Model
             'provider_app_id' => $this->provider_app_id,
             'provider_metadata_keys' => array_values(array_map('strval', array_keys($this->provider_metadata ?? []))),
             'webhook_metadata_keys' => array_values(array_map('strval', array_keys($this->webhook_metadata ?? []))),
-            'status' => $this->status->value,
-            'health_status' => $this->health_status->value,
+            'status' => self::enumValue($this->status),
+            'health_status' => self::enumValue($this->health_status),
             'is_primary' => $this->is_primary,
             'receive_only' => $this->receive_only,
             'configuration_revision' => $this->configuration_revision,
