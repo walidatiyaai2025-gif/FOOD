@@ -139,8 +139,13 @@ final class WebhookProcessor
                 return;
             }
 
+            $nextStatus = $this->nextDeliveryStatus(
+                is_string($message->delivery_status) ? $message->delivery_status : null,
+                $event->deliveryStatus,
+            );
+
             DB::table('whats_app_messages')->where('id', $message->id)->update([
-                'delivery_status' => mb_substr($event->deliveryStatus, 0, 32),
+                'delivery_status' => $nextStatus,
                 'updated_at' => now(),
             ]);
 
@@ -148,15 +153,45 @@ final class WebhookProcessor
                 ->where('message_id', $message->id)
                 ->first();
 
-            if ($dispatch !== null && in_array($event->deliveryStatus, ['sent', 'delivered', 'read', 'failed'], true)) {
+            if ($dispatch !== null && in_array($nextStatus, ['sent', 'delivered', 'read', 'failed'], true)) {
                 DB::table('whats_app_outbound_dispatches')->where('id', $dispatch->id)->update([
-                    'status' => $event->deliveryStatus === 'failed' ? 'failed' : 'sent',
-                    'last_error' => $event->deliveryStatus === 'failed'
+                    'status' => $nextStatus === 'failed' ? 'failed' : 'sent',
+                    'last_error' => $nextStatus === 'failed'
                         ? 'Provider reported message delivery failure.'
-                        : $dispatch->last_error,
+                        : null,
                     'updated_at' => now(),
                 ]);
             }
         });
+    }
+
+    private function nextDeliveryStatus(?string $current, string $incoming): string
+    {
+        $incoming = mb_substr(strtolower(trim($incoming)), 0, 32);
+        $current = $current === null ? null : strtolower(trim($current));
+
+        if ($incoming === 'failed') {
+            return in_array($current, ['delivered', 'read'], true)
+                ? (string) $current
+                : 'failed';
+        }
+
+        if ($current === 'failed') {
+            return 'failed';
+        }
+
+        $rank = [
+            'pending_transport' => 0,
+            'queued' => 0,
+            'retry_wait' => 0,
+            'sent' => 1,
+            'delivered' => 2,
+            'read' => 3,
+        ];
+
+        $incomingRank = $rank[$incoming] ?? 0;
+        $currentRank = $current === null ? -1 : ($rank[$current] ?? 0);
+
+        return $incomingRank >= $currentRank ? $incoming : (string) $current;
     }
 }
