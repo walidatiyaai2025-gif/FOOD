@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\WhatsApp\RuntimePolicy;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -62,6 +63,7 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
+                $this->whatsAppInboxItem($user),
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
                 $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
@@ -90,6 +92,7 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
+                $this->whatsAppSupervisorItem($user),
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'finance', 'admin.b2c_workspace.modules.finance', 'finance.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
@@ -219,6 +222,38 @@ class AdminNavigation
                 ->whereIn('roles.code', $storeRoles)
                 ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))
             ->exists();
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function whatsAppInboxItem(User $user): ?array
+    {
+        if (! app(RuntimePolicy::class)->allowsAgentInbox()) {
+            return null;
+        }
+
+        return $this->routeItemScoped(
+            $user,
+            'whatsapp_inbox',
+            'whatsapp.inbox_title',
+            'admin.whatsapp-inbox.index',
+            'whatsapp.inbox.view',
+        );
+    }
+
+    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
+    private function whatsAppSupervisorItem(User $user): ?array
+    {
+        if (! app(RuntimePolicy::class)->allowsAgentInbox()) {
+            return null;
+        }
+
+        return $this->routeItemScoped(
+            $user,
+            'whatsapp_supervisor',
+            'whatsapp_supervisor.nav_title',
+            'admin.whatsapp-supervisor.index',
+            'whatsapp.customer_service.supervise',
+        );
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

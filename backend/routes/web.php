@@ -39,8 +39,15 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
+use App\Http\Controllers\Admin\WhatsAppCampaignController;
+use App\Http\Controllers\Admin\WhatsAppConnectionController;
+use App\Http\Controllers\Admin\WhatsAppFoundationController;
+use App\Http\Controllers\Admin\WhatsAppInboundAlertController;
+use App\Http\Controllers\Admin\WhatsAppInboxController;
+use App\Http\Controllers\Admin\WhatsAppSupervisorController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -82,6 +89,15 @@ Route::withoutMiddleware([
     ShareErrorsFromSession::class,
     ValidateCsrfToken::class,
 ])->group(function (): void {
+    Route::get('/webhooks/whatsapp/meta/{profile}', [WhatsAppWebhookController::class, 'verify'])
+        ->whereNumber('profile')
+        ->middleware('throttle:120,1')
+        ->name('webhooks.whatsapp.meta.verify');
+    Route::post('/webhooks/whatsapp/meta/{profile}', [WhatsAppWebhookController::class, 'ingest'])
+        ->whereNumber('profile')
+        ->middleware('throttle:240,1')
+        ->name('webhooks.whatsapp.meta.ingest');
+
     Route::get('/install', [InstallerController::class, 'show'])->name('install.index');
     Route::post('/install/step/{step}', [InstallerController::class, 'process'])
         ->whereNumber('step')
@@ -120,6 +136,68 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
+        Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
+        Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
+        Route::get('/settings/whatsapp/connections', [WhatsAppConnectionController::class, 'index'])->name('whatsapp.connections.index');
+        Route::post('/settings/whatsapp/connections', [WhatsAppConnectionController::class, 'store'])->middleware('throttle:30,1')->name('whatsapp.connections.store');
+        Route::patch('/settings/whatsapp/connections/{profile}', [WhatsAppConnectionController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.connections.update');
+        Route::put('/settings/whatsapp/connections/{profile}/credential', [WhatsAppConnectionController::class, 'replaceCredential'])->middleware('throttle:20,1')->name('whatsapp.connections.credential');
+        Route::post('/settings/whatsapp/connections/{profile}/validate', [WhatsAppConnectionController::class, 'validateConnection'])->middleware('throttle:20,1')->name('whatsapp.connections.validate');
+        Route::post('/settings/whatsapp/connections/{profile}/primary', [WhatsAppConnectionController::class, 'switchPrimary'])->middleware('throttle:10,1')->name('whatsapp.connections.primary');
+        Route::post('/settings/whatsapp/connections/{profile}/receive-only', [WhatsAppConnectionController::class, 'receiveOnly'])->middleware('throttle:20,1')->name('whatsapp.connections.receive-only');
+        Route::post('/settings/whatsapp/connections/{profile}/deactivate', [WhatsAppConnectionController::class, 'deactivate'])->middleware('throttle:20,1')->name('whatsapp.connections.deactivate');
+        Route::prefix('whatsapp/inbound-alerts')
+            ->name('whatsapp-inbound-alerts.')
+            ->middleware('whatsapp.capability:agent_inbox')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppInboundAlertController::class, 'feed'])
+                    ->middleware('throttle:120,1')
+                    ->name('feed');
+                Route::patch('/{alert}/dismiss', [WhatsAppInboundAlertController::class, 'dismiss'])
+                    ->whereNumber('alert')
+                    ->middleware('throttle:120,1')
+                    ->name('dismiss');
+                Route::patch('/{alert}/open', [WhatsAppInboundAlertController::class, 'open'])
+                    ->whereNumber('alert')
+                    ->middleware('throttle:120,1')
+                    ->name('open');
+            });
+        Route::prefix('whatsapp/inbox')
+            ->name('whatsapp-inbox.')
+            ->middleware('whatsapp.capability:agent_inbox')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppInboxController::class, 'index'])->name('index');
+                Route::post('/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->name('reply');
+                Route::post('/{conversation}/notes', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('note');
+                Route::patch('/{conversation}/assignment', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('assign');
+                Route::patch('/{conversation}/status', [WhatsAppInboxController::class, 'transition'])->whereNumber('conversation')->name('transition');
+                Route::post('/{conversation}/tags', [WhatsAppInboxController::class, 'tag'])->whereNumber('conversation')->name('tag');
+                Route::patch('/my-status', [WhatsAppInboxController::class, 'updateMyStatus'])->name('status');
+            });
+        Route::prefix('whatsapp/supervisor')
+            ->name('whatsapp-supervisor.')
+            ->middleware('whatsapp.capability:agent_inbox')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppSupervisorController::class, 'index'])->name('index');
+                Route::post('/leads', [WhatsAppSupervisorController::class, 'saveLead'])->name('leads.store');
+                Route::post('/follow-ups', [WhatsAppSupervisorController::class, 'createFollowUp'])->name('follow-ups.store');
+                Route::patch('/follow-ups/{followUp}', [WhatsAppSupervisorController::class, 'transitionFollowUp'])->whereNumber('followUp')->name('follow-ups.transition');
+                Route::put('/conversations/{conversation}/outcome', [WhatsAppSupervisorController::class, 'recordOutcome'])->whereNumber('conversation')->name('outcomes.store');
+            });
+        Route::prefix('whatsapp/campaigns')
+            ->name('whatsapp-campaigns.')
+            ->middleware('whatsapp.capability:campaigns')
+            ->group(function (): void {
+                Route::get('/', [WhatsAppCampaignController::class, 'index'])->name('index');
+                Route::post('/preview', [WhatsAppCampaignController::class, 'preview'])->name('preview');
+                Route::post('/templates', [WhatsAppCampaignController::class, 'storeTemplate'])->name('templates.store');
+                Route::post('/consents', [WhatsAppCampaignController::class, 'storeConsent'])->name('consents.store');
+                Route::post('/', [WhatsAppCampaignController::class, 'storeCampaign'])->name('store');
+                Route::post('/{campaign}/snapshot', [WhatsAppCampaignController::class, 'snapshot'])->whereNumber('campaign')->name('snapshot');
+                Route::post('/{campaign}/schedule', [WhatsAppCampaignController::class, 'schedule'])->whereNumber('campaign')->name('schedule');
+                Route::post('/{campaign}/pause', [WhatsAppCampaignController::class, 'pause'])->whereNumber('campaign')->name('pause');
+                Route::post('/{campaign}/cancel', [WhatsAppCampaignController::class, 'cancel'])->whereNumber('campaign')->name('cancel');
+            });
         Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
             ->name('assistant.')

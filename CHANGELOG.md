@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.79 - 2026-10-14
+- Promote the independently certified WhatsApp CRM program from #1399/#1407 into the production release lineage with provider abstraction, secure inbound/outbound transport, dynamic connection profiles, Customer Service roles/assignment, shared inbox, Customer 360, transactional notifications, campaigns, consent/opt-out, supervisor analytics, leads/follow-ups and the Dashboard-global inbound-message popup.
+- Carry certification `FOODEX-WHATSAPP-CRM-GA-1407-V1` with a 20/20 PASS matrix, zero unresolved P0/P1 risks, fail-closed source-controlled GA evidence, audited GA_READY promotion, and a separate emergency outbound stop.
+- Keep WhatsApp disabled by default after deployment; no Meta token, WABA ID, phone-number ID, webhook token or signing secret is required for FOODEX boot, update, migration or unrelated business operation.
+- Include the searchable single-product Sales Control from #1433 while preserving store/RBAC isolation.
+- Synchronize Customer, Driver and Van source identities at 1.0.79+79 for the release contract without introducing new mobile product behavior.
+- Ship the cumulative Dashboard update with the WhatsApp additive migrations and rollback-safe/default-disabled runtime contract.
+
 ## 1.0.78 - 2026-10-14
 - Unify Dashboard order management on `/admin/operations/orders` while preserving strict server-side B2B/B2C channel isolation and store scope.
 - Redirect legacy B2B and B2C order pages to the canonical Operations surface and remove duplicate order-management navigation entries.

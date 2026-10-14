@@ -4,6 +4,7 @@ use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\CustomerConditionalGet;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureFreshDriverLocation;
+use App\Http\Middleware\EnsureWhatsAppCapability;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
 use App\Http\Middleware\ResolveCustomerPreviewSession;
 use App\Http\Middleware\ResolveDriverPreviewSession;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'driver.location.fresh' => EnsureFreshDriverLocation::class,
             'management.dashboard' => EnsureManagementDashboardAccess::class,
             'tenant.context' => ResolveTenantContext::class,
+            'whatsapp.capability' => EnsureWhatsAppCapability::class,
             'preview.customer' => ResolveCustomerPreviewSession::class,
             'preview.driver' => ResolveDriverPreviewSession::class,
         ]);

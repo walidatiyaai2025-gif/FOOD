@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\WhatsApp\Lifecycle;
+use App\Domain\WhatsApp\RuntimePolicy;
 use App\Models\Address;
 use App\Models\B2cCustomer;
 use App\Models\Customer;
@@ -11,6 +13,7 @@ use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -146,6 +149,37 @@ class CheckoutDomainTest extends TestCase
         ]);
 
         Sanctum::actingAs($this->user);
+    }
+
+    public function test_customer_order_and_payment_checkout_are_unchanged_while_whatsapp_is_disabled(): void
+    {
+        $policy = app(RuntimePolicy::class);
+        $this->assertSame(Lifecycle::DISABLED, $policy->state()->lifecycle);
+        $this->assertFalse($policy->isOperational());
+        Http::preventStrayRequests();
+
+        $this->addCartItem(1);
+        $response = $this->withHeader('Idempotency-Key', 'checkout-whatsapp-disabled-001')
+            ->postJson('/api/v1/checkout', [
+                'store_id' => $this->storeId,
+                'address_id' => $this->address->id,
+                'payment_method' => 'cash_on_delivery',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('payment.provider', 'cash_on_delivery')
+            ->assertJsonPath('payment.status', 'pending');
+
+        $orderId = (int) $response->json('id');
+        $this->assertDatabaseHas('customers', ['id' => $this->customer->id, 'user_id' => $this->user->id]);
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'customer_id' => $this->customer->id]);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $orderId,
+            'provider' => 'cash_on_delivery',
+            'status' => 'pending',
+        ]);
+        $this->assertSame(Lifecycle::DISABLED, $policy->state()->lifecycle);
+        $this->assertFalse($policy->isOperational());
+        Http::assertNothingSent();
     }
 
     public function test_checkout_creates_order_payment_history_audit_and_stock_reservation(): void

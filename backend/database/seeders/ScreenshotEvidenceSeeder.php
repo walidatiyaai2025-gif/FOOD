@@ -21,6 +21,17 @@ class ScreenshotEvidenceSeeder extends Seeder
 
         $now = now();
 
+        DB::table('whats_app_module_states')
+            ->where('id', 1)
+            ->update([
+                'lifecycle' => 'INTERNAL_TEST',
+                'emergency_stop' => true,
+                'capabilities' => json_encode(['agent_inbox' => true], JSON_THROW_ON_ERROR),
+                'test_numbers' => '[]',
+                'revision' => 1,
+                'updated_at' => $now,
+            ]);
+
         $superAdminId = (int) DB::table('users')->insertGetId([
             'name' => 'FOODEX Screenshot Admin',
             'email' => 'screenshots@foodex.test',
@@ -142,6 +153,37 @@ class ScreenshotEvidenceSeeder extends Seeder
         if ($platformCustomer === null) {
             throw new RuntimeException('Platform Customer screenshot fixture was not created.');
         }
+
+        $whatsAppConversationId = (int) DB::table('whats_app_conversations')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'platform_customer_id' => (int) $platformCustomer->id,
+            'store_id' => $retailStoreId,
+            'channel' => 'whatsapp',
+            'status' => 'WAITING_FOR_AGENT',
+            'primary_agent_id' => null,
+            'priority' => 1,
+            'unread_count' => 1,
+            'waiting_since' => $now,
+            'first_inbound_at' => $now,
+            'last_inbound_at' => $now,
+            'lock_version' => 0,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        DB::table('whats_app_messages')->insert([
+            'conversation_id' => $whatsAppConversationId,
+            'direction' => 'inbound',
+            'actor_type' => 'customer',
+            'actor_user_id' => null,
+            'body' => 'Please help me with my latest order.',
+            'attachment_metadata' => null,
+            'provider_message_ref' => null,
+            'delivery_status' => 'received',
+            'occurred_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
 
         $addressId = (int) DB::table('addresses')->insertGetId([
             'customer_id' => (int) $platformCustomer->legacy_customer_id,

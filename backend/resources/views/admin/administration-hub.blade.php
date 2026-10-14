@@ -115,6 +115,12 @@ html[dir=ltr] .main{grid-column:2}
 </section>
 
 <section class="section" data-administration-tools>
+@if($user->hasPermission('whatsapp.view'))
+<article class="card">
+    <h3>{{ __('whatsapp.title') }}</h3><p class="muted">{{ __('whatsapp.description') }}</p>
+    <a class="primary" href="{{ route('admin.whatsapp.index') }}">{{ __('admin.administration_hub.open') }}</a>
+</article>
+@endif
 <div class="section-head">
 <div>
 <h2>{{ __('admin.administration_hub.platform_administration') }}</h2>
