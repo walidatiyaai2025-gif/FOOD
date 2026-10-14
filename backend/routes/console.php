@@ -1,11 +1,13 @@
 <?php
 
 use App\Domain\WhatsApp\CampaignService;
+use App\Domain\WhatsApp\StateManager;
 use App\Domain\WhatsApp\TransportRetryService;
 use App\Services\B2BVanFulfillmentCutoverService;
 use App\Services\B2BVanFulfillmentMigrationAudit;
 use App\Services\FlashOfferNotificationDispatcher;
 use App\Services\FlashOfferService;
+use App\Models\User;
 use App\Services\NotificationCampaignDispatcher;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -31,6 +33,32 @@ Artisan::command('foodex:dispatch-flash-offer-notifications', function (): void 
 Schedule::command('foodex:dispatch-flash-offer-notifications')
     ->everyMinute()
     ->withoutOverlapping();
+
+Artisan::command(
+    'foodex:certify-whatsapp-ga {user : SUPER_ADMIN user ID} {revision : Current WhatsApp module revision}',
+    function (StateManager $manager): int {
+        $user = User::query()->find((int) $this->argument('user'));
+        if (! $user instanceof User) {
+            $this->error('Certification actor not found.');
+
+            return 2;
+        }
+
+        try {
+            $manager->certifyGaReady($user, (int) $this->argument('revision'));
+        } catch (\Throwable $exception) {
+            $this->error('WhatsApp GA certification rejected: '.$exception->getMessage());
+
+            return 1;
+        }
+
+        $reference = app(\App\Domain\WhatsApp\CertificationAuthority::class)->validEvidenceReference();
+        $this->info('WhatsApp CRM promoted to GA_READY with certificate '.$reference.'.');
+        $this->warn('Emergency outbound stop is engaged. Production remains disabled until explicit Super Admin activation.');
+
+        return 0;
+    },
+)->purpose('Apply the source-controlled #1407 WhatsApp CRM GA certificate without enabling production.');
 
 Artisan::command('foodex:retry-whatsapp-transport', function (TransportRetryService $retry): void {
     $count = $retry->dispatchDue();
