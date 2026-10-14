@@ -1,4 +1,13 @@
 @auth
+@php
+    $foodexWhatsAppInboundPopupEnabled = false;
+    try {
+        $foodexWhatsAppInboundPopupEnabled = app(\App\Domain\WhatsApp\RuntimePolicy::class)->allowsAgentInbox();
+    } catch (\Throwable) {
+        $foodexWhatsAppInboundPopupEnabled = false;
+    }
+@endphp
+@if($foodexWhatsAppInboundPopupEnabled)
 <style id="foodex-whatsapp-inbound-popup-styles">
 .foodex-whatsapp-inbound-popup{position:fixed;z-index:12500;inset:0;display:grid;place-items:center;padding:24px;pointer-events:none}
 .foodex-whatsapp-inbound-popup[hidden]{display:none!important}
@@ -323,4 +332,5 @@
     }
 })();
 </script>
+@endif
 @endauth
