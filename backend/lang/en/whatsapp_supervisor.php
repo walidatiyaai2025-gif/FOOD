@@ -9,6 +9,8 @@ return [
     'dark_launch' => 'W7 · Dark launch',
     'conversation_id' => 'Conversation ID',
     'customer_id' => 'Customer ID',
+    'select_customer' => 'Select customer',
+    'select_conversation' => 'Select conversation',
     'agent_id' => 'Agent ID',
     'filters' => 'Filters',
     'all_stores' => 'All authorized stores',
