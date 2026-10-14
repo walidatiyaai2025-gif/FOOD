@@ -34,8 +34,8 @@
     </div>
     <div class="wa-actions">
         <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.index') }}">{{ __('whatsapp.campaigns.back_campaigns') }}</a>
-        <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.export',array_merge(['campaign'=>$overview['campaign']->id,'format'=>'csv'],request()->only(['q','send_status','eligibility_status','suppression_reason','consent_state','store_id','channel','agent_id']))) }}">{{ __('whatsapp.campaigns.export_csv') }}</a>
-        <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.export',array_merge(['campaign'=>$overview['campaign']->id,'format'=>'xlsx'],request()->only(['q','send_status','eligibility_status','suppression_reason','consent_state','store_id','channel','agent_id']))) }}">{{ __('whatsapp.campaigns.export_xlsx') }}</a>
+        <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.export',array_merge(['campaign'=>$overview['campaign']->id,'format'=>'csv'],request()->only(['q','send_status','eligibility_status','suppression_reason','consent_state','store_id','channel','agent_id','from','to']))) }}">{{ __('whatsapp.campaigns.export_csv') }}</a>
+        <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-campaigns.export',array_merge(['campaign'=>$overview['campaign']->id,'format'=>'xlsx'],request()->only(['q','send_status','eligibility_status','suppression_reason','consent_state','store_id','channel','agent_id','from','to']))) }}">{{ __('whatsapp.campaigns.export_xlsx') }}</a>
     </div>
 </header>
 
@@ -107,6 +107,8 @@
 <label>{{ __('whatsapp.campaigns.eligibility') }}<select name="eligibility_status"><option value="">{{ __('whatsapp.campaigns.all') }}</option><option value="eligible" @selected(($filters['eligibility_status']??'')==='eligible')>{{ __('whatsapp.campaigns.eligibility_values.eligible') }}</option><option value="suppressed" @selected(($filters['eligibility_status']??'')==='suppressed')>{{ __('whatsapp.campaigns.eligibility_values.suppressed') }}</option></select></label>
 <label>{{ __('whatsapp.campaigns.consent_state') }}<select name="consent_state"><option value="">{{ __('whatsapp.campaigns.all') }}</option><option value="granted" @selected(($filters['consent_state']??'')==='granted')>{{ __('whatsapp.campaigns.consent_values.granted') }}</option><option value="denied" @selected(($filters['consent_state']??'')==='denied')>{{ __('whatsapp.campaigns.consent_values.denied') }}</option><option value="opted_out" @selected(($filters['consent_state']??'')==='opted_out')>{{ __('whatsapp.campaigns.consent_values.opted_out') }}</option></select></label>
 <label>{{ __('whatsapp.campaigns.suppression_reasons') }}<select name="suppression_reason"><option value="">{{ __('whatsapp.campaigns.all') }}</option>@foreach(['invalid_phone','opted_out','no_consent','test_allowlist','runtime_policy','campaign_limit','transport_unavailable','campaign_cancelled'] as $reason)<option value="{{ $reason }}" @selected(($filters['suppression_reason']??'')===$reason)>{{ __('whatsapp.campaigns.suppression_reason_values.'.$reason) }}</option>@endforeach</select></label>
+<label>{{ __('whatsapp.campaigns.from') }}<input type="date" name="from" value="{{ $filters['from']??'' }}"></label>
+<label>{{ __('whatsapp.campaigns.to') }}<input type="date" name="to" value="{{ $filters['to']??'' }}"></label>
 <button class="foodex-action-primary" type="submit">{{ __('whatsapp.inbox.apply') }}</button>
 </form>
 <div class="wa-table-wrap" style="margin-top:12px">
