@@ -337,6 +337,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->actingAs($en)->get(route('admin.whatsapp.connections.index'))
             ->assertOk()
             ->assertSee('WhatsApp connections')
+            ->assertSee('Transport delivery health')
             ->assertSee('dir="ltr"', false)
             ->assertDontSee('never-render-me');
 
@@ -344,6 +345,7 @@ final class WhatsAppConnectionProfileTest extends TestCase
         $this->actingAs($ar)->get(route('admin.whatsapp.connections.index'))
             ->assertOk()
             ->assertSee('اتصالات واتساب')
+            ->assertSee('صحة نقل رسائل واتساب')
             ->assertSee('dir="rtl"', false)
             ->assertDontSee('never-render-me');
 
