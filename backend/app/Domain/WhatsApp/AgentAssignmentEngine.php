@@ -166,7 +166,7 @@ final class AgentAssignmentEngine
         );
     }
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, object{id:int,name:string,status:string,capacity:int,load:int}> */
     public function summaries(?int $storeId): Collection
     {
         $ids = $this->eligibleAgentIds($storeId);
