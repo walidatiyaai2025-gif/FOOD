@@ -677,11 +677,18 @@ grep -Fq 'FRESH-ROUTING' /tmp/field-routing-populated.html
 
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2b/commercial/sales-control?store_id=$B2B_STORE_ID")" = "200"
 grep -Fq 'Product Sales Control' /tmp/sales-control.html
-grep -Fq 'Break-pack policy' /tmp/sales-control.html
-grep -Fq '<section class="policy-section structured-editor" data-selling-unit-editor>' /tmp/sales-control.html
-grep -Fq '<section class="policy-section structured-editor" data-availability-editor>' /tmp/sales-control.html
-grep -Fq '<section class="policy-section structured-editor" data-targeting-rule-editor>' /tmp/sales-control.html
-grep -Fq '<section class="commercial-card feature-flags-card" data-commercial-feature-flags>' /tmp/sales-control.html
+grep -Fq 'data-sales-product-selector' /tmp/sales-control.html
+grep -Fq 'Search and select a product' /tmp/sales-control.html
+! grep -Fq '<section class="policy-section structured-editor" data-selling-unit-editor>' /tmp/sales-control.html
+test "$(curl -sS -b /tmp/foodex-cookies.txt -H 'Accept: application/json' -o /tmp/sales-control-products.json -w '%{http_code}' "http://127.0.0.1:8099/admin/b2b/commercial/sales-control/products?store_id=$B2B_STORE_ID")" = "200"
+SALES_CONTROL_PRODUCT_ID="$(python3 -c "import json; p=json.load(open('/tmp/sales-control-products.json')).get('products') or []; print(p[0]['id'] if p else '')")"
+test -n "$SALES_CONTROL_PRODUCT_ID"
+test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/sales-control-selected.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2b/commercial/sales-control?store_id=$B2B_STORE_ID&product=$SALES_CONTROL_PRODUCT_ID")" = "200"
+grep -Fq 'Break-pack policy' /tmp/sales-control-selected.html
+grep -Fq '<section class="policy-section structured-editor" data-selling-unit-editor>' /tmp/sales-control-selected.html
+grep -Fq '<section class="policy-section structured-editor" data-availability-editor>' /tmp/sales-control-selected.html
+grep -Fq '<section class="policy-section structured-editor" data-targeting-rule-editor>' /tmp/sales-control-selected.html
+grep -Fq '<section class="commercial-card feature-flags-card" data-commercial-feature-flags>' /tmp/sales-control-selected.html
 
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/flash-offers.html -w '%{http_code}' "http://127.0.0.1:8099/admin/b2c/commercial/flash-offers?store_id=$STORE_ID")" = "200"
 grep -Fq 'data-commercial-page="flash-offers"' /tmp/flash-offers.html
