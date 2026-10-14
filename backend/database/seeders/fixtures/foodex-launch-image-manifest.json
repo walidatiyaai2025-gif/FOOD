@@ -1,0 +1,541 @@
+{
+  "schema_version": 1,
+  "release": "1.0.77",
+  "issue": 1382,
+  "source_document": {
+    "filename": "منتجات فوديكس كاردات (1).docx",
+    "sha256": "1333292c13e6bbddacc26f728485021459f914964af29ec589894086241cc523"
+  },
+  "minimum_launch_image_px": 800,
+  "target_derivative_px": 1200,
+  "fidelity_contract": "Content-preserving restoration/upscale only. No redesign, rebranding, alternate packaging, invented flavor/variant, decorative additions or product substitution.",
+  "bundle": {
+    "directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+    "part_count": 1,
+    "sha256": "530930173a3893ffa7b555af187ae38350add0a61afbb76d38b282a4a3b44816",
+    "encoding": "base64",
+    "decoded_asset_count": 25,
+    "single_file": "00.part"
+  },
+  "pipeline": {
+    "source_backed_method": "Aspect-preserving Lanczos upscale into 1200x1200 canvas with conservative unsharp mask; WebP quality 78, method 6.",
+    "source_missing_method": "Neutral non-product 1200x1200 placeholder explicitly declaring official product image unavailable; WebP quality 78, method 6.",
+    "placeholder_owner_exception": "GitHub issue #1382 owner-directed unblock comment 6159110747"
+  },
+  "summary": {
+    "products": 25,
+    "source_backed_products": 19,
+    "source_missing_placeholders": 6,
+    "unique_source_images": 17,
+    "total_derivative_bytes": 624852
+  },
+  "entries": [
+    {
+      "product_identifier": "FDX-LAUNCH-001",
+      "product_name": "First Choice Strawberry",
+      "source_image": "image3.png",
+      "source_dimensions": {
+        "width": 400,
+        "height": 383
+      },
+      "source_sha256": "38304d4225a4ab8dd4309edb5a76ab371c997d9cefe6163830773c35d0c66b51",
+      "bundle_key": "001",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/001.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "7121ab1931c411eeb21b531af54f16bf73b2b3c63f2a6e7a03ec07766e701117",
+      "bytes": 47572,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-002",
+      "product_name": "First Choice Mango",
+      "source_image": "image4.jpeg",
+      "source_dimensions": {
+        "width": 402,
+        "height": 402
+      },
+      "source_sha256": "fb6a400dc8d35f0f114ff444bb0044e2ad692f908eafbc3a94d6b74cca842e6d",
+      "bundle_key": "002",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/002.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "4c5f642c28779c703344b7a696a4cbf4348551ec5612be88cf7eb878bd0eb511",
+      "bytes": 25888,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-003",
+      "product_name": "First Choice Molokhia",
+      "source_image": "image5.png",
+      "source_dimensions": {
+        "width": 422,
+        "height": 404
+      },
+      "source_sha256": "db54845a8f46d037ce5233b24f74ca2047531425c745f3f44eaf33d9a02ecdbb",
+      "bundle_key": "003",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/003.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "61da8cb5debe165bb5fed7ab8abfd9ac95a61a527588379a3aec6b1d76c05740",
+      "bytes": 45030,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-004",
+      "product_name": "First Choice Zero Okra",
+      "source_image": "image6.jpeg",
+      "source_dimensions": {
+        "width": 394,
+        "height": 394
+      },
+      "source_sha256": "b433012aca3f41e5398cb2ce9bd451595e41be52e14825987f922b8ea8805bf3",
+      "bundle_key": "004",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/004.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "5c377f96aed27d2a820d3192229bfe7ea3c1f9533906ee2be95fda1174ab08e0",
+      "bytes": 28696,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-005",
+      "product_name": "First Choice Premium Okra",
+      "source_image": "image7.jpeg",
+      "source_dimensions": {
+        "width": 364,
+        "height": 364
+      },
+      "source_sha256": "017669506968e804cc9662d0e87b4b46eb230611f4b67210ab17300ba5705f85",
+      "bundle_key": "005",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/005.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "da6a138957bfb6211b5a9aeddf9cf4664a24c1c035914b079fafa18d41786342",
+      "bytes": 27736,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-006",
+      "product_name": "First Choice Pommes Frites 12.5 kg",
+      "source_image": "image8.jpeg",
+      "source_dimensions": {
+        "width": 389,
+        "height": 389
+      },
+      "source_sha256": "3c85a2f2b3c66824a6c8acd28edb8471bebe4bcac6013d7aa18afed83f207153",
+      "bundle_key": "006",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/006.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "2572fa4cbc2cb133123215886c3861bcc2c097cd8d72e1274c4c3d314a23215d",
+      "bytes": 29120,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-007",
+      "product_name": "First Choice Allumette Fries 12.5 kg",
+      "source_image": "image8.jpeg",
+      "source_dimensions": {
+        "width": 389,
+        "height": 389
+      },
+      "source_sha256": "3c85a2f2b3c66824a6c8acd28edb8471bebe4bcac6013d7aa18afed83f207153",
+      "bundle_key": "007",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/007.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "2572fa4cbc2cb133123215886c3861bcc2c097cd8d72e1274c4c3d314a23215d",
+      "bytes": 29120,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-008",
+      "product_name": "FOODEX Crinkle Fries Fingers and Slices 12.5 kg",
+      "source_image": "image8.jpeg",
+      "source_dimensions": {
+        "width": 389,
+        "height": 389
+      },
+      "source_sha256": "3c85a2f2b3c66824a6c8acd28edb8471bebe4bcac6013d7aa18afed83f207153",
+      "bundle_key": "008",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/008.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "2572fa4cbc2cb133123215886c3861bcc2c097cd8d72e1274c4c3d314a23215d",
+      "bytes": 29120,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-009",
+      "product_name": "First Choice Natural Mozzarella",
+      "source_image": "image11.jpeg",
+      "source_dimensions": {
+        "width": 368,
+        "height": 368
+      },
+      "source_sha256": "7d26b07e9f41639e75e8191ff8b17ceea8850da0c14e70fe0a1be03d1fcf63c8",
+      "bundle_key": "009",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/009.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "6e39f252aaf004c341a29cd8d76a2ee23073901c7e73b28cc957b04f2989df1d",
+      "bytes": 25324,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-010",
+      "product_name": "First Choice Analogue Mozzarella",
+      "source_image": "image12.jpeg",
+      "source_dimensions": {
+        "width": 361,
+        "height": 361
+      },
+      "source_sha256": "cbd2921cf855bb3cdff4417999f93a09eacd987bcccea4d4dd924f9e3ea5ed0c",
+      "bundle_key": "010",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/010.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "3a5c559f2503e2fe47840e716c78473cb264246b6a9ba23c5bbbe8c7820b9fc7",
+      "bytes": 36218,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-011",
+      "product_name": "First Choice Premium Yellow Pizza Mozzarella",
+      "source_image": "image13.jpeg",
+      "source_dimensions": {
+        "width": 367,
+        "height": 367
+      },
+      "source_sha256": "28b188de8bef44cd4efd22c381b617e35a79a464cd03e8eb4547ff46af0b11d6",
+      "bundle_key": "011",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/011.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "ab3c97df4e63c3a04b302bd3cbbd12c53871f23ddd9e6683577fab2928bbce70",
+      "bytes": 25572,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-012",
+      "product_name": "First Choice Analogue Mozzarella 400 g",
+      "source_image": "image14.jpeg",
+      "source_dimensions": {
+        "width": 340,
+        "height": 340
+      },
+      "source_sha256": "9e59864f7f95402b3fb096aeaa2b9fd78c7412ed16bd695f39ab79420d91197d",
+      "bundle_key": "012",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/012.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "d6861aee32b3ec5a948d2b79d663aedfb5ee4cbcb663454a77611193dc8b2fa3",
+      "bytes": 22454,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-013",
+      "product_name": "First Choice Ketchup Jar 10 kg Grade 1",
+      "source_image": "image15.jpeg",
+      "source_dimensions": {
+        "width": 396,
+        "height": 396
+      },
+      "source_sha256": "325bb22c26fc1dc6e61b32217daa7b8ee013795f06c940d9bc20f76882c5e6f5",
+      "bundle_key": "013",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/013.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "c4e367da5387ed2e49aa2d321963c23c525f71e3cf83ecc5d32ac3bc8927eb99",
+      "bytes": 20210,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-014",
+      "product_name": "First Choice Ketchup Jar 10 kg",
+      "source_image": "image16.jpeg",
+      "source_dimensions": {
+        "width": 322,
+        "height": 322
+      },
+      "source_sha256": "5bdcbc17fa803fd72ebbb3cd69feb76f76b21c22d58a74b9ed70c261b98f19de",
+      "bundle_key": "014",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/014.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "0d8df06e5cb7f0e38a919fd8d2ae6bd196e9524b16e3c72d820aaaed4b101959",
+      "bytes": 23978,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-015",
+      "product_name": "First Choice Ketchup Sachet 7 g",
+      "source_image": "image17.jpeg",
+      "source_dimensions": {
+        "width": 376,
+        "height": 376
+      },
+      "source_sha256": "f174681048c4f7401ea6eeb2aa00bdbc1886bb493a44c196ec353bbf7fee31e1",
+      "bundle_key": "015",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/015.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "3e63e14d56a3507fa2a5e3c6f8bc3ccc743f0b621d155a33cf79ea83aac8fa5f",
+      "bytes": 24150,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-016",
+      "product_name": "First Choice Mayonnaise Jar 10 kg",
+      "source_image": "image18.jpeg",
+      "source_dimensions": {
+        "width": 376,
+        "height": 376
+      },
+      "source_sha256": "f71b2eda6729895b9e709ca14d9f9409aaa4e85d80991f5dc2f8fbaa43968807",
+      "bundle_key": "016",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/016.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "20450724a31b87a22abc2d78944d1d6e82a8d6acb0bbe928304c01888686f167",
+      "bytes": 14952,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-017",
+      "product_name": "First Choice Mustard Jar 5 kg",
+      "source_image": null,
+      "source_dimensions": null,
+      "source_sha256": null,
+      "bundle_key": "017",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/017.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "2ea0dd2b502d9d06f37f7a8f350933afb5c07b199463a73b49ff046e74712ec7",
+      "bytes": 16268,
+      "method": "source_missing_placeholder",
+      "provenance": "Authoritative source contract contains no product visual. Owner-approved neutral non-product placeholder is used; no product/package artwork is invented."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-018",
+      "product_name": "First Choice Barbecue Sauce Jar 5 kg",
+      "source_image": "image19.jpeg",
+      "source_dimensions": {
+        "width": 344,
+        "height": 344
+      },
+      "source_sha256": "1416e32b1e9de02a6b98dba2c378076f362933ee8c4ecc6fd62aec653d4bdae7",
+      "bundle_key": "018",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/018.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "4e039b6fd7dab4e5557efe1f21aa958bcda75b056c45cedcbf3589895272d0e7",
+      "bytes": 18892,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-019",
+      "product_name": "First Choice Harissa Chili Jar",
+      "source_image": "image20.jpeg",
+      "source_dimensions": {
+        "width": 388,
+        "height": 388
+      },
+      "source_sha256": "476ef8a812645a0b29ef72ac4c28ad45e656d5743bcd7fdcdec18421eaf606b0",
+      "bundle_key": "019",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/019.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "1e7bda0646388b50372e1fb3363824813dda6b804a9d43d21114483693029cee",
+      "bytes": 23236,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-020",
+      "product_name": "First Choice Hot Sauce Jar",
+      "source_image": null,
+      "source_dimensions": null,
+      "source_sha256": null,
+      "bundle_key": "020",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/020.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "25cdc0e19d60771ddbcf64d7d775fc1c7e7fbb0a0b19660e6095fa45603868d2",
+      "bytes": 16118,
+      "method": "source_missing_placeholder",
+      "provenance": "Authoritative source contract contains no product visual. Owner-approved neutral non-product placeholder is used; no product/package artwork is invented."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-021",
+      "product_name": "First Choice Pizza Sauce Jar",
+      "source_image": null,
+      "source_dimensions": null,
+      "source_sha256": null,
+      "bundle_key": "021",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/021.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "5853f127a37c55009fee64697163e4f2846697682f71365e7104f00d2d4515fe",
+      "bytes": 16218,
+      "method": "source_missing_placeholder",
+      "provenance": "Authoritative source contract contains no product visual. Owner-approved neutral non-product placeholder is used; no product/package artwork is invented."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-022",
+      "product_name": "First Choice Sweet Chili Sauce Jar",
+      "source_image": null,
+      "source_dimensions": null,
+      "source_sha256": null,
+      "bundle_key": "022",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/022.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "c585f2fe132e0de8c1ca330bf760372c11a06412d9cab0daf6a1061ea730e1cf",
+      "bytes": 16590,
+      "method": "source_missing_placeholder",
+      "provenance": "Authoritative source contract contains no product visual. Owner-approved neutral non-product placeholder is used; no product/package artwork is invented."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-023",
+      "product_name": "First Choice Strips 900 g",
+      "source_image": "image22.jpeg",
+      "source_dimensions": {
+        "width": 402,
+        "height": 402
+      },
+      "source_sha256": "3f7c5f2e2dab26846a411b8b4c1bab7b4192026a1be2b9ae3e6c4fd3b49bd1bd",
+      "bundle_key": "023",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/023.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "3e75bb9d5262c558fa7b779049b60e2817c1716f11135039c6f62b6d3d127727",
+      "bytes": 29730,
+      "method": "content_preserving_upscale_lanczos_unsharp",
+      "provenance": "Authoritative DOCX image preserved by aspect-ratio-safe upscale/restore; package geometry, labels, visible text, marks, colors and composition are not redesigned or substituted."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-024",
+      "product_name": "First Choice Pane 900 g",
+      "source_image": null,
+      "source_dimensions": null,
+      "source_sha256": null,
+      "bundle_key": "024",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/024.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "e68406c0021e9968d3d04e495d3b48d591695002f01fa7d420c5c1b49d9c21c2",
+      "bytes": 16012,
+      "method": "source_missing_placeholder",
+      "provenance": "Authoritative source contract contains no product visual. Owner-approved neutral non-product placeholder is used; no product/package artwork is invented."
+    },
+    {
+      "product_identifier": "FDX-LAUNCH-025",
+      "product_name": "First Choice Shish Tawook 900 g",
+      "source_image": null,
+      "source_dimensions": null,
+      "source_sha256": null,
+      "bundle_key": "025",
+      "bundle_directory": "backend/database/seeders/fixtures/foodex-launch-image-bundle",
+      "public_path": "foodex-launch/products/025.webp",
+      "derivative_dimensions": {
+        "width": 1200,
+        "height": 1200
+      },
+      "sha256": "cb168f2b0137a895193b249798abc65b704201f1b4dae60daa2d2e1395999315",
+      "bytes": 16648,
+      "method": "source_missing_placeholder",
+      "provenance": "Authoritative source contract contains no product visual. Owner-approved neutral non-product placeholder is used; no product/package artwork is invented."
+    }
+  ]
+}
