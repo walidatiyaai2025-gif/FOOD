@@ -165,6 +165,10 @@ return [
         'invoice' => 'Invoice',
         'payment' => 'Payment',
     ],
+    'errors' => [
+        'context_scope' => 'Customer, conversation and store must belong to the same authorized scope.',
+        'customer_context_required' => 'A customer context is required for the follow-up.',
+    ],
     'flash' => [
         'lead_saved' => 'Lead updated.',
         'follow_up_created' => 'Follow-up created.',
