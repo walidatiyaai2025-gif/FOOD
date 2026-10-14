@@ -210,7 +210,7 @@ final class ConversationService
             $this->assignments->assertEligible($backupAgentId, $storeId);
             if ($backupAgentId === $agentId) {
                 throw ValidationException::withMessages([
-                    'backup_agent_id' => ['Backup Agent must differ from Primary Agent.'],
+                    'backup_agent_id' => [__('whatsapp.inbox.errors.backup_same')],
                 ]);
             }
         }
@@ -236,7 +236,7 @@ final class ConversationService
 
             if ($updated !== 1) {
                 throw ValidationException::withMessages([
-                    'conversation' => ['Conversation assignment changed. Refresh before retrying.'],
+                    'conversation' => [__('whatsapp.inbox.errors.stale_assignment')],
                 ]);
             }
 
@@ -459,7 +459,7 @@ final class ConversationService
 
         if ($conversation === null) {
             throw ValidationException::withMessages([
-                'conversation' => ['Conversation does not exist.'],
+                'conversation' => [__('whatsapp.inbox.errors.conversation_missing')],
             ]);
         }
 
