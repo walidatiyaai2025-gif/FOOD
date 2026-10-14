@@ -113,8 +113,7 @@ final class ChatbotRuntimePolicy
             return true;
         }
 
-        $now = now();
-        $current = $now->format('H:i');
+        $current = now('Asia/Kuwait')->format('H:i');
         $from = substr($from, 0, 5);
         $to = substr($to, 0, 5);
 
