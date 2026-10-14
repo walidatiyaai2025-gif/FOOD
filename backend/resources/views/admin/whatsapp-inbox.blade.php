@@ -346,6 +346,18 @@
         }
         peer = new RTCPeerConnection({iceServers});
         localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+        try {
+            const audioTransceiver = peer.getTransceivers().find(item => item.receiver?.track?.kind === 'audio');
+            const capabilities = window.RTCRtpReceiver?.getCapabilities?.('audio');
+            if (audioTransceiver?.setCodecPreferences && capabilities?.codecs) {
+                const opus = capabilities.codecs.filter(codec =>
+                    String(codec.mimeType || '').toLowerCase() === 'audio/opus'
+                );
+                if (opus.length) audioTransceiver.setCodecPreferences(opus);
+            }
+        } catch (_) {
+            // Browser codec preference APIs are optional; Meta will validate the negotiated SDP.
+        }
         peer.ontrack = event => {
             const stream = event.streams?.[0] || new MediaStream([event.track]);
             if (remoteAudio) {
