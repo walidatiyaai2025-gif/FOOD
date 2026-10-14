@@ -68,6 +68,9 @@ final class WhatsAppChatbotController extends Controller
             'scope' => ['nullable', Rule::in(['runtime', 'ai'])],
             'revision' => ['required', 'integer', 'min:0'],
             'enabled' => ['sometimes', 'boolean'],
+            'lifecycle' => ['sometimes', Rule::in(['DISABLED', 'INTERNAL_TEST', 'PILOT', 'ENABLED'])],
+            'pilot_segment_codes' => ['nullable', 'array', 'max:50'],
+            'pilot_segment_codes.*' => ['string', 'max:64', Rule::exists('whats_app_chatbot_segments', 'code')->where(fn ($query) => $query->where('enabled', true))],
             'emergency_stop' => ['sometimes', 'boolean'],
             'mode' => ['sometimes', Rule::in(['menu', 'ai', 'hybrid'])],
             'default_locale' => ['sometimes', Rule::in(['ar', 'en'])],
@@ -97,7 +100,7 @@ final class WhatsAppChatbotController extends Controller
 
             $updates = [];
             foreach ([
-                'enabled', 'emergency_stop', 'mode', 'default_locale',
+                'enabled', 'lifecycle', 'emergency_stop', 'mode', 'default_locale',
                 'working_from', 'working_to', 'after_hours_handoff',
                 'welcome_ar', 'welcome_en', 'fallback_ar', 'fallback_en',
                 'ai_enabled', 'confidence_threshold', 'max_autonomous_steps',
@@ -105,6 +108,28 @@ final class WhatsAppChatbotController extends Controller
             ] as $key) {
                 if (array_key_exists($key, $validated)) {
                     $updates[$key] = $validated[$key];
+                }
+            }
+
+            if (array_key_exists('pilot_segment_codes', $validated)) {
+                $pilotSegmentCodes = array_values(array_unique(array_filter(
+                    $validated['pilot_segment_codes'] ?? [],
+                    static fn (mixed $value): bool => is_string($value) && trim($value) !== '',
+                )));
+                $updates['pilot_segment_codes'] = $pilotSegmentCodes === []
+                    ? null
+                    : json_encode($pilotSegmentCodes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+
+            if (($updates['lifecycle'] ?? $row->lifecycle) === 'PILOT') {
+                $pilotCodes = array_key_exists('pilot_segment_codes', $updates)
+                    ? (json_decode((string) ($updates['pilot_segment_codes'] ?? '[]'), true) ?: [])
+                    : (json_decode((string) ($row->pilot_segment_codes ?? '[]'), true) ?: []);
+
+                if ($pilotCodes === []) {
+                    throw ValidationException::withMessages([
+                        'pilot_segment_codes' => [__('chatbot.admin.errors.pilot_segment_required')],
+                    ]);
                 }
             }
 
