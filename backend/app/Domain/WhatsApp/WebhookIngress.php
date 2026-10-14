@@ -60,9 +60,7 @@ final class WebhookIngress
 
     private function acceptsInbound(WhatsAppConnectionProfile $profile): bool
     {
-        $status = $profile->status instanceof \BackedEnum
-            ? (string) $profile->status->value
-            : (string) $profile->status;
+        $status = (string) $profile->getRawOriginal('status');
 
         return $profile->is_primary
             || $profile->receive_only
