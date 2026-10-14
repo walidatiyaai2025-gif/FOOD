@@ -41,6 +41,7 @@ use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\WhatsAppCallController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
+use App\Http\Controllers\Admin\WhatsAppChatbotController;
 use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Admin\WhatsAppInboundAlertController;
@@ -226,6 +227,41 @@ Route::prefix('admin')
                 Route::post('/{campaign}/schedule', [WhatsAppCampaignController::class, 'schedule'])->whereNumber('campaign')->name('schedule');
                 Route::post('/{campaign}/pause', [WhatsAppCampaignController::class, 'pause'])->whereNumber('campaign')->name('pause');
                 Route::post('/{campaign}/cancel', [WhatsAppCampaignController::class, 'cancel'])->whereNumber('campaign')->name('cancel');
+            });
+        Route::prefix('whatsapp/chatbot')
+            ->name('whatsapp-chatbot.')
+            ->group(function (): void {
+                Route::put('/runtime', [WhatsAppChatbotController::class, 'updateRuntime'])
+                    ->middleware('throttle:30,1')
+                    ->name('runtime.update');
+                Route::patch('/features/{feature}', [WhatsAppChatbotController::class, 'updateFeature'])
+                    ->whereNumber('feature')
+                    ->middleware('throttle:60,1')
+                    ->name('features.update');
+                Route::post('/flows', [WhatsAppChatbotController::class, 'storeFlow'])
+                    ->middleware('throttle:30,1')
+                    ->name('flows.store');
+                Route::post('/flows/{flow}/publish', [WhatsAppChatbotController::class, 'publishFlow'])
+                    ->whereNumber('flow')
+                    ->middleware('throttle:30,1')
+                    ->name('flows.publish');
+                Route::post('/flows/{flow}/rollback', [WhatsAppChatbotController::class, 'rollbackFlow'])
+                    ->whereNumber('flow')
+                    ->middleware('throttle:30,1')
+                    ->name('flows.rollback');
+                Route::post('/segments', [WhatsAppChatbotController::class, 'storeSegment'])
+                    ->middleware('throttle:30,1')
+                    ->name('segments.store');
+                Route::patch('/segments/{segment}', [WhatsAppChatbotController::class, 'updateSegment'])
+                    ->whereNumber('segment')
+                    ->middleware('throttle:30,1')
+                    ->name('segments.update');
+                Route::get('/preview/{screen}', [WhatsAppChatbotController::class, 'preview'])
+                    ->whereIn('screen', ['home', 'new-order', 'reorder', 'products', 'cart', 'orders', 'finance', 'support'])
+                    ->name('preview');
+                Route::get('/{section?}', [WhatsAppChatbotController::class, 'index'])
+                    ->whereIn('section', ['control', 'features', 'flows', 'ai', 'segments', 'analytics'])
+                    ->name('index');
             });
         Route::get('/van-finance-support', VanFinanceSupportController::class)->name('van-finance-support.index');
         Route::prefix('assistant')
