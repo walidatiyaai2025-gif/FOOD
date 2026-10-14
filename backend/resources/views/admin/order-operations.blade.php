@@ -108,7 +108,7 @@ $businessLabel = static function ($value): string {
 <a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
 @endif
 @if($row['invoice_id'] && $row['can_view_invoice'])
-<a data-order-invoice href="{{ route('admin.invoices.show',$row['invoice_id']) }}">{{ $isAr ? 'عرض الفاتورة' : 'View invoice' }}</a>
+<a data-order-invoice href="{{ route('admin.invoices.show',$row['invoice_id']) }}">{{ $isAr ? 'عرض / طباعة الفاتورة' : 'View / Print invoice' }}</a>
 @endif
 @if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
