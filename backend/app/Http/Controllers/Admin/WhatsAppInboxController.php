@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\WhatsApp\AgentAssignmentEngine;
 use App\Domain\WhatsApp\ConversationService;
+use App\Domain\WhatsApp\OutboundMessageDispatcher;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformCustomer;
 use App\Models\User;
@@ -25,6 +26,7 @@ final class WhatsAppInboxController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly AgentAssignmentEngine $agents,
         private readonly ConversationService $conversations,
+        private readonly OutboundMessageDispatcher $outbound,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -179,11 +181,12 @@ final class WhatsAppInboxController extends Controller
             'body' => ['required', 'string', 'max:5000'],
         ]);
 
-        $this->conversations->appendOutboundPending(
+        $messageId = $this->conversations->appendOutboundPending(
             $conversation,
             $actor,
             (string) $validated['body'],
         );
+        $this->outbound->queue($messageId);
 
         return $this->backToConversation(
             $conversation,
