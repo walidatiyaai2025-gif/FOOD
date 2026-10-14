@@ -130,6 +130,7 @@ return [
             'queued' => 'Queued',
             'retry_wait' => 'Waiting to retry',
             'blocked_policy' => 'Blocked by runtime policy',
+            'blocked_no_profile' => 'No active WhatsApp connection for sending',
             'blocked_recipient' => 'Invalid recipient',
             'sent' => 'Sent',
             'delivered' => 'Delivered',
