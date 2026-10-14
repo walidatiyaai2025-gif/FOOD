@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
+use App\Http\Controllers\Admin\WhatsAppConnectionController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
