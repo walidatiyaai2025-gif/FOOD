@@ -25,6 +25,7 @@
         .cb-badge.off{background:var(--foodex-background);color:var(--foodex-muted)}
         .cb-actions{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap;align-items:center}
         .cb-actions form{margin:0}.cb-definition{display:grid;gap:6px;margin-top:var(--foodex-space-2)}
+        .cb-flow-palette{display:grid;gap:8px;margin-top:6px}.cb-flow-node{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);background:var(--foodex-background);cursor:grab}.cb-flow-node[draggable="true"]:active{cursor:grabbing}.cb-flow-handle{font-weight:800;color:var(--foodex-muted);letter-spacing:1px}.cb-flow-node.dragging{opacity:.5}
         .cb-analytics-table{width:100%;border-collapse:collapse}.cb-analytics-table th,.cb-analytics-table td{padding:10px;border-bottom:1px solid var(--foodex-border);text-align:start}
         .cb-preview-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--foodex-space-2)}
         .cb-preview-links a{text-decoration:none;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);padding:12px;color:var(--foodex-ink);background:var(--foodex-surface)}
@@ -197,6 +198,19 @@
                                     @foreach(['new_order','repeat_order','product_search','order_tracking','complaints','human_handoff'] as $action)<option value="{{ $action }}">{{ __('chatbot.customer.'.$action) }}</option>@endforeach
                                 </select>
                             </div>
+                            <div class="cb-field">
+                                <label>{{ __('chatbot.admin.menu_actions') }}</label>
+                                <small class="cb-muted">{{ __('chatbot.admin.drag_hint') }}</small>
+                                <div class="cb-flow-palette" data-flow-sort>
+                                    @foreach(['new_order','repeat_order','product_search','order_tracking','complaints','human_handoff'] as $index => $action)
+                                        <label class="cb-flow-node" draggable="true">
+                                            <span class="cb-flow-handle" aria-hidden="true">⋮⋮</span>
+                                            <input type="checkbox" name="menu_actions[]" value="{{ $action }}" @checked($index < 3)>
+                                            <span>{{ __('chatbot.customer.'.$action) }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
                             <button class="foodex-action-primary" type="submit">{{ __('chatbot.admin.create_flow') }}</button>
                         </form>
                         @endif
@@ -207,7 +221,9 @@
                             @forelse($flows as $flow)
                                 @php($definition = is_string($flow->definition) ? (json_decode($flow->definition, true) ?: []) : [])
                                 @php($welcomeNode = collect($definition['nodes'] ?? [])->firstWhere('id','welcome'))
-                                @php($actionNode = collect($definition['nodes'] ?? [])->firstWhere('id','primary_action'))
+                                @php($actionNodes = collect($definition['nodes'] ?? [])->filter(fn($node) => is_array($node) && data_get($node,'type') === 'action')->values())
+                                @php($actionNode = $actionNodes->first())
+                                @php($flowMenuActions = $actionNodes->pluck('action')->filter()->values()->all())
                                 <article class="cb-card">
                                     <div class="cb-state">
                                         <div><strong>{{ app()->getLocale()==='ar' ? $flow->name_ar : $flow->name_en }}</strong><div class="cb-muted">{{ $flow->code }} · {{ __('chatbot.admin.version') }} {{ $flow->version }}</div></div>
@@ -222,6 +238,19 @@
                                             <div class="cb-field full"><label>{{ __('chatbot.admin.message_ar') }}</label><textarea class="foodex-control" name="message_ar" rows="2" required>{{ data_get($welcomeNode,'content.ar','') }}</textarea></div>
                                             <div class="cb-field full"><label>{{ __('chatbot.admin.message_en') }}</label><textarea class="foodex-control" name="message_en" rows="2" required dir="ltr">{{ data_get($welcomeNode,'content.en','') }}</textarea></div>
                                             <div class="cb-field full"><label>{{ __('chatbot.admin.primary_action') }}</label><select class="foodex-control" name="primary_action">@foreach(['new_order','repeat_order','product_search','order_tracking','complaints','human_handoff'] as $action)<option value="{{ $action }}" @selected(data_get($actionNode,'action')===$action)>{{ __('chatbot.customer.'.$action) }}</option>@endforeach</select></div>
+                                            <div class="cb-field full">
+                                                <label>{{ __('chatbot.admin.menu_actions') }}</label>
+                                                <small class="cb-muted">{{ __('chatbot.admin.drag_hint') }}</small>
+                                                <div class="cb-flow-palette" data-flow-sort>
+                                                    @foreach(['new_order','repeat_order','product_search','order_tracking','complaints','human_handoff'] as $action)
+                                                        <label class="cb-flow-node" draggable="true">
+                                                            <span class="cb-flow-handle" aria-hidden="true">⋮⋮</span>
+                                                            <input type="checkbox" name="menu_actions[]" value="{{ $action }}" @checked(in_array($action,$flowMenuActions,true))>
+                                                            <span>{{ __('chatbot.customer.'.$action) }}</span>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                            </div>
                                         </div>
                                         <button class="foodex-action-secondary" type="submit">{{ __('chatbot.admin.edit_flow') }}</button>
                                     </form>
@@ -343,5 +372,29 @@
         </div>
     </main>
 </div>
+<script>
+(() => {
+    document.querySelectorAll('[data-flow-sort]').forEach((list) => {
+        let dragging = null;
+        list.querySelectorAll('.cb-flow-node').forEach((node) => {
+            node.addEventListener('dragstart', () => {
+                dragging = node;
+                node.classList.add('dragging');
+            });
+            node.addEventListener('dragend', () => {
+                node.classList.remove('dragging');
+                dragging = null;
+            });
+        });
+        list.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            if (!dragging) return;
+            const siblings = [...list.querySelectorAll('.cb-flow-node:not(.dragging)')];
+            const next = siblings.find((node) => event.clientY <= node.getBoundingClientRect().top + node.offsetHeight / 2);
+            list.insertBefore(dragging, next || null);
+        });
+    });
+})();
+</script>
 </body>
 </html>
