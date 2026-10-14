@@ -15,6 +15,7 @@ final class WebhookProcessor
         private readonly WhatsAppCallingService $calls,
         private readonly MarketingConsentService $consent,
         private readonly CampaignReplyRecorder $campaignReplies,
+        private readonly ChatbotAutomationService $chatbot,
     ) {}
 
     public function process(int $eventId): void
@@ -133,12 +134,16 @@ final class WebhookProcessor
             $storeId,
             'whatsapp',
             $phone,
+            false,
         );
 
         $metadata = $event->metadata + [
             'provider_type' => (string) $profile->provider_type,
             'content_type' => $event->contentType ?? 'unknown',
         ];
+
+        $optOut = $this->consent->isOptOutText($event->body);
+        $botWillHandle = ! $optOut && $this->chatbot->shouldHandle($conversationId);
 
         $this->conversations->appendInbound(
             $conversationId,
@@ -148,12 +153,22 @@ final class WebhookProcessor
             (int) $profile->getKey(),
             $event->occurredAt,
             $event->contentType ?? 'unknown',
+            ! $botWillHandle,
         );
 
-        if ($this->consent->isOptOutText($event->body)) {
+        if ($optOut) {
             $this->consent->optOutByPhone($phone);
         } else {
             $this->campaignReplies->record($customerId, $conversationId, $event->body);
+
+            if ($botWillHandle && ! $this->chatbot->handleInbound(
+                $conversationId,
+                $customerId,
+                $event->body,
+                $metadata,
+            )) {
+                $this->conversations->autoAssign($conversationId);
+            }
         }
     }
 
