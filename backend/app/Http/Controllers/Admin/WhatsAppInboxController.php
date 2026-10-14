@@ -54,9 +54,9 @@ final class WhatsAppInboxController extends Controller
             $search = trim((string) $filters['q']);
             $query->where(function (Builder $nested) use ($search): void {
                 $nested
-                    ->where('customers.name', 'like', '%' . $search . '%')
-                    ->orWhere('customers.email', 'like', '%' . $search . '%')
-                    ->orWhere('customers.phone', 'like', '%' . $search . '%');
+                    ->where('customers.name', 'like', '%'.$search.'%')
+                    ->orWhere('customers.email', 'like', '%'.$search.'%')
+                    ->orWhere('customers.phone', 'like', '%'.$search.'%');
             });
         }
 
