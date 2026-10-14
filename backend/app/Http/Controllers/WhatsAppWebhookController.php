@@ -16,9 +16,9 @@ final class WhatsAppWebhookController extends Controller
         abort_unless($this->isMeta($profile), 404);
 
         $configured = $profile->webhook_verify_token;
-        $supplied = $request->query('hub.verify_token');
-        $challenge = $request->query('hub.challenge');
-        $mode = $request->query('hub.mode');
+        $supplied = $request->query('hub.verify_token', $request->query('hub_verify_token'));
+        $challenge = $request->query('hub.challenge', $request->query('hub_challenge'));
+        $mode = $request->query('hub.mode', $request->query('hub_mode'));
 
         abort_unless(
             is_string($configured)
