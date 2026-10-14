@@ -2,27 +2,36 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.78",
-  "minimum_current_version": "1.0.77",
-  "source_base": "a679bdf5054e322c3278ffeb5ab8b534ff0b4354",
-  "source_commit": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
-  "sha256": "1c8e664bb3cebae5b16ffe532329592612d8da149d582e740d36439bc41d8723",
-  "contains_migrations": false,
-  "migrations": [],
+  "target_version": "1.0.79",
+  "minimum_current_version": "1.0.78",
+  "source_base": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
+  "source_commit": "dd976fb6285851193de0dd04d21a8aa89708c20c",
+  "sha256": "43493a0f7a46b664d94e7ffb18eb2f33d27d08363bfebdf2f73ee3be80f9380c",
+  "contains_migrations": true,
+  "migrations": [
+    "backend/database/migrations/2026_10_14_050000_create_whatsapp_module_states_table.php",
+    "backend/database/migrations/2026_10_14_061000_create_whats_app_connection_profiles_table.php",
+    "backend/database/migrations/2026_10_14_081500_create_whatsapp_agent_inbox_foundation.php",
+    "backend/database/migrations/2026_10_14_094500_create_whatsapp_transport_foundation.php",
+    "backend/database/migrations/2026_10_14_111500_create_whatsapp_campaign_foundation.php",
+    "backend/database/migrations/2026_10_14_111500_create_whatsapp_transactional_event_engine.php",
+    "backend/database/migrations/2026_10_14_123000_create_whatsapp_inbound_alerts_table.php",
+    "backend/database/migrations/2026_10_14_130000_create_whatsapp_supervisor_crm_foundation.php"
+  ],
   "delta": {
-    "file_count": 439,
-    "source_file_count": 339,
+    "file_count": 521,
+    "source_file_count": 421,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Unify Dashboard order management on `/admin/operations/orders` while preserving strict server-side B2B/B2C channel isolation and store scope. Redirect legacy B2B and B2C order pages to the canonical Operations surface and remove duplicate order-management navigation entries. Keep contextual order actions under the three-dot menu, including permitted edit/re-price, status, B2B Van dispatch, B2C Driver dispatch/reminder, and finance-authorized invoice access. Add pending-order editing through the existing authoritative `AdminOrderManagementService`; paid, issued/locked, and non-pending orders remain non-editable. Add regression coverage for cross-channel denial, canonical legacy redirects, and contextual action rendering. Dashboard-only update: no database migrations and no Customer, Driver, or Van runtime source changes.",
+  "release_notes": "Promote the independently certified WhatsApp CRM program from #1399/#1407 into the production release lineage with provider abstraction, secure inbound/outbound transport, dynamic connection profiles, Customer Service roles/assignment, shared inbox, Customer 360, transactional notifications, campaigns, consent/opt-out, supervisor analytics, leads/follow-ups and the Dashboard-global inbound-message popup. Carry certification `FOODEX-WHATSAPP-CRM-GA-1407-V1` with a 20/20 PASS matrix, zero unresolved P0/P1 risks, fail-closed source-controlled GA evidence, audited GA_READY promotion, and a separate emergency outbound stop. Keep WhatsApp disabled by default after deployment; no Meta token, WABA ID, phone-number ID, webhook token or signing secret is required for FOODEX boot, update, migration or unrelated business operation. Include the searchable single-product Sales Control from #1433 while preserving store/RBAC isolation. Synchronize Customer, Driver and Van source identities at 1.0.79+79 for the release contract without introducing new mobile product behavior. Ship the cumulative Dashboard update with the WhatsApp additive migrations and rollback-safe/default-disabled runtime contract.",
   "dashboard_fields": {
-    "target_version": "1.0.78",
-    "minimum_current_version": "1.0.77",
-    "source_commit": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
-    "sha256": "1c8e664bb3cebae5b16ffe532329592612d8da149d582e740d36439bc41d8723",
-    "contains_migrations": false,
-    "release_notes": "Unify Dashboard order management on `/admin/operations/orders` while preserving strict server-side B2B/B2C channel isolation and store scope. Redirect legacy B2B and B2C order pages to the canonical Operations surface and remove duplicate order-management navigation entries. Keep contextual order actions under the three-dot menu, including permitted edit/re-price, status, B2B Van dispatch, B2C Driver dispatch/reminder, and finance-authorized invoice access. Add pending-order editing through the existing authoritative `AdminOrderManagementService`; paid, issued/locked, and non-pending orders remain non-editable. Add regression coverage for cross-channel denial, canonical legacy redirects, and contextual action rendering. Dashboard-only update: no database migrations and no Customer, Driver, or Van runtime source changes."
+    "target_version": "1.0.79",
+    "minimum_current_version": "1.0.78",
+    "source_commit": "dd976fb6285851193de0dd04d21a8aa89708c20c",
+    "sha256": "43493a0f7a46b664d94e7ffb18eb2f33d27d08363bfebdf2f73ee3be80f9380c",
+    "contains_migrations": true,
+    "release_notes": "Promote the independently certified WhatsApp CRM program from #1399/#1407 into the production release lineage with provider abstraction, secure inbound/outbound transport, dynamic connection profiles, Customer Service roles/assignment, shared inbox, Customer 360, transactional notifications, campaigns, consent/opt-out, supervisor analytics, leads/follow-ups and the Dashboard-global inbound-message popup. Carry certification `FOODEX-WHATSAPP-CRM-GA-1407-V1` with a 20/20 PASS matrix, zero unresolved P0/P1 risks, fail-closed source-controlled GA evidence, audited GA_READY promotion, and a separate emergency outbound stop. Keep WhatsApp disabled by default after deployment; no Meta token, WABA ID, phone-number ID, webhook token or signing secret is required for FOODEX boot, update, migration or unrelated business operation. Include the searchable single-product Sales Control from #1433 while preserving store/RBAC isolation. Synchronize Customer, Driver and Van source identities at 1.0.79+79 for the release contract without introducing new mobile product behavior. Ship the cumulative Dashboard update with the WhatsApp additive migrations and rollback-safe/default-disabled runtime contract."
   }
 }

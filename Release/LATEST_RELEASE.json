@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "1.0.78",
-  "build_number": 78,
-  "source_commit": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
+  "version": "1.0.79",
+  "build_number": 79,
+  "source_commit": "dd976fb6285851193de0dd04d21a8aa89708c20c",
   "dashboard_update": {
     "directory": "Updates",
     "package": "FOODEX-Update.zip",
@@ -11,34 +11,34 @@
   "android_apps": [
     {
       "app": "customer",
-      "version": "1.0.78",
-      "build_number": 78,
-      "file": "FOODEX-Customer-1.0.78.apk",
+      "version": "1.0.79",
+      "build_number": 79,
+      "file": "FOODEX-Customer-1.0.79.apk",
       "latest_alias": "FOODEX-Customer.apk",
       "bytes": 80624031,
-      "sha256": "a7e3a0c13899e5904edeb1b1f4c893e1ab5b6a0809195c918697c711db1f5fab",
-      "release_version": "1.0.78",
+      "sha256": "01bb29c706028a33098a87f8ee33446d8e06632478fae2f894662799fbea61e9",
+      "release_version": "1.0.79",
       "lineage_mode": "synchronized",
-      "source_commit": "8ff704af48e8bd532e9f1045349e379ab6646fe4",
-      "tree_sha": "b4de99b7f16178b38e6c7de41247ac4c047c71bc"
+      "source_commit": "dd976fb6285851193de0dd04d21a8aa89708c20c",
+      "tree_sha": "a4c96b904135f39569009f8bc54cf9e55797ab4f"
     },
     {
       "app": "driver",
-      "version": "1.0.78",
-      "build_number": 78,
-      "file": "FOODEX-Driver-1.0.78.apk",
+      "version": "1.0.79",
+      "build_number": 79,
+      "file": "FOODEX-Driver-1.0.79.apk",
       "latest_alias": "FOODEX-Driver.apk",
       "bytes": 58720308,
-      "sha256": "326c1092e44c5fa311a3398f68a837901bddf8d50d358313bf2546d4af00300b"
+      "sha256": "64ca8008678402dcb34972bb14b6fa4bbd6c375c98ddb2099cd9f0d52699bbff"
     },
     {
       "app": "van",
-      "version": "1.0.78",
-      "build_number": 78,
-      "file": "FOODEX-Van-1.0.78.apk",
+      "version": "1.0.79",
+      "build_number": 79,
+      "file": "FOODEX-Van-1.0.79.apk",
       "latest_alias": "FOODEX-Van.apk",
-      "bytes": 57995911,
-      "sha256": "6e47d9e09e8a5deea6d2fb8fc8f70abc6f86587e63b0ed77e484fa527e112779"
+      "bytes": 57995907,
+      "sha256": "b3ad8c9c41bec19b306ee6a86280f6510d6215ec1e226ef5529442f5606a5c51"
     }
   ]
 }
