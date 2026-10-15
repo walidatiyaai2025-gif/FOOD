@@ -325,10 +325,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     }
   }
 
-  Future<void> _requestFailure(
-    DriverAssignment assignment,
-    String note,
-  ) async {
+  Future<void> _requestFailure(DriverAssignment assignment, String note) async {
     if (!_allows(assignment, 'failed') ||
         _busyAssignments.contains(assignment.id)) {
       return;
@@ -373,10 +370,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       (assignment.settlement?.amountToCollectNow ?? 0) > 0.0001;
 
   String _deliveryActionLabel(DriverAssignment assignment) => context.tr(
-        _requiresCollection(assignment)
-            ? 'driver.collection.collect_and_deliver'
-            : 'driver.collection.deliver_no_collection',
-      );
+    _requiresCollection(assignment)
+        ? 'driver.collection.collect_and_deliver'
+        : 'driver.collection.deliver_no_collection',
+  );
 
   Future<void> _completeDelivery(DriverAssignment assignment) async {
     if (!_requiresCollection(assignment)) {
@@ -395,12 +392,16 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final collectionRepository = repository as DriverCollectionRepository;
 
     final amountController = TextEditingController(
-      text: foodexMoneyAmount(settlement.amountToCollectNow, settlement.currency),
+      text: foodexMoneyAmount(
+        settlement.amountToCollectNow,
+        settlement.currency,
+      ),
     );
     final precisionSample = foodexMoneyAmount(0, settlement.currency);
     final decimalIndex = precisionSample.indexOf('.');
-    final fractionDigits =
-        decimalIndex < 0 ? 0 : precisionSample.length - decimalIndex - 1;
+    final fractionDigits = decimalIndex < 0
+        ? 0
+        : precisionSample.length - decimalIndex - 1;
     final amountPattern = RegExp(r'^\d+(?:\.\d+)?$');
     final amount = await showDialog<double>(
       context: context,
@@ -422,8 +423,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
 
               if (!valid) {
                 setDialogState(() {
-                  amountError =
-                      dialogContext.tr('driver.collection.invalid_amount');
+                  amountError = dialogContext.tr(
+                    'driver.collection.invalid_amount',
+                  );
                 });
                 return;
               }
@@ -579,9 +581,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
               children: [
                 Text(
                   context.tr('driver.action.start_delivery'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -606,12 +607,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                     if (_allows(assignment, 'failed')) ...[
                       Expanded(
                         child: OutlinedButton(
-                          key: Key(
-                            'driver-active-failed-${assignment.id}',
-                          ),
-                          onPressed: () => Navigator.of(sheetContext).pop(
-                            _StartDeliveryDecision.failed(note),
-                          ),
+                          key: Key('driver-active-failed-${assignment.id}'),
+                          onPressed: () =>
+                              Navigator.of(sheetContext)
+                                  .pop(_StartDeliveryDecision.failed(note)),
                           child: Text(
                             context.tr('driver.action.delivery_failed'),
                           ),
@@ -624,13 +623,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                         key: Key(
                           'driver-active-confirm-start-${assignment.id}',
                         ),
-                        onPressed: () => Navigator.of(sheetContext).pop(
-                          _StartDeliveryDecision.start(note),
-                        ),
+                        onPressed: () =>
+                            Navigator.of(sheetContext)
+                                .pop(_StartDeliveryDecision.start(note)),
                         child: Text(
-                          context.tr(
-                            'driver.action.confirm_start_delivery',
-                          ),
+                          context.tr('driver.action.confirm_start_delivery'),
                         ),
                       ),
                     ),
@@ -711,35 +708,33 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final busy = _busyAssignments.contains(assignment.id);
     final buttons = <Widget>[];
 
-    if (assignment.status == 'assigned' &&
-        _allows(assignment, 'accepted')) {
+    if (assignment.status == 'assigned' && _allows(assignment, 'accepted')) {
       buttons.add(
         FilledButton(
           key: Key('driver-detail-accept-${assignment.id}'),
           onPressed: busy
               ? null
               : () => _runDetailAction(
-                    sheetContext,
-                    assignment,
-                    () => _transition(assignment, 'accepted'),
-                  ),
+                  sheetContext,
+                  assignment,
+                  () => _transition(assignment, 'accepted'),
+                ),
           child: Text(_statusLabel('accepted')),
         ),
       );
     }
 
-    if (assignment.status == 'accepted' &&
-        _allows(assignment, 'picked_up')) {
+    if (assignment.status == 'accepted' && _allows(assignment, 'picked_up')) {
       buttons.add(
         FilledButton.tonal(
           key: Key('driver-detail-pickup-${assignment.id}'),
           onPressed: busy
               ? null
               : () => _runDetailAction(
-                    sheetContext,
-                    assignment,
-                    () => _receiveOrder(assignment),
-                  ),
+                  sheetContext,
+                  assignment,
+                  () => _receiveOrder(assignment),
+                ),
           child: Text(_statusLabel('picked_up')),
         ),
       );
@@ -753,10 +748,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
           onPressed: busy
               ? null
               : () => _runDetailAction(
-                    sheetContext,
-                    assignment,
-                    () => _showStartDeliverySheet(assignment),
-                  ),
+                  sheetContext,
+                  assignment,
+                  () => _showStartDeliverySheet(assignment),
+                ),
           child: Text(context.tr('driver.action.start_delivery')),
         ),
       );
@@ -770,10 +765,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
           onPressed: busy
               ? null
               : () => _runDetailAction(
-                    sheetContext,
-                    assignment,
-                    () => _completeDelivery(assignment),
-                  ),
+                  sheetContext,
+                  assignment,
+                  () => _completeDelivery(assignment),
+                ),
           child: Text(_deliveryActionLabel(assignment)),
         ),
       );
@@ -786,10 +781,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
           onPressed: busy
               ? null
               : () => _runDetailAction(
-                    sheetContext,
-                    assignment,
-                    () => _requestFailure(assignment, ''),
-                  ),
+                  sheetContext,
+                  assignment,
+                  () => _requestFailure(assignment, ''),
+                ),
           child: Text(context.tr('driver.action.delivery_failed')),
         ),
       );
@@ -799,11 +794,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       return Text(context.tr('driver.action.none'));
     }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: buttons,
-    );
+    return Wrap(spacing: 8, runSpacing: 8, children: buttons);
   }
 
   Future<void> _shareInvoicePdf(DriverAssignment assignment) async {
@@ -826,8 +817,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     });
 
     try {
-      final locale =
-          Localizations.localeOf(context).languageCode == 'ar' ? 'ar' : 'en';
+      final locale = Localizations.localeOf(context).languageCode == 'ar'
+          ? 'ar'
+          : 'en';
       final bytes = await documentRepository.downloadInvoicePdf(
         assignment.id,
         locale: locale,
@@ -882,7 +874,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                     await widget.onNavigationRequested(assignment);
                   }
                 : null,
-            onInvoicePdfRequested: assignment.invoice != null &&
+            onInvoicePdfRequested:
+                assignment.invoice != null &&
                     assignment.invoice!.downloadPath.trim().isNotEmpty &&
                     widget.previewContext == null
                 ? () => _shareInvoicePdf(assignment)
@@ -905,8 +898,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         assignment.status == 'assigned' && _allows(assignment, 'accepted');
     final canStart =
         const {'accepted', 'picked_up'}.contains(assignment.status) &&
-            _allows(assignment, 'out_for_delivery');
-    final canDeliver = assignment.status == 'out_for_delivery' &&
+        _allows(assignment, 'out_for_delivery');
+    final canDeliver =
+        assignment.status == 'out_for_delivery' &&
         _allows(assignment, 'delivered');
     final canFail = _allows(assignment, 'failed');
 
@@ -991,7 +985,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         : _dateRange;
     if (range == null) return _assignments;
 
-    final start = DateTime(range.start.year, range.start.month, range.start.day);
+    final start = DateTime(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
     final end = DateTime(
       range.end.year,
       range.end.month,
@@ -1001,22 +999,22 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       59,
       999,
     );
-    return _assignments.where((assignment) {
-      final date = _assignmentDate(assignment);
-      if (date == null) {
-        return _period != _DriverDeliveryPeriod.custom;
-      }
-      return !date.isBefore(start) && !date.isAfter(end);
-    }).toList(growable: false);
+    return _assignments
+        .where((assignment) {
+          final date = _assignmentDate(assignment);
+          if (date == null) {
+            return _period != _DriverDeliveryPeriod.custom;
+          }
+          return !date.isBefore(start) && !date.isAfter(end);
+        })
+        .toList(growable: false);
   }
 
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
-    final initial = _dateRange ??
-        DateTimeRange(
-          start: now.subtract(const Duration(days: 7)),
-          end: now,
-        );
+    final initial =
+        _dateRange ??
+        DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 3),
@@ -1180,7 +1178,6 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-
                               ],
                             ),
                           ),
@@ -1198,19 +1195,19 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   Widget build(BuildContext context) {
     final body = switch (_state) {
       _DriverActiveLoadState.loading => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: CircularProgressIndicator(),
+      ),
       _DriverActiveLoadState.empty => Center(
-          child: Text(context.tr('driver.empty')),
-        ),
+        child: Text(context.tr('driver.empty')),
+      ),
       _DriverActiveLoadState.error => _RetryState(
-          message: context.tr('driver.error'),
-          onRetry: _load,
-        ),
+        message: context.tr('driver.error'),
+        onRetry: _load,
+      ),
       _DriverActiveLoadState.offline => _RetryState(
-          message: context.tr('driver.offline'),
-          onRetry: _load,
-        ),
+        message: context.tr('driver.offline'),
+        onRetry: _load,
+      ),
       _DriverActiveLoadState.ready => _readyBody(),
     };
 
@@ -1254,7 +1251,7 @@ class _DriverStaleDataBanner extends StatelessWidget {
     final time = lastSuccessfulAt == null
         ? null
         : '${lastSuccessfulAt.hour.toString().padLeft(2, '0')}:'
-            '${lastSuccessfulAt.minute.toString().padLeft(2, '0')}';
+              '${lastSuccessfulAt.minute.toString().padLeft(2, '0')}';
 
     return Container(
       key: const Key('driver-active-stale'),
@@ -1285,9 +1282,9 @@ class _DriverStaleDataBanner extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6B4A00),
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: const Color(0xFF6B4A00),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -1323,15 +1320,16 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
     ].where((value) => value.trim().isNotEmpty).join(' · ');
     final statusKey = 'driver.status.${assignment.status}';
     final translatedStatus = context.tr(statusKey);
-    final statusLabel =
-        translatedStatus == statusKey ? assignment.status : translatedStatus;
+    final statusLabel = translatedStatus == statusKey
+        ? assignment.status
+        : translatedStatus;
     final orderStatusKey = 'driver.order_status.${assignment.orderStatus}';
     final translatedOrderStatus = context.tr(orderStatusKey);
     final orderStatusLabel = assignment.orderStatus.trim().isEmpty
         ? context.tr('driver.detail.unknown')
         : translatedOrderStatus == orderStatusKey
-            ? assignment.orderStatus
-            : translatedOrderStatus;
+        ? assignment.orderStatus
+        : translatedOrderStatus;
     final settlement = assignment.settlement;
     String settlementLabel(String namespace, String value) {
       if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
@@ -1339,6 +1337,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       final translated = context.tr(key);
       return translated == key ? value : translated;
     }
+
     String money(double amount, String currency) =>
         foodexMoneyText(amount, currency);
 
@@ -1348,9 +1347,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       children: [
         Text(
           context.tr('driver.detail.title'),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 18),
         _DetailRow(
@@ -1404,9 +1402,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                       children: [
                         Text(
                           context.tr('driver.detail.address'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
+                          style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 4),
@@ -1436,9 +1432,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             context.tr('driver.detail.actions'),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           actions!,
@@ -1478,9 +1473,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                 children: [
                   Text(
                     context.tr('driver.settlement.title'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 8),
                   _DetailRow(
@@ -1489,11 +1483,17 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                   ),
                   _DetailRow(
                     label: context.tr('driver.settlement.balance_applied'),
-                    value: money(settlement.balanceApplied, settlement.currency),
+                    value: money(
+                      settlement.balanceApplied,
+                      settlement.currency,
+                    ),
                   ),
                   _DetailRow(
                     label: context.tr('driver.settlement.remaining'),
-                    value: money(settlement.remainingAmount, settlement.currency),
+                    value: money(
+                      settlement.remainingAmount,
+                      settlement.currency,
+                    ),
                   ),
                   _DetailRow(
                     label: context.tr('driver.settlement.remainder_method'),
@@ -1537,7 +1537,11 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         ),
         _DetailRow(
           label: context.tr('driver.detail.total'),
-          value: foodexMoneyText(assignment.grandTotal, assignment.currency, currencyFirst: true),
+          value: foodexMoneyText(
+            assignment.grandTotal,
+            assignment.currency,
+            currencyFirst: true,
+          ),
         ),
         _DetailRow(
           label: context.tr('driver.detail.note'),
@@ -1546,9 +1550,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           context.tr('driver.detail.items'),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         if (assignment.items.isEmpty)
@@ -1600,9 +1603,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                         children: [
                           Text(
                             item.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           if (item.sku.trim().isNotEmpty) ...[
@@ -1635,7 +1636,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                               '${context.tr('driver.detail.item_case')}: '
                               '${item.caseSize.toStringAsFixed(3)}',
                             ),
-                          if ((item.quantityConversionFactor - 1).abs() > 0.0001)
+                          if ((item.quantityConversionFactor - 1).abs() >
+                              0.0001)
                             Text(
                               '${context.tr('driver.detail.item_conversion')}: '
                               '${item.quantityConversionFactor.toStringAsFixed(3)}',
@@ -1666,10 +1668,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
   }
 }
 
-Future<void> _showInvoice(
-  BuildContext context,
-  DriverInvoice invoice,
-) async {
+Future<void> _showInvoice(BuildContext context, DriverInvoice invoice) async {
   String label(String namespace, String value) {
     if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
     final key = '$namespace.${value.toLowerCase()}';
@@ -1724,28 +1723,23 @@ Future<void> _showInvoice(
               const Divider(height: 24),
               _DetailRow(
                 label: context.tr('driver.invoice.subtotal'),
-                value:
-                    foodexMoneyText(invoice.subtotal, invoice.currency),
+                value: foodexMoneyText(invoice.subtotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.discount'),
-                value:
-                    foodexMoneyText(invoice.discountTotal, invoice.currency),
+                value: foodexMoneyText(invoice.discountTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.delivery'),
-                value:
-                    foodexMoneyText(invoice.deliveryTotal, invoice.currency),
+                value: foodexMoneyText(invoice.deliveryTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.tax'),
-                value:
-                    foodexMoneyText(invoice.taxTotal, invoice.currency),
+                value: foodexMoneyText(invoice.taxTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.total'),
-                value:
-                    foodexMoneyText(invoice.grandTotal, invoice.currency),
+                value: foodexMoneyText(invoice.grandTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.payment'),
@@ -1768,39 +1762,30 @@ Future<void> _showInvoice(
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 110,
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(value)),
-          ],
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
         ),
-      );
+        const SizedBox(width: 8),
+        Expanded(child: Text(value)),
+      ],
+    ),
+  );
 }
 
 class _StartDeliveryDecision {
-  const _StartDeliveryDecision._({
-    required this.failed,
-    required this.note,
-  });
+  const _StartDeliveryDecision._({required this.failed, required this.note});
 
   factory _StartDeliveryDecision.start(String note) =>
       _StartDeliveryDecision._(failed: false, note: note);
@@ -1813,29 +1798,26 @@ class _StartDeliveryDecision {
 }
 
 class _RetryState extends StatelessWidget {
-  const _RetryState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _RetryState({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              FilledButton.tonal(
-                onPressed: onRetry,
-                child: Text(context.tr('driver.retry')),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: onRetry,
+            child: Text(context.tr('driver.retry')),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
