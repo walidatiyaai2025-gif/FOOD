@@ -56,11 +56,10 @@ final readonly class EnterpriseGridState
             $direction = 'asc';
         }
 
-        $columnInput = $request->query('columns', []);
+        $columnInput = $request->query('columns');
         if (is_string($columnInput)) {
             $columnInput = explode(',', $columnInput);
-        }
-        if (is_array($columnInput) === false) {
+        } elseif (is_array($columnInput) === false) {
             $columnInput = [];
         }
 
@@ -75,7 +74,7 @@ final readonly class EnterpriseGridState
 
         if ($columns === []) {
             $columns = collect($defaultColumns)
-                ->filter(static fn ($column): bool => is_string($column) && in_array($column, $allowedColumns, true))
+                ->filter(static fn (string $column): bool => in_array($column, $allowedColumns, true))
                 ->unique()
                 ->take(12)
                 ->values()
