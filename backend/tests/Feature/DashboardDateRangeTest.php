@@ -77,10 +77,10 @@ class DashboardDateRangeTest extends TestCase
         $this->assertStringContainsString("\$isAr?'المبيعات':'Sales'", $view);
         $this->assertStringContainsString('value="{{ $dashboard[\'selected_from\'] }}"', $view);
         $this->assertStringContainsString('value="{{ $dashboard[\'selected_to\'] }}"', $view);
-        $this->assertStringContainsString("'from'=>\$dashboard['selected_from']", $view);
-        $this->assertStringContainsString("'to'=>\$dashboard['selected_to']", $view);
-        $this->assertStringContainsString("array_merge(['module'=>'reports'],\$dashboardPeriodQuery)", $view);
-        $this->assertStringContainsString("array_merge(['module'=>'orders'],\$dashboardPeriodQuery)", $view);
+        $this->assertStringContainsString('\'from\'=>$dashboard[\'selected_from\']', $view);
+        $this->assertStringContainsString('\'to\'=>$dashboard[\'selected_to\']', $view);
+        $this->assertStringContainsString('array_merge([\'module\'=>\'reports\'],$dashboardPeriodQuery)', $view);
+        $this->assertStringContainsString('array_merge([\'module\'=>\'orders\'],$dashboardPeriodQuery)', $view);
         $this->assertStringContainsString("Reset period", $view);
         $this->assertStringNotContainsString('المبيعات اليومية', $view);
         $this->assertStringNotContainsString('Daily sales', $view);
