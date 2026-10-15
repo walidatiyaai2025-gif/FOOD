@@ -472,10 +472,31 @@
         }catch(error){status.textContent=error.message;}
     });
 
+    const syncConsentFields = (prefix, reset = false) => {
+        const state=document.getElementById('wa-'+prefix+'-consent-state');
+        const source=document.getElementById('wa-'+prefix+'-consent-source');
+        const evidence=document.getElementById('wa-'+prefix+'-consent-evidence');
+        if(!state||!source||!evidence)return;
+        if(reset)state.value='';
+        const active=(state.value||'')!=='';
+        source.disabled=!active;
+        evidence.disabled=!active;
+        if(!active){
+            source.value='';
+            evidence.value='';
+        }
+    };
+    const resetConsentFields = prefix => syncConsentFields(prefix,true);
+    ['import','manual'].forEach(prefix=>{
+        document.getElementById('wa-'+prefix+'-consent-state')?.addEventListener('change',()=>syncConsentFields(prefix));
+        resetConsentFields(prefix);
+    });
+
     const consentPayload = prefix => {
         const state=document.getElementById('wa-'+prefix+'-consent-state')?.value||'';
+        if(!state)return {consent_state:null};
         return {
-            consent_state:state||null,
+            consent_state:state,
             consent_source:document.getElementById('wa-'+prefix+'-consent-source')?.value||null,
             consent_evidence:document.getElementById('wa-'+prefix+'-consent-evidence')?.value||null,
         };
@@ -487,7 +508,7 @@
         const payload={store_id:Number(store),mapping:{name:document.getElementById('wa-map-name').value,phone:document.getElementById('wa-map-phone').value,email:document.getElementById('wa-map-email').value||null},...consentPayload('import')};
         try{
             const result=await json(urls.importCommitTemplate.replace('/0/commit','/'+importBatch+'/commit'),{method:'POST',body:JSON.stringify(payload)});
-            addIds(result.customer_ids||[]);selectedStores.add(Number(store));syncSelection();status.textContent=t.created+' '+result.created+' · '+t.matched+' '+result.matched+' · '+t.updated+' '+result.updated+' · '+t.skipped+' '+result.skipped+' · '+t.invalid+' '+result.invalid;
+            addIds(result.customer_ids||[]);selectedStores.add(Number(store));syncSelection();resetConsentFields('import');status.textContent=t.created+' '+result.created+' · '+t.matched+' '+result.matched+' · '+t.updated+' '+result.updated+' · '+t.skipped+' '+result.skipped+' · '+t.invalid+' '+result.invalid;
             const errors=Array.isArray(result.errors)?result.errors:[];
             document.getElementById('wa-import-errors').innerHTML=errors.slice(0,20).map(item=>escapeHtml(t.row+' '+item.row+': '+(t.importErrorReasons[item.reason]||item.reason))).join('<br>');
         }catch(error){status.textContent=error.message;}
@@ -498,7 +519,7 @@
         status.textContent=t.loading;
         try{
             const result=await json(urls.manual,{method:'POST',body:JSON.stringify({store_id:Number(store),manual_lines:document.getElementById('wa-manual-lines').value,...consentPayload('manual')})});
-            document.getElementById('wa-import-batch').value=String(result.batch_id||'');addIds(result.customer_ids||[]);selectedStores.add(Number(store));syncSelection();status.textContent=t.created+' '+result.created+' · '+t.matched+' '+result.matched+' · '+t.updated+' '+result.updated+' · '+t.skipped+' '+result.skipped+' · '+t.invalid+' '+result.invalid;
+            document.getElementById('wa-import-batch').value=String(result.batch_id||'');addIds(result.customer_ids||[]);selectedStores.add(Number(store));syncSelection();resetConsentFields('manual');status.textContent=t.created+' '+result.created+' · '+t.matched+' '+result.matched+' · '+t.updated+' '+result.updated+' · '+t.skipped+' '+result.skipped+' · '+t.invalid+' '+result.invalid;
         }catch(error){status.textContent=error.message;}
     });
 
