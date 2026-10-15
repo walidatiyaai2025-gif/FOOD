@@ -431,9 +431,22 @@ final class OrderOperationsController extends Controller
 
     public function storeNewOrder(Request $request, AdminOrderManagementService $orders): RedirectResponse
     {
+        $idempotency = $request->validate([
+            '_order_create_context' => ['required', 'string', Rule::in(['central'])],
+            'idempotency_key' => ['required', 'string', 'min:16', 'max:100', 'regex:/\\A[A-Za-z0-9._:-]+\\z/'],
+        ]);
+
         $actor = $this->actor($request);
         [$channel, $storeId] = $this->newOrderScope($request, $actor);
-        $order = $orders->create($request, $actor, $channel, $storeId);
+        $order = $orders->create(
+            $request,
+            $actor,
+            $channel,
+            $storeId,
+            'dashboard',
+            'admin',
+            trim((string) $idempotency['idempotency_key']),
+        );
 
         return redirect()
             ->route('admin.operations.orders.index', [
