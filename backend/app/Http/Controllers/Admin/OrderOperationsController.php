@@ -736,523 +736,77 @@ final class OrderOperationsController extends Controller
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
 
-        $assignment = DriverAssignment::query()
-            ->where('order_id', $model->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->latest('id')
-            ->first();
+        $cached = $this->rowCache[(int) $order->getKey()] ?? null;
 
-        abort_unless($assignment instanceof DriverAssignment, 409, 'Order has no active driver assignment.');
-
-        $driver = DB::table('drivers')
-            ->where('id', $assignment->driver_id)
-            ->first(['id', 'user_id']);
-        abort_unless($driver !== null && $driver->user_id !== null, 409, 'Assigned driver has no active app user.');
-
-        $notification = Notification::query()->create([
-            'channel' => 'both',
-            'type' => 'order.driver_reminder',
-            'title' => 'تذكير بالطلب '.DisplayNumber::reference($model->getKey()),
-            'body' => 'يوجد طلب يحتاج متابعتك الآن.',
-            'title_ar' => 'تذكير بالطلب '.DisplayNumber::reference($model->getKey()),
-            'title_en' => 'Order reminder '.DisplayNumber::reference($model->getKey()),
-            'body_ar' => 'يوجد طلب يحتاج متابعتك الآن.',
-            'body_en' => 'This order needs your attention now.',
-            'audience' => 'driver',
-            'app' => 'driver',
-            'target_channel' => (string) $model->channel,
-            'user_id' => (int) $driver->user_id,
-            'store_id' => (int) $model->store_id,
-            'status' => 'published',
-            'published_at' => now(),
-            'data' => [
-                'order_id' => (int) $model->getKey(),
-                'order_number' => DisplayNumber::reference($model->getKey()),
-                'internal_order_number' => (string) $model->order_number,
-                'channel' => (string) $model->channel,
-                'driver_id' => (int) $driver->id,
-                'assignment_id' => (int) $assignment->getKey(),
-                'access_revoked' => false,
-                'route' => 'assignment',
-            ],
-        ]);
-
-        DispatchPushNotification::dispatch((int) $notification->getKey())->afterCommit();
-
-        $audit->record(
-            'operations.order.driver_reminder_sent',
-            $actor,
-            $model,
-            null,
-            [
-                'driver_id' => (int) $driver->id,
-                'notification_id' => (int) $notification->getKey(),
-            ],
-            $request,
-        );
-
-        return back()->with('status', $this->msg('تم إرسال التذكير للسائق.', 'Driver reminder sent.'));
-    }
-
-    public function transition(
-        Request $request,
-        int $order,
-        OrderController $orders,
-        AuditLogger $audit,
-        DashboardOperationalNotifier $notifier,
-    ): RedirectResponse {
-        $actor = $this->actor($request);
-        $model = $this->managedOrder($actor, $order, 'orders.manage');
-        $request->validate([
-            'status' => ['required', 'string', Rule::in($this->activeOrderStatusCodes())],
-        ]);
-        $request->merge(['store_id' => (int) $model->store_id]);
-
-        $orders->transition($request, $order, $audit, $notifier);
-
-        return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
-    }
-
-    public function dispatch(
-        Request $request,
-        int $order,
-        DriverAssignmentController $deliveries,
-        AuditLogger $audit,
-        DashboardOperationalNotifier $notifier,
-        OrderManualDispatchService $dispatch,
-    ): RedirectResponse {
-        $actor = $this->actor($request);
-        $model = $this->managedOrder($actor, $order, 'orders.view');
-        $this->scope->assertStore(
-            $actor,
-            (int) $model->store_id,
-            'orders.dispatch',
-            (string) $model->channel,
-        );
-
-        $data = $request->validate([
-            'assignee_type' => ['required', Rule::in(['driver', 'van'])],
-            'assignee_id' => ['required', 'integer', 'min:1'],
-            'reason' => ['required', 'string', 'max:500'],
-        ]);
-        $reason = trim((string) $data['reason']);
-
-        if ((string) $data['assignee_type'] === 'driver') {
-            $driverId = (int) $data['assignee_id'];
-
-            DB::transaction(function () use (
-                $model,
-                $actor,
-                $driverId,
-                $reason,
-                $request,
-                $deliveries,
-                $audit,
-                $notifier,
-                $dispatch,
-            ): void {
-                $active = DriverAssignment::query()
-                    ->where('order_id', $model->getKey())
-                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-                    ->lockForUpdate()
-                    ->latest('id')
-                    ->first();
-
-                if ($active instanceof DriverAssignment && (int) $active->driver_id === $driverId) {
-                    $dispatch->assignDriver($model, $actor, $active, $reason);
-
-                    return;
-                }
-
-                $request->merge([
-                    'driver_id' => $driverId,
-                    'order_id' => (int) $model->getKey(),
-                    'store_id' => (int) $model->store_id,
-                    'replace_existing' => true,
-                    'customer_service_override' => true,
-                ]);
-                $deliveries->assign($request, $audit, $notifier);
-
-                $assignment = DriverAssignment::query()
-                    ->where('order_id', $model->getKey())
-                    ->where('driver_id', $driverId)
-                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-                    ->latest('id')
-                    ->first();
-                abort_unless($assignment instanceof DriverAssignment, 409, 'Driver assignment was not persisted.');
-                $dispatch->assignDriver($model, $actor, $assignment, $reason);
-            });
-
-            return back()->with('status', $this->msg(
-                'تم توجيه الطلب إلى السائق.',
-                'Order dispatched to driver.',
-            ));
-        }
-
-        $vanId = (int) $data['assignee_id'];
-
-        DB::transaction(function () use (
-            $model,
-            $actor,
-            $order,
-            $vanId,
-            $reason,
-            $request,
-            $deliveries,
-            $audit,
-            $notifier,
-            $dispatch,
-        ): void {
-            $vanAssignable = DB::table('vans')
-                ->join('van_assignments', 'van_assignments.van_id', '=', 'vans.id')
-                ->where('vans.id', $vanId)
-                ->where('vans.status', 'active')
-                ->where('van_assignments.status', 'active')
-                ->where('van_assignments.effective_from', '<=', now())
-                ->where(fn ($query) => $query
-                    ->whereNull('van_assignments.effective_until')
-                    ->orWhere('van_assignments.effective_until', '>', now()))
-                ->exists();
-            abort_unless($vanAssignable, 422, 'Selected Van has no effective active assignment.');
-
-            $activeDriver = DriverAssignment::query()
-                ->where('order_id', $model->getKey())
+        if ($cached !== null) {
+            $assignment = $cached['assignment'];
+            $driver = $cached['driver'];
+            $dispatch = $cached['dispatch'];
+            $dispatchAssignee = $cached['dispatch_assignee'];
+            $dispatchTerritory = $cached['dispatch_territory'];
+            $customerName = $cached['customer_name'];
+            $payment = $cached['payment'];
+            $invoice = $cached['invoice'];
+        } else {
+            $assignment = DriverAssignment::query()
+                ->where('order_id', $order->getKey())
                 ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-                ->lockForUpdate()
                 ->latest('id')
                 ->first();
 
-            if ($activeDriver instanceof DriverAssignment) {
-                $request->merge([
-                    'store_id' => (int) $model->store_id,
-                    'reason' => $reason,
-                ]);
-                $deliveries->unassign($request, $order, $audit, $notifier);
-            }
+            $driver = $assignment === null
+                ? null
+                : DB::table('drivers')
+                    ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('drivers.id', $assignment->driver_id)
+                    ->first(['drivers.id', 'drivers.user_id', 'users.name']);
 
-            $dispatch->assignVan($model, $actor, $vanId, $reason);
-        });
-
-        return back()->with('status', $this->msg(
-            'تم توجيه الطلب إلى الفان.',
-            'Order dispatched to Van.',
-        ));
-    }
-
-    public function clearDispatch(
-        Request $request,
-        int $order,
-        DriverAssignmentController $deliveries,
-        AuditLogger $audit,
-        DashboardOperationalNotifier $notifier,
-        OrderManualDispatchService $dispatch,
-    ): RedirectResponse {
-        $actor = $this->actor($request);
-        $model = $this->managedOrder($actor, $order, 'orders.view');
-        $this->scope->assertStore(
-            $actor,
-            (int) $model->store_id,
-            'orders.dispatch',
-            (string) $model->channel,
-        );
-        $data = $request->validate([
-            'reason' => ['required', 'string', 'max:500'],
-        ]);
-        $reason = trim((string) $data['reason']);
-
-        DB::transaction(function () use (
-            $model,
-            $actor,
-            $order,
-            $reason,
-            $request,
-            $deliveries,
-            $audit,
-            $notifier,
-            $dispatch,
-        ): void {
-            $activeDriver = DriverAssignment::query()
-                ->where('order_id', $model->getKey())
-                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-                ->lockForUpdate()
-                ->latest('id')
+            $dispatch = OrderDispatchState::query()
+                ->where('order_id', $order->getKey())
                 ->first();
-
-            if ($activeDriver instanceof DriverAssignment) {
-                $request->merge([
-                    'store_id' => (int) $model->store_id,
-                    'reason' => $reason,
-                ]);
-                $deliveries->unassign($request, $order, $audit, $notifier);
-            }
-
-            $dispatch->clear($model, $actor, $reason);
-        });
-
-        return back()->with('status', $this->msg(
-            'تم إرجاع الطلب إلى قائمة التوجيه المعلق.',
-            'Order returned to the pending dispatch queue.',
-        ));
-    }
-
-    public function reassign(
-        Request $request,
-        int $order,
-        DriverAssignmentController $deliveries,
-        AuditLogger $audit,
-        DashboardOperationalNotifier $notifier,
-        OrderManualDispatchService $dispatch,
-    ): RedirectResponse {
-        $actor = $this->actor($request);
-        $model = $this->managedOrder($actor, $order, 'orders.manage');
-        $this->scope->assertStore(
-            $actor,
-            (int) $model->store_id,
-            'orders.dispatch',
-            (string) $model->channel,
-        );
-
-        $request->validate([
-            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
-        ]);
-        $request->merge([
-            'order_id' => (int) $model->getKey(),
-            'store_id' => (int) $model->store_id,
-            'replace_existing' => true,
-        ]);
-
-        $deliveries->assign($request, $audit, $notifier);
-
-        $assignment = DriverAssignment::query()
-            ->where('order_id', $model->getKey())
-            ->where('driver_id', (int) $request->input('driver_id'))
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->latest('id')
-            ->first();
-        if ($assignment instanceof DriverAssignment) {
-            $dispatch->assignDriver(
-                $model,
-                $actor,
-                $assignment,
-                trim((string) $request->input('reason', 'legacy_driver_assignment')),
-            );
-        }
-
-        return back()->with('status', $this->msg('تم تعيين السائق للطلب.', 'Driver assigned to order.'));
-    }
-
-    public function unassign(
-        Request $request,
-        int $order,
-        DriverAssignmentController $deliveries,
-        AuditLogger $audit,
-        DashboardOperationalNotifier $notifier,
-        OrderManualDispatchService $dispatch,
-    ): RedirectResponse {
-        $actor = $this->actor($request);
-        $model = $this->managedOrder($actor, $order, 'orders.manage');
-        $this->scope->assertStore(
-            $actor,
-            (int) $model->store_id,
-            'orders.dispatch',
-            (string) $model->channel,
-        );
-
-        $request->merge(['store_id' => (int) $model->store_id]);
-        $deliveries->unassign($request, $order, $audit, $notifier);
-        $dispatch->clear(
-            $model,
-            $actor,
-            trim((string) $request->input('reason', 'legacy_driver_unassign')),
-        );
-
-        return back()->with('status', $this->msg('تم سحب الطلب من السائق.', 'Order unassigned from driver.'));
-    }
-
-    private function managedOrder(User $actor, int $order, string $permission): Order
-    {
-        $model = Order::query()->findOrFail($order);
-        $this->scope->assertStore(
-            $actor,
-            (int) $model->store_id,
-            $permission,
-            (string) $model->channel,
-        );
-
-        return $model;
-    }
-
-    /**
-     * @param  array<int,Order>  $orders
-     */
-    private function primeRowCache(array $orders): void
-    {
-        $orderModels = collect($orders)
-            ->filter(static fn (mixed $order): bool => $order instanceof Order)
-            ->values();
-
-        if ($orderModels->isEmpty()) {
-            $this->rowCache = [];
-
-            return;
-        }
-
-        $orderIds = $orderModels
-            ->map(static fn (Order $order): int => (int) $order->getKey())
-            ->all();
-
-        $assignments = DriverAssignment::query()
-            ->whereIn('order_id', $orderIds)
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->orderByDesc('id')
-            ->get()
-            ->unique('order_id')
-            ->keyBy('order_id');
-
-        $dispatches = OrderDispatchState::query()
-            ->whereIn('order_id', $orderIds)
-            ->get()
-            ->keyBy('order_id');
-
-        $driverIds = $assignments
-            ->pluck('driver_id')
-            ->merge($dispatches
-                ->filter(static fn (OrderDispatchState $dispatch): bool => $dispatch->current_assignee_type === 'driver')
-                ->pluck('current_assignee_id'))
-            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $drivers = $driverIds === []
-            ? collect()
-            : DB::table('drivers')
-                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-                ->whereIn('drivers.id', $driverIds)
-                ->get(['drivers.id', 'drivers.user_id', 'users.name'])
-                ->keyBy('id');
-
-        $vanIds = $dispatches
-            ->filter(static fn (OrderDispatchState $dispatch): bool => $dispatch->current_assignee_type === 'van')
-            ->pluck('current_assignee_id')
-            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $vans = $vanIds === []
-            ? collect()
-            : DB::table('vans')
-                ->whereIn('id', $vanIds)
-                ->get(['id', 'code', 'plate_number'])
-                ->keyBy('id');
-
-        $territoryIds = $dispatches
-            ->pluck('service_territory_id')
-            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $territories = $territoryIds === []
-            ? collect()
-            : DB::table('service_territories')
-                ->whereIn('id', $territoryIds)
-                ->get(['id', 'code', 'name_ar', 'name_en'])
-                ->keyBy('id');
-
-        $b2bCustomerIds = $orderModels
-            ->pluck('b2b_customer_id')
-            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-        $b2cCustomerIds = $orderModels
-            ->pluck('b2c_customer_id')
-            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $b2bCustomers = $b2bCustomerIds === []
-            ? collect()
-            : B2bCustomer::query()->whereIn('id', $b2bCustomerIds)->get()->keyBy('id');
-        $b2cCustomers = $b2cCustomerIds === []
-            ? collect()
-            : DB::table('b2c_customers')
-                ->whereIn('id', $b2cCustomerIds)
-                ->get(['id', 'name'])
-                ->keyBy('id');
-
-        $payments = DB::table('payments')
-            ->whereIn('order_id', $orderIds)
-            ->orderByDesc('id')
-            ->get(['id', 'order_id', 'status', 'provider', 'amount', 'currency'])
-            ->unique('order_id')
-            ->keyBy('order_id');
-
-        $invoices = Invoice::query()
-            ->whereIn('order_id', $orderIds)
-            ->orderByDesc('id')
-            ->get()
-            ->unique('order_id')
-            ->keyBy('order_id');
-
-        $issuedInvoiceOrders = DB::table('invoices')
-            ->whereIn('order_id', $orderIds)
-            ->whereIn('status', ['issued', 'reissued'])
-            ->distinct()
-            ->pluck('order_id')
-            ->mapWithKeys(static fn (mixed $id): array => [(int) $id => true]);
-
-        $storeIds = $orderModels
-            ->pluck('store_id')
-            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-        $stores = DB::table('stores')
-            ->whereIn('id', $storeIds)
-            ->get(['id', 'name', 'code'])
-            ->keyBy('id');
-
-        $sourceNotes = DB::table('order_status_history')
-            ->whereIn('order_id', $orderIds)
-            ->whereNull('from_status')
-            ->where('to_status', 'pending')
-            ->orderBy('id')
-            ->get(['order_id', 'note'])
-            ->unique('order_id')
-            ->keyBy('order_id');
-
-        $cache = [];
-        foreach ($orderModels as $order) {
-            $orderId = (int) $order->getKey();
-            $assignment = $assignments->get($orderId);
-            $dispatch = $dispatches->get($orderId);
-
+            /** @var OrderDispatchState|null $dispatch */
             $dispatchAssignee = null;
             if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'driver') {
-                $dispatchDriver = $drivers->get((int) $dispatch->current_assignee_id);
+                $dispatchDriver = DB::table('drivers')
+                    ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                    ->where('drivers.id', (int) $dispatch->current_assignee_id)
+                    ->first(['users.name']);
                 $dispatchAssignee = $dispatchDriver === null
                     ? $this->msg('سائق بدون اسم', 'Unnamed driver')
                     : (trim((string) $dispatchDriver->name)
                         ?: $this->msg('سائق بدون اسم', 'Unnamed driver'));
             } elseif ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'van') {
-                $dispatchVan = $vans->get((int) $dispatch->current_assignee_id);
+                $dispatchVan = DB::table('vans')
+                    ->where('id', (int) $dispatch->current_assignee_id)
+                    ->first(['code', 'plate_number']);
                 if ($dispatchVan !== null) {
                     $dispatchAssignee = trim((string) $dispatchVan->code)
                         .($dispatchVan->plate_number ? ' · '.$dispatchVan->plate_number : '');
                 }
             }
 
-            $channel = strtolower((string) $order->channel);
+            $dispatchTerritory = $dispatch?->service_territory_id === null
+                ? null
+                : DB::table('service_territories')
+                    ->where('id', (int) $dispatch->service_territory_id)
+                    ->first(['code', 'name_ar', 'name_en']);
+
+            $customerName = strtolower((string) $order->channel) === 'b2b'
+                ? DB::table('b2b_customers')->where('id', $order->b2b_customer_id)->value('name')
+                : DB::table('b2c_customers')->where('id', $order->b2c_customer_id)->value('name');
+
+            $payment = DB::table('payments')
+                ->where('order_id', $order->getKey())
+                ->latest('id')
+                ->first(['status', 'provider', 'amount', 'currency']);
+
+            $invoice = DB::table('invoices')
+                ->where('order_id', $order->getKey())
+                ->latest('id')
+                ->first(['id', 'invoice_number', 'status', 'total', 'currency']);
+        }
+
+        $channel = strtolower((string) $order->channel);
             $b2bCustomer = $order->b2b_customer_id === null
                 ? null
                 : $b2bCustomers->get((int) $order->b2b_customer_id);
@@ -1367,18 +921,23 @@ final class OrderOperationsController extends Controller
             $financeScopes[$channel] ?? [],
             true,
         );
+        $hasIssuedInvoice = $cached !== null
+            ? (bool) $cached['has_issued_invoice']
+            : DB::table('invoices')
+                ->where('order_id', $order->getKey())
+                ->whereIn('status', ['issued', 'reissued'])
+                ->exists();
         $canEdit = $canManage
             && (string) $order->status === 'pending'
             && $order->commercial_locked_at === null
             && ($payment->status ?? null) !== 'paid'
-            && ! DB::table('invoices')
-                ->where('order_id', $order->getKey())
-                ->whereIn('status', ['issued', 'reissued'])
-                ->exists();
+            && ! $hasIssuedInvoice;
 
         $settlement = null;
         if ($channel === 'b2b' && $order->b2b_customer_id !== null) {
-            $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
+            $customer = $cached !== null
+                ? $cached['b2b_customer']
+                : B2bCustomer::query()->find((int) $order->b2b_customer_id);
             if (
                 $customer instanceof B2bCustomer
                 && DB::table('b2b_accounts')
@@ -1408,16 +967,20 @@ final class OrderOperationsController extends Controller
             }
         }
 
-        $store = DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
+        $store = $cached !== null
+            ? $cached['store']
+            : DB::table('stores')->where('id', $order->store_id)->first(['name', 'code']);
         $storeLabel = $store === null
             ? '#'.$order->store_id
             : ($store->name ?? $store->code ?? '#'.$order->store_id);
-        $sourceNote = DB::table('order_status_history')
-            ->where('order_id', $order->getKey())
-            ->whereNull('from_status')
-            ->where('to_status', 'pending')
-            ->oldest('id')
-            ->value('note');
+        $sourceNote = $cached !== null
+            ? $cached['source_note']
+            : DB::table('order_status_history')
+                ->where('order_id', $order->getKey())
+                ->whereNull('from_status')
+                ->where('to_status', 'pending')
+                ->oldest('id')
+                ->value('note');
         $source = $sourceNote === 'dashboard_order_created'
             ? 'dashboard'
             : ($sourceNote === 'checkout' ? 'customer_checkout' : 'legacy');
@@ -1463,7 +1026,9 @@ final class OrderOperationsController extends Controller
             'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
-            'assignment_id' => $assignment?->getKey(),
+            'assignment_id' => $assignment instanceof DriverAssignment
+                ? $assignment->getKey()
+                : ($assignment->id ?? null),
             'assignment_status' => $assignment?->status,
             'driver_id' => $driver?->id,
             'driver' => $driver?->name,
