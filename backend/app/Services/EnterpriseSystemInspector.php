@@ -8,7 +8,6 @@ use App\Models\EnterpriseModuleEntitlement;
 use App\Models\EnterpriseOutboxMessage;
 use App\Models\EnterpriseWorkflowRequest;
 use Illuminate\Contracts\Pagination\Paginator;
-use Illuminate\Support\Collection;
 
 final class EnterpriseSystemInspector
 {
