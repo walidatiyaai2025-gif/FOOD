@@ -13,6 +13,7 @@ use App\Support\EnterpriseGridState;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -44,7 +45,9 @@ final class EnterpriseSavedViewFoundationTest extends TestCase
             ->assertSee('data-enterprise-saved-views="enterprise.modules"', false)
             ->assertSee('Saved views')
             ->assertSee('Search modules')
-            ->assertSee('Sample Optional');
+            ->assertSee('Sample Optional')
+            ->assertViewHas('modules', static fn ($modules): bool => $modules instanceof LengthAwarePaginator
+                && $modules->perPage() === 50);
 
         $state = EnterpriseGridState::fromRequest(
             Request::create('/admin/administration/modules', 'GET', [
@@ -202,7 +205,7 @@ final class EnterpriseSavedViewFoundationTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('العروض المحفوظة')
-            ->assertSee('الفلاتر');
+            ->assertSee('بحث الوحدات');
     }
 
     public function test_only_owner_can_delete_a_saved_view(): void
