@@ -32,7 +32,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.marketplace',
             'label' => 'customer_marketplace',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['all', 'b2b', 'b2c'],
             'route' => '/marketplace',
             'requires_store' => false,
@@ -40,7 +40,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.retail_home',
             'label' => 'customer_retail_home',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2c'],
             'route' => '/retail/{store}/home',
             'requires_store' => true,
@@ -48,7 +48,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.retail_offers',
             'label' => 'customer_retail_offers',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2c'],
             'route' => '/offers',
             'requires_store' => false,
@@ -56,7 +56,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.retail_products',
             'label' => 'customer_retail_products',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2c'],
             'route' => '/products',
             'requires_store' => false,
@@ -64,7 +64,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.retail_orders',
             'label' => 'customer_retail_orders',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2c'],
             'route' => '/orders',
             'requires_store' => false,
@@ -72,7 +72,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.retail_notifications',
             'label' => 'customer_retail_notifications',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2c'],
             'route' => '/notifications',
             'requires_store' => false,
@@ -80,7 +80,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.retail_profile',
             'label' => 'customer_retail_profile',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2c'],
             'route' => '/profile',
             'requires_store' => false,
@@ -88,7 +88,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.wholesale_home',
             'label' => 'customer_wholesale_home',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2b'],
             'route' => '/b2b/home',
             'requires_store' => false,
@@ -96,7 +96,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.wholesale_dashboard',
             'label' => 'customer_wholesale_dashboard',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2b'],
             'route' => '/b2b/dashboard',
             'requires_store' => false,
@@ -104,7 +104,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.wholesale_products',
             'label' => 'customer_wholesale_products',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2b'],
             'route' => '/b2b/products',
             'requires_store' => false,
@@ -112,7 +112,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.wholesale_orders',
             'label' => 'customer_wholesale_orders',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2b'],
             'route' => '/b2b/orders',
             'requires_store' => false,
@@ -120,7 +120,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.wholesale_notifications',
             'label' => 'customer_wholesale_notifications',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2b'],
             'route' => '/b2b/notifications',
             'requires_store' => false,
@@ -128,7 +128,7 @@ final class EngagementDestinationCatalog
         [
             'code' => 'customer.wholesale_profile',
             'label' => 'customer_wholesale_profile',
-            'apps' => ['customer'],
+            'apps' => ['customer', 'all'],
             'channels' => ['b2b'],
             'route' => '/b2b/profile',
             'requires_store' => false,
@@ -255,7 +255,7 @@ final class EngagementDestinationCatalog
         string $app,
         string $channel,
         ?int $storeId = null,
-    ): string {
+    ): ?string {
         if (! is_string($target) || trim($target) === '') {
             return 'none';
         }
@@ -279,7 +279,7 @@ final class EngagementDestinationCatalog
             }
         }
 
-        return '';
+        return null;
     }
 
     /** @return array{code:string,label:string,apps:list<string>,channels:list<string>,route:string|null,requires_store:bool}|null */
