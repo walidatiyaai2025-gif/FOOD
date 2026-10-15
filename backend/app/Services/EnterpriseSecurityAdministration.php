@@ -100,6 +100,10 @@ final class EnterpriseSecurityAdministration
             ->limit(100)
             ->get();
 
+        $dataScopes->each(function ($row): void {
+            $row->scope_label = $this->scopeLabel((string) $row->scope_type, (int) $row->scope_id);
+        });
+
         $approvalLimits = DB::table('enterprise_user_approval_limits as limits')
             ->join('users', 'users.id', '=', 'limits.user_id')
             ->leftJoin('users as grantor', 'grantor.id', '=', 'limits.granted_by')
@@ -122,6 +126,13 @@ final class EnterpriseSecurityAdministration
             ->limit(100)
             ->get();
 
+        $approvalLimits->each(function ($row): void {
+            $row->scope_label = $this->scopeLabel(
+                (string) $row->scope_type,
+                $row->scope_id === null ? null : (int) $row->scope_id,
+            );
+        });
+
         $delegations = DB::table('enterprise_user_delegations as delegation')
             ->join('users as delegator', 'delegator.id', '=', 'delegation.delegator_id')
             ->join('users as delegate', 'delegate.id', '=', 'delegation.delegate_id')
@@ -143,6 +154,13 @@ final class EnterpriseSecurityAdministration
             ->limit(100)
             ->get();
 
+        $delegations->each(function ($row): void {
+            $row->scope_label = $this->scopeLabel(
+                (string) $row->scope_type,
+                $row->scope_id === null ? null : (int) $row->scope_id,
+            );
+        });
+
         $pendingChanges = EnterpriseWorkflowRequest::query()
             ->with('requester:id,name,email')
             ->where('workflow_key', self::WORKFLOW_KEY)
@@ -153,7 +171,7 @@ final class EnterpriseSecurityAdministration
 
         $delegationCandidates = User::query()
             ->where('is_active', true)
-            ->whereKeyNot($actor->getKey())
+            ->where('id', '!=', $actor->getKey())
             ->orderBy('name')
             ->limit(100)
             ->get(['id', 'name', 'email']);
@@ -484,7 +502,8 @@ final class EnterpriseSecurityAdministration
      */
     private function removeDataScope(array $payload): array
     {
-        $row = DB::table('enterprise_user_data_scopes')->where('id', (int) $payload['policy_id'])->firstOrFail();
+        $row = DB::table('enterprise_user_data_scopes')->where('id', (int) $payload['policy_id'])->first();
+        abort_if($row === null, 404);
         DB::table('enterprise_user_data_scopes')->where('id', $row->id)->delete();
 
         return [(array) $row, null];
@@ -525,7 +544,8 @@ final class EnterpriseSecurityAdministration
      */
     private function removeApprovalLimit(array $payload): array
     {
-        $row = DB::table('enterprise_user_approval_limits')->where('id', (int) $payload['policy_id'])->firstOrFail();
+        $row = DB::table('enterprise_user_approval_limits')->where('id', (int) $payload['policy_id'])->first();
+        abort_if($row === null, 404);
         DB::table('enterprise_user_approval_limits')->where('id', $row->id)->delete();
 
         return [(array) $row, null];
@@ -578,7 +598,8 @@ final class EnterpriseSecurityAdministration
      */
     private function revokeDelegation(array $payload): array
     {
-        $row = DB::table('enterprise_user_delegations')->where('id', (int) $payload['policy_id'])->firstOrFail();
+        $row = DB::table('enterprise_user_delegations')->where('id', (int) $payload['policy_id'])->first();
+        abort_if($row === null, 404);
         DB::table('enterprise_user_delegations')
             ->where('id', $row->id)
             ->whereNull('revoked_at')
