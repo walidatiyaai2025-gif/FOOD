@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foodex.local/schemas/enterprise-performance-evidence-v1.json",
+  "title": "FOODEX Enterprise Performance Evidence",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "source_head",
+    "harness_head",
+    "profile",
+    "environment",
+    "dataset",
+    "scenarios",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "source_head": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+    "harness_head": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+    "baseline_head": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40,64}$" },
+    "profile": { "enum": ["smoke", "standard", "heavy", "cpanel"] },
+    "environment": {
+      "type": "object",
+      "required": ["php", "database", "runner"],
+      "properties": {
+        "php": { "type": "string" },
+        "database": { "type": "string" },
+        "runner": { "type": "string" },
+        "memory_limit": { "type": ["string", "null"] },
+        "cpanel_reference": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["orders", "order_items", "stock_movements", "finance_records", "audit_events_messages", "stores", "warehouses", "tenants"],
+      "properties": {
+        "orders": { "type": "integer", "minimum": 0 },
+        "order_items": { "type": "integer", "minimum": 0 },
+        "stock_movements": { "type": "integer", "minimum": 0 },
+        "finance_records": { "type": "integer", "minimum": 0 },
+        "audit_events_messages": { "type": "integer", "minimum": 0 },
+        "stores": { "type": "integer", "minimum": 0 },
+        "warehouses": { "type": "integer", "minimum": 0 },
+        "tenants": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "workload_class", "rounds", "metrics", "queries", "memory", "verdict"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "workload_class": {
+            "enum": [
+              "lightweight_authenticated_read",
+              "paginated_crud",
+              "transactional_write",
+              "dashboard",
+              "bounded_interactive_report",
+              "provider_independent_order_commit",
+              "background_job",
+              "scheduler",
+              "disabled_module_overhead",
+              "export"
+            ]
+          },
+          "rounds": { "type": "integer", "minimum": 1 },
+          "metrics": {
+            "type": "object",
+            "required": ["p50_ms", "p95_ms", "p99_ms", "median_round_p95_ms"],
+            "properties": {
+              "p50_ms": { "type": "number", "minimum": 0 },
+              "p95_ms": { "type": "number", "minimum": 0 },
+              "p99_ms": { "type": "number", "minimum": 0 },
+              "median_round_p95_ms": { "type": "number", "minimum": 0 }
+            }
+          },
+          "queries": {
+            "type": "object",
+            "required": ["count", "slowest"],
+            "properties": {
+              "count": { "type": "integer", "minimum": 0 },
+              "slowest": { "type": "array" }
+            }
+          },
+          "memory": {
+            "type": "object",
+            "required": ["peak_bytes", "peak_mib"],
+            "properties": {
+              "peak_bytes": { "type": "integer", "minimum": 0 },
+              "peak_mib": { "type": "number", "minimum": 0 }
+            }
+          },
+          "baseline": { "type": ["object", "null"] },
+          "queue": { "type": ["object", "null"] },
+          "verdict": {
+            "type": "object",
+            "required": ["status", "reasons"],
+            "properties": {
+              "status": { "enum": ["PASS", "FAIL", "WARN"] },
+              "reasons": { "type": "array", "items": { "type": "string" } },
+              "exception": { "type": ["object", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["status", "failed_scenarios", "warnings"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "WARN"] },
+        "failed_scenarios": { "type": "array", "items": { "type": "string" } },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "additionalProperties": true
+}
