@@ -54,9 +54,9 @@ final class SmartOrderingAnalyticsController extends Controller
                 fputcsv($out, [$key, $value, $dashboard['formula_version']]);
             }
             fputcsv($out, []);
-            fputcsv($out, ['source', 'campaign', 'views', 'orders', 'conversion', 'revenue', 'aov']);
+            fputcsv($out, ['qr_public_id', 'source', 'campaign', 'views', 'orders', 'conversion', 'revenue', 'aov']);
             foreach ($dashboard['sources'] as $row) {
-                fputcsv($out, [$row['source'], $row['campaign'], $row['views'], $row['orders'], $row['conversion'], $row['revenue'], $row['aov']]);
+                fputcsv($out, [$row['qr_public_id'], $row['source'], $row['campaign'], $row['views'], $row['orders'], $row['conversion'], $row['revenue'], $row['aov']]);
             }
             fclose($out);
         }, 'smart-ordering-analytics-'.now()->format('Ymd-His').'.csv', [
@@ -85,6 +85,7 @@ final class SmartOrderingAnalyticsController extends Controller
             'store_id' => ['nullable', 'integer', 'min:1'],
             'branch_id' => ['nullable', 'integer', 'min:1'],
             'fulfillment' => ['nullable', Rule::in(['dine_in', 'pickup', 'delivery'])],
+            'qr_public_id' => ['nullable', 'uuid'],
             'source' => ['nullable', 'string', 'max:64'],
             'campaign' => ['nullable', 'string', 'max:120'],
             'offer' => ['nullable', 'string', 'max:120'],
