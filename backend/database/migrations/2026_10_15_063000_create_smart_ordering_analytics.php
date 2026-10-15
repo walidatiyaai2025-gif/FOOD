@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignId('order_id')->nullable()->constrained('orders')->nullOnDelete();
             $table->unsignedBigInteger('product_id')->nullable()->index();
             $table->unsignedBigInteger('category_id')->nullable()->index();
+            $table->uuid('qr_public_id')->nullable()->index();
             $table->string('source_snapshot', 64)->nullable()->index();
             $table->string('campaign_snapshot', 120)->nullable()->index();
             $table->string('offer_reference', 120)->nullable()->index();
@@ -46,6 +47,7 @@ return new class extends Migration
             $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('branch_key')->default(0);
             $table->string('event_name', 48);
+            $table->string('qr_key', 36)->default('');
             $table->string('source_key', 64)->default('');
             $table->string('campaign_key', 120)->default('');
             $table->string('offer_key', 120)->default('');
@@ -56,7 +58,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique([
-                'event_date', 'store_id', 'branch_key', 'event_name', 'source_key',
+                'event_date', 'store_id', 'branch_key', 'event_name', 'qr_key', 'source_key',
                 'campaign_key', 'offer_key', 'customer_type_key', 'fulfillment_mode_key',
             ], 'so_analytics_daily_dimension_unique');
             $table->index(['store_id', 'event_date'], 'so_analytics_daily_store_date_idx');
@@ -67,13 +69,14 @@ return new class extends Migration
             $table->date('event_date');
             $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('branch_key')->default(0);
+            $table->string('qr_key', 36)->default('');
             $table->string('source_key', 64)->default('');
             $table->string('campaign_key', 120)->default('');
             $table->char('visitor_hash', 64);
             $table->timestamps();
 
             $table->unique([
-                'event_date', 'store_id', 'branch_key', 'source_key', 'campaign_key', 'visitor_hash',
+                'event_date', 'store_id', 'branch_key', 'qr_key', 'source_key', 'campaign_key', 'visitor_hash',
             ], 'so_analytics_daily_visitor_unique');
             $table->index(['store_id', 'event_date'], 'so_analytics_visitor_store_date_idx');
         });
@@ -119,6 +122,7 @@ return new class extends Migration
             $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('branch_key')->default(0);
             $table->string('event_name', 48);
+            $table->string('qr_key', 36)->default('');
             $table->string('source_key', 64)->default('');
             $table->string('campaign_key', 120)->default('');
             $table->string('fulfillment_mode_key', 32)->default('');
@@ -128,7 +132,7 @@ return new class extends Migration
 
             $table->unique([
                 'event_date', 'event_hour', 'store_id', 'branch_key', 'event_name',
-                'source_key', 'campaign_key', 'fulfillment_mode_key',
+                'qr_key', 'source_key', 'campaign_key', 'fulfillment_mode_key',
             ], 'so_analytics_hourly_dimension_unique');
             $table->index(['store_id', 'event_date', 'event_hour'], 'so_analytics_hour_store_date_idx');
         });
