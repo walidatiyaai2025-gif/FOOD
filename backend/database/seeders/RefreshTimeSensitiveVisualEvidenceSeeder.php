@@ -17,10 +17,7 @@ class RefreshTimeSensitiveVisualEvidenceSeeder extends Seeder
             ->value('drivers.id');
 
         if ($driverId > 0) {
-            // The bilingual screenshot suite can exceed two minutes before it reaches
-            // mixed live tracking. Shift this deterministic fixture slightly forward so
-            // it is stale (45-180s old) during that evidence window instead of turning offline.
-            $staleAt = $now->copy()->addSeconds(50);
+            $staleAt = $now->copy()->subSeconds(55);
             DB::table('driver_current_locations')
                 ->where('driver_id', $driverId)
                 ->update([
