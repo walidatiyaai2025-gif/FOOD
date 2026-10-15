@@ -208,10 +208,15 @@ class SystemInspectorTest extends TestCase
 
         $html = $response->getContent();
         $this->assertIsString($html);
-        $this->assertStringContainsString('تشخيص الموديولات والخلفية', file_get_contents(
-            resource_path('views/admin/system-inspector.blade.php'),
-        ));
         $this->assertStringContainsString('Modules & background diagnostics', $html);
+        $this->assertSame(
+            'Modules & background diagnostics',
+            trans('admin.system_inspector_enterprise.title', [], 'en'),
+        );
+        $this->assertSame(
+            'تشخيص الموديولات والخلفية',
+            trans('admin.system_inspector_enterprise.title', [], 'ar'),
+        );
     }
 
     private function userWithRole(string $roleCode, string $email): User
