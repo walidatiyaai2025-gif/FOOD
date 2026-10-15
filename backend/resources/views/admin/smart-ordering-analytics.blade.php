@@ -58,8 +58,12 @@
 <label>{{ app()->getLocale()==='ar'?'العميل':'Customer' }}
 <select name="customer_type"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option><option value="new" @selected(($filters['customer_type']??'')==='new')>New</option><option value="repeat" @selected(($filters['customer_type']??'')==='repeat')>Repeat</option></select>
 </label>
-<label>Product ID<input type="number" min="1" name="product_id" value="{{ $filters['product_id']??'' }}"></label>
-<label>Category ID<input type="number" min="1" name="category_id" value="{{ $filters['category_id']??'' }}"></label>
+<label>{{ app()->getLocale()==='ar'?'المنتج':'Product' }}
+<select name="product_id"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((string)($filters['product_id']??'')===(string)$product->id)>{{ $product->sku }} — {{ $product->name }}</option>@endforeach</select>
+</label>
+<label>{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}
+<select name="category_id"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string)($filters['category_id']??'')===(string)$category->id)>{{ $category->name }}</option>@endforeach</select>
+</label>
 <div><button class="foodex-action-primary" type="submit">{{ app()->getLocale()==='ar'?'تطبيق':'Apply' }}</button></div>
 </form>
 </section>
@@ -101,7 +105,7 @@
 
 <section class="foodex-card so-a-card">
 <h2>{{ app()->getLocale()==='ar'?'أداء المصدر والحملة':'Source & campaign performance' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>QR</th><th>Source</th><th>Campaign</th><th>Views</th><th>Orders</th><th>Conv %</th><th>Revenue</th><th>AOV</th></tr></thead><tbody>
+<div class="so-a-table-wrap"><table class="so-a-table" data-pagination-exempt="bounded-analytics-snapshot"><thead><tr><th>QR</th><th>Source</th><th>Campaign</th><th>Views</th><th>Orders</th><th>Conv %</th><th>Revenue</th><th>AOV</th></tr></thead><tbody>
 @forelse($dashboard['sources'] as $row)<tr><td>{{ $row['qr_public_id']?:'—' }}</td><td>{{ $row['source']?:'direct' }}</td><td>{{ $row['campaign']?:'—' }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td><td>{{ number_format($row['aov'],3) }}</td></tr>@empty<tr><td colspan="8" class="so-a-empty">—</td></tr>@endforelse
 </tbody></table></div>
 </section>
