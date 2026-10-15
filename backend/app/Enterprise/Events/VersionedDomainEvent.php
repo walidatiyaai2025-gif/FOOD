@@ -35,7 +35,7 @@ final readonly class VersionedDomainEvent
         }
 
         foreach (array_keys($this->scope) as $key) {
-            if (! is_string($key) || trim($key) === '') {
+            if (trim($key) === '') {
                 throw new InvalidArgumentException('Domain event scope keys must be non-empty strings.');
             }
         }
