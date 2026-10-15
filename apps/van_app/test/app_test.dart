@@ -1993,23 +1993,30 @@ class _OrderRepository implements VanOrderRepository {
       );
 
   @override
-  Future<List<VanCatalogProduct>> catalog(
+  Future<VanCatalogPage> catalog(
     VanCustomerScope customer, {
     String search = '',
+    int page = 1,
+    int perPage = 50,
   }) async =>
-      const [
-        VanCatalogProduct(
-          id: 301,
-          name: 'Water Case',
-          sku: 'WATER-CASE',
-          unitPrice: 12,
-          minimumQuantity: 1,
-          orderingIncrement: 1,
-          isAvailable: true,
-          availableQuantity: 20,
-          currency: 'KWD',
-        ),
-      ];
+      VanCatalogPage(
+        page: page,
+        perPage: perPage,
+        hasMore: false,
+        products: const [
+          VanCatalogProduct(
+            id: 301,
+            name: 'Water Case',
+            sku: 'WATER-CASE',
+            unitPrice: 12,
+            minimumQuantity: 1,
+            orderingIncrement: 1,
+            availableQuantity: 20,
+            isAvailable: true,
+            currency: 'KWD',
+          ),
+        ],
+      );
 
   @override
   Future<VanOrderOptions> options(VanCustomerScope customer) async =>
