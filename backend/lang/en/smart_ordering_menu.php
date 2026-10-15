@@ -24,4 +24,6 @@ return [
         'json' => 'Enter a valid JSON value.',
         'non_negative_price' => 'Prices cannot be negative.',
     ],
+    'minimum' => 'Minimum',
+    'maximum' => 'Maximum',
 ];
