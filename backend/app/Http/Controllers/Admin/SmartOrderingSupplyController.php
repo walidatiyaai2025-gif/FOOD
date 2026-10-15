@@ -69,7 +69,7 @@ final class SmartOrderingSupplyController extends Controller
         $branchId = $request->integer('branch_id') ?: null;
         if ($branchId !== null) {
             abort_unless(
-                \DB::table('smart_ordering_branches')
+                DB::table('smart_ordering_branches')
                     ->where('id', $branchId)
                     ->where('site_id', $site->getKey())
                     ->exists(),
@@ -86,7 +86,7 @@ final class SmartOrderingSupplyController extends Controller
 
         return view('admin.smart-ordering-supply', [
             'site' => $site,
-            'branches' => \DB::table('smart_ordering_branches')
+            'branches' => DB::table('smart_ordering_branches')
                 ->where('site_id', $site->getKey())
                 ->orderByDesc('is_default')
                 ->orderBy('name_en')
@@ -102,6 +102,7 @@ final class SmartOrderingSupplyController extends Controller
             'recommendations' => $supply->recommendations($site, $branchId, $from, $to),
             'commercial' => $supply->commercialInsight($site),
             'relatedProducts' => $supply->relatedProducts($site),
+            'supportAccess' => (bool) ($request->user()?->hasRole('SUPER_ADMIN') && $request->boolean('support_access')),
         ]);
     }
 
@@ -251,7 +252,7 @@ final class SmartOrderingSupplyController extends Controller
     private function assertEntitled(SmartOrderingSite $site): void
     {
         abort_unless(
-            \DB::table('smart_ordering_entitlements')
+            DB::table('smart_ordering_entitlements')
                 ->where('site_id', $site->getKey())
                 ->whereNull('branch_id')
                 ->where('module', 'foodex_supply_intelligence')
