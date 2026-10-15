@@ -131,14 +131,18 @@ final class LifecycleService
             ->where('public_reference', $publicReference)
             ->firstOrFail();
         $order = Order::query()->findOrFail((int) $context->order_id);
-        $branch = DB::table('smart_ordering_branches')->where('id', $context->branch_id)->first();
+        $branch = DB::table('smart_ordering_branches')
+            ->where('id', $context->branch_id)
+            ->first(['name_ar', 'name_en']);
 
         return [
             'reference' => (string) $context->public_reference,
             'order_number' => (string) $order->order_number,
             'status' => (string) $context->lifecycle_status,
             'fulfillment_mode' => (string) $context->fulfillment_mode,
-            'branch' => $branch?->name,
+            'branch' => app()->getLocale() === 'ar'
+                ? ($branch?->name_ar ?: $branch?->name_en)
+                : ($branch?->name_en ?: $branch?->name_ar),
             'scheduled_for' => $context->scheduled_for?->toAtomString(),
             'currency' => (string) $order->currency,
             'total' => (float) $context->grand_total,
