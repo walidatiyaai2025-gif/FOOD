@@ -24,7 +24,10 @@
         details>summary{cursor:pointer;font-weight:700;margin:6px 0}
         .so-bulk-select{min-height:150px}.so-empty{padding:22px;text-align:center;border:1px dashed var(--foodex-border);border-radius:16px}
         .so-sticky{position:sticky;bottom:12px;z-index:20;background:var(--foodex-surface);backdrop-filter:blur(8px);padding:10px;border:1px solid var(--foodex-border);border-radius:14px}
-        @media(max-width:760px){.so-category,.so-item,.so-group,.so-option{margin-inline-start:0}.so-sticky{position:static}}
+        .so-media-current{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.so-media-thumb{width:112px;height:84px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}
+        .so-review{display:grid;gap:18px}.so-review-menu{border:1px solid var(--foodex-border);border-radius:18px;overflow:hidden;background:var(--foodex-surface)}.so-review-menu-head{display:grid;grid-template-columns:160px 1fr;gap:16px;align-items:center;padding:16px;background:var(--foodex-background)}.so-review-menu-head img,.so-review-placeholder{width:160px;height:110px;object-fit:cover;border-radius:14px;background:var(--foodex-green-soft);display:grid;place-items:center;color:var(--foodex-muted);font-weight:700}.so-review-categories{display:grid;gap:14px;padding:16px}.so-review-category{border-top:1px solid var(--foodex-border);padding-top:14px}.so-review-category-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.so-review-category-head img,.so-review-category-head .so-review-placeholder{width:88px;height:66px}.so-review-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}.so-review-item{border:1px solid var(--foodex-border);border-radius:14px;padding:10px;display:grid;gap:8px}.so-review-item img,.so-review-item .so-review-placeholder{width:100%;height:130px}.so-review-status{display:flex;gap:6px;flex-wrap:wrap}
+        .so-review-link{white-space:nowrap}
+        @media(max-width:760px){.so-category,.so-item,.so-group,.so-option{margin-inline-start:0}.so-sticky{position:static}.so-review-menu-head{grid-template-columns:1fr}.so-review-menu-head img,.so-review-menu-head .so-review-placeholder{width:100%;height:180px}}
     </style>
 </head>
 <body>
@@ -37,6 +40,12 @@
     };
     $allCategories = $menus->flatMap(fn($menu) => $menu->categories);
     $allItems = $allCategories->flatMap(fn($category) => $category->items);
+    $mediaUrl = static function ($path): ?string {
+        $path = trim((string) $path);
+        if ($path === '') return null;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/')) return $path;
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+    };
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-menu">
     <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
@@ -47,6 +56,7 @@
                 <p>{{ __('smart_ordering_menu.description') }}</p>
             </div>
             <div class="so-actions">
+                <a class="foodex-action-primary so-review-link" href="#so-draft-review">{{ $isAr ? 'مراجعة المنيو قبل النشر' : 'Review menu before publishing' }}</a>
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
             </div>
         </header>
@@ -74,13 +84,14 @@
 
         <section class="panel">
             <div class="so-section-title"><div><h2>{{ $isAr ? 'إضافة منيو' : 'Add menu' }}</h2><p class="so-muted">{{ $isAr ? 'يمكن ترك الفروع بدون تحديد لتكون المنيو متاحة لكل الفروع.' : 'Leave branches empty to make the menu global.' }}</p></div></div>
-            <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.menus.store') }}">
+            <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.menus.store') }}">
                 @csrf
                 <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <div class="so-grid">
                     <label>{{ $isAr ? 'الاسم بالعربية' : 'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
                     <label>{{ $isAr ? 'الاسم بالإنجليزية' : 'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
                     <label>{{ $isAr ? 'الترتيب' : 'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
+                    <label>{{ $isAr ? 'صورة المنيو' : 'Menu image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                 </div>
                 <div class="so-grid">
                     <label>{{ $isAr ? 'الوصف بالعربية' : 'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label>
@@ -130,14 +141,18 @@
             @forelse($menus as $menu)
             <article class="so-menu">
                 <div class="so-section-title"><h3>{{ $localized($menu, 'name') }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
-                <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.menus.update',$menu) }}">
+                <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.menus.update',$menu) }}">
                     @csrf @method('PUT')
                     <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <div class="so-grid">
                         <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $menu->name_ar }}"></label>
                         <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $menu->name_en }}" required></label>
                         <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $menu->sort_order }}" required></label>
+                        <label>{{ $isAr?'استبدال صورة المنيو':'Replace menu image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                     </div>
+                    @if($mediaUrl($menu->image_path))
+                    <div class="so-media-current"><img class="so-media-thumb" src="{{ $mediaUrl($menu->image_path) }}" alt="{{ $localized($menu,'name') }}"><label class="so-check"><input type="checkbox" name="remove_image" value="1"> {{ $isAr?'حذف صورة المنيو الحالية':'Remove current menu image' }}</label></div>
+                    @endif
                     <div class="so-grid">
                         <label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $menu->description_ar }}</textarea></label>
                         <label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $menu->description_en }}</textarea></label>
@@ -186,6 +201,7 @@
                             <label>{{ $isAr?'استبدال الصورة':'Replace image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                             <label class="so-check"><input type="checkbox" name="remove_image" value="1"> {{ $isAr?'حذف الصورة الحالية':'Remove current image' }}</label>
                         </div>
+                        @if($mediaUrl($category->image_path))<div class="so-media-current"><img class="so-media-thumb" src="{{ $mediaUrl($category->image_path) }}" alt="{{ $localized($category,'name') }}"><span class="so-muted">{{ $isAr?'الصورة الحالية للتصنيف':'Current category image' }}</span></div>@endif
                         <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $category->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $category->description_en }}</textarea></label></div>
                         <div class="so-flags"><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1" @checked($category->sold_out)> {{ $isAr?'نفد':'Sold out' }}</label></div>
                         @include('admin._smart-ordering-schedule-fields',['schedule'=>$category->availability_schedule,'prefix'=>''])
@@ -257,6 +273,7 @@
                                 <label>{{ $isAr?'استبدال الصورة':'Replace image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
                                 <label>{{ $isAr?'إضافة للمعرض':'Add gallery images' }}<input class="foodex-control" type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp"></label>
                             </div>
+                            @if($mediaUrl($item->image_path))<div class="so-media-current"><img class="so-media-thumb" src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}"><span class="so-muted">{{ $isAr?'الصورة الحالية للصنف':'Current item image' }}</span></div>@endif
                             <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $item->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $item->description_en }}</textarea></label><label>{{ $isAr?'الحساسيات':'Allergens' }}<textarea class="foodex-control" name="allergens_text">{{ implode(', ',(array)$item->allergens) }}</textarea></label><label>{{ $isAr?'المكونات القابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text">{{ implode(', ',(array)$item->removable_ingredients) }}</textarea></label></div>
                             <div class="so-flags">
                                 @foreach(['featured'=>[$item->featured,$isAr?'مميز':'Featured'],'best_seller'=>[$item->best_seller,$isAr?'الأكثر مبيعًا':'Best seller'],'is_new'=>[$item->is_new,$isAr?'جديد':'New'],'vegetarian'=>[$item->vegetarian,$isAr?'نباتي':'Vegetarian'],'sold_out'=>[$item->sold_out,$isAr?'نفد':'Sold out'],'is_visible'=>[$item->is_visible,$isAr?'ظاهر':'Visible'],'allow_customer_notes'=>[$item->allow_customer_notes,$isAr?'يسمح بالملاحظات':'Allow notes']] as $flag=>$meta)
@@ -382,10 +399,77 @@
             @endforelse
         </section>
 
+        <section class="panel" id="so-draft-review">
+            <div class="so-section-title">
+                <div>
+                    <h2>{{ $isAr ? 'مراجعة المنيو قبل النشر' : 'Review menu before publishing' }}</h2>
+                    <p class="so-muted">{{ $isAr ? 'هذه معاينة للمسودة الحالية كما رتبتها. راجع الصور والتصنيفات والأسعار والحالات قبل الضغط على نشر.' : 'This is a review of the current draft. Check media, categories, prices and status before publishing.' }}</p>
+                </div>
+                <span class="so-badge">{{ $isAr ? 'المراجعة لا تنشر أي شيء' : 'Review does not publish' }}</span>
+            </div>
+            <div class="so-review" data-smart-ordering-draft-review>
+                @forelse($menus as $menu)
+                <article class="so-review-menu">
+                    <div class="so-review-menu-head">
+                        @if($mediaUrl($menu->image_path))<img src="{{ $mediaUrl($menu->image_path) }}" alt="{{ $localized($menu,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'صورة المنيو':'Menu image' }}</div>@endif
+                        <div>
+                            <h3>{{ $localized($menu,'name') }}</h3>
+                            @if($localized($menu,'description'))<p class="so-muted">{{ $localized($menu,'description') }}</p>@endif
+                            <div class="so-review-status">
+                                @if($menu->is_default)<span class="so-badge">{{ $isAr?'افتراضية':'Default' }}</span>@endif
+                                @unless($menu->is_visible)<span class="so-badge">{{ $isAr?'مخفية':'Hidden' }}</span>@endunless
+                                <span class="so-badge">{{ $menu->categories->count() }} {{ $isAr?'تصنيف':'categories' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="so-review-categories">
+                        @forelse($menu->categories as $category)
+                        <section class="so-review-category">
+                            <div class="so-review-category-head">
+                                @if($mediaUrl($category->image_path))<img src="{{ $mediaUrl($category->image_path) }}" alt="{{ $localized($category,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'تصنيف':'Category' }}</div>@endif
+                                <div>
+                                    <strong>{{ $localized($category,'name') }}</strong>
+                                    @if($localized($category,'description'))<div class="so-muted">{{ $localized($category,'description') }}</div>@endif
+                                    <div class="so-review-status">
+                                        @unless($category->is_visible)<span class="so-badge">{{ $isAr?'مخفي':'Hidden' }}</span>@endunless
+                                        @if($category->sold_out)<span class="so-badge">{{ $isAr?'نفد':'Sold out' }}</span>@endif
+                                        <span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="so-review-items">
+                                @forelse($category->items as $item)
+                                <article class="so-review-item">
+                                    @if($mediaUrl($item->image_path))<img src="{{ $mediaUrl($item->image_path) }}" alt="{{ $localized($item,'name') }}">@else<div class="so-review-placeholder">{{ $isAr?'صورة الصنف':'Item image' }}</div>@endif
+                                    <strong>{{ $localized($item,'name') }}</strong>
+                                    <span class="foodex-number">{{ number_format((float)($itemPrices[$item->id] ?? 0),3) }} KWD</span>
+                                    <div class="so-review-status">
+                                        @unless($item->is_visible)<span class="so-badge">{{ $isAr?'مخفي':'Hidden' }}</span>@endunless
+                                        @if($item->sold_out)<span class="so-badge">{{ $isAr?'نفد':'Sold out' }}</span>@endif
+                                        @if($item->featured)<span class="so-badge">{{ $isAr?'مميز':'Featured' }}</span>@endif {{-- localization-gate: allow Blade control directive; visible badge copy is localized --}}
+                                    </div>
+                                </article>
+                                @empty
+                                <div class="so-empty">{{ $isAr?'لا توجد أصناف داخل هذا التصنيف.':'No items in this category.' }}</div>
+                                @endforelse
+                            </div>
+                        </section>
+                        @empty
+                        <div class="so-empty">{{ $isAr?'لا توجد تصنيفات داخل هذه المنيو.':'No categories in this menu.' }}</div>
+                        @endforelse
+                    </div>
+                </article>
+                @empty
+                <div class="so-empty">{{ $isAr?'لا توجد منيو لمراجعتها بعد.':'There is no menu to review yet.' }}</div>
+                @endforelse
+            </div>
+        </section>
+
         <div class="so-sticky">
             <form class="so-actions" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
                 @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <strong>{{ $isAr ? 'النشر فقط يجعل التغييرات مرئية للعملاء.' : 'Only publishing makes draft changes public.' }}</strong>
+                <a class="foodex-secondary" href="#so-draft-review">{{ $isAr ? 'مراجعة المسودة' : 'Review draft' }}</a>
                 <button class="primary" type="submit">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
             </form>
         </div>
