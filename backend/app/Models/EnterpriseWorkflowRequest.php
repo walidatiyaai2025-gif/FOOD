@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property WorkflowStatus $status
+ */
 class EnterpriseWorkflowRequest extends Model
 {
     protected $table = 'enterprise_workflow_requests';
