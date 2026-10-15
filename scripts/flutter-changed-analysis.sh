@@ -49,12 +49,7 @@ if ! (
   cd "$root/$prefix"
   dart format --output=none --set-exit-if-changed "${files[@]}"
 ); then
-  echo "Changed $app Dart files are not canonically formatted. Diagnostic formatted diff follows." >&2
-  (
-    cd "$root/$prefix"
-    dart format "${files[@]}" >/dev/null
-  )
-  git -C "$root" diff -- "$prefix/lib" "$prefix/test" || true
+  echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
   exit 1
 fi
 
