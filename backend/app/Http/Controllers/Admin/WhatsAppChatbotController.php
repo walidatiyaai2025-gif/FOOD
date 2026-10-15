@@ -65,7 +65,6 @@ final class WhatsAppChatbotController extends Controller
             : 'chatbot.runtime.manage';
         abort_unless($actor->hasPermission($permission), 403);
 
-        $current = $this->runtime->settings();
         $validated = $request->validate([
             'scope' => ['nullable', Rule::in(['runtime', 'ai'])],
             'revision' => ['required', 'integer', 'min:0'],
@@ -90,7 +89,7 @@ final class WhatsAppChatbotController extends Controller
             'human_handoff_enabled' => ['sometimes', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($actor, $current, $validated): void {
+        DB::transaction(function () use ($actor, $validated): void {
             $row = DB::table('whats_app_chatbot_settings')->lockForUpdate()->orderBy('id')->first();
             abort_unless($row !== null, 503);
 
