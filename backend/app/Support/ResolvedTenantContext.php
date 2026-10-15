@@ -9,6 +9,7 @@ final readonly class ResolvedTenantContext
         public string $channel,
         public ?int $storeId,
         public bool $supportAccess = false,
+        public ?EnterpriseDataScope $enterpriseScope = null,
     ) {}
 
     public function isRetail(): bool

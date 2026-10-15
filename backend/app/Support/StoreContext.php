@@ -36,4 +36,14 @@ final class StoreContext
     {
         return $this->require()->requiresStore();
     }
+
+    public function enterpriseScope(): EnterpriseDataScope
+    {
+        $scope = $this->require()->enterpriseScope;
+        if ($scope === null) {
+            throw new RuntimeException('Enterprise data scope has not been resolved for this context.');
+        }
+
+        return $scope;
+    }
 }
