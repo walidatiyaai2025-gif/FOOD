@@ -29,8 +29,7 @@ final class SystemInspectorController extends Controller
         Request $request,
         EnterpriseSystemInspector $enterpriseInspector,
         RestaurantOperatorService $restaurantOperator,
-    ): View
-    {
+    ): View {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
         $severity = trim((string) $request->query('severity', ''));
