@@ -79,11 +79,13 @@
         let activeController = null;
         let hasSuccessfulRender = false;
         let disposed = false;
+        let suspended = false;
+        let resumePending = false;
         const pollMs = Math.max(1000, Number(root.dataset.pollMs || 5000));
         const scheduleRefresh = (delay = pollMs) => {
             window.clearTimeout(pollTimer);
             pollTimer = null;
-            if (disposed || root.isConnected === false) return;
+            if (disposed || suspended || root.isConnected === false) return;
             pollTimer = window.setTimeout(refresh, delay);
         };
 
@@ -326,7 +328,7 @@
         };
 
         const refresh = async () => {
-            if (disposed) return;
+            if (disposed || suspended) return;
             if (root.isConnected === false) {
                 dispose();
                 return;
@@ -359,6 +361,7 @@
                 const error = find('error');
                 if (error) error.hidden = true;
                 delete root.dataset.liveMapError;
+                delete root.dataset.liveMapStale;
                 if (state) state.textContent = latestRows.length ? (i18n.ready || 'OK') : i18n.noDrivers;
 
                 const generatedTimes = payloads
@@ -370,6 +373,7 @@
                     updated.textContent = new Date(generatedAt).toLocaleString();
                 }
             } catch (error) {
+                if (controller.signal.aborted && controller.foodexPageCachePause === true) return;
                 consecutiveFailures = Math.min(consecutiveFailures + 1,4);
                 const classified = controller.signal.aborted
                     ? ['feed-timeout','timeout']
@@ -383,7 +387,12 @@
                 const retryDelay = consecutiveFailures === 0
                     ? pollMs
                     : Math.max(maintenance ? 30000 : 0, Math.min(60000,pollMs * (2 ** consecutiveFailures)));
-                scheduleRefresh(retryDelay);
+                if (resumePending && !disposed && !suspended) {
+                    resumePending = false;
+                    scheduleRefresh(0);
+                } else {
+                    scheduleRefresh(retryDelay);
+                }
             }
         };
 
@@ -663,9 +672,59 @@
             if (points.length) map.fitBounds(points,{padding:[30,30],maxZoom:15});
         });
 
+        const suspendForPageCache = () => {
+            if (disposed || suspended) return;
+            suspended = true;
+            resumePending = false;
+            window.clearTimeout(pollTimer);
+            pollTimer = null;
+            if (activeController) {
+                activeController.foodexPageCachePause = true;
+                activeController.abort();
+            }
+            lookupDisposers.forEach(disposeLookup => disposeLookup());
+            if (hasSuccessfulRender) {
+                root.dataset.liveMapStale = '1';
+                const state = find('state');
+                if (state) state.textContent = i18n.restoring || i18n.loading;
+            }
+        };
+
+        const resumeFromPageCache = () => {
+            if (disposed || !suspended || root.isConnected === false) return;
+            suspended = false;
+            map.invalidateSize?.({animate:false});
+            const state = find('state');
+            if (hasSuccessfulRender) {
+                root.dataset.liveMapStale = '1';
+                if (state) state.textContent = i18n.restoring || i18n.loading;
+            } else if (state) {
+                state.textContent = i18n.loading;
+            }
+            if (refreshing) {
+                resumePending = true;
+                return;
+            }
+            refresh();
+        };
+
+        const onPageHide = event => {
+            if (event?.persisted) {
+                suspendForPageCache();
+                return;
+            }
+            dispose();
+        };
+
+        const onPageShow = event => {
+            if (event?.persisted) resumeFromPageCache();
+        };
+
         const dispose = () => {
             if (disposed) return;
             disposed = true;
+            suspended = false;
+            resumePending = false;
             window.clearTimeout(pollTimer);
             pollTimer = null;
             activeController?.abort();
@@ -673,9 +732,13 @@
             lookupDisposers.forEach(disposeLookup => disposeLookup());
             map.remove();
             delete root.dataset.driverLiveMapReady;
+            delete root.dataset.liveMapStale;
+            window.removeEventListener('pagehide',onPageHide);
+            window.removeEventListener('pageshow',onPageShow);
         };
 
-        window.addEventListener('pagehide',dispose,{once:true});
+        window.addEventListener('pagehide',onPageHide);
+        window.addEventListener('pageshow',onPageShow);
 
         root.foodexDriverLiveMap = {
             refresh,
