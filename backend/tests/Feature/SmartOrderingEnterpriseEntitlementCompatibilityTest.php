@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\SmartOrdering\Module;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\SmartOrdering\SmartOrderingRuntimePolicy;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
