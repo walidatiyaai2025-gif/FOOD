@@ -163,7 +163,7 @@ final class EnterpriseReorderPolicyFoundationTest extends TestCase
             $productRows[] = [
                 'catalog_id' => $fixture['catalog_id'],
                 'unit_id' => $fixture['unit_id'],
-                'sku' => 'REORDER-'.$index,
+                'sku' => 'REORDER-BULK-'.$index,
                 'name' => 'Reorder Product '.$index,
                 'is_active' => true,
                 'created_at' => $now,
@@ -174,7 +174,7 @@ final class EnterpriseReorderPolicyFoundationTest extends TestCase
 
         $products = DB::table('products')
             ->where('catalog_id', $fixture['catalog_id'])
-            ->where('sku', 'like', 'REORDER-%')
+            ->where('sku', 'like', 'REORDER-BULK-%')
             ->orderBy('id')
             ->get(['id']);
 
