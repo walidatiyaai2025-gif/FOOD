@@ -622,12 +622,6 @@ class VanOrderDraftController extends ChangeNotifier {
   bool ownsCurrentQuote(int revision) =>
       revision == _revision && _quoteRevision == revision && quote != null;
 
-  void setQuote(VanOrderQuote value) {
-    quote = value;
-    _quoteRevision = _revision;
-    notifyListeners();
-  }
-
   void reset() {
     customer = null;
     _lines.clear();
