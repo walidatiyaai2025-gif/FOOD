@@ -28,3 +28,18 @@ The security center records `user.status_changed`, `user.roles_changed`, `role.c
 - Mutations: `roles.manage`, `users.roles.manage`, and `users.status.manage`.
 
 All security surfaces support Arabic/English administration, and the dashboard respects RTL/LTR direction.
+
+
+## Enterprise data scopes, limits and delegations
+
+The existing Laravel Gate/RBAC model remains the permission authority. Enterprise security controls add server-side constraints and temporary authority without replacing Gates or StoreContext:
+
+- role data scopes may constrain a role to platform, organization, company, legal entity, business unit, or store scope;
+- approval limits may constrain a role's approval permission by business scope, currency, and maximum amount;
+- effective-dated delegations grant only a permission the delegator still holds in the requested scope and expire automatically at `ends_at`;
+- delegation does not chain: delegated authority is resolved against the delegator's direct current authority;
+- privileged scope, limit, and delegation mutations use the shared Enterprise Workflow engine with maker/checker separation;
+- approved mutations are applied exactly once and recorded through the shared audit logger;
+- absent Enterprise constraints preserve the existing RBAC behavior for backward compatibility.
+
+Dashboard administration is available from `/admin/security/enterprise`, linked from the canonical Security Center. The page exposes business-readable scope choices and never asks administrators to type internal database IDs or JSON.
