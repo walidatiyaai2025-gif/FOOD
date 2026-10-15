@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_van_app/features/wallet/van_collection_page.dart';
 import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
@@ -209,6 +210,7 @@ Widget _host(
 }) {
   return MaterialApp(
     locale: locale,
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     supportedLocales: const [Locale('en'), Locale('ar')],
     home: Scaffold(
       body: VanCollectionPage(
