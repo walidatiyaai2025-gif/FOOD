@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Carbon\Carbon;
+use DateTimeImmutable;
+use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -113,6 +115,7 @@ final class SmartOrderingOperationsController extends Controller
             'stores' => $stores,
             'tab' => $validated['tab'] ?? 'orders',
             'isAr' => app()->getLocale() === 'ar',
+            'timezoneOptions' => $this->timezoneOptions(),
         ]);
     }
 
@@ -248,7 +251,7 @@ final class SmartOrderingOperationsController extends Controller
         return $request->validate([
             'store_id' => [$withStore ? 'required' : 'sometimes', 'integer', 'min:1'],
             'name' => ['required', 'string', 'max:160'],
-            'timezone' => ['required', 'timezone'],
+            'timezone' => ['required', 'timezone', Rule::in($this->supportedTimezones())],
             'is_active' => ['nullable', 'boolean'],
             'accepting_orders' => ['nullable', 'boolean'],
             'supports_dine_in' => ['nullable', 'boolean'],
@@ -264,6 +267,35 @@ final class SmartOrderingOperationsController extends Controller
             'hours.*.closes_at' => ['nullable', 'date_format:H:i'],
             'hours.*.is_closed' => ['nullable', 'boolean'],
         ]);
+    }
+
+    /** @return list<string> */
+    private function supportedTimezones(): array
+    {
+        return DateTimeZone::listIdentifiers();
+    }
+
+    /** @return list<array{value:string,label:string,search:string}> */
+    private function timezoneOptions(): array
+    {
+        $now = new DateTimeImmutable('now');
+
+        return collect($this->supportedTimezones())
+            ->map(function (string $identifier) use ($now): array {
+                $local = $now->setTimezone(new DateTimeZone($identifier));
+                $human = collect(explode('/', $identifier))
+                    ->map(fn (string $part): string => str_replace('_', ' ', $part))
+                    ->implode(' · ');
+                $offset = 'UTC'.$local->format('P');
+
+                return [
+                    'value' => $identifier,
+                    'label' => $human.' · '.$offset.' · '.$identifier,
+                    'search' => mb_strtolower($human.' '.$offset.' '.$identifier),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /** @return array<string,mixed> */
