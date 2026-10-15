@@ -210,11 +210,12 @@ final class SystemInspectorController extends Controller
                 }
             }
 
-            return [
+            $data = $snapshot ? $inspector->snapshot() : $inspector->page();
+
+            return array_merge([
                 'available' => true,
                 'migration_pending' => false,
-                'data' => $snapshot ? $inspector->snapshot() : $inspector->page(),
-            ];
+            ], $data);
         } catch (Throwable) {
             return [
                 'available' => false,
