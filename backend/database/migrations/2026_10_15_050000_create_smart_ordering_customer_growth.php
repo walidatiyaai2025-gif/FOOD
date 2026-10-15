@@ -26,12 +26,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('site_id')->constrained('smart_ordering_sites')->cascadeOnDelete();
             $table->foreignId('branch_id')->nullable()->constrained('smart_ordering_branches')->cascadeOnDelete();
+            $table->string('scope_key', 64)->default('site');
             $table->decimal('points_per_currency_unit', 10, 4)->default(1);
             $table->decimal('minimum_spend', 14, 3)->default(0);
             $table->unsignedInteger('expiry_days')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            $table->unique(['site_id', 'branch_id'], 'so_loyalty_rule_scope_unique');
+            $table->unique(['site_id', 'scope_key'], 'so_loyalty_rule_scope_unique');
         });
 
         Schema::create('smart_ordering_loyalty_accounts', function (Blueprint $table): void {
