@@ -43,7 +43,7 @@ final class SystemInspectorController extends Controller
         $restaurantStore = $restaurantStoreId > 0
             ? $restaurantOperator->store($restaurantStoreId)
             : null;
-        abort_if($restaurantStoreId > 0 && ! ($restaurantStore instanceof Store), 404);
+        abort_if($restaurantStoreId > 0 && !($restaurantStore instanceof Store), 404);
 
         $query = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
