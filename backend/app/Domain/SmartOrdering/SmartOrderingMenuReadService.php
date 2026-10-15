@@ -10,7 +10,6 @@ use App\Domain\SmartOrdering\Models\SmartOrderingModifierGroup;
 use App\Domain\SmartOrdering\Models\SmartOrderingModifierOption;
 use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
 use App\Domain\SmartOrdering\Models\SmartOrderingSite;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
