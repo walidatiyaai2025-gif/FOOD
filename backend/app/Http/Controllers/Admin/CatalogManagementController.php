@@ -943,6 +943,16 @@ final class CatalogManagementController extends Controller
             abort(404);
         }
 
+        if ($actor->hasRole('SUPER_ADMIN') && $request->boolean('support_access')) {
+            return DB::table('stores')
+                ->where('stores.is_active', true)
+                ->where('stores.code', '!=', 'SYSTEM-LEGACY-QUARANTINE')
+                ->orderBy('stores.id')
+                ->pluck('stores.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+        }
+
         if ($this->canAccessWholesale($actor)) {
             if ($requested > 0) {
                 $this->tenantContext->wholesale($actor, $requested);
