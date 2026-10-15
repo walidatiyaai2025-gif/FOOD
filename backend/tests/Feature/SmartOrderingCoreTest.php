@@ -204,6 +204,67 @@ class SmartOrderingCoreTest extends TestCase
             ->assertSee('Europe/London');
     }
 
+    public function test_branch_delivery_zone_editor_is_map_first_and_geometry_remains_server_authoritative(): void
+    {
+        $admin = $this->storeAdmin($this->storeId);
+        $zonePublicId = (string) Str::uuid();
+
+        DB::table('smart_ordering_delivery_zones')->insert([
+            'public_id' => $zonePublicId,
+            'branch_id' => $this->branch->id,
+            'name' => 'Central Coverage',
+            'center_latitude' => 29.3759000,
+            'center_longitude' => 47.9774000,
+            'radius_km' => 5,
+            'delivery_fee' => 0.750,
+            'minimum_order' => 2.000,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app()->setLocale('en');
+        $this->actingAs($admin)
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('/assets/leaflet/1.9.4/leaflet.css', false)
+            ->assertSee('/assets/leaflet/1.9.4/leaflet.js', false)
+            ->assertSee('/assets/admin/smart-ordering-zone-map.js', false)
+            ->assertSee('data-zone-map-editor', false)
+            ->assertSee('data-current-zone="'.$zonePublicId.'"', false)
+            ->assertSee('data-zone-location-search', false)
+            ->assertSee('data-zone-map-canvas tabindex="0" role="application"', false)
+            ->assertSee('Advanced coordinates')
+            ->assertSee('Keyboard: arrow keys move the center');
+
+        $this->actingAs($admin)
+            ->put(route('admin.smart-ordering.zones.update', [$this->branch->public_id, $zonePublicId]), [
+                'name' => 'Central Coverage',
+                'center_latitude' => 91,
+                'center_longitude' => 47.9774,
+                'radius_km' => 5,
+                'delivery_fee' => 0.750,
+                'minimum_order' => 2.000,
+                'is_active' => 1,
+            ])
+            ->assertSessionHasErrors('center_latitude');
+
+        $this->assertDatabaseHas('smart_ordering_delivery_zones', [
+            'public_id' => $zonePublicId,
+            'center_latitude' => 29.3759000,
+            'center_longitude' => 47.9774000,
+        ]);
+
+        $admin->locale = 'ar';
+        $admin->save();
+        app()->setLocale('ar');
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['tab' => 'branches']))
+            ->assertOk()
+            ->assertSee('خريطة نطاق التغطية')
+            ->assertSee('لوحة المفاتيح: استخدم الأسهم لتحريك المركز');
+    }
+
     public function test_cart_is_pinned_to_published_revision_and_rejects_stale_revision(): void
     {
         $response = $this->postJson('/api/smart-ordering/carts', [
