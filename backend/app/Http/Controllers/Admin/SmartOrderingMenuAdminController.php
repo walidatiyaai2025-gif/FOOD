@@ -74,7 +74,15 @@ final class SmartOrderingMenuAdminController extends Controller
         $itemMenuIds = [];
         foreach ($menus as $menu) {
             foreach ($menu->categories as $category) {
+                if (! $category instanceof SmartOrderingMenuCategory) {
+                    continue;
+                }
+
                 foreach ($category->items as $item) {
+                    if (! $item instanceof SmartOrderingMenuItem) {
+                        continue;
+                    }
+
                     $itemMenuIds[(int) $item->id] = (int) $menu->id;
                 }
             }
