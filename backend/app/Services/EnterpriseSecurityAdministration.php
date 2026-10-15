@@ -260,6 +260,7 @@ final class EnterpriseSecurityAdministration
     {
         abort_unless($actor->hasPermission('roles.manage'), 403);
         $this->assertOperation($operation);
+        $payload = $this->hydrateRemovalPayload($operation, $payload);
         $this->assertProposalAllowed($actor, $operation, $payload);
 
         [$scopeType, $scopeId] = $this->workflowScope($operation, $payload);
@@ -339,6 +340,57 @@ final class EnterpriseSecurityAdministration
             'amount' => (string) ($payload['amount'] ?? ''),
             'permission_code' => (string) ($payload['permission_code'] ?? ''),
         ];
+    }
+
+    /**
+     * Freeze the business identity of a removal target so a checker never
+     * approves one policy and applies the decision to a materially changed row.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function hydrateRemovalPayload(string $operation, array $payload): array
+    {
+        if (! in_array($operation, [self::DATA_SCOPE_REMOVE, self::APPROVAL_LIMIT_REMOVE, self::DELEGATION_REVOKE], true)) {
+            return $payload;
+        }
+
+        $id = (int) ($payload['policy_id'] ?? 0);
+        $table = match ($operation) {
+            self::DATA_SCOPE_REMOVE => 'enterprise_user_data_scopes',
+            self::APPROVAL_LIMIT_REMOVE => 'enterprise_user_approval_limits',
+            self::DELEGATION_REVOKE => 'enterprise_user_delegations',
+            default => '',
+        };
+        $row = $id > 0 ? DB::table($table)->where('id', $id)->first() : null;
+
+        if ($row === null) {
+            throw ValidationException::withMessages([
+                'policy_id' => [__('enterprise_security.errors.policy_missing')],
+            ]);
+        }
+
+        $payload['scope_type'] = (string) $row->scope_type;
+        $payload['scope_id'] = $row->scope_id === null ? null : (int) $row->scope_id;
+        $payload['scope_key'] = $row->scope_type === 'global' || $row->scope_id === null
+            ? 'global'
+            : (string) $row->scope_type.':'.(int) $row->scope_id;
+        $payload['expected_updated_at'] = (string) $row->updated_at;
+
+        if ($operation === self::DATA_SCOPE_REMOVE) {
+            $payload['target_user_id'] = (int) $row->user_id;
+        } elseif ($operation === self::APPROVAL_LIMIT_REMOVE) {
+            $payload['target_user_id'] = (int) $row->user_id;
+            $payload['workflow_key'] = (string) $row->workflow_key;
+            $payload['currency'] = (string) $row->currency;
+            $payload['amount'] = (string) $row->amount;
+        } else {
+            $payload['delegator_id'] = (int) $row->delegator_id;
+            $payload['delegate_id'] = (int) $row->delegate_id;
+            $payload['permission_code'] = (string) $row->permission_code;
+        }
+
+        return $payload;
     }
 
     /**
@@ -431,6 +483,11 @@ final class EnterpriseSecurityAdministration
             ]);
         }
 
+        if (isset($payload['expected_updated_at'])
+            && (string) $row->updated_at !== (string) $payload['expected_updated_at']) {
+            abort(409, __('enterprise_security.errors.policy_changed'));
+        }
+
         if ($operation === self::DELEGATION_REVOKE
             && ! $actor->hasRole('SUPER_ADMIN')
             && (int) $row->delegator_id !== (int) $actor->getKey()) {
@@ -450,6 +507,13 @@ final class EnterpriseSecurityAdministration
     private function workflowScope(string $operation, array $payload): array
     {
         if (in_array($operation, [self::DATA_SCOPE_REMOVE, self::APPROVAL_LIMIT_REMOVE, self::DELEGATION_REVOKE], true)) {
+            if (isset($payload['scope_type'])) {
+                return [
+                    (string) $payload['scope_type'],
+                    isset($payload['scope_id']) ? (int) $payload['scope_id'] : null,
+                ];
+            }
+
             $id = (int) ($payload['policy_id'] ?? 0);
             $table = match ($operation) {
                 self::DATA_SCOPE_REMOVE => 'enterprise_user_data_scopes',
@@ -548,6 +612,10 @@ final class EnterpriseSecurityAdministration
     {
         $row = DB::table('enterprise_user_data_scopes')->where('id', (int) $payload['policy_id'])->first();
         abort_if($row === null, 404);
+        if (isset($payload['expected_updated_at'])
+            && (string) $row->updated_at !== (string) $payload['expected_updated_at']) {
+            abort(409, __('enterprise_security.errors.policy_changed'));
+        }
         DB::table('enterprise_user_data_scopes')->where('id', $row->id)->delete();
 
         return [(array) $row, null];
@@ -590,6 +658,10 @@ final class EnterpriseSecurityAdministration
     {
         $row = DB::table('enterprise_user_approval_limits')->where('id', (int) $payload['policy_id'])->first();
         abort_if($row === null, 404);
+        if (isset($payload['expected_updated_at'])
+            && (string) $row->updated_at !== (string) $payload['expected_updated_at']) {
+            abort(409, __('enterprise_security.errors.policy_changed'));
+        }
         DB::table('enterprise_user_approval_limits')->where('id', $row->id)->delete();
 
         return [(array) $row, null];
@@ -655,6 +727,10 @@ final class EnterpriseSecurityAdministration
     {
         $row = DB::table('enterprise_user_delegations')->where('id', (int) $payload['policy_id'])->first();
         abort_if($row === null, 404);
+        if (isset($payload['expected_updated_at'])
+            && (string) $row->updated_at !== (string) $payload['expected_updated_at']) {
+            abort(409, __('enterprise_security.errors.policy_changed'));
+        }
         DB::table('enterprise_user_delegations')
             ->where('id', $row->id)
             ->whereNull('revoked_at')
