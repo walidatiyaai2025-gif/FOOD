@@ -23,6 +23,17 @@ final class SmartOrderingAnalyticsController extends Controller
         [$actor, $storeIds, $filters] = $this->context($request, $scope);
         $dashboard = $analytics->dashboard($storeIds, $filters);
 
+        $productIds = DB::table('smart_ordering_analytics_product_daily')
+            ->whereIn('store_id', $storeIds)
+            ->distinct()
+            ->limit(250)
+            ->pluck('product_id');
+        $categoryIds = DB::table('smart_ordering_analytics_category_daily')
+            ->whereIn('store_id', $storeIds)
+            ->distinct()
+            ->limit(250)
+            ->pluck('category_id');
+
         return view('admin.smart-ordering-analytics', [
             'user' => $actor,
             'dashboard' => $dashboard,
@@ -33,21 +44,24 @@ final class SmartOrderingAnalyticsController extends Controller
                 ->whereIn('s.store_id', $storeIds)
                 ->where('b.is_active', true)
                 ->orderBy('b.name_en')
+                ->limit(250)
                 ->get(['b.id', 'b.name_ar', 'b.name_en', 's.store_id']),
-            'products' => DB::table('products as p')
-                ->join('catalogs as c', 'c.id', '=', 'p.catalog_id')
-                ->whereIn('c.store_id', $storeIds)
-                ->where('p.is_active', true)
-                ->orderBy('p.name')
-                ->limit(500)
-                ->get(['p.id', 'p.name', 'p.sku']),
-            'categories' => DB::table('categories as c')
-                ->join('catalogs as catalog', 'catalog.id', '=', 'c.catalog_id')
-                ->whereIn('catalog.store_id', $storeIds)
-                ->where('c.is_active', true)
-                ->orderBy('c.name')
-                ->limit(500)
-                ->get(['c.id', 'c.name']),
+            'qrCodes' => DB::table('smart_ordering_qr_codes')
+                ->whereIn('store_id', $storeIds)
+                ->where('is_enabled', true)
+                ->orderBy('label')
+                ->limit(250)
+                ->get(['public_id', 'label', 'type', 'source', 'campaign']),
+            'products' => DB::table('products')
+                ->whereIn('id', $productIds)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'sku']),
+            'categories' => DB::table('categories')
+                ->whereIn('id', $categoryIds)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
             'navContext' => 'smart_ordering_analytics',
         ]);
