@@ -101,7 +101,11 @@ final class EnterpriseSecurityAdministration
             ->get();
 
         $dataScopes = $dataScopes
-            ->filter(fn ($row): bool => isset($scopeLabels[(string) $row->scope_type.':'.(int) $row->scope_id]))
+            ->filter(fn ($row): bool => $this->actorCanViewScope(
+                $actor,
+                (string) $row->scope_type,
+                (int) $row->scope_id,
+            ))
             ->values();
         $dataScopes->each(function ($row): void {
             $row->scope_label = $this->scopeLabel((string) $row->scope_type, (int) $row->scope_id);
@@ -130,13 +134,11 @@ final class EnterpriseSecurityAdministration
             ->get();
 
         $approvalLimits = $approvalLimits
-            ->filter(function ($row) use ($scopeLabels): bool {
-                $key = $row->scope_type === 'global' || $row->scope_id === null
-                    ? 'global'
-                    : (string) $row->scope_type.':'.(int) $row->scope_id;
-
-                return isset($scopeLabels[$key]);
-            })
+            ->filter(fn ($row): bool => $this->actorCanViewScope(
+                $actor,
+                (string) $row->scope_type,
+                $row->scope_id === null ? null : (int) $row->scope_id,
+            ))
             ->values();
         $approvalLimits->each(function ($row): void {
             $row->scope_label = $this->scopeLabel(
@@ -167,13 +169,11 @@ final class EnterpriseSecurityAdministration
             ->get();
 
         $delegations = $delegations
-            ->filter(function ($row) use ($scopeLabels): bool {
-                $key = $row->scope_type === 'global' || $row->scope_id === null
-                    ? 'global'
-                    : (string) $row->scope_type.':'.(int) $row->scope_id;
-
-                return isset($scopeLabels[$key]);
-            })
+            ->filter(fn ($row): bool => $this->actorCanViewScope(
+                $actor,
+                (string) $row->scope_type,
+                $row->scope_id === null ? null : (int) $row->scope_id,
+            ))
             ->values();
         $delegations->each(function ($row): void {
             $row->scope_label = $this->scopeLabel(
@@ -190,7 +190,7 @@ final class EnterpriseSecurityAdministration
             ->limit(50)
             ->get()
             ->filter(function (EnterpriseWorkflowRequest $workflow) use ($actor): bool {
-                return $this->actorCanManageScope(
+                return $this->actorCanViewScope(
                     $actor,
                     (string) $workflow->scope_type,
                     $workflow->scope_id === null ? null : (int) $workflow->scope_id,
@@ -746,6 +746,46 @@ final class EnterpriseSecurityAdministration
         $after = DB::table('enterprise_user_delegations')->where('id', $row->id)->first();
 
         return [(array) $row, (array) $after];
+    }
+
+    private function actorCanViewScope(User $actor, string $scopeType, ?int $scopeId): bool
+    {
+        if ($actor->hasRole('SUPER_ADMIN')) {
+            return true;
+        }
+
+        if ($scopeType === 'global') {
+            return $actor->hasPermission('security.view');
+        }
+
+        if ($scopeId === null || $scopeId < 1) {
+            return false;
+        }
+
+        if ($scopeType === 'store') {
+            return $actor->hasPermission('security.view', $scopeId);
+        }
+
+        if (! in_array($scopeType, ['organization', 'company', 'legal_entity', 'business_unit'], true)
+            || ! $actor->hasPermission('security.view')) {
+            return false;
+        }
+
+        $configured = $this->activeDataScopeQuery((int) $actor->getKey(), $scopeType, $scopeId)->exists();
+        if ($configured) {
+            return true;
+        }
+
+        return ! DB::table('enterprise_user_data_scopes')
+            ->where('user_id', $actor->getKey())
+            ->whereIn('scope_type', ['organization', 'company', 'legal_entity', 'business_unit'])
+            ->where(function ($query): void {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query): void {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->exists();
     }
 
     private function actorCanManageScope(User $actor, string $scopeType, ?int $scopeId): bool
