@@ -8,6 +8,7 @@ use Database\Seeders\EnterprisePerformanceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Tests\Performance\Support\EnterprisePerformanceLineage;
 use Tests\Performance\Support\HttpJourneyBenchmarkRunner;
 use Tests\TestCase;
 
@@ -22,6 +23,8 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
         putenv('FOODEX_PERF_PROFILE=smoke');
         $_ENV['FOODEX_PERF_PROFILE'] = 'smoke';
         $_SERVER['FOODEX_PERF_PROFILE'] = 'smoke';
+
+        $lineage = EnterprisePerformanceLineage::resolve(self::BASE_SOURCE_HEAD);
 
         $this->seed(EnterprisePerformanceSeeder::class);
 
@@ -92,9 +95,9 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
         $evidence = [
             'schema_version' => 1,
             'generated_at' => now()->toIso8601String(),
-            'source_head' => self::BASE_SOURCE_HEAD,
-            'harness_head' => $this->harnessHead(),
-            'baseline_head' => null,
+            'source_head' => $lineage['source_head'],
+            'harness_head' => $this->harnessHead($lineage['source_head']),
+            'baseline_head' => $lineage['baseline_head'],
             'profile' => 'smoke',
             'environment' => [
                 'php' => PHP_VERSION,
@@ -107,14 +110,16 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             ],
             'dataset' => $fixtureManifest['actual'],
             'scenarios' => array_map(
-                fn (array $result): array => $this->scenarioEvidence($result),
+                fn (array $result): array => $this->scenarioEvidence($result, $lineage['mode']),
                 [$dashboard, $orders, $report],
             ),
             'summary' => [
                 'status' => 'PASS',
                 'failed_scenarios' => [],
                 'warnings' => [
-                    'Regression anchor only: absolute cPanel guardrails are not asserted.',
+                    $lineage['mode'] === 'baseline'
+                        ? 'Regression anchor only: absolute cPanel guardrails are not asserted.'
+                        : 'Candidate smoke comparison only: absolute cPanel guardrails are not asserted.',
                     'Smoke fixture only: representative heavy certification remains mandatory.',
                 ],
             ],
@@ -132,7 +137,8 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             ).PHP_EOL,
         );
 
-        $this->assertSame(self::BASE_SOURCE_HEAD, $evidence['source_head']);
+        $this->assertSame($lineage['source_head'], $evidence['source_head']);
+        $this->assertSame($lineage['baseline_head'], $evidence['baseline_head']);
         $this->assertSame('smoke', $evidence['profile']);
         $this->assertFalse($evidence['environment']['cpanel_reference']);
         $this->assertCount(3, $evidence['scenarios']);
@@ -149,7 +155,7 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
      */
-    private function scenarioEvidence(array $result): array
+    private function scenarioEvidence(array $result, string $mode): array
     {
         return [
             'id' => $result['id'],
@@ -170,13 +176,13 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             'queue' => null,
             'verdict' => [
                 'status' => 'PASS',
-                'reasons' => ['baseline_observation_only'],
+                'reasons' => [$mode === 'baseline' ? 'baseline_observation_only' : 'candidate_measurement'],
                 'exception' => null,
             ],
         ];
     }
 
-    private function harnessHead(): string
+    private function harnessHead(string $fallback): string
     {
         foreach (['FOODEX_PERF_HARNESS_HEAD', 'GITHUB_SHA'] as $key) {
             $value = strtolower(trim((string) getenv($key)));
@@ -186,7 +192,7 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             }
         }
 
-        return self::BASE_SOURCE_HEAD;
+        return $fallback;
     }
 
     private function databaseVersion(): string
