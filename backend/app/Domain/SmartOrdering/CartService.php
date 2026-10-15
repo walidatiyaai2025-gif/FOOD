@@ -17,6 +17,7 @@ final class CartService
         private readonly BranchPolicyService $branches,
         private readonly CommerceQuoteService $quotes,
         private readonly SmartOrderingRevisionService $revisions,
+        private readonly SmartOrderingMerchandisingService $merchandising,
         private readonly SmartOrderingAnalyticsService $analytics,
         private readonly SmartOrderingAttributionService $attribution,
     ) {}
@@ -38,6 +39,7 @@ final class CartService
         }
 
         $trustedAttribution = null;
+        $trustedContext = null;
         if ($attributionContext !== null && trim($attributionContext) !== '') {
             $trustedAttribution = $this->attribution->serverContext(
                 trim($attributionContext),
@@ -52,8 +54,14 @@ final class CartService
                     'QR attribution branch does not match the selected Smart Ordering branch.',
                 );
             }
-        }
 
+            $trustedContext = [
+                'qr_public_id' => (string) $trustedAttribution['qr_public_id'],
+                'type' => (string) $trustedAttribution['type'],
+                'campaign' => $trustedAttribution['campaign'] === null ? null : (string) $trustedAttribution['campaign'],
+                'promotion_id' => $trustedAttribution['promotion_id'] === null ? null : (int) $trustedAttribution['promotion_id'],
+            ];
+        }
         $token = Str::random(64);
         $cart = SmartOrderingCart::query()->create([
             'public_id' => (string) Str::uuid(),
@@ -66,7 +74,14 @@ final class CartService
             'offer_reference' => isset($trustedAttribution['promotion_id'])
                 ? 'promotion:'.$trustedAttribution['promotion_id']
                 : null,
+            'qr_public_id' => $trustedAttribution['qr_public_id'] ?? null,
+            'source_snapshot' => $trustedAttribution['source'] ?? null,
+            'campaign_snapshot' => $trustedAttribution['campaign'] ?? null,
+            'offer_reference' => isset($trustedAttribution['promotion_id'])
+                ? 'promotion:'.$trustedAttribution['promotion_id']
+                : null,
             'status' => 'active',
+            'merchandising_context' => $trustedContext,
             'expires_at' => now()->addHours(4),
         ]);
 
@@ -252,7 +267,8 @@ final class CartService
             ];
         }
 
-        return $this->quotes->quote(
+        $site = $branch->site()->firstOrFail();
+        $quote = $this->quotes->quote(
             'b2c',
             (int) $branch->store_id,
             null,
@@ -261,7 +277,21 @@ final class CartService
             null,
             'cash_on_delivery',
             $strict,
+            null,
+            0.0,
+            false,
         );
+
+        return $this->merchandising->decorateQuote(
+            $site,
+            $branch,
+            $lines,
+            $quote,
+            null,
+            $cart->merchandisingContext(),
+            0.0,
+            false,
+        )['quote'];
     }
 
     /** @return list<array{product_id:int,quantity:float}> */

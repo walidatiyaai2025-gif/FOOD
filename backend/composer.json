@@ -37,9 +37,8 @@
             "@php artisan test"
         ],
         "lint": [
-            "vendor/bin/pint app/Domain/SmartOrdering/RestaurantAnalyticsService.php app/Domain/SmartOrdering/SmartOrderingAnalyticsService.php app/Http/Controllers/Api/SmartOrderingAnalyticsEventController.php",
-            "git --no-pager diff -- app/Domain/SmartOrdering/RestaurantAnalyticsService.php app/Domain/SmartOrdering/SmartOrderingAnalyticsService.php app/Http/Controllers/Api/SmartOrderingAnalyticsEventController.php",
-            "@php -r \"exit(1);\""
+            "vendor/bin/pint app/Domain/SmartOrdering/RestaurantAnalyticsService.php app/Domain/SmartOrdering/SmartOrderingAnalyticsService.php app/Http/Controllers/Api/SmartOrderingAnalyticsEventController.php app/Domain/SmartOrdering/CartService.php app/Domain/SmartOrdering/CheckoutService.php app/Http/Controllers/Api/SmartOrderingController.php routes/smart-ordering-admin.php routes/smart-ordering-api.php",
+            "git --no-pager diff -- app/Domain/SmartOrdering/RestaurantAnalyticsService.php app/Domain/SmartOrdering/SmartOrderingAnalyticsService.php app/Http/Controllers/Api/SmartOrderingAnalyticsEventController.php app/Domain/SmartOrdering/CartService.php app/Domain/SmartOrdering/CheckoutService.php app/Http/Controllers/Api/SmartOrderingController.php routes/smart-ordering-admin.php routes/smart-ordering-api.php"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=1G"
