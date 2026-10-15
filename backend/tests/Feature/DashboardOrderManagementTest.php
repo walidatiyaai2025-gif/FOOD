@@ -830,6 +830,20 @@ class DashboardOrderManagementTest extends TestCase
         );
     }
 
+    public function test_central_new_order_wizard_rejects_stale_quote_ownership(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('let quoteRevision = 0;', $view);
+        $this->assertStringContainsString('let quoteSession = 0;', $view);
+        $this->assertStringContainsString('quoteAbortController?.abort();', $view);
+        $this->assertStringContainsString('signal: controller.signal,', $view);
+        $this->assertStringContainsString('if (controller.signal.aborted || !ownsCurrentQuote(owner)) return;', $view);
+        $this->assertStringContainsString('quoteOwner = owner;', $view);
+        $this->assertStringContainsString('if (!quoteReady || !ownsCurrentQuote(quoteOwner)) {', $view);
+        $this->assertStringContainsString('quoteSession += 1;', $view);
+    }
+
     public function test_central_new_order_wizard_exposes_submit_lock_and_validation_restore_contract(): void
     {
         $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
