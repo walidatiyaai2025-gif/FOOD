@@ -11,7 +11,7 @@ use Illuminate\Contracts\Pagination\Paginator;
 
 final class EnterpriseSystemInspector
 {
-    private const PAGE_SIZE = 20;
+    private const PAGE_SIZE = 25;
 
     private const SNAPSHOT_LIMIT = 100;
 
