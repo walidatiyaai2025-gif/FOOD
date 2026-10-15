@@ -43,7 +43,8 @@ class _VanOrdersPageState extends State<VanOrdersPage>
   int _total = 0;
   int _requestGeneration = 0;
 
-  bool get _hasMore => _orders.length < _total;
+  bool get _hasMore =>
+      _currentPage > 0 && _currentPage * _pageSize < _total;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
