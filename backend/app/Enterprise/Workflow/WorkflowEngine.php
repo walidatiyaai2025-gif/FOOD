@@ -18,7 +18,7 @@ final class WorkflowEngine
     ) {}
 
     /**
-     * @param array<string, mixed> $context
+     * @param  array<string, mixed>  $context
      */
     public function request(
         WorkflowDefinition $definition,
@@ -58,7 +58,7 @@ final class WorkflowEngine
                     && $existing->entity_id === $entityId
                     && (int) $existing->requester_id === (int) $requester->getKey();
 
-                if (! $sameRequest) {
+                if ($sameRequest === false) {
                     throw new LogicException('Workflow idempotency key was already used for a different request.');
                 }
 
