@@ -1832,6 +1832,101 @@ paths:
           $ref: "#/components/responses/NotFound"
 
 
+  /admin/restaurant-saas/locations/{store}:
+    get:
+      tags: [Restaurant SaaS]
+      summary: Get the canonical Restaurant SaaS organization, brand and location mapping
+      operationId: getRestaurantSaaSLocationControlPlane
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: store
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: support_access
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Canonical control-plane context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantSaaSControlPlane"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Restaurant SaaS]
+      summary: Update Restaurant SaaS location lifecycle and market identity
+      operationId: updateRestaurantSaaSLocationProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: store
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: support_access
+          schema: { type: boolean, default: false }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestaurantSaaSLocationProfileWrite"
+      responses:
+        "200":
+          description: Updated canonical control-plane context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantSaaSControlPlane"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Restaurant location has not been provisioned
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/restaurant-saas/locations/{store}/provision:
+    post:
+      tags: [Restaurant SaaS]
+      summary: Idempotently map an existing retail store into the Restaurant SaaS control plane
+      operationId: provisionRestaurantSaaSLocation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: store
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: support_access
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Provisioned canonical control-plane context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantSaaSControlPlane"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /admin/security/permissions:
     get:
       tags: [Security]
@@ -4579,6 +4674,58 @@ components:
         schema_version:
           type: integer
           const: 1
+
+    RestaurantSaaSLocationProfileWrite:
+      type: object
+      properties:
+        lifecycle_state:
+          type: string
+          enum: [DRAFT, ACTIVE, SUSPENDED, CLOSED]
+        timezone:
+          type: [string, "null"]
+        currency:
+          type: [string, "null"]
+          pattern: "^[A-Z]{3}$"
+        country_code:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+        business_name:
+          type: [string, "null"]
+          maxLength: 160
+        legal_name:
+          type: [string, "null"]
+          maxLength: 160
+        tax_registration_number:
+          type: [string, "null"]
+          maxLength: 80
+
+    RestaurantSaaSControlPlane:
+      type: object
+      required: [provisioned, account, organization, brand, location, scope, entitlement_scope, smart_ordering_site]
+      properties:
+        provisioned:
+          type: boolean
+        account:
+          type: [object, "null"]
+          additionalProperties: true
+        organization:
+          type: [object, "null"]
+          additionalProperties: true
+        brand:
+          type: [object, "null"]
+          additionalProperties: true
+        location:
+          type: object
+          required: [id, code, name, is_active]
+          additionalProperties: true
+        scope:
+          type: [object, "null"]
+          additionalProperties: true
+        entitlement_scope:
+          type: [string, "null"]
+        smart_ordering_site:
+          type: [object, "null"]
+          additionalProperties: true
 
     SecurityPermission:
       type: object
