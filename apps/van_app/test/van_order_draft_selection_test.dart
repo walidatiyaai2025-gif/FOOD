@@ -67,8 +67,9 @@ void main() {
     expect(draft.customerNote, 'Keep note');
   });
 
-  test('removed selections clear instead of silently falling back to defaults',
-      () {
+  test(
+    'removed selections clear instead of silently falling back to defaults',
+    () {
     final draft = VanOrderDraftController();
     draft.selectCustomer(_customer);
     draft.applyOptions(_options);
@@ -95,7 +96,8 @@ void main() {
     expect(draft.addressId, isNull);
     expect(draft.warehouseId, isNull);
     expect(draft.paymentMethod, isNull);
-  });
+    },
+  );
 
   test('stale quote cannot attach after the draft revision changes', () {
     final draft = VanOrderDraftController();
