@@ -354,10 +354,21 @@ class SmartOrderingCoreTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $foreignBranch = SmartOrderingBranch::query()->create([
+        $foreignSite = (int) DB::table('smart_ordering_sites')->insertGetId([
             'public_id' => (string) Str::uuid(),
             'store_id' => $foreignStore,
-            'name' => 'Foreign Branch',
+            'slug' => 'smart-ordering-foreign-'.Str::lower(Str::random(8)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignBranch = SmartOrderingBranch::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $foreignSite,
+            'code' => 'foreign',
+            'name_ar' => 'Foreign Branch',
+            'name_en' => 'Foreign Branch',
             'timezone' => 'Asia/Kuwait',
             'is_active' => true,
             'accepting_orders' => true,
@@ -380,7 +391,7 @@ class SmartOrderingCoreTest extends TestCase
 
         $this->assertDatabaseHas('smart_ordering_branches', [
             'id' => $foreignBranch->id,
-            'name' => 'Foreign Branch',
+            'name_en' => 'Foreign Branch',
         ]);
     }
 
