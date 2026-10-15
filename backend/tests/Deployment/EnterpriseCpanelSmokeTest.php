@@ -41,11 +41,16 @@ final class EnterpriseCpanelSmokeTest extends TestCase
         ];
 
         $results = [];
+        $scheduleOutput = '';
 
         foreach ($commands as $name => [$command, $arguments]) {
             $startedAt = hrtime(true);
             $exitCode = Artisan::call($command, $arguments);
             $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
+
+            if ($name === 'schedule:list') {
+                $scheduleOutput = Artisan::output();
+            }
 
             $results[$name] = [
                 'exit_code' => $exitCode,
@@ -55,7 +60,6 @@ final class EnterpriseCpanelSmokeTest extends TestCase
             $this->assertSame(0, $exitCode, $name.' must succeed on the cPanel baseline profile.');
         }
 
-        $scheduleOutput = Artisan::output();
         $this->assertStringContainsString(
             'foodex:dispatch-scheduled-notifications',
             $scheduleOutput,
