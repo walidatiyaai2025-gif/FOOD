@@ -413,7 +413,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
               final raw = amountController.text.trim();
               final parsed = double.tryParse(raw);
               final fraction = raw.contains('.') ? raw.split('.').last : '';
-              final valid = parsed != null &&
+              final valid =
+                  parsed != null &&
                   parsed > 0 &&
                   parsed <= settlement.amountToCollectNow + 0.0005 &&
                   amountPattern.hasMatch(raw) &&
@@ -438,8 +439,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                 key: const Key('driver-collection-amount'),
                 controller: amountController,
                 autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => confirmAmount(),
                 decoration: InputDecoration(
