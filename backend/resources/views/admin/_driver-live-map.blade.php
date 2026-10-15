@@ -22,6 +22,7 @@
     $trackingI18n += [
         'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
         'loading' => __('admin.driver_live_tracking.loading'),
+        'restoring' => __('admin.driver_live_tracking.restoring'),
         'failed' => __('admin.driver_live_tracking.load_failed'),
         'ready' => __('admin.driver_live_tracking.ready'),
         'store' => __('admin.driver_live_tracking.store'),
