@@ -4,7 +4,7 @@ namespace App\Domain\WhatsApp;
 
 use App\Models\User;
 use App\Services\OperationalTenantScope;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
