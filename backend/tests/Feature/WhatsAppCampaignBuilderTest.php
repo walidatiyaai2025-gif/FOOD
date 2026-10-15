@@ -413,6 +413,8 @@ final class WhatsAppCampaignBuilderTest extends TestCase
             ->get(route('admin.whatsapp-campaigns.index'))
             ->assertOk()
             ->assertSee('Create WhatsApp campaign')
+            ->assertSee('Create WhatsApp template')
+            ->assertSee('Sync Meta statuses')
             ->assertSee('Existing customers')
             ->assertSee('Import CSV / Excel')
             ->assertSee('Add manually')
@@ -433,6 +435,8 @@ final class WhatsAppCampaignBuilderTest extends TestCase
         $this->assertStringContainsString('data-pagination="server"', $report);
         $this->assertSame('Create WhatsApp campaign', $english['campaigns']['create_campaign']);
         $this->assertSame('إنشاء حملة واتساب', $arabic['campaigns']['create_campaign']);
+        $this->assertSame('Create WhatsApp template', $english['campaigns']['create_meta_template']);
+        $this->assertSame('إنشاء قالب واتساب', $arabic['campaigns']['create_meta_template']);
         $this->assertSame('Reports', $english['campaigns']['reports']);
         $this->assertSame('التقارير', $arabic['campaigns']['reports']);
     }
