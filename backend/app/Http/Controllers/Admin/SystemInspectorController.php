@@ -202,12 +202,14 @@ final class SystemInspectorController extends Controller
             ];
 
             foreach ($requiredTables as $table) {
-                if (Schema::hasTable($table) === false) {
-                    return [
-                        'available' => false,
-                        'migration_pending' => true,
-                    ];
+                if (Schema::hasTable($table)) {
+                    continue;
                 }
+
+                return [
+                    'available' => false,
+                    'migration_pending' => true,
+                ];
             }
 
             $data = $snapshot ? $inspector->snapshot() : $inspector->page();
