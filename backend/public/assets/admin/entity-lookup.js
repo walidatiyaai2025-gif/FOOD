@@ -24,7 +24,7 @@
         const debounceMs = Math.max(0, asInt(root.dataset.entityDebounceMs, 180));
         const optionClass = root.dataset.entityOptionClass || 'foodex-entity-option';
         const optionPrefix = input.id || ('foodex-entity-' + index);
-        const selectedLabel = (root.dataset.entitySelectedLabel || input.defaultValue || '').trim();
+        let selectedLabel = (root.dataset.entitySelectedLabel || input.defaultValue || '').trim();
         const selectedId = () => valueInput instanceof HTMLInputElement ? valueInput.value : '';
         let timer = 0;
         let controller = null;
@@ -116,7 +116,8 @@
 
             if (valueInput instanceof HTMLInputElement) valueInput.value = identity;
             input.value = label || labels.primary;
-            root.dataset.entitySelectedLabel = input.value.trim();
+            selectedLabel = input.value.trim();
+            root.dataset.entitySelectedLabel = selectedLabel;
             root.dataset.entitySelectedId = identity;
             setState('selected', root.dataset.entitySelected || '');
             close();
@@ -278,6 +279,7 @@
             button.addEventListener('click', () => {
                 if (valueInput instanceof HTMLInputElement) valueInput.value = '';
                 input.value = '';
+                selectedLabel = '';
                 root.dataset.entitySelectedId = '';
                 root.dataset.entitySelectedLabel = '';
                 setState('cleared', root.dataset.entityCleared || '');
