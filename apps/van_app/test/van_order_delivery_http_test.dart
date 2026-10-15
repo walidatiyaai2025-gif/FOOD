@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_van_app/core/api/http_van_api.dart';
 import 'package:foodex_van_app/features/orders/http_van_order_repository.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
+import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
