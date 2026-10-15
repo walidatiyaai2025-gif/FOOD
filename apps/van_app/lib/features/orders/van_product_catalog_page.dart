@@ -297,7 +297,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                             Text(
                               foodexMoneyText(product.unitPrice, product.currency),
                               style: const TextStyle(
-                                color: FoodexVanTokens.green,
+                                color: FoodexVanTokens.actionGreen,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
