@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -99,8 +98,7 @@ void main() {
       VanScreenId.routeMap,
       VanScreenId.catalog,
     ]) {
-      testWidgets('capture compact Van ${screen.name} $code',
-          (tester) async {
+      testWidgets('capture compact Van ${screen.name} $code', (tester) async {
         await _setup(tester, const Size(360, 800));
         final key = GlobalKey();
         await tester.pumpWidget(
@@ -182,17 +180,18 @@ void main() {
             '03_Van_Order_Detail/order_detail__${code}__${evidence.suffix}.png',
           );
 
-          final finance =
-              find.byKey(const ValueKey('van-order-finance'));
+          final finance = find.byKey(const ValueKey('van-order-finance'));
           final orderDetailPage =
               find.byKey(const ValueKey('van-order-detail-page'));
           await tester.scrollUntilVisible(
             finance,
             180,
-            scrollable: find.descendant(
-              of: orderDetailPage,
-              matching: find.byType(Scrollable),
-            ).first,
+            scrollable: find
+                .descendant(
+                  of: orderDetailPage,
+                  matching: find.byType(Scrollable),
+                )
+                .first,
           );
           await tester.pumpAndSettle();
           expect(
@@ -387,8 +386,8 @@ Future<void> _loadEvidenceFont() async {
 
   final root = Platform.environment['FLUTTER_ROOT'];
   if (root == null || root.isEmpty) throw StateError('FLUTTER_ROOT missing.');
-  final iconFile =
-      File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+  final iconFile = File(
+      '$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
   final iconLoader = FontLoader('MaterialIcons')
     ..addFont(
       Future<ByteData>.value(
@@ -572,7 +571,8 @@ class _Commercial implements VanCommercialRepository {
           ),
         ],
         normalOffers: const [
-          VanNormalOffer(id: 701, name: 'Route discount', type: 'percentage', value: 5),
+          VanNormalOffer(
+              id: 701, name: 'Route discount', type: 'percentage', value: 5),
         ],
       );
 
@@ -765,7 +765,8 @@ class _Orders implements VanOrderRepository {
   Future<List<VanOrderRecord>> orders({
     VanCustomerScope? customer,
     String? status,
-  }) async => const [
+  }) async =>
+      const [
         VanOrderRecord(
           id: 7001,
           orderNumber: 'FDX-B2B-20261007-A1',
@@ -942,7 +943,6 @@ class _Orders implements VanOrderRepository {
         proofRequiredForDelivered: true,
         deliveryProofReady: false,
       );
-
 }
 
 class _Notifications implements VanNotificationRepository {
