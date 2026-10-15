@@ -15,6 +15,11 @@
 .inspector-table-wrap{overflow:auto}.inspector-table{min-width:1180px}.severity-error{color:var(--foodex-red);font-weight:700}.severity-warning{color:#9a4b0b;font-weight:700}
 .inspector-message{max-width:420px;white-space:normal;overflow-wrap:anywhere}.inspector-context{max-width:560px;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
 .inspector-actions{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap}
+.inspector-enterprise{padding:var(--foodex-space-5);margin-bottom:var(--foodex-space-5)}
+.inspector-enterprise-heading{display:flex;justify-content:space-between;gap:var(--foodex-space-3);align-items:flex-start;flex-wrap:wrap}
+.inspector-enterprise-section{margin-top:var(--foodex-space-5)}
+.inspector-enterprise-statuses{display:flex;gap:var(--foodex-space-2);flex-wrap:wrap;margin:var(--foodex-space-3) 0}
+.inspector-enterprise-table{min-width:760px}
 @media(max-width:900px){.inspector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.inspector-health{grid-template-columns:1fr}}
 @media(max-width:560px){.inspector-grid{grid-template-columns:1fr}}
 </style>
@@ -57,6 +62,163 @@
             <div class="inspector-health-row"><strong>{{ $ar?'الرابط العام للصور':'Public media URL' }}</strong><code>{{ $diagnostics['public_disk_url'] }}</code></div>
             <div class="inspector-health-row"><strong>{{ $ar?'المسارات المسماة':'Named routes' }}</strong><code>{{ $diagnostics['named_routes'] }}</code></div>
             <div class="inspector-health-row"><strong>{{ $ar?'البيئة':'Environment' }}</strong><code>{{ $diagnostics['environment'] }}</code></div>
+        </section>
+
+
+        @php
+            $enterpriseLabels = [
+                'NOT_INSTALLED' => $ar ? 'غير مثبت' : 'Not installed',
+                'INSTALLED' => $ar ? 'مثبت' : 'Installed',
+                'ENABLING' => $ar ? 'جارٍ التفعيل' : 'Enabling',
+                'ENABLED' => $ar ? 'مفعّل' : 'Enabled',
+                'DISABLED' => $ar ? 'معطّل' : 'Disabled',
+                'SUSPENDED' => $ar ? 'موقوف مؤقتًا' : 'Suspended',
+                'MAINTENANCE' => $ar ? 'صيانة' : 'Maintenance',
+                'HEALTHY' => $ar ? 'سليم' : 'Healthy',
+                'DEGRADED' => $ar ? 'متدهور' : 'Degraded',
+                'ERROR' => $ar ? 'خطأ' : 'Error',
+                'pending' => $ar ? 'قيد الانتظار' : 'Pending',
+                'retry' => $ar ? 'إعادة محاولة' : 'Retry',
+                'processing' => $ar ? 'قيد التنفيذ' : 'Processing',
+                'dispatched' => $ar ? 'تم الإرسال' : 'Dispatched',
+                'dead' => $ar ? 'معزول نهائيًا' : 'Dead letter',
+                'PENDING' => $ar ? 'قيد الانتظار' : 'Pending',
+                'APPROVED' => $ar ? 'موافق عليه' : 'Approved',
+                'REJECTED' => $ar ? 'مرفوض' : 'Rejected',
+                'CANCELLED' => $ar ? 'ملغى' : 'Cancelled',
+            ];
+        @endphp
+        <section class="foodex-card inspector-enterprise" data-enterprise-inspector>
+            <div class="inspector-enterprise-heading">
+                <div>
+                    <span class="foodex-subtitle">{{ $ar?'منصة المؤسسات':'Enterprise platform' }}</span>
+                    <h2>{{ $ar?'تشخيص الموديولات والخلفية':'Modules & background diagnostics' }}</h2>
+                    <p>{{ $ar?'حالة آمنة ومحدودة للموديولات والصلاحيات وOutbox وسير العمل بدون عرض payload أو أسرار.':'A safe, bounded view of modules, entitlements, outbox and workflow without exposing payloads or secrets.' }}</p>
+                </div>
+                <span class="badge {{ $enterprise['available']?'active':'' }}">{{ $enterprise['available']?($ar?'متاح':'Available'):($ar?'غير متاح':'Unavailable') }}</span>
+            </div>
+
+            @if(! $enterprise['available'])
+                <div class="foodex-empty-state">
+                    {{ $enterprise['migration_pending']
+                        ? ($ar?'تشخيص المؤسسات سيظهر بعد تطبيق migrations الحالية.':'Enterprise diagnostics will appear after the current migrations are applied.')
+                        : ($ar?'تعذر تحميل تشخيص المؤسسات بأمان. راجع سجلات الخادم.':'Enterprise diagnostics could not be loaded safely. Check server logs.') }}
+                </div>
+            @else
+                <div class="inspector-enterprise-section">
+                    <h3>{{ $ar?'سجل الموديولات وصحتها':'Module registry & health' }}</h3>
+                    <div class="inspector-table-wrap">
+                        <table class="foodex-table inspector-enterprise-table">
+                            <thead><tr>
+                                <th>{{ $ar?'الموديول':'Module' }}</th>
+                                <th>{{ $ar?'الفئة':'Category' }}</th>
+                                <th>{{ $ar?'نسخة التعريف':'Manifest version' }}</th>
+                                <th>{{ $ar?'دورة الحياة':'Lifecycle' }}</th>
+                                <th>{{ $ar?'الصحة':'Health' }}</th>
+                                <th>{{ $ar?'الفحوصات المنفذة':'Checks run' }}</th>
+                            </tr></thead>
+                            <tbody>
+                            @forelse($enterprise['modules'] as $module)
+                                <tr>
+                                    <td><code>{{ $module['code'] }}</code></td>
+                                    <td>{{ $module['category']==='platform' ? ($ar?'المنصة':'Platform') : $module['category'] }}</td>
+                                    <td class="foodex-number">{{ $module['manifest_version'] }}</td>
+                                    <td><span class="badge">{{ $enterpriseLabels[$module['lifecycle_state']] ?? $module['lifecycle_state'] }}</span></td>
+                                    <td><span class="badge {{ $module['health_status']==='HEALTHY'?'active':'' }}">{{ $enterpriseLabels[$module['health_status']] ?? $module['health_status'] }}</span></td>
+                                    <td class="foodex-number">{{ $module['check_count'] }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="6"><div class="foodex-empty-state">{{ $ar?'لا توجد موديولات معرفة.':'No Enterprise modules are registered.' }}</div></td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="inspector-enterprise-section">
+                    <h3>{{ $ar?'الاستحقاقات':'Entitlements' }}</h3>
+                    <div class="inspector-enterprise-statuses">
+                        <span class="badge">{{ $ar?'الإجمالي':'Total' }}: <span class="foodex-number">{{ $enterprise['entitlements']['total'] }}</span></span>
+                        <span class="badge active">{{ $ar?'مفعّل':'Enabled' }}: <span class="foodex-number">{{ $enterprise['entitlements']['enabled'] }}</span></span>
+                        @foreach($enterprise['entitlements']['by_module'] as $entitlement)
+                            <span class="badge"><code>{{ $entitlement['module_code'] }}</code> · {{ $ar?'مفعّل':'Enabled' }} {{ $entitlement['enabled'] }}/{{ $entitlement['total'] }}</span>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="inspector-enterprise-section">
+                    <h3>{{ $ar?'Transactional Outbox':'Transactional Outbox' }}</h3>
+                    <div class="inspector-enterprise-statuses">
+                        @forelse($enterprise['outbox_status_counts'] as $status => $count)
+                            <span class="badge">{{ $enterpriseLabels[$status] ?? $status }}: <span class="foodex-number">{{ $count }}</span></span>
+                        @empty
+                            <span class="foodex-subtitle">{{ $ar?'لا توجد رسائل Outbox.':'No outbox messages.' }}</span>
+                        @endforelse
+                    </div>
+                    <div class="inspector-table-wrap">
+                        <table class="foodex-table inspector-enterprise-table">
+                            <thead><tr>
+                                <th>{{ $ar?'النوع':'Event type' }}</th>
+                                <th>{{ $ar?'الحالة':'Status' }}</th>
+                                <th>{{ $ar?'المحاولات':'Attempts' }}</th>
+                                <th>{{ $ar?'متاح من':'Available at' }}</th>
+                                <th>{{ $ar?'آخر فشل':'Last failure' }}</th>
+                            </tr></thead>
+                            <tbody>
+                            @forelse($enterprise['outbox_messages'] as $message)
+                                <tr>
+                                    <td><code>{{ $message->event_type }}</code></td>
+                                    <td><span class="badge">{{ $enterpriseLabels[$message->status] ?? $message->status }}</span></td>
+                                    <td class="foodex-number">{{ $message->attempt_count }}</td>
+                                    <td class="foodex-number">{{ $message->available_at?->format('Y-m-d H:i:s') }}</td>
+                                    <td class="foodex-number">{{ $message->failed_at?->format('Y-m-d H:i:s') ?: '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5"><div class="foodex-empty-state">{{ $ar?'لا توجد رسائل Outbox.':'No outbox messages.' }}</div></td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    {{ $enterprise['outbox_messages']->links() }}
+                </div>
+
+                <div class="inspector-enterprise-section">
+                    <h3>{{ $ar?'طلبات سير العمل':'Workflow requests' }}</h3>
+                    <div class="inspector-enterprise-statuses">
+                        @forelse($enterprise['workflow_status_counts'] as $status => $count)
+                            <span class="badge">{{ $enterpriseLabels[$status] ?? $status }}: <span class="foodex-number">{{ $count }}</span></span>
+                        @empty
+                            <span class="foodex-subtitle">{{ $ar?'لا توجد طلبات سير عمل.':'No workflow requests.' }}</span>
+                        @endforelse
+                    </div>
+                    <div class="inspector-table-wrap">
+                        <table class="foodex-table inspector-enterprise-table">
+                            <thead><tr>
+                                <th>{{ $ar?'سير العمل':'Workflow' }}</th>
+                                <th>{{ $ar?'نوع الكيان':'Entity type' }}</th>
+                                <th>{{ $ar?'الحالة':'Status' }}</th>
+                                <th>{{ $ar?'تاريخ الإنشاء':'Created at' }}</th>
+                                <th>{{ $ar?'تاريخ الإكمال':'Completed at' }}</th>
+                            </tr></thead>
+                            <tbody>
+                            @forelse($enterprise['workflow_requests'] as $workflow)
+                                @php($workflowStatus=(string)$workflow->getRawOriginal('status'))
+                                <tr>
+                                    <td><code>{{ $workflow->workflow_key }}</code></td>
+                                    <td><code>{{ $workflow->entity_type }}</code></td>
+                                    <td><span class="badge">{{ $enterpriseLabels[$workflowStatus] ?? $workflowStatus }}</span></td>
+                                    <td class="foodex-number">{{ $workflow->created_at?->format('Y-m-d H:i:s') }}</td>
+                                    <td class="foodex-number">{{ $workflow->completed_at?->format('Y-m-d H:i:s') ?: '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5"><div class="foodex-empty-state">{{ $ar?'لا توجد طلبات سير عمل.':'No workflow requests.' }}</div></td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    {{ $enterprise['workflow_requests']->links() }}
+                </div>
+            @endif
         </section>
 
         <form class="foodex-card inspector-toolbar" method="get" action="{{ route('admin.inspector.index') }}">
