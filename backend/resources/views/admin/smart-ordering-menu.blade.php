@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale()==='ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ __('smart_ordering_menu.title') }}</title>
+    @include('admin._brand-components')
+    @include('admin._settings-page-polish')
+    <style>
+        .so-toolbar,.so-inline,.so-flags,.so-actions{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+        .so-toolbar{justify-content:space-between;margin-bottom:16px}
+        .so-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+        .so-menu,.so-category,.so-item,.so-group,.so-option{border:1px solid var(--foodex-border);border-radius:16px;padding:14px;margin-top:12px;background:var(--foodex-surface)}
+        .so-category{margin-inline-start:14px}.so-item{margin-inline-start:28px}.so-group{margin-inline-start:42px}.so-option{margin-inline-start:56px}
+        .so-form{display:grid;gap:10px}.so-form textarea{min-height:74px}
+        .so-inline>*{flex:1 1 150px}.so-flags label,.so-check{display:flex;gap:6px;align-items:center}
+        .so-days{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.so-days label{font-size:.88rem}
+        .so-product-picker{position:relative}.so-product-results{position:absolute;z-index:30;inset-inline:0;top:100%;max-height:240px;overflow:auto;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-md);box-shadow:var(--foodex-shadow-raised)}
+        .so-product-result{display:flex;width:100%;justify-content:space-between;gap:12px;padding:10px 12px;border:0;border-bottom:1px solid var(--foodex-border);background:var(--foodex-surface);text-align:start;cursor:pointer}
+        .so-product-result:hover{background:var(--foodex-green-soft)}.so-product-result small{opacity:.7}
+        .so-danger{border-color:var(--foodex-red)!important;color:var(--foodex-red)!important}.so-muted{opacity:.72}
+        .so-badge{display:inline-flex;padding:4px 9px;border-radius:999px;background:var(--foodex-background);color:var(--foodex-muted);font-size:.8rem}
+        .so-section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+        details>summary{cursor:pointer;font-weight:700;margin:6px 0}
+        .so-bulk-select{min-height:150px}.so-empty{padding:22px;text-align:center;border:1px dashed var(--foodex-border);border-radius:16px}
+        .so-sticky{position:sticky;bottom:12px;z-index:20;background:var(--foodex-surface);backdrop-filter:blur(8px);padding:10px;border:1px solid var(--foodex-border);border-radius:14px}
+        @media(max-width:760px){.so-category,.so-item,.so-group,.so-option{margin-inline-start:0}.so-sticky{position:static}}
+    </style>
+</head>
+<body>
+@php
+    $isAr = app()->getLocale()==='ar';
+    $localized = static function ($model, string $field = 'name') use ($isAr): string {
+        $primary = data_get($model, $field.'_'.($isAr ? 'ar' : 'en'));
+        $fallback = data_get($model, $field.'_'.($isAr ? 'en' : 'ar'));
+        return trim((string) ($primary ?: $fallback ?: ''));
+    };
+    $allCategories = $menus->flatMap(fn($menu) => $menu->categories);
+    $allItems = $allCategories->flatMap(fn($category) => $category->items);
+@endphp
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-menu">
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups'=>app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext'=>'smart_ordering', 'user'=>auth()->user()])</aside> {{-- localization-gate: allow Blade include expression --}}
+    <main class="foodex-admin-main foodex-admin-page foodex-settings-surface">
+        <header class="foodex-page-header">
+            <div>
+                <h1>{{ __('smart_ordering_menu.title') }}</h1>
+                <p>{{ __('smart_ordering_menu.description') }}</p>
+            </div>
+            <div class="so-actions">
+                <a class="foodex-secondary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id]) }}">{{ $isAr ? 'إعدادات الطلب الذكي' : 'Smart Ordering settings' }}</a>
+            </div>
+        </header>
+
+        @if(session('status'))<div class="foodex-alert success" role="status">{{ session('status') }}</div>@endif
+        @if($errors->any())<div class="foodex-alert error" role="alert">{{ $errors->first() }}</div>@endif
+
+        <section class="panel">
+            <div class="so-toolbar">
+                <form method="get" action="{{ route('admin.smart-ordering.menu.index') }}" class="so-inline">
+                    <label>{{ $isAr ? 'المطعم' : 'Restaurant' }}
+                        <select class="foodex-control" name="store_id" onchange="this.form.submit()">
+                            @foreach($stores as $store)<option value="{{ $store->id }}" @selected((int)$store->id===(int)$site->store_id)>{{ $store->name }}</option>@endforeach
+                        </select>
+                    </label>
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                </form>
+                <div>
+                    <span class="so-badge">{{ $isAr ? 'مسودة' : 'Draft' }} #{{ $draft->public_id }}</span>
+                    <span class="so-badge">{{ $menus->count() }} {{ $isAr ? 'منيو' : 'menus' }}</span>
+                    <span class="so-badge">{{ $allItems->count() }} {{ $isAr ? 'صنف' : 'items' }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="so-section-title"><div><h2>{{ $isAr ? 'إضافة منيو' : 'Add menu' }}</h2><p class="so-muted">{{ $isAr ? 'يمكن ترك الفروع بدون تحديد لتكون المنيو متاحة لكل الفروع.' : 'Leave branches empty to make the menu global.' }}</p></div></div>
+            <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.menus.store') }}">
+                @csrf
+                <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                <div class="so-grid">
+                    <label>{{ $isAr ? 'الاسم بالعربية' : 'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                    <label>{{ $isAr ? 'الاسم بالإنجليزية' : 'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
+                    <label>{{ $isAr ? 'الترتيب' : 'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
+                </div>
+                <div class="so-grid">
+                    <label>{{ $isAr ? 'الوصف بالعربية' : 'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label>
+                    <label>{{ $isAr ? 'الوصف بالإنجليزية' : 'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en"></textarea></label>
+                </div>
+                <div class="so-flags">
+                    <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr ? 'ظاهرة' : 'Visible' }}</label>
+                    <input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1"> {{ $isAr ? 'افتراضية' : 'Default' }}</label>
+                    @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}"> {{ $localized($branch, 'name') }}</label>@endforeach
+                </div>
+                <button class="primary" type="submit">{{ $isAr ? 'إضافة المنيو' : 'Add menu' }}</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="so-section-title"><div><h2>{{ $isAr ? 'تعديل التوفر بالجملة' : 'Bulk availability' }}</h2><p class="so-muted">{{ $isAr ? 'حدد تصنيفات أو أصناف ثم غيّر الظهور أو حالة نفاد الكمية دفعة واحدة.' : 'Select categories or items, then change visibility or sold-out state in one action.' }}</p></div></div>
+            <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.bulk-availability') }}" data-bulk-form>
+                @csrf @method('PUT')
+                <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                <div class="so-grid">
+                    <label>{{ $isAr ? 'النوع' : 'Type' }}
+                        <select class="foodex-control" name="entity" data-bulk-entity>
+                            <option value="items">{{ $isAr ? 'الأصناف' : 'Items' }}</option>
+                            <option value="categories">{{ $isAr ? 'التصنيفات' : 'Categories' }}</option>
+                        </select>
+                    </label>
+                    <label>{{ $isAr ? 'الظهور' : 'Visibility' }}
+                        <select class="foodex-control" name="is_visible"><option value="">{{ $isAr ? 'بدون تغيير' : 'No change' }}</option><option value="1">{{ $isAr ? 'ظاهر' : 'Visible' }}</option><option value="0">{{ $isAr ? 'مخفي' : 'Hidden' }}</option></select>
+                    </label>
+                    <label>{{ $isAr ? 'التوفر' : 'Availability' }}
+                        <select class="foodex-control" name="sold_out"><option value="">{{ $isAr ? 'بدون تغيير' : 'No change' }}</option><option value="0">{{ $isAr ? 'متاح' : 'Available' }}</option><option value="1">{{ $isAr ? 'نفد' : 'Sold out' }}</option></select>
+                    </label>
+                </div>
+                <label>{{ $isAr ? 'السجلات' : 'Records' }}
+                    <select class="foodex-control so-bulk-select" name="public_ids[]" multiple required data-bulk-records>
+                        @foreach($allItems as $item)<option value="{{ $item->public_id }}" data-entity="items">{{ $localized($item, 'name') }}</option>@endforeach
+                        @foreach($allCategories as $category)<option value="{{ $category->public_id }}" data-entity="categories">{{ $localized($category, 'name') }}</option>@endforeach
+                    </select>
+                </label>
+                <button class="primary" type="submit">{{ $isAr ? 'تطبيق' : 'Apply' }}</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="so-section-title"><div><h2>{{ $isAr ? 'هيكل المنيو' : 'Menu structure' }}</h2><p class="so-muted">{{ $isAr ? 'كل التغييرات أدناه تبقى في المسودة حتى الضغط على نشر.' : 'Everything below stays in the draft until you publish.' }}</p></div></div>
+
+            @forelse($menus as $menu)
+            <article class="so-menu">
+                <div class="so-section-title"><h3>{{ $localized($menu, 'name') }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
+                <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.menus.update',$menu) }}">
+                    @csrf @method('PUT')
+                    <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <div class="so-grid">
+                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $menu->name_ar }}"></label>
+                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $menu->name_en }}" required></label>
+                        <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $menu->sort_order }}" required></label>
+                    </div>
+                    <div class="so-grid">
+                        <label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $menu->description_ar }}</textarea></label>
+                        <label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $menu->description_en }}</textarea></label>
+                    </div>
+                    <div class="so-flags">
+                        <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($menu->is_visible)> {{ $isAr?'ظاهرة':'Visible' }}</label>
+                        <input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1" @checked($menu->is_default)> {{ $isAr?'افتراضية':'Default' }}</label>
+                        @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array((int)$branch->id,$menuBranchIds[$menu->id] ?? [],true))> {{ $localized($branch, 'name') }}</label>@endforeach
+                    </div>
+                    <button class="primary" type="submit">{{ $isAr?'حفظ المنيو':'Save menu' }}</button>
+                </form>
+                <form method="post" action="{{ route('admin.smart-ordering.menu.menus.destroy',$menu) }}" data-confirm-delete>
+                    @csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                    <button class="so-danger" type="submit">{{ $isAr?'حذف المنيو':'Delete menu' }}</button>
+                </form>
+
+                <details>
+                    <summary>{{ $isAr?'إضافة تصنيف':'Add category' }}</summary>
+                    <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.store',$menu) }}">
+                        @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                        <div class="so-grid">
+                            <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                            <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
+                            <label>{{ $isAr?'الأيقونة':'Icon' }}<input class="foodex-control" name="icon" maxlength="64"></label>
+                            <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" name="sort_order" min="0" value="0" required></label>
+                            <label>{{ $isAr?'الصورة':'Image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+                        </div>
+                        <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en"></textarea></label></div>
+                        <div class="so-flags"><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1"> {{ $isAr?'نفد':'Sold out' }}</label></div>
+                        @include('admin._smart-ordering-schedule-fields',['schedule'=>null,'prefix'=>''])
+                        <button class="primary" type="submit">{{ $isAr?'إضافة التصنيف':'Add category' }}</button>
+                    </form>
+                </details>
+
+                @foreach($menu->categories as $category)
+                <article class="so-category">
+                    <div class="so-section-title"><h4>{{ $localized($category, 'name') }}</h4><span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span></div>
+                    <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.update',$category) }}">
+                        @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                        <div class="so-grid">
+                            <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $category->name_ar }}"></label>
+                            <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $category->name_en }}" required></label>
+                            <label>{{ $isAr?'الأيقونة':'Icon' }}<input class="foodex-control" name="icon" value="{{ $category->icon }}"></label>
+                            <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" name="sort_order" min="0" value="{{ $category->sort_order }}" required></label>
+                            <label>{{ $isAr?'استبدال الصورة':'Replace image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+                            <label class="so-check"><input type="checkbox" name="remove_image" value="1"> {{ $isAr?'حذف الصورة الحالية':'Remove current image' }}</label>
+                        </div>
+                        <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $category->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $category->description_en }}</textarea></label></div>
+                        <div class="so-flags"><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($category->is_visible)> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1" @checked($category->sold_out)> {{ $isAr?'نفد':'Sold out' }}</label></div>
+                        @include('admin._smart-ordering-schedule-fields',['schedule'=>$category->availability_schedule,'prefix'=>''])
+                        <button class="primary" type="submit">{{ $isAr?'حفظ التصنيف':'Save category' }}</button>
+                    </form>
+                    <div class="so-actions">
+                        <form method="post" action="{{ route('admin.smart-ordering.menu.categories.destroy',$category) }}" data-confirm-delete>@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="so-danger" type="submit">{{ $isAr?'حذف التصنيف':'Delete category' }}</button></form>
+                    </div>
+
+                    @if($branches->isNotEmpty())
+                    <details>
+                        <summary>{{ $isAr?'تجاوز إعدادات فرع للتصنيف':'Category branch override' }}</summary>
+                        <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.categories.branch',$category) }}">
+                            @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                            <div class="so-grid">
+                                <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id" required>@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
+                                <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
+                                <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
+                                <label>{{ $isAr?'ترتيب الفرع':'Branch sort order' }}<input class="foodex-control" type="number" min="0" name="override_sort_order"></label>
+                            </div>
+                            @include('admin._smart-ordering-schedule-fields',['schedule'=>null,'prefix'=>'override_'])
+                            <button class="primary" type="submit">{{ $isAr?'حفظ تجاوز الفرع':'Save branch override' }}</button>
+                        </form>
+                    </details>
+                    @endif
+
+                    <details>
+                        <summary>{{ $isAr?'إضافة صنف':'Add item' }}</summary>
+                        <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.store',$category) }}">
+                            @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                            @include('admin._smart-ordering-product-picker',['selectedId'=>null,'selectedLabel'=>'','id'=>'new-item-product-'.$category->id])
+                            <div class="so-grid">
+                                <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                                <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
+                                <label>{{ $isAr?'سعر مستقل/تجاوز':'Standalone/override price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_override"></label>
+                                <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
+                                <label>{{ $isAr?'وقت التحضير بالدقائق':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes"></label>
+                                <label>{{ $isAr?'السعرات':'Calories' }}<input class="foodex-control" type="number" min="0" name="calories"></label>
+                                <label>{{ $isAr?'درجة الحار':'Spicy level' }}<input class="foodex-control" type="number" min="0" max="5" name="spicy_level" value="0" required></label>
+                                <label>{{ $isAr?'الصورة':'Image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+                                <label>{{ $isAr?'صور إضافية':'Gallery' }}<input class="foodex-control" type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp"></label>
+                            </div>
+                            <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar"></textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en"></textarea></label><label>{{ $isAr?'الحساسيات مفصولة بفاصلة':'Allergens, comma separated' }}<textarea class="foodex-control" name="allergens_text"></textarea></label><label>{{ $isAr?'مكونات قابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text"></textarea></label></div>
+                            <div class="so-flags">
+                                @foreach(['featured'=>($isAr?'مميز':'Featured'),'best_seller'=>($isAr?'الأكثر مبيعًا':'Best seller'),'is_new'=>($isAr?'جديد':'New'),'vegetarian'=>($isAr?'نباتي':'Vegetarian'),'sold_out'=>($isAr?'نفد':'Sold out')] as $flag=>$label)<input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1"> {{ $label }}</label>@endforeach
+                                <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label>
+                                <input type="hidden" name="allow_customer_notes" value="0"><label><input type="checkbox" name="allow_customer_notes" value="1" checked> {{ $isAr?'يسمح بالملاحظات':'Allow notes' }}</label>
+                            </div>
+                            @include('admin._smart-ordering-schedule-fields',['schedule'=>null,'prefix'=>''])
+                            <button class="primary" type="submit">{{ $isAr?'إضافة الصنف':'Add item' }}</button>
+                        </form>
+                    </details>
+
+                    @foreach($category->items as $item)
+                    <article class="so-item">
+                        <div class="so-section-title"><h5>{{ $localized($item, 'name') }}</h5><span class="so-badge">{{ number_format((float)($item->price_override ?? 0),3) }}</span></div>
+                        <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.update',$item) }}">
+                            @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                            <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $localized($targetCategory, 'name') }}</option>@endforeach</select></label>
+                            @include('admin._smart-ordering-product-picker',['selectedId'=>$item->source_product_id,'selectedLabel'=>$productLabels[(int)$item->source_product_id] ?? '','id'=>'item-product-'.$item->id])
+                            <div class="so-grid">
+                                <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $item->name_ar }}"></label>
+                                <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $item->name_en }}" required></label>
+                                <label>{{ $isAr?'سعر مستقل/تجاوز':'Standalone/override price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_override" value="{{ $item->price_override }}"></label>
+                                <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $item->sort_order }}" required></label>
+                                <label>{{ $isAr?'وقت التحضير':'Prep minutes' }}<input class="foodex-control" type="number" min="0" max="1440" name="prep_time_minutes" value="{{ $item->prep_time_minutes }}"></label>
+                                <label>{{ $isAr?'السعرات':'Calories' }}<input class="foodex-control" type="number" min="0" name="calories" value="{{ $item->calories }}"></label>
+                                <label>{{ $isAr?'درجة الحار':'Spicy level' }}<input class="foodex-control" type="number" min="0" max="5" name="spicy_level" value="{{ $item->spicy_level }}" required></label>
+                                <label>{{ $isAr?'استبدال الصورة':'Replace image' }}<input class="foodex-control" type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+                                <label>{{ $isAr?'إضافة للمعرض':'Add gallery images' }}<input class="foodex-control" type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp"></label>
+                            </div>
+                            <div class="so-grid"><label>{{ $isAr?'الوصف بالعربية':'Arabic description' }}<textarea class="foodex-control" data-localized-field="ar" name="description_ar">{{ $item->description_ar }}</textarea></label><label>{{ $isAr?'الوصف بالإنجليزية':'English description' }}<textarea class="foodex-control" data-localized-field="en" name="description_en">{{ $item->description_en }}</textarea></label><label>{{ $isAr?'الحساسيات':'Allergens' }}<textarea class="foodex-control" name="allergens_text">{{ implode(', ',(array)$item->allergens) }}</textarea></label><label>{{ $isAr?'المكونات القابلة للإزالة':'Removable ingredients' }}<textarea class="foodex-control" name="removable_ingredients_text">{{ implode(', ',(array)$item->removable_ingredients) }}</textarea></label></div>
+                            <div class="so-flags">
+                                @foreach(['featured'=>[$item->featured,$isAr?'مميز':'Featured'],'best_seller'=>[$item->best_seller,$isAr?'الأكثر مبيعًا':'Best seller'],'is_new'=>[$item->is_new,$isAr?'جديد':'New'],'vegetarian'=>[$item->vegetarian,$isAr?'نباتي':'Vegetarian'],'sold_out'=>[$item->sold_out,$isAr?'نفد':'Sold out'],'is_visible'=>[$item->is_visible,$isAr?'ظاهر':'Visible'],'allow_customer_notes'=>[$item->allow_customer_notes,$isAr?'يسمح بالملاحظات':'Allow notes']] as $flag=>$meta)
+                                <input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1" @checked($meta[0])> {{ $meta[1] }}</label>
+                                @endforeach
+                                <label><input type="checkbox" name="remove_image" value="1"> {{ $isAr?'حذف الصورة':'Remove image' }}</label>
+                                <label><input type="checkbox" name="clear_gallery" value="1"> {{ $isAr?'مسح المعرض':'Clear gallery' }}</label>
+                            </div>
+                            @include('admin._smart-ordering-schedule-fields',['schedule'=>$item->availability_schedule,'prefix'=>''])
+                            <button class="primary" type="submit">{{ $isAr?'حفظ الصنف':'Save item' }}</button>
+                        </form>
+                        <form method="post" action="{{ route('admin.smart-ordering.menu.items.destroy',$item) }}" data-confirm-delete>@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="so-danger" type="submit">{{ $isAr?'حذف الصنف':'Delete item' }}</button></form>
+
+                        @if($branches->isNotEmpty())
+                        <details>
+                            <summary>{{ $isAr?'تجاوز إعدادات فرع للصنف':'Item branch override' }}</summary>
+                            <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.items.branch',$item) }}">
+                                @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                <div class="so-grid">
+                                    <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
+                                    <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
+                                    <label>{{ $isAr?'سعر الفرع':'Branch price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price"></label>
+                                    <label>{{ $isAr?'وقت التحضير':'Prep minutes' }}<input class="foodex-control" type="number" min="0" name="override_prep_time"></label>
+                                </div>
+                                @include('admin._smart-ordering-schedule-fields',['schedule'=>null,'prefix'=>'override_'])
+                                <button class="primary" type="submit">{{ $isAr?'حفظ تجاوز الفرع':'Save branch override' }}</button>
+                            </form>
+                        </details>
+                        @endif
+
+                        <details>
+                            <summary>{{ $isAr?'إضافة مجموعة تخصيص':'Add modifier group' }}</summary>
+                            <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.groups.store',$item) }}">
+                                @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                <div class="so-grid">
+                                    <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                                    <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
+                                    <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach(['modifier','size','variant','extra','ingredient'] as $kind)<option value="{{ $kind }}">{{ ucfirst($kind) }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'الاختيار':'Selection' }}<select class="foodex-control" name="selection_type"><option value="single">{{ $isAr?'واحد':'Single' }}</option><option value="multiple">{{ $isAr?'متعدد':'Multiple' }}</option></select></label>
+                                    <label>{{ $isAr?'الحد الأدنى':'Min' }}<input class="foodex-control" type="number" min="0" name="min_selections" value="0" required></label>
+                                    <label>{{ $isAr?'الحد الأقصى':'Max' }}<input class="foodex-control" type="number" min="1" name="max_selections" value="1" required></label>
+                                    <label>{{ $isAr?'الترتيب':'Sort order' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
+                                </div>
+                                <div class="so-flags"><input type="hidden" name="is_required" value="0"><label><input type="checkbox" name="is_required" value="1"> {{ $isAr?'إجباري':'Required' }}</label><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label></div>
+                                <button class="primary" type="submit">{{ $isAr?'إضافة المجموعة':'Add group' }}</button>
+                            </form>
+                        </details>
+
+                        @foreach($item->modifierGroups as $group)
+                        <article class="so-group">
+                            <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.groups.update',$group) }}">
+                                @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                <div class="so-grid">
+                                    <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $group->name_ar }}"></label>
+                                    <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $group->name_en }}" required></label>
+                                    <label>{{ $isAr?'النوع':'Kind' }}<select class="foodex-control" name="kind">@foreach(['modifier','size','variant','extra','ingredient'] as $kind)<option value="{{ $kind }}" @selected($group->kind===$kind)>{{ ucfirst($kind) }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'الاختيار':'Selection' }}<select class="foodex-control" name="selection_type"><option value="single" @selected($group->selection_type==='single')>{{ $isAr?'واحد':'Single' }}</option><option value="multiple" @selected($group->selection_type==='multiple')>{{ $isAr?'متعدد':'Multiple' }}</option></select></label>
+                                    <label>{{ __('smart_ordering_menu.minimum') }}<input class="foodex-control" type="number" min="0" name="min_selections" value="{{ $group->min_selections }}" required></label>
+                                    <label>{{ __('smart_ordering_menu.maximum') }}<input class="foodex-control" type="number" min="1" name="max_selections" value="{{ $group->max_selections }}" required></label>
+                                    <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $group->sort_order }}" required></label>
+                                </div>
+                                <div class="so-flags"><input type="hidden" name="is_required" value="0"><label><input type="checkbox" name="is_required" value="1" @checked($group->is_required)> {{ $isAr?'إجباري':'Required' }}</label><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($group->is_visible)> {{ $isAr?'ظاهر':'Visible' }}</label></div>
+                                <button class="primary" type="submit">{{ $isAr?'حفظ المجموعة':'Save group' }}</button>
+                            </form>
+                            <form method="post" action="{{ route('admin.smart-ordering.menu.groups.destroy',$group) }}" data-confirm-delete>@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="so-danger" type="submit">{{ $isAr?'حذف المجموعة':'Delete group' }}</button></form>
+
+                            @foreach($group->options as $option)
+                            <div class="so-option">
+                                <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.options.update',$option) }}">
+                                    @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                    @include('admin._smart-ordering-product-picker',['selectedId'=>$option->source_product_id,'selectedLabel'=>$productLabels[(int)$option->source_product_id] ?? '','id'=>'option-product-'.$option->id])
+                                    <div class="so-grid">
+                                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $option->name_ar }}"></label>
+                                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" value="{{ $option->name_en }}" required></label>
+                                        <label>{{ $isAr?'فرق السعر':'Price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_delta" value="{{ $option->price_delta }}" required></label>
+                                        <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="{{ $option->sort_order }}" required></label>
+                                    </div>
+                                    <div class="so-flags">@foreach(['is_default'=>[$option->is_default,$isAr?'افتراضي':'Default'],'is_visible'=>[$option->is_visible,$isAr?'ظاهر':'Visible'],'sold_out'=>[$option->sold_out,$isAr?'نفد':'Sold out']] as $flag=>$meta)<input type="hidden" name="{{ $flag }}" value="0"><label><input type="checkbox" name="{{ $flag }}" value="1" @checked($meta[0])> {{ $meta[1] }}</label>@endforeach</div>
+                                    <button class="primary" type="submit">{{ $isAr?'حفظ الخيار':'Save option' }}</button>
+                                </form>
+                                <form method="post" action="{{ route('admin.smart-ordering.menu.options.destroy',$option) }}" data-confirm-delete>@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $site->store_id }}"><button class="so-danger" type="submit">{{ $isAr?'حذف الخيار':'Delete option' }}</button></form>
+                                @if($branches->isNotEmpty())
+                                <details><summary>{{ $isAr?'تجاوز فرع للخيار':'Option branch override' }}</summary>
+                                    <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.options.branch',$option) }}">
+                                        @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                        <div class="so-grid">
+                                            <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
+                                            <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
+                                            <label>{{ $isAr?'نفاد':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
+                                            <label>{{ $isAr?'فرق سعر الفرع':'Branch price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price_delta"></label>
+                                        </div><button class="primary" type="submit">{{ $isAr?'حفظ':'Save' }}</button>
+                                    </form>
+                                </details>
+                                @endif
+                            </div>
+                            @endforeach
+
+                            <details>
+                                <summary>{{ $isAr?'إضافة خيار':'Add option' }}</summary>
+                                <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.options.store',$group) }}">
+                                    @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">
+                                    @include('admin._smart-ordering-product-picker',['selectedId'=>null,'selectedLabel'=>'','id'=>'new-option-product-'.$group->id])
+                                    <div class="so-grid">
+                                        <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar"></label>
+                                        <label>{{ $isAr?'الاسم بالإنجليزية':'English name' }}<input class="foodex-control" data-localized-field="en" name="name_en" required></label>
+                                        <label>{{ $isAr?'فرق السعر':'Price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="price_delta" value="0" required></label>
+                                        <label>{{ $isAr?'الترتيب':'Sort' }}<input class="foodex-control" type="number" min="0" name="sort_order" value="0" required></label>
+                                    </div>
+                                    <div class="so-flags"><input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1"> {{ $isAr?'افتراضي':'Default' }}</label><input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr?'ظاهر':'Visible' }}</label><input type="hidden" name="sold_out" value="0"><label><input type="checkbox" name="sold_out" value="1"> {{ $isAr?'نفد':'Sold out' }}</label></div>
+                                    <button class="primary" type="submit">{{ $isAr?'إضافة الخيار':'Add option' }}</button>
+                                </form>
+                            </details>
+                        </article>
+                        @endforeach
+                    </article>
+                    @endforeach
+                </article>
+                @endforeach
+            </article>
+            @empty
+            <div class="so-empty">{{ $isAr ? 'لا توجد منيو بعد. أضف أول منيو من الأعلى.' : 'No menu yet. Add the first menu above.' }}</div>
+            @endforelse
+        </section>
+
+        <div class="so-sticky">
+            <form class="so-actions" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
+                @csrf <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
+                <strong>{{ $isAr ? 'النشر فقط يجعل التغييرات مرئية للعملاء.' : 'Only publishing makes draft changes public.' }}</strong>
+                <button class="primary" type="submit">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
+            </form>
+        </div>
+    </main>
+</div>
+<script>
+(() => {
+    const productUrl = @json(route('admin.smart-ordering.menu.products', ['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])));
+    document.querySelectorAll('[data-product-picker]').forEach((picker) => {
+        const input = picker.querySelector('[data-product-search]');
+        const hidden = picker.querySelector('[data-product-id]');
+        const results = picker.querySelector('[data-product-results]');
+        let timer = null, controller = null;
+
+        const close = () => { results.hidden = true; input.setAttribute('aria-expanded','false'); };
+        const load = async () => {
+            if (controller) controller.abort();
+            controller = new AbortController();
+            const url = new URL(productUrl, window.location.origin);
+            url.searchParams.set('q', input.value.trim());
+            try {
+                const response = await fetch(url, {headers:{Accept:'application/json'},signal:controller.signal});
+                if (!response.ok) throw new Error('search');
+                const payload = await response.json();
+                results.replaceChildren();
+                (payload.products || []).forEach((product) => {
+                    const button = document.createElement('button');
+                    button.type = 'button'; button.className = 'so-product-result'; button.setAttribute('role','option');
+                    const label = document.createElement('span'); label.textContent = product.name || '';
+                    const meta = document.createElement('small'); meta.textContent = [product.sku || '', product.price ?? ''].filter(Boolean).join(' · ');
+                    button.append(label,meta);
+                    button.addEventListener('click',() => {
+                        hidden.value = String(product.id);
+                        input.value = product.name + (product.sku ? ' · '+product.sku : '');
+                        close();
+                    });
+                    results.appendChild(button);
+                });
+                if (!(payload.products || []).length) {
+                    const empty = document.createElement('div'); empty.className='so-product-result'; empty.textContent = @json($isAr ? 'لا توجد نتائج' : 'No results'); results.appendChild(empty);
+                }
+                results.hidden=false; input.setAttribute('aria-expanded','true');
+            } catch (error) { if (error?.name !== 'AbortError') close(); }
+        };
+        input.addEventListener('input',() => { hidden.value=''; clearTimeout(timer); timer=setTimeout(load,180); });
+        input.addEventListener('focus',load);
+        input.addEventListener('keydown',(event) => { if(event.key==='Escape') close(); });
+        document.addEventListener('click',(event) => { if(!picker.contains(event.target)) close(); });
+    });
+
+    const bulk = document.querySelector('[data-bulk-form]');
+    if (bulk) {
+        const entity = bulk.querySelector('[data-bulk-entity]');
+        const records = bulk.querySelector('[data-bulk-records]');
+        const sync = () => {
+            [...records.options].forEach((option) => {
+                const match = option.dataset.entity === entity.value;
+                option.hidden = !match;
+                if (!match) option.selected = false;
+            });
+        };
+        entity.addEventListener('change',sync); sync();
+    }
+
+    document.querySelectorAll('[data-confirm-delete]').forEach((form) => {
+        form.addEventListener('submit',(event) => {
+            const message = @json($isAr ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete this record?');
+            if (!window.confirm(message)) event.preventDefault();
+        });
+    });
+})();
+</script>
+</body>
+</html>

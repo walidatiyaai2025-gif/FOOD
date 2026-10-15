@@ -20,6 +20,7 @@ final class CommerceQuoteService
     public function __construct(
         private readonly B2bPriceResolver $b2bPricing,
         private readonly CouponRedemptionService $coupons,
+        private readonly SmartOrderingAttributionService $smartOrderingAttribution,
     ) {}
 
     /**
@@ -62,6 +63,10 @@ final class CommerceQuoteService
             abort(409, 'The cart is empty.');
         }
 
+        $smartOrderingPromotionId = $channel === 'b2c'
+            ? $this->smartOrderingAttribution->promotionIdForCart($cart)
+            : null;
+
         $quote = $this->quote(
             $channel,
             (int) $cart->store_id,
@@ -71,6 +76,7 @@ final class CommerceQuoteService
             $couponCode,
             $paymentMethod,
             $strict,
+            $smartOrderingPromotionId,
         );
 
         foreach ($quote['items'] as $line) {
@@ -105,6 +111,9 @@ final class CommerceQuoteService
         ?string $couponCode = null,
         ?string $paymentMethod = null,
         bool $strict = true,
+        ?int $preferredPromotionId = null,
+        ?float $deliveryTotalOverride = null,
+        bool $applyPromotions = true,
     ): array {
         $channel = strtolower(trim($channel));
         abort_unless(in_array($channel, ['b2b', 'b2c'], true), 422, 'Unsupported commerce channel.');
@@ -180,8 +189,18 @@ final class CommerceQuoteService
         }
 
         $subtotal = round($subtotal, 3);
-        $deliveryTotal = $this->deliveryFee($storeId);
-        [$promotionDiscount, $promotion] = $this->promotion($channel, $storeId, $subtotal, $deliveryTotal);
+        $deliveryTotal = $deliveryTotalOverride === null
+            ? $this->deliveryFee($storeId)
+            : round(max(0.0, $deliveryTotalOverride), 3);
+        [$promotionDiscount, $promotion] = $applyPromotions
+            ? $this->promotion(
+                $channel,
+                $storeId,
+                $subtotal,
+                $deliveryTotal,
+                $preferredPromotionId,
+            )
+            : [0.0, null];
 
         $couponDiscount = 0.0;
         $coupon = null;
@@ -568,15 +587,36 @@ final class CommerceQuoteService
     }
 
     /** @return array{0:float,1:array<string,mixed>|null} */
-    private function promotion(string $channel, int $storeId, float $subtotal, float $deliveryTotal): array
-    {
+    public function quotePromotionById(
+        int $storeId,
+        float $subtotal,
+        float $deliveryTotal,
+        int $promotionId,
+    ): array {
+        return $this->promotion('b2c', $storeId, $subtotal, $deliveryTotal, $promotionId);
+    }
+
+    /** @return array{0:float,1:array<string,mixed>|null} */
+    private function promotion(
+        string $channel,
+        int $storeId,
+        float $subtotal,
+        float $deliveryTotal,
+        ?int $preferredPromotionId = null,
+    ): array {
         if ($channel !== 'b2c' || $subtotal <= 0) {
             return [0.0, null];
         }
 
         $now = now();
         $promotions = Promotion::query()
-            ->where('store_id', $storeId)
+            ->where(function ($query) use ($storeId, $preferredPromotionId): void {
+                $query->where('store_id', $storeId);
+                if ($preferredPromotionId !== null) {
+                    $query->orWhereNull('store_id');
+                }
+            })
+            ->when($preferredPromotionId !== null, fn ($query) => $query->whereKey($preferredPromotionId))
             ->where('is_active', true)
             ->where(function ($query) use ($now): void {
                 $query->whereNull('starts_at')->orWhere('starts_at', '<=', $now);

@@ -2,6 +2,7 @@
 
 namespace App\Domain\WhatsApp;
 
+use App\Domain\SmartOrdering\WhatsApp\SmartOrderingChatbotContextService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
@@ -24,6 +25,7 @@ final class ChatbotAutomationService
         private readonly ChatbotCampaignAttributionService $campaignAttribution,
         private readonly ConversationService $conversations,
         private readonly OutboundMessageDispatcher $dispatcher,
+        private readonly SmartOrderingChatbotContextService $smartOrdering,
     ) {}
 
     public function shouldHandle(int $conversationId): bool
@@ -203,7 +205,7 @@ final class ChatbotAutomationService
             'repeat_to_cart' => $this->repeatToCartReply($conversationId, $platformCustomerId),
             'view_cart' => $this->cartReply($conversationId, $platformCustomerId),
             'prices_offers' => $this->priceReply($conversationId, $platformCustomerId),
-            'order_tracking' => $this->orderReply($platformCustomerId),
+            'order_tracking' => $this->orderReply($conversationId, $platformCustomerId),
             'finance' => $this->financeReply($platformCustomerId),
             'complaints' => $this->supportReply(),
             default => [
@@ -430,11 +432,21 @@ final class ChatbotAutomationService
     }
 
     /** @return array<string, mixed> */
-    private function orderReply(?int $platformCustomerId): array
+    private function orderReply(int $conversationId, ?int $platformCustomerId): array
     {
         $customer = $this->customer($platformCustomerId);
         if ($customer === null) {
             return ['body' => $this->t('identity_required'), 'handoff' => true, 'reason' => 'identity_required'];
+        }
+
+        $smartOrders = $this->smartOrdering->recentOrders($conversationId, $platformCustomerId);
+        if ($smartOrders !== []) {
+            $lines = [$this->t('orders_intro')];
+            foreach ($smartOrders as $order) {
+                $lines[] = '• #'.$order['order_number'].' — '.$this->status((string) $order['status']).' — '.number_format((float) $order['total'], 3).' '.$order['currency'];
+            }
+
+            return ['body' => implode("\n", $lines), 'interactive' => $this->homeInteractive($platformCustomerId)];
         }
 
         $orders = DB::table('orders')

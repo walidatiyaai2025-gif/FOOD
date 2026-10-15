@@ -7,10 +7,12 @@ use App\Domain\Assistant\Contracts\AssistantBrainInterface;
 use App\Domain\Assistant\Conversation\DeterministicBrain;
 use App\Domain\Assistant\Operations\AssistantOperationsToolSet;
 use App\Domain\Assistant\Tools\AssistantToolRegistry;
+use App\Domain\SmartOrdering\SmartOrderingLoyaltyOrderObserver;
 use App\Domain\Updater\LaravelUpdateRuntime;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Models\Order;
 use App\Models\User;
 use App\Policies\B2bCustomerPolicy;
 use App\Policies\B2cCustomerPolicy;
@@ -51,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(B2bCustomer::class, B2bCustomerPolicy::class);
         Gate::policy(B2cCustomer::class, B2cCustomerPolicy::class);
+        Order::observe(SmartOrderingLoyaltyOrderObserver::class);
 
         RateLimiter::for('login', function (Request $request): array {
             $email = Str::lower((string) $request->input('email', ''));

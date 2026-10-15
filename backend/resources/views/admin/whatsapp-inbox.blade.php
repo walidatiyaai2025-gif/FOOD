@@ -11,12 +11,12 @@
 .wa-pane{padding:0;overflow:hidden}.wa-pane-head{padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;justify-content:space-between;gap:10px;align-items:center}.wa-pane-body{padding:14px 16px}
 .wa-list{display:grid}.wa-row{display:block;padding:14px 16px;border-bottom:1px solid var(--foodex-border);text-decoration:none;color:inherit}.wa-row:hover,.wa-row.active{background:var(--foodex-green-soft)}.wa-row-top{display:flex;justify-content:space-between;gap:10px}.wa-row p{margin:4px 0;color:var(--foodex-muted);font-size:12px}
 .wa-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:var(--foodex-background)}.wa-badge.wait{background:var(--foodex-orange-soft);color:var(--foodex-orange)}.wa-badge.open{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.wa-badge.resolved{background:var(--foodex-background);color:var(--foodex-muted)}.wa-unread{min-width:22px;height:22px;border-radius:99px;background:var(--foodex-green-dark);color:var(--foodex-surface);text-align:center;line-height:22px;font-size:11px}
-.wa-timeline{display:grid;gap:10px;max-height:46vh;overflow:auto;padding:16px}.wa-message{max-width:82%;padding:11px 13px;border-radius:14px;background:var(--foodex-background)}.wa-message.outbound{margin-inline-start:auto;background:var(--foodex-green-soft)}.wa-message.note{max-width:100%;background:var(--foodex-orange-soft);border:1px dashed var(--foodex-orange)}.wa-message small{display:block;color:var(--foodex-muted);margin-top:5px}
+.wa-timeline{display:grid;gap:10px;max-height:46vh;overflow:auto;padding:16px}.wa-message{max-width:82%;padding:11px 13px;border-radius:14px;background:var(--foodex-background)}.wa-message.outbound{margin-inline-start:auto;background:var(--foodex-green-soft)}.wa-message.note{max-width:100%;background:var(--foodex-orange-soft);border:1px dashed var(--foodex-orange)}.wa-message.smart-ordering{max-width:100%;border:1px solid var(--foodex-border);background:var(--foodex-surface);box-shadow:0 8px 22px rgba(15,23,42,.06)}.wa-message small{display:block;color:var(--foodex-muted);margin-top:5px}
 .wa-attachment{display:grid;gap:7px;margin-bottom:8px}.wa-attachment img,.wa-attachment video{display:block;max-width:min(360px,100%);max-height:320px;border-radius:12px;border:1px solid var(--foodex-border);background:var(--foodex-surface)}.wa-attachment audio{width:min(360px,100%)}.wa-attachment-link{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;font-weight:700}.wa-attachment-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
 .wa-compose{border-top:1px solid var(--foodex-border);padding:14px 16px;display:grid;gap:10px}.wa-compose textarea{width:100%;min-height:82px}.wa-compose-file{display:grid;gap:5px;margin:9px 0}.wa-compose-file input{width:100%;padding:9px;border:1px dashed var(--foodex-border);border-radius:10px;background:var(--foodex-surface)}.wa-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
 .wa-call-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}.wa-call-status{font-size:12px;color:var(--foodex-muted);flex:1;min-width:160px}.wa-call-live{color:var(--foodex-green-dark);font-weight:800}.wa-call-danger{background:var(--foodex-red)!important;color:var(--foodex-surface)!important;border-color:var(--foodex-red)!important}
 .wa-call-overlay{position:fixed;inset:0;background:rgba(15,23,42,.46);display:none;align-items:center;justify-content:center;z-index:99999;padding:18px}.wa-call-overlay.show{display:flex}.wa-call-card{width:min(440px,100%);background:var(--foodex-surface);border-radius:18px;padding:24px;box-shadow:0 22px 70px rgba(15,23,42,.28);text-align:center}.wa-call-icon{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:var(--foodex-green-soft);font-size:32px}.wa-call-card h2{margin:0 0 7px}.wa-call-card p{color:var(--foodex-muted);margin:0 0 18px}.wa-call-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.wa-inline label{display:grid;gap:4px;min-width:130px}
-.wa-360{display:grid;gap:12px}.wa-card{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.wa-card h3{margin:0 0 9px;font-size:14px}.wa-card p{margin:4px 0;font-size:13px}.wa-mini{width:100%;border-collapse:collapse}.wa-mini td{padding:6px 0;border-bottom:1px solid var(--foodex-border);font-size:12px}.wa-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-tag{padding:4px 8px;background:var(--foodex-background);border-radius:999px;font-size:11px;font-weight:700}
+.wa-360{display:grid;gap:12px}.wa-card{border:1px solid var(--foodex-border);border-radius:12px;padding:12px}.wa-card h3{margin:0 0 9px;font-size:14px}.wa-card p{margin:4px 0;font-size:13px}.wa-so-order{display:grid;gap:8px}.wa-so-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.wa-so-items{display:grid;gap:4px;padding:8px 0;border-block:1px solid var(--foodex-border)}.wa-so-items span{font-size:12px}.wa-so-action{display:inline-flex;justify-content:center;text-decoration:none}.wa-mini{width:100%;border-collapse:collapse}.wa-mini td{padding:6px 0;border-bottom:1px solid var(--foodex-border);font-size:12px}.wa-tags{display:flex;gap:6px;flex-wrap:wrap}.wa-tag{padding:4px 8px;background:var(--foodex-background);border-radius:999px;font-size:11px;font-weight:700}
 .wa-empty{padding:32px;text-align:center;color:var(--foodex-muted)}.wa-status{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr)) auto;gap:8px;align-items:end}
 @media(max-width:1180px){.wa-workspace{grid-template-columns:300px 1fr}.wa-context{grid-column:1/-1}.wa-toolbar form{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.wa-controls-row{grid-template-columns:1fr}}
@@ -101,8 +101,9 @@
 
                     <div class="wa-timeline" id="wa-conversation-timeline" data-conversation="{{ $selected->id }}">
                         @forelse($timeline as $item)
-                            <div class="wa-message {{ $item['kind']==='note'?'note':$item['direction'] }}">
+                            <div class="wa-message {{ $item['kind']==='note'?'note':($item['kind']==='smart_ordering'?'smart-ordering':$item['direction']) }}">
                                 @if($item['kind']==='note')<strong>🔒 {{ __('whatsapp.inbox.internal_note') }}</strong>@endif
+                                @if($item['kind']==='smart_ordering')<strong>🧾 {{ __('whatsapp.smart_ordering.timeline_actor') }}</strong>@endif
                                 @if(!empty($item['attachment']))
                                     @php($attachment=$item['attachment'])
                                     <div class="wa-attachment">
@@ -136,6 +137,9 @@
                                 @elseif(empty($item['attachment']))
                                     <div>{{ __('whatsapp.inbox.attachment') }}</div>
                                 @endif
+                                @if($item['kind']==='smart_ordering' && !empty($item['smart_ordering']['order_url']))
+                                    <a class="foodex-action-secondary wa-so-action" href="{{ $item['smart_ordering']['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
+                                @endif
                                 <small>{{ $item['actor'] }} · {{ $item['timestamp'] }} @if($item['delivery_status']) · {{ __('whatsapp.inbox.delivery_statuses.'.$item['delivery_status']) }}@endif</small>
                             </div>
                         @empty
@@ -167,6 +171,40 @@
                 <section class="foodex-card wa-pane wa-context">
                     <div class="wa-pane-head"><strong>{{ __('whatsapp.inbox.customer_360') }}</strong></div>
                     <div class="wa-pane-body wa-360">
+                    @if(!empty($smartOrderingContext['orders']))
+                        <div class="wa-card">
+                            <h3>{{ __('whatsapp.smart_ordering.orders_title') }}</h3>
+                            @foreach($smartOrderingContext['orders'] as $smartOrder)
+                                @php($so=$smartOrder['snapshot'] ?? [])
+                                <div class="wa-so-order">
+                                    <div class="wa-so-head">
+                                        <div>
+                                            <strong>{{ data_get($so,'order_number','#'.$smartOrder['order_id']) }}</strong>
+                                            <p>{{ __('whatsapp.smart_ordering.branch') }}: {{ app()->getLocale()==='ar' ? (data_get($so,'branch.name_ar') ?: data_get($so,'branch.name_en','-')) : (data_get($so,'branch.name_en') ?: data_get($so,'branch.name_ar','-')) }}</p>
+                                        </div>
+                                        <span class="wa-badge">{{ __('whatsapp.smart_ordering.statuses.'.strtolower((string)$smartOrder['status'])) }}</span>
+                                    </div>
+                                    <p>{{ __('whatsapp.smart_ordering.fulfillment') }}: {{ __('whatsapp.smart_ordering.modes.'.strtolower((string)$smartOrder['fulfillment_mode'])) }}</p>
+                                    @if(data_get($so,'scheduled_for'))<p>{{ __('whatsapp.smart_ordering.scheduled') }}: {{ data_get($so,'scheduled_for') }}</p>@endif
+                                    @if(data_get($so,'table.label'))<p>{{ __('whatsapp.smart_ordering.table') }}: {{ data_get($so,'table.label') }}</p>@endif
+                                    @if(data_get($so,'delivery_address.line1'))<p>{{ __('whatsapp.smart_ordering.delivery_address') }}: {{ data_get($so,'delivery_address.line1') }}</p>@endif
+                                    @if(!empty($so['items']))
+                                        <div class="wa-so-items">
+                                            @foreach($so['items'] as $line)
+                                                <span>{{ $line['name'] ?? '-' }} × {{ rtrim(rtrim(number_format((float)($line['quantity'] ?? 0),3),'0'),'.') }} · {{ number_format((float)($line['unit_price'] ?? 0),3) }} {{ data_get($so,'currency','KWD') }}</span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                    <p><strong>{{ __('whatsapp.smart_ordering.total') }}:</strong> {{ number_format((float)data_get($so,'totals.grand_total',0),3) }} {{ data_get($so,'currency','KWD') }}</p>
+                                    @if(data_get($so,'note'))<p>{{ __('whatsapp.smart_ordering.note') }}: {{ data_get($so,'note') }}</p>@endif
+                                    <a class="foodex-action-primary wa-so-action" href="{{ $smartOrder['order_url'] }}">{{ __('whatsapp.smart_ordering.open_order') }}</a>
+                                </div>
+                                @unless($loop->last)
+                                    <hr style="border:0;border-top:1px solid var(--foodex-border);margin:12px 0">
+                                @endunless
+                            @endforeach
+                        </div>
+                    @endif
                     @if($customer360)
                         @php($customer=$customer360['customer'])
                         <div class="wa-card">

@@ -83,6 +83,13 @@ jobs:
       - name: Capture Arabic and English Admin runtime screenshots
         working-directory: backend
         env:
+          APP_ENV: local
+          APP_URL: http://127.0.0.1:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: file
           FOODEX_SCREENSHOT_BASE_URL: http://127.0.0.1:8000
         run: |
           if ! node ../scripts/capture_web_screenshots.mjs; then
@@ -98,9 +105,25 @@ jobs:
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
           responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
           test "$count" -ge 106
-          test "$responsive_count" -eq 116
+          test "$responsive_count" -eq 148
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__compact-1024__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__tablet-768__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__mobile-390__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-analytics__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__desktop-1280__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__compact-1024__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__tablet-768__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-supply__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-qr__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-qr__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/sales-control__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/sales-control__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/flash-offers__desktop-1280__ar.png"

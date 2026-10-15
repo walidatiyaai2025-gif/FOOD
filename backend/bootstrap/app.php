@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureWhatsAppCapability;
 use App\Http\Middleware\EnsureManagementDashboardAccess;
 use App\Http\Middleware\ResolveCustomerPreviewSession;
 use App\Http\Middleware\ResolveDriverPreviewSession;
+use App\Http\Middleware\ResolveSmartOrderingSite;
 use App\Http\Middleware\ResolveTenantContext;
 use App\Http\Middleware\RunSchedulerHeartbeat;
 use App\Services\SystemInspectorRecorder;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'driver.location.fresh' => EnsureFreshDriverLocation::class,
             'management.dashboard' => EnsureManagementDashboardAccess::class,
             'tenant.context' => ResolveTenantContext::class,
+            'smart.ordering.site' => ResolveSmartOrderingSite::class,
             'whatsapp.capability' => EnsureWhatsAppCapability::class,
             'preview.customer' => ResolveCustomerPreviewSession::class,
             'preview.driver' => ResolveDriverPreviewSession::class,
