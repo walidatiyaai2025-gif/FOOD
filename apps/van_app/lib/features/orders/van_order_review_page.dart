@@ -29,7 +29,8 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   bool _loading = false;
   bool _quoteFailed = false;
   bool _submitting = false;
-  late final String _idempotencyKey;
+  int? _idempotencyRevision;
+  String? _idempotencyKey;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
@@ -38,8 +39,6 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   void initState() {
     super.initState();
     _note.text = widget.draft.customerNote ?? '';
-    _idempotencyKey =
-        'van-order-${DateTime.now().microsecondsSinceEpoch}-review';
     if (widget.draft.options == null || widget.draft.quote == null) {
       _reload();
     }
@@ -99,7 +98,17 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
     }
   }
 
+  String _idempotencyKeyFor(int revision) {
+    if (_idempotencyRevision != revision || _idempotencyKey == null) {
+      _idempotencyRevision = revision;
+      _idempotencyKey =
+          'van-order-${DateTime.now().microsecondsSinceEpoch}-r$revision';
+    }
+    return _idempotencyKey!;
+  }
+
   Future<void> _submit() async {
+    final revision = widget.draft.revision;
     final customer = widget.draft.customer;
     final payment = widget.draft.paymentMethod;
     final quote = widget.draft.quote;
@@ -113,16 +122,25 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
       return;
     }
 
+    final lines = List<VanOrderLine>.unmodifiable(widget.draft.lines);
+    final addressId = widget.draft.addressId;
+    final warehouseId = widget.draft.warehouseId;
+    final customerNote = widget.draft.customerNote;
+    final idempotencyKey = _idempotencyKeyFor(revision);
+
     setState(() => _submitting = true);
     try {
+      if (!widget.draft.hasCurrentQuote || widget.draft.revision != revision) {
+        return;
+      }
       final order = await widget.repository.createOrder(
         customer: customer,
-        lines: widget.draft.lines,
+        lines: lines,
         paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: _note.text,
-        idempotencyKey: _idempotencyKey,
+        addressId: addressId,
+        warehouseId: warehouseId,
+        customerNote: customerNote,
+        idempotencyKey: idempotencyKey,
       );
       if (!mounted) return;
       widget.onSubmitted(order);
