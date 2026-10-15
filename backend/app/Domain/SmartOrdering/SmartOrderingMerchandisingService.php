@@ -10,7 +10,6 @@ use App\Models\SmartOrderingCart;
 use App\Services\CommerceQuoteService;
 use App\Services\SmartOrderingAttributionService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class SmartOrderingMerchandisingService
@@ -82,6 +81,13 @@ final class SmartOrderingMerchandisingService
         $deliveryTotal = round(max(0.0, $deliveryTotal), 3);
         $couponDiscount = round(max(0.0, (float) ($quote['coupon_discount_total'] ?? 0)), 3);
         $couponIsDelivery = strtolower((string) data_get($quote, 'coupon.discount_type', '')) === 'free_shipping';
+        $couponId = isset($quote['coupon']['id']) ? (int) $quote['coupon']['id'] : null;
+        $couponRequiresRule = $couponId !== null && DB::table('smart_ordering_offer_rules')
+            ->where('site_id', $site->id)
+            ->where('marketing_coupon_id', $couponId)
+            ->where('is_active', true)
+            ->exists();
+        $couponRuleApplied = false;
 
         $merchandiseDiscount = $couponIsDelivery ? 0.0 : min($subtotal, $couponDiscount);
         $deliveryDiscount = $couponIsDelivery ? min($deliveryTotal, $couponDiscount) : 0.0;
@@ -180,6 +186,37 @@ final class SmartOrderingMerchandisingService
             }
 
             $group = trim((string) ($rule->stack_group ?? ''));
+            if ($couponId !== null && (int) ($rule->marketing_coupon_id ?? 0) === $couponId) {
+                if ($couponRuleApplied || ((bool) $rule->exclusive && $group !== '' && isset($usedGroups[$group]))) {
+                    $audit[] = [
+                        'offer_id' => (string) $rule->public_id,
+                        'eligible' => true,
+                        'reason' => 'PRECEDENCE_SUPPRESSED',
+                    ];
+                    continue;
+                }
+
+                $couponRuleApplied = true;
+                if ((bool) $rule->exclusive && $group !== '') {
+                    $usedGroups[$group] = true;
+                }
+                $applied[] = [
+                    'rule_id' => (int) $rule->id,
+                    'id' => (string) $rule->public_id,
+                    'name' => (string) $rule->name,
+                    'type' => 'coupon',
+                    'priority' => (int) $rule->priority,
+                    'discount_total' => $couponIsDelivery ? 0.0 : $couponDiscount,
+                    'delivery_discount_total' => $couponIsDelivery ? min($deliveryTotal, $couponDiscount) : 0.0,
+                ];
+                $audit[] = [
+                    'offer_id' => (string) $rule->public_id,
+                    'eligible' => true,
+                    'reason' => 'APPLIED',
+                ];
+                continue;
+            }
+
             if ((bool) $rule->exclusive && $group !== '' && isset($usedGroups[$group])) {
                 $audit[] = [
                     'offer_id' => (string) $rule->public_id,
@@ -239,6 +276,12 @@ final class SmartOrderingMerchandisingService
                 'eligible' => true,
                 'reason' => 'APPLIED',
             ];
+        }
+
+        if ($couponRequiresRule && ! $couponRuleApplied) {
+            throw ValidationException::withMessages([
+                'coupon_code' => ['Coupon is not eligible for this Smart Ordering context.'],
+            ]);
         }
 
         $merchandiseDiscount = round(min($subtotal, $merchandiseDiscount), 3);
@@ -343,6 +386,7 @@ final class SmartOrderingMerchandisingService
                 $subtotal,
                 $profile,
                 $triggerProductId,
+                $context,
             ),
         ];
     }
@@ -762,6 +806,7 @@ final class SmartOrderingMerchandisingService
         float $subtotal,
         ?array $profile,
         ?int $triggerProductId,
+        ?array $trustedContext,
     ): array {
         $favoriteIds = collect((array) ($profile['favorite_products'] ?? []))
             ->pluck('product_id')
@@ -796,6 +841,21 @@ final class SmartOrderingMerchandisingService
 
         $result = [];
         foreach ($rules as $rule) {
+            $conditions = $this->json($rule->conditions);
+            $campaigns = array_values(array_filter((array) ($conditions['campaigns'] ?? []), 'is_string'));
+            if ($campaigns !== [] && ! in_array((string) ($trustedContext['campaign'] ?? ''), $campaigns, true)) {
+                continue;
+            }
+            $qrTypes = array_values(array_filter((array) ($conditions['qr_types'] ?? []), 'is_string'));
+            if ($qrTypes !== [] && ! in_array((string) ($trustedContext['type'] ?? ''), $qrTypes, true)) {
+                continue;
+            }
+            $segments = array_map('strtoupper', array_values(array_filter((array) ($conditions['segments'] ?? []), 'is_string')));
+            if ($segments !== [] && ($profile === null
+                || array_intersect($segments, array_map('strtoupper', (array) ($profile['tags'] ?? []))) === [])) {
+                continue;
+            }
+
             $product = $this->recommendableProduct($site, $branch, (int) $rule->recommended_product_id);
             if ($product === null) {
                 continue;
