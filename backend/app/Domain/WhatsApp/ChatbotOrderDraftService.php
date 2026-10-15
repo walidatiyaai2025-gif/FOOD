@@ -102,6 +102,7 @@ final class ChatbotOrderDraftService
                     ],
                 );
             }
+
             DB::table('carts')->where('id', $cartId)->update(['updated_at' => now()]);
         }, 3);
 
