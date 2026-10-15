@@ -15,7 +15,10 @@
     <link rel="stylesheet" href="/css/smart-ordering-storefront.css">
     <style>:root{ @foreach($appearance['css_variables'] as $name => $value) {{ $name }}: {{ $value }}; @endforeach }</style>
 </head>
-<body class="so-page so-font-{{ $appearance['customization']['font'] }} so-card-{{ $appearance['customization']['card_style'] }} so-button-{{ $appearance['customization']['button_style'] }}">
+<body class="so-page so-font-{{ $appearance['customization']['font'] }} so-card-{{ $appearance['customization']['card_style'] }} so-button-{{ $appearance['customization']['button_style'] }}"
+    data-analytics-site="{{ $analytics['site_public_id'] ?? '' }}"
+    data-analytics-branch="{{ $analytics['branch_public_id'] ?? '' }}"
+    data-analytics-context="{{ $analytics['attribution_context'] ?? '' }}">
 <a class="so-skip" href="#menu">{{ $locale === 'ar' ? 'انتقل إلى القائمة' : 'Skip to menu' }}</a>
 <header class="so-header">
     <div class="so-brand">
