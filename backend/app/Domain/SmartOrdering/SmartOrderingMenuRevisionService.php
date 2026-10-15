@@ -83,7 +83,7 @@ final class SmartOrderingMenuRevisionService
                     $max = 1;
                 }
 
-                if ($min < 0 || $max < 1 || $min > $max || ($group->is_required && $min < 1)) {
+                if ($max < 1 || $min > $max || ($group->is_required && $min < 1)) {
                     throw ValidationException::withMessages([
                         'modifier_group' => [__('smart_ordering_menu.validation.modifier_bounds')],
                     ]);
