@@ -168,17 +168,32 @@ final class B2bAccountLedgerService
             throw ValidationException::withMessages(['amount' => ['This entry type must be recorded as a debit.']]);
         }
 
-        $currency = 'EGP';
-
         $storeId = isset($data['store_id']) && (int) $data['store_id'] > 0 ? (int) $data['store_id'] : null;
+        $currency = strtoupper((string) $this->summary($customer, $storeId)['currency']);
+        $requestedCurrency = strtoupper(trim((string) ($data['currency'] ?? $currency)));
+        if ($requestedCurrency !== '' && $requestedCurrency !== $currency) {
+            throw ValidationException::withMessages([
+                'currency' => [__('customer_360.finance.currency_authoritative_error', ['currency' => $currency])],
+            ]);
+        }
 
         $invoiceId = isset($data['invoice_id']) ? (int) $data['invoice_id'] : null;
         if ($invoiceId !== null && $invoiceId > 0) {
             $owned = DB::table('invoices')
                 ->where('id', $invoiceId)
                 ->where('b2b_customer_id', $customer->getKey())
-                ->exists();
-            abort_unless($owned, 404);
+                ->first(['currency']);
+            abort_unless($owned !== null, 404);
+
+            $invoiceCurrency = $this->normalizeCurrency($owned->currency);
+            if ($invoiceCurrency !== $currency) {
+                throw ValidationException::withMessages([
+                    'invoice_id' => [__('customer_360.finance.invoice_currency_mismatch', [
+                        'invoice_currency' => $invoiceCurrency,
+                        'account_currency' => $currency,
+                    ])],
+                ]);
+            }
         }
 
         return (int) DB::table('customer_account_ledger_entries')->insertGetId([

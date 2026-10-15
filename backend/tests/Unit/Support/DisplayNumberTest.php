@@ -22,6 +22,14 @@ final class DisplayNumberTest extends TestCase
         self::assertSame('100.500', DisplayNumber::money(100.5, 'USD'));
     }
 
+    public function test_money_input_contract_uses_currency_precision(): void
+    {
+        self::assertSame(2, DisplayNumber::moneyFractionDigits('EGP'));
+        self::assertSame('0.01', DisplayNumber::moneyStep('egp'));
+        self::assertSame(3, DisplayNumber::moneyFractionDigits('KWD'));
+        self::assertSame('0.001', DisplayNumber::moneyStep('KWD'));
+    }
+
     public function test_unit_counts_are_compact_but_fractional_values_are_preserved(): void
     {
         self::assertSame('12', DisplayNumber::quantity(12.000));
