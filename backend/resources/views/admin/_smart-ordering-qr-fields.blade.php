@@ -1,4 +1,4 @@
-@php($editing = isset($editingQr) && $editingQr)
+@php($editing = $editingQr ?? null)
 <label>{{ __('smart_ordering_qr.type') }}
     <select name="type" required>
         @foreach($types as $type)
