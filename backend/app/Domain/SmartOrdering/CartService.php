@@ -58,6 +58,8 @@ final class CartService
             $trustedContext = [
                 'qr_public_id' => (string) $trustedAttribution['qr_public_id'],
                 'type' => (string) $trustedAttribution['type'],
+                'branch_reference' => $trustedAttribution['branch_reference'] === null ? null : (string) $trustedAttribution['branch_reference'],
+                'table_reference' => $trustedAttribution['table_reference'] === null ? null : (string) $trustedAttribution['table_reference'],
                 'campaign' => $trustedAttribution['campaign'] === null ? null : (string) $trustedAttribution['campaign'],
                 'promotion_id' => $trustedAttribution['promotion_id'] === null ? null : (int) $trustedAttribution['promotion_id'],
             ];
