@@ -67,7 +67,7 @@ final class SmartOrderingMenuAdminController extends Controller
             ->orderBy('sort_order')
             ->orderBy('id');
 
-        if (! $reviewMode && $focusedMenuId !== null) {
+        if ($reviewMode === false && $focusedMenuId !== null) {
             $menusQuery->whereKey($focusedMenuId);
         }
 
