@@ -792,16 +792,18 @@ final class OrderOperationsController extends Controller
             ->pluck('product_id')
             ->map(static fn ($id): int => (int) $id)
             ->all();
+        $productOrder = array_flip($productIds);
         $options['products'] = $productIds === [] ? [] : DB::table('products')
             ->whereIn('id', $productIds)
-            ->orderByRaw('FIELD(id,'.implode(',', array_fill(0, count($productIds), '?')).')', $productIds)
             ->get(['id', 'sku', 'name', 'is_active'])
+            ->sortBy(static fn (object $product): int => $productOrder[(int) $product->id] ?? PHP_INT_MAX)
             ->map(static fn (object $product): array => [
                 'id' => (int) $product->id,
                 'sku' => (string) $product->sku,
                 'name' => (string) $product->name,
                 'active' => (bool) $product->is_active,
             ])
+            ->values()
             ->all();
 
         $options['addresses'] = [];
