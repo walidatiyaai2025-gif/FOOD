@@ -71,7 +71,8 @@ final class RestaurantBillingService
             $oldPlan = $subscription?->plan()->first();
             $before = $subscription === null ? null : $this->subscriptionSnapshot($subscription);
 
-            $state = (string) ($options['state'] ?? ($options['trial_ends_at'] ?? null ? self::TRIAL : self::ACTIVE));
+            $hasTrial = ($options['trial_ends_at'] ?? null) !== null;
+            $state = (string) ($options['state'] ?? ($hasTrial ? self::TRIAL : self::ACTIVE));
             if (! in_array($state, [self::TRIAL, self::ACTIVE], true)) {
                 throw ValidationException::withMessages([
                     'state' => ['A new or changed plan must start in TRIAL or ACTIVE state.'],
@@ -391,6 +392,13 @@ final class RestaurantBillingService
                 ->lockForUpdate()
                 ->first();
             $before = $record === null ? null : $this->billingSnapshot($record);
+
+            if ($record !== null
+                && (int) $record->subscription_id !== (int) $subscription->getKey()) {
+                throw ValidationException::withMessages([
+                    'provider_reference' => ['Provider reference belongs to a different subscription.'],
+                ]);
+            }
 
             $record ??= new RestaurantSaasBillingRecord;
             $record->fill([

@@ -247,6 +247,36 @@ final class RestaurantSaaSBillingFoundationTest extends TestCase
         ]);
         $this->assertFalse(Schema::hasColumn('restaurant_saas_billing_records', 'card_number'));
         $this->assertFalse(Schema::hasColumn('restaurant_saas_billing_records', 'card_cvv'));
+
+        [$otherOrganization, $otherAdmin] = $this->organization('RS-BILL-PROVIDER-OTHER');
+        $otherSubscription = $service->subscribe(
+            $otherOrganization,
+            $this->plan('PRO-OTHER'),
+            $otherAdmin,
+        );
+
+        try {
+            $service->reconcileBillingRecord(
+                $otherSubscription,
+                'invoice',
+                'paid',
+                'test_provider',
+                'inv_100',
+                12500,
+                'KWD',
+                $record->occurred_at,
+                'pm_other_reference',
+                null,
+                $otherAdmin,
+            );
+            $this->fail('Provider reference must not cross subscription boundaries.');
+        } catch (ValidationException) {
+            $this->assertDatabaseHas('restaurant_saas_billing_records', [
+                'id' => $record->id,
+                'subscription_id' => $subscription->id,
+                'payment_method_reference' => 'pm_reference_100',
+            ]);
+        }
     }
 
     public function test_comp_plan_and_addon_are_audited_without_duplicate_rows(): void
