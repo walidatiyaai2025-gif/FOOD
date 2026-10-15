@@ -689,7 +689,7 @@ class _VanOrderDetailPageState extends State<VanOrderDetailPage>
                         ),
                         key: const ValueKey('van-order-proof-ready'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: FoodexVanTokens.green,
+                              color: FoodexVanTokens.actionGreen,
                               fontWeight: FontWeight.w800,
                             ),
                       ),
