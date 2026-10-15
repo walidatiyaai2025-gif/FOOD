@@ -18,11 +18,13 @@ final class SmartOrderingController extends Controller
         $data = $request->validate([
             'branch_public_id' => ['required', 'uuid'],
             'revision_public_id' => ['nullable', 'uuid'],
+            'attribution_context' => ['nullable', 'string', 'max:512'],
         ]);
 
         $result = $carts->create(
             (string) $data['branch_public_id'],
             isset($data['revision_public_id']) ? (string) $data['revision_public_id'] : null,
+            isset($data['attribution_context']) ? (string) $data['attribution_context'] : null,
         );
 
         return response()->json([
