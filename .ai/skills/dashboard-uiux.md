@@ -21,15 +21,17 @@ Do not create a standalone shell if the canonical admin shell exists.
 Current source: `_brand.blade.php`. Re-read source before coding because source is authoritative.
 
 ### Colors
-- Green: `#148638`
+- Green: `#158A3A`
 - Green Dark: `#165D2D`
 - Green Bright: `#27B658`
 - Green Soft: `#EAF7EF`
+- Accessible Action Green: `#137A35` (normal white action text)
 - Orange: `#EE731C`
 - Orange Bright: `#FC8F33`
 - Orange Soft: `#FFF1E6`
 - Blue: `#4B8CF5`
-- Red: `#B42318`
+- Red: `#EF5350`
+- Accessible Danger Text: `#B42318` (on white / danger-soft surfaces)
 - Ink: `#172033`
 - Muted: `#667085`
 - Surface: `#FFFFFF`
@@ -115,11 +117,11 @@ One Administration sidebar entry opens a true icon/card Admin Hub. Do not recrea
 
 ### Primary
 Use existing FOODEX primary action pattern:
-- green background;
+- accessible action-green (`#137A35`) background for normal-sized white text;
 - white text;
 - 44 px minimum touch height;
 - current radius/spacing tokens;
-- hover -> green dark.
+- hover/pressed -> green dark.
 
 Existing classes include:
 - `.primary`

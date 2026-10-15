@@ -28,7 +28,7 @@ body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}
 .settings-card__meta{display:flex;gap:7px;flex-wrap:wrap}
 .settings-pill{display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border-radius:999px;background:var(--foodex-background);font-size:.8rem;font-weight:800;color:var(--foodex-muted)}
 .settings-pill.available{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
-.settings-card__action{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 13px;border-radius:10px;background:var(--foodex-green);color:#fff;text-decoration:none;font-weight:900}
+.settings-card__action{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 13px;border-radius:10px;background:var(--foodex-action-green);color:#fff;text-decoration:none;font-weight:900}
 .settings-card__restricted{margin-top:auto;display:flex;align-items:center;justify-content:center;min-height:42px;padding:0 13px;border-radius:10px;background:var(--foodex-background);color:var(--foodex-muted);font-weight:800;border:1px dashed var(--foodex-border)}
 .settings-empty{display:none;margin-top:18px;padding:20px;border:1px dashed var(--foodex-border);border-radius:14px;text-align:center;color:var(--foodex-muted)}
 .settings-empty.is-visible{display:block}

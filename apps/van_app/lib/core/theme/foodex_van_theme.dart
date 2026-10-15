@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 abstract final class FoodexVanTokens {
-  static const green = Color(0xFF148638);
+  static const green = Color(0xFF158A3A);
   static const greenDark = Color(0xFF165D2D);
   static const greenSoft = Color(0xFFEAF7EF);
   static const mint = greenSoft;
@@ -11,7 +11,7 @@ abstract final class FoodexVanTokens {
   static const muted = Color(0xFF667085);
   static const border = Color(0xFFE3E8E4);
   static const warning = Color(0xFFEE731C);
-  static const danger = Color(0xFFB42318);
+  static const danger = Color(0xFFEF5350);
 
   static const double touchTarget = 48;
   static const double cardRadius = 16;

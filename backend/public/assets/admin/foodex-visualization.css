@@ -1,10 +1,10 @@
 :root{
-  --foodex-viz-primary:var(--foodex-green,#148638);
+  --foodex-viz-primary:var(--foodex-green,#158A3A);
   --foodex-viz-primary-dark:var(--foodex-green-dark,#165D2D);
   --foodex-viz-primary-soft:var(--foodex-green-soft,#EAF7EF);
   --foodex-viz-info:var(--foodex-blue,#4B8CF5);
   --foodex-viz-warning:var(--foodex-orange,#EE731C);
-  --foodex-viz-danger:var(--foodex-red,#B42318);
+  --foodex-viz-danger:var(--foodex-red,#EF5350);
   --foodex-viz-muted:var(--foodex-muted,#667085);
   --foodex-viz-border:var(--foodex-border,#E6EAF0);
   --foodex-viz-surface:var(--foodex-surface,#FFFFFF);

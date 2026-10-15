@@ -15,7 +15,7 @@ Read before editing:
 ## 2. Driver brand snapshot
 
 Current Driver theme uses:
-- Green `#148638`
+- Green `#158A3A`
 - Green Dark `#165D2D`
 - Green Bright `#27B658`
 - Green Soft `#EAF7EF`
@@ -23,7 +23,7 @@ Current Driver theme uses:
 - Orange Bright `#FC8F33`
 - Orange Soft `#FFF1E6`
 - Blue `#4B8CF5`
-- Red `#B42318`
+- Red `#EF5350`
 - Ink `#172033`
 - Muted `#667085`
 - Surface `#FFFFFF`

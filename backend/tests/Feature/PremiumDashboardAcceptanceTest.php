@@ -58,7 +58,7 @@ class PremiumDashboardAcceptanceTest extends TestCase
             ->get('/admin/b2c/dashboard')
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('--foodex-green:#148638', false)
+            ->assertSee('--foodex-green:#158A3A', false)
             ->assertSee('--foodex-orange:#EE731C', false)
             ->assertSee('data-golden-dashboard="ph06"', false)
             ->assertSee('grid-template-areas:"actions profile search"', false)

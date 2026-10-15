@@ -82,7 +82,7 @@ class B2cAdminWorkspaceTest extends TestCase
             ->assertDontSee('KWD')
             ->assertSee('زيت زيتون عضوي')
             ->assertSee('#'.$order)
-            ->assertSee('--foodex-green:#148638', false);
+            ->assertSee('--foodex-green:#158A3A', false);
 
         $this->actingAs($user)
             ->get('/admin/b2c/dashboard?dashboard_tab=assistant')

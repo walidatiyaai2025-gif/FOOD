@@ -167,7 +167,7 @@ class AdminShellTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertSee('data-foodex-brand="v1"', false)
-            ->assertSee('--foodex-green:#148638', false)
+            ->assertSee('--foodex-green:#158A3A', false)
             ->assertSee('--foodex-orange:#EE731C', false)
             ->assertSee('fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700', false)
             ->assertSee('--foodex-font-family:"Tajawal",sans-serif', false)

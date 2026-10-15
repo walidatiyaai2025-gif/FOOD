@@ -3,15 +3,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style id="foodex-brand-tokens">
 :root{
-    --foodex-green:#148638;
+    --foodex-green:#158A3A;
     --foodex-green-dark:#165D2D;
     --foodex-green-bright:#27B658;
     --foodex-green-soft:#EAF7EF;
+    --foodex-action-green:#137A35;
+    --foodex-action-green-hover:var(--foodex-green-dark);
     --foodex-orange:#EE731C;
     --foodex-orange-bright:#FC8F33;
     --foodex-orange-soft:#FFF1E6;
     --foodex-blue:#4B8CF5;
-    --foodex-red:#B42318;
+    --foodex-red:#EF5350;
+    --foodex-danger-text:#B42318;
+    --foodex-danger-soft:#FFF0F0;
     --foodex-ink:#172033;
     --foodex-muted:#667085;
     --foodex-surface:#FFFFFF;

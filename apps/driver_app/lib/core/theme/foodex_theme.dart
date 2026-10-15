@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class FoodexBrand {
-  static const green = Color(0xFF148638);
+  static const green = Color(0xFF158A3A);
   static const greenDark = Color(0xFF165D2D);
   static const greenBright = Color(0xFF27B658);
   static const greenSoft = Color(0xFFEAF7EF);
@@ -10,7 +10,7 @@ abstract final class FoodexBrand {
   static const orangeBright = Color(0xFFFC8F33);
   static const orangeSoft = Color(0xFFFFF1E6);
   static const blue = Color(0xFF4B8CF5);
-  static const red = Color(0xFFB42318);
+  static const red = Color(0xFFEF5350);
   static const ink = Color(0xFF172033);
   static const muted = Color(0xFF667085);
   static const surface = Color(0xFFFFFFFF);
