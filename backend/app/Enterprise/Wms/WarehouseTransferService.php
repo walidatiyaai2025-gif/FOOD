@@ -18,7 +18,7 @@ final class WarehouseTransferService
         private readonly AuditLogger $audit,
     ) {}
 
-    /** @param list<array{product_id:int,quantity:int|float|string}> $lines */
+    /** @param list<mixed> $lines */
     public function create(
         User $actor,
         int $sourceWarehouseId,
@@ -363,7 +363,7 @@ final class WarehouseTransferService
             ->get();
     }
 
-    /** @param list<array{product_id:int,quantity:int|float|string}> $lines
+    /** @param list<mixed> $lines
      * @return array<int, float>
      */
     private function normalizeLines(array $lines): array
