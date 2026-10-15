@@ -87,7 +87,7 @@ final class RestaurantMenuImportPreviewService
 
         try {
             $headerRow = fgetcsv($handle);
-            if (! is_array($headerRow) || $headerRow === []) {
+            if (! is_array($headerRow) || $this->blank($headerRow)) {
                 throw ValidationException::withMessages([
                     'menu_import' => [__('restaurant_onboarding.validation.import_headers')],
                 ]);
