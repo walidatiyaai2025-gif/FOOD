@@ -44,7 +44,8 @@ class _VanOffersPageState extends State<VanOffersPage>
   String _text(String en, String ar) =>
       Localizations.localeOf(context).languageCode == 'ar' ? ar : en;
 
-  String _customerTypeLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _customerTypeLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'b2b' || 'wholesale' => _text('Wholesale', 'جملة'),
         'b2c' || 'retail' => _text('Retail', 'تجزئة'),
         _ => _text('Customer', 'عميل'),
@@ -64,7 +65,8 @@ class _VanOffersPageState extends State<VanOffersPage>
     return _text('Offer', 'عرض');
   }
 
-  String _offerStatusLabel(String value) => switch (value.trim().toLowerCase()) {
+  String _offerStatusLabel(String value) =>
+      switch (value.trim().toLowerCase()) {
         'active' => _text('Active', 'نشط'),
         'scheduled' || 'upcoming' => _text('Scheduled', 'مجدول'),
         'expired' || 'ended' => _text('Ended', 'منتهي'),
@@ -204,9 +206,8 @@ class _VanOffersPageState extends State<VanOffersPage>
       return;
     }
 
-    final overrideReason = _canOverride
-        ? (_overrideReasons[product.id]?.trim() ?? '')
-        : '';
+    final overrideReason =
+        _canOverride ? (_overrideReasons[product.id]?.trim() ?? '') : '';
 
     try {
       final quote = await widget.commercialRepository.quoteForCustomer(
@@ -497,7 +498,8 @@ class _VanOffersPageState extends State<VanOffersPage>
                             'سبب التجاوز (للمشرف/المدير فقط)',
                           ),
                         ),
-                        onChanged: (value) => _overrideReasons[product.id] = value,
+                        onChanged: (value) =>
+                            _overrideReasons[product.id] = value,
                       ),
                     ],
                   ],
