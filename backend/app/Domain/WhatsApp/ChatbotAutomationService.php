@@ -372,12 +372,12 @@ final class ChatbotAutomationService
                 'cart_id' => $result['cart_id'],
                 'item_count' => $result['item_count'],
                 'draft_value' => $result['total'],
-                'skipped' => $result['skipped'] ?? 0,
+                'skipped' => $result['skipped'],
             ],
         );
 
         $prefix = $this->t('reorder_added');
-        if (($result['skipped'] ?? 0) > 0) {
+        if (($result['skipped']) > 0) {
             $prefix .= ' '.$this->t('some_items_skipped');
         }
 
