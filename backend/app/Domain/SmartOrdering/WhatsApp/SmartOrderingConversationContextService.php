@@ -10,7 +10,7 @@ final class SmartOrderingConversationContextService
 {
     /**
      * @param  list<int>  $allowedStoreIds
-     * @return array{orders:list<array<string,mixed>>,timeline:Collection<int,array<string,mixed>>}
+     * @return array{orders:array<int,array<string,mixed>>,timeline:Collection}
      */
     public function forConversation(int $conversationId, array $allowedStoreIds): array
     {
