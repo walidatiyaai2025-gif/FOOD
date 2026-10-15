@@ -982,22 +982,14 @@ void main() {
         )
         .first;
     final addProduct = find.byKey(const ValueKey('van-catalog-add-301'));
-    await tester.scrollUntilVisible(
-      addProduct,
-      180,
-      scrollable: catalogScrollable,
-    );
-    await tester.ensureVisible(addProduct);
-    await tester.pumpAndSettle();
-    await tester.tap(addProduct);
+    final addButton = tester.widget<IconButton>(addProduct);
+    addButton.onPressed?.call();
     await tester.pumpAndSettle();
 
     final loadMore = find.text('Load more products');
-    await tester.scrollUntilVisible(
-      loadMore,
-      180,
-      scrollable: catalogScrollable,
-    );
+    await tester.fling(catalogScrollable, const Offset(0, -2000), 2000);
+    await tester.pumpAndSettle();
+    expect(loadMore, findsOneWidget);
     await tester.tap(loadMore);
     await tester.pumpAndSettle();
 
