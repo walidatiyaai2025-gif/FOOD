@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/auth/driver_session.dart';
@@ -10,7 +11,6 @@ import '../../../core/preview/driver_preview_context.dart';
 import '../../../core/theme/foodex_theme.dart';
 import '../driver_assignment_contract.dart';
 import '../../wallet/driver_wallet_contract.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 typedef DriverActiveAssignmentCallback = Future<void> Function(
   DriverAssignment assignment,
@@ -142,30 +142,27 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       final rows = await widget.repository.list(widget.channel);
       if (!mounted) return;
 
-      final visible = rows
-          .where((row) => row.channel == widget.channel)
-          .where((row) {
-            final preview = widget.previewContext;
-            return preview == null ||
-                preview.allowsAssignment(
-                  assignmentChannel: row.channel,
-                  assignmentStoreId: row.storeId,
-                );
-          })
-          .where((row) {
-            final focusAssignmentId = widget.focusAssignmentId;
-            if (focusAssignmentId != null) {
-              return row.id == focusAssignmentId;
-            }
+      final visible =
+          rows.where((row) => row.channel == widget.channel).where((row) {
+        final preview = widget.previewContext;
+        return preview == null ||
+            preview.allowsAssignment(
+              assignmentChannel: row.channel,
+              assignmentStoreId: row.storeId,
+            );
+      }).where((row) {
+        final focusAssignmentId = widget.focusAssignmentId;
+        if (focusAssignmentId != null) {
+          return row.id == focusAssignmentId;
+        }
 
-            final status = widget.initialAssignmentStatus;
-            if (status != null && status.trim().isNotEmpty) {
-              return row.status == status;
-            }
+        final status = widget.initialAssignmentStatus;
+        if (status != null && status.trim().isNotEmpty) {
+          return row.status == status;
+        }
 
-            return !_terminalStatuses.contains(row.status);
-          })
-          .toList(growable: false);
+        return !_terminalStatuses.contains(row.status);
+      }).toList(growable: false);
 
       setState(() {
         _assignments = visible;
@@ -325,10 +322,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     }
   }
 
-  Future<void> _requestFailure(
-    DriverAssignment assignment,
-    String note,
-  ) async {
+  Future<void> _requestFailure(DriverAssignment assignment, String note) async {
     if (!_allows(assignment, 'failed') ||
         _busyAssignments.contains(assignment.id)) {
       return;
@@ -394,47 +388,83 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     }
     final collectionRepository = repository as DriverCollectionRepository;
 
-    final amountController = TextEditingController(
-      text: foodexMoneyAmount(settlement.amountToCollectNow, settlement.currency),
+    var amountText = foodexMoneyAmount(
+      settlement.amountToCollectNow,
+      settlement.currency,
     );
+    final precisionSample = foodexMoneyAmount(0, settlement.currency);
+    final decimalIndex = precisionSample.indexOf('.');
+    final fractionDigits =
+        decimalIndex < 0 ? 0 : precisionSample.length - decimalIndex - 1;
+    final amountPattern = RegExp(r'^\d+(?:\.\d+)?$');
     final amount = await showDialog<double>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('driver.collection.collect_and_deliver')),
-        content: TextField(
-          key: const Key('driver-collection-amount'),
-          controller: amountController,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: context.tr('driver.collection.amount'),
-            suffixText: settlement.currency,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.tr('driver.action.cancel')),
-          ),
-          FilledButton(
-            key: const Key('driver-collection-confirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(
-              double.tryParse(amountController.text.trim()),
-            ),
-            child: Text(context.tr('driver.action.confirm')),
-          ),
-        ],
-      ),
-    );
-    amountController.dispose();
+      builder: (dialogContext) {
+        String? amountError;
 
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            void confirmAmount() {
+              final raw = amountText.trim();
+              final parsed = double.tryParse(raw);
+              final fraction = raw.contains('.') ? raw.split('.').last : '';
+              final valid = parsed != null &&
+                  parsed > 0 &&
+                  parsed <= settlement.amountToCollectNow + 0.0005 &&
+                  amountPattern.hasMatch(raw) &&
+                  fraction.length <= fractionDigits;
+
+              if (!valid) {
+                setDialogState(() {
+                  amountError = dialogContext.tr(
+                    'driver.collection.invalid_amount',
+                  );
+                });
+                return;
+              }
+
+              Navigator.of(dialogContext).pop(parsed);
+            }
+
+            return AlertDialog(
+              title: Text(
+                dialogContext.tr('driver.collection.collect_and_deliver'),
+              ),
+              content: TextFormField(
+                key: const Key('driver-collection-amount'),
+                initialValue: amountText,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textInputAction: TextInputAction.done,
+                onChanged: (value) => amountText = value,
+                onFieldSubmitted: (_) => confirmAmount(),
+                decoration: InputDecoration(
+                  labelText: dialogContext.tr('driver.collection.amount'),
+                  suffixText: settlement.currency,
+                  helperText:
+                      '${dialogContext.tr('driver.settlement.collect_now')}: ${foodexMoneyText(settlement.amountToCollectNow, settlement.currency)}',
+                  errorText: amountError,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(dialogContext.tr('driver.action.cancel')),
+                ),
+                FilledButton(
+                  key: const Key('driver-collection-confirm'),
+                  onPressed: confirmAmount,
+                  child: Text(dialogContext.tr('driver.action.confirm')),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
     if (amount == null || !mounted) return;
-    if (amount <= 0 || amount > settlement.amountToCollectNow + 0.0005) {
-      setState(() {
-        _actionError = context.tr('driver.collection.invalid_amount');
-      });
-      return;
-    }
     if (_busyAssignments.contains(assignment.id)) return;
 
     setState(() {
@@ -543,9 +573,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
               children: [
                 Text(
                   context.tr('driver.action.start_delivery'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -570,12 +601,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                     if (_allows(assignment, 'failed')) ...[
                       Expanded(
                         child: OutlinedButton(
-                          key: Key(
-                            'driver-active-failed-${assignment.id}',
-                          ),
-                          onPressed: () => Navigator.of(sheetContext).pop(
-                            _StartDeliveryDecision.failed(note),
-                          ),
+                          key: Key('driver-active-failed-${assignment.id}'),
+                          onPressed: () => Navigator.of(sheetContext)
+                              .pop(_StartDeliveryDecision.failed(note)),
                           child: Text(
                             context.tr('driver.action.delivery_failed'),
                           ),
@@ -588,13 +616,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                         key: Key(
                           'driver-active-confirm-start-${assignment.id}',
                         ),
-                        onPressed: () => Navigator.of(sheetContext).pop(
-                          _StartDeliveryDecision.start(note),
-                        ),
+                        onPressed: () => Navigator.of(sheetContext)
+                            .pop(_StartDeliveryDecision.start(note)),
                         child: Text(
-                          context.tr(
-                            'driver.action.confirm_start_delivery',
-                          ),
+                          context.tr('driver.action.confirm_start_delivery'),
                         ),
                       ),
                     ),
@@ -675,8 +700,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final busy = _busyAssignments.contains(assignment.id);
     final buttons = <Widget>[];
 
-    if (assignment.status == 'assigned' &&
-        _allows(assignment, 'accepted')) {
+    if (assignment.status == 'assigned' && _allows(assignment, 'accepted')) {
       buttons.add(
         FilledButton(
           key: Key('driver-detail-accept-${assignment.id}'),
@@ -692,8 +716,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       );
     }
 
-    if (assignment.status == 'accepted' &&
-        _allows(assignment, 'picked_up')) {
+    if (assignment.status == 'accepted' && _allows(assignment, 'picked_up')) {
       buttons.add(
         FilledButton.tonal(
           key: Key('driver-detail-pickup-${assignment.id}'),
@@ -763,11 +786,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       return Text(context.tr('driver.action.none'));
     }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: buttons,
-    );
+    return Wrap(spacing: 8, runSpacing: 8, children: buttons);
   }
 
   Future<void> _shareInvoicePdf(DriverAssignment assignment) async {
@@ -955,7 +974,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
         : _dateRange;
     if (range == null) return _assignments;
 
-    final start = DateTime(range.start.year, range.start.month, range.start.day);
+    final start = DateTime(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
     final end = DateTime(
       range.end.year,
       range.end.month,
@@ -977,10 +1000,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
     final initial = _dateRange ??
-        DateTimeRange(
-          start: now.subtract(const Duration(days: 7)),
-          end: now,
-        );
+        DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 3),
@@ -1144,7 +1164,6 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-
                               ],
                             ),
                           ),
@@ -1303,6 +1322,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       final translated = context.tr(key);
       return translated == key ? value : translated;
     }
+
     String money(double amount, String currency) =>
         foodexMoneyText(amount, currency);
 
@@ -1312,9 +1332,10 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
       children: [
         Text(
           context.tr('driver.detail.title'),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 18),
         _DetailRow(
@@ -1400,9 +1421,10 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             context.tr('driver.detail.actions'),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           actions!,
@@ -1442,9 +1464,10 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                 children: [
                   Text(
                     context.tr('driver.settlement.title'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 8),
                   _DetailRow(
@@ -1453,11 +1476,17 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                   ),
                   _DetailRow(
                     label: context.tr('driver.settlement.balance_applied'),
-                    value: money(settlement.balanceApplied, settlement.currency),
+                    value: money(
+                      settlement.balanceApplied,
+                      settlement.currency,
+                    ),
                   ),
                   _DetailRow(
                     label: context.tr('driver.settlement.remaining'),
-                    value: money(settlement.remainingAmount, settlement.currency),
+                    value: money(
+                      settlement.remainingAmount,
+                      settlement.currency,
+                    ),
                   ),
                   _DetailRow(
                     label: context.tr('driver.settlement.remainder_method'),
@@ -1501,7 +1530,11 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         ),
         _DetailRow(
           label: context.tr('driver.detail.total'),
-          value: foodexMoneyText(assignment.grandTotal, assignment.currency, currencyFirst: true),
+          value: foodexMoneyText(
+            assignment.grandTotal,
+            assignment.currency,
+            currencyFirst: true,
+          ),
         ),
         _DetailRow(
           label: context.tr('driver.detail.note'),
@@ -1510,9 +1543,10 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           context.tr('driver.detail.items'),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         if (assignment.items.isEmpty)
@@ -1599,7 +1633,8 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                               '${context.tr('driver.detail.item_case')}: '
                               '${item.caseSize.toStringAsFixed(3)}',
                             ),
-                          if ((item.quantityConversionFactor - 1).abs() > 0.0001)
+                          if ((item.quantityConversionFactor - 1).abs() >
+                              0.0001)
                             Text(
                               '${context.tr('driver.detail.item_conversion')}: '
                               '${item.quantityConversionFactor.toStringAsFixed(3)}',
@@ -1630,10 +1665,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
   }
 }
 
-Future<void> _showInvoice(
-  BuildContext context,
-  DriverInvoice invoice,
-) async {
+Future<void> _showInvoice(BuildContext context, DriverInvoice invoice) async {
   String label(String namespace, String value) {
     if (value.trim().isEmpty) return context.tr('driver.detail.unknown');
     final key = '$namespace.${value.toLowerCase()}';
@@ -1688,28 +1720,23 @@ Future<void> _showInvoice(
               const Divider(height: 24),
               _DetailRow(
                 label: context.tr('driver.invoice.subtotal'),
-                value:
-                    foodexMoneyText(invoice.subtotal, invoice.currency),
+                value: foodexMoneyText(invoice.subtotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.discount'),
-                value:
-                    foodexMoneyText(invoice.discountTotal, invoice.currency),
+                value: foodexMoneyText(invoice.discountTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.delivery'),
-                value:
-                    foodexMoneyText(invoice.deliveryTotal, invoice.currency),
+                value: foodexMoneyText(invoice.deliveryTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.tax'),
-                value:
-                    foodexMoneyText(invoice.taxTotal, invoice.currency),
+                value: foodexMoneyText(invoice.taxTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.total'),
-                value:
-                    foodexMoneyText(invoice.grandTotal, invoice.currency),
+                value: foodexMoneyText(invoice.grandTotal, invoice.currency),
               ),
               _DetailRow(
                 label: context.tr('driver.invoice.payment'),
@@ -1732,10 +1759,7 @@ Future<void> _showInvoice(
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -1748,10 +1772,7 @@ class _DetailRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 110,
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              child: Text(label, style: Theme.of(context).textTheme.bodySmall),
             ),
             const SizedBox(width: 8),
             Expanded(child: Text(value)),
@@ -1761,10 +1782,7 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _StartDeliveryDecision {
-  const _StartDeliveryDecision._({
-    required this.failed,
-    required this.note,
-  });
+  const _StartDeliveryDecision._({required this.failed, required this.note});
 
   factory _StartDeliveryDecision.start(String note) =>
       _StartDeliveryDecision._(failed: false, note: note);
@@ -1777,10 +1795,7 @@ class _StartDeliveryDecision {
 }
 
 class _RetryState extends StatelessWidget {
-  const _RetryState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _RetryState({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
