@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\RestaurantSaaS\RestaurantOperatorService;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\SystemInspectorEvent;
@@ -24,7 +25,11 @@ use Throwable;
 
 final class SystemInspectorController extends Controller
 {
-    public function index(Request $request, EnterpriseSystemInspector $enterpriseInspector): View
+    public function index(
+        Request $request,
+        EnterpriseSystemInspector $enterpriseInspector,
+        RestaurantOperatorService $restaurantOperator,
+    ): View
     {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -34,6 +39,11 @@ final class SystemInspectorController extends Controller
         $appBuild = trim((string) $request->query('app_build', ''));
         $channel = trim((string) $request->query('channel', ''));
         $storeId = $request->integer('store_id');
+        $restaurantStoreId = $request->integer('restaurant_store_id');
+        $restaurantStore = $restaurantStoreId > 0
+            ? $restaurantOperator->store($restaurantStoreId)
+            : null;
+        abort_if($restaurantStoreId > 0 && ! ($restaurantStore instanceof Store), 404);
 
         $query = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
@@ -67,6 +77,11 @@ final class SystemInspectorController extends Controller
             'channel' => $channel,
             'storeId' => $storeId,
             'stores' => Store::query()->select(['id', 'name', 'code'])->orderBy('name')->orderBy('id')->get(),
+            'restaurantStores' => $restaurantOperator->stores(),
+            'restaurantStoreId' => $restaurantStoreId,
+            'restaurantOperator' => $restaurantStore instanceof Store
+                ? $restaurantOperator->summary($restaurantStore)
+                : null,
             'stats' => [
                 'total' => SystemInspectorEvent::query()->count(),
                 'errors_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('severity', 'error')->count(),
@@ -77,6 +92,80 @@ final class SystemInspectorController extends Controller
             'diagnostics' => $this->diagnostics(),
             'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
+    }
+
+    public function grantRestaurantSupport(
+        Request $request,
+        Store $store,
+        RestaurantOperatorService $operator,
+    ): RedirectResponse {
+        $actor = $this->platformAdmin($request);
+        $data = $request->validate([
+            'case_reference' => ['required', 'string', 'max:120', 'regex:/^[A-Za-z0-9._:\\/-]{3,120}$/'],
+            'reason_code' => ['required', Rule::in(RestaurantOperatorService::SUPPORT_REASON_CODES)],
+            'ttl_minutes' => ['required', 'integer', Rule::in(RestaurantOperatorService::SUPPORT_TTL_MINUTES)],
+        ]);
+
+        $operator->grantSupportAccess(
+            $store,
+            $actor,
+            (string) $data['case_reference'],
+            (string) $data['reason_code'],
+            (int) $data['ttl_minutes'],
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.inspector.index', ['restaurant_store_id' => (int) $store->getKey()])
+            ->with('status', __('restaurant_operator.flash.support_granted'));
+    }
+
+    public function revokeRestaurantSupport(
+        Request $request,
+        Store $store,
+        RestaurantOperatorService $operator,
+    ): RedirectResponse {
+        $actor = $this->platformAdmin($request);
+        $operator->revokeSupportAccess($store, $actor, $request);
+
+        return redirect()
+            ->route('admin.inspector.index', ['restaurant_store_id' => (int) $store->getKey()])
+            ->with('status', __('restaurant_operator.flash.support_revoked'));
+    }
+
+    public function revokeRestaurantSupportSessions(
+        Request $request,
+        Store $store,
+        RestaurantOperatorService $operator,
+    ): RedirectResponse {
+        $actor = $this->platformAdmin($request);
+        $operator->revokeSupportSessions($store, $actor, $request);
+
+        return redirect()
+            ->route('admin.inspector.index', ['restaurant_store_id' => (int) $store->getKey()])
+            ->with('status', __('restaurant_operator.flash.sessions_revoked'));
+    }
+
+    public function transitionRestaurantLifecycle(
+        Request $request,
+        Store $store,
+        RestaurantOperatorService $operator,
+    ): RedirectResponse {
+        $actor = $this->platformAdmin($request);
+        $data = $request->validate([
+            'target_state' => ['required', Rule::in(['CANCELED', 'OFFBOARDED'])],
+        ]);
+
+        $operator->transitionLifecycle(
+            $store,
+            $actor,
+            (string) $data['target_state'],
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.inspector.index', ['restaurant_store_id' => (int) $store->getKey()])
+            ->with('status', __('restaurant_operator.flash.lifecycle_updated'));
     }
 
     public function clientEvent(Request $request, SystemInspectorRecorder $recorder): JsonResponse
