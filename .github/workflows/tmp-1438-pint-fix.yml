@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - feat/1438-whatsapp-campaign-builder-reports
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   pint-fix:
+    if: github.head_ref == 'feat/1438-whatsapp-campaign-builder-reports' || github.ref == 'refs/heads/feat/1438-whatsapp-campaign-builder-reports'
     runs-on: ubuntu-latest
     defaults:
       run:
