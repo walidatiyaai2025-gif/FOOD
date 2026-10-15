@@ -453,6 +453,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar'), Locale('en')],
           home: Directionality(
             textDirection: TextDirection.rtl,
             child: RetailCheckoutScreen(
