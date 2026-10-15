@@ -6,6 +6,8 @@ use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenu;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenuCategory;
 use App\Domain\SmartOrdering\Models\SmartOrderingMenuItem;
+use App\Domain\SmartOrdering\Models\SmartOrderingRevision;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingAvailabilityService;
 use App\Domain\SmartOrdering\SmartOrderingMenuRevisionService;
 use App\Domain\SmartOrdering\SmartOrderingMenuWriteService;
@@ -320,7 +322,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertDontSee('config_json');
     }
 
-    /** @return array{draft:\App\Domain\SmartOrdering\Models\SmartOrderingRevision,menu:SmartOrderingMenu,category:SmartOrderingMenuCategory,item:SmartOrderingMenuItem} */
+    /** @return array{draft:SmartOrderingRevision,menu:SmartOrderingMenu,category:SmartOrderingMenuCategory,item:SmartOrderingMenuItem} */
     private function draftItem(array $fixture, SmartOrderingMenuWriteService $writer, array $itemOverrides = []): array
     {
         $draft = app(SmartOrderingMenuRevisionService::class)->draft($fixture['admin'], $fixture['site']);
@@ -374,7 +376,7 @@ class SmartOrderingMenuDomainTest extends TestCase
         ]);
     }
 
-    /** @return array{store_id:int,product_id:int,admin:User,site:\App\Domain\SmartOrdering\Models\SmartOrderingSite} */
+    /** @return array{store_id:int,product_id:int,admin:User,site:SmartOrderingSite} */
     private function fixture(string $suffix, float $price): array
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
