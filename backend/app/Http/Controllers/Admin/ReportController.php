@@ -397,5 +397,3 @@ final class ReportController extends Controller
             ->when($storeId !== null, fn (Builder $query) => $query->where('store_id', $storeId))
             ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('store_id', $storeIds));
     }
-
-}
