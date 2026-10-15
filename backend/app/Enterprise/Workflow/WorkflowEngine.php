@@ -202,6 +202,16 @@ final class WorkflowEngine
         });
     }
 
+    private function statusOf(EnterpriseWorkflowRequest $request): WorkflowStatus
+    {
+        $status = $request->getAttribute('status');
+        if (! $status instanceof WorkflowStatus) {
+            throw new LogicException('Workflow request has an invalid status.');
+        }
+
+        return $status;
+    }
+
     public function cancel(int $requestId, User $actor): EnterpriseWorkflowRequest
     {
         return DB::transaction(function () use ($requestId, $actor): EnterpriseWorkflowRequest {
