@@ -397,7 +397,7 @@ final class SmartOrderingMenuWriteService
     }
 
     /**
-     * @param list<array{public_id:string,sort_order:int}> $positions
+     * @param  list<array{public_id:string,sort_order:int}>  $positions
      */
     public function reorder(
         User $actor,
@@ -433,7 +433,7 @@ final class SmartOrderingMenuWriteService
     }
 
     /**
-     * @param list<string> $publicIds
+     * @param  list<string>  $publicIds
      */
     public function bulkAvailability(
         User $actor,
@@ -667,7 +667,7 @@ final class SmartOrderingMenuWriteService
     }
 
     /**
-     * @param array<string,mixed> $values
+     * @param  array<string,mixed>  $values
      */
     private function upsertOverride(
         string $table,
@@ -683,7 +683,7 @@ final class SmartOrderingMenuWriteService
     }
 
     /** @param array<string,mixed> $data
-     * @param list<string> $keys
+     * @param  list<string>  $keys
      * @return array<string,mixed>
      */
     private function pick(array $data, array $keys): array
