@@ -103,9 +103,15 @@ final readonly class ReportQuery
         }
 
         try {
-            return CarbonImmutable::createFromFormat('!Y-m-d', $value);
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $value);
         } catch (\Throwable) {
             throw ValidationException::withMessages([$field => ['Report dates must use YYYY-MM-DD.']]);
         }
+
+        if (! $date instanceof CarbonImmutable || $date->format('Y-m-d') !== $value) {
+            throw ValidationException::withMessages([$field => ['Report dates must use YYYY-MM-DD.']]);
+        }
+
+        return $date;
     }
 }
