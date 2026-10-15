@@ -92,34 +92,43 @@ final class EnterpriseModuleAdministration
 
     private function enable(string $code, ModuleState $state, ?Authenticatable $actor): EnterpriseModule
     {
-        if ($state === ModuleState::NOT_INSTALLED) {
-            $this->lifecycle->transition($code, ModuleState::INSTALLED, $actor);
-            $state = ModuleState::INSTALLED;
-        }
+        return match ($state) {
+            ModuleState::NOT_INSTALLED => $this->enableAfterTransition(
+                $code,
+                ModuleState::INSTALLED,
+                ModuleState::INSTALLED,
+                $actor,
+            ),
+            ModuleState::INSTALLED => $this->enableAfterTransition(
+                $code,
+                ModuleState::DISABLED,
+                ModuleState::DISABLED,
+                $actor,
+            ),
+            ModuleState::DISABLED, ModuleState::ERROR => $this->enableAfterTransition(
+                $code,
+                ModuleState::ENABLING,
+                ModuleState::ENABLING,
+                $actor,
+            ),
+            ModuleState::ENABLING, ModuleState::SUSPENDED, ModuleState::MAINTENANCE => $this->lifecycle->transition(
+                $code,
+                ModuleState::ENABLED,
+                $actor,
+            ),
+            ModuleState::ENABLED => $this->registry->requireRegistration($code),
+        };
+    }
 
-        if ($state === ModuleState::INSTALLED) {
-            $this->lifecycle->transition($code, ModuleState::DISABLED, $actor);
-            $state = ModuleState::DISABLED;
-        }
+    private function enableAfterTransition(
+        string $code,
+        ModuleState $target,
+        ModuleState $next,
+        ?Authenticatable $actor,
+    ): EnterpriseModule {
+        $this->lifecycle->transition($code, $target, $actor);
 
-        if (in_array($state, [ModuleState::DISABLED, ModuleState::ERROR], true)) {
-            $this->lifecycle->transition($code, ModuleState::ENABLING, $actor);
-            $state = ModuleState::ENABLING;
-        }
-
-        if ($state === ModuleState::ENABLING) {
-            return $this->lifecycle->transition($code, ModuleState::ENABLED, $actor);
-        }
-
-        if (in_array($state, [ModuleState::SUSPENDED, ModuleState::MAINTENANCE], true)) {
-            return $this->lifecycle->transition($code, ModuleState::ENABLED, $actor);
-        }
-
-        if ($state === ModuleState::ENABLED) {
-            return $this->registry->requireRegistration($code);
-        }
-
-        throw new LogicException('Module cannot be enabled from its current lifecycle state.');
+        return $this->enable($code, $next, $actor);
     }
 
     private function disable(string $code, ModuleState $state, ?Authenticatable $actor): EnterpriseModule
@@ -175,7 +184,9 @@ final class EnterpriseModuleAdministration
         ?EnterpriseModule $registration,
         Collection $entitlements,
     ): array {
-        $state = $registration?->state ?? ModuleState::NOT_INSTALLED;
+        $state = $registration instanceof EnterpriseModule
+            ? $registration->state
+            : ModuleState::NOT_INSTALLED;
 
         return [
             'code' => $manifest->code,
@@ -196,7 +207,7 @@ final class EnterpriseModuleAdministration
             'entitlements' => $entitlements->map(static fn ($row): array => [
                 'scope_type' => (string) $row->scope_type,
                 'enabled' => (bool) $row->is_enabled,
-                'count' => (int) $row->aggregate,
+                'count' => (int) $row->getAttribute('aggregate'),
             ])->values()->all(),
             'actions' => $this->actionsFor($state),
         ];
