@@ -1407,11 +1407,9 @@ void main() {
     expect(find.byKey(const ValueKey('van-order-7101')), findsOneWidget);
     expect(orders.requestedOrderPages.sublist(4), [1, 2, 3]);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('van-orders-filter-new')),
-      -400,
-      scrollable: scrollable,
-    );
+    final newFilter = find.byKey(const ValueKey('van-orders-filter-new'));
+    await tester.ensureVisible(newFilter);
+    await tester.pumpAndSettle();
     final selected = tester.widget<ChoiceChip>(
       find.byKey(const ValueKey('van-orders-filter-new')),
     );
