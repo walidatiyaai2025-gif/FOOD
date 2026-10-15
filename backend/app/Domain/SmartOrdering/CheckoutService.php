@@ -177,7 +177,7 @@ final class CheckoutService
                 $pricingLines,
                 $quote,
                 (int) $customer->legacy_customer_id,
-                is_array($lockedCart->merchandising_context) ? $lockedCart->merchandising_context : null,
+                $lockedCart->merchandisingContext(),
                 $deliveryGross,
                 true,
             );
