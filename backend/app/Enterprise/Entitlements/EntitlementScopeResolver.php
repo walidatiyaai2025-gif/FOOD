@@ -21,6 +21,7 @@ final class EntitlementScopeResolver
             EntitlementScope::LEGAL_ENTITY => $this->legalEntityLineage((int) $scope->id),
             EntitlementScope::BUSINESS_UNIT => $this->businessUnitLineage((int) $scope->id),
             EntitlementScope::STORE => $this->storeLineage((int) $scope->id),
+            default => [],
         };
     }
 
