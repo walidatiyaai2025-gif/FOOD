@@ -188,7 +188,9 @@ final class SupplierDirectory
                     'document_id' => $document->id,
                     'category' => $document->category,
                     'title' => $document->title,
-                    'expires_at' => $document->expires_at?->toDateString(),
+                    'expires_at' => $document->getRawOriginal('expires_at') === null
+                        ? null
+                        : (string) $document->getRawOriginal('expires_at'),
                 ],
             );
 
