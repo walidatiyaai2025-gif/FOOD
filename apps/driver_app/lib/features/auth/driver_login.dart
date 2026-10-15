@@ -150,7 +150,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                   end: Alignment.bottomCenter,
                   colors: [
                     FoodexBrand.greenDark,
-                    FoodexBrand.green,
+                    FoodexBrand.actionGreen,
                     Theme.of(context).scaffoldBackgroundColor,
                     Theme.of(context).scaffoldBackgroundColor,
                   ],
@@ -185,17 +185,19 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                               Text(
                                 context.tr('driver.login.welcome'),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w900),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 context.tr('driver.login.subtitle'),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: FoodexBrand.muted,
-                                    ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: FoodexBrand.muted),
                               ),
                               const SizedBox(height: 24),
                               if (!configured)
@@ -222,7 +224,9 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   enableSuggestions: false,
                                   decoration: InputDecoration(
                                     labelText: context.tr('driver.login.email'),
-                                    prefixIcon: const Icon(Icons.alternate_email_rounded),
+                                    prefixIcon: const Icon(
+                                      Icons.alternate_email_rounded,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 14),
@@ -235,8 +239,12 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   autocorrect: false,
                                   enableSuggestions: false,
                                   decoration: InputDecoration(
-                                    labelText: context.tr('driver.login.password'),
-                                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                    labelText: context.tr(
+                                      'driver.login.password',
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.lock_outline_rounded,
+                                    ),
                                     suffixIcon: IconButton(
                                       key: const Key('driver-password-toggle'),
                                       tooltip: context.tr(
@@ -245,7 +253,8 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                             : 'driver.login.show_password',
                                       ),
                                       onPressed: () => setState(
-                                        () => _passwordVisible = !_passwordVisible,
+                                        () => _passwordVisible =
+                                            !_passwordVisible,
                                       ),
                                       icon: Icon(
                                         _passwordVisible
@@ -272,7 +281,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                       context.tr(_errorKey!),
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
-                                        color: FoodexBrand.red,
+                                        color: FoodexBrand.dangerText,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -290,14 +299,17 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                           ),
                                         )
                                       : const Icon(Icons.login_rounded),
-                                  label: Text(context.tr('driver.login.submit')),
+                                  label: Text(
+                                    context.tr('driver.login.submit'),
+                                  ),
                                 ),
                                 if (_savedBiometricLogin) ...[
                                   const SizedBox(height: 12),
                                   OutlinedButton.icon(
                                     key: const Key('driver-login-biometric'),
-                                    onPressed:
-                                        _submitting ? null : _loginWithBiometrics,
+                                    onPressed: _submitting
+                                        ? null
+                                        : _loginWithBiometrics,
                                     icon: const Icon(Icons.fingerprint_rounded),
                                     label: Text(
                                       context.tr('driver.login.biometric'),
@@ -308,10 +320,13 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 CheckboxListTile(
                                   key: const Key('driver-login-remember'),
                                   contentPadding: EdgeInsets.zero,
-                                  controlAffinity: ListTileControlAffinity.leading,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
                                   value: _rememberMe,
                                   dense: true,
-                                  title: Text(context.tr('driver.login.remember_me')),
+                                  title: Text(
+                                    context.tr('driver.login.remember_me'),
+                                  ),
                                   onChanged: _submitting
                                       ? null
                                       : (value) => setState(() {
@@ -323,13 +338,18 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 ),
                                 if (!_checkingBiometrics && _biometricAvailable)
                                   CheckboxListTile(
-                                    key: const Key('driver-login-biometric-toggle'),
+                                    key: const Key(
+                                      'driver-login-biometric-toggle',
+                                    ),
                                     contentPadding: EdgeInsets.zero,
-                                    controlAffinity: ListTileControlAffinity.leading,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
                                     value: _enableBiometrics,
                                     dense: true,
                                     title: Text(
-                                      context.tr('driver.login.enable_biometric'),
+                                      context.tr(
+                                        'driver.login.enable_biometric',
+                                      ),
                                     ),
                                     subtitle: Text(
                                       context.tr('driver.login.biometric_hint'),
@@ -337,7 +357,8 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     onChanged: _submitting
                                         ? null
                                         : (value) => setState(() {
-                                              _enableBiometrics = value ?? false;
+                                              _enableBiometrics =
+                                                  value ?? false;
                                               if (_enableBiometrics) {
                                                 _rememberMe = true;
                                               }
@@ -352,9 +373,10 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                       Text(
                         context.tr('driver.login.secure'),
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: FoodexBrand.muted,
-                            ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: FoodexBrand.muted),
                       ),
                     ],
                   ),

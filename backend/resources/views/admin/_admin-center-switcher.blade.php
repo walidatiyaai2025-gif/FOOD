@@ -9,7 +9,7 @@
 .admin-center-switcher__tabs{display:flex;gap:6px;align-items:center}
 .admin-center-switcher__tab{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;color:var(--foodex-ink);text-decoration:none;font-weight:800;border:1px solid transparent;white-space:nowrap}
 .admin-center-switcher__tab:hover{background:var(--foodex-background)}
-.admin-center-switcher__tab.is-active{background:var(--foodex-green);color:#fff}
+.admin-center-switcher__tab.is-active{background:var(--foodex-action-green);color:#fff}
 @media(max-width:680px){.admin-center-switcher{align-items:stretch;flex-direction:column;margin-bottom:16px}.admin-center-switcher__tabs{display:grid;grid-template-columns:1fr 1fr}.admin-center-switcher__tab{width:100%}}
 </style>
 <nav class="admin-center-switcher" aria-label="{{ __('admin.settings_center.switcher_aria') }}">

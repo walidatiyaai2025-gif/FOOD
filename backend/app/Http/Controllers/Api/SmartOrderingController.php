@@ -68,6 +68,28 @@ final class SmartOrderingController extends Controller
         return response()->json(['data' => $carts->add($model, $data)], 201);
     }
 
+    public function addMenuItem(
+        string $cart,
+        string $item,
+        Request $request,
+        CartService $carts,
+    ): JsonResponse {
+        $model = $carts->authorized($cart, $this->cartToken($request));
+        $data = $request->validate([
+            'quantity' => ['required', 'numeric', 'gt:0', 'max:999'],
+            'selections' => ['nullable', 'array', 'max:20'],
+            'selections.*' => ['array'],
+            'selections.*.group_id' => ['required', 'uuid'],
+            'selections.*.option_ids' => ['required', 'array', 'max:20'],
+            'selections.*.option_ids.*' => ['uuid'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        return response()->json([
+            'data' => $carts->addMenuItem($model, $item, $data),
+        ], 201);
+    }
+
     public function updateItem(
         string $cart,
         string $item,

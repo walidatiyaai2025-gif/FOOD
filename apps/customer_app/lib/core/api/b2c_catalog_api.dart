@@ -129,16 +129,15 @@ class B2cProduct {
         brandImageUrl: json['brand_image_url'] as String?,
         imageUrl: json['image_url'] as String?,
         thumbnailUrl: json['thumbnail_url'] as String?,
-        images: (json['images'] as List?)
-                ?.whereType<String>()
-                .toList(growable: false) ??
+        images: (json['images'] as List?)?.whereType<String>().toList(
+                  growable: false,
+                ) ??
             const [],
         sellingUnits: (json['selling_units'] as List?)
                 ?.whereType<Map>()
                 .map(
-                  (value) => B2cSellingUnit.fromJson(
-                    Map<String, dynamic>.from(value),
-                  ),
+                  (value) =>
+                      B2cSellingUnit.fromJson(Map<String, dynamic>.from(value)),
                 )
                 .toList(growable: false) ??
             const [],
@@ -191,6 +190,35 @@ class B2cBanner {
       );
 }
 
+class B2cCatalogPage<T> {
+  const B2cCatalogPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+  });
+
+  final List<T> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+
+  int get lastPage {
+    if (total <= 0) return 1;
+    final pages = (total + perPage - 1) ~/ perPage;
+    return pages < 1 ? 1 : pages;
+  }
+
+  bool get hasNextPage => currentPage < lastPage;
+
+  factory B2cCatalogPage.single(List<T> items) => B2cCatalogPage<T>(
+        items: List<T>.unmodifiable(items),
+        currentPage: 1,
+        perPage: items.isEmpty ? 1 : items.length,
+        total: items.length,
+      );
+}
+
 abstract interface class B2cCatalogApi {
   Future<List<B2cStore>> stores();
   Future<List<B2cCategory>> categories(int storeId);
@@ -206,12 +234,33 @@ abstract interface class B2cCatalogApi {
   Future<B2cProduct> product(int productId, {required int storeId});
 }
 
-class HttpB2cCatalogApi implements B2cCatalogApi {
-  HttpB2cCatalogApi({
-    required this.baseUrl,
-    this.token,
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+abstract interface class B2cPagedCatalogApi implements B2cCatalogApi {
+  Future<B2cCatalogPage<B2cCategory>> categoryPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  });
+
+  Future<B2cCatalogPage<B2cProduct>> productPage(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+    int page = 1,
+    int perPage = 20,
+  });
+
+  Future<B2cCatalogPage<B2cOffer>> offerPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  });
+}
+
+class HttpB2cCatalogApi implements B2cPagedCatalogApi {
+  HttpB2cCatalogApi({required this.baseUrl, this.token, http.Client? client})
+      : _client = client ?? http.Client();
 
   final String baseUrl;
   final String? token;
@@ -222,11 +271,21 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       _collection('/api/v1/stores', B2cStore.fromJson);
 
   @override
-  Future<List<B2cCategory>> categories(int storeId) async {
+  Future<List<B2cCategory>> categories(int storeId) async =>
+      (await categoryPage(storeId)).items;
+
+  @override
+  Future<B2cCatalogPage<B2cCategory>> categoryPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
     _requireStoreId(storeId);
-    return _collection(
+    _requirePage(page, perPage);
+    return _pagedCollection(
       '/api/v1/stores/$storeId/categories',
       B2cCategory.fromJson,
+      query: {'page': '$page', 'per_page': '$perPage'},
       storeId: storeId,
     );
   }
@@ -238,6 +297,25 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
     int? categoryId,
     String? sort,
     String? direction,
+  }) async =>
+      (await productPage(
+        storeId,
+        query: query,
+        categoryId: categoryId,
+        sort: sort,
+        direction: direction,
+      ))
+          .items;
+
+  @override
+  Future<B2cCatalogPage<B2cProduct>> productPage(
+    int storeId, {
+    String? query,
+    int? categoryId,
+    String? sort,
+    String? direction,
+    int page = 1,
+    int perPage = 20,
   }) async {
     final params = <String, String>{
       if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
@@ -245,9 +323,12 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
       if (sort != null && sort.trim().isNotEmpty) 'sort': sort.trim(),
       if (direction != null && direction.trim().isNotEmpty)
         'direction': direction.trim(),
+      'page': '$page',
+      'per_page': '$perPage',
     };
     _requireStoreId(storeId);
-    return _collection(
+    _requirePage(page, perPage);
+    return _pagedCollection(
       '/api/v1/stores/$storeId/products',
       B2cProduct.fromJson,
       query: params,
@@ -256,11 +337,21 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
   }
 
   @override
-  Future<List<B2cOffer>> offers(int storeId) async {
+  Future<List<B2cOffer>> offers(int storeId) async =>
+      (await offerPage(storeId)).items;
+
+  @override
+  Future<B2cCatalogPage<B2cOffer>> offerPage(
+    int storeId, {
+    int page = 1,
+    int perPage = 20,
+  }) async {
     _requireStoreId(storeId);
-    return _collection(
+    _requirePage(page, perPage);
+    return _pagedCollection(
       '/api/v1/stores/$storeId/offers',
       B2cOffer.fromJson,
+      query: {'page': '$page', 'per_page': '$perPage'},
       storeId: storeId,
     );
   }
@@ -306,6 +397,41 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
         .whereType<Map>()
         .map((item) => factory(Map<String, dynamic>.from(item)))
         .toList(growable: false);
+  }
+
+  Future<B2cCatalogPage<T>> _pagedCollection<T>(
+    String path,
+    T Function(Map<String, dynamic>) factory, {
+    Map<String, String> query = const {},
+    int? storeId,
+  }) async {
+    final body = await _get(path, query: query, storeId: storeId);
+    if (body is! Map || body['data'] is! List || body['meta'] is! Map) {
+      throw const B2cCatalogException('invalid_paginated_collection_response');
+    }
+
+    final meta = Map<String, dynamic>.from(body['meta'] as Map);
+    final currentPage = (meta['current_page'] as num?)?.toInt();
+    final perPage = (meta['per_page'] as num?)?.toInt();
+    final total = (meta['total'] as num?)?.toInt();
+    if (currentPage == null ||
+        currentPage <= 0 ||
+        perPage == null ||
+        perPage <= 0 ||
+        total == null ||
+        total < 0) {
+      throw const B2cCatalogException('invalid_pagination_metadata');
+    }
+
+    return B2cCatalogPage<T>(
+      items: (body['data'] as List)
+          .whereType<Map>()
+          .map((item) => factory(Map<String, dynamic>.from(item)))
+          .toList(growable: false),
+      currentPage: currentPage,
+      perPage: perPage,
+      total: total,
+    );
   }
 
   Future<Object?> _get(
@@ -355,6 +481,19 @@ class HttpB2cCatalogApi implements B2cCatalogApi {
   static void _requireStoreId(int storeId) {
     if (storeId <= 0) {
       throw ArgumentError.value(storeId, 'storeId', 'must be positive');
+    }
+  }
+
+  static void _requirePage(int page, int perPage) {
+    if (page <= 0) {
+      throw ArgumentError.value(page, 'page', 'must be positive');
+    }
+    if (perPage <= 0 || perPage > 100) {
+      throw ArgumentError.value(
+        perPage,
+        'perPage',
+        'must be between 1 and 100',
+      );
     }
   }
 }
