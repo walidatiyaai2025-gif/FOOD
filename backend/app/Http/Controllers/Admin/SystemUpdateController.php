@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Updater\UpdateManager;
 use App\Domain\Updater\UpdatePackageManifest;
+use App\Domain\Updater\UpdateVersion;
 use App\Http\Controllers\Controller;
 use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
@@ -12,6 +13,7 @@ use App\Services\MobileReleaseArtifactMirror;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 use Throwable;
@@ -53,8 +55,8 @@ final class SystemUpdateController extends Controller
 
         $validated = $request->validate([
             'package' => ['required', 'file', 'max:512000'],
-            'target_version' => ['required', 'string', 'max:64'],
-            'minimum_current_version' => ['required', 'string', 'max:64'],
+            'target_version' => ['required', 'string', 'max:64', 'regex:/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/'],
+            'minimum_current_version' => ['required', 'string', 'max:64', 'regex:/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/'],
             'sha256' => ['required', 'regex:/^[a-fA-F0-9]{64}$/'],
             'release_notes' => ['nullable', 'string', 'max:5000'],
             'contains_migrations' => ['nullable', 'boolean'],
@@ -136,21 +138,57 @@ final class SystemUpdateController extends Controller
 
     private function currentVersion(): string
     {
-        $version = SystemVersion::query()
+        $installed = SystemVersion::query()
             ->orderByDesc('installed_at')
             ->orderByDesc('id')
-            ->value('version');
+            ->first();
 
-        if (is_string($version) && $version !== '') {
+        if ($installed instanceof SystemVersion && $installed->version !== '') {
+            $version = UpdateVersion::normalizeInstalled($installed->version);
+
+            if ($version !== $installed->version && UpdateVersion::isCanonical($version)) {
+                $this->repairLegacyInstalledVersion($installed, $version);
+            }
+
             return $version;
         }
 
-        $version = trim((string) @file_get_contents(base_path('../VERSION')));
+        $version = UpdateVersion::normalizeInstalled(trim((string) @file_get_contents(base_path('../VERSION'))));
 
-        if ($version === '') {
+        if ($version === '' || ! UpdateVersion::isCanonical($version)) {
             throw new RuntimeException('Current FOODEX version could not be determined.');
         }
 
         return $version;
+    }
+
+    private function repairLegacyInstalledVersion(SystemVersion $installed, string $canonicalVersion): void
+    {
+        $legacyVersion = (string) $installed->version;
+
+        DB::transaction(function () use ($installed, $legacyVersion, $canonicalVersion): void {
+            $canonical = SystemVersion::query()
+                ->where('version', $canonicalVersion)
+                ->first();
+
+            if ($canonical instanceof SystemVersion) {
+                $canonical->forceFill([
+                    'installed_at' => $installed->installed_at,
+                    'package_hash' => $installed->package_hash,
+                ])->save();
+
+                $installed->delete();
+            } else {
+                $installed->forceFill(['version' => $canonicalVersion])->save();
+            }
+
+            UpdateHistory::query()
+                ->where('from_version', $legacyVersion)
+                ->update(['from_version' => $canonicalVersion]);
+
+            UpdateHistory::query()
+                ->where('to_version', $legacyVersion)
+                ->update(['to_version' => $canonicalVersion]);
+        });
     }
 }

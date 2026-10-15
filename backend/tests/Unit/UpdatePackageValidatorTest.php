@@ -32,6 +32,24 @@ class UpdatePackageValidatorTest extends TestCase
         $this->assertTrue($result['contains_migrations']);
     }
 
+    public function test_legacy_compact_installed_version_is_normalized_for_upgrade_comparison(): void
+    {
+        $manifest = new UpdatePackageManifest('1.0.85', '1.0.84', hash_file('sha256', $this->packagePath), 'Release', false);
+
+        $result = (new UpdatePackageValidator)->validate($manifest, '1.084', $this->packagePath);
+
+        $this->assertSame('1.0.84', $result['current_version']);
+        $this->assertSame('1.0.85', $result['target_version']);
+    }
+
+    public function test_noncanonical_manifest_version_is_rejected(): void
+    {
+        $manifest = new UpdatePackageManifest('1.086', '1.0.84', hash_file('sha256', $this->packagePath), 'Release', false);
+
+        $this->expectException(InvalidArgumentException::class);
+        (new UpdatePackageValidator)->validate($manifest, '1.0.84', $this->packagePath);
+    }
+
     public function test_tampered_package_is_rejected(): void
     {
         $manifest = new UpdatePackageManifest('1.2.0', '1.0.0', str_repeat('a', 64), 'Release', false);
