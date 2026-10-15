@@ -495,6 +495,138 @@ class DashboardCustomer360Test extends TestCase
             ->assertDontSee('Retail A · RETAIL-A');
     }
 
+    public function test_finance_invoice_picker_searches_complete_history_and_revalidates_selected_scope(): void
+    {
+        $retailStoreId = $this->store('B2C', 'FINANCE-PICKER-OWNER', 'Finance Picker Owner');
+        $retailStore = Store::query()->findOrFail($retailStoreId);
+        $owner = User::query()->create([
+            'name' => 'Finance Picker Owner',
+            'email' => 'finance-picker-owner@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $tierId = (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
+        $domain = app(RetailWholesaleAccountService::class)->ensureForStore($retailStore, $tierId, $owner);
+        $platform = PlatformCustomer::query()->where('user_id', $owner->id)->firstOrFail();
+        $wholesaleStoreId = app(WholesalePrincipal::class)->storeId();
+        $super = $this->globalAdmin('SUPER_ADMIN');
+
+        $invoiceIds = [];
+        foreach (range(1, 30) as $sequence) {
+            $invoiceIds[$sequence] = (int) DB::table('invoices')->insertGetId([
+                'store_id' => $wholesaleStoreId,
+                'customer_id' => $platform->legacy_customer_id,
+                'platform_customer_id' => $platform->id,
+                'b2b_customer_id' => $domain->id,
+                'b2c_customer_id' => null,
+                'invoice_number' => sprintf('FIN-PICK-%02d', $sequence),
+                'status' => 'issued',
+                'channel' => 'b2b',
+                'currency' => 'EGP',
+                'total' => 10 + $sequence,
+                'issued_at' => now()->subDays($sequence),
+                'created_at' => now()->subDays($sequence),
+                'updated_at' => now()->subDays($sequence),
+            ]);
+        }
+
+        $targetId = $invoiceIds[30];
+
+        $this->actingAs($super)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
+            ->assertOk()
+            ->assertSee('data-finance-invoice-picker', false)
+            ->assertSee('name="invoice_id"', false)
+            ->assertDontSee('<select name="invoice_id"', false);
+
+        $this->actingAs($super)
+            ->getJson(route('admin.customer-360.finance-invoices', [
+                'platformCustomer' => $platform->id,
+                'q' => 'FIN-PICK-30',
+                'entry_type' => 'payment',
+            ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'results')
+            ->assertJsonPath('currency', 'EGP')
+            ->assertJsonPath('results.0.id', $targetId)
+            ->assertJsonPath('results.0.internal_number', 'FIN-PICK-30')
+            ->assertJsonPath('results.0.status_label', 'Issued')
+            ->assertJsonPath('results.0.outstanding', 40);
+
+        $this->actingAs($super)
+            ->getJson(route('admin.customer-360.finance-invoices', [
+                'platformCustomer' => $platform->id,
+                'q' => 'does-not-match',
+                'selected_id' => $targetId,
+            ]))
+            ->assertOk()
+            ->assertJsonCount(0, 'results')
+            ->assertJsonPath('selected.id', $targetId);
+
+        $this->actingAs($super)
+            ->post(route('admin.customer-360.finance-entries.store', ['platformCustomer' => $platform->id]), [
+                'entry_type' => 'payment',
+                'direction' => 'credit',
+                'amount' => '1.00',
+                'invoice_id' => $targetId,
+                'reference' => 'PICKER-VALID',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('customer_account_ledger_entries', [
+            'b2b_customer_id' => $domain->id,
+            'invoice_id' => $targetId,
+            'reference' => 'PICKER-VALID',
+        ]);
+
+        $foreignOwner = User::query()->create([
+            'name' => 'Foreign Finance Owner',
+            'email' => 'foreign-finance-picker@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $foreignRetailStoreId = $this->store('B2C', 'FINANCE-PICKER-FOREIGN', 'Foreign Finance Picker');
+        $foreignDomain = app(RetailWholesaleAccountService::class)->ensureForStore(
+            Store::query()->findOrFail($foreignRetailStoreId),
+            $tierId,
+            $foreignOwner,
+        );
+        $foreignPlatform = PlatformCustomer::query()->where('user_id', $foreignOwner->id)->firstOrFail();
+        $foreignInvoiceId = (int) DB::table('invoices')->insertGetId([
+            'store_id' => $wholesaleStoreId,
+            'customer_id' => $foreignPlatform->legacy_customer_id,
+            'platform_customer_id' => $foreignPlatform->id,
+            'b2b_customer_id' => $foreignDomain->id,
+            'b2c_customer_id' => null,
+            'invoice_number' => 'FOREIGN-FINANCE-INVOICE',
+            'status' => 'issued',
+            'channel' => 'b2b',
+            'currency' => 'EGP',
+            'total' => 99,
+            'issued_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($super)
+            ->post(route('admin.customer-360.finance-entries.store', ['platformCustomer' => $platform->id]), [
+                'entry_type' => 'payment',
+                'direction' => 'credit',
+                'amount' => '1.00',
+                'invoice_id' => $foreignInvoiceId,
+                'reference' => 'PICKER-FORGED',
+            ])
+            ->assertSessionHasErrors('invoice_id');
+
+        $this->assertDatabaseMissing('customer_account_ledger_entries', [
+            'b2b_customer_id' => $domain->id,
+            'reference' => 'PICKER-FORGED',
+        ]);
+    }
+
     public function test_customer_360_manual_finance_entry_uses_authoritative_ledger_currency_and_precision(): void
     {
         $retailStoreId = $this->store('B2C', 'FINANCE-CURRENCY-OWNER', 'Finance Currency Owner');
