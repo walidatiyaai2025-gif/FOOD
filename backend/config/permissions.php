@@ -41,6 +41,8 @@ return [
         'smart_ordering.view' => 'View Smart Ordering configuration',
         'smart_ordering.manage' => 'Manage Smart Ordering runtime, site and menu configuration',
         'smart_ordering.publish' => 'Publish Smart Ordering revisions',
+        'smart_ordering.analytics.view' => 'View Smart Ordering restaurant analytics',
+        'smart_ordering.analytics.export' => 'Export Smart Ordering restaurant analytics',
         'platform.manage' => 'Manage platform-wide settings and permissions',
         'security.view' => 'View users, roles and the effective permission matrix',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
@@ -157,6 +159,7 @@ return [
         ],
         'B2C_STORE_ADMIN' => [
             'stores.view', 'smart_ordering.view', 'smart_ordering.manage', 'smart_ordering.publish',
+            'smart_ordering.analytics.view', 'smart_ordering.analytics.export',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.delete', 'catalog.manage',
             'lookups.view', 'lookups.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
