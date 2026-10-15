@@ -79,8 +79,12 @@ final class ReportController extends Controller
         abort_unless($superAdmin || $allowedStoreIds !== [], 403);
 
         $storeId = isset($validated['store_id']) ? (int) $validated['store_id'] : null;
-        if ($storeId !== null && ! $superAdmin) {
-            abort_unless(in_array($storeId, $allowedStoreIds, true), 403);
+        if (
+            $storeId !== null
+            && $superAdmin === false
+            && in_array($storeId, $allowedStoreIds, true) === false
+        ) {
+            abort(403);
         }
 
         $term = trim((string) ($validated['q'] ?? ''));
