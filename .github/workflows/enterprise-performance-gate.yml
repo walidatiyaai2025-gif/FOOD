@@ -38,15 +38,29 @@ jobs:
       FOODEX_PERF_MODE: candidate
       FOODEX_PERF_SOURCE_HEAD: ${{ inputs.source_head }}
       FOODEX_PERF_BASELINE_HEAD: ${{ inputs.baseline_head }}
-      FOODEX_PERF_HARNESS_HEAD: ${{ github.sha }}
+      FOODEX_PERF_HARNESS_HEAD: ${{ inputs.source_head }}
       BASELINE_FILE: ../benchmarks/enterprise/baselines/e4f5049831efabe3/smoke/d171df2961687455f08c14b9419df83027edcbf0.json
       CANDIDATE_FILE: storage/app/private/enterprise-performance/current-main-smoke-evidence.json
       COMPARISON_FILE: ../artifacts/enterprise-performance-comparison.json
       REPORT_FILE: ../artifacts/enterprise-performance-candidate.md
 
     steps:
-      - name: Checkout exact workflow lineage
+      - name: Checkout exact candidate head
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_head }}
+          fetch-depth: 0
+
+      - name: Prove checked-out candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          expected="${{ inputs.source_head }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Performance benchmark checkout mismatch: $actual != $expected"
+            exit 1
+          fi
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
