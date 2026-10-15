@@ -10,6 +10,9 @@ return [
         'continue_editing' => 'متابعة التعديل',
         'discard' => 'التخلص من المسودة',
     ],
+    'new_order_submit' => [
+        'submitting' => 'جارٍ إنشاء الطلب…',
+    ],
     'statuses' => 'حالات الطلبات',
     'all' => 'الكل',
     'filters' => [
