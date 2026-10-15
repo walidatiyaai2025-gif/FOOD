@@ -328,7 +328,7 @@ final class Customer360Controller extends Controller
 
         $query = clone $base;
         if ($search !== '') {
-            $needle = '%'.$search.'%';
+            $needle = '%'.addcslashes($search, '%_\\\\').'%';
             $query->where(function ($builder) use ($needle, $referenceId): void {
                 $builder->where('invoices.invoice_number', 'like', $needle);
                 if ($referenceId !== null) {
