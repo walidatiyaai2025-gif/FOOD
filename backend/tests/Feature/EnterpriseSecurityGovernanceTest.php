@@ -313,6 +313,57 @@ final class EnterpriseSecurityGovernanceTest extends TestCase
         );
     }
 
+    public function test_stale_upsert_review_is_rejected_without_overwriting_policy(): void
+    {
+        $maker = $this->userWithRole('SUPER_ADMIN');
+        $checker = $this->userWithRole('SUPER_ADMIN');
+        $target = User::factory()->create(['is_active' => true]);
+        $organizationId = (int) DB::table('enterprise_organizations')->value('id');
+
+        $this->actingAs($maker)
+            ->post('/admin/security/enterprise/changes', [
+                'operation' => 'data_scope.upsert',
+                'request_token' => (string) Str::uuid(),
+                'target_user_id' => $target->id,
+                'scope_reference' => 'organization:'.$organizationId,
+                'starts_at' => now()->subHour()->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addDay()->format('Y-m-d H:i:s'),
+            ])
+            ->assertRedirect();
+
+        $workflowId = (int) DB::table('enterprise_workflow_requests')
+            ->where('workflow_key', 'enterprise.security.change')
+            ->latest('id')
+            ->value('id');
+
+        DB::table('enterprise_user_data_scopes')->insert([
+            'user_id' => $target->id,
+            'scope_type' => 'organization',
+            'scope_id' => $organizationId,
+            'starts_at' => now()->subDays(2),
+            'ends_at' => now()->addDays(7),
+            'granted_by' => $maker->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($checker)
+            ->post("/admin/security/enterprise/changes/{$workflowId}/decision", [
+                'decision' => 'APPROVED',
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('enterprise_user_data_scopes', [
+            'user_id' => $target->id,
+            'scope_type' => 'organization',
+            'scope_id' => $organizationId,
+        ]);
+        $this->assertDatabaseHas('enterprise_workflow_requests', [
+            'id' => $workflowId,
+            'status' => 'PENDING',
+        ]);
+    }
+
     public function test_stale_removal_review_is_rejected_without_mutating_policy(): void
     {
         $maker = $this->userWithRole('SUPER_ADMIN');
