@@ -416,7 +416,7 @@ class _VanOrdersPageState extends State<VanOrdersPage>
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: FoodexVanTokens.green),
+                      ?.copyWith(color: FoodexVanTokens.actionGreen),
                 ),
               ],
             ),

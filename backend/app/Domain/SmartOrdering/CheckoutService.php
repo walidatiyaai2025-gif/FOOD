@@ -108,8 +108,18 @@ final class CheckoutService
         if ($mode === 'dine_in') {
             $tablePublicId = trim((string) ($payload['table_public_id'] ?? ''));
             $tableToken = trim((string) ($payload['table_token'] ?? ''));
-            abort_if($tablePublicId === '' || $tableToken === '', 422, 'Dining table context is required.');
-            $table = $this->branches->table($branch, $tablePublicId, $tableToken);
+            $cartContext = $cart->merchandisingContext();
+            $trustedTableReference = (string) (($cartContext['type'] ?? null) === 'table'
+                ? ($cartContext['table_reference'] ?? '')
+                : '');
+
+            if ($tablePublicId !== '' && $tableToken !== '') {
+                $table = $this->branches->table($branch, $tablePublicId, $tableToken);
+            } elseif (trim($trustedTableReference) !== '') {
+                $table = $this->branches->trustedTableReference($branch, $trustedTableReference);
+            } else {
+                abort(422, 'Dining table context is required.');
+            }
         } elseif ($mode === 'delivery') {
             abort_unless(isset($payload['delivery_latitude'], $payload['delivery_longitude']), 422, 'Delivery location is required.');
             $zone = $this->branches->deliveryZone(

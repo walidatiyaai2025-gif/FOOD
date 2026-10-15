@@ -459,14 +459,14 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('__(\'notifications.edit_campaign\')', $campaigns);
         $this->assertStringContainsString('data-notification-campaign-actions', $campaigns);
         $this->assertStringContainsString('__(\'notifications.actions\')', $campaigns);
-        $this->assertStringContainsString('background:var(--foodex-green)', $campaigns);
+        $this->assertStringContainsString('background:var(--foodex-action-green)', $campaigns);
         $this->assertStringContainsString('background:#fff;color:var(--foodex-green-dark)', $campaigns);
 
         $this->assertStringContainsString('__(\'notifications.edit_notification\')', $notifications);
         $this->assertStringContainsString('data-notification-edit', $notifications);
         $this->assertStringContainsString('data-notification-row-actions', $notifications);
         $this->assertStringContainsString('__(\'notifications.actions\')', $notifications);
-        $this->assertStringContainsString('background:var(--foodex-green)', $notifications);
+        $this->assertStringContainsString('background:var(--foodex-action-green)', $notifications);
         $this->assertStringContainsString('background:#fff;color:var(--foodex-green-dark)', $notifications);
 
         $this->assertStringNotContainsString(

@@ -15,6 +15,7 @@ use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -379,6 +380,83 @@ class DashboardCustomer360Test extends TestCase
             ->assertOk()
             ->assertSee('Accounts & finance')
             ->assertDontSee('Retail A · RETAIL-A');
+    }
+
+    public function test_customer_360_manual_finance_entry_uses_authoritative_ledger_currency_and_precision(): void
+    {
+        $retailStoreId = $this->store('B2C', 'FINANCE-CURRENCY-OWNER', 'Finance Currency Owner');
+        $retailStore = Store::query()->findOrFail($retailStoreId);
+        $owner = User::query()->create([
+            'name' => 'Finance Currency Owner',
+            'email' => 'finance-currency-owner@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $tierId = (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');
+        $domain = app(RetailWholesaleAccountService::class)->ensureForStore($retailStore, $tierId, $owner);
+        $platform = PlatformCustomer::query()->where('user_id', $owner->id)->firstOrFail();
+        $super = $this->globalAdmin('SUPER_ADMIN');
+
+        $this->actingAs($super)
+            ->get(route('admin.customer-360.show', ['platformCustomer' => $platform->id]))
+            ->assertOk()
+            ->assertSee('data-finance-authoritative-currency="EGP"', false)
+            ->assertSee('step="0.01"', false)
+            ->assertSee('Amounts are recorded in EGP with up to 2 decimal places.')
+            ->assertDontSee('name="currency"', false);
+
+        $this->actingAs($super)
+            ->post(route('admin.customer-360.finance-entries.store', ['platformCustomer' => $platform->id]), [
+                'entry_type' => 'customer_credit',
+                'direction' => 'credit',
+                'amount' => '12.34',
+                'currency' => 'KWD',
+                'reference' => 'AUTHORITATIVE-CURRENCY',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('customer_account_ledger_entries', [
+            'b2b_customer_id' => $domain->id,
+            'entry_type' => 'customer_credit',
+            'reference' => 'AUTHORITATIVE-CURRENCY',
+            'credit' => 12.34,
+            'currency' => 'EGP',
+            'source' => 'dashboard_customer_360',
+        ]);
+
+        $this->actingAs($super)
+            ->post(route('admin.customer-360.finance-entries.store', ['platformCustomer' => $platform->id]), [
+                'entry_type' => 'customer_credit',
+                'direction' => 'credit',
+                'amount' => '1.001',
+                'reference' => 'TOO-PRECISE',
+            ])
+            ->assertSessionHasErrors('amount');
+
+        $this->assertDatabaseMissing('customer_account_ledger_entries', [
+            'b2b_customer_id' => $domain->id,
+            'reference' => 'TOO-PRECISE',
+        ]);
+
+        try {
+            app(B2bAccountLedgerService::class)->appendManual($domain, [
+                'entry_type' => 'customer_credit',
+                'credit' => 1,
+                'debit' => 0,
+                'currency' => 'KWD',
+                'reference' => 'FORGED-SERVICE-CURRENCY',
+            ], $super);
+            $this->fail('The ledger service must reject a caller-supplied currency that differs from the account currency.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('currency', $exception->errors());
+        }
+
+        $this->assertDatabaseMissing('customer_account_ledger_entries', [
+            'b2b_customer_id' => $domain->id,
+            'reference' => 'FORGED-SERVICE-CURRENCY',
+        ]);
     }
 
     private function customer(string $name, string $email, int $storeId): User
