@@ -47,8 +47,28 @@ class AdminMobileWebContractTest extends TestCase
         $this->assertStringContainsString('.foodex-mobile-nav-backdrop', $sidebar);
         $this->assertStringContainsString('body.foodex-mobile-nav-open', $sidebar);
         $this->assertStringContainsString('event.key === \'Escape\'', $sidebar);
+        $this->assertStringContainsString('event.key !== \'Tab\'', $sidebar);
+        $this->assertStringContainsString('focusableInDrawer', $sidebar);
         $this->assertStringContainsString('launcher.setAttribute(\'aria-expanded\'', $sidebar);
+        $this->assertStringContainsString('launcher.setAttribute(\'aria-controls\', shell.id)', $sidebar);
+        $this->assertStringContainsString('shell.setAttribute(\'aria-modal\', \'true\')', $sidebar);
+        $this->assertStringContainsString('shell.setAttribute(\'aria-hidden\', \'true\')', $sidebar);
+        $this->assertStringContainsString('shell.setAttribute(\'inert\', \'\')', $sidebar);
+        $this->assertStringContainsString('setBackgroundInert(true)', $sidebar);
+        $this->assertStringContainsString('previousFocus', $sidebar);
+        $this->assertStringContainsString('target.focus({ preventScroll: true })', $sidebar);
+        $this->assertStringContainsString("@json(__('admin.sidebar_open'))", $sidebar);
+        $this->assertStringContainsString("@json(__('admin.sidebar_close'))", $sidebar);
         $this->assertStringContainsString('setDrawer(false)', $sidebar);
         $this->assertStringContainsString('matchMedia(\'(max-width:767px)\')', $sidebar);
+
+        $english = file_get_contents(lang_path('en/admin.php'));
+        $arabic = file_get_contents(lang_path('ar/admin.php'));
+        $this->assertIsString($english);
+        $this->assertIsString($arabic);
+        $this->assertStringContainsString("'sidebar_open' => 'Open navigation'", $english);
+        $this->assertStringContainsString("'sidebar_close' => 'Close navigation'", $english);
+        $this->assertStringContainsString("'sidebar_open' => 'فتح قائمة التنقل'", $arabic);
+        $this->assertStringContainsString("'sidebar_close' => 'إغلاق قائمة التنقل'", $arabic);
     }
 }
