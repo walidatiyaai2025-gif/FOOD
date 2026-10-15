@@ -10,7 +10,7 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 
 | Token | Value | Use |
 |---|---|---|
-| Primary green | `#158A3A` | active navigation, primary actions, positive brand emphasis |
+| Primary green | `#148638` | active navigation, primary actions, positive brand emphasis; 4.67:1 with white at normal text sizes |
 | Dark green | `#165D2D` | wordmark, high-contrast brand text |
 | Bright green | `#27B658` | chart/positive accents |
 | Green soft | `#EAF7EF` | selected/positive surfaces |
@@ -18,7 +18,7 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 | Bright orange | `#FC8F33` | charts and soft emphasis |
 | Orange soft | `#FFF1E6` | warm card surfaces |
 | Info blue | `#4B8CF5` | in-transit/info states and charts |
-| Error red | `#EF5350` | cancelled/destructive states |
+| Error red | `#B42318` | cancelled/destructive states; 6.57:1 on white and 5.94:1 on `#FFF0F0` |
 | Ink | `#172033` | primary text |
 | Muted | `#667085` | secondary text |
 | Surface | `#FFFFFF` | cards/topbar/sidebar |
