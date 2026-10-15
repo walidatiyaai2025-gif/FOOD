@@ -6,7 +6,7 @@
 <title>{{ __('admin.settings_center.title') }} · FOODEX</title>
 @include('admin._brand-components')
 <style>
-body{margin:0;background:var(--foodex-page);color:var(--foodex-ink)}
+body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .settings-wrap{max-width:1180px;margin:0 auto}
 .settings-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
 .settings-hero h1{margin:4px 0 8px;font-size:clamp(1.65rem,2.5vw,2.35rem)}

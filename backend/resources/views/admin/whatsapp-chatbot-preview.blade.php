@@ -12,7 +12,7 @@
         .cbp-screen-tabs a{white-space:nowrap;text-decoration:none;padding:9px 12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:var(--foodex-surface);color:var(--foodex-ink)}
         .cbp-screen-tabs a[aria-current="page"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-color:var(--foodex-green);font-weight:700}
         .cbp-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,430px) minmax(0,1fr);gap:var(--foodex-space-4);align-items:start}
-        .cbp-phone{grid-column:2;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:32px;padding:10px;box-shadow:var(--foodex-shadow-lg);min-height:680px}
+        .cbp-phone{grid-column:2;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:32px;padding:10px;box-shadow:var(--foodex-shadow-raised);min-height:680px}
         .cbp-phone-inner{border:1px solid var(--foodex-border);border-radius:24px;overflow:hidden;min-height:658px;background:var(--foodex-background);display:flex;flex-direction:column}
         .cbp-phone-head{padding:14px;background:var(--foodex-surface);border-bottom:1px solid var(--foodex-border);display:flex;align-items:center;justify-content:space-between;gap:10px}
         .cbp-brand{display:flex;align-items:center;gap:10px}.cbp-brand-mark{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--foodex-green-soft);font-weight:800;color:var(--foodex-green-dark)}

@@ -52,7 +52,7 @@
         .sales-product-selector label{display:grid;gap:6px;font-size:.8rem;font-weight:800}
         .sales-product-combobox{position:relative;max-width:760px}
         .sales-product-combobox input{width:100%;min-height:46px;padding-inline:14px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fff}
-        .sales-product-results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 6px);max-height:320px;overflow:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;box-shadow:var(--foodex-shadow-md)}
+        .sales-product-results{position:absolute;z-index:30;inset-inline:0;top:calc(100% + 6px);max-height:320px;overflow:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;box-shadow:var(--foodex-shadow)}
         .sales-product-results[hidden]{display:none}
         .sales-product-option,.sales-product-result-message{width:100%;border:0;background:transparent;text-align:start;padding:10px 12px;border-radius:9px}
         .sales-product-option{cursor:pointer;display:grid;gap:3px}
