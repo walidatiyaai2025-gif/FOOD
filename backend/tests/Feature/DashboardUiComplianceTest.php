@@ -135,7 +135,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('<p>#{{ $customer->id }}', $view);
         $this->assertStringNotContainsString('رقم الفاتورة الداخلي', $view);
         $this->assertStringNotContainsString('Invoice ID', $view);
-        $this->assertStringContainsString('<select name="invoice_id">', $view);
+        $this->assertStringContainsString('data-finance-invoice-picker', $view);
+        $this->assertStringContainsString('name="invoice_id"', $view);
         $this->assertStringContainsString('{{ $invoice[\'number\'] }}', $view);
         $this->assertStringNotContainsString('{{ strtoupper($order[\'channel\']) }}', $view);
         $this->assertStringNotContainsString('<td>{{ $order[\'status\'] }}</td>', $view);

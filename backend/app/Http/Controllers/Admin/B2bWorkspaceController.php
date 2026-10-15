@@ -912,27 +912,47 @@ class B2bWorkspaceController extends Controller
             ));
     }
 
-    private function reportModuleData(User $user, array $storeIds): array
+    private function reportModuleData(User $user, array $storeIds, Request $request): array
     {
         $storeId = (int) ($storeIds[0] ?? $this->principal->storeId());
-        $data = $this->reports->run($user, 'orders', ['store_id' => $storeId, 'channel' => 'b2b']);
+        [$fromDate, $toDate] = $this->dashboardRange($request);
+        $filters = array_filter([
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'from' => $fromDate,
+            'to' => $toDate,
+        ], static fn ($value): bool => $value !== null && $value !== '');
+        $data = $this->reports->run($user, 'orders', $filters);
+        $effectiveFilters = (array) data_get($data, 'filters', []);
+
+        $reportQuery = array_filter([
+            'report' => 'orders',
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'from' => $effectiveFilters['from'] ?? null,
+            'to' => $effectiveFilters['to'] ?? null,
+        ], static fn ($value): bool => $value !== null && $value !== '');
 
         $actions = [[
             'label' => $this->msg('فتح مركز التقارير', 'Open reports'),
-            'url' => route('admin.reports.index', ['report' => 'orders', 'store_id' => $storeId, 'channel' => 'b2b']),
+            'url' => route('admin.reports.index', $reportQuery),
         ]];
 
         if ($user->hasPermission('reports.export', $storeId)) {
             foreach (['xlsx', 'docx', 'pdf'] as $format) {
                 $actions[] = [
                     'label' => strtoupper($format),
-                    'url' => route('admin.reports.export', ['report' => 'orders', 'format' => $format, 'store_id' => $storeId, 'channel' => 'b2b']),
+                    'url' => route('admin.reports.export', array_merge($reportQuery, ['format' => $format])),
                 ];
             }
         }
 
         return [
             'columns' => ['orders', 'revenue', 'average', 'actions'],
+            'filters' => [
+                'from' => $effectiveFilters['from'] ?? null,
+                'to' => $effectiveFilters['to'] ?? null,
+            ],
             'rows' => [[
                 'orders' => (int) data_get($data, 'kpis.orders', 0),
                 'revenue' => 'EGP '.number_format((float) data_get($data, 'kpis.recognized_revenue', 0), 3),
@@ -1299,7 +1319,7 @@ class B2bWorkspaceController extends Controller
             ],
             'products' => $this->productModuleData($storeIds, $user),
             'inventory' => $this->inventoryModuleData($storeIds),
-            'orders' => $this->orderModuleData($storeIds),
+            'orders' => $this->orderModuleData($storeIds, $request),
             'drivers' => [
                 'columns' => ['name', 'email', 'availability', 'active', 'assignments'],
                 'rows' => DB::table('drivers')
@@ -1449,15 +1469,17 @@ class B2bWorkspaceController extends Controller
                     ->all(),
             ],
             'finance' => $this->financeModuleData($storeIds, $user, $request),
-            'reports' => $this->reportModuleData($user, $storeIds),
+            'reports' => $this->reportModuleData($user, $storeIds, $request),
             'storefront' => $this->storefrontModuleData($storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
     }
 
-    private function orderModuleData(array $storeIds): array
+    private function orderModuleData(array $storeIds, Request $request): array
     {
+        [$fromDate, $toDate] = $this->dashboardRange($request);
+
         $customers = DB::table('b2b_customers')
             ->join('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
             ->leftJoin('retail_wholesale_accounts', 'retail_wholesale_accounts.b2b_customer_id', '=', 'b2b_customers.id')
@@ -1546,6 +1568,22 @@ class B2bWorkspaceController extends Controller
             ->whereIn('orders.store_id', $storeIds)
             ->where('orders.channel', 'b2b')
             ->whereNotNull('orders.b2b_customer_id')
+            ->when(
+                $fromDate !== null,
+                fn ($query) => $query->where(
+                    'orders.created_at',
+                    '>=',
+                    CarbonImmutable::parse($fromDate, 'Asia/Kuwait')->startOfDay()->utc()->toDateTimeString(),
+                ),
+            )
+            ->when(
+                $toDate !== null,
+                fn ($query) => $query->where(
+                    'orders.created_at',
+                    '<=',
+                    CarbonImmutable::parse($toDate, 'Asia/Kuwait')->endOfDay()->utc()->toDateTimeString(),
+                ),
+            )
             ->orderByDesc('orders.created_at')
             ->limit(100)
             ->get([
@@ -1761,6 +1799,7 @@ class B2bWorkspaceController extends Controller
 
         return [
             'columns' => ['number', 'client', 'warehouse', 'driver', 'assignment_status', 'status', 'amount', 'created', 'actions'],
+            'filters' => ['from' => $fromDate, 'to' => $toDate],
             'rows' => $rows,
             'customers' => $customers,
             'warehouses' => $warehouses,

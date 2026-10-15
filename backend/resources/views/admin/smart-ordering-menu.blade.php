@@ -577,61 +577,22 @@
         </div>
     </main>
 </div>
+<script src="{{ asset('assets/admin/entity-lookup.js') }}"></script>
 <script>
 (() => {
-    const productUrl = @json(route('admin.smart-ordering.menu.products', ['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])));
-    document.querySelectorAll('[data-product-picker]').forEach((picker) => {
-        const input = picker.querySelector('[data-product-search]');
-        const hidden = picker.querySelector('[data-product-id]');
-        const results = picker.querySelector('[data-product-results]');
-        let timer = null, controller = null;
-
-        const close = () => { results.hidden = true; input.setAttribute('aria-expanded','false'); };
-        const load = async () => {
-            if (controller) controller.abort();
-            controller = new AbortController();
-            const url = new URL(productUrl, window.location.origin);
-            url.searchParams.set('q', input.value.trim());
-            try {
-                const response = await fetch(url, {headers:{Accept:'application/json'},signal:controller.signal});
-                if (!response.ok) throw new Error('search');
-                const payload = await response.json();
-                results.replaceChildren();
-                (payload.products || []).forEach((product) => {
-                    const button = document.createElement('button');
-                    button.type = 'button'; button.className = 'so-product-result'; button.setAttribute('role','option');
-                    const label = document.createElement('span'); label.textContent = product.name || '';
-                    const meta = document.createElement('small');
-                    const price = product.display_price && product.currency ? product.display_price + ' ' + product.currency : '';
-                    meta.textContent = [product.sku || '', price].filter(Boolean).join(' · ');
-                    button.append(label,meta);
-                    button.addEventListener('click',() => {
-                        hidden.value = String(product.id);
-                        input.value = product.name + (product.sku ? ' · '+product.sku : '');
-                        close();
-                    });
-                    results.appendChild(button);
-                });
-                if (!(payload.products || []).length) {
-                    const empty = document.createElement('div'); empty.className='so-product-result'; empty.textContent = @json($isAr ? 'لا توجد نتائج' : 'No results'); results.appendChild(empty);
-                }
-                results.hidden=false; input.setAttribute('aria-expanded','true');
-            } catch (error) { if (error?.name !== 'AbortError') close(); }
-        };
-        input.addEventListener('input',() => { hidden.value=''; clearTimeout(timer); timer=setTimeout(load,180); });
-        input.addEventListener('focus',load);
-        input.addEventListener('keydown',(event) => { if(event.key==='Escape') close(); });
-        document.addEventListener('click',(event) => { if(!picker.contains(event.target)) close(); });
-    });
-
     document.querySelectorAll('[data-unlink-product]').forEach((button) => {
         button.addEventListener('click', () => {
-            const picker = document.getElementById(button.dataset.pickerId);
+            const input = document.getElementById(button.dataset.pickerId);
+            const picker = input?.closest('[data-foodex-entity-picker]');
             if (!picker) return;
-            const hidden = picker.querySelector('[data-product-id]');
-            const input = picker.querySelector('[data-product-search]');
-            if (hidden) hidden.value = '';
-            if (input) { input.value = ''; input.focus(); }
+            const clear = picker.querySelector('[data-foodex-entity-clear]');
+            if (clear instanceof HTMLButtonElement) {
+                clear.click();
+                return;
+            }
+            const hidden = picker.querySelector('[data-foodex-entity-id]');
+            if (hidden instanceof HTMLInputElement) hidden.value = '';
+            if (input instanceof HTMLInputElement) { input.value = ''; input.focus(); }
         });
     });
 
