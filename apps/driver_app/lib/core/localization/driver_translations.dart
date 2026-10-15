@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 
 import '../diagnostics/driver_runtime_inspector.dart';
 
-typedef DriverTranslationFetcher = Future<Map<String, String>> Function(String locale);
+typedef DriverTranslationFetcher = Future<Map<String, String>> Function(
+    String locale);
 
 class DriverTranslations extends InheritedWidget {
   const DriverTranslations({
@@ -27,12 +28,15 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.ready': 'جاهز للتوصيل',
     'driver.home.status_summary': 'ملخص سريع',
     'driver.home.analytics.title': 'توزيع التوصيلات',
-    'driver.home.analytics.summary': 'توزيع التوصيلات المسندة حسب الحالة. اضغط على بطاقة الحالة بالأسفل لفتح القائمة المفلترة مباشرة.',
+    'driver.home.analytics.summary':
+        'توزيع التوصيلات المسندة حسب الحالة. اضغط على بطاقة الحالة بالأسفل لفتح القائمة المفلترة مباشرة.',
     'driver.home.analytics.semantic': 'توزيع التوصيلات الحالية حسب الحالة',
     'driver.home.analytics.loading': 'جارٍ تحميل توزيع التوصيلات...',
     'driver.home.analytics.empty': 'لا توجد توصيلات مسندة لعرض توزيعها الآن.',
-    'driver.home.analytics.error': 'تعذر تحميل توزيع التوصيلات. أعد المحاولة لتحديث البيانات.',
-    'driver.home.analytics.stale': 'الرسم يعرض آخر بيانات مؤكدة لأن التحديث الأخير تعذر.',
+    'driver.home.analytics.error':
+        'تعذر تحميل توزيع التوصيلات. أعد المحاولة لتحديث البيانات.',
+    'driver.home.analytics.stale':
+        'الرسم يعرض آخر بيانات مؤكدة لأن التحديث الأخير تعذر.',
     'driver.home.open_deliveries': 'عرض التوصيلات الحالية',
     'driver.home.open_wallet': 'المحفظة والتحصيل',
     'driver.notifications.title': 'الإشعارات',
@@ -44,8 +48,10 @@ class DriverTranslations extends InheritedWidget {
     'driver.notifications.open': 'عرض الطلب',
     'driver.notifications.order_identity': 'طلب',
     'driver.notifications.assignment_identity': 'إسناد',
-    'driver.notifications.order_unavailable': 'لم يعد هذا الطلب متاحاً لهذا السائق.',
-    'driver.notifications.action_error': 'تعذر تنفيذ إجراء الإشعار. أعد المحاولة.',
+    'driver.notifications.order_unavailable':
+        'لم يعد هذا الطلب متاحاً لهذا السائق.',
+    'driver.notifications.action_error':
+        'تعذر تنفيذ إجراء الإشعار. أعد المحاولة.',
     'driver.deliveries.title': 'التوصيلات',
     'driver.b2c.title': 'توصيلات التجزئة',
     'driver.b2b.title': 'توصيلات الجملة',
@@ -63,30 +69,37 @@ class DriverTranslations extends InheritedWidget {
     'driver.login.username': 'اسم المستخدم',
     'driver.version': 'الإصدار',
     'driver.login.welcome': 'مرحباً بك في فودكس',
-    'driver.login.subtitle': 'سجّل الدخول بحساب السائق لعرض التوصيلات المسندة إليك',
+    'driver.login.subtitle':
+        'سجّل الدخول بحساب السائق لعرض التوصيلات المسندة إليك',
     'driver.login.show_password': 'إظهار كلمة المرور',
     'driver.login.hide_password': 'إخفاء كلمة المرور',
     'driver.login.secure': 'دخول آمن ومخصص لسائقي FOODEX',
     'driver.login.submit': 'تسجيل الدخول',
     'driver.login.remember_me': 'تذكرني',
     'driver.login.enable_biometric': 'تفعيل الدخول بالبصمة',
-    'driver.login.biometric_hint': 'استخدم بصمة الإصبع أو Face ID لفتح حساب السائق على هذا الجهاز.',
+    'driver.login.biometric_hint':
+        'استخدم بصمة الإصبع أو Face ID لفتح حساب السائق على هذا الجهاز.',
     'driver.login.biometric': 'الدخول بالبصمة',
     'driver.login.biometric_reason': 'تحقق من هويتك للدخول إلى حساب السائق',
-    'driver.login.biometric_failed': 'لم يتم التحقق بالبصمة. يمكنك استخدام كلمة المرور.',
-    'driver.login.biometric_unavailable': 'الدخول بالبصمة غير متاح. سجل الدخول بكلمة المرور.',
+    'driver.login.biometric_failed':
+        'لم يتم التحقق بالبصمة. يمكنك استخدام كلمة المرور.',
+    'driver.login.biometric_unavailable':
+        'الدخول بالبصمة غير متاح. سجل الدخول بكلمة المرور.',
     'driver.login.required': 'أدخل البريد الإلكتروني وكلمة المرور',
     'driver.login.invalid': 'بيانات الدخول غير صحيحة',
     'driver.login.role_denied': 'هذا الحساب ليس حساب سائق فودكس مصرحًا له',
     'driver.config.missing': 'عنوان خادم فودكس غير مضبوط لهذا الإصدار',
     'driver.logout': 'تسجيل الخروج',
     'driver.update.checking_title': 'التحقق من إصدار فودكس',
-    'driver.update.checking': 'جارٍ التحقق من سياسة الإصدار المطلوبة قبل تشغيل التطبيق...',
+    'driver.update.checking':
+        'جارٍ التحقق من سياسة الإصدار المطلوبة قبل تشغيل التطبيق...',
     'driver.update.error_title': 'تعذر التحقق من الإصدار',
-    'driver.update.error': 'لا يمكن متابعة التشغيل قبل التحقق من سياسة الإصدار. تحقق من الاتصال ثم أعد المحاولة.',
+    'driver.update.error':
+        'لا يمكن متابعة التشغيل قبل التحقق من سياسة الإصدار. تحقق من الاتصال ثم أعد المحاولة.',
     'driver.update.retry': 'إعادة المحاولة',
     'driver.update.required_title': 'يجب تحديث تطبيق السائق',
-    'driver.update.required_body': 'هذا الإصدار لم يعد مسموحًا له بالدخول إلى عمليات السائق. حدّث التطبيق ثم أعد التحقق.',
+    'driver.update.required_body':
+        'هذا الإصدار لم يعد مسموحًا له بالدخول إلى عمليات السائق. حدّث التطبيق ثم أعد التحقق.',
     'driver.update.current': 'الإصدار الحالي',
     'driver.update.latest': 'أحدث إصدار',
     'driver.update.minimum': 'أقل إصدار مدعوم',
@@ -96,15 +109,20 @@ class DriverTranslations extends InheritedWidget {
     'driver.update.open_failed': 'تعذر فتح رابط التحديث على هذا الجهاز.',
     'driver.location.title': 'الموقع مطلوب لتشغيل تطبيق السائق',
     'driver.location.checking': 'جارٍ التحقق من خدمات الموقع والصلاحيات...',
-    'driver.location.service_disabled': 'فعّل خدمات الموقع GPS للمتابعة إلى الطلبات والتوصيلات.',
-    'driver.location.permission_denied': 'اسمح للتطبيق بالوصول إلى موقعك الدقيق للمتابعة.',
-    'driver.location.permission_denied_forever': 'تم منع صلاحية الموقع. افتح إعدادات التطبيق وفعّل الموقع الدقيق.',
-    'driver.location.precise_required': 'الموقع التقريبي غير كافٍ. فعّل الموقع الدقيق (Precise) للمتابعة.',
+    'driver.location.service_disabled':
+        'فعّل خدمات الموقع GPS للمتابعة إلى الطلبات والتوصيلات.',
+    'driver.location.permission_denied':
+        'اسمح للتطبيق بالوصول إلى موقعك الدقيق للمتابعة.',
+    'driver.location.permission_denied_forever':
+        'تم منع صلاحية الموقع. افتح إعدادات التطبيق وفعّل الموقع الدقيق.',
+    'driver.location.precise_required':
+        'الموقع التقريبي غير كافٍ. فعّل الموقع الدقيق (Precise) للمتابعة.',
     'driver.location.ready': 'الموقع جاهز.',
     'driver.location.retry': 'إعادة التحقق',
     'driver.location.open_app_settings': 'فتح إعدادات التطبيق',
     'driver.location.open_location_settings': 'فتح إعدادات الموقع',
-    'driver.location.denied_forever_hint': 'بعد تفعيل الصلاحية من الإعدادات ارجع إلى فودكس واضغط إعادة التحقق.',
+    'driver.location.denied_forever_hint':
+        'بعد تفعيل الصلاحية من الإعدادات ارجع إلى فودكس واضغط إعادة التحقق.',
     'driver.dismiss': 'إغلاق',
     'driver.inspector.open': 'التشخيص',
     'driver.inspector.title': 'أداة تشخيص التطبيق',
@@ -112,7 +130,8 @@ class DriverTranslations extends InheritedWidget {
     'driver.inspector.events': 'عدد الأحداث',
     'driver.inspector.last_event': 'آخر حدث',
     'driver.inspector.current_route': 'الشاشة الحالية',
-    'driver.inspector.privacy': 'يتم حفظ سجل محدود محليًا فقط. لا يتم رفعه تلقائيًا ولا يتضمن كلمات المرور أو الرموز السرية أو محتوى الطلبات والاستجابات أو بيانات العميل أو إحداثيات الموقع الدقيقة.',
+    'driver.inspector.privacy':
+        'يتم حفظ سجل محدود محليًا فقط. لا يتم رفعه تلقائيًا ولا يتضمن كلمات المرور أو الرموز السرية أو محتوى الطلبات والاستجابات أو بيانات العميل أو إحداثيات الموقع الدقيقة.',
     'driver.inspector.export': 'تصدير ملف JSON',
     'driver.inspector.clear': 'مسح سجل التشخيص',
     'driver.inspector.recent': 'أحدث الأحداث',
@@ -138,9 +157,12 @@ class DriverTranslations extends InheritedWidget {
     'driver.preview.store': 'المتجر',
     'driver.preview.revision': 'المراجعة',
     'driver.preview.runtime': 'بيئة التشغيل',
-    'driver.preview.mutation_blocked': 'المعاينة الآمنة تعرض الإجراء فقط ولا تنفذ أي تغيير فعلي.',
-    'driver.preview.navigation_simulated': 'الملاحة الأصلية معطلة في المعاينة الآمنة ويمكن تمثيلها فقط عبر Preview adapter معتمد.',
-    'driver.preview.configuration_invalid': 'سياق معاينة السائق غير صالح أو لا يطابق قناة السائق.',
+    'driver.preview.mutation_blocked':
+        'المعاينة الآمنة تعرض الإجراء فقط ولا تنفذ أي تغيير فعلي.',
+    'driver.preview.navigation_simulated':
+        'الملاحة الأصلية معطلة في المعاينة الآمنة ويمكن تمثيلها فقط عبر Preview adapter معتمد.',
+    'driver.preview.configuration_invalid':
+        'سياق معاينة السائق غير صالح أو لا يطابق قناة السائق.',
     'driver.detail.note': 'ملاحظة الطلب',
     'driver.detail.items': 'الأصناف',
     'driver.detail.item_variant': 'النوع / الخيار',
@@ -209,7 +231,8 @@ class DriverTranslations extends InheritedWidget {
     'driver.proof.remove': 'إزالة الصورة',
     'driver.completion.uploading': 'جارٍ إرسال التحديث والإثبات...',
     'driver.completion.proof_required': 'أرفق صورة إثبات قبل تأكيد التسليم.',
-    'driver.completion.proof_too_large': 'حجم صورة الإثبات يجب ألا يتجاوز 5 ميجابايت.',
+    'driver.completion.proof_too_large':
+        'حجم صورة الإثبات يجب ألا يتجاوز 5 ميجابايت.',
     'driver.completion.failure_reason_required': 'اختر سبب تعذر التسليم.',
     'driver.completion.other_note_required': 'اكتب ملاحظة عند اختيار سبب آخر.',
     'driver.completion.submit_failed': 'تعذر تحديث حالة التوصيل. أعد المحاولة.',
@@ -274,17 +297,22 @@ class DriverTranslations extends InheritedWidget {
     'driver.app.title': 'Driver App',
     'driver.brand.economical_group': 'FOODEX Economical Group',
     'driver.home.title': 'Driver Home',
-    'driver.home.subtitle': 'Start your shift and review your assigned deliveries',
+    'driver.home.subtitle':
+        'Start your shift and review your assigned deliveries',
     'driver.home.channel': 'Work channel',
     'driver.home.ready': 'Ready to deliver',
     'driver.home.status_summary': 'Quick summary',
     'driver.home.analytics.title': 'Delivery workload',
-    'driver.home.analytics.summary': 'Assigned deliveries by status. Tap a status card below to open that exact filtered list.',
+    'driver.home.analytics.summary':
+        'Assigned deliveries by status. Tap a status card below to open that exact filtered list.',
     'driver.home.analytics.semantic': 'Current delivery workload by status',
     'driver.home.analytics.loading': 'Loading delivery workload...',
-    'driver.home.analytics.empty': 'There are no assigned deliveries to chart right now.',
-    'driver.home.analytics.error': 'Unable to load the delivery workload. Retry to refresh the data.',
-    'driver.home.analytics.stale': 'The chart is showing the last confirmed data because the latest refresh failed.',
+    'driver.home.analytics.empty':
+        'There are no assigned deliveries to chart right now.',
+    'driver.home.analytics.error':
+        'Unable to load the delivery workload. Retry to refresh the data.',
+    'driver.home.analytics.stale':
+        'The chart is showing the last confirmed data because the latest refresh failed.',
     'driver.home.open_deliveries': 'Open current deliveries',
     'driver.home.open_wallet': 'Wallet & collections',
     'driver.notifications.title': 'Notifications',
@@ -296,15 +324,18 @@ class DriverTranslations extends InheritedWidget {
     'driver.notifications.open': 'View order',
     'driver.notifications.order_identity': 'Order',
     'driver.notifications.assignment_identity': 'Assignment',
-    'driver.notifications.order_unavailable': 'This order is no longer available to this driver.',
-    'driver.notifications.action_error': 'Unable to complete the notification action. Try again.',
+    'driver.notifications.order_unavailable':
+        'This order is no longer available to this driver.',
+    'driver.notifications.action_error':
+        'Unable to complete the notification action. Try again.',
     'driver.deliveries.title': 'Deliveries',
     'driver.b2c.title': 'Retail deliveries',
     'driver.b2b.title': 'Wholesale deliveries',
     'driver.empty': 'No assigned deliveries',
     'driver.error': 'Unable to load deliveries',
     'driver.offline': 'No connection. Try again when the network is back.',
-    'driver.data.stale': 'Showing the last confirmed data; a newer refresh could not be loaded.',
+    'driver.data.stale':
+        'Showing the last confirmed data; a newer refresh could not be loaded.',
     'driver.data.last_confirmed_update': 'Last confirmed update',
     'driver.retry': 'Retry',
     'driver.refresh': 'Refresh orders',
@@ -315,48 +346,64 @@ class DriverTranslations extends InheritedWidget {
     'driver.login.username': 'Username',
     'driver.version': 'Version',
     'driver.login.welcome': 'Welcome to FOODEX',
-    'driver.login.subtitle': 'Sign in with your driver account to view assigned deliveries',
+    'driver.login.subtitle':
+        'Sign in with your driver account to view assigned deliveries',
     'driver.login.show_password': 'Show password',
     'driver.login.hide_password': 'Hide password',
     'driver.login.secure': 'Secure access for FOODEX drivers',
     'driver.login.submit': 'Sign in',
     'driver.login.remember_me': 'Remember me',
     'driver.login.enable_biometric': 'Enable biometric sign-in',
-    'driver.login.biometric_hint': 'Use fingerprint or Face ID to unlock this driver account on this device.',
+    'driver.login.biometric_hint':
+        'Use fingerprint or Face ID to unlock this driver account on this device.',
     'driver.login.biometric': 'Sign in with biometrics',
-    'driver.login.biometric_reason': 'Verify your identity to sign in to the driver account',
-    'driver.login.biometric_failed': 'Biometric verification failed. You can use your password.',
-    'driver.login.biometric_unavailable': 'Biometric sign-in is unavailable. Sign in with your password.',
+    'driver.login.biometric_reason':
+        'Verify your identity to sign in to the driver account',
+    'driver.login.biometric_failed':
+        'Biometric verification failed. You can use your password.',
+    'driver.login.biometric_unavailable':
+        'Biometric sign-in is unavailable. Sign in with your password.',
     'driver.login.required': 'Enter email and password',
     'driver.login.invalid': 'Invalid sign-in details',
-    'driver.login.role_denied': 'This account is not an authorized FOODEX driver',
-    'driver.config.missing': 'The FOODEX server URL is not configured for this build',
+    'driver.login.role_denied':
+        'This account is not an authorized FOODEX driver',
+    'driver.config.missing':
+        'The FOODEX server URL is not configured for this build',
     'driver.logout': 'Sign out',
     'driver.update.checking_title': 'Checking FOODEX version',
-    'driver.update.checking': 'Checking the required version policy before the app can continue...',
+    'driver.update.checking':
+        'Checking the required version policy before the app can continue...',
     'driver.update.error_title': 'Version check unavailable',
-    'driver.update.error': 'The app cannot continue until the version policy is verified. Check the connection and retry.',
+    'driver.update.error':
+        'The app cannot continue until the version policy is verified. Check the connection and retry.',
     'driver.update.retry': 'Retry',
     'driver.update.required_title': 'Driver app update required',
-    'driver.update.required_body': 'This build can no longer access Driver operations. Update the app, then check again.',
+    'driver.update.required_body':
+        'This build can no longer access Driver operations. Update the app, then check again.',
     'driver.update.current': 'Current version',
     'driver.update.latest': 'Latest version',
     'driver.update.minimum': 'Minimum supported',
     'driver.update.now': 'Update app',
     'driver.update.check_again': 'Check again after update',
     'driver.update.optional': 'A newer version is available:',
-    'driver.update.open_failed': 'Unable to open the update link on this device.',
+    'driver.update.open_failed':
+        'Unable to open the update link on this device.',
     'driver.location.title': 'Location is required to use the Driver app',
     'driver.location.checking': 'Checking location services and permission...',
-    'driver.location.service_disabled': 'Turn on device location services (GPS) to access orders and deliveries.',
-    'driver.location.permission_denied': 'Allow precise location access to continue.',
-    'driver.location.permission_denied_forever': 'Location permission is blocked. Open app settings and enable precise location.',
-    'driver.location.precise_required': 'Approximate location is not enough. Enable Precise Location to continue.',
+    'driver.location.service_disabled':
+        'Turn on device location services (GPS) to access orders and deliveries.',
+    'driver.location.permission_denied':
+        'Allow precise location access to continue.',
+    'driver.location.permission_denied_forever':
+        'Location permission is blocked. Open app settings and enable precise location.',
+    'driver.location.precise_required':
+        'Approximate location is not enough. Enable Precise Location to continue.',
     'driver.location.ready': 'Location is ready.',
     'driver.location.retry': 'Check again',
     'driver.location.open_app_settings': 'Open app settings',
     'driver.location.open_location_settings': 'Open location settings',
-    'driver.location.denied_forever_hint': 'After enabling permission in settings, return to FOODEX and check again.',
+    'driver.location.denied_forever_hint':
+        'After enabling permission in settings, return to FOODEX and check again.',
     'driver.dismiss': 'Dismiss',
     'driver.inspector.open': 'Diagnostics',
     'driver.inspector.title': 'App diagnostics',
@@ -364,7 +411,8 @@ class DriverTranslations extends InheritedWidget {
     'driver.inspector.events': 'Event count',
     'driver.inspector.last_event': 'Last event',
     'driver.inspector.current_route': 'Current screen',
-    'driver.inspector.privacy': 'Only a bounded local history is kept. Nothing is uploaded automatically, and exports exclude passwords, tokens, request/response bodies, customer information and precise location coordinates.',
+    'driver.inspector.privacy':
+        'Only a bounded local history is kept. Nothing is uploaded automatically, and exports exclude passwords, tokens, request/response bodies, customer information and precise location coordinates.',
     'driver.inspector.export': 'Export JSON',
     'driver.inspector.clear': 'Clear diagnostics history',
     'driver.inspector.recent': 'Recent events',
@@ -390,9 +438,12 @@ class DriverTranslations extends InheritedWidget {
     'driver.preview.store': 'Store',
     'driver.preview.revision': 'Revision',
     'driver.preview.runtime': 'Runtime',
-    'driver.preview.mutation_blocked': 'Safe preview renders this action but does not perform a production mutation.',
-    'driver.preview.navigation_simulated': 'Native navigation is disabled in safe preview and may only run through an approved preview adapter.',
-    'driver.preview.configuration_invalid': 'The Driver preview context is invalid or does not match the driver channel.',
+    'driver.preview.mutation_blocked':
+        'Safe preview renders this action but does not perform a production mutation.',
+    'driver.preview.navigation_simulated':
+        'Native navigation is disabled in safe preview and may only run through an approved preview adapter.',
+    'driver.preview.configuration_invalid':
+        'The Driver preview context is invalid or does not match the driver channel.',
     'driver.detail.note': 'Order note',
     'driver.detail.items': 'Items',
     'driver.detail.item_variant': 'Variant / option',
@@ -434,11 +485,14 @@ class DriverTranslations extends InheritedWidget {
     'driver.action.confirm': 'Confirm',
     'driver.action.cancel': 'Cancel',
     'driver.collection.collect_and_deliver': 'Collect & Deliver',
-    'driver.collection.deliver_no_collection': 'Deliver — No Collection Required',
+    'driver.collection.deliver_no_collection':
+        'Deliver — No Collection Required',
     'driver.collection.amount': 'Amount collected',
     'driver.collection.remaining': 'Remaining to collect',
-    'driver.collection.invalid_amount': 'Enter a valid amount not exceeding the amount due',
-    'driver.collection.unavailable': 'Collection is unavailable for this session',
+    'driver.collection.invalid_amount':
+        'Enter a valid amount not exceeding the amount due',
+    'driver.collection.unavailable':
+        'Collection is unavailable for this session',
     'driver.wallet.title': 'Collection Wallet',
     'driver.wallet.custody': 'Current custody',
     'driver.wallet.available': 'Available to remit',
@@ -460,16 +514,23 @@ class DriverTranslations extends InheritedWidget {
     'driver.proof.attached': 'Proof image attached',
     'driver.proof.remove': 'Remove photo',
     'driver.completion.uploading': 'Submitting the update and proof...',
-    'driver.completion.proof_required': 'Attach a proof photo before completing delivery.',
-    'driver.completion.proof_too_large': 'The proof photo must be 5 MB or smaller.',
-    'driver.completion.failure_reason_required': 'Select a delivery failure reason.',
-    'driver.completion.other_note_required': 'Add a note when Other reason is selected.',
-    'driver.completion.submit_failed': 'Unable to update the delivery status. Try again.',
+    'driver.completion.proof_required':
+        'Attach a proof photo before completing delivery.',
+    'driver.completion.proof_too_large':
+        'The proof photo must be 5 MB or smaller.',
+    'driver.completion.failure_reason_required':
+        'Select a delivery failure reason.',
+    'driver.completion.other_note_required':
+        'Add a note when Other reason is selected.',
+    'driver.completion.submit_failed':
+        'Unable to update the delivery status. Try again.',
     'driver.invoice.title': 'Invoice / receipt',
     'driver.invoice.open': 'View invoice',
     'driver.invoice.download': 'Open / download PDF',
-    'driver.invoice.download_failed': 'Invoice PDF could not be downloaded. Try again.',
-    'driver.invoice.download_unavailable': 'Invoice PDF download is unavailable in this mode.',
+    'driver.invoice.download_failed':
+        'Invoice PDF could not be downloaded. Try again.',
+    'driver.invoice.download_unavailable':
+        'Invoice PDF download is unavailable in this mode.',
     'driver.invoice.status': 'Invoice status',
     'driver.invoice.revision': 'Revision',
     'driver.invoice.issued_at': 'Issued at',
@@ -544,10 +605,13 @@ class DriverTranslations extends InheritedWidget {
 }
 
 extension DriverTranslationContext on BuildContext {
-  String tr(String key) => DriverTranslations.maybeOf(this)?.text(key) ?? DriverTranslations.fallback(this, key);
+  String tr(String key) =>
+      DriverTranslations.maybeOf(this)?.text(key) ??
+      DriverTranslations.fallback(this, key);
 }
 
-Future<Map<String, String>> fetchDriverTranslationBundle(String baseUrl, String locale) async {
+Future<Map<String, String>> fetchDriverTranslationBundle(
+    String baseUrl, String locale) async {
   final client = DriverDiagnosticHttpClient(http.Client());
   try {
     final response = await client.get(

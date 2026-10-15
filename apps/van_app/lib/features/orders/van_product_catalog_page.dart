@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:foodex_visualization/foodex_visualization.dart';
 
 import '../../core/auth/van_session.dart';
@@ -6,8 +7,6 @@ import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
-
-import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanProductCatalogPage extends StatefulWidget {
   const VanProductCatalogPage({
@@ -30,11 +29,18 @@ class VanProductCatalogPage extends StatefulWidget {
 }
 
 class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
+  static const _perPage = 50;
+
   final _search = TextEditingController();
   bool _loading = true;
+  bool _loadingMore = false;
   Object? _error;
+  Object? _loadMoreError;
   List<VanCustomerScope> _customers = const [];
   List<VanCatalogProduct> _products = const [];
+  int _page = 0;
+  bool _hasMore = false;
+  int _requestSerial = 0;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
@@ -47,6 +53,7 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
 
   @override
   void dispose() {
+    _requestSerial += 1;
     _search.dispose();
     super.dispose();
   }
@@ -75,33 +82,85 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
     }
   }
 
-  Future<void> _loadProducts() async {
+  bool _sameScope(VanCustomerScope? left, VanCustomerScope right) =>
+      left?.type == right.type &&
+      left?.id == right.id &&
+      left?.storeId == right.storeId;
+
+  Future<void> _loadProducts({bool append = false}) async {
     final customer = widget.draft.customer;
     if (customer == null) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _products = const [];
+          _page = 0;
+          _hasMore = false;
+        });
+      }
       return;
     }
+    if (append && (_loadingMore || !_hasMore)) return;
+
+    final query = _search.text.trim();
+    final targetPage = append ? _page + 1 : 1;
+    final request = ++_requestSerial;
+
     setState(() {
-      _loading = true;
-      _error = null;
+      if (append) {
+        _loadingMore = true;
+        _loadMoreError = null;
+      } else {
+        _loading = true;
+        _error = null;
+        _loadMoreError = null;
+        _products = const [];
+        _page = 0;
+        _hasMore = false;
+      }
     });
+
     try {
-      final products = await widget.repository.catalog(
+      final result = await widget.repository.catalog(
         customer,
-        search: _search.text,
+        search: query,
+        page: targetPage,
+        perPage: _perPage,
       );
-      if (!mounted) return;
+      if (!mounted ||
+          request != _requestSerial ||
+          !_sameScope(widget.draft.customer, customer) ||
+          _search.text.trim() != query) {
+        return;
+      }
+
       setState(() {
-        _products = products;
+        if (append) {
+          final byId = <int, VanCatalogProduct>{
+            for (final product in _products) product.id: product,
+            for (final product in result.products) product.id: product,
+          };
+          _products = byId.values.toList(growable: false);
+        } else {
+          _products = result.products;
+        }
+        _page = result.page;
+        _hasMore = result.hasMore;
         _loading = false;
+        _loadingMore = false;
       });
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || request != _requestSerial) return;
       setState(() {
-        _loading = false;
-        _error = error;
+        if (append) {
+          _loadingMore = false;
+          _loadMoreError = error;
+        } else {
+          _loading = false;
+          _error = error;
+        }
       });
     }
   }
@@ -135,17 +194,21 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
             children: [
               Text(
                 _text('Catalog availability', 'توفر الكتالوج'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
-                _text(
-                  'Which products can be sold now, and which need stock attention?',
-                  'ما المنتجات المتاحة للبيع الآن وما الذي يحتاج متابعة مخزون؟',
-                ),
+                _hasMore
+                    ? _text(
+                        'Loaded subset only · ${_products.length} products',
+                        'الجزء المحمّل فقط · ${_products.length} منتج',
+                      )
+                    : _text(
+                        'All filtered results loaded · ${_products.length} products',
+                        'تم تحميل كل النتائج المصفاة · ${_products.length} منتج',
+                      ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -157,8 +220,8 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                   _unavailableCount.toDouble(),
                 ],
                 semanticLabel: _text(
-                  'Healthy, low-stock and unavailable catalog distribution',
-                  'توزيع منتجات الكتالوج السليمة ومنخفضة المخزون وغير المتاحة',
+                  'Availability distribution for the currently loaded catalog products',
+                  'توزيع التوفر لمنتجات الكتالوج المحملة حاليًا',
                 ),
                 size: 134,
                 strokeWidth: 18,
@@ -176,6 +239,218 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
         ),
       );
 
+  Widget _productCard(BuildContext context, VanCatalogProduct product) => Card(
+        key: ValueKey('van-catalog-product-${product.id}'),
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: FoodexVanTokens.mint,
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  color: FoodexVanTokens.green,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      product.sku,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: FoodexVanTokens.muted),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      foodexMoneyText(product.unitPrice, product.currency),
+                      style: const TextStyle(
+                        color: FoodexVanTokens.actionGreen,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton.filledTonal(
+                key: ValueKey('van-catalog-add-${product.id}'),
+                tooltip: _text(
+                  'Add ${product.name} to cart',
+                  'إضافة ${product.name} إلى السلة',
+                ),
+                onPressed: product.isAvailable
+                    ? () => widget.draft.add(product)
+                    : null,
+                icon: const Icon(Icons.add),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _resultStatus() => Semantics(
+        liveRegion: true,
+        container: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            _hasMore
+                ? _text(
+                    'Loaded ${_products.length} products · more results available',
+                    'تم تحميل ${_products.length} منتج · توجد نتائج إضافية',
+                  )
+                : _text(
+                    'Loaded ${_products.length} products · end of results',
+                    'تم تحميل ${_products.length} منتج · نهاية النتائج',
+                  ),
+            key: const ValueKey('van-catalog-result-status'),
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+
+  List<Widget> _topContent(BuildContext context) {
+    final content = <Widget>[
+      DropdownButtonFormField<VanCustomerScope>(
+        initialValue: widget.draft.customer,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: _text('Customer', 'العميل'),
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          for (final customer in _customers)
+            DropdownMenuItem(
+              value: customer,
+              child: Text(
+                customer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+        ],
+        onChanged: _selectCustomer,
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        key: const ValueKey('van-catalog-search'),
+        controller: _search,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (_) => _loadProducts(),
+        decoration: InputDecoration(
+          hintText: _text(
+            'Search product, SKU or barcode',
+            'ابحث بالمنتج أو SKU أو الباركود',
+          ),
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: VanIconAction(
+            onPressed: _loadProducts,
+            icon: const Icon(Icons.arrow_forward),
+          ),
+          border: const OutlineInputBorder(),
+        ),
+      ),
+      const SizedBox(height: 10),
+    ];
+
+    if (_loading) {
+      content.add(const Center(child: CircularProgressIndicator()));
+    } else if (_error != null) {
+      content.add(
+        _State(
+          text: _text(
+            'Unable to load the authoritative catalog.',
+            'تعذر تحميل الكتالوج المعتمد.',
+          ),
+          action: _loadProducts,
+          actionLabel: _text('Retry', 'إعادة المحاولة'),
+        ),
+      );
+    } else if (_products.isEmpty && !_hasMore) {
+      content.add(
+        _State(
+          text: _text(
+            'No available products match this customer, store and search.',
+            'لا توجد منتجات متاحة مطابقة لهذا العميل والمتجر والبحث.',
+          ),
+          action: _loadProducts,
+          actionLabel: _text('Refresh', 'تحديث'),
+        ),
+      );
+    } else if (_products.isNotEmpty) {
+      content
+        ..add(_stockAnalytics(context))
+        ..add(_resultStatus());
+    } else {
+      content.add(_resultStatus());
+    }
+
+    return content;
+  }
+
+  List<Widget> _bottomContent() {
+    final content = <Widget>[];
+
+    if (!_loading && _error == null && _loadMoreError != null) {
+      content.add(
+        _State(
+          text: _text(
+            'Unable to load more catalog products. Your loaded products and cart are unchanged.',
+            'تعذر تحميل المزيد من منتجات الكتالوج. المنتجات المحملة والسلة لم تتغير.',
+          ),
+          action: () => _loadProducts(append: true),
+          actionLabel: _text('Retry load more', 'إعادة تحميل المزيد'),
+        ),
+      );
+    } else if (_loadingMore) {
+      content.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    } else if (!_loading && _error == null && _hasMore) {
+      content.add(
+        VanActionButton.secondary(
+          onPressed: () => _loadProducts(append: true),
+          child: Text(_text('Load more products', 'تحميل المزيد من المنتجات')),
+        ),
+      );
+    }
+
+    content
+      ..add(const SizedBox(height: 10))
+      ..add(
+        VanActionButton.icon(
+          key: const ValueKey('van-catalog-open-cart'),
+          onPressed: widget.draft.lines.isEmpty ? null : widget.onOpenBuilder,
+          icon: const Icon(Icons.shopping_cart_checkout),
+          label: Text(
+            _text(
+              'Open cart · ${widget.draft.lines.length} items',
+              'فتح السلة · ${widget.draft.lines.length} أصناف',
+            ),
+          ),
+        ),
+      );
+
+    return content;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading && _customers.isEmpty) {
@@ -191,147 +466,29 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
 
     return AnimatedBuilder(
       animation: widget.draft,
-      builder: (context, _) => ListView(
+      builder: (context, _) => CustomScrollView(
         key: const ValueKey('van-catalog-page'),
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
-        children: [
-          DropdownButtonFormField<VanCustomerScope>(
-            initialValue: widget.draft.customer,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: _text('Customer', 'العميل'),
-              border: const OutlineInputBorder(),
-            ),
-            items: [
-              for (final customer in _customers)
-                DropdownMenuItem(
-                  value: customer,
-                  child: Text(
-                    customer.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: _selectCustomer,
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            key: const ValueKey('van-catalog-search'),
-            controller: _search,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => _loadProducts(),
-            decoration: InputDecoration(
-              hintText: _text(
-                'Search product, SKU or barcode',
-                'ابحث بالمنتج أو SKU أو الباركود',
-              ),
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: VanIconAction(
-                onPressed: _loadProducts,
-                icon: const Icon(Icons.arrow_forward),
-              ),
-              border: const OutlineInputBorder(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(_topContent(context)),
             ),
           ),
-          const SizedBox(height: 10),
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else if (_error != null)
-            _State(
-              text: _text(
-                'Unable to load the authoritative catalog.',
-                'تعذر تحميل الكتالوج المعتمد.',
-              ),
-              action: _loadProducts,
-              actionLabel: _text('Retry', 'إعادة المحاولة'),
-            )
-          else if (_products.isEmpty)
-            _State(
-              text: _text(
-                'No available products match this customer and store.',
-                'لا توجد منتجات متاحة مطابقة لهذا العميل والمتجر.',
-              ),
-              action: _loadProducts,
-              actionLabel: _text('Refresh', 'تحديث'),
-            )
-          else ...[
-            _stockAnalytics(context),
-            const SizedBox(height: 10),
-            for (final product in _products)
-              Card(
-                key: ValueKey('van-catalog-product-${product.id}'),
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: FoodexVanTokens.mint,
-                        child: Icon(
-                          Icons.inventory_2_outlined,
-                          color: FoodexVanTokens.green,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            Text(
-                              product.sku,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: FoodexVanTokens.muted),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              foodexMoneyText(
-                                product.unitPrice,
-                                product.currency,
-                              ),
-                              style: const TextStyle(
-                                color: FoodexVanTokens.actionGreen,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton.filledTonal(
-                        key: ValueKey('van-catalog-add-${product.id}'),
-                        onPressed: product.isAvailable
-                            ? () => widget.draft.add(product)
-                            : null,
-                        icon: const Icon(Icons.add),
-                      ),
-                    ],
-                  ),
+          if (!_loading && _error == null && _products.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _productCard(context, _products[index]),
+                  childCount: _products.length,
                 ),
               ),
-          ],
-          const SizedBox(height: 6),
-          VanActionButton.icon(
-            key: const ValueKey('van-catalog-open-cart'),
-            onPressed: widget.draft.lines.isEmpty ? null : widget.onOpenBuilder,
-            icon: const Icon(Icons.shopping_cart_checkout),
-            label: Text(
-              _text(
-                'Open cart · ${widget.draft.lines.length} items',
-                'فتح السلة · ${widget.draft.lines.length} أصناف',
-              ),
+            ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(_bottomContent()),
             ),
           ),
         ],
@@ -346,6 +503,7 @@ class _State extends StatelessWidget {
     required this.action,
     required this.actionLabel,
   });
+
   final String text;
   final Future<void> Function() action;
   final String actionLabel;

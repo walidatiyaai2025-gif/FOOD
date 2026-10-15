@@ -107,6 +107,100 @@ class RetailAdminProductionDefectsTest extends TestCase
             ->assertSee('Inventory Product');
     }
 
+    public function test_retail_inventory_review_exposes_context_and_rejects_stale_mutations(): void
+    {
+        $storeId = $this->retailStore('INV-REVIEW');
+        $admin = $this->storeAdmin($storeId, 'inventory-review@example.test');
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2c');
+        $unitId = (int) DB::table('units')->where('scope', 'global')->value('id');
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'unit_id' => $unitId,
+            'sku' => 'INV-REVIEW-1',
+            'name' => 'Reviewed Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $sourceWarehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'INV-SOURCE',
+            'name' => 'Source Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $targetWarehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'INV-TARGET',
+            'name' => 'Target Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $inventoryId = (int) DB::table('inventories')->insertGetId([
+            'warehouse_id' => $sourceWarehouseId,
+            'product_id' => $productId,
+            'quantity' => 12,
+            'reserved_quantity' => 2,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2c/inventory')
+            ->assertOk()
+            ->assertSee('data-inventory-review-form="absolute"', false)
+            ->assertSee('data-inventory-review-form="adjust"', false)
+            ->assertSee('data-inventory-review-form="transfer"', false)
+            ->assertSee('Reviewed Product')
+            ->assertSee('Source Warehouse')
+            ->assertSee('"quantity":12', false)
+            ->assertSee('"reserved":2', false)
+            ->assertSee('"available":10', false);
+
+        DB::table('inventories')->where('id', $inventoryId)->update([
+            'quantity' => 13,
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->from('/admin/b2c/inventory')
+            ->post('/admin/b2c/inventory/'.$inventoryId.'/adjust', [
+                'store_id' => $storeId,
+                'quantity_delta' => 1,
+                'reason' => 'Cycle-count correction',
+                'expected_quantity' => 12,
+                'expected_reserved_quantity' => 2,
+            ])
+            ->assertRedirect('/admin/b2c/inventory')
+            ->assertSessionHasErrors('quantity_delta');
+
+        $this->assertDatabaseHas('inventories', [
+            'id' => $inventoryId,
+            'quantity' => 13,
+            'reserved_quantity' => 2,
+        ]);
+
+        $this->actingAs($admin)
+            ->from('/admin/b2c/inventory')
+            ->post('/admin/b2c/inventory/transfer', [
+                'store_id' => $storeId,
+                'inventory_id' => $inventoryId,
+                'target_warehouse_id' => $targetWarehouseId,
+                'quantity' => 1,
+                'expected_quantity' => 12,
+                'expected_reserved_quantity' => 2,
+            ])
+            ->assertRedirect('/admin/b2c/inventory')
+            ->assertSessionHasErrors('quantity');
+
+        $this->assertDatabaseMissing('inventories', [
+            'warehouse_id' => $targetWarehouseId,
+            'product_id' => $productId,
+        ]);
+    }
+
     public function test_retail_customer_image_is_saved_and_missing_image_uses_neutral_avatar(): void
     {
         Storage::fake('public');

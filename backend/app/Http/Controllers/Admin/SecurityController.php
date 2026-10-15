@@ -28,6 +28,14 @@ final class SecurityController extends Controller
         Gate::authorize('security.view');
         $this->useActorLocale($request);
 
+        $actor = $this->actor($request);
+        $isSuperAdmin = $actor->hasRole('SUPER_ADMIN');
+        if (! $isSuperAdmin) {
+            $actor->loadMissing([
+                'roles.permissions:id,code',
+                'storeRoleAssignments.role.permissions:id,code',
+            ]);
+        }
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
 
@@ -55,21 +63,139 @@ final class SecurityController extends Controller
             ->orderBy('code')
             ->get();
 
-        $permissions = Permission::query()->orderBy('code')->get();
+        $stores = Store::query()
+            ->select('stores.*')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->orderBy('stores.name')
+            ->get(['stores.id', 'stores.code', 'stores.name']);
+
+        $grantablePermissionCodes = $isSuperAdmin
+            ? null
+            : collect($actor->effectivePermissionCodes());
+
+        $permissions = Permission::query()
+            ->orderBy('code')
+            ->get()
+            ->when(! $isSuperAdmin, fn ($items) => $items
+                ->filter(fn (Permission $permission): bool => $grantablePermissionCodes?->contains($permission->code) === true)
+                ->values());
+
+        $permissionGroups = $permissions->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.'));
+        $groupTranslations = trans('security_permissions.groups');
+        $actionTranslations = trans('security_permissions.actions');
+        $groupTranslations = is_array($groupTranslations) ? $groupTranslations : [];
+        $actionTranslations = is_array($actionTranslations) ? $actionTranslations : [];
+
+        $permissionLabels = $permissions->mapWithKeys(function (Permission $permission) use ($groupTranslations, $actionTranslations): array {
+            $modulePath = Str::beforeLast($permission->code, '.');
+            $rootModule = Str::before($permission->code, '.');
+            $action = Str::afterLast($permission->code, '.');
+            $moduleLabel = $groupTranslations[$modulePath]
+                ?? $groupTranslations[$rootModule]
+                ?? Str::headline(str_replace('_', ' ', $modulePath));
+            $actionLabel = $actionTranslations[$action] ?? Str::headline(str_replace('_', ' ', $action));
+
+            return [(int) $permission->id => $moduleLabel.' — '.$actionLabel];
+        });
+
+        $permissionGroupLabels = $permissionGroups->keys()->mapWithKeys(
+            fn (string $module): array => [
+                $module => $groupTranslations[$module] ?? Str::headline(str_replace('_', ' ', $module)),
+            ],
+        )->all();
+
+        $globalCandidates = $roles->where('scope', 'global')->where('is_active', true)->values();
+        $storeCandidates = $roles->where('scope', 'store')->where('is_active', true)->values();
+
+        $globalRoles = $isSuperAdmin
+            ? $globalCandidates
+            : $globalCandidates
+                ->reject(fn (Role $role): bool => $role->code === 'SUPER_ADMIN')
+                ->filter(fn (Role $role): bool => $role->permissions->pluck('code')->diff($grantablePermissionCodes ?? collect())->isEmpty())
+                ->values();
+
+        $allowedRetailGlobalRoles = array_values((array) config('admin.channels.b2c.global_roles', []));
+        $retailGlobalPermissionCodes = $isSuperAdmin
+            ? collect()
+            : $actor->roles
+                ->filter(fn (Role $role): bool => (bool) $role->is_active
+                    && $role->scope === 'global'
+                    && in_array($role->code, $allowedRetailGlobalRoles, true))
+                ->flatMap(fn (Role $role) => $role->permissions->pluck('code'))
+                ->unique()
+                ->values();
+
+        $retailStorePermissionCodes = $isSuperAdmin
+            ? collect()
+            : $actor->storeRoleAssignments
+                ->filter(fn ($assignment): bool => (bool) $assignment->role->is_active
+                    && $assignment->role->scope === 'store')
+                ->groupBy('store_id')
+                ->map(fn ($assignments) => $assignments
+                    ->flatMap(fn ($assignment) => $assignment->role->permissions->pluck('code'))
+                    ->unique()
+                    ->values());
+
+        $grantableStoreRolesByStore = $stores->mapWithKeys(function (Store $store) use (
+            $isSuperAdmin,
+            $storeCandidates,
+            $retailGlobalPermissionCodes,
+            $retailStorePermissionCodes,
+        ): array {
+            if ($isSuperAdmin) {
+                return [(int) $store->id => $storeCandidates];
+            }
+
+            $effective = $retailGlobalPermissionCodes
+                ->merge($retailStorePermissionCodes->get((int) $store->id, collect()))
+                ->unique();
+
+            return [
+                (int) $store->id => $storeCandidates
+                    ->filter(fn (Role $role): bool => $role->permissions->pluck('code')->diff($effective)->isEmpty())
+                    ->values(),
+            ];
+        });
+
+        $editableRoleIds = $roles
+            ->filter(function (Role $role) use ($isSuperAdmin, $grantablePermissionCodes): bool {
+                if ($isSuperAdmin) {
+                    return true;
+                }
+
+                if ($role->code === 'SUPER_ADMIN') {
+                    return false;
+                }
+
+                return $role->permissions->pluck('code')->diff($grantablePermissionCodes ?? collect())->isEmpty();
+            })
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
 
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
-            'globalRoles' => $roles->where('scope', 'global')->where('is_active', true)->values(),
-            'storeRoles' => $roles->where('scope', 'store')->where('is_active', true)->values(),
-            'stores' => Store::query()
-                ->select('stores.*')
-                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-                ->where('stores.is_active', true)
-                ->where('store_types.code', 'B2C')
-                ->orderBy('stores.name')
-                ->get(['stores.id', 'stores.code', 'stores.name']),
-            'permissionGroups' => $permissions->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.')),
+            'globalRoles' => $globalRoles,
+            'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
+            'stores' => $stores,
+            'permissionGroups' => $permissionGroups,
+            'permissionLabels' => $permissionLabels,
+            'permissionGroupLabels' => $permissionGroupLabels,
+            'editableRoleIds' => $editableRoleIds,
+            'privilegedPermissionCodes' => [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+            ],
             'search' => $search,
             'statusFilter' => $status,
             'demoSummary' => $demoData->summary(),

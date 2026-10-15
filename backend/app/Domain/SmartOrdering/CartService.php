@@ -317,7 +317,7 @@ final class CartService
         if ($lines === []) {
             return [
                 'pricing_source' => 'backend_authoritative_quote_v1',
-                'currency' => 'EGP',
+                'currency' => $this->quotes->currencyForStore((int) $branch->store_id),
                 'items' => [],
                 'subtotal' => 0.0,
                 'discount_total' => 0.0,

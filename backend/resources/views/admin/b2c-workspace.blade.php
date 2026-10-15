@@ -580,7 +580,7 @@
                         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة مخزن':'Add warehouse' }}</button>
                     </form>
                     @if(!empty($moduleData['warehouses']) && !empty($moduleData['products']))
-                    <form method="post" action="{{ route('admin.b2c.inventory.ensure') }}" class="module-inline-form">
+                    <form method="post" action="{{ route('admin.b2c.inventory.ensure') }}" class="module-inline-form" data-inventory-review-form="absolute">
                         @csrf
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -593,11 +593,14 @@
                             @foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach
                         </select>
                         <input name="quantity" type="number" step="0.001" min="0" required placeholder="{{ app()->getLocale()==='ar'?'الكمية الحالية':'Current quantity' }}">
-                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء / تحديث الرصيد':'Create / update balance' }}</button>
+                        <input type="hidden" name="expected_quantity">
+                        <input type="hidden" name="expected_reserved_quantity">
+                        <div data-inventory-review hidden></div>
+                        <button class="foodex-primary" type="submit" data-review-submit>{{ app()->getLocale()==='ar'?'إنشاء / تحديث الرصيد':'Create / update balance' }}</button>
                     </form>
                     @endif
                     @if(!empty($moduleData['inventory_options']))
-                    <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
+                    <form method="post" action="{{ route('admin.b2c.inventory.adjust',['inventory'=>$moduleData['inventory_options'][0]['id']]) }}" class="module-inline-form" id="inventory-adjust-form" data-inventory-review-form="adjust" onsubmit="this.action=this.action.replace(/\/\d+\/adjust$/, '/'+this.inventory_id.value+'/adjust')">
                         @csrf
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -607,10 +610,13 @@
                         </select>
                         <input name="quantity_delta" type="number" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'التغيير + أو -':'Adjustment + or -' }}">
                         <input name="reason" maxlength="255" required placeholder="{{ app()->getLocale()==='ar'?'سبب التعديل':'Adjustment reason' }}">
-                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
+                        <input type="hidden" name="expected_quantity">
+                        <input type="hidden" name="expected_reserved_quantity">
+                        <div data-inventory-review hidden></div>
+                        <button class="foodex-primary" type="submit" data-review-submit>{{ app()->getLocale()==='ar'?'تعديل المخزون':'Adjust stock' }}</button>
                     </form>
                     @if(!empty($moduleData['warehouses']))
-                    <form method="post" action="{{ route('admin.b2c.inventory.transfer') }}" class="module-inline-form">
+                    <form method="post" action="{{ route('admin.b2c.inventory.transfer') }}" class="module-inline-form" data-inventory-review-form="transfer">
                         @csrf
                         <input type="hidden" name="store_id" value="{{ $storeId }}">
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -623,11 +629,132 @@
                             @foreach($moduleData['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}">{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
                         </select>
                         <input name="quantity" type="number" min="0.001" step="0.001" required placeholder="{{ app()->getLocale()==='ar'?'الكمية المراد نقلها':'Quantity to transfer' }}">
-                        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'نقل إلى مخزن آخر':'Transfer warehouse' }}</button>
+                        <input type="hidden" name="expected_quantity">
+                        <input type="hidden" name="expected_reserved_quantity">
+                        <div data-inventory-review hidden></div>
+                        <button class="foodex-primary" type="submit" data-review-submit>{{ app()->getLocale()==='ar'?'نقل إلى مخزن آخر':'Transfer warehouse' }}</button>
                     </form>
                     @endif
                     @endif
                 </div>
+                <script>
+                    (() => {
+                        const inventories = @json($moduleData['inventory_options'] ?? []);
+                        const warehouses = @json($moduleData['warehouses'] ?? []);
+                        const products = @json($moduleData['products'] ?? []);
+                        const labels = @json(__('admin.b2c_workspace.inventory_review'));
+                        const byId = new Map(inventories.map((item) => [String(item.id), item]));
+                        const byRelationship = new Map(inventories.map((item) => [String(item.warehouse_id) + ':' + String(item.product_id), item]));
+                        const quantity = (value) => Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+                        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+
+                        document.querySelectorAll('[data-inventory-review-form]').forEach((form) => {
+                            const kind = form.dataset.inventoryReviewForm;
+                            const review = form.querySelector('[data-inventory-review]');
+                            const submit = form.querySelector('[data-review-submit]');
+                            const originalSubmit = submit?.textContent ?? '';
+                            const expectedQuantity = form.querySelector('[name="expected_quantity"]');
+                            const expectedReserved = form.querySelector('[name="expected_reserved_quantity"]');
+
+                            const source = () => {
+                                if (kind === 'absolute') {
+                                    const warehouseId = form.querySelector('[name="warehouse_id"]')?.value;
+                                    const productId = form.querySelector('[name="product_id"]')?.value;
+                                    return byRelationship.get(String(warehouseId) + ':' + String(productId)) ?? null;
+                                }
+                                return byId.get(String(form.querySelector('[name="inventory_id"]')?.value)) ?? null;
+                            };
+
+                            const resetReview = () => {
+                                form.dataset.reviewReady = '0';
+                                if (review) review.hidden = true;
+                                if (submit) {
+                                    submit.disabled = false;
+                                    submit.textContent = originalSubmit;
+                                }
+                            };
+
+                            const syncTransferTargets = () => {
+                                if (kind !== 'transfer') return;
+                                const item = source();
+                                const target = form.querySelector('[name="target_warehouse_id"]');
+                                if (!target) return;
+                                for (const option of target.options) {
+                                    option.disabled = Boolean(item) && option.value === String(item.warehouse_id);
+                                }
+                                if (item && target.value === String(item.warehouse_id)) target.value = '';
+                            };
+
+                            form.addEventListener('input', () => {
+                                resetReview();
+                                syncTransferTargets();
+                            });
+                            form.addEventListener('change', () => {
+                                resetReview();
+                                syncTransferTargets();
+                            });
+
+                            form.addEventListener('submit', (event) => {
+                                if (form.dataset.reviewReady === '1') {
+                                    if (submit) submit.disabled = true;
+                                    return;
+                                }
+
+                                event.preventDefault();
+                                const item = source();
+                                const current = Number(item?.quantity ?? 0);
+                                const reserved = Number(item?.reserved ?? 0);
+                                const available = Number(item?.available ?? (current - reserved));
+                                const requested = Number(kind === 'adjust'
+                                    ? form.querySelector('[name="quantity_delta"]')?.value
+                                    : form.querySelector('[name="quantity"]')?.value);
+                                const resulting = kind === 'adjust'
+                                    ? current + requested
+                                    : kind === 'transfer'
+                                        ? current - requested
+                                        : requested;
+
+                                expectedQuantity.value = item ? String(item.quantity) : '';
+                                expectedReserved.value = item ? String(item.reserved) : '';
+
+                                let targetLine = '';
+                                if (kind === 'transfer') {
+                                    const targetId = form.querySelector('[name="target_warehouse_id"]')?.value;
+                                    const targetWarehouse = warehouses.find((warehouse) => String(warehouse.id) === String(targetId));
+                                    targetLine = targetWarehouse
+                                        ? '<div><strong>' + escapeHtml(labels.target) + ':</strong> ' + escapeHtml(targetWarehouse.code + ' · ' + targetWarehouse.name) + '</div>'
+                                        : '';
+                                }
+
+                                const selectedProductId = form.querySelector('[name="product_id"]')?.value;
+                                const selectedProduct = products.find((product) => String(product.id) === String(selectedProductId));
+                                const selectedWarehouseId = form.querySelector('[name="warehouse_id"]')?.value;
+                                const selectedWarehouse = warehouses.find((warehouse) => String(warehouse.id) === String(selectedWarehouseId));
+                                const productLabel = item?.product ?? (selectedProduct ? selectedProduct.sku + ' · ' + selectedProduct.name : '—');
+                                const warehouseLabel = item?.warehouse ?? (selectedWarehouse ? selectedWarehouse.code + ' · ' + selectedWarehouse.name : '—');
+                                const unitLabel = item?.unit ?? selectedProduct?.unit ?? '—';
+
+                                review.innerHTML =
+                                    '<strong>' + escapeHtml(labels.title) + '</strong>' +
+                                    '<div><strong>' + escapeHtml(labels.product) + ':</strong> ' + escapeHtml(productLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.warehouse) + ':</strong> ' + escapeHtml(warehouseLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.unit) + ':</strong> ' + escapeHtml(unitLabel) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.on_hand) + ':</strong> ' + quantity(current) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.reserved) + ':</strong> ' + quantity(reserved) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.available) + ':</strong> ' + quantity(available) + '</div>' +
+                                    targetLine +
+                                    '<div><strong>' + escapeHtml(labels.requested) + ':</strong> ' + quantity(requested) + '</div>' +
+                                    '<div><strong>' + escapeHtml(labels.result) + ':</strong> ' + quantity(resulting) + '</div>';
+                                review.hidden = false;
+                                form.dataset.reviewReady = '1';
+                                if (submit) submit.textContent = labels.confirm;
+                                submit?.focus();
+                            });
+
+                            syncTransferTargets();
+                        });
+                    })();
+                </script>
             @endif
 
             @if($module==='customers' && $storeId > 0 && ($user->hasPermission('customers.create',$storeId) || $user->hasPermission('customers.create')))

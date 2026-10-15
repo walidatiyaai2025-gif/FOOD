@@ -27,6 +27,7 @@ class VanControlPlaneParityTest extends TestCase
         $this->actingAs($admin)->put('/admin/settings/mobile/app', [
             'app' => 'van',
             'environment' => 'production',
+            'critical_policy_confirm' => '1',
             'display_name' => 'FOODEX Van',
             'published_version' => '0.1.0',
             'published_build' => '1',

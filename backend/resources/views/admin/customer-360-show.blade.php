@@ -47,9 +47,11 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-map-close{width:36px;height:36px;border:1px solid var(--foodex-border);border-radius:9px;background:#fff;font-size:22px;cursor:pointer}
 .c360-map-body{padding:16px;display:grid;gap:12px}
 .c360-map-search{display:flex;gap:8px}.c360-map-search input{flex:1;min-width:0}
+.c360-map-search-state{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-background)}
+.c360-map-search-state[data-visible="1"]{display:flex}.c360-map-search-state [data-address-map-search-message]{min-width:0}
 .c360-map-results{display:none;max-height:150px;overflow:auto;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}
 .c360-map-results[data-visible="1"]{display:block}
-.c360-map-result{display:block;width:100%;text-align:start;border:0;border-bottom:1px solid var(--foodex-border);background:#fff;padding:10px 12px;cursor:pointer;font:inherit}.c360-map-result:last-child{border-bottom:0}.c360-map-result:hover{background:#f7faf8}
+.c360-map-result{display:block;width:100%;text-align:start;border:0;border-bottom:1px solid var(--foodex-border);background:#fff;padding:10px 12px;cursor:pointer;font:inherit}.c360-map-result:last-child{border-bottom:0}.c360-map-result:hover{background:var(--foodex-background)}
 #c360-address-map{height:min(56vh,500px);min-height:340px;border-radius:12px;border:1px solid var(--foodex-border);overflow:hidden}
 .c360-map-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.c360-map-coords{font-family:var(--foodex-font-en);color:var(--foodex-muted);font-size:.82rem;direction:ltr}
 @media(max-width:1100px){.c360-kpis{grid-template-columns:repeat(2,1fr)}.c360-finance-details{grid-template-columns:repeat(2,1fr)}.c360-finance-details>div:nth-child(3n){border-inline-end:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(2n){border-inline-end:0}}
@@ -199,15 +201,15 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" maxlength="100" placeholder="{{ __('customer_360.addresses.label_placeholder') }}"></label>
 <label><small>{{ __('customer_360.addresses.recipient') }}</small><input name="recipient_name" maxlength="255"></label>
 <label><small>{{ __('customer_360.addresses.delivery_phone') }}</small><input name="delivery_phone" maxlength="50"></label>
-<label><small>{{ __('customer_360.addresses.city') }}</small><input name="city" maxlength="120" required></label>
+<label><small>{{ __('customer_360.addresses.country') }}</small><select name="country_code" required data-geography-country><option value="">{{ __('customer_360.addresses.choose_country') }}</option>@foreach($geographyOptions['country'] ?? [] as $option)<option value="{{ $option['value'] }}" data-node-id="{{ $option['id'] }}" @selected(old('country_code')===$option['value'])>{{ $option['label'] }}</option>@endforeach</select></label>
+<label><small>{{ __('customer_360.addresses.governorate') }}</small><select name="governorate" data-geography-level="governorate"><option value="">{{ __('customer_360.addresses.choose_governorate') }}</option>@foreach($geographyOptions['governorate'] ?? [] as $option)<option value="{{ $option['value'] }}" data-country="{{ $option['country_code'] }}" data-node-id="{{ $option['id'] }}" data-parent-id="{{ $option['parent_id'] }}" @selected(old('governorate')===$option['value'])>{{ $option['label'] }}</option>@endforeach</select></label>
+<label><small>{{ __('customer_360.addresses.city') }}</small><select name="city" required data-geography-level="city"><option value="">{{ __('customer_360.addresses.choose_city') }}</option>@foreach($geographyOptions['city'] ?? [] as $option)<option value="{{ $option['value'] }}" data-country="{{ $option['country_code'] }}" data-node-id="{{ $option['id'] }}" data-parent-id="{{ $option['parent_id'] }}" @selected(old('city')===$option['value'])>{{ $option['label'] }}</option>@endforeach</select></label>
+<label><small>{{ __('customer_360.addresses.area') }}</small><select name="area" data-geography-level="area"><option value="">{{ __('customer_360.addresses.choose_area') }}</option>@foreach($geographyOptions['area'] ?? [] as $option)<option value="{{ $option['value'] }}" data-country="{{ $option['country_code'] }}" data-node-id="{{ $option['id'] }}" data-parent-id="{{ $option['parent_id'] }}" @selected(old('area')===$option['value'])>{{ $option['label'] }}</option>@endforeach</select></label>
 <label class="wide"><small>{{ __('customer_360.addresses.address') }}</small><input name="line1" maxlength="255" required></label>
-<label><small>{{ __('customer_360.addresses.area') }}</small><input name="area" maxlength="120"></label>
-<label><small>{{ __('customer_360.addresses.governorate') }}</small><input name="governorate" maxlength="120"></label>
 <label><small>{{ __('customer_360.addresses.block') }}</small><input name="block" maxlength="120"></label>
 <label><small>{{ __('customer_360.addresses.building') }}</small><input name="building" maxlength="120"></label>
 <label><small>{{ __('customer_360.addresses.floor') }}</small><input name="floor" maxlength="120"></label>
 <label><small>{{ __('customer_360.addresses.apartment') }}</small><input name="apartment" maxlength="120"></label>
-<label><small>{{ __('customer_360.addresses.country_code') }}</small><input name="country_code" maxlength="2" required></label>
 <input name="latitude" type="hidden">
 <input name="longitude" type="hidden">
 <input type="hidden" name="location_source" value="manual">
@@ -236,7 +238,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <details class="c360-form-details" data-foodex-operational-modal><summary>{{ __('customer_360.addresses.edit_address') }}</summary>
 <form method="post" action="{{ route('admin.customer-360.addresses.update',['platformCustomer'=>$customer->id,'address'=>$address->id]) }}" class="c360-address-form" style="margin-top:12px">@csrf @method('PATCH')
-<label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ __('customer_360.addresses.recipient') }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.delivery_phone') }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ __('customer_360.addresses.city') }}</small><input name="city" value="{{ $address->city }}" maxlength="120"></label><label class="wide"><small>{{ __('customer_360.addresses.address') }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.area') }}</small><input name="area" value="{{ $address->area }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.governorate') }}</small><input name="governorate" value="{{ $address->governorate }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.block') }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.building') }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.floor') }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.apartment') }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.country_code') }}</small><input name="country_code" value="{{ $address->country_code }}" maxlength="2"></label><input name="latitude" type="hidden" value="{{ $address->latitude }}"><input name="longitude" type="hidden" value="{{ $address->longitude }}"><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><div class="wide c360-map-picker-row"><button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $address->latitude!==null && $address->longitude!==null ? __('customer_360.addresses.edit_map') : __('customer_360.addresses.choose_map') }}</button><span class="c360-map-picked" data-address-map-summary>@if($address->latitude!==null && $address->longitude!==null){{ __('customer_360.addresses.location_selected') }}@else{{ __('customer_360.addresses.no_location') }}@endif</span></div><label class="wide"><small>{{ __('customer_360.addresses.landmark') }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ __('customer_360.addresses.delivery_notes') }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.addresses.save_changes') }}</button></div>
+<label><small>{{ __('customer_360.addresses.label') }}</small><input name="label" value="{{ $address->label }}" maxlength="100"></label><label><small>{{ __('customer_360.addresses.recipient') }}</small><input name="recipient_name" value="{{ $address->recipient_name }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.delivery_phone') }}</small><input name="delivery_phone" value="{{ $address->delivery_phone }}" maxlength="50"></label><label><small>{{ __('customer_360.addresses.country') }}</small><select name="country_code" data-geography-country><option value="">{{ __('customer_360.addresses.choose_country') }}</option>@foreach($geographyOptions['country'] ?? [] as $option)<option value="{{ $option['value'] }}" data-node-id="{{ $option['id'] }}" @selected(strtoupper((string)$address->country_code)===$option['value'])>{{ $option['label'] }}</option>@endforeach @if($address->country_code && !collect($geographyOptions['country'] ?? [])->contains(fn($option)=>$option['value']===strtoupper((string)$address->country_code)))<option value="{{ strtoupper((string)$address->country_code) }}" selected>{{ strtoupper((string)$address->country_code) }} · {{ __('customer_360.addresses.saved_legacy_value') }}</option>@endif</select></label><label><small>{{ __('customer_360.addresses.governorate') }}</small><select name="governorate" data-geography-level="governorate"><option value="">{{ __('customer_360.addresses.choose_governorate') }}</option>@foreach($geographyOptions['governorate'] ?? [] as $option)<option value="{{ $option['value'] }}" data-country="{{ $option['country_code'] }}" data-node-id="{{ $option['id'] }}" data-parent-id="{{ $option['parent_id'] }}" @selected((string)$address->governorate===$option['value'])>{{ $option['label'] }}</option>@endforeach @if($address->governorate && !collect($geographyOptions['governorate'] ?? [])->contains(fn($option)=>$option['value']===(string)$address->governorate))<option value="{{ $address->governorate }}" selected data-country="{{ strtoupper((string)$address->country_code) }}">{{ $address->governorate }} · {{ __('customer_360.addresses.saved_legacy_value') }}</option>@endif</select></label><label><small>{{ __('customer_360.addresses.city') }}</small><select name="city" data-geography-level="city"><option value="">{{ __('customer_360.addresses.choose_city') }}</option>@foreach($geographyOptions['city'] ?? [] as $option)<option value="{{ $option['value'] }}" data-country="{{ $option['country_code'] }}" data-node-id="{{ $option['id'] }}" data-parent-id="{{ $option['parent_id'] }}" @selected((string)$address->city===$option['value'])>{{ $option['label'] }}</option>@endforeach @if($address->city && !collect($geographyOptions['city'] ?? [])->contains(fn($option)=>$option['value']===(string)$address->city))<option value="{{ $address->city }}" selected data-country="{{ strtoupper((string)$address->country_code) }}">{{ $address->city }} · {{ __('customer_360.addresses.saved_legacy_value') }}</option>@endif</select></label><label><small>{{ __('customer_360.addresses.area') }}</small><select name="area" data-geography-level="area"><option value="">{{ __('customer_360.addresses.choose_area') }}</option>@foreach($geographyOptions['area'] ?? [] as $option)<option value="{{ $option['value'] }}" data-country="{{ $option['country_code'] }}" data-node-id="{{ $option['id'] }}" data-parent-id="{{ $option['parent_id'] }}" @selected((string)$address->area===$option['value'])>{{ $option['label'] }}</option>@endforeach @if($address->area && !collect($geographyOptions['area'] ?? [])->contains(fn($option)=>$option['value']===(string)$address->area))<option value="{{ $address->area }}" selected data-country="{{ strtoupper((string)$address->country_code) }}">{{ $address->area }} · {{ __('customer_360.addresses.saved_legacy_value') }}</option>@endif</select></label><label class="wide"><small>{{ __('customer_360.addresses.address') }}</small><input name="line1" value="{{ $address->line1 }}" maxlength="255"></label><label><small>{{ __('customer_360.addresses.block') }}</small><input name="block" value="{{ $address->block }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.building') }}</small><input name="building" value="{{ $address->building }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.floor') }}</small><input name="floor" value="{{ $address->floor }}" maxlength="120"></label><label><small>{{ __('customer_360.addresses.apartment') }}</small><input name="apartment" value="{{ $address->apartment }}" maxlength="120"></label>{{-- localization-gate: allow geography legacy-value callback expressions; visible labels use catalog keys --}}<input name="latitude" type="hidden" value="{{ $address->latitude }}"><input name="longitude" type="hidden" value="{{ $address->longitude }}"><input type="hidden" name="location_source" value="{{ $address->location_source ?: 'manual' }}"><div class="wide c360-map-picker-row"><button type="button" class="foodex-action-secondary button secondary" data-address-map-picker>{{ $address->latitude!==null && $address->longitude!==null ? __('customer_360.addresses.edit_map') : __('customer_360.addresses.choose_map') }}</button><span class="c360-map-picked" data-address-map-summary>@if($address->latitude!==null && $address->longitude!==null){{ __('customer_360.addresses.location_selected') }}@else{{ __('customer_360.addresses.no_location') }}@endif</span></div><label class="wide"><small>{{ __('customer_360.addresses.landmark') }}</small><input name="landmark" value="{{ $address->landmark }}" maxlength="255"></label><label class="wide"><small>{{ __('customer_360.addresses.delivery_notes') }}</small><textarea name="delivery_notes" maxlength="1000" rows="2">{{ $address->delivery_notes }}</textarea></label><div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.addresses.save_changes') }}</button></div>
 </form></details>
 @endif
 </article>
@@ -366,10 +368,14 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 <div class="c360-map-body">
 <div class="c360-map-search">
-<input type="search" data-address-map-search placeholder="{{ __('customer_360.addresses.map_search_placeholder') }}">
+<input type="search" data-address-map-search aria-label="{{ __('customer_360.addresses.map_search_placeholder') }}" placeholder="{{ __('customer_360.addresses.map_search_placeholder') }}">
 <button type="button" class="foodex-action-secondary button secondary" data-address-map-search-button>{{ __('customer_360.addresses.map_search') }}</button>
 </div>
-<div class="c360-map-results" data-address-map-results></div>
+<div class="c360-map-search-state" data-address-map-search-state data-visible="0">
+<span data-address-map-search-message role="status" aria-live="polite" aria-atomic="true"></span>
+<button type="button" class="foodex-action-secondary button secondary" data-address-map-search-retry hidden>{{ __('customer_360.addresses.map_retry') }}</button>
+</div>
+<div class="c360-map-results" data-address-map-results role="region" aria-label="{{ __('customer_360.addresses.map_results_aria') }}"></div>
 <div id="c360-address-map" aria-label="{{ __('customer_360.addresses.map_aria') }}"></div>
 <div class="c360-map-footer">
 <span class="c360-map-coords" data-address-map-coords>{{ __('customer_360.addresses.map_choose_point') }}</span>
@@ -407,6 +413,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     const searchInput = mapModal?.querySelector('[data-address-map-search]');
     const searchButton = mapModal?.querySelector('[data-address-map-search-button]');
     const resultsBox = mapModal?.querySelector('[data-address-map-results]');
+    const searchState = mapModal?.querySelector('[data-address-map-search-state]');
+    const searchMessage = mapModal?.querySelector('[data-address-map-search-message]');
+    const searchRetry = mapModal?.querySelector('[data-address-map-search-retry]');
     const coordsBox = mapModal?.querySelector('[data-address-map-coords]');
     const applyButton = mapModal?.querySelector('[data-address-map-apply]');
     const defaultMapCenter = [26.8206,30.8025];
@@ -415,6 +424,24 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     let map = null;
     let marker = null;
     let selected = null;
+    let searchRequestId = 0;
+    let mapSessionId = 0;
+    let lastSearchQuery = '';
+
+    const resetSearchState = () => {
+        resultsBox.replaceChildren();
+        resultsBox.dataset.visible = '0';
+        searchState.dataset.visible = '0';
+        searchMessage.textContent = '';
+        searchRetry.hidden = true;
+    };
+
+    const showSearchState = (message, retry = false) => {
+        resultsBox.dataset.visible = '0';
+        searchMessage.textContent = message;
+        searchRetry.hidden = !retry;
+        searchState.dataset.visible = '1';
+    };
 
     const setSelected = (lat, lng, center = true) => {
         selected = {lat:Number(lat), lng:Number(lng)};
@@ -442,17 +469,25 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
     const closeMap = () => {
         if (!mapModal) return;
+        searchRequestId += 1;
+        mapSessionId += 1;
         mapModal.dataset.open = '0';
         mapModal.setAttribute('aria-hidden','true');
+        mapModal.removeAttribute('aria-busy');
         document.body.style.overflow = '';
-        resultsBox.dataset.visible = '0';
-        resultsBox.replaceChildren();
+        resetSearchState();
+        searchButton.disabled = false;
         activeForm = null;
     };
 
     document.querySelectorAll('[data-address-map-picker]').forEach((button) => {
         button.addEventListener('click', () => {
+            searchRequestId += 1;
+            mapSessionId += 1;
             activeForm = button.closest('form');
+            lastSearchQuery = '';
+            searchInput.value = '';
+            resetSearchState();
             ensureMap();
             mapModal.dataset.open = '1';
             mapModal.setAttribute('aria-hidden','false');
@@ -476,36 +511,67 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
     mapModal?.querySelectorAll('[data-address-map-close]').forEach((button) => button.addEventListener('click', closeMap));
     mapModal?.addEventListener('click', (event) => { if (event.target === mapModal) closeMap(); });
 
-    const runSearch = async () => {
-        const query = searchInput?.value.trim();
-        if (!query) return;
+    const runSearch = async (retryQuery = null) => {
+        const query = (retryQuery ?? searchInput?.value ?? '').trim();
+        if (!query || !activeForm || mapModal?.dataset.open !== '1') return;
+
+        const requestId = ++searchRequestId;
+        const sessionId = mapSessionId;
+        const requestForm = activeForm;
+        lastSearchQuery = query;
         searchButton.disabled = true;
+        mapModal.setAttribute('aria-busy','true');
         resultsBox.replaceChildren();
-        resultsBox.dataset.visible = '0';
+        showSearchState(@json(__('customer_360.addresses.map_searching')));
+
+        const ownsSearch = () =>
+            requestId === searchRequestId
+            && sessionId === mapSessionId
+            && activeForm === requestForm
+            && mapModal?.dataset.open === '1';
+
         try {
             const response = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' + encodeURIComponent(query), {
                 headers:{'Accept':'application/json'},
             });
-            const rows = response.ok ? await response.json() : [];
+            if (!response.ok) throw new Error('map-search-http-' + response.status);
+            const payload = await response.json();
+            if (!ownsSearch()) return;
+            const rows = Array.isArray(payload) ? payload : [];
+            resultsBox.replaceChildren();
             rows.forEach((row) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'c360-map-result';
                 button.textContent = row.display_name;
                 button.addEventListener('click', () => {
+                    if (!ownsSearch()) return;
                     setSelected(row.lat,row.lon,true);
-                    resultsBox.dataset.visible = '0';
+                    resetSearchState();
                 });
                 resultsBox.appendChild(button);
             });
-            resultsBox.dataset.visible = rows.length ? '1' : '0';
+
+            if (rows.length) {
+                searchState.dataset.visible = '0';
+                searchMessage.textContent = '';
+                searchRetry.hidden = true;
+                resultsBox.dataset.visible = '1';
+            } else {
+                showSearchState(@json(__('customer_360.addresses.map_no_results')));
+            }
         } catch (_) {
-            resultsBox.dataset.visible = '0';
+            if (!ownsSearch()) return;
+            showSearchState(@json(__('customer_360.addresses.map_failed')), true);
         } finally {
-            searchButton.disabled = false;
+            if (ownsSearch()) {
+                searchButton.disabled = false;
+                mapModal.removeAttribute('aria-busy');
+            }
         }
     };
-    searchButton?.addEventListener('click', runSearch);
+    searchButton?.addEventListener('click', () => runSearch());
+    searchRetry?.addEventListener('click', () => runSearch(lastSearchQuery));
     searchInput?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') { event.preventDefault(); runSearch(); }
     });
@@ -525,6 +591,41 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && mapModal?.dataset.open === '1') closeMap();
+    });
+
+    const syncGeographyForm = (form) => {
+        const country = form.querySelector('[data-geography-country]');
+        if (!country) return;
+        const countryCode = country.value;
+        const governorate = form.querySelector('[data-geography-level="governorate"]');
+        const city = form.querySelector('[data-geography-level="city"]');
+        const area = form.querySelector('[data-geography-level="area"]');
+
+        const selectedNodeId = (select) => select?.selectedOptions?.[0]?.dataset?.nodeId || '';
+        const filter = (select, parentSelect = null) => {
+            if (!select) return;
+            const parentNodeId = selectedNodeId(parentSelect);
+            Array.from(select.options).forEach((option, index) => {
+                if (index === 0 || !option.value) {
+                    option.hidden = false;
+                    return;
+                }
+                const sameCountry = !option.dataset.country || option.dataset.country === countryCode;
+                const parentMatches = !parentNodeId || !option.dataset.parentId || option.dataset.parentId === parentNodeId;
+                option.hidden = !(sameCountry && parentMatches);
+            });
+            if (select.selectedOptions[0]?.hidden) select.value = '';
+        };
+
+        filter(governorate);
+        filter(city, governorate);
+        filter(area, city?.value ? city : governorate);
+    };
+
+    document.querySelectorAll('.c360-address-form').forEach((form) => {
+        const controls = form.querySelectorAll('[data-geography-country],[data-geography-level]');
+        controls.forEach((control) => control.addEventListener('change', () => syncGeographyForm(form)));
+        syncGeographyForm(form);
     });
 
     const tabs = Array.from(document.querySelectorAll('[data-c360-tab]'));

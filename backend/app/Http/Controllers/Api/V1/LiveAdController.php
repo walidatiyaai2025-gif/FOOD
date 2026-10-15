@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\LiveAd;
+use App\Support\EngagementDestinationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 final class LiveAdController extends Controller
 {
+    public function __construct(private readonly EngagementDestinationCatalog $destinations) {}
+
     public function index(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -70,7 +73,7 @@ final class LiveAdController extends Controller
                     'body' => $locale === 'en' ? $ad->body_en : $ad->body_ar,
                     'image_url' => $this->assetUrl($ad->image_path),
                     'cta_label' => $locale === 'en' ? $ad->cta_label_en : $ad->cta_label_ar,
-                    'cta_target' => $ad->cta_target,
+                    'cta_target' => $this->safeTarget($ad),
                     'frequency' => (string) $ad->frequency,
                     'dismissible' => (bool) $ad->is_dismissible,
                     'priority' => (int) $ad->priority,
@@ -83,6 +86,23 @@ final class LiveAdController extends Controller
                 ];
             })->values(),
         ]);
+    }
+
+    private function safeTarget(LiveAd $ad): ?string
+    {
+        $target = is_string($ad->cta_target) ? trim($ad->cta_target) : '';
+        if ($target === '') {
+            return null;
+        }
+
+        $storeId = $ad->store_id === null ? null : (int) $ad->store_id;
+
+        return $this->destinations->codeForTarget(
+            $target,
+            'customer',
+            (string) $ad->channel,
+            $storeId,
+        ) === null ? null : $target;
     }
 
     private function assetUrl(mixed $path): ?string

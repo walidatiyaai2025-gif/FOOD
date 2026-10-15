@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/api/b2c_account_api.dart';
 import 'package:foodex_customer_app/core/api/customer_action_api.dart';
@@ -362,6 +363,343 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'checkout preserves non-default address and payment across resume',
+    (tester) async {
+      final api = _FakeRetailCommerceApi()
+        ..checkoutAddresses = const [
+          RetailCheckoutAddress(
+            id: 9,
+            label: 'Home',
+            line1: 'Street 1',
+            city: 'Kuwait City',
+            isDefault: true,
+          ),
+          RetailCheckoutAddress(
+            id: 10,
+            label: 'Office',
+            line1: 'Street 2',
+            city: 'Kuwait City',
+            isDefault: false,
+          ),
+        ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCheckoutScreen(
+            storeId: 7,
+            api: api,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-address-10')),
+      );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-payment-method')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('KNET').last);
+      await tester.pumpAndSettle();
+
+      await _simulateAppResume(tester);
+
+      final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(api.lastAddressId, 10);
+      expect(api.lastPaymentMethod, 'knet');
+      expect(api.submitCalls, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'removed checkout choices clear explicitly and require AR review',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final api = _FakeRetailCommerceApi()
+        ..checkoutAddresses = const [
+          RetailCheckoutAddress(
+            id: 9,
+            label: 'Home',
+            line1: 'Street 1',
+            city: 'Kuwait City',
+            isDefault: true,
+          ),
+          RetailCheckoutAddress(
+            id: 10,
+            label: 'Office',
+            line1: 'Street 2',
+            city: 'Kuwait City',
+            isDefault: false,
+          ),
+        ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar'), Locale('en')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: RetailCheckoutScreen(
+              storeId: 7,
+              api: api,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-address-10')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-payment-method')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('KNET').last);
+      await tester.pumpAndSettle();
+
+      api
+        ..checkoutAddresses = const [
+          RetailCheckoutAddress(
+            id: 9,
+            label: 'Home',
+            line1: 'Street 1',
+            city: 'Kuwait City',
+            isDefault: true,
+          ),
+        ]
+        ..checkoutPaymentMethods = const ['cash_on_delivery'];
+
+      await _simulateAppResume(tester);
+
+      expect(
+        find.byKey(const ValueKey('retail-checkout-options-changed')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'تم تحديث خيارات إتمام الطلب. راجع عنوان التوصيل وطريقة الدفع قبل التأكيد.',
+        ),
+        findsOneWidget,
+      );
+
+      final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(submit);
+      await tester.pump();
+
+      expect(api.submitCalls, 0);
+      expect(
+        find.text('اختر عنوان التوصيل وطريقة الدفع.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'stale checkout option response cannot overwrite newer selected context',
+    (tester) async {
+      final api = _FakeRetailCommerceApi()
+        ..checkoutAddresses = const [
+          RetailCheckoutAddress(
+            id: 9,
+            label: 'Home',
+            line1: 'Street 1',
+            city: 'Kuwait City',
+            isDefault: true,
+          ),
+          RetailCheckoutAddress(
+            id: 10,
+            label: 'Office',
+            line1: 'Street 2',
+            city: 'Kuwait City',
+            isDefault: false,
+          ),
+        ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCheckoutScreen(
+            storeId: 7,
+            api: api,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-address-10')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-payment-method')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('KNET').last);
+      await tester.pumpAndSettle();
+
+      final stale = Completer<RetailCheckoutOptions>();
+      api.checkoutOptionsCompleter = stale;
+
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.inactive,
+      );
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      await tester.pump();
+
+      api.checkoutOptionsCompleter = null;
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.inactive,
+      );
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      await tester.pumpAndSettle();
+
+      stale.complete(
+        const RetailCheckoutOptions(
+          storeId: 7,
+          addresses: [
+            RetailCheckoutAddress(
+              id: 9,
+              label: 'Old Home',
+              line1: 'Old Street',
+              city: 'Kuwait City',
+              isDefault: true,
+            ),
+          ],
+          paymentMethods: ['cash_on_delivery'],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(api.lastAddressId, 10);
+      expect(api.lastPaymentMethod, 'knet');
+      expect(api.submitCalls, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'add-address refresh preserves an existing valid checkout selection',
+    (tester) async {
+      final api = _FakeRetailCommerceApi()
+        ..checkoutAddresses = const [
+          RetailCheckoutAddress(
+            id: 9,
+            label: 'Home',
+            line1: 'Street 1',
+            city: 'Kuwait City',
+            isDefault: true,
+          ),
+          RetailCheckoutAddress(
+            id: 10,
+            label: 'Office',
+            line1: 'Street 2',
+            city: 'Kuwait City',
+            isDefault: false,
+          ),
+        ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          home: RetailCheckoutScreen(
+            storeId: 7,
+            api: api,
+            onAddAddress: (_) async {
+              api.checkoutAddresses = const [
+                RetailCheckoutAddress(
+                  id: 9,
+                  label: 'Home',
+                  line1: 'Street 1',
+                  city: 'Kuwait City',
+                  isDefault: true,
+                ),
+                RetailCheckoutAddress(
+                  id: 10,
+                  label: 'Office',
+                  line1: 'Street 2',
+                  city: 'Kuwait City',
+                  isDefault: false,
+                ),
+                RetailCheckoutAddress(
+                  id: 11,
+                  label: 'New address',
+                  line1: 'Street 3',
+                  city: 'Kuwait City',
+                  isDefault: false,
+                ),
+              ];
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-address-10')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('retail-checkout-add-address')),
+      );
+      await tester.pumpAndSettle();
+
+      final submit = find.byKey(const ValueKey('retail-checkout-submit'));
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(api.lastAddressId, 10);
+      expect(api.submitCalls, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('checkout exposes backend payment options and created order',
       (tester) async {
     final api = _FakeRetailCommerceApi();
@@ -648,12 +986,24 @@ void main() {
 
 class _FakeRetailCommerceApi implements RetailCommerceApi {
   bool emptyAddresses = false;
+  List<RetailCheckoutAddress> checkoutAddresses = const [
+    RetailCheckoutAddress(
+      id: 9,
+      label: 'Home',
+      line1: 'Street 1',
+      city: 'Kuwait City',
+      isDefault: true,
+    ),
+  ];
+  List<String> checkoutPaymentMethods = const ['cash_on_delivery', 'knet'];
+  Completer<RetailCheckoutOptions>? checkoutOptionsCompleter;
   int loadCartCalls = 0;
   int checkoutOptionsCalls = 0;
   int mergeCalls = 0;
   int? lastMergeStore;
   int submitCalls = 0;
   int? lastSubmitStore;
+  int? lastAddressId;
   String? lastPaymentMethod;
   int checkoutFailures = 0;
   String? checkoutErrorCode;
@@ -682,20 +1032,13 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   @override
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId}) async {
     checkoutOptionsCalls += 1;
+    final pending = checkoutOptionsCompleter;
+    if (pending != null) return pending.future;
     return RetailCheckoutOptions(
       storeId: storeId,
-      addresses: emptyAddresses
-          ? const <RetailCheckoutAddress>[]
-          : const [
-              RetailCheckoutAddress(
-                id: 9,
-                label: 'Home',
-                line1: 'Street 1',
-                city: 'Kuwait City',
-                isDefault: true,
-              ),
-            ],
-      paymentMethods: const ['cash_on_delivery', 'knet'],
+      addresses:
+          emptyAddresses ? const <RetailCheckoutAddress>[] : checkoutAddresses,
+      paymentMethods: checkoutPaymentMethods,
     );
   }
 
@@ -733,6 +1076,7 @@ class _FakeRetailCommerceApi implements RetailCommerceApi {
   }) async {
     submitCalls++;
     lastSubmitStore = storeId;
+    lastAddressId = addressId;
     lastPaymentMethod = paymentMethod;
     idempotencyKeys.add(idempotencyKey);
 

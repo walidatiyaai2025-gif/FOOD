@@ -216,6 +216,91 @@ class AdminCatalogManagementTest extends TestCase
         ]);
     }
 
+    public function test_product_edit_preserves_inactive_brand_and_unit_without_offering_them_as_new_choices(): void
+    {
+        $user = $this->superAdmin('en');
+        $b2cTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2cTypeId,
+            'code' => 'INACTIVE-LOOKUPS',
+            'name' => 'Inactive Lookup Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2c');
+
+        $unitId = (int) DB::table('units')->insertGetId([
+            'store_id' => $storeId,
+            'scope' => 'store',
+            'scope_key' => 'store:'.$storeId,
+            'code' => 'INACTIVE-U',
+            'name' => 'Inactive unit',
+            'name_ar' => 'وحدة غير نشطة',
+            'name_en' => 'Inactive unit',
+            'decimal_places' => 0,
+            'is_active' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $brandId = (int) DB::table('brands')->insertGetId([
+            'store_id' => $storeId,
+            'scope' => 'store',
+            'scope_key' => 'store:'.$storeId,
+            'slug' => 'inactive-brand-'.$storeId,
+            'name' => 'Inactive brand',
+            'name_ar' => 'علامة غير نشطة',
+            'name_en' => 'Inactive brand',
+            'is_active' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'brand_id' => $brandId,
+            'unit_id' => $unitId,
+            'sku' => 'INACTIVE-LOOKUP-P',
+            'name' => 'Inactive Lookup Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1');
+
+        $response->assertOk()
+            ->assertSee('value="'.$brandId.'" selected data-current-lookup-option data-lookup-state="inactive"', false)
+            ->assertSee('value="'.$unitId.'" selected data-current-lookup-option data-lookup-state="inactive"', false)
+            ->assertSee('Inactive brand')
+            ->assertSee('Inactive unit')
+            ->assertViewHas('brands', fn ($brands): bool => ! $brands->contains('id', $brandId))
+            ->assertViewHas('units', fn ($units): bool => ! $units->contains('id', $unitId));
+
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId, [
+            'name' => 'Inactive Lookup Product Renamed',
+            'brand_id' => $brandId,
+            'unit_id' => $unitId,
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'name' => 'Inactive Lookup Product Renamed',
+            'brand_id' => $brandId,
+            'unit_id' => $unitId,
+        ]);
+    }
+
     public function test_product_edit_rejects_new_foreign_scope_as_form_validation_instead_of_generic_422(): void
     {
         $user = $this->superAdmin('en');
