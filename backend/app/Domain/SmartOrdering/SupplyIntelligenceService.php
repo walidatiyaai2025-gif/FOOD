@@ -927,7 +927,7 @@ final class SupplyIntelligenceService
         return $ids->count() === 1 ? (string) $ids->first() : null;
     }
 
-    /** @return Collection<int,object> */
+    /** @return Collection<int,\stdClass> */
     private function effectiveMappings(
         int $siteId,
         int $branchId,
