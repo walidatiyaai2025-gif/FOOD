@@ -1,17 +1,7 @@
 name: FOODEX Store Submission Readiness
 
 on:
-  pull_request:
-    paths:
-      - "apps/customer_app/**"
-      - "apps/driver_app/**"
-      - "apps/van_app/**"
-      - "backend/**"
-      - "scripts/configure-mobile-native.py"
-      - "scripts/configure-android-store-signing.py"
-      - "scripts/store-readiness-audit.py"
-      - "store/submission/**"
-      - ".github/workflows/store-submission-readiness.yml"
+  # Quiet mode (#1637): run deliberately against the convergence candidate.
   workflow_dispatch:
 
 permissions:
