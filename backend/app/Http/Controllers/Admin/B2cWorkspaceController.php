@@ -915,10 +915,32 @@ class B2cWorkspaceController extends Controller
             'inventory_options' => DB::table('inventories')
                 ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
                 ->join('products', 'products.id', '=', 'inventories.product_id')
+                ->leftJoin('units', 'units.id', '=', 'products.unit_id')
                 ->whereIn('warehouses.store_id', $storeIds)
                 ->orderBy('products.name')
-                ->get(['inventories.id', 'products.sku', 'products.name', 'warehouses.name as warehouse'])
-                ->map(fn ($row) => ['id' => (int) $row->id, 'label' => $row->sku.' · '.$row->name.' · '.$row->warehouse])
+                ->get([
+                    'inventories.id',
+                    'inventories.warehouse_id',
+                    'inventories.quantity',
+                    'inventories.reserved_quantity',
+                    'products.sku',
+                    'products.name',
+                    'warehouses.code as warehouse_code',
+                    'warehouses.name as warehouse',
+                    'units.code as unit_code',
+                    'units.name as unit_name',
+                ])
+                ->map(fn ($row) => [
+                    'id' => (int) $row->id,
+                    'warehouse_id' => (int) $row->warehouse_id,
+                    'label' => $row->sku.' · '.$row->name.' · '.$row->warehouse,
+                    'product' => $row->sku.' · '.$row->name,
+                    'warehouse' => $row->warehouse_code.' · '.$row->warehouse,
+                    'unit' => $row->unit_name ?: ($row->unit_code ?: '—'),
+                    'quantity' => (float) $row->quantity,
+                    'reserved' => (float) $row->reserved_quantity,
+                    'available' => (float) $row->quantity - (float) $row->reserved_quantity,
+                ])
                 ->all(),
             'warehouses' => DB::table('warehouses')
                 ->whereIn('store_id', $storeIds)
