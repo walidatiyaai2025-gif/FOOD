@@ -411,6 +411,9 @@ final class SmartOrderingMerchandisingService
         if ($offerPublicId !== null) {
             $offerId = DB::table('smart_ordering_offer_rules')
                 ->where('site_id', $site->id)
+                ->where(function ($query) use ($branch): void {
+                    $query->whereNull('branch_id')->orWhere('branch_id', $branch->id);
+                })
                 ->where('public_id', $offerPublicId)
                 ->value('id');
             abort_unless($offerId !== null, 404);
@@ -420,12 +423,26 @@ final class SmartOrderingMerchandisingService
         if ($recommendationPublicId !== null) {
             $recommendationId = DB::table('smart_ordering_recommendation_rules')
                 ->where('site_id', $site->id)
+                ->where(function ($query) use ($branch): void {
+                    $query->whereNull('branch_id')->orWhere('branch_id', $branch->id);
+                })
                 ->where('public_id', $recommendationPublicId)
                 ->value('id');
             abort_unless($recommendationId !== null, 404);
         }
 
         abort_if($offerId === null && $recommendationId === null, 422, 'Offer or recommendation is required.');
+
+        if ($eventType === 'add' && $recommendationId !== null) {
+            $recommendedProductId = DB::table('smart_ordering_recommendation_rules')
+                ->where('id', $recommendationId)
+                ->value('recommended_product_id');
+            $present = $recommendedProductId !== null && DB::table('smart_ordering_cart_items')
+                ->where('cart_id', $cart->id)
+                ->where('product_id', (int) $recommendedProductId)
+                ->exists();
+            abort_unless($present, 409, 'Recommended product must be present in the cart before recording an add event.');
+        }
 
         DB::table('smart_ordering_merchandising_events')->insertOrIgnore([
             'site_id' => $site->id,
@@ -437,7 +454,7 @@ final class SmartOrderingMerchandisingService
             'event_type' => $eventType,
             'placement' => $placement,
             'metadata' => $metadata === [] ? null : json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-            'event_key' => hash('sha256', $site->id.'|'.$eventKey),
+            'event_key' => hash('sha256', $site->id.'|'.$cart->public_id.'|'.$eventKey),
             'occurred_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
@@ -452,6 +469,10 @@ final class SmartOrderingMerchandisingService
         ?int $customerId,
         ?string $cartPublicId,
     ): void {
+        $eventBranchId = $cartPublicId === null
+            ? null
+            : DB::table('smart_ordering_carts')->where('public_id', $cartPublicId)->value('branch_id');
+
         foreach ($applied as $offer) {
             $rule = DB::table('smart_ordering_offer_rules')
                 ->where('site_id', $site->id)
@@ -481,7 +502,7 @@ final class SmartOrderingMerchandisingService
 
             DB::table('smart_ordering_merchandising_events')->insertOrIgnore([
                 'site_id' => $site->id,
-                'branch_id' => null,
+                'branch_id' => $eventBranchId,
                 'offer_rule_id' => (int) $rule->id,
                 'customer_id' => $customerId,
                 'order_id' => $order->id,
@@ -511,7 +532,7 @@ final class SmartOrderingMerchandisingService
         foreach ($recommendationIds as $recommendationId) {
             DB::table('smart_ordering_merchandising_events')->insertOrIgnore([
                 'site_id' => $site->id,
-                'branch_id' => null,
+                'branch_id' => $eventBranchId,
                 'recommendation_rule_id' => (int) $recommendationId,
                 'customer_id' => $customerId,
                 'order_id' => $order->id,
