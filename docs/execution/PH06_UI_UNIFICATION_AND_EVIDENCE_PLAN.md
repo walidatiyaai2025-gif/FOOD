@@ -116,7 +116,7 @@ No PH-06 page is complete while hardcoded divergent fonts remain on that surface
 
 Do not introduce a second palette.
 
-- Primary Green: `#158A3A`
+- Primary Green: `#148638`
 - Dark Green: `#165D2D`
 - Bright Green: `#27B658`
 - Green Soft: `#EAF7EF`
@@ -124,7 +124,7 @@ Do not introduce a second palette.
 - Bright Orange: `#FC8F33`
 - Orange Soft: `#FFF1E6`
 - Info: `#4B8CF5`
-- Error: `#EF5350`
+- Error: `#B42318`
 - Ink: `#172033`
 - Muted: `#667085`
 - Background: `#F7F9FC`
