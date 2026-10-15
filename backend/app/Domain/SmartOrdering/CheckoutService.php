@@ -351,6 +351,10 @@ final class CheckoutService
                 'repeat-draft:'.$result['repeat_draft_public_id'].':completed',
                 [
                     'branch_id' => (int) $branch->getKey(),
+                    'qr_public_id' => $cart->qr_public_id,
+                    'source' => $cart->source_snapshot,
+                    'campaign' => $cart->campaign_snapshot,
+                    'offer_reference' => $cart->offer_reference,
                     'order_id' => (int) $result['order']->getKey(),
                     'customer_type' => 'repeat',
                     'fulfillment_mode' => $mode,
@@ -365,6 +369,10 @@ final class CheckoutService
             [
                 'branch_id' => (int) $branch->getKey(),
                 'cart_public_id' => (string) $cart->public_id,
+                'qr_public_id' => $cart->qr_public_id,
+                'source' => $cart->source_snapshot,
+                'campaign' => $cart->campaign_snapshot,
+                'offer_reference' => $cart->offer_reference,
                 'order_id' => (int) $result['order']->getKey(),
                 'customer_type' => $priorCompleted ? 'repeat' : 'new',
                 'fulfillment_mode' => $mode,
