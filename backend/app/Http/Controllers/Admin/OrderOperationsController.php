@@ -1083,6 +1083,209 @@ final class OrderOperationsController extends Controller
     }
 
     /**
+     * @param  array<int,Order>  $orders
+     */
+    private function primeRowCache(array $orders): void
+    {
+        $orderModels = collect($orders)
+            ->filter(static fn (mixed $order): bool => $order instanceof Order)
+            ->values();
+
+        if ($orderModels->isEmpty()) {
+            $this->rowCache = [];
+
+            return;
+        }
+
+        $orderIds = $orderModels
+            ->map(static fn (Order $order): int => (int) $order->getKey())
+            ->all();
+
+        $assignments = DriverAssignment::query()
+            ->whereIn('order_id', $orderIds)
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+            ->orderByDesc('id')
+            ->get()
+            ->unique('order_id')
+            ->keyBy('order_id');
+
+        $dispatches = OrderDispatchState::query()
+            ->whereIn('order_id', $orderIds)
+            ->get()
+            ->keyBy('order_id');
+
+        $driverIds = $assignments
+            ->pluck('driver_id')
+            ->merge($dispatches
+                ->filter(static fn (OrderDispatchState $dispatch): bool => $dispatch->current_assignee_type === 'driver')
+                ->pluck('current_assignee_id'))
+            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $drivers = $driverIds === []
+            ? collect()
+            : DB::table('drivers')
+                ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
+                ->whereIn('drivers.id', $driverIds)
+                ->get(['drivers.id', 'drivers.user_id', 'users.name'])
+                ->keyBy('id');
+
+        $vanIds = $dispatches
+            ->filter(static fn (OrderDispatchState $dispatch): bool => $dispatch->current_assignee_type === 'van')
+            ->pluck('current_assignee_id')
+            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $vans = $vanIds === []
+            ? collect()
+            : DB::table('vans')
+                ->whereIn('id', $vanIds)
+                ->get(['id', 'code', 'plate_number'])
+                ->keyBy('id');
+
+        $territoryIds = $dispatches
+            ->pluck('service_territory_id')
+            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $territories = $territoryIds === []
+            ? collect()
+            : DB::table('service_territories')
+                ->whereIn('id', $territoryIds)
+                ->get(['id', 'code', 'name_ar', 'name_en'])
+                ->keyBy('id');
+
+        $b2bCustomerIds = $orderModels
+            ->pluck('b2b_customer_id')
+            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $b2cCustomerIds = $orderModels
+            ->pluck('b2c_customer_id')
+            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $b2bCustomers = $b2bCustomerIds === []
+            ? collect()
+            : B2bCustomer::query()->whereIn('id', $b2bCustomerIds)->get()->keyBy('id');
+        $b2cCustomers = $b2cCustomerIds === []
+            ? collect()
+            : DB::table('b2c_customers')
+                ->whereIn('id', $b2cCustomerIds)
+                ->get(['id', 'name'])
+                ->keyBy('id');
+
+        $payments = DB::table('payments')
+            ->whereIn('order_id', $orderIds)
+            ->orderByDesc('id')
+            ->get(['id', 'order_id', 'status', 'provider', 'amount', 'currency'])
+            ->unique('order_id')
+            ->keyBy('order_id');
+
+        $invoices = Invoice::query()
+            ->whereIn('order_id', $orderIds)
+            ->orderByDesc('id')
+            ->get()
+            ->unique('order_id')
+            ->keyBy('order_id');
+
+        $issuedInvoiceOrders = DB::table('invoices')
+            ->whereIn('order_id', $orderIds)
+            ->whereIn('status', ['issued', 'reissued'])
+            ->distinct()
+            ->pluck('order_id')
+            ->mapWithKeys(static fn (mixed $id): array => [(int) $id => true]);
+
+        $storeIds = $orderModels
+            ->pluck('store_id')
+            ->filter(static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $stores = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->get(['id', 'name', 'code'])
+            ->keyBy('id');
+
+        $sourceNotes = DB::table('order_status_history')
+            ->whereIn('order_id', $orderIds)
+            ->whereNull('from_status')
+            ->where('to_status', 'pending')
+            ->orderBy('id')
+            ->get(['order_id', 'note'])
+            ->unique('order_id')
+            ->keyBy('order_id');
+
+        $cache = [];
+        foreach ($orderModels as $order) {
+            $orderId = (int) $order->getKey();
+            $assignment = $assignments->get($orderId);
+            $dispatch = $dispatches->get($orderId);
+
+            $dispatchAssignee = null;
+            if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'driver') {
+                $dispatchDriver = $drivers->get((int) $dispatch->current_assignee_id);
+                $dispatchAssignee = $dispatchDriver === null
+                    ? $this->msg('سائق بدون اسم', 'Unnamed driver')
+                    : (trim((string) $dispatchDriver->name)
+                        ?: $this->msg('سائق بدون اسم', 'Unnamed driver'));
+            } elseif ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === 'van') {
+                $dispatchVan = $vans->get((int) $dispatch->current_assignee_id);
+                if ($dispatchVan !== null) {
+                    $dispatchAssignee = trim((string) $dispatchVan->code)
+                        .($dispatchVan->plate_number ? ' · '.$dispatchVan->plate_number : '');
+                }
+            }
+
+            $channel = strtolower((string) $order->channel);
+            $b2bCustomer = $order->b2b_customer_id === null
+                ? null
+                : $b2bCustomers->get((int) $order->b2b_customer_id);
+            $b2cCustomer = $order->b2c_customer_id === null
+                ? null
+                : $b2cCustomers->get((int) $order->b2c_customer_id);
+
+            $cache[$orderId] = [
+                'assignment' => $assignment instanceof DriverAssignment ? $assignment : null,
+                'driver' => $assignment instanceof DriverAssignment
+                    ? $drivers->get((int) $assignment->driver_id)
+                    : null,
+                'dispatch' => $dispatch instanceof OrderDispatchState ? $dispatch : null,
+                'dispatch_assignee' => $dispatchAssignee,
+                'dispatch_territory' => $dispatch instanceof OrderDispatchState && $dispatch->service_territory_id !== null
+                    ? $territories->get((int) $dispatch->service_territory_id)
+                    : null,
+                'customer_name' => $channel === 'b2b'
+                    ? ($b2bCustomer?->name ?? null)
+                    : ($b2cCustomer->name ?? null),
+                'b2b_customer' => $b2bCustomer instanceof B2bCustomer ? $b2bCustomer : null,
+                'payment' => $payments->get($orderId),
+                'invoice' => $invoices->get($orderId),
+                'has_issued_invoice' => (bool) ($issuedInvoiceOrders[$orderId] ?? false),
+                'store' => $stores->get((int) $order->store_id),
+                'source_note' => $sourceNotes->get($orderId)?->note,
+            ];
+        }
+
+        $this->rowCache = $cache;
+    }
+
+    /**
      * @param  array<string,string>  $statusLabels
      * @param  list<string>  $activeStatusCodes
      * @return array<string,mixed>
