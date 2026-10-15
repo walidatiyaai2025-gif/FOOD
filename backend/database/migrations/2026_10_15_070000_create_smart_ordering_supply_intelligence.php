@@ -68,7 +68,7 @@ return new class extends Migration
             $table->foreignId('branch_id')->nullable()->constrained('smart_ordering_branches')->nullOnDelete();
             $table->foreignId('b2b_customer_id')->constrained('b2b_customers')->restrictOnDelete();
             $table->foreignId('cart_id')->nullable()->constrained('carts')->nullOnDelete();
-            $table->foreignId('converted_order_id')->nullable()->unique()->constrained('orders')->nullOnDelete();
+            $table->foreignId('converted_order_id')->nullable()->constrained('orders')->nullOnDelete();
             $table->string('currency', 3)->default('EGP');
             $table->decimal('assisted_value', 16, 3)->default(0);
             $table->json('recommendation_snapshot');
@@ -78,6 +78,7 @@ return new class extends Migration
 
             $table->index(['site_id', 'created_at'], 'so_supply_draft_site_idx');
             $table->index(['b2b_customer_id', 'cart_id'], 'so_supply_draft_cart_idx');
+            $table->index(['converted_order_id', 'converted_at'], 'so_supply_draft_order_idx');
         });
     }
 
