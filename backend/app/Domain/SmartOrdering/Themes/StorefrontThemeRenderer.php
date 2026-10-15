@@ -30,11 +30,15 @@ final class StorefrontThemeRenderer
         ];
     }
 
-    public function view(array $prepared): string { return 'public.smart-ordering.storefront'; }
+    public function view(array $prepared): string
+    {
+        return 'public.smart-ordering.storefront';
+    }
 
     private function site(array $site, string $locale, ?string $canonicalFallback): array
     {
         $seo = is_array($site['seo'] ?? null) ? $site['seo'] : [];
+
         return [
             'public_key' => $this->plain($site['public_key'] ?? '', 100),
             'name' => $this->translated($site['name'] ?? [], $locale, 'Restaurant'),
@@ -60,10 +64,16 @@ final class StorefrontThemeRenderer
     {
         $categories = [];
         foreach ((array) ($menu['categories'] ?? []) as $category) {
-            if (! is_array($category) || (($category['visible'] ?? true) === false)) continue;
+            if (! is_array($category) || (($category['visible'] ?? true) === false)) {
+                continue;
+            }
+
             $items = [];
             foreach ((array) ($category['items'] ?? []) as $item) {
-                if (! is_array($item) || (($item['visible'] ?? true) === false)) continue;
+                if (! is_array($item) || (($item['visible'] ?? true) === false)) {
+                    continue;
+                }
+
                 $items[] = [
                     'public_key' => $this->plain($item['public_key'] ?? '', 100),
                     'name' => $this->translated($item['name'] ?? [], $locale, 'Item'),
@@ -78,6 +88,7 @@ final class StorefrontThemeRenderer
                     'modifiers' => $this->modifiers((array) ($item['modifiers'] ?? []), $locale),
                 ];
             }
+
             $categories[] = [
                 'public_key' => $this->plain($category['public_key'] ?? '', 100),
                 'name' => $this->translated($category['name'] ?? [], $locale, 'Menu'),
@@ -86,6 +97,7 @@ final class StorefrontThemeRenderer
                 'items' => $items,
             ];
         }
+
         return ['categories' => $categories];
     }
 
@@ -93,10 +105,16 @@ final class StorefrontThemeRenderer
     {
         $safe = [];
         foreach ($groups as $group) {
-            if (! is_array($group)) continue;
+            if (! is_array($group)) {
+                continue;
+            }
+
             $options = [];
             foreach ((array) ($group['options'] ?? []) as $option) {
-                if (! is_array($option)) continue;
+                if (! is_array($option)) {
+                    continue;
+                }
+
                 $options[] = [
                     'public_key' => $this->plain($option['public_key'] ?? '', 100),
                     'name' => $this->translated($option['name'] ?? [], $locale, ''),
@@ -104,6 +122,7 @@ final class StorefrontThemeRenderer
                     'available' => (bool) ($option['available'] ?? true),
                 ];
             }
+
             $safe[] = [
                 'public_key' => $this->plain($group['public_key'] ?? '', 100),
                 'name' => $this->translated($group['name'] ?? [], $locale, ''),
@@ -113,6 +132,7 @@ final class StorefrontThemeRenderer
                 'options' => $options,
             ];
         }
+
         return $safe;
     }
 
@@ -120,7 +140,10 @@ final class StorefrontThemeRenderer
     {
         $safe = [];
         foreach ($branches as $branch) {
-            if (! is_array($branch)) continue;
+            if (! is_array($branch)) {
+                continue;
+            }
+
             $safe[] = [
                 'public_key' => $this->plain($branch['public_key'] ?? '', 100),
                 'name' => $this->translated($branch['name'] ?? [], $locale, ''),
@@ -129,6 +152,7 @@ final class StorefrontThemeRenderer
                 'map_url' => $this->safeUrl($branch['map_url'] ?? null),
             ];
         }
+
         return $safe;
     }
 
@@ -136,7 +160,10 @@ final class StorefrontThemeRenderer
     {
         $safe = [];
         foreach ($offers as $offer) {
-            if (! is_array($offer) || (($offer['visible'] ?? true) === false)) continue;
+            if (! is_array($offer) || (($offer['visible'] ?? true) === false)) {
+                continue;
+            }
+
             $safe[] = [
                 'public_key' => $this->plain($offer['public_key'] ?? '', 100),
                 'title' => $this->translated($offer['title'] ?? [], $locale, ''),
@@ -145,13 +172,20 @@ final class StorefrontThemeRenderer
                 'image_url' => $this->safeUrl($offer['image_url'] ?? null),
             ];
         }
+
         return $safe;
     }
 
     private function translated(mixed $value, string $locale, string $fallback): string
     {
-        if (is_string($value) || is_numeric($value)) return $this->plain($value, 1000);
-        if (! is_array($value)) return $fallback;
+        if (is_string($value) || is_numeric($value)) {
+            return $this->plain($value, 1000);
+        }
+
+        if (! is_array($value)) {
+            return $fallback;
+        }
+
         return $this->plain($value[$locale] ?? $value[$locale === 'ar' ? 'en' : 'ar'] ?? $fallback, 1000);
     }
 
@@ -163,21 +197,37 @@ final class StorefrontThemeRenderer
     private function safeUrl(mixed $value): ?string
     {
         $value = trim((string) $value);
-        if ($value === '') return null;
-        if (str_starts_with($value, '/')) return $value;
+        if ($value === '') {
+            return null;
+        }
+
+        if (str_starts_with($value, '/')) {
+            return $value;
+        }
+
         $parts = parse_url($value);
-        if (! is_array($parts) || ! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)) return null;
+        if (! is_array($parts) || ! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)) {
+            return null;
+        }
+
         return $value;
     }
 
     private function safeCanonical(mixed $value): ?string
     {
         $url = $this->safeUrl($value);
-        if ($url === null) return null;
+        if ($url === null) {
+            return null;
+        }
+
         $parts = parse_url($url);
-        if (! is_array($parts) || empty($parts['host'])) return $url;
+        if (! is_array($parts) || empty($parts['host'])) {
+            return $url;
+        }
+
         $scheme = $parts['scheme'] ?? 'https';
         $port = isset($parts['port']) ? ':'.$parts['port'] : '';
+
         return $scheme.'://'.$parts['host'].$port.($parts['path'] ?? '/');
     }
 }

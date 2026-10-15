@@ -9,6 +9,7 @@ final class ConfigStorefrontSnapshotProvider implements StorefrontSnapshotProvid
     public function published(string $siteKey): ?array
     {
         $snapshot = config("smart_ordering_storefront.storefronts.{$siteKey}.published");
+
         return is_array($snapshot) ? $snapshot : null;
     }
 
@@ -16,6 +17,7 @@ final class ConfigStorefrontSnapshotProvider implements StorefrontSnapshotProvid
     {
         $revision = $revision === 'draft' ? 'draft' : 'published';
         $snapshot = config("smart_ordering_storefront.storefronts.{$siteKey}.{$revision}");
+
         return is_array($snapshot) ? $snapshot : null;
     }
 }
