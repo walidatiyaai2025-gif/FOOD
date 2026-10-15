@@ -202,7 +202,7 @@ final class SystemInspectorController extends Controller
             ];
 
             foreach ($requiredTables as $table) {
-                if (! Schema::hasTable($table)) {
+                if (Schema::hasTable($table) === false) {
                     return [
                         'available' => false,
                         'migration_pending' => true,
