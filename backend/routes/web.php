@@ -368,6 +368,7 @@ Route::prefix('admin')
             ->name('driver-live-tracking.proofs.show');
         Route::get('/customer-360', [Customer360Controller::class, 'index'])->name('customer-360.index');
         Route::get('/customer-360/{platformCustomer}', [Customer360Controller::class, 'show'])->whereNumber('platformCustomer')->name('customer-360.show');
+        Route::get('/customer-360/{platformCustomer}/finance-invoices', [Customer360Controller::class, 'financeInvoices'])->whereNumber('platformCustomer')->name('customer-360.finance-invoices');
         Route::post('/customer-360/{platformCustomer}/finance-entries', [Customer360Controller::class, 'storeFinanceEntry'])->whereNumber('platformCustomer')->name('customer-360.finance-entries.store');
         Route::post('/customer-360/{platformCustomer}/invoices/{invoice}/settle', [Customer360Controller::class, 'settleInvoice'])->whereNumber('platformCustomer')->whereNumber('invoice')->name('customer-360.invoices.settle');
         Route::post('/customer-360/{platformCustomer}/finance-entries/{ledgerEntry}/reverse', [Customer360Controller::class, 'reverseFinanceEntry'])->whereNumber('platformCustomer')->whereNumber('ledgerEntry')->name('customer-360.finance-entries.reverse');
@@ -528,6 +529,9 @@ Route::prefix('admin')
             ->whereNumber('assignment')
             ->whereNumber('proof')
             ->name('operations.orders.van-proofs.show');
+        Route::get('/operations/orders/lookups/{type}', [OrderOperationsController::class, 'newOrderLookup'])
+            ->whereIn('type', ['customer', 'product', 'address'])
+            ->name('operations.orders.lookups');
         Route::post('/operations/orders/quote', [OrderOperationsController::class, 'quoteNewOrder'])->name('operations.orders.quote');
         Route::post('/operations/orders', [OrderOperationsController::class, 'storeNewOrder'])->name('operations.orders.store');
         Route::patch('/operations/orders/{order}', [OrderOperationsController::class, 'update'])->whereNumber('order')->name('operations.orders.update');

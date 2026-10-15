@@ -37,6 +37,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .c360-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.c360-report-card{border:1px solid var(--foodex-border);border-radius:14px;padding:16px;background:var(--foodex-surface);display:grid;gap:12px}.c360-report-card h3{font-size:1rem}.c360-report-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}.c360-report-form label{display:grid;gap:4px}.c360-report-form input{width:100%;box-sizing:border-box}.c360-report-form .wide{grid-column:1/-1}
 .c360-finance-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--foodex-border);border-radius:14px;overflow:hidden}.c360-finance-details>div{padding:15px;border-inline-end:1px solid var(--foodex-border);border-bottom:1px solid var(--foodex-border)}.c360-finance-details>div:nth-child(3n){border-inline-end:0}.c360-finance-details small{display:block;color:var(--foodex-muted);margin-bottom:5px}
 .c360-form-details{margin-top:16px;border-top:1px solid var(--foodex-border);padding-top:14px}.c360-form-details summary{cursor:pointer;font-weight:800}
+.c360-invoice-picker{position:relative;display:grid;gap:5px}.c360-invoice-picker-row{display:flex;gap:7px;align-items:center}.c360-invoice-picker-row input[type="search"]{flex:1;min-width:0}.c360-invoice-results{position:absolute;z-index:80;inset-inline:0;top:100%;margin-top:4px;max-height:280px;overflow:auto;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:10px;box-shadow:var(--foodex-shadow-raised)}.c360-invoice-results[hidden]{display:none}.c360-invoice-option{display:grid;gap:3px;width:100%;padding:10px 12px;border:0;border-bottom:1px solid var(--foodex-border);background:var(--foodex-surface);text-align:start;cursor:pointer;font:inherit}.c360-invoice-option:last-child{border-bottom:0}.c360-invoice-option[aria-selected="true"],.c360-invoice-option[data-active="1"]{background:var(--foodex-green-soft)}.c360-invoice-option small,.c360-invoice-picker-help,.c360-invoice-picker-status{color:var(--foodex-muted);font-size:.78rem}.c360-invoice-picker-status{min-height:1.2em}.c360-invoice-clear[hidden]{display:none}
 .c360-map-picker-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px dashed var(--foodex-border);border-radius:12px;background:#fbfcfd}
 .c360-map-picked{color:var(--foodex-muted);font-size:.82rem;direction:ltr}
 .c360-map-modal{position:fixed;inset:0;z-index:2500;display:none;place-items:center;padding:18px;background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}
@@ -163,7 +164,18 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <label><small>{{ __('customer_360.finance.amount') }}</small><input name="amount" type="number" min="{{ $financeAmountStep }}" step="{{ $financeAmountStep }}" value="{{ old('amount') }}" required inputmode="decimal" aria-describedby="c360-finance-amount-contract"><span id="c360-finance-amount-contract" class="muted">{{ __('customer_360.finance.amount_contract',['currency'=>$financeCurrency,'decimals'=>$financeAmountScale]) }}</span></label>
 <div class="c360-authoritative-field" data-finance-authoritative-currency="{{ $financeCurrency }}"><small>{{ __('customer_360.finance.currency') }}</small><strong>{{ $financeCurrency }}</strong><span class="muted">{{ __('customer_360.finance.authoritative_currency') }}</span></div>
 <label><small>{{ __('customer_360.finance.reference') }}</small><input name="reference" maxlength="120" value="{{ old('reference') }}"></label>
-<label><small>{{ __('customer_360.finance.invoice') }}</small><select name="invoice_id"><option value="">—</option>@foreach($invoices as $invoice)@php($invoiceCurrency=strtoupper((string)$invoice['currency']))@php($invoiceCompatible=$invoice['channel']==='b2b' && $invoiceCurrency===$financeCurrency)<option value="{{ $invoice['id'] }}" @disabled(!$invoiceCompatible) @selected((string)old('invoice_id')===(string)$invoice['id'])>{{ $invoice['number'] }} · {{ \App\Support\DisplayNumber::money((float)$invoice['total'],$invoiceCurrency) }} {{ $invoiceCurrency }}@if(!$invoiceCompatible) · {{ __('customer_360.finance.invoice_incompatible') }}@endif</option>@endforeach</select></label>
+<div class="c360-invoice-picker" data-finance-invoice-picker data-url="{{ route('admin.customer-360.finance-invoices',['platformCustomer'=>$customer->id]) }}">
+<small>{{ __('customer_360.finance.invoice') }}</small>
+<input type="hidden" name="invoice_id" value="{{ old('invoice_id') }}" data-finance-invoice-id>
+<div class="c360-invoice-picker-row">
+<input type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="c360-finance-invoice-results" aria-describedby="c360-finance-invoice-help c360-finance-invoice-status" placeholder="{{ __('customer_360.finance.invoice_search_placeholder') }}" data-finance-invoice-search>
+<button type="button" class="foodex-action-secondary button secondary c360-invoice-clear" data-finance-invoice-clear hidden>{{ __('customer_360.finance.invoice_clear') }}</button>
+</div>
+<span id="c360-finance-invoice-help" class="c360-invoice-picker-help">{{ __('customer_360.finance.invoice_search_help') }}</span>
+<span id="c360-finance-invoice-status" class="c360-invoice-picker-status" role="status" aria-live="polite" data-finance-invoice-status></span>
+<button type="button" class="foodex-action-secondary button secondary" data-finance-invoice-retry hidden>{{ __('customer_360.finance.invoice_retry') }}</button>
+<div id="c360-finance-invoice-results" class="c360-invoice-results" role="listbox" aria-label="{{ __('customer_360.finance.invoice_results_aria') }}" data-finance-invoice-results hidden></div>
+</div>
 <label class="wide"><small>{{ __('customer_360.finance.description') }}</small><input name="description" maxlength="500"></label>
 <label><small>{{ __('customer_360.finance.date') }}</small><input name="occurred_at" type="datetime-local"></label>
 <div class="wide"><button class="foodex-action-primary" type="submit">{{ __('customer_360.finance.record') }}</button></div>
@@ -391,6 +403,151 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <script src="{{ asset('assets/leaflet/1.9.4/leaflet.js') }}"></script>
 <script>
 (() => {
+    const financeInvoicePicker = document.querySelector('[data-finance-invoice-picker]');
+    if (financeInvoicePicker) {
+        const search = financeInvoicePicker.querySelector('[data-finance-invoice-search]');
+        const hidden = financeInvoicePicker.querySelector('[data-finance-invoice-id]');
+        const results = financeInvoicePicker.querySelector('[data-finance-invoice-results]');
+        const status = financeInvoicePicker.querySelector('[data-finance-invoice-status]');
+        const clear = financeInvoicePicker.querySelector('[data-finance-invoice-clear]');
+        const retry = financeInvoicePicker.querySelector('[data-finance-invoice-retry]');
+        const endpoint = financeInvoicePicker.dataset.url;
+        let controller = null;
+        let timer = null;
+        let activeIndex = -1;
+        let options = [];
+        let requestGeneration = 0;
+
+        const closeInvoiceResults = () => {
+            results.hidden = true;
+            search.setAttribute('aria-expanded', 'false');
+            search.removeAttribute('aria-activedescendant');
+            activeIndex = -1;
+            options = [];
+        };
+        const invoiceMeta = (invoice) => [
+            invoice.store || '',
+            invoice.status_label || '',
+            invoice.issued_at || '',
+            @json(__('customer_360.finance.outstanding')) + ': ' + Number(invoice.outstanding || 0).toFixed(2) + ' ' + (invoice.currency || ''),
+        ].filter(Boolean).join(' · ');
+        const invoiceLabel = (invoice) => invoice.number || '';
+        const selectInvoice = (invoice) => {
+            hidden.value = String(invoice.id);
+            search.value = invoiceLabel(invoice);
+            clear.hidden = false;
+            status.textContent = @json(__('customer_360.finance.invoice_selected')) + ': ' + invoiceLabel(invoice) + ' · ' + invoiceMeta(invoice);
+            closeInvoiceResults();
+        };
+        const renderInvoiceResults = (items) => {
+            results.replaceChildren();
+            options = [];
+            activeIndex = -1;
+            if (!items.length) {
+                status.textContent = @json(__('customer_360.finance.invoice_no_results'));
+                closeInvoiceResults();
+                return;
+            }
+            items.forEach((invoice, index) => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'c360-invoice-option';
+                option.id = 'c360-finance-invoice-option-' + invoice.id;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', String(String(hidden.value) === String(invoice.id)));
+                const title = document.createElement('strong');
+                title.textContent = invoiceLabel(invoice);
+                const meta = document.createElement('small');
+                meta.textContent = invoiceMeta(invoice);
+                option.append(title, meta);
+                option.addEventListener('mousedown', (event) => event.preventDefault());
+                option.addEventListener('click', () => selectInvoice(invoice));
+                results.appendChild(option);
+                options.push(option);
+                option.dataset.resultIndex = String(index);
+            });
+            results.hidden = false;
+            search.setAttribute('aria-expanded', 'true');
+            status.textContent = '';
+        };
+        const setActiveInvoice = (next) => {
+            if (!options.length) return;
+            activeIndex = Math.max(0, Math.min(next, options.length - 1));
+            options.forEach((option, index) => option.dataset.active = index === activeIndex ? '1' : '0');
+            const active = options[activeIndex];
+            search.setAttribute('aria-activedescendant', active.id);
+            active.scrollIntoView({block:'nearest'});
+        };
+        const loadInvoices = async ({selectedOnly = false} = {}) => {
+            const generation = ++requestGeneration;
+            controller?.abort();
+            controller = new AbortController();
+            status.textContent = @json(__('customer_360.finance.invoice_searching'));
+            retry.hidden = true;
+            const url = new URL(endpoint, window.location.origin);
+            if (!selectedOnly) url.searchParams.set('q', search.value.trim());
+            if (hidden.value) url.searchParams.set('selected_id', hidden.value);
+            const entryType = financeInvoicePicker.closest('form')?.querySelector('[name="entry_type"]')?.value;
+            if (entryType) url.searchParams.set('entry_type', entryType);
+            try {
+                const response = await fetch(url, {headers:{Accept:'application/json'}, signal:controller.signal});
+                if (!response.ok) throw new Error('lookup');
+                const payload = await response.json();
+                if (generation !== requestGeneration) return;
+                if (selectedOnly && payload.selected) {
+                    selectInvoice(payload.selected);
+                    return;
+                }
+                retry.hidden = true;
+                renderInvoiceResults(Array.isArray(payload.results) ? payload.results : []);
+            } catch (error) {
+                if (error?.name === 'AbortError' || generation !== requestGeneration) return;
+                closeInvoiceResults();
+                status.textContent = @json(__('customer_360.finance.invoice_search_failed'));
+                retry.hidden = false;
+            }
+        };
+
+        retry.addEventListener('click', () => loadInvoices());
+        search.addEventListener('input', () => {
+            if (hidden.value) {
+                hidden.value = '';
+                clear.hidden = true;
+            }
+            clearTimeout(timer);
+            timer = setTimeout(() => loadInvoices(), 180);
+        });
+        search.addEventListener('focus', () => loadInvoices());
+        search.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (results.hidden) loadInvoices();
+                else setActiveInvoice(activeIndex + 1);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setActiveInvoice(activeIndex <= 0 ? options.length - 1 : activeIndex - 1);
+            } else if (event.key === 'Enter' && activeIndex >= 0 && options[activeIndex]) {
+                event.preventDefault();
+                options[activeIndex].click();
+            } else if (event.key === 'Escape') {
+                closeInvoiceResults();
+            }
+        });
+        clear.addEventListener('click', () => {
+            hidden.value = '';
+            search.value = '';
+            clear.hidden = true;
+            status.textContent = '';
+            retry.hidden = true;
+            closeInvoiceResults();
+            search.focus();
+        });
+        document.addEventListener('click', (event) => {
+            if (!financeInvoicePicker.contains(event.target)) closeInvoiceResults();
+        });
+        if (hidden.value) loadInvoices({selectedOnly:true});
+    }
+
     const settlementDialog = document.getElementById('c360-settlement-dialog');
     document.querySelectorAll('[data-settlement-open]').forEach((button) => {
         button.addEventListener('click', () => {

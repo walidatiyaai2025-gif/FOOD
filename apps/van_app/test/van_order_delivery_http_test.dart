@@ -4,10 +4,53 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_van_app/core/api/http_van_api.dart';
 import 'package:foodex_van_app/features/orders/http_van_order_repository.dart';
 import 'package:foodex_van_app/features/orders/van_order_contract.dart';
+import 'package:foodex_van_app/features/wallet/van_wallet_contract.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  test('Van order history preserves pagination and filter scope', () async {
+    late Uri requested;
+    final repository = HttpVanOrderRepository(
+      VanApiClient(
+        'https://foodex.example/',
+        'van-token',
+        client: MockClient((request) async {
+          requested = request.url;
+          return http.Response(
+            '{"data":[{"id":7101,"display_order_number":"FDX-B2B-101","customer_type":"b2b","customer_id":42,"store_id":7,"status":"pending","currency":"KWD","grand_total":12.5,"van_execution_status":"assigned"}],"meta":{"current_page":3,"per_page":50,"total":101,"scope":"active_van_assignment"}}',
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      ),
+    );
+
+    final page = await repository.orders(
+      customer: const VanCustomerScope(
+        type: 'b2b',
+        id: 42,
+        name: 'Acme Grocery',
+        storeId: 7,
+      ),
+      status: 'pending',
+      page: 3,
+      perPage: 50,
+    );
+
+    expect(requested.path, '/api/v1/van/orders');
+    expect(requested.queryParameters['page'], '3');
+    expect(requested.queryParameters['per_page'], '50');
+    expect(requested.queryParameters['customer_type'], 'b2b');
+    expect(requested.queryParameters['customer_id'], '42');
+    expect(requested.queryParameters['status'], 'pending');
+    expect(page.currentPage, 3);
+    expect(page.perPage, 50);
+    expect(page.total, 101);
+    expect(page.hasMore, isFalse);
+    expect(page.items.single.id, 7101);
+  });
+
   test('Van delivery repository uses configured failure reasons', () async {
     final repository = HttpVanOrderRepository(
       VanApiClient(
@@ -15,7 +58,10 @@ void main() {
         'van-token',
         client: MockClient((request) async {
           expect(request.url.path, '/api/v1/lookups/failed-delivery-reasons');
-          expect(request.headers['Authorization'], 'Bearer van-token');
+          expect(
+            request.headers['Authorization']?.toLowerCase(),
+            'bearer van-token',
+          );
           return http.Response(
             '{"data":[{"code":"customer_no_answer","label_ar":"العميل لا يجيب","label_en":"Customer did not answer"},{"code":"other","label_ar":"أخرى","label_en":"Other"}]}',
             200,
@@ -34,8 +80,10 @@ void main() {
     expect(reasons.last.labelEn, 'Other');
   });
 
-  test('Van proof upload is multipart idempotent and parses readiness', () async {
-    final directory = await Directory.systemTemp.createTemp('foodex-van-proof-');
+  test('Van proof upload is multipart idempotent and parses readiness',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('foodex-van-proof-');
     addTearDown(() => directory.delete(recursive: true));
     final file = File('${directory.path}/proof.jpg');
     await file.writeAsBytes([1, 2, 3, 4]);
@@ -70,9 +118,13 @@ void main() {
 
     expect(captured?.method, 'POST');
     expect(captured?.url.path, '/api/v1/van/orders/77/execution/proof');
-    expect(captured?.headers['Authorization'], 'Bearer van-token');
+    expect(
+      captured?.headers['Authorization']?.toLowerCase(),
+      'bearer van-token',
+    );
     expect(captured?.headers['Idempotency-Key'], 'van-proof-http-0001');
-    expect(captured?.headers['content-type'], startsWith('multipart/form-data;'));
+    expect(
+        captured?.headers['content-type'], startsWith('multipart/form-data;'));
     expect(captured?.body, contains('name="note"'));
     expect(captured?.body, contains('Door proof'));
     expect(captured?.body, contains('name="proof_image"'));
@@ -81,7 +133,8 @@ void main() {
     expect(state.latestProof?.available, isTrue);
   });
 
-  test('Van failed delivery and retry use dedicated server endpoints', () async {
+  test('Van failed delivery and retry use dedicated server endpoints',
+      () async {
     final requests = <http.Request>[];
     final repository = HttpVanOrderRepository(
       VanApiClient(
