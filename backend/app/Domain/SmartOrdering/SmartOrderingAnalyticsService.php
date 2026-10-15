@@ -259,29 +259,7 @@ final class SmartOrderingAnalyticsService
         string $fulfillment,
         float $revenue,
     ): void {
-        $query = DB::table('smart_ordering_analytics_daily')
-            ->where('event_date', $date)
-            ->where('store_id', $storeId)
-            ->where('branch_key', $branchKey)
-            ->where('event_name', $eventName)
-            ->where('source_key', $source)
-            ->where('campaign_key', $campaign)
-            ->where('offer_key', $offer)
-            ->where('customer_type_key', $customerType)
-            ->where('fulfillment_mode_key', $fulfillment);
-
-        $row = (clone $query)->lockForUpdate()->first(['id', 'event_count', 'revenue']);
-        if ($row !== null) {
-            $query->update([
-                'event_count' => (int) $row->event_count + 1,
-                'revenue' => round((float) $row->revenue + $revenue, 3),
-                'updated_at' => now(),
-            ]);
-
-            return;
-        }
-
-        DB::table('smart_ordering_analytics_daily')->insert([
+        $dimensions = [
             'event_date' => $date,
             'store_id' => $storeId,
             'branch_key' => $branchKey,
@@ -291,11 +269,27 @@ final class SmartOrderingAnalyticsService
             'offer_key' => $offer,
             'customer_type_key' => $customerType,
             'fulfillment_mode_key' => $fulfillment,
+        ];
+
+        $inserted = DB::table('smart_ordering_analytics_daily')->insertOrIgnore([
+            ...$dimensions,
             'event_count' => 1,
             'revenue' => $revenue,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($inserted === 1) {
+            return;
+        }
+
+        DB::table('smart_ordering_analytics_daily')
+            ->where($dimensions)
+            ->update([
+                'event_count' => DB::raw('event_count + 1'),
+                'revenue' => DB::raw('revenue + '.number_format($revenue, 3, '.', '')),
+                'updated_at' => now(),
+            ]);
     }
 
     private function incrementProductDaily(
@@ -306,35 +300,33 @@ final class SmartOrderingAnalyticsService
         string $eventName,
         float $revenue,
     ): void {
-        $query = DB::table('smart_ordering_analytics_product_daily')
-            ->where('event_date', $date)
-            ->where('store_id', $storeId)
-            ->where('branch_key', $branchKey)
-            ->where('product_id', $productId)
-            ->where('event_name', $eventName);
-
-        $row = (clone $query)->lockForUpdate()->first(['id', 'event_count', 'revenue']);
-        if ($row !== null) {
-            $query->update([
-                'event_count' => (int) $row->event_count + 1,
-                'revenue' => round((float) $row->revenue + $revenue, 3),
-                'updated_at' => now(),
-            ]);
-
-            return;
-        }
-
-        DB::table('smart_ordering_analytics_product_daily')->insert([
+        $dimensions = [
             'event_date' => $date,
             'store_id' => $storeId,
             'branch_key' => $branchKey,
             'product_id' => $productId,
             'event_name' => $eventName,
+        ];
+
+        $inserted = DB::table('smart_ordering_analytics_product_daily')->insertOrIgnore([
+            ...$dimensions,
             'event_count' => 1,
             'revenue' => $revenue,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($inserted === 1) {
+            return;
+        }
+
+        DB::table('smart_ordering_analytics_product_daily')
+            ->where($dimensions)
+            ->update([
+                'event_count' => DB::raw('event_count + 1'),
+                'revenue' => DB::raw('revenue + '.number_format($revenue, 3, '.', '')),
+                'updated_at' => now(),
+            ]);
     }
 
     /** @return array<string,string|int|float|bool|null> */
