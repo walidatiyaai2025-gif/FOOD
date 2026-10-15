@@ -555,26 +555,30 @@
                         </article>
                     </div>
                     <h3>{{ __('field_operations.routing_result') }}</h3>
-                    @php($routingResult = (array) data_get($routingSimulation, 'result', []))
+                    @php
+                        $routingResult = (array) data_get($routingSimulation, 'result', []);
+                        $routingResultRows = [];
+                        foreach ($routingResult as $key => $value) {
+                            $routingResultRows[] = [
+                                'label' => in_array($key, ['van_id','manual_dispatch_required','action'], true)
+                                    ? __('field_operations.routing_fields.'.$key)
+                                    : __('field_operations.legacy_routing_field', ['field' => $key]),
+                                'value' => match ($key) {
+                                    'van_id' => optional($routingVans->firstWhere('id', (int) $value))->code ?: $value,
+                                    'manual_dispatch_required' => $value ? __('field_operations.yes') : __('field_operations.no'),
+                                    'action' => __('field_operations.routing_actions.'.(string) $value),
+                                    default => $value,
+                                },
+                            ];
+                        }
+                    @endphp
                     <div class="fieldops-actions">
-                        @if($routingResult === [])
+                        @if($routingResultRows === [])
                             <span class="fieldops-muted">{{ __('field_operations.no_routing_result') }}</span>
-                        @else
-                            @foreach($routingResult as $key => $value)
-                                @php
-                                    $routingResultLabel = in_array($key, ['van_id','manual_dispatch_required','action'], true)
-                                        ? __('field_operations.routing_fields.'.$key)
-                                        : __('field_operations.legacy_routing_field', ['field' => $key]);
-                                    $routingResultValue = match ($key) {
-                                        'van_id' => optional($routingVans->firstWhere('id', (int) $value))->code ?: $value,
-                                        'manual_dispatch_required' => $value ? __('field_operations.yes') : __('field_operations.no'),
-                                        'action' => __('field_operations.routing_actions.'.(string) $value),
-                                        default => $value,
-                                    };
-                                @endphp
-                                <span class="fieldops-status">{{ $routingResultLabel }}: {{ $routingResultValue }}</span>
-                            @endforeach
                         @endif
+                        @foreach($routingResultRows as $routingResultRow)
+                            <span class="fieldops-status">{{ $routingResultRow['label'] }}: {{ $routingResultRow['value'] }}</span>
+                        @endforeach
                     </div>
                     @if($isSuper)
                     <details style="margin-top:10px">
