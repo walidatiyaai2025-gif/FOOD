@@ -70,6 +70,9 @@
 
         root.dataset.driverLiveMapReady = '1';
         const markers = new Map();
+        const listItems = new Map();
+        let emptyListState = null;
+        let selectedEntityKey = null;
         let latestRows = [];
         let fitted = false;
         let refreshing = false;
@@ -146,6 +149,7 @@
         };
 
         const entityId = row => row.actor_id ?? row.driver_id;
+        const entityKey = row => rowKind(row)+':'+String(entityId(row));
         const entityName = row => row.entity_name
             || row.driver_name
             || (kindLabel(rowKind(row))+' #'+entityId(row));
@@ -195,18 +199,22 @@
             if (target) target.textContent = String(value);
         };
 
+        const markerIconFor = row => {
+            if (typeof L.divIcon !== 'function' || typeof L.marker !== 'function') return null;
+            const kind = rowKind(row);
+            const symbol = kind === 'van' ? '🚐' : '👤';
+            return L.divIcon({
+                className:'foodex-tracking-entity-marker foodex-tracking-entity-marker-'+kind+' foodex-tracking-entity-marker-'+(row.status || 'offline'),
+                html:'<span aria-hidden="true">'+symbol+'</span>',
+                iconSize:[30,30],
+                iconAnchor:[15,15],
+            });
+        };
+
         const markerFor = (row, lat, lng, color) => {
             const kind = rowKind(row);
-            if (typeof L.divIcon === 'function' && typeof L.marker === 'function') {
-                const symbol = kind === 'van' ? '🚐' : '👤';
-                const icon = L.divIcon({
-                    className:'foodex-tracking-entity-marker foodex-tracking-entity-marker-'+kind+' foodex-tracking-entity-marker-'+(row.status || 'offline'),
-                    html:'<span aria-hidden="true">'+symbol+'</span>',
-                    iconSize:[30,30],
-                    iconAnchor:[15,15],
-                });
-                return L.marker([lat,lng],{icon});
-            }
+            const icon = markerIconFor(row);
+            if (icon) return L.marker([lat,lng],{icon});
 
             return L.circleMarker([lat,lng],{
                 radius:kind === 'van' ? 11 : 9,
@@ -217,13 +225,55 @@
             });
         };
 
+        const updateMarker = (marker, row, lat, lng, color) => {
+            marker.setLatLng?.([lat,lng]);
+            const icon = markerIconFor(row);
+            if (icon && typeof marker.setIcon === 'function') marker.setIcon(icon);
+            else marker.setStyle?.({fillColor:color});
+
+            const content = popupFor(row);
+            const popup = marker.getPopup?.();
+            if (popup && typeof popup.setContent === 'function') popup.setContent(content);
+            else marker.bindPopup(content);
+        };
+
+        const bindMarkerSelection = (marker, key) => {
+            if (typeof marker.on !== 'function') return;
+            marker.on('popupopen',() => {
+                selectedEntityKey = key;
+            });
+            marker.on('popupclose',() => {
+                if (selectedEntityKey === key) selectedEntityKey = null;
+            });
+        };
+
+        const updateListButton = (button, row, key, color) => {
+            const kind = rowKind(row);
+            button.type = 'button';
+            button.className = 'tracking-driver tracking-'+kind;
+            button.dataset.trackingEntityKey = key;
+
+            const title = document.createElement('strong');
+            const dot = document.createElement('span');
+            dot.className = 'tracking-dot';
+            dot.style.backgroundColor = color;
+            title.append(dot, document.createTextNode(kindLabel(kind)+': '+entityName(row)));
+            button.replaceChildren(
+                title,
+                text(
+                    'small',
+                    (row.channel || '').toUpperCase()+' · '+storeLabel(row)+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
+                )
+            );
+        };
+
         const render = () => {
             const rows = visibleRows();
-            layer.clearLayers();
-            markers.clear();
-
+            const visibleKeys = new Set();
+            const authoritativeKeys = new Set(latestRows.map(entityKey));
             const list = find('list');
-            if (list) list.replaceChildren();
+            const focusedBefore = document.activeElement;
+            let interactionRemoved = false;
 
             const counts = {online:0,stale:0,offline:0};
             rows.forEach(row => {
@@ -231,9 +281,9 @@
             });
             Object.entries(counts).forEach(([key,value]) => updateCount(key,value));
 
-            if (!rows.length) {
-                if (list) list.append(text('div', i18n.noDrivers, 'tracking-empty'));
-                return;
+            if (rows.length && emptyListState) {
+                emptyListState.remove?.();
+                emptyListState = null;
             }
 
             const bounds = [];
@@ -243,41 +293,79 @@
                 if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
                 const color = colors[row.status] || colors.offline;
-                const kind = rowKind(row);
-                const marker = markerFor(row,lat,lng,color)
-                    .bindPopup(popupFor(row))
-                    .addTo(layer);
+                const key = entityKey(row);
+                visibleKeys.add(key);
 
-                markers.set(kind+':'+String(entityId(row)), marker);
+                let marker = markers.get(key);
+                if (marker) {
+                    updateMarker(marker,row,lat,lng,color);
+                } else {
+                    marker = markerFor(row,lat,lng,color)
+                        .bindPopup(popupFor(row))
+                        .addTo(layer);
+                    bindMarkerSelection(marker,key);
+                    markers.set(key,marker);
+                }
                 bounds.push([lat,lng]);
 
                 if (list) {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'tracking-driver tracking-'+kind;
-
-                    const title = document.createElement('strong');
-                    const dot = document.createElement('span');
-                    dot.className = 'tracking-dot';
-                    dot.style.backgroundColor = color;
-                    title.append(dot, document.createTextNode(kindLabel(kind)+': '+entityName(row)));
-                    button.append(title);
-                    button.append(text(
-                        'small',
-                        (row.channel || '').toUpperCase()+' · '+storeLabel(row)+' · '+statusLabel(row.status)+' · '+routeOrOrder(row)
-                    ));
-                    button.addEventListener('click',() => {
-                        map.setView([lat,lng],16);
-                        marker.openPopup();
-                    });
-                    list.append(button);
+                    let button = listItems.get(key);
+                    if (!button) {
+                        button = document.createElement('button');
+                        button.addEventListener('click',() => {
+                            const currentKey = button.dataset.trackingEntityKey;
+                            const currentRow = visibleRows().find(candidate => entityKey(candidate) === currentKey);
+                            const currentMarker = markers.get(currentKey);
+                            if (!currentRow || !currentMarker) return;
+                            const currentLat = Number(currentRow.latitude);
+                            const currentLng = Number(currentRow.longitude);
+                            if (!Number.isFinite(currentLat) || !Number.isFinite(currentLng)) return;
+                            selectedEntityKey = currentKey;
+                            map.setView([currentLat,currentLng],16);
+                            currentMarker.openPopup();
+                        });
+                        listItems.set(key,button);
+                        list.append(button);
+                    }
+                    updateListButton(button,row,key,color);
                 }
             });
+
+            for (const [key,marker] of [...markers]) {
+                if (visibleKeys.has(key)) continue;
+                const selectedWasRemoved = selectedEntityKey === key && !authoritativeKeys.has(key);
+                if (selectedWasRemoved) {
+                    interactionRemoved = true;
+                    selectedEntityKey = null;
+                }
+                if (typeof layer.removeLayer === 'function') layer.removeLayer(marker);
+                else marker.remove?.();
+                markers.delete(key);
+            }
+
+            for (const [key,button] of [...listItems]) {
+                if (visibleKeys.has(key)) continue;
+                const focusedWasRemoved = focusedBefore === button;
+                const recordWasRemoved = !authoritativeKeys.has(key);
+                button.remove?.();
+                listItems.delete(key);
+                if (focusedWasRemoved) {
+                    (find('search') || find('recenter'))?.focus?.();
+                    if (recordWasRemoved) interactionRemoved = true;
+                }
+            }
+
+            if (!rows.length && list && !emptyListState) {
+                emptyListState = text('div', i18n.noDrivers, 'tracking-empty');
+                list.append(emptyListState);
+            }
 
             if (!fitted && bounds.length) {
                 map.fitBounds(bounds,{padding:[30,30],maxZoom:15});
                 fitted = true;
             }
+
+            return {interactionRemoved};
         };
 
         const fetchPayload = async (spec, controller) => {
@@ -342,14 +430,18 @@
                     }))
                 );
 
-                render();
+                const renderResult = render();
                 hasSuccessfulRender = true;
                 consecutiveFailures = 0;
                 const error = find('error');
                 if (error) error.hidden = true;
                 delete root.dataset.liveMapError;
                 delete root.dataset.liveMapStale;
-                if (state) state.textContent = latestRows.length ? (i18n.ready || 'OK') : i18n.noDrivers;
+                if (state) {
+                    state.textContent = renderResult.interactionRemoved
+                        ? (i18n.entityRemoved || i18n.ready || 'OK')
+                        : (latestRows.length ? (i18n.ready || 'OK') : i18n.noDrivers);
+                }
 
                 const generatedTimes = payloads
                     .map(({payload}) => Date.parse(payload.meta?.generated_at || ''))
