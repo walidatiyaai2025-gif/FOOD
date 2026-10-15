@@ -31,10 +31,10 @@
         <section class="panel">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
                 <div>
-                    <h2>{{ app()->getLocale() === 'ar' ? 'ذكاء توريد FOODEX' : 'FOODEX Supply Intelligence' }}</h2>
-                    <p>{{ app()->getLocale() === 'ar' ? 'استهلاك تقديري من الطلبات المكتملة، ربط وصفات، وتوصيات إعادة طلب آمنة كمسودة فقط.' : 'Estimated consumption from completed orders, recipe mapping, and safe draft-only replenishment.' }}</p>
+                    <h2>{{ __('smart_ordering_supply.title') }}</h2>
+                    <p>{{ __('smart_ordering_supply.nav_description') }}</p>
                 </div>
-                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',$site) }}">{{ app()->getLocale() === 'ar' ? 'فتح ذكاء التوريد' : 'Open supply intelligence' }}</a>
+                <a class="primary" href="{{ route('admin.smart-ordering.supply.index',$site) }}">{{ __('smart_ordering_supply.open_supply') }}</a>
             </div>
         </section>
         @endif
