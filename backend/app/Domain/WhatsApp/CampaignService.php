@@ -494,10 +494,6 @@ final class CampaignService
         $existing = [];
 
         foreach (array_chunk(array_values(array_unique(array_map('intval', $customerIds))), 1000) as $chunk) {
-            if ($chunk === []) {
-                continue;
-            }
-
             foreach (DB::table('whats_app_conversations')
                 ->where('channel', 'whatsapp')
                 ->whereIn('platform_customer_id', $chunk)
