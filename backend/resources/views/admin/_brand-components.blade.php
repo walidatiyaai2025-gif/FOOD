@@ -265,6 +265,85 @@
 </script>
 <script id="foodex-operational-modal-runtime">
 (() => {
+    const modalA11y = window.FoodexModalA11y || (() => {
+        const focusableSelector = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+        const focusables = (root) => [...root.querySelectorAll(focusableSelector)].filter((node) => {
+            if (!(node instanceof HTMLElement) || node.hidden || node.closest('[hidden],[aria-hidden="true"]')) return false;
+            const style = window.getComputedStyle(node);
+            return style.display !== 'none' && style.visibility !== 'hidden' && node.getClientRects().length > 0;
+        });
+        const isolateOutside = (root) => {
+            const changed = [];
+            let current = root;
+            while (current instanceof HTMLElement && current !== document.body) {
+                const parent = current.parentElement;
+                if (!parent) break;
+                [...parent.children].forEach((sibling) => {
+                    if (sibling === current || !(sibling instanceof HTMLElement) || sibling.inert) return;
+                    sibling.inert = true;
+                    changed.push(sibling);
+                });
+                current = parent;
+            }
+            return () => changed.reverse().forEach((node) => { node.inert = false; });
+        };
+        const activate = ({ root, dialog, initialFocus = null, returnFocus = null, fallbackFocus = null, onEscape = null }) => {
+            if (!(root instanceof HTMLElement) || !(dialog instanceof HTMLElement)) return null;
+            const priorFocus = returnFocus instanceof HTMLElement ? returnFocus : document.activeElement;
+            const restoreIsolation = isolateOutside(root);
+            if (!dialog.hasAttribute('tabindex')) dialog.setAttribute('tabindex', '-1');
+            let active = true;
+            const focusInitial = () => {
+                if (!active) return;
+                const targets = focusables(dialog);
+                const target = initialFocus instanceof HTMLElement && !initialFocus.disabled ? initialFocus : (targets[0] || dialog);
+                target.focus();
+            };
+            const onKeydown = (event) => {
+                if (!active || event.defaultPrevented) return;
+                if (event.key === 'Escape' && typeof onEscape === 'function') {
+                    event.preventDefault();
+                    onEscape();
+                    return;
+                }
+                if (event.key !== 'Tab') return;
+                const targets = focusables(dialog);
+                if (!targets.length) {
+                    event.preventDefault();
+                    dialog.focus();
+                    return;
+                }
+                const first = targets[0];
+                const last = targets[targets.length - 1];
+                const outside = !dialog.contains(document.activeElement);
+                if (event.shiftKey && (document.activeElement === first || outside)) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && (document.activeElement === last || outside)) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            };
+            document.addEventListener('keydown', onKeydown);
+            queueMicrotask(focusInitial);
+            return {
+                deactivate({ restoreFocus = true } = {}) {
+                    if (!active) return;
+                    active = false;
+                    document.removeEventListener('keydown', onKeydown);
+                    restoreIsolation();
+                    if (!restoreFocus) return;
+                    const target = priorFocus instanceof HTMLElement && priorFocus.isConnected && !priorFocus.inert
+                        ? priorFocus
+                        : (fallbackFocus instanceof HTMLElement && fallbackFocus.isConnected && !fallbackFocus.inert ? fallbackFocus : null);
+                    target?.focus();
+                },
+            };
+        };
+        return { activate, focusables };
+    })();
+    window.FoodexModalA11y = modalA11y;
+
     const enhance = (details, index) => {
         if (!(details instanceof HTMLDetailsElement) || details.dataset.foodexModalReady === '1') return;
         const summary = details.querySelector(':scope > summary');
@@ -314,24 +393,30 @@
         host.append(trigger, backdrop);
         details.replaceWith(host);
 
-        let priorFocus = null;
-        const open = () => {
-            priorFocus = document.activeElement;
-            backdrop.hidden = false;
-            document.body.classList.add('foodex-modal-open');
-            close.focus();
-        };
+        let modalSession = null;
         const shut = () => {
+            if (backdrop.hidden) return;
+            modalSession?.deactivate();
+            modalSession = null;
             backdrop.hidden = true;
             document.body.classList.remove('foodex-modal-open');
-            if (priorFocus instanceof HTMLElement) priorFocus.focus();
+        };
+        const open = () => {
+            if (!backdrop.hidden) return;
+            backdrop.hidden = false;
+            document.body.classList.add('foodex-modal-open');
+            modalSession = modalA11y.activate({
+                root: backdrop,
+                dialog,
+                initialFocus: close,
+                returnFocus: trigger,
+                fallbackFocus: trigger,
+                onEscape: shut,
+            });
         };
         trigger.addEventListener('click', open);
         close.addEventListener('click', shut);
         backdrop.addEventListener('click', (event) => { if (event.target === backdrop) shut(); });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !backdrop.hidden) shut();
-        });
     };
     const initOperationalModals = () => {
         document.querySelectorAll('details[data-foodex-operational-modal]').forEach(enhance);
@@ -720,15 +805,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const showFeedback = (kind, messages) => {
         const clean = (Array.isArray(messages) ? messages : [messages]).filter(Boolean);
         if (!clean.length) return;
-        document.querySelector('.foodex-feedback-modal')?.remove();
+        window.FoodexFeedbackClose?.();
+
         const overlay = document.createElement('div');
         overlay.className = 'foodex-feedback-modal modal fade show '+(kind === 'success' ? 'is-success' : 'is-error');
         overlay.setAttribute('role','dialog');
         overlay.setAttribute('aria-modal','true');
-        overlay.innerHTML = '<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><div class="foodex-feedback-title-wrap"><span class="foodex-feedback-icon">'+(kind === 'success' ? '✓' : '!')+'</span><h2 class="modal-title"></h2></div><button class="btn-close" type="button" aria-label="Close">×</button></div><div class="modal-body"></div></div></div>';
+        const headingId = 'foodex-feedback-title';
+        overlay.setAttribute('aria-labelledby', headingId);
+        overlay.innerHTML = '<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><div class="foodex-feedback-title-wrap"><span class="foodex-feedback-icon" aria-hidden="true">'+(kind === 'success' ? '✓' : '!')+'</span><h2 class="modal-title" id="'+headingId+'"></h2></div><button class="btn-close" type="button">×</button></div><div class="modal-body"></div></div></div>';
         overlay.querySelector('.modal-title').textContent = kind === 'success'
             ? (isArabic ? 'تمت العملية بنجاح' : 'Saved successfully')
             : (isArabic ? 'تعذر إكمال العملية' : 'Action could not be completed');
+        const closeButton = overlay.querySelector('.btn-close');
+        closeButton.setAttribute('aria-label', isArabic ? 'إغلاق' : 'Close');
         const body = overlay.querySelector('.modal-body');
         if (clean.length === 1) body.textContent = clean[0];
         else {
@@ -736,12 +826,32 @@ document.addEventListener('DOMContentLoaded', () => {
             clean.forEach(message => { const li=document.createElement('li'); li.textContent=message; ul.appendChild(li); });
             body.appendChild(ul);
         }
-        const close = () => overlay.remove();
-        overlay.querySelector('.btn-close').addEventListener('click', close);
+
+        const priorFocus = document.activeElement;
+        const fallbackFocus = document.querySelector('[autofocus],main input:not([type="hidden"]),main select,main textarea,main button,main a[href]');
+        let modalSession = null;
+        let dismissTimer = null;
+        const close = () => {
+            if (!overlay.isConnected) return;
+            if (dismissTimer !== null) window.clearTimeout(dismissTimer);
+            modalSession?.deactivate({ restoreFocus: true });
+            modalSession = null;
+            overlay.remove();
+            if (window.FoodexFeedbackClose === close) window.FoodexFeedbackClose = null;
+        };
+        window.FoodexFeedbackClose = close;
+        closeButton.addEventListener('click', close);
         overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
-        document.addEventListener('keydown', function esc(event){ if(event.key==='Escape'){close();document.removeEventListener('keydown',esc);} });
         document.body.appendChild(overlay);
-        if (kind === 'success') window.setTimeout(() => overlay.isConnected && close(), 5500);
+        modalSession = window.FoodexModalA11y?.activate({
+            root: overlay,
+            dialog: overlay,
+            initialFocus: closeButton,
+            returnFocus: priorFocus instanceof HTMLElement ? priorFocus : null,
+            fallbackFocus: fallbackFocus instanceof HTMLElement ? fallbackFocus : null,
+            onEscape: close,
+        }) || null;
+        if (kind === 'success') dismissTimer = window.setTimeout(() => overlay.isConnected && close(), 5500);
     };
 
     const reportInspector = (payload) => {
