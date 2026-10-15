@@ -132,6 +132,12 @@ final class SmartOrderingWhatsAppBridge
                 return null;
             }
 
+            $conversationId ??= $this->conversations->findOrCreateForSystem(
+                $identity['platform_customer_id'],
+                (int) $order->store_id,
+                $identity['phone'],
+            );
+
             $payload = $this->safeSnapshot($order, $context, $branch);
             $eventId = $this->notifications->forOrder(
                 $order,
@@ -143,14 +149,6 @@ final class SmartOrderingWhatsAppBridge
             $status = $eventId === null
                 ? 'not_recorded'
                 : (string) (DB::table('whats_app_transactional_events')->where('id', $eventId)->value('status') ?? 'recorded');
-
-            if ($conversationId === null && $status === 'queued') {
-                $conversationId = $this->conversations->findOrCreateForSystem(
-                    $identity['platform_customer_id'],
-                    (int) $order->store_id,
-                    $identity['phone'],
-                );
-            }
 
             $this->persistLink(
                 $order,
