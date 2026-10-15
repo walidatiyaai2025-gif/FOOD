@@ -89,6 +89,62 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_catalog_create_lookups_follow_owning_store_and_backend_rejects_cross_store_category(): void
+    {
+        $storeA = $this->store('B2C', 'LOOKUP-A');
+        $storeB = $this->store('B2C', 'LOOKUP-B');
+        $admin = $this->globalUser('SUPER_ADMIN', 'catalog-lookup-owner@example.test');
+        $unit = $this->globalUnit();
+        $catalogA = app(CatalogOwnership::class)->defaultCatalogForStore($storeA);
+        $catalogB = app(CatalogOwnership::class)->defaultCatalogForStore($storeB);
+
+        $categoryB = (int) DB::table('categories')->insertGetId([
+            'catalog_id' => $catalogB->id,
+            'name' => 'Foreign category',
+            'slug' => 'foreign-category',
+            'parent_id' => null,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.catalog.index', ['tab' => 'products']));
+        $response
+            ->assertOk()
+            ->assertSee('data-catalog-scope-form', false)
+            ->assertSee('data-catalog-store-context', false)
+            ->assertSee('data-catalog-dependent', false)
+            ->assertSee('data-catalog-id="'.$catalogA->id.'"', false)
+            ->assertSee('data-catalog-id="'.$catalogB->id.'"', false);
+
+        $view = file_get_contents(resource_path('views/admin/catalog-management.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString("option.dataset.catalogId === catalogId", $view);
+        $this->assertStringContainsString("scope === 'b2b' && channel === 'b2b'", $view);
+        $this->assertStringContainsString("scope === 'store' && channel === 'b2c' && option.dataset.storeId === storeId", $view);
+        $this->assertStringContainsString("select.disabled = !storeId;", $view);
+
+        $this->actingAs($admin)->post(route('admin.catalog.products.store'), [
+            'store_id' => $storeA,
+            'name' => 'Cross-store product',
+            'category_id' => $categoryB,
+            'unit_id' => $unit->id,
+            'is_active' => 1,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('products', ['name' => 'Cross-store product']);
+
+        $this->actingAs($admin)->post(route('admin.catalog.categories.store'), [
+            'store_id' => $storeA,
+            'name' => 'Cross-store child',
+            'slug' => 'cross-store-child',
+            'parent_id' => $categoryB,
+            'is_active' => 1,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('categories', ['slug' => 'cross-store-child']);
+    }
+
     public function test_retail_workspace_does_not_offer_store_management(): void
     {
         $store = $this->store('B2C', 'SHOP-LOCAL');
