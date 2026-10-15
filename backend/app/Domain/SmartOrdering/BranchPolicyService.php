@@ -172,12 +172,12 @@ final class BranchPolicyService
         };
         abort_unless($module instanceof Module, 422, 'Fulfillment mode is not available for this branch.');
 
-        $supported = match ($module) {
-            Module::DINE_IN => (bool) $branch->supports_dine_in,
-            Module::PICKUP => (bool) $branch->supports_pickup,
-            Module::DELIVERY => (bool) $branch->supports_delivery,
-            default => false,
-        };
+        $supported = (bool) $branch->supports_delivery;
+        if ($module === Module::DINE_IN) {
+            $supported = (bool) $branch->supports_dine_in;
+        } elseif ($module === Module::PICKUP) {
+            $supported = (bool) $branch->supports_pickup;
+        }
         abort_unless($supported, 422, 'Fulfillment mode is not available for this branch.');
         $this->runtime->assertRequest(
             $branch->site()->firstOrFail(),
