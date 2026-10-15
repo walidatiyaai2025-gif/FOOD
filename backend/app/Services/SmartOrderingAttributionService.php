@@ -208,13 +208,18 @@ final class SmartOrderingAttributionService
             ->where('cart_id', $cart->getKey())
             ->first();
 
-        if (! $visit instanceof SmartOrderingQrVisit || ! $visit->qrCode instanceof SmartOrderingQrCode) {
+        if (! $visit instanceof SmartOrderingQrVisit) {
+            return null;
+        }
+
+        $qr = $visit->qrCode;
+        if (! $qr instanceof SmartOrderingQrCode) {
             return null;
         }
 
         $this->assertVisitStore($visit, (int) $cart->store_id);
 
-        return $visit->qrCode->promotion_id === null ? null : (int) $visit->qrCode->promotion_id;
+        return $qr->promotion_id === null ? null : (int) $qr->promotion_id;
     }
 
     public function attachOrderFromCart(Cart $cart, Order $order): ?SmartOrderingQrVisit
@@ -256,6 +261,9 @@ final class SmartOrderingAttributionService
     {
         $visit = $this->resolveContext($context, $expectedStoreId);
         $qr = $visit->qrCode;
+        if (! $qr instanceof SmartOrderingQrCode) {
+            $this->invalidContext();
+        }
 
         return [
             'store_id' => (int) $qr->store_id,
