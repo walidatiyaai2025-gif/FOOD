@@ -98,6 +98,7 @@
     'adding' => $locale === 'ar' ? 'جارٍ الإضافة…' : 'Adding…',
     'added' => $locale === 'ar' ? 'تمت الإضافة إلى السلة.' : 'Added to cart.',
     'updating' => $locale === 'ar' ? 'جارٍ تحديث السلة…' : 'Updating cart…',
+    'update' => $locale === 'ar' ? 'تحديث' : 'Update',
     'removed' => $locale === 'ar' ? 'تم حذف الصنف.' : 'Item removed.',
     'error' => $locale === 'ar' ? 'تعذر إكمال العملية. حاول مرة أخرى.' : 'We could not complete that action. Try again.',
     'requiredModifier' => $locale === 'ar' ? 'اختر الخيار المطلوب.' : 'Choose the required option.',
