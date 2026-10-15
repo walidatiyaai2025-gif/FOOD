@@ -98,7 +98,7 @@ jobs:
           count="$(find ScreenShots/02_Web -type f -name '*.png' | wc -l | tr -d ' ')"
           responsive_count="$(find ScreenShots/02_Web/Responsive -type f -name '*.png' | wc -l | tr -d ' ')"
           test "$count" -ge 106
-          test "$responsive_count" -eq 116
+          test "$responsive_count" -eq 124
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/dashboard__compact-1024__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/sales-control__desktop-1280__ar.png"
@@ -111,6 +111,8 @@ jobs:
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/administration-hub__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/settings-center__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/settings-center__mobile-390__en.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-qr__desktop-1280__ar.png"
+          test -s "ScreenShots/02_Web/Responsive/B2C_Admin/smart-ordering-qr__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/whatsapp-chatbot-control__desktop-1280__ar.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/whatsapp-chatbot-control__mobile-390__en.png"
           test -s "ScreenShots/02_Web/Responsive/B2C_Admin/whatsapp-chatbot-preview__desktop-1280__ar.png"

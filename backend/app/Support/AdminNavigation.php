@@ -83,6 +83,7 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
+                $this->routeItemScoped($user, 'smart_ordering_qr', 'smart_ordering_qr.nav_title', 'admin.smart-ordering.qr.index', 'smart_ordering.qr.view'),
                 $this->whatsAppCampaignsItem($user),
                 $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
                 $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
