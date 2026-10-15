@@ -181,6 +181,22 @@ return [
         'delete' => 'حذف',
         'confirm_delete' => 'حذف منطقة التوصيل هذه؟',
     ],
+    'supply' => [
+        'title' => 'ذكاء توريد FOODEX',
+        'description' => 'ربط وصفات المنيو باستهلاك تقديري قابل للتفسير مع إعادة طلب آمنة كمسودة فقط.',
+        'settings' => 'إعدادات الطلب الذكي',
+        'states' => [
+            'stale_or_inactive_sku' => 'SKU قديم أو غير نشط',
+            'wholesale_account_unavailable' => 'حساب الجملة غير متاح',
+            'current_pricing_unavailable' => 'السعر الحالي غير متاح',
+            'no_reorder_needed' => 'لا حاجة لإعادة الطلب',
+            'foodex_unavailable' => 'غير متاح لدى FOODEX',
+            'availability_limited' => 'الكمية محدودة بالتوفر',
+            'dismissed' => 'مخفي مؤقتًا',
+            'ready_for_draft' => 'جاهز للمسودة',
+        ],
+    ],
+
     'days' => ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
     'branch_state' => [
         'active' => 'نشط',

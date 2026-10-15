@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingAnalyticsController;
+use App\Http\Controllers\Admin\SmartOrderingMerchandisingAdminController;
 use App\Http\Controllers\Admin\SmartOrderingOperationsController;
 use Illuminate\Support\Facades\Route;
 

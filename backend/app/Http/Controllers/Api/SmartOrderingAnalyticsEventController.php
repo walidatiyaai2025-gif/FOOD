@@ -16,8 +16,7 @@ final class SmartOrderingAnalyticsEventController extends Controller
         Request $request,
         SmartOrderingAnalyticsService $analytics,
         SmartOrderingAttributionService $attribution,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $data = $request->validate([
             'site_public_id' => ['required', 'uuid'],
             'branch_public_id' => ['required', 'uuid'],

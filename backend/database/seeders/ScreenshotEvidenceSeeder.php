@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Services\PlatformCustomerService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -136,6 +137,16 @@ class ScreenshotEvidenceSeeder extends Seeder
         $retailStoreId = (int) DB::table('stores')
             ->where('code', 'FOODEX-DEMO-B2C')
             ->value('id');
+
+        $smartOrderingSite = app(SmartOrderingSiteService::class)->ensureForStore($retailStoreId);
+        DB::table('smart_ordering_entitlements')
+            ->where('site_id', $smartOrderingSite->getKey())
+            ->where('scope_key', 'site')
+            ->where('module', 'foodex_supply_intelligence')
+            ->update([
+                'enabled' => true,
+                'updated_at' => $now,
+            ]);
 
         $platformUser = app(PlatformCustomerService::class)->register([
             'name' => 'FOODEX Address Evidence Customer',

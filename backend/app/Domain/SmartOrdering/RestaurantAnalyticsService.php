@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\DB;
 final class RestaurantAnalyticsService
 {
     /**
-     * @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  list<int>  $storeIds
+     * @param  array<string,mixed>  $filters
      * @return array<string,mixed>
      */
     public function dashboard(array $storeIds, array $filters): array
@@ -117,7 +117,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return array<string,int>
      */
     private function eventCountsFromRollup(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -135,7 +135,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return array<string,int>
      */
     private function eventCountsFromRaw(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -150,7 +150,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      */
     private function completedRevenue(
         array $storeIds,
@@ -175,8 +175,8 @@ final class RestaurantAnalyticsService
     }
 
     /**
-     * @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  list<int>  $storeIds
+     * @param  array<string,mixed>  $filters
      * @return array{orders:int,revenue:float}
      */
     private function refundedCompleted(
@@ -229,8 +229,8 @@ final class RestaurantAnalyticsService
     }
 
     /**
-     * @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  list<int>  $storeIds
+     * @param  array<string,mixed>  $filters
      * @return array{count:int,average:float}
      */
     private function ratingSummary(
@@ -260,7 +260,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      */
     private function uniqueVisitors(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): int
     {
@@ -285,7 +285,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array<string,mixed>>
      */
     private function sourcePerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -323,7 +323,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array<string,mixed>>
      */
     private function branchPerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -360,7 +360,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array<string,mixed>>
      */
     private function productPerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -405,7 +405,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array<string,mixed>>
      */
     private function categoryPerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -440,7 +440,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array{key:string,count:int}>
      */
     private function dimensionMix(
@@ -471,7 +471,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array<string,mixed>>
      */
     private function offerPerformance(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -506,7 +506,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      * @return list<array{hour:int,orders:int}>
      */
     private function peakHours(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): array
@@ -545,8 +545,8 @@ final class RestaurantAnalyticsService
     }
 
     /**
-     * @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  list<int>  $storeIds
+     * @param  array<string,mixed>  $filters
      * @return array{current:int,previous:int,change_percent:float}
      */
     private function repeatOrderTrend(
@@ -650,7 +650,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param list<int> $storeIds
-     * @param array<string,mixed> $filters
+     * @param  array<string,mixed>  $filters
      */
     private function rawBase(array $storeIds, array $filters, CarbonImmutable $from, CarbonImmutable $to): Builder
     {
@@ -690,7 +690,7 @@ final class RestaurantAnalyticsService
     }
 
     /** @param array<string,mixed> $filters
-     * @param list<string> $skip
+     * @param  list<string>  $skip
      */
     private function applyRollupDimensions(Builder $query, array $filters, array $skip = [], string $prefix = ''): void
     {

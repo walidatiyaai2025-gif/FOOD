@@ -50,7 +50,7 @@ final class SmartOrderingAnalyticsService
     private const FULFILLMENT = ['dine_in', 'pickup', 'delivery'];
 
     /**
-     * @param array<string,mixed> $dimensions
+     * @param  array<string,mixed>  $dimensions
      */
     public function record(
         int $storeId,
@@ -190,7 +190,7 @@ final class SmartOrderingAnalyticsService
     }
 
     /**
-     * @param array<string,mixed> $dimensions
+     * @param  array<string,mixed>  $dimensions
      */
     public function recordForCart(
         SmartOrderingCart $cart,
@@ -266,7 +266,7 @@ final class SmartOrderingAnalyticsService
     /**
      * Public browser analytics are deliberately limited to non-financial interaction events.
      *
-     * @param array<string,mixed> $dimensions
+     * @param  array<string,mixed>  $dimensions
      */
     public function recordPublic(
         SmartOrderingSite $site,

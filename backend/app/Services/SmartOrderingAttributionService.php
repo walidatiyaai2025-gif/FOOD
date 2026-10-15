@@ -233,6 +233,8 @@ final class SmartOrderingAttributionService
             ]);
         }
 
+        $this->attachSupplyReorderDraft($cart, $order);
+
         $visit = SmartOrderingQrVisit::query()
             ->with('qrCode')
             ->where('cart_id', $cart->getKey())
@@ -401,6 +403,23 @@ final class SmartOrderingAttributionService
         ]);
 
         return $visit->fresh();
+    }
+
+    private function attachSupplyReorderDraft(Cart $cart, Order $order): void
+    {
+        if ((string) $cart->channel !== 'b2b' || (string) $order->channel !== 'b2b') {
+            return;
+        }
+
+        DB::table('smart_ordering_supply_reorder_drafts')
+            ->where('cart_id', $cart->getKey())
+            ->where('b2b_customer_id', $order->b2b_customer_id)
+            ->whereNull('converted_order_id')
+            ->update([
+                'converted_order_id' => $order->getKey(),
+                'converted_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 
     private function assertVisitStore(SmartOrderingQrVisit $visit, int $expectedStoreId): void

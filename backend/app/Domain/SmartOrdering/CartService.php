@@ -118,11 +118,20 @@ final class CartService
             $branch = $this->branchForCart($cart);
             $this->branches->assertAccepting($branch);
             $this->assertProductBelongsToStore($productId, (int) $branch->store_id);
+            $menuItemPublicId = isset($payload['menu_item_public_id'])
+                ? trim((string) $payload['menu_item_public_id'])
+                : null;
+            if ($menuItemPublicId !== null && $menuItemPublicId !== '') {
+                $this->assertMenuItemForCart($cart, $branch, $menuItemPublicId, $productId);
+            } else {
+                $menuItemPublicId = null;
+            }
 
             $itemId = (int) DB::table('smart_ordering_cart_items')->insertGetId([
                 'public_id' => (string) Str::uuid(),
                 'cart_id' => $cart->getKey(),
                 'product_id' => $productId,
+                'menu_item_public_id' => $menuItemPublicId,
                 'quantity' => $quantity,
                 'selection' => $selection === [] ? null : json_encode($selection, JSON_THROW_ON_ERROR),
                 'note' => isset($payload['note']) ? mb_substr(trim((string) $payload['note']), 0, 500) : null,
@@ -380,6 +389,35 @@ final class CartService
         abort_unless($exists, 404, 'Product is not available in this branch.');
     }
 
+    private function assertMenuItemForCart(
+        SmartOrderingCart $cart,
+        SmartOrderingBranch $branch,
+        string $publicId,
+        int $productId,
+    ): void {
+        $revisionId = DB::table('smart_ordering_revisions')
+            ->where('site_id', $branch->site_id)
+            ->where('public_id', $cart->revision_public_id)
+            ->where('status', 'published')
+            ->value('id');
+
+        abort_unless($revisionId !== null, 409, 'Cart menu revision is no longer available.');
+
+        $item = DB::table('smart_ordering_menu_items')
+            ->where('revision_id', $revisionId)
+            ->where('site_id', $branch->site_id)
+            ->where('public_id', $publicId)
+            ->first(['source_product_id']);
+
+        abort_unless(
+            $item !== null
+                && $item->source_product_id !== null
+                && (int) $item->source_product_id === $productId,
+            422,
+            'Menu item identity does not match the selected product.',
+        );
+    }
+
     /** @return array<string,mixed> */
     private function itemPayload(?object $item): array
     {
@@ -388,6 +426,7 @@ final class CartService
         return [
             'public_id' => (string) $item->public_id,
             'product_id' => (int) $item->product_id,
+            'menu_item_public_id' => $item->menu_item_public_id === null ? null : (string) $item->menu_item_public_id,
             'quantity' => (float) $item->quantity,
             'selection' => $this->decodeSelection($item->selection),
             'note' => $item->note,
