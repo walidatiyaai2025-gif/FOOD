@@ -898,8 +898,8 @@ void main() {
   });
 
   testWidgets(
-      'collection amount stays in the dialog until valid and submits once',
-      (tester) async {
+    'collection amount stays in the dialog until valid and submits once',
+    (tester) async {
     final repo = _CollectingActiveRepo(
       const DriverAssignment(
         id: 61,
@@ -967,8 +967,8 @@ void main() {
   });
 
   testWidgets(
-      'Arabic compact collection dialog enforces settlement currency precision',
-      (tester) async {
+    'Arabic compact collection dialog enforces settlement currency precision',
+    (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
