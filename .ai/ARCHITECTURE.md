@@ -77,6 +77,23 @@ Treat payments, push, maps/geography and other external systems as failure-prone
 - log correlation metadata without leaking secrets;
 - distinguish transport failure from business rejection.
 
+## Restaurant SaaS boundary
+
+FOODEX Restaurant SaaS 2.0 is a modular vertical built on the existing SmartOrdering lineage and Enterprise Core; it is not a replacement platform.
+
+Authoritative plan:
+- `docs/execution/FOODEX_RESTAURANT_SAAS_MASTER_PLAN.md`
+- `docs/execution/FOODEX_RESTAURANT_SAAS_GAP_MATRIX.json`
+- umbrella #1572 / blueprint #1573
+
+Durable invariants:
+- reuse canonical FOODEX tenant/store, menu, order, payment, customer and SmartOrdering truth rather than creating V2 engines;
+- model Organization -> Brand -> Location as a control-plane hierarchy mapped to existing authoritative entities;
+- every optional restaurant module is entitlement-controlled, dependency-declared and safely disableable without deleting data or breaking unrelated modules;
+- public restaurant/menu reads are versioned/cache-friendly and must respect the cPanel performance contract;
+- SaaS commercial lifecycle (plans, subscriptions, trials, billing/dunning, onboarding and offboarding) is a first-class platform concern;
+- restaurant operations modules (tables/reservations/KDS/workforce/inventory/integrations) consume shared Enterprise Core registry/entitlements/events/workflow/health contracts.
+
 ## Release architecture
 
 Mandatory contract: `docs/release/RELEASE_ARTIFACT_CONTRACT.md`.
