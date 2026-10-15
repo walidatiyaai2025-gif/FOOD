@@ -889,8 +889,32 @@ final class FieldOperationsController extends Controller
         $this->authorizeAny($user, ['territories.manage', 'field_ops.manage']);
 
         $policies = RoutingPolicy::query()->with('rules')->orderBy('code')->orderByDesc('version')->paginate(25);
+        $routingTerritories = ServiceTerritory::query()
+            ->where('status', 'active')
+            ->orderBy('name_en')
+            ->get(['id', 'code', 'name_ar', 'name_en'])
+            ->each(fn (ServiceTerritory $territory) => $territory->setAttribute(
+                'localized_name',
+                $this->localizedText($territory->name_ar, $territory->name_en),
+            ));
+        $routingVans = Van::query()
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get(['id', 'code', 'plate_number']);
+        $routingStores = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->whereIn('stores.id', $this->b2bStoreIds($user))
+            ->orderBy('stores.name')
+            ->get(['stores.id', 'stores.name', 'stores.code']);
 
-        return $this->render($request, 'routing', compact('policies'));
+        return $this->render($request, 'routing', compact(
+            'policies',
+            'routingTerritories',
+            'routingVans',
+            'routingStores',
+        ));
     }
 
     public function storeRoutingPolicy(Request $request): RedirectResponse
@@ -903,9 +927,9 @@ final class FieldOperationsController extends Controller
             'mode' => ['required', Rule::in(['MANUAL', 'AUTOMATIC', 'HYBRID'])],
             'rules' => ['required_without:rules_json', 'array', 'min:1'],
             'rules.*.name' => ['required', 'string', 'max:160'],
-            'rules.*.condition_key' => ['nullable', 'string', 'max:160'],
+            'rules.*.condition_key' => ['nullable', Rule::in(array_keys($this->routingConditionSchema()))],
             'rules.*.condition_value' => ['nullable', 'string', 'max:1000'],
-            'rules.*.action_key' => ['nullable', 'string', 'max:160'],
+            'rules.*.action_key' => ['nullable', Rule::in(array_keys($this->routingActionSchema()))],
             'rules.*.action_value' => ['nullable', 'string', 'max:1000'],
             'rules.*.enabled' => ['nullable', Rule::in(['0', '1'])],
             'rules_json' => [Rule::prohibitedIf(! $user->hasRole('SUPER_ADMIN')), 'nullable', 'json'],
@@ -942,22 +966,37 @@ final class FieldOperationsController extends Controller
         if ($action === 'simulate') {
             $data = $request->validate([
                 'input_keys' => ['required', 'array', 'min:1'],
-                'input_keys.*' => ['nullable', 'string', 'max:160'],
+                'input_keys.*' => ['nullable', Rule::in(array_keys($this->routingConditionSchema()))],
                 'input_values' => ['nullable', 'array'],
                 'input_values.*' => ['nullable', 'string', 'max:1000'],
                 'scope_keys' => ['nullable', 'array'],
-                'scope_keys.*' => ['nullable', 'string', 'max:160'],
+                'scope_keys.*' => ['nullable', Rule::in(['store_id', 'channel'])],
                 'scope_values' => ['nullable', 'array'],
                 'scope_values.*' => ['nullable', 'string', 'max:1000'],
                 'at' => ['nullable', 'date'],
             ]);
-            $input = $this->routingPairs($data['input_keys'] ?? [], $data['input_values'] ?? []);
+            $input = $this->routingPairs(
+                $user,
+                $data['input_keys'] ?? [],
+                $data['input_values'] ?? [],
+                $this->routingConditionSchema(),
+                'input_keys',
+            );
             if ($input === []) {
                 throw ValidationException::withMessages([
                     'input_keys' => [__('field_operations.simulation_input_required')],
                 ]);
             }
-            $scope = $this->routingPairs($data['scope_keys'] ?? [], $data['scope_values'] ?? []);
+            $scope = $this->routingPairs(
+                $user,
+                $data['scope_keys'] ?? [],
+                $data['scope_values'] ?? [],
+                [
+                    'store_id' => 'integer',
+                    'channel' => 'channel',
+                ],
+                'scope_keys',
+            );
             $result = $this->routing->simulate($routingPolicy, $input, $scope, $data['at'] ?? null);
 
             return back()->with('simulation_result', $result)->with('simulation_policy', $routingPolicy->id);
@@ -1050,57 +1089,171 @@ final class FieldOperationsController extends Controller
             }, $decoded);
         }
 
-        return array_map(function (array $rule): array {
+        return array_map(function (array $rule) use ($user): array {
             $conditionKey = trim((string) ($rule['condition_key'] ?? ''));
             $actionKey = trim((string) ($rule['action_key'] ?? ''));
 
             return [
                 'name' => trim((string) $rule['name']),
                 'conditions' => $conditionKey === '' ? [] : [
-                    $conditionKey => $this->routingScalar($rule['condition_value'] ?? null),
+                    $conditionKey => $this->routingTypedValue($user, $conditionKey, $rule['condition_value'] ?? null, $this->routingConditionSchema(), 'rules'),
                 ],
                 'actions' => $actionKey === '' ? [] : [
-                    $actionKey => $this->routingScalar($rule['action_value'] ?? null),
+                    $actionKey => $this->routingTypedValue($user, $actionKey, $rule['action_value'] ?? null, $this->routingActionSchema(), 'rules'),
                 ],
                 'enabled' => (string) ($rule['enabled'] ?? '1') !== '0',
             ];
         }, array_values($data['rules'] ?? []));
     }
 
-    /** @param array<int, mixed> $keys @param array<int, mixed> $values */
-    private function routingPairs(array $keys, array $values): array
+    /** @return array<string,string> */
+    private function routingConditionSchema(): array
     {
+        return [
+            'channel' => 'channel',
+            'store_id' => 'integer',
+            'territory_id' => 'integer',
+            'territory_code' => 'string',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+        ];
+    }
+
+    /** @return array<string,string> */
+    private function routingActionSchema(): array
+    {
+        return [
+            'van_id' => 'integer',
+            'manual_dispatch_required' => 'boolean',
+            'action' => 'dispatch_action',
+        ];
+    }
+
+    /** @param array<int, mixed> $keys @param array<int, mixed> $values @param array<string,string> $schema */
+    private function routingPairs(
+        User $user,
+        array $keys,
+        array $values,
+        array $schema,
+        string $errorField,
+    ): array {
         $pairs = [];
         foreach (array_values($keys) as $index => $rawKey) {
             $key = trim((string) $rawKey);
             if ($key === '') {
                 continue;
             }
-            $pairs[$key] = $this->routingScalar($values[$index] ?? null);
+            if (! array_key_exists($key, $schema)) {
+                throw ValidationException::withMessages([
+                    $errorField => [__('field_operations.routing_unsupported_field')],
+                ]);
+            }
+            $pairs[$key] = $this->routingTypedValue(
+                $user,
+                $key,
+                $values[$index] ?? null,
+                $schema,
+                $errorField,
+            );
         }
 
         return $pairs;
     }
 
-    private function routingScalar(mixed $raw): mixed
-    {
+    /** @param array<string,string> $schema */
+    private function routingTypedValue(
+        User $user,
+        string $key,
+        mixed $raw,
+        array $schema,
+        string $errorField,
+    ): mixed {
         $value = trim((string) ($raw ?? ''));
-        $lower = strtolower($value);
+        $type = $schema[$key] ?? null;
 
-        if ($lower === 'true') {
-            return true;
+        if ($value === '') {
+            throw ValidationException::withMessages([
+                $errorField => [__('field_operations.routing_value_required')],
+            ]);
         }
-        if ($lower === 'false') {
-            return false;
+
+        if ($type === 'integer') {
+            if (preg_match('/^\\d+$/', $value) !== 1) {
+                throw ValidationException::withMessages([
+                    $errorField => [__('field_operations.routing_value_required')],
+                ]);
+            }
+
+            $integer = (int) $value;
+            $authorized = match ($key) {
+                'store_id' => in_array($integer, $this->b2bStoreIds($user), true),
+                'territory_id' => ServiceTerritory::query()
+                    ->whereKey($integer)
+                    ->where('status', 'active')
+                    ->exists(),
+                'van_id' => Van::query()
+                    ->whereKey($integer)
+                    ->where('status', 'active')
+                    ->exists(),
+                default => true,
+            };
+            if (! $authorized) {
+                throw ValidationException::withMessages([
+                    $errorField => [__('field_operations.routing_value_unavailable')],
+                ]);
+            }
+
+            return $integer;
         }
-        if ($lower === 'null') {
-            return null;
+
+        if (in_array($type, ['latitude', 'longitude'], true)) {
+            if (! is_numeric($value)) {
+                throw ValidationException::withMessages([
+                    $errorField => [__('field_operations.routing_value_required')],
+                ]);
+            }
+
+            $numeric = (float) $value;
+            $minimum = $type === 'latitude' ? -90.0 : -180.0;
+            $maximum = $type === 'latitude' ? 90.0 : 180.0;
+            if ($numeric < $minimum || $numeric > $maximum) {
+                throw ValidationException::withMessages([
+                    $errorField => [__('field_operations.routing_value_unavailable')],
+                ]);
+            }
+
+            return $numeric;
         }
-        if (preg_match('/^-?\\d+$/', $value) === 1) {
-            return (int) $value;
+
+        if ($type === 'boolean') {
+            if (! in_array($value, ['0', '1'], true)) {
+                throw ValidationException::withMessages([
+                    $errorField => [__('field_operations.routing_value_required')],
+                ]);
+            }
+
+            return $value === '1';
         }
-        if (is_numeric($value)) {
-            return (float) $value;
+
+        if ($type === 'channel' && $value !== 'b2b') {
+            throw ValidationException::withMessages([
+                $errorField => [__('field_operations.routing_value_unavailable')],
+            ]);
+        }
+
+        if ($type === 'dispatch_action' && $value !== 'manual') {
+            throw ValidationException::withMessages([
+                $errorField => [__('field_operations.routing_value_unavailable')],
+            ]);
+        }
+
+        if (
+            $key === 'territory_code'
+            && ! ServiceTerritory::query()->where('code', $value)->where('status', 'active')->exists()
+        ) {
+            throw ValidationException::withMessages([
+                $errorField => [__('field_operations.routing_value_unavailable')],
+            ]);
         }
 
         return $value;

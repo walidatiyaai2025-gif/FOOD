@@ -516,12 +516,13 @@
                     </div>
                     <div data-routing-rules>
                         <div class="fieldops-card" data-routing-rule style="margin-top:10px">
+                            <strong data-routing-order data-routing-order-prefix="{{ __('field_operations.rule_order_prefix') }}">{{ __('field_operations.rule_order', ['number' => 1]) }}</strong>
                             <div class="fieldops-form-grid">
                                 <label>{{ __('field_operations.rule_name') }}<input name="rules[0][name]" value="{{ __('field_operations.default_rule') }}" required></label>
-                                <label>{{ __('field_operations.condition_key') }}<input name="rules[0][condition_key]"></label>
-                                <label>{{ __('field_operations.condition_value') }}<input name="rules[0][condition_value]"></label>
-                                <label>{{ __('field_operations.action_key') }}<input name="rules[0][action_key]"></label>
-                                <label>{{ __('field_operations.action_value') }}<input name="rules[0][action_value]"></label>
+                                <label>{{ __('field_operations.condition_key') }}<select name="rules[0][condition_key]" data-routing-key="condition"><option value="">{{ __('field_operations.routing_any') }}</option>@foreach(['channel','store_id','territory_id','territory_code','latitude','longitude'] as $field)<option value="{{ $field }}">{{ __('field_operations.routing_fields.'.$field) }}</option>@endforeach</select></label>
+                                <label>{{ __('field_operations.condition_value') }}<select name="rules[0][condition_value]" data-routing-value="condition"><option value="">{{ __('field_operations.select') }}</option><option data-routing-for="channel" value="b2b">{{ __('field_operations.customer_types.b2b') }}</option>@foreach($routingStores as $store)<option data-routing-for="store_id" value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>@endforeach @foreach($routingTerritories as $territory)<option data-routing-for="territory_id" value="{{ $territory->id }}">{{ $territory->localized_name }} · {{ $territory->code }}</option><option data-routing-for="territory_code" value="{{ $territory->code }}">{{ $territory->localized_name }} · {{ $territory->code }}</option>@endforeach</select><input type="number" name="rules[0][condition_value]" data-routing-number-value="condition" step="0.000001" hidden disabled></label>
+                                <label>{{ __('field_operations.action_key') }}<select name="rules[0][action_key]" data-routing-key="action"><option value="">{{ __('field_operations.routing_no_action') }}</option>@foreach(['van_id','manual_dispatch_required','action'] as $field)<option value="{{ $field }}">{{ __('field_operations.routing_fields.'.$field) }}</option>@endforeach</select></label>
+                                <label>{{ __('field_operations.action_value') }}<select name="rules[0][action_value]" data-routing-value="action"><option value="">{{ __('field_operations.select') }}</option>@foreach($routingVans as $van)<option data-routing-for="van_id" value="{{ $van->id }}">{{ $van->code }}@if($van->plate_number) · {{ $van->plate_number }}@endif</option>@endforeach<option data-routing-for="manual_dispatch_required" value="1">{{ __('field_operations.yes') }}</option><option data-routing-for="manual_dispatch_required" value="0">{{ __('field_operations.no') }}</option><option data-routing-for="action" value="manual">{{ __('field_operations.routing_actions.manual') }}</option></select></label>
                                 <label>{{ __('field_operations.rule_enabled') }}<select name="rules[0][enabled]"><option value="1">{{ __('field_operations.enabled') }}</option><option value="0">{{ __('field_operations.disabled') }}</option></select></label>
                             </div>
                             <button type="button" data-routing-remove-rule>{{ __('field_operations.remove_rule') }}</button>
@@ -539,9 +540,132 @@
                 </form>
             </details>
             @endif
-            @if(session('simulation_result'))<section class="fieldops-card"><h2>{{ __('field_operations.simulation_result') }} · #{{ session('simulation_policy') }}</h2><pre style="white-space:pre-wrap">{{ json_encode(session('simulation_result'),JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></section>@endif
+            @if(session('simulation_result'))
+                @php($routingSimulation = session('simulation_result'))
+                <section class="fieldops-card" aria-live="polite">
+                    <h2>{{ __('field_operations.simulation_result') }} · #{{ session('simulation_policy') }}</h2>
+                    <div class="fieldops-grid">
+                        <article>
+                            <strong>{{ __('field_operations.mode') }}</strong>
+                            <div>{{ __('field_operations.routing_modes.'.strtolower((string) data_get($routingSimulation, 'routing_mode', 'manual'))) }}</div>
+                        </article>
+                        <article>
+                            <strong>{{ __('field_operations.matched_rules') }}</strong>
+                            <div>{{ collect(data_get($routingSimulation, 'matched_rules', []))->pluck('name')->filter()->join(' · ') ?: __('field_operations.no_matched_rules') }}</div>
+                        </article>
+                    </div>
+                    <h3>{{ __('field_operations.routing_result') }}</h3>
+                    @php($routingResult = (array) data_get($routingSimulation, 'result', []))
+                    <div class="fieldops-actions">
+                        @if($routingResult === [])
+                            <span class="fieldops-muted">{{ __('field_operations.no_routing_result') }}</span>
+                        @else
+                            @foreach($routingResult as $key => $value)
+                                @php
+                                    $routingResultLabel = in_array($key, ['van_id','manual_dispatch_required','action'], true)
+                                        ? __('field_operations.routing_fields.'.$key)
+                                        : __('field_operations.legacy_routing_field', ['field' => $key]);
+                                    $routingResultValue = match ($key) {
+                                        'van_id' => optional($routingVans->firstWhere('id', (int) $value))->code ?: $value,
+                                        'manual_dispatch_required' => $value ? __('field_operations.yes') : __('field_operations.no'),
+                                        'action' => __('field_operations.routing_actions.'.(string) $value),
+                                        default => $value,
+                                    };
+                                @endphp
+                                <span class="fieldops-status">{{ $routingResultLabel }}: {{ $routingResultValue }}</span>
+                            @endforeach
+                        @endif
+                    </div>
+                    @if($isSuper)
+                    <details style="margin-top:10px">
+                        <summary>{{ __('field_operations.advanced_simulation_result') }}</summary>
+                        <pre style="white-space:pre-wrap">{{ json_encode($routingSimulation,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre>
+                    </details>
+                    @endif
+                </section>
+            @endif
             @forelse($policies as $policy)
+            @php
+                $policyHasLegacyRules = $policy->rules->contains(function ($rule): bool {
+                    $conditionKeys = array_keys((array) $rule->conditions);
+                    $actionKeys = array_keys((array) $rule->actions);
+
+                    return array_diff($conditionKeys, ['channel','store_id','territory_id','territory_code','latitude','longitude']) !== []
+                        || array_diff($actionKeys, ['van_id','manual_dispatch_required','action']) !== [];
+                });
+                $policyRulesJson = $policy->rules
+                    ->sortBy('position')
+                    ->map(fn ($rule) => [
+                        'name' => $rule->name,
+                        'conditions' => (array) $rule->conditions,
+                        'actions' => (array) $rule->actions,
+                        'enabled' => (bool) $rule->enabled,
+                    ])
+                    ->values()
+                    ->toJson(JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
+            @endphp
             <article class="fieldops-card"><div class="fieldops-actions"><h3 style="margin:0">{{ $policy->code }} v{{ $policy->version }}</h3><span class="fieldops-status">{{ __('field_operations.statuses.'.$policy->status) }}</span><span>{{ __('field_operations.routing_modes.'.strtolower((string)$policy->mode)) }}</span><span>{{ $policy->rules->count() }} {{ __('field_operations.rules') }}</span></div>
+                <details data-routing-existing-rules style="margin-top:10px">
+                    <summary>{{ __('field_operations.rule_details') }}</summary>
+                    @foreach($policy->rules->sortBy('position') as $rule)
+                        @php
+                            $legacyConditionKeys = array_diff(array_keys((array) $rule->conditions), ['channel','store_id','territory_id','territory_code','latitude','longitude']);
+                            $legacyActionKeys = array_diff(array_keys((array) $rule->actions), ['van_id','manual_dispatch_required','action']);
+                        @endphp
+                        <section class="fieldops-card" style="margin-top:8px">
+                            <div class="fieldops-actions">
+                                <strong>{{ $rule->position }}. {{ $rule->name }}</strong>
+                                <span class="fieldops-status">{{ $rule->enabled ? __('field_operations.enabled') : __('field_operations.disabled') }}</span>
+                            </div>
+                            @foreach((array) $rule->conditions as $key => $value)
+                                @php
+                                    $conditionLabel = in_array($key, ['channel','store_id','territory_id','territory_code','latitude','longitude'], true)
+                                        ? __('field_operations.routing_fields.'.$key)
+                                        : __('field_operations.legacy_routing_field', ['field' => $key]);
+                                    $conditionValue = match ($key) {
+                                        'channel' => __('field_operations.customer_types.'.(string) $value),
+                                        'store_id' => optional($routingStores->firstWhere('id', (int) $value))->name ?: $value,
+                                        'territory_id' => optional($routingTerritories->firstWhere('id', (int) $value))->localized_name ?: $value,
+                                        'territory_code' => optional($routingTerritories->firstWhere('code', (string) $value))->localized_name ?: $value,
+                                        default => $value,
+                                    };
+                                @endphp
+                                <p class="fieldops-muted"><strong>{{ __('field_operations.if') }} {{ $conditionLabel }}</strong> — {{ $conditionValue }}</p>
+                            @endforeach
+                            @foreach((array) $rule->actions as $key => $value)
+                                @php
+                                    $actionLabel = in_array($key, ['van_id','manual_dispatch_required','action'], true)
+                                        ? __('field_operations.routing_fields.'.$key)
+                                        : __('field_operations.legacy_routing_field', ['field' => $key]);
+                                    $actionValue = match ($key) {
+                                        'van_id' => optional($routingVans->firstWhere('id', (int) $value))->code ?: $value,
+                                        'manual_dispatch_required' => $value ? __('field_operations.yes') : __('field_operations.no'),
+                                        'action' => __('field_operations.routing_actions.'.(string) $value),
+                                        default => $value,
+                                    };
+                                @endphp
+                                <p class="fieldops-muted"><strong>{{ __('field_operations.then') }} {{ $actionLabel }}</strong> — {{ $actionValue }}</p>
+                            @endforeach
+                            @if($legacyConditionKeys !== [] || $legacyActionKeys !== [])
+                                <p class="fieldops-muted">{{ __('field_operations.legacy_routing_help') }}</p>
+                            @endif
+                        </section>
+                    @endforeach
+                </details>
+                @if($isSuper && $policyHasLegacyRules)
+                    <details data-routing-legacy-replacement style="margin-top:10px">
+                        <summary>{{ __('field_operations.create_legacy_replacement') }}</summary>
+                        <p class="fieldops-muted">{{ __('field_operations.legacy_replacement_help') }}</p>
+                        <form method="post" action="{{ route('admin.field-operations.routing.store') }}" class="fieldops-form">
+                            @csrf
+                            <input type="hidden" name="code" value="{{ $policy->code }}">
+                            <input type="hidden" name="mode" value="{{ $policy->mode }}">
+                            <label>{{ __('field_operations.rules_json') }}<textarea name="rules_json" rows="10" required>{{ $policyRulesJson }}</textarea></label>
+                            <label>{{ __('field_operations.reason') }}<input name="reason" value="{{ __('field_operations.legacy_replacement_reason') }}"></label>
+                            <button class="foodex-primary">{{ __('field_operations.create_replacement_draft') }}</button>
+                        </form>
+                    </details>
+                @endif
                 @if($canManageTerritories)<div class="fieldops-grid" style="margin-top:12px">
                     @if($policy->status === 'draft')
                         <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'publish']) }}">@csrf<button>{{ __('field_operations.publish') }}</button></form>
@@ -551,10 +675,10 @@
                     @endif
                     <form method="post" action="{{ route('admin.field-operations.routing.action',['routingPolicy'=>$policy,'action'=>'simulate']) }}" class="fieldops-form">@csrf
                         <strong>{{ __('field_operations.simulation_input') }}</strong>
-                        <div data-routing-pair-group="input"><div class="fieldops-form-grid" data-routing-pair><label>{{ __('field_operations.key') }}<input name="input_keys[]" required></label><label>{{ __('field_operations.value') }}<input name="input_values[]"></label><button type="button" data-routing-remove-pair>{{ __('field_operations.remove_pair') }}</button></div></div>
+                        <div data-routing-pair-group="input"><div class="fieldops-form-grid" data-routing-pair><label>{{ __('field_operations.key') }}<select name="input_keys[]" data-routing-key="simulation" required><option value="">{{ __('field_operations.select') }}</option>@foreach(['channel','store_id','territory_id','territory_code','latitude','longitude'] as $field)<option value="{{ $field }}">{{ __('field_operations.routing_fields.'.$field) }}</option>@endforeach</select></label><label>{{ __('field_operations.value') }}<select name="input_values[]" data-routing-value="simulation"><option value="">{{ __('field_operations.select') }}</option><option data-routing-for="channel" value="b2b">{{ __('field_operations.customer_types.b2b') }}</option>@foreach($routingStores as $store)<option data-routing-for="store_id" value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>@endforeach @foreach($routingTerritories as $territory)<option data-routing-for="territory_id" value="{{ $territory->id }}">{{ $territory->localized_name }} · {{ $territory->code }}</option><option data-routing-for="territory_code" value="{{ $territory->code }}">{{ $territory->localized_name }} · {{ $territory->code }}</option>@endforeach</select><input type="number" name="input_values[]" data-routing-number-value="simulation" step="0.000001" hidden disabled></label><button type="button" data-routing-remove-pair>{{ __('field_operations.remove_pair') }}</button></div></div>
                         <button type="button" data-routing-add-pair="input">{{ __('field_operations.add_input') }}</button>
                         <strong>{{ __('field_operations.simulation_scope') }}</strong>
-                        <div data-routing-pair-group="scope"><div class="fieldops-form-grid" data-routing-pair><label>{{ __('field_operations.key') }}<input name="scope_keys[]"></label><label>{{ __('field_operations.value') }}<input name="scope_values[]"></label><button type="button" data-routing-remove-pair>{{ __('field_operations.remove_pair') }}</button></div></div>
+                        <div data-routing-pair-group="scope"><div class="fieldops-form-grid" data-routing-pair><label>{{ __('field_operations.key') }}<select name="scope_keys[]" data-routing-key="scope"><option value="">{{ __('field_operations.select') }}</option><option value="channel">{{ __('field_operations.routing_fields.channel') }}</option><option value="store_id">{{ __('field_operations.routing_fields.store_id') }}</option></select></label><label>{{ __('field_operations.value') }}<select name="scope_values[]" data-routing-value="scope"><option value="">{{ __('field_operations.select') }}</option><option data-routing-for="channel" value="b2b">{{ __('field_operations.customer_types.b2b') }}</option>@foreach($routingStores as $store)<option data-routing-for="store_id" value="{{ $store->id }}">{{ $store->name }} · {{ $store->code }}</option>@endforeach</select></label><button type="button" data-routing-remove-pair>{{ __('field_operations.remove_pair') }}</button></div></div>
                         <button type="button" data-routing-add-pair="scope">{{ __('field_operations.add_scope') }}</button>
                         <label>{{ __('field_operations.simulation_at') }}<input type="datetime-local" name="at"></label>
                         <button>{{ __('field_operations.simulate') }}</button>
@@ -600,20 +724,81 @@
 @if($section === 'routing')
 <script>
 (() => {
+    const syncRoutingValue = (keySelect) => {
+        const row = keySelect.closest('[data-routing-rule],[data-routing-pair]');
+        const kind = keySelect.dataset.routingKey;
+        const valueSelect = row?.querySelector('[data-routing-value="' + kind + '"]');
+        const numberInput = row?.querySelector('[data-routing-number-value="' + kind + '"]');
+        if (!valueSelect) return;
+        const key = keySelect.value;
+        const numeric = key === 'latitude' || key === 'longitude';
+        valueSelect.hidden = numeric;
+        valueSelect.disabled = numeric;
+        valueSelect.required = key !== '' && !numeric;
+        if (numberInput) {
+            numberInput.hidden = !numeric;
+            numberInput.disabled = !numeric;
+            numberInput.required = numeric;
+            numberInput.min = key === 'latitude' ? '-90' : '-180';
+            numberInput.max = key === 'latitude' ? '90' : '180';
+            if (!numeric) numberInput.value = '';
+        }
+        Array.from(valueSelect.options).forEach((option, index) => {
+            if (index === 0 || !option.dataset.routingFor) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+            const compatible = option.dataset.routingFor === key;
+            option.hidden = !compatible;
+            option.disabled = !compatible;
+        });
+        if (valueSelect.selectedOptions[0]?.disabled) valueSelect.value = '';
+    };
+    const bindRoutingSelectors = (root = document) => {
+        root.querySelectorAll('[data-routing-key]').forEach((keySelect) => {
+            if (keySelect.dataset.routingBound === '1') return;
+            keySelect.dataset.routingBound = '1';
+            keySelect.addEventListener('change', () => {
+                const row = keySelect.closest('[data-routing-rule],[data-routing-pair]');
+                const kind = keySelect.dataset.routingKey;
+                const valueSelect = row?.querySelector('[data-routing-value="' + kind + '"]');
+                const numberInput = row?.querySelector('[data-routing-number-value="' + kind + '"]');
+                if (valueSelect) valueSelect.value = '';
+                if (numberInput) numberInput.value = '';
+                syncRoutingValue(keySelect);
+            });
+            syncRoutingValue(keySelect);
+        });
+    };
+    bindRoutingSelectors();
+
     const rules = document.querySelector('[data-routing-rules]');
     const addRule = document.querySelector('[data-routing-add-rule]');
+    const refreshRuleOrder = () => {
+        rules?.querySelectorAll('[data-routing-rule]').forEach((row, index) => {
+            const order = row.querySelector('[data-routing-order]');
+            if (!order) return;
+            order.textContent = (order.dataset.routingOrderPrefix || '') + ' ' + (index + 1);
+        });
+    };
     if (rules && addRule) {
         let ruleIndex = rules.querySelectorAll('[data-routing-rule]').length;
+        refreshRuleOrder();
         addRule.addEventListener('click', () => {
             const template = rules.querySelector('[data-routing-rule]');
             if (!template) return;
             const clone = template.cloneNode(true);
             clone.querySelectorAll('[name]').forEach(control => {
                 control.name = control.name.replace(/rules\[\d+\]/, 'rules[' + ruleIndex + ']');
-                if (control.tagName === 'SELECT') control.value = '1';
-                else control.value = '';
+                if (control.tagName === 'SELECT') {
+                    control.value = control.name.endsWith('[enabled]') ? '1' : '';
+                } else control.value = '';
             });
             rules.appendChild(clone);
+            bindRoutingSelectors(clone);
+            refreshRuleOrder();
+            clone.querySelector('input[name$="[name]"]')?.focus();
             ruleIndex++;
         });
         rules.addEventListener('click', event => {
@@ -622,6 +807,7 @@
             const rows = rules.querySelectorAll('[data-routing-rule]');
             if (rows.length === 1) return;
             button.closest('[data-routing-rule]')?.remove();
+            refreshRuleOrder();
         });
     }
 
@@ -633,7 +819,9 @@
             if (!group || !template) return;
             const clone = template.cloneNode(true);
             clone.querySelectorAll('input').forEach(input => { input.value = ''; input.required = false; });
+            clone.querySelectorAll('select').forEach(select => { select.value = ''; });
             group.appendChild(clone);
+            bindRoutingSelectors(clone);
         });
     });
     document.addEventListener('click', event => {
@@ -642,7 +830,10 @@
         const group = button.closest('[data-routing-pair-group]');
         const rows = group?.querySelectorAll('[data-routing-pair]');
         if (!group || !rows || rows.length === 1) {
-            button.closest('[data-routing-pair]')?.querySelectorAll('input').forEach(input => { input.value = ''; });
+            const row = button.closest('[data-routing-pair]');
+            row?.querySelectorAll('input').forEach(input => { input.value = ''; });
+            row?.querySelectorAll('select').forEach(select => { select.value = ''; });
+            row?.querySelectorAll('[data-routing-key]').forEach(syncRoutingValue);
             return;
         }
         button.closest('[data-routing-pair]')?.remove();
