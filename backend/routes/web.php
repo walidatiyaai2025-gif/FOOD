@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -133,6 +134,20 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/administration', AdministrationHubController::class)->name('administration.index');
+        Route::get('/administration/organizations', [EnterpriseOrganizationAdministrationController::class, 'index'])->name('enterprise-organizations.index');
+        Route::post('/administration/organizations', [EnterpriseOrganizationAdministrationController::class, 'storeOrganization'])->middleware('throttle:30,1')->name('enterprise-organizations.store');
+        Route::get('/administration/organizations/{organization}', [EnterpriseOrganizationAdministrationController::class, 'showOrganization'])->whereNumber('organization')->name('enterprise-organizations.show');
+        Route::patch('/administration/organizations/{organization}', [EnterpriseOrganizationAdministrationController::class, 'updateOrganization'])->whereNumber('organization')->middleware('throttle:30,1')->name('enterprise-organizations.update');
+        Route::post('/administration/organizations/{organization}/companies', [EnterpriseOrganizationAdministrationController::class, 'storeCompany'])->whereNumber('organization')->middleware('throttle:30,1')->name('enterprise-companies.store');
+        Route::get('/administration/companies/{company}', [EnterpriseOrganizationAdministrationController::class, 'showCompany'])->whereNumber('company')->name('enterprise-companies.show');
+        Route::patch('/administration/companies/{company}', [EnterpriseOrganizationAdministrationController::class, 'updateCompany'])->whereNumber('company')->middleware('throttle:30,1')->name('enterprise-companies.update');
+        Route::post('/administration/companies/{company}/legal-entities', [EnterpriseOrganizationAdministrationController::class, 'storeLegalEntity'])->whereNumber('company')->middleware('throttle:30,1')->name('enterprise-legal-entities.store');
+        Route::get('/administration/legal-entities/{legalEntity}', [EnterpriseOrganizationAdministrationController::class, 'showLegalEntity'])->whereNumber('legalEntity')->name('enterprise-legal-entities.show');
+        Route::patch('/administration/legal-entities/{legalEntity}', [EnterpriseOrganizationAdministrationController::class, 'updateLegalEntity'])->whereNumber('legalEntity')->middleware('throttle:30,1')->name('enterprise-legal-entities.update');
+        Route::post('/administration/legal-entities/{legalEntity}/business-units', [EnterpriseOrganizationAdministrationController::class, 'storeBusinessUnit'])->whereNumber('legalEntity')->middleware('throttle:30,1')->name('enterprise-business-units.store');
+        Route::get('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'showBusinessUnit'])->whereNumber('businessUnit')->name('enterprise-business-units.show');
+        Route::patch('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'updateBusinessUnit'])->whereNumber('businessUnit')->middleware('throttle:30,1')->name('enterprise-business-units.update');
+        Route::post('/administration/business-units/{businessUnit}/stores/{store}', [EnterpriseOrganizationAdministrationController::class, 'assignStore'])->whereNumber('businessUnit')->whereNumber('store')->middleware('throttle:30,1')->name('enterprise-business-units.stores.assign');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
