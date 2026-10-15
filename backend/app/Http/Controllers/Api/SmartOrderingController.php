@@ -49,6 +49,7 @@ final class SmartOrderingController extends Controller
         $model = $carts->authorized($cart, $this->cartToken($request));
         $data = $request->validate([
             'product_id' => ['required', 'integer', 'min:1'],
+            'menu_item_public_id' => ['nullable', 'uuid'],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:999'],
             'selection' => ['nullable', 'array'],
             'selection.variant_product_id' => ['nullable', 'integer', 'min:1'],
