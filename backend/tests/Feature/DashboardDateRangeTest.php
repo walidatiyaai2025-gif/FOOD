@@ -13,6 +13,7 @@ use Tests\TestCase;
 class DashboardDateRangeTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_b2c_dashboard_uses_explicit_from_to_range(): void
     {
         $this->seed(DashboardDemoSeeder::class);
@@ -171,4 +172,5 @@ class DashboardDateRangeTest extends TestCase
             return data_get($moduleData, 'filters.from') === $period['from']
                 && data_get($moduleData, 'filters.to') === $period['to'];
         });
-    }}
+    }
+}
