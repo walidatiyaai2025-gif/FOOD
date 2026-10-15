@@ -404,8 +404,57 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('van-profile-permissions')));
     await tester.pumpAndSettle();
-    expect(find.text('finance.view'), findsOneWidget);
-    expect(find.text('van.login'), findsOneWidget);
+    expect(find.text('View finance'), findsOneWidget);
+    expect(find.text('Van app access'), findsOneWidget);
+    expect(find.text('finance.view'), findsNothing);
+    expect(find.text('van.login'), findsNothing);
+  });
+
+  testWidgets(
+      'Arabic Van Profile renders business permission labels without raw keys',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexVanApp(
+        locale: Locale('ar'),
+        walletRepository: _EmptyWalletRepository(),
+        initialSession: VanSession(
+          token: 'test-token',
+          name: 'مشغل الفان',
+          email: 'van@example.test',
+          locale: 'ar',
+          permissions: {'van.login', 'finance.view'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+
+    final target = find.byKey(const ValueKey('van-screen-profile'));
+    await tester.scrollUntilVisible(
+      target,
+      180,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('van-production-screen-menu')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('van-profile-permissions')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('عرض البيانات المالية'), findsOneWidget);
+    expect(find.text('الدخول إلى تطبيق الفان'), findsOneWidget);
+    expect(find.text('finance.view'), findsNothing);
+    expect(find.text('van.login'), findsNothing);
   });
 
   testWidgets('Van Dashboard renders authoritative operational totals',
