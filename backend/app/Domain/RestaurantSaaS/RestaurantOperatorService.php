@@ -108,6 +108,11 @@ final class RestaurantOperatorService
         Request $request,
     ): RestaurantSupportAccessGrant {
         $this->assertRestaurantStore($store);
+        abort_unless(
+            RestaurantLocationProfile::query()->where('store_id', $store->getKey())->exists(),
+            409,
+            'Restaurant location is not provisioned.',
+        );
         abort_unless(in_array($reasonCode, self::SUPPORT_REASON_CODES, true), 422);
         abort_unless(in_array($ttlMinutes, self::SUPPORT_TTL_MINUTES, true), 422);
 
