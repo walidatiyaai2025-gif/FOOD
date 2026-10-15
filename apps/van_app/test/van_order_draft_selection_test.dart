@@ -163,7 +163,6 @@ const _options = VanOrderOptions(
   defaultPaymentMethod: 'cash',
 );
 
-
 const _product = VanCatalogProduct(
   id: 100,
   name: 'Product',
