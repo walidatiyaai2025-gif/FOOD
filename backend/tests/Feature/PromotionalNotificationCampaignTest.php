@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\NotificationCampaign;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\B2cCustomerService;
 use App\Services\NotificationAudienceReviewService;
 use App\Services\NotificationCampaignDispatcher;
 use Carbon\CarbonImmutable;
@@ -69,14 +70,10 @@ class PromotionalNotificationCampaignTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        DB::table('b2c_customers')->insert([
-            'user_id' => $customer->id,
-            'store_id' => $store,
+        app(B2cCustomerService::class)->create($store, [
             'name' => $customer->name,
             'email' => $customer->email,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        ], $customer);
 
         $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
             'target_channel' => 'b2c',
@@ -139,14 +136,10 @@ class PromotionalNotificationCampaignTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
-        DB::table('b2c_customers')->insert([
-            'user_id' => $customer->id,
-            'store_id' => $store,
+        app(B2cCustomerService::class)->create($store, [
             'name' => $customer->name,
             'email' => $customer->email,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        ], $customer);
 
         $sendToken = app(NotificationAudienceReviewService::class)->reviewToken($emptyCampaign->fresh(), 'send_now');
         $this->actingAs($admin)
