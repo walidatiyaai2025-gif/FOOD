@@ -72,6 +72,15 @@ final class SmartOrderingMenuAdminController extends Controller
         }
 
         $menus = $menusQuery->get();
+        $itemMenuIds = [];
+        foreach ($menus as $menu) {
+            foreach ($menu->categories as $category) {
+                foreach ($category->items as $item) {
+                    $itemMenuIds[(int) $item->id] = (int) $menu->id;
+                }
+            }
+        }
+
         $focusQuery = trim((string) $request->query('q', ''));
         $focusResults = $this->focusResults($site, $draft, $focusQuery);
 
@@ -143,6 +152,7 @@ final class SmartOrderingMenuAdminController extends Controller
             'reviewMode' => $reviewMode,
             'focusQuery' => $focusQuery,
             'focusResults' => $focusResults,
+            'itemMenuIds' => $itemMenuIds,
             'branches' => $branches,
             'menuBranchIds' => $menuBranchIds,
             'productLabels' => $productLabels,
