@@ -57,7 +57,7 @@
         <div class="note foodex-empty-state">{{ __('enterprise_security.data_scopes.empty') }}</div>
         @else
         <div class="foodex-table-wrap">
-        <table class="foodex-table foodex-ops-grid">
+        <table class="foodex-table foodex-ops-grid" data-pagination-exempt="enterprise-security-governance-bounded-policy-snapshot">
             <thead><tr><th>{{ __('enterprise_security.fields.user') }}</th><th>{{ __('enterprise_security.fields.scope') }}</th><th>{{ __('enterprise_security.fields.status') }}</th><th>{{ __('enterprise_security.fields.granted_by') }}</th>@can('roles.manage')<th></th>@endcan</tr></thead>
             <tbody>
             @foreach($dataScopes as $row)
@@ -131,7 +131,7 @@
         <div class="note foodex-empty-state">{{ __('enterprise_security.approval_limits.empty') }}</div>
         @else
         <div class="foodex-table-wrap">
-        <table class="foodex-table foodex-ops-grid">
+        <table class="foodex-table foodex-ops-grid" data-pagination-exempt="enterprise-security-governance-bounded-policy-snapshot">
             <thead><tr><th>{{ __('enterprise_security.fields.user') }}</th><th>{{ __('enterprise_security.fields.workflow_key') }}</th><th>{{ __('enterprise_security.fields.amount') }}</th><th>{{ __('enterprise_security.fields.scope') }}</th>@can('roles.manage')<th></th>@endcan</tr></thead>
             <tbody>
             @foreach($approvalLimits as $row)
@@ -205,7 +205,7 @@
         <div class="note foodex-empty-state">{{ __('enterprise_security.delegations.empty') }}</div>
         @else
         <div class="foodex-table-wrap">
-        <table class="foodex-table foodex-ops-grid">
+        <table class="foodex-table foodex-ops-grid" data-pagination-exempt="enterprise-security-governance-bounded-policy-snapshot">
             <thead><tr><th>{{ __('enterprise_security.fields.delegate') }}</th><th>{{ __('enterprise_security.fields.permission') }}</th><th>{{ __('enterprise_security.fields.scope') }}</th><th>{{ __('enterprise_security.fields.status') }}</th>@can('roles.manage')<th></th>@endcan</tr></thead>
             <tbody>
             @foreach($delegations as $row)
