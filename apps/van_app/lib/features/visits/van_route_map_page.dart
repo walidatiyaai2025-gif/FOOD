@@ -162,11 +162,10 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
 
   String _stopLocationLabel(VanVisitRecord visit) {
     final address = visit.address?.trim();
-    final hasAddress = address != null && address.isNotEmpty;
     final hasCoordinates = visit.latitude != null && visit.longitude != null;
 
-    if (hasAddress && hasCoordinates) return address;
-    if (hasAddress) {
+    if (address != null && address.isNotEmpty) {
+      if (hasCoordinates) return address;
       return _text(
         '${address} · Map location unavailable',
         '${address} · موقع الخريطة غير متاح',
@@ -330,7 +329,7 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
                         child: CustomPaint(
                           key: const ValueKey('van-route-map-canvas'),
                           painter: _RoutePainter(
-                            visits: mapped,
+                            visits: routeVisits,
                             done: _isDone,
                           ),
                           child: const SizedBox.expand(),
@@ -395,13 +394,13 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
                             radius: 18,
                             backgroundColor: _isDone(entry.value)
                                 ? FoodexVanTokens.mint
-                                : const Color(0xFFE9F0FF),
+                                : FoodexVanTokens.background,
                             child: Text(
                               '${entry.key + 1}',
                               style: TextStyle(
                                 color: _isDone(entry.value)
                                     ? FoodexVanTokens.green
-                                    : const Color(0xFF2F6FED),
+                                    : FoodexVanTokens.muted,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -499,8 +498,13 @@ class _RoutePainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    final lats = visits.map((v) => v.latitude!).toList();
-    final lngs = visits.map((v) => v.longitude!).toList();
+    final mappedStops = [
+      for (final entry in visits.asMap().entries)
+        if (entry.value.latitude != null && entry.value.longitude != null)
+          (stopNumber: entry.key + 1, visit: entry.value),
+    ];
+    final lats = mappedStops.map((stop) => stop.visit.latitude!).toList();
+    final lngs = mappedStops.map((stop) => stop.visit.longitude!).toList();
     var minLat = lats.reduce(math.min);
     var maxLat = lats.reduce(math.max);
     var minLng = lngs.reduce(math.min);
@@ -531,8 +535,8 @@ class _RoutePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     final path = Path();
-    for (var i = 0; i < visits.length; i++) {
-      final p = point(visits[i]);
+    for (var i = 0; i < mappedStops.length; i++) {
+      final p = point(mappedStops[i].visit);
       if (i == 0) {
         path.moveTo(p.dx, p.dy);
       } else {
@@ -541,8 +545,8 @@ class _RoutePainter extends CustomPainter {
     }
     canvas.drawPath(path, routePaint);
 
-    for (var i = 0; i < visits.length; i++) {
-      final visit = visits[i];
+    for (final stop in mappedStops) {
+      final visit = stop.visit;
       final p = point(visit);
       final fill = Paint()
         ..color = done(visit)
@@ -552,7 +556,7 @@ class _RoutePainter extends CustomPainter {
       canvas.drawCircle(p, 10, fill);
       final text = TextPainter(
         text: TextSpan(
-          text: '${i + 1}',
+          text: '${stop.stopNumber}',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 10,
