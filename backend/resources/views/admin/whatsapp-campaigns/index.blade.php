@@ -233,7 +233,7 @@
                     @if($canManage)
                     <div class="wa-actions">
                         <button type="button" class="foodex-action-primary" id="wa-create-template">＋ {{ __('whatsapp.campaigns.create_meta_template') }}</button>
-                        <form method="post" action="{{ route('admin.whatsapp-campaigns.templates.meta.sync') }}">@csrf<button type="submit" class="foodex-action-secondary">{{ __('whatsapp.campaigns.sync_meta_templates') }}</button></form>
+                        <form method="post" action="{{ route('admin.whatsapp-campaigns.templates.meta.sync') }}" id="wa-template-sync-form">@csrf<button type="submit" class="foodex-action-secondary" id="wa-template-sync-submit">{{ __('whatsapp.campaigns.sync_meta_templates') }}</button></form>
                     </div>
                     @endif
                 </header>
@@ -296,6 +296,8 @@
     const templateDialog = document.getElementById('wa-template-dialog');
     const templateForm = document.getElementById('wa-template-form');
     const templateProviderName = document.getElementById('wa-template-provider-name');
+    const templateSyncForm = document.getElementById('wa-template-sync-form');
+    const templateSyncSubmit = document.getElementById('wa-template-sync-submit');
     const selectedIds = new Set();
     const selectedStores = new Set();
     let importBatch = null;
@@ -391,6 +393,12 @@
         }
         const button=document.getElementById('wa-template-submit');
         if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
+    });
+
+    templateSyncForm?.addEventListener('submit', () => {
+        if (!templateSyncSubmit) return;
+        templateSyncSubmit.disabled = true;
+        templateSyncSubmit.setAttribute('aria-busy', 'true');
     });
 
     document.querySelectorAll('.wa-source-tab').forEach(button=>button.addEventListener('click',()=>{
