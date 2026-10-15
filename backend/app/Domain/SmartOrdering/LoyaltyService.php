@@ -365,13 +365,13 @@ final class LoyaltyService
         if ($branchId !== null) {
             $row = DB::table('smart_ordering_loyalty_rules')
                 ->where('site_id', $site->id)
-                ->where('branch_id', $branchId)
+                ->where('scope_key', 'branch:'.$branchId)
                 ->first();
         }
 
         $row ??= DB::table('smart_ordering_loyalty_rules')
             ->where('site_id', $site->id)
-            ->whereNull('branch_id')
+            ->where('scope_key', 'site')
             ->first();
 
         return [
@@ -388,22 +388,27 @@ final class LoyaltyService
     {
         $this->assertTenantCustomer($site, $customerId);
 
-        DB::table('smart_ordering_loyalty_accounts')->updateOrInsert(
-            ['site_id' => $site->id, 'customer_id' => $customerId],
-            [
+        $query = DB::table('smart_ordering_loyalty_accounts')
+            ->where('site_id', $site->id)
+            ->where('customer_id', $customerId);
+
+        $account = (clone $query)->lockForUpdate()->first();
+        if ($account === null) {
+            DB::table('smart_ordering_loyalty_accounts')->insertOrIgnore([
+                'site_id' => $site->id,
+                'customer_id' => $customerId,
                 'balance' => 0,
                 'lifetime_earned' => 0,
                 'lifetime_redeemed' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-        );
+            ]);
+            $account = (clone $query)->lockForUpdate()->first();
+        }
 
-        return DB::table('smart_ordering_loyalty_accounts')
-            ->where('site_id', $site->id)
-            ->where('customer_id', $customerId)
-            ->lockForUpdate()
-            ->first();
+        abort_unless($account !== null, 409, 'Unable to initialize loyalty account.');
+
+        return $account;
     }
 
     private function assertTenantCustomer(SmartOrderingSite $site, int $customerId): void
