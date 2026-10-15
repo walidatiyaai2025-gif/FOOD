@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\SmartOrdering\WhatsApp\SmartOrderingScheduledReminderService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\CertificationAuthority;
@@ -87,6 +88,15 @@ Artisan::command('foodex:dispatch-whatsapp-campaigns', function (CampaignService
 
 Schedule::command('foodex:dispatch-whatsapp-campaigns')
     ->everyMinute()
+    ->withoutOverlapping();
+
+Artisan::command('foodex:expire-smart-ordering-loyalty', function (LoyaltyService $loyalty): void {
+    $count = $loyalty->expireAllDue();
+    $this->info("Expired {$count} Smart Ordering loyalty point(s).");
+});
+
+Schedule::command('foodex:expire-smart-ordering-loyalty')
+    ->hourly()
     ->withoutOverlapping();
 
 Artisan::command('foodex:expire-flash-reservations', function (): void {
