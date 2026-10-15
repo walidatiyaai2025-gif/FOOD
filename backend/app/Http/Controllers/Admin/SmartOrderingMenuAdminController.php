@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 final class SmartOrderingMenuAdminController extends Controller
@@ -94,13 +95,20 @@ final class SmartOrderingMenuAdminController extends Controller
         $checkoutCurrency = $quotes->currencyForStore((int) $site->store_id);
         $moneyStep = DisplayNumber::moneyStep($checkoutCurrency);
         $itemPrices = [];
+        $itemPriceErrors = [];
         foreach (SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get() as $item) {
-            $resolved = $prices->displayPrice($site, $item);
-            $itemPrices[(int) $item->id] = [
-                ...$resolved,
-                'currency' => $checkoutCurrency,
-                'display' => DisplayNumber::money($resolved['amount'], $checkoutCurrency),
-            ];
+            try {
+                $resolved = $prices->displayPrice($site, $item);
+                $itemPrices[(int) $item->id] = [
+                    ...$resolved,
+                    'currency' => $checkoutCurrency,
+                    'display' => DisplayNumber::money($resolved['amount'], $checkoutCurrency),
+                ];
+            } catch (ValidationException $exception) {
+                $itemPriceErrors[(int) $item->id] = collect($exception->errors())
+                    ->flatten()
+                    ->first() ?? __('smart_ordering_menu.validation.product_unavailable');
+            }
         }
 
         $productLabels = DB::table('products')
@@ -120,6 +128,7 @@ final class SmartOrderingMenuAdminController extends Controller
             'menuBranchIds' => $menuBranchIds,
             'productLabels' => $productLabels,
             'itemPrices' => $itemPrices,
+            'itemPriceErrors' => $itemPriceErrors,
             'checkoutCurrency' => $checkoutCurrency,
             'moneyStep' => $moneyStep,
             'supportAccess' => $actor->hasRole('SUPER_ADMIN'),

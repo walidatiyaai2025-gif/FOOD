@@ -604,8 +604,27 @@ class B2bAdminWorkspaceTest extends TestCase
         );
 
         $orders = $this->actingAs($admin)->get('/admin/b2b/orders')->assertOk();
-        $orders->assertSee('Approved Buyer');
-        $orders->assertDontSee('Retail Linked Buyer');
+        $orders
+            ->assertDontSee('Approved Buyer')
+            ->assertDontSee('Retail Linked Buyer')
+            ->assertSee('data-lookup-url', false);
+
+        $b2bStore = (int) DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'B2B')
+            ->where('stores.is_active', true)
+            ->value('stores.id');
+
+        $lookup = $this->actingAs($admin)->getJson(
+            '/admin/operations/orders/lookups/customer?channel=b2b&store_id='.$b2bStore.'&q=Buyer'
+        );
+        $lookup
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $approvedCustomer,
+                'label' => 'Approved Company · Approved Buyer',
+            ]);
+        $this->assertStringNotContainsString('Retail Linked Buyer', $lookup->getContent());
     }
 
     public function test_reference_routes_and_permissions_remain_available(): void
