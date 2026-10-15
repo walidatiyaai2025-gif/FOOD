@@ -90,12 +90,14 @@ final class ModuleLifecycleManager
             return;
         }
 
-        $states = EnterpriseModule::query()
+        $enabledDependencies = EnterpriseModule::query()
             ->whereIn('code', $manifest->hardDependencies)
-            ->pluck('state', 'code');
+            ->where('state', ModuleState::ENABLED->value)
+            ->pluck('code')
+            ->all();
 
         foreach ($manifest->hardDependencies as $dependency) {
-            if (($states[$dependency] ?? null) !== ModuleState::ENABLED->value) {
+            if (! in_array($dependency, $enabledDependencies, true)) {
                 throw new LogicException(
                     "Module [{$code}] requires enabled hard dependency [{$dependency}].",
                 );
