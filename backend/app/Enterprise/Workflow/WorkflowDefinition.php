@@ -7,7 +7,7 @@ use InvalidArgumentException;
 final readonly class WorkflowDefinition
 {
     /**
-     * @param list<WorkflowStepDefinition> $steps
+     * @param  list<WorkflowStepDefinition>  $steps
      */
     public function __construct(
         public string $key,
