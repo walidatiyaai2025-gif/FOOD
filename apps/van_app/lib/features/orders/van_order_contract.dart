@@ -28,6 +28,20 @@ class VanCatalogProduct {
   final String currency;
 }
 
+class VanCatalogPage {
+  const VanCatalogPage({
+    required this.products,
+    required this.page,
+    required this.perPage,
+    required this.hasMore,
+  });
+
+  final List<VanCatalogProduct> products;
+  final int page;
+  final int perPage;
+  final bool hasMore;
+}
+
 class VanOrderAddressOption {
   const VanOrderAddressOption({
     required this.id,
@@ -325,9 +339,11 @@ class VanOrderExecutionState {
 }
 
 abstract interface class VanOrderRepository {
-  Future<List<VanCatalogProduct>> catalog(
+  Future<VanCatalogPage> catalog(
     VanCustomerScope customer, {
     String search = '',
+    int page = 1,
+    int perPage = 50,
   });
 
   Future<VanOrderOptions> options(VanCustomerScope customer);
