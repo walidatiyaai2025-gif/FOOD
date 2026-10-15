@@ -43,6 +43,7 @@ return [
     'scope_review' => 'Scope review',
     'schedule_review' => 'Schedule review',
     'timezone' => 'Timezone',
+    'timezone_kuwait' => 'Kuwait time (UTC+3)',
     'not_scheduled_to_end' => 'No end date',
     'no_run_limit' => 'No run limit',
     'confirm_activate' => 'Confirm activation',
