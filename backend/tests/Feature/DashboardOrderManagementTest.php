@@ -628,6 +628,8 @@ class DashboardOrderManagementTest extends TestCase
             ->assertDontSee('WIZARD-B-SKU');
 
         $payload = [
+            '_order_create_context' => 'central',
+            'idempotency_key' => 'dashboard-wizard-price-0001',
             'channel' => 'b2c',
             'store_id' => $storeA,
             'customer_id' => $customerA->id,
@@ -736,16 +738,25 @@ class DashboardOrderManagementTest extends TestCase
         $admin = $this->storeAdmin($storeA, 'wizard-scope@example.test');
         $customerA = app(B2cCustomerService::class)->create($storeA, ['name' => 'Wizard Scope Buyer']);
 
+        $validationKey = 'dashboard-wizard-validation-0001';
         $this->actingAs($admin)->post('/admin/operations/orders', [
+            '_order_create_context' => 'central',
+            'idempotency_key' => $validationKey,
             'channel' => 'b2c',
             'store_id' => $storeA,
             'customer_id' => $customerA->id,
             'items' => [['product_id' => $productA, 'quantity' => 1]],
         ])->assertSessionHasErrors('payment_method');
 
+        $this->assertSame('central', session()->getOldInput('_order_create_context'));
+        $this->assertSame($validationKey, session()->getOldInput('idempotency_key'));
+        $this->assertSame((string) $customerA->id, (string) session()->getOldInput('customer_id'));
+
         $this->assertDatabaseCount('orders', 0);
 
         $this->actingAs($admin)->post('/admin/operations/orders', [
+            '_order_create_context' => 'central',
+            'idempotency_key' => 'dashboard-wizard-foreign-0001',
             'channel' => 'b2c',
             'store_id' => $storeB,
             'customer_id' => $customerA->id,
@@ -754,6 +765,91 @@ class DashboardOrderManagementTest extends TestCase
         ])->assertNotFound();
 
         $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_central_new_order_submission_uses_one_idempotent_business_mutation(): void
+    {
+        $store = $this->store('B2C', 'WIZARD-IDEMPOTENCY');
+        [$product, $inventory] = $this->product($store, 'b2c', 'WIZARD-IDEMPOTENT-SKU', 5.000, 10);
+        $admin = $this->storeAdmin($store, 'wizard-idempotent@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, [
+            'name' => 'Idempotent Wizard Buyer',
+            'email' => 'wizard-idempotent-buyer@example.test',
+        ]);
+
+        $payload = [
+            '_order_create_context' => 'central',
+            'idempotency_key' => 'dashboard-order-1585-0001',
+            'channel' => 'b2c',
+            'store_id' => $store,
+            'customer_id' => $customer->id,
+            'payment_method' => 'cash_on_delivery',
+            'items' => [['product_id' => $product, 'quantity' => 1]],
+        ];
+
+        $this->actingAs($admin)->post('/admin/operations/orders', $payload)->assertRedirect();
+
+        $order = DB::table('orders')
+            ->where('store_id', $store)
+            ->where('checkout_idempotency_key', $payload['idempotency_key'])
+            ->first();
+
+        $this->assertNotNull($order);
+        $this->actingAs($admin)
+            ->post('/admin/operations/orders', $payload)
+            ->assertRedirect(route('admin.operations.orders.index', [
+                'channel' => 'b2c',
+                'store_id' => $store,
+                'status' => 'pending',
+                'order' => $order->id,
+            ]));
+
+        $this->assertSame(
+            1,
+            DB::table('orders')->where('checkout_idempotency_key', $payload['idempotency_key'])->count(),
+        );
+        $this->assertSame(
+            1.0,
+            (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'),
+        );
+
+        $changedPayload = $payload;
+        $changedPayload['items'][0]['quantity'] = 2;
+
+        $this->actingAs($admin)
+            ->post('/admin/operations/orders', $changedPayload)
+            ->assertStatus(409);
+
+        $this->assertSame(
+            1,
+            DB::table('orders')->where('checkout_idempotency_key', $payload['idempotency_key'])->count(),
+        );
+        $this->assertSame(
+            1.0,
+            (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'),
+        );
+    }
+
+    public function test_central_new_order_wizard_exposes_submit_lock_and_validation_restore_contract(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-wizard-idempotency', $view);
+        $this->assertStringContainsString('data-wizard-submit-state', $view);
+        $this->assertStringContainsString('if (isSubmitting) {', $view);
+        $this->assertStringContainsString('form.setAttribute(\'aria-busy\', active ? \'true\' : \'false\');', $view);
+        $this->assertStringContainsString('setSubmitting(true);', $view);
+        $this->assertStringContainsString('if (restoreServerInput()) open();', $view);
+
+        $expected = [
+            'en' => 'Creating order…',
+            'ar' => 'جارٍ إنشاء الطلب…',
+        ];
+
+        foreach ($expected as $locale => $label) {
+            app()->setLocale($locale);
+            $this->assertSame($label, __('order_operations.new_order_submit.submitting'));
+        }
     }
 
     private function store(string $type, string $code): int
