@@ -6,6 +6,7 @@ import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
 import 'van_order_contract.dart';
+
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 class VanProductCatalogPage extends StatefulWidget {
@@ -134,9 +135,10 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
             children: [
               Text(
                 _text('Catalog availability', 'توفر الكتالوج'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 4),
               Text(
@@ -281,8 +283,9 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                               product.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w900),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                             Text(
                               product.sku,
@@ -295,9 +298,12 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              foodexMoneyText(product.unitPrice, product.currency),
+                              foodexMoneyText(
+                                product.unitPrice,
+                                product.currency,
+                              ),
                               style: const TextStyle(
-                                color: FoodexVanTokens.green,
+                                color: FoodexVanTokens.actionGreen,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -306,8 +312,9 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
                       ),
                       IconButton.filledTonal(
                         key: ValueKey('van-catalog-add-${product.id}'),
-                        onPressed:
-                            product.isAvailable ? () => widget.draft.add(product) : null,
+                        onPressed: product.isAvailable
+                            ? () => widget.draft.add(product)
+                            : null,
                         icon: const Icon(Icons.add),
                       ),
                     ],
@@ -352,7 +359,10 @@ class _State extends StatelessWidget {
             children: [
               Text(text, textAlign: TextAlign.center),
               const SizedBox(height: 10),
-              VanActionButton.secondary(onPressed: action, child: Text(actionLabel)),
+              VanActionButton.secondary(
+                onPressed: action,
+                child: Text(actionLabel),
+              ),
             ],
           ),
         ),

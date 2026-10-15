@@ -124,6 +124,61 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString('[data-theme=dark]', $stylesheet);
     }
 
+    public function test_public_search_exposes_localized_accessible_feedback_across_templates(): void
+    {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+            foreach (['en', 'ar'] as $locale) {
+                $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
+
+                $response = $this->get('/smart-ordering/demo?lang='.$locale);
+
+                $response->assertOk()
+                    ->assertSee('data-menu-search-no-results="'.($locale === 'ar' ? 'لم يتم العثور على عناصر في القائمة.' : 'No menu items found.').'"', false)
+                    ->assertSee('data-menu-search-clear="'.($locale === 'ar' ? 'مسح البحث' : 'Clear search').'"', false);
+            }
+        }
+
+        $script = file_get_contents(public_path('js/smart-ordering-storefront.js'));
+        $stylesheet = file_get_contents(public_path('css/smart-ordering-storefront.css'));
+
+        $this->assertIsString($script);
+        $this->assertIsString($stylesheet);
+        $this->assertStringContainsString("announcement.setAttribute('aria-live','polite');", $script);
+        $this->assertStringContainsString("feedback.classList.toggle('is-empty',count===0);", $script);
+        $this->assertStringContainsString('search.focus({preventScroll:true});', $script);
+        $this->assertStringContainsString('result_count:count', $script);
+        $this->assertStringContainsString("$('[data-menu-search]').forEach", $script);
+        $this->assertStringContainsString("const items=$('[data-menu-item]')", $script);
+        $this->assertStringContainsString("$('[data-category]').forEach", $script);
+        $this->assertStringContainsString("$('[data-menu-search]').forEach", $script);
+        $this->assertStringContainsString("const items=$('[data-menu-item]')", $script);
+        $this->assertStringContainsString("$('[data-category]').forEach", $script);
+        $this->assertStringContainsString('.so-search-feedback', $stylesheet);
+        $this->assertStringContainsString('.so-search-clear{min-height:44px', $stylesheet);
+    }
+
+    public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void
+    {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+            $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
+
+            $this->get('/smart-ordering/demo')
+                ->assertOk()
+                ->assertSee('data-item-id="burger-1"', false)
+                ->assertSee('data-cart-open', false)
+                ->assertSee('data-cart-dialog', false)
+                ->assertSee('data-add-to-cart', false)
+                ->assertSee('data-ordering-enabled="0"', false);
+        }
+
+        $script = file_get_contents(public_path('js/smart-ordering-storefront.js'));
+        $this->assertIsString($script);
+        $this->assertStringContainsString('/menu-items/', $script);
+        $this->assertStringContainsString('Idempotency-Key', $script);
+        $this->assertStringContainsString('[data-cart-remove]', $script);
+        $this->assertStringContainsString('[data-cart-qty]', $script);
+    }
+
     private function provider(?array $snapshot): StorefrontSnapshotProvider
     {
         return new class($snapshot) implements StorefrontSnapshotProvider

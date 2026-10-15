@@ -10,6 +10,9 @@ return [
         'continue_editing' => 'Continue editing',
         'discard' => 'Discard draft',
     ],
+    'new_order_submit' => [
+        'submitting' => 'Creating order…',
+    ],
     'statuses' => 'Order statuses',
     'all' => 'All',
     'filters' => [

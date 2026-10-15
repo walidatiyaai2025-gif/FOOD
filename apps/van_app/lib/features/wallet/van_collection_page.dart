@@ -48,10 +48,29 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   VanCollectionResult? _lastResult;
   String? _pendingOperation;
   String? _pendingIdempotencyKey;
+  int _contextRequestGeneration = 0;
+  VanCustomerScope? _contextCustomer;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
 
   String _text(String en, String ar) => _arabic ? ar : en;
+
+  bool _sameCustomer(VanCustomerScope? left, VanCustomerScope? right) =>
+      left != null &&
+      right != null &&
+      left.type == right.type &&
+      left.id == right.id &&
+      left.storeId == right.storeId;
+
+  bool get _hasMatchingContext =>
+      _context != null &&
+      _sameCustomer(_customer, _contextCustomer) &&
+      _context!.storeId == _customer!.storeId;
+
+  bool _ownsContextRequest(int generation, VanCustomerScope customer) =>
+      mounted &&
+      generation == _contextRequestGeneration &&
+      _sameCustomer(_customer, customer);
 
   @override
   void initState() {
@@ -78,9 +97,11 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   }
 
   Future<void> _loadCustomers() async {
+    _contextRequestGeneration += 1;
     setState(() {
       _loading = true;
       _error = null;
+      _contextCustomer = null;
     });
     try {
       final customers = await widget.repository.customers();
@@ -102,6 +123,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         _customers = customers;
         _customer = selected;
         _context = null;
+        _contextCustomer = null;
         _invoice = null;
         _loading = false;
         _stale = false;
@@ -124,20 +146,23 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     VanCustomerScope customer, {
     bool background = false,
   }) async {
-    if (mounted) {
-      setState(() {
-        if (background && _context != null) {
-          _refreshing = true;
-        } else {
-          _loading = true;
-        }
-        _error = null;
-      });
-    }
+    final generation = ++_contextRequestGeneration;
+    if (!_sameCustomer(_customer, customer)) return;
+
+    setState(() {
+      if (background && _hasMatchingContext) {
+        _refreshing = true;
+      } else {
+        _loading = true;
+        _refreshing = false;
+      }
+      _error = null;
+    });
 
     try {
       final context = await widget.repository.collectionContext(customer);
-      if (!mounted) return;
+      if (!_ownsContextRequest(generation, customer)) return;
+
       final preferredInvoiceId = _invoice?.id ?? widget.initialInvoiceId;
       VanInvoiceBalance? selected;
       for (final invoice in context.invoices) {
@@ -147,8 +172,10 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         }
       }
       selected ??= context.invoices.isEmpty ? null : context.invoices.first;
+
       setState(() {
         _context = context;
+        _contextCustomer = customer;
         _invoice = selected;
         _loading = false;
         _refreshing = false;
@@ -157,11 +184,11 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (error) {
-      if (!mounted) return;
+      if (!_ownsContextRequest(generation, customer)) return;
       setState(() {
         _loading = false;
         _refreshing = false;
-        if (background && _context != null) {
+        if (background && _hasMatchingContext) {
           _stale = true;
         } else {
           _error = error;
@@ -180,12 +207,18 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   }
 
   Future<void> _selectCustomer(VanCustomerScope? customer) async {
-    if (customer == null) return;
+    if (customer == null || _sameCustomer(_customer, customer)) return;
+    _contextRequestGeneration += 1;
     setState(() {
       _customer = customer;
       _context = null;
+      _contextCustomer = null;
       _invoice = null;
       _lastResult = null;
+      _loading = true;
+      _refreshing = false;
+      _stale = false;
+      _error = null;
       _amount.clear();
       _pendingOperation = null;
       _pendingIdempotencyKey = null;
@@ -228,7 +261,12 @@ class _VanCollectionPageState extends State<VanCollectionPage>
     final invoice = _invoice;
     final amount = double.tryParse(_amount.text.trim());
 
-    if (customer == null || invoice == null || amount == null || amount <= 0) {
+    if (customer == null ||
+        invoice == null ||
+        !_hasMatchingContext ||
+        !_context!.invoices.any((candidate) => candidate.id == invoice.id) ||
+        amount == null ||
+        amount <= 0) {
       _message(
         _text(
           'Choose a customer and invoice, then enter a valid amount.',
@@ -325,7 +363,8 @@ class _VanCollectionPageState extends State<VanCollectionPage>
 
     if (_error != null && _customers.isEmpty) {
       return _StateCard(
-        title: _text('Unable to load collection scope', 'تعذر تحميل نطاق التحصيل'),
+        title:
+            _text('Unable to load collection scope', 'تعذر تحميل نطاق التحصيل'),
         actionLabel: _text('Retry', 'إعادة المحاولة'),
         onAction: _loadCustomers,
       );
@@ -342,7 +381,9 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       );
     }
 
-    final invoices = _context?.invoices ?? const <VanInvoiceBalance>[];
+    final hasMatchingContext = _hasMatchingContext;
+    final invoices =
+        hasMatchingContext ? _context!.invoices : const <VanInvoiceBalance>[];
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -445,7 +486,8 @@ class _VanCollectionPageState extends State<VanCollectionPage>
               key: const ValueKey('van-collection-amount'),
               controller: _amount,
               enabled: !_submitting,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: _text('Collection amount', 'مبلغ التحصيل'),
                 border: const OutlineInputBorder(),
@@ -454,7 +496,7 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             const SizedBox(height: 12),
             VanActionButton.icon(
               key: const ValueKey('van-collection-submit'),
-              onPressed: _submitting ? null : _collect,
+              onPressed: _submitting || !hasMatchingContext ? null : _collect,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,

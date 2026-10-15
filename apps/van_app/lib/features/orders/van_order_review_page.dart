@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import 'van_order_contract.dart';
-import 'package:foodex_formatting/foodex_formatting.dart';
+import 'van_payment_method_labels.dart';
 
 class VanOrderReviewPage extends StatefulWidget {
   const VanOrderReviewPage({
@@ -231,7 +232,11 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                   for (final method in options.paymentMethods)
                     DropdownMenuItem(
                       value: method,
-                      child: Text(method.replaceAll('_', ' ')),
+                      child: Text(
+                        vanPaymentMethodLabel(method, arabic: _arabic),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
                 onChanged: (value) {
@@ -258,18 +263,33 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                   padding: const EdgeInsets.all(14),
                   child: Column(
                     children: [
-                      _row(_text('Subtotal', 'الإجمالي قبل الخصم'),
-                          quote.subtotal, quote.currency),
-                      _row(_text('Discount', 'الخصم'), -quote.discountTotal,
-                          quote.currency),
-                      _row(_text('Delivery', 'التوصيل'), quote.deliveryTotal,
-                          quote.currency),
-                      _row(_text('Tax', 'الضريبة'), quote.taxTotal,
-                          quote.currency),
+                      _row(
+                        _text('Subtotal', 'الإجمالي قبل الخصم'),
+                        quote.subtotal,
+                        quote.currency,
+                      ),
+                      _row(
+                        _text('Discount', 'الخصم'),
+                        -quote.discountTotal,
+                        quote.currency,
+                      ),
+                      _row(
+                        _text('Delivery', 'التوصيل'),
+                        quote.deliveryTotal,
+                        quote.currency,
+                      ),
+                      _row(
+                        _text('Tax', 'الضريبة'),
+                        quote.taxTotal,
+                        quote.currency,
+                      ),
                       const Divider(),
-                      _row(_text('Total', 'الإجمالي'), quote.grandTotal,
-                          quote.currency,
-                          strong: true),
+                      _row(
+                        _text('Total', 'الإجمالي'),
+                        quote.grandTotal,
+                        quote.currency,
+                        strong: true,
+                      ),
                     ],
                   ),
                 ),
@@ -289,11 +309,10 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
             const SizedBox(height: 14),
             FilledButton.icon(
               key: const ValueKey('van-order-submit'),
-              onPressed: _submitting ||
-                      quote == null ||
-                      quote.hasUnavailableItems
-                  ? null
-                  : _submit,
+              onPressed:
+                  _submitting || quote == null || quote.hasUnavailableItems
+                      ? null
+                      : _submit,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,
@@ -308,17 +327,22 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
     );
   }
 
-  Widget _row(String label, double value, String currency,
-          {bool strong = false}) =>
-      Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(
-            foodexMoneyText(value, currency),
-            style: TextStyle(
-              fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
-            ),
+  Widget _row(
+    String label,
+    double value,
+    String currency, {
+    bool strong = false,
+  }) {
+    return Row(
+      children: [
+        Expanded(child: Text(label)),
+        Text(
+          foodexMoneyText(value, currency),
+          style: TextStyle(
+            fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 }
