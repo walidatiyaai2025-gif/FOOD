@@ -23,6 +23,48 @@ class DashboardOrderManagementTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_order_wizard_loads_bounded_scoped_customer_and_product_lookups_on_demand(): void
+    {
+        $storeA = $this->store('B2C', 'ORDER-LOOKUP-A');
+        $storeB = $this->store('B2C', 'ORDER-LOOKUP-B');
+        [$productA] = $this->product($storeA, 'b2c', 'LOOKUP-A-SKU', 4.5, 20);
+        [$productB] = $this->product($storeB, 'b2c', 'LOOKUP-B-SKU', 6.5, 20);
+        $admin = $this->storeAdmin($storeA, 'lookup-orders@example.test');
+        $customerA = app(B2cCustomerService::class)->create($storeA, [
+            'name' => 'Lookup Alpha Buyer',
+            'email' => 'lookup-alpha@example.test',
+            'phone' => '+96550000001',
+        ]);
+        $customerB = app(B2cCustomerService::class)->create($storeB, [
+            'name' => 'Lookup Foreign Buyer',
+            'email' => 'lookup-foreign@example.test',
+            'phone' => '+96550000002',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/b2c/orders?store_id='.$storeA)
+            ->assertOk()
+            ->assertDontSee('Lookup Alpha Buyer')
+            ->assertDontSee('LOOKUP-A-SKU')
+            ->assertSee('Search name, phone or email')
+            ->assertSee('Search by name, SKU or barcode', false);
+
+        $customerLookup = $this->actingAs($admin)->getJson('/admin/operations/orders/lookups?channel=b2c&store_id='.$storeA.'&type=customer&q=lookup-alpha');
+        $customerLookup->assertOk();
+        $this->assertSame((int) $customerA->id, (int) $customerLookup->json('data.0.id'));
+        $this->assertStringContainsString('lookup-alpha@example.test', (string) $customerLookup->json('data.0.meta'));
+        $this->assertNotContains((int) $customerB->id, array_map('intval', $customerLookup->json('data.*.id') ?? []));
+
+        $productLookup = $this->actingAs($admin)->getJson('/admin/operations/orders/lookups?channel=b2c&store_id='.$storeA.'&type=product&q=LOOKUP-A-SKU');
+        $productLookup->assertOk();
+        $this->assertSame($productA, (int) $productLookup->json('data.0.id'));
+        $this->assertNotContains($productB, array_map('intval', $productLookup->json('data.*.id') ?? []));
+
+        $this->actingAs($admin)
+            ->getJson('/admin/operations/orders/lookups?channel=b2c&store_id='.$storeB.'&type=customer&q=lookup')
+            ->assertNotFound();
+    }
+
     public function test_b2c_store_admin_can_create_edit_and_cancel_manual_order_with_correct_reservations(): void
     {
         $store = $this->store('B2C', 'ORDER-RETAIL');
