@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 final class SmartOrderingQrCode extends Model
 {
     protected $table = 'smart_ordering_qr_codes';
+
     protected $guarded = [];
 
     protected function casts(): array
