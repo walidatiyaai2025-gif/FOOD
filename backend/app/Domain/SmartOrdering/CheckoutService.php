@@ -64,6 +64,7 @@ final class CheckoutService
                 'longitude' => $payload['delivery_longitude'] ?? null,
             ],
             'order_note' => isset($payload['order_note']) ? trim((string) $payload['order_note']) : null,
+            'repeat_draft_public_id' => $payload['repeat_draft_public_id'] ?? null,
         ], JSON_THROW_ON_ERROR));
 
         $existing = SmartOrderingOrderContext::query()
@@ -144,6 +145,20 @@ final class CheckoutService
                 'email' => $email === '' ? null : $email,
             ]);
             abort_unless($customer->legacy_customer_id !== null, 500, 'Customer compatibility identity is missing.');
+
+            $repeatDraft = null;
+            if (! empty($payload['repeat_draft_public_id'])) {
+                $repeatDraft = DB::table('smart_ordering_repeat_drafts')
+                    ->where('public_id', (string) $payload['repeat_draft_public_id'])
+                    ->where('site_id', (int) $branch->site_id)
+                    ->where('customer_id', (int) $customer->legacy_customer_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_unless($repeatDraft !== null, 404);
+                abort_unless((string) $repeatDraft->status === 'DRAFT', 409, 'Repeat-order draft is no longer active.');
+                abort_if($repeatDraft->expires_at !== null && now()->greaterThan($repeatDraft->expires_at), 410, 'Repeat-order draft expired.');
+            }
 
             $pricingLines = $this->carts->pricingLines($lockedCart);
             abort_if($pricingLines === [], 409, 'The cart is empty.');
@@ -308,7 +323,18 @@ final class CheckoutService
                 'fulfillment_mode' => $mode,
             ]);
 
-            return ['order' => $order, 'context' => $context, 'replayed' => false];
+            if ($repeatDraft !== null) {
+                DB::table('smart_ordering_repeat_drafts')
+                    ->where('id', $repeatDraft->id)
+                    ->update(['status' => 'CONVERTED', 'updated_at' => now()]);
+            }
+
+            return [
+                'order' => $order,
+                'context' => $context,
+                'replayed' => false,
+                'repeat_draft_public_id' => $repeatDraft?->public_id,
+            ];
         }, 3);
 
         $priorCompleted = DB::table('orders')
@@ -317,6 +343,20 @@ final class CheckoutService
             ->where('id', '<>', (int) $result['order']->getKey())
             ->whereIn('status', ['delivered', 'completed'])
             ->exists();
+
+        if (! empty($result['repeat_draft_public_id'])) {
+            $this->analytics->record(
+                (int) $branch->store_id,
+                'repeat_order_completed',
+                'repeat-draft:'.$result['repeat_draft_public_id'].':completed',
+                [
+                    'branch_id' => (int) $branch->getKey(),
+                    'order_id' => (int) $result['order']->getKey(),
+                    'customer_type' => 'repeat',
+                    'fulfillment_mode' => $mode,
+                ],
+            );
+        }
 
         $this->analytics->record(
             (int) $branch->store_id,
