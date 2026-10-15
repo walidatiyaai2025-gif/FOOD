@@ -133,6 +133,64 @@ final class SmartOrderingOperationsController extends Controller
             ->with('status', __('smart_ordering.branch_saved'));
     }
 
+
+    public function storeZone(string $branch, Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $branchModel = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
+        $this->scope->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
+        $data = $this->zoneData($request);
+
+        DB::table('smart_ordering_delivery_zones')->insert([
+            'public_id' => (string) Str::uuid(),
+            'branch_id' => $branchModel->getKey(),
+            ...$this->zoneAttributes($data),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+            ->with('status', __('smart_ordering.zone_saved'));
+    }
+
+    public function updateZone(string $branch, string $zone, Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $branchModel = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
+        $this->scope->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
+        $zoneModel = DB::table('smart_ordering_delivery_zones')
+            ->where('public_id', $zone)
+            ->where('branch_id', $branchModel->getKey())
+            ->first();
+        abort_unless($zoneModel !== null, 404);
+
+        DB::table('smart_ordering_delivery_zones')
+            ->where('id', $zoneModel->id)
+            ->update([
+                ...$this->zoneAttributes($this->zoneData($request)),
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+            ->with('status', __('smart_ordering.zone_saved'));
+    }
+
+    public function destroyZone(string $branch, string $zone, Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $branchModel = SmartOrderingBranch::query()->where('public_id', $branch)->firstOrFail();
+        $this->scope->assertStore($actor, (int) $branchModel->store_id, 'orders.manage', 'b2c');
+
+        $deleted = DB::table('smart_ordering_delivery_zones')
+            ->where('public_id', $zone)
+            ->where('branch_id', $branchModel->getKey())
+            ->delete();
+        abort_unless($deleted === 1, 404);
+
+        return redirect()->route('admin.smart-ordering.index', ['tab' => 'branches'])
+            ->with('status', __('smart_ordering.zone_deleted'));
+    }
+
     public function transition(string $reference, Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
@@ -190,6 +248,36 @@ final class SmartOrderingOperationsController extends Controller
             'hours.*.closes_at' => ['nullable', 'date_format:H:i'],
             'hours.*.is_closed' => ['nullable', 'boolean'],
         ]);
+    }
+
+    /** @return array<string,mixed> */
+    private function zoneData(Request $request): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:160'],
+            'center_latitude' => ['required', 'numeric', 'between:-90,90'],
+            'center_longitude' => ['required', 'numeric', 'between:-180,180'],
+            'radius_km' => ['required', 'numeric', 'gt:0', 'max:1000'],
+            'delivery_fee' => ['required', 'numeric', 'min:0', 'max:999999'],
+            'minimum_order' => ['required', 'numeric', 'min:0', 'max:999999'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+    }
+
+    /** @param array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    private function zoneAttributes(array $data): array
+    {
+        return [
+            'name' => (string) $data['name'],
+            'center_latitude' => round((float) $data['center_latitude'], 7),
+            'center_longitude' => round((float) $data['center_longitude'], 7),
+            'radius_km' => round((float) $data['radius_km'], 3),
+            'delivery_fee' => round((float) $data['delivery_fee'], 3),
+            'minimum_order' => round((float) $data['minimum_order'], 3),
+            'is_active' => (bool) ($data['is_active'] ?? false),
+        ];
     }
 
     /** @param array<string,mixed> $data
