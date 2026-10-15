@@ -52,9 +52,9 @@ class VanActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final secondary = variant == VanActionVariant.secondary;
     final resolvedStyle = FilledButton.styleFrom(
-      backgroundColor: secondary ? Colors.transparent : FoodexVanTokens.green,
+      backgroundColor: secondary ? Colors.transparent : FoodexVanTokens.actionGreen,
       foregroundColor:
-          secondary ? FoodexVanTokens.green : Colors.white,
+          secondary ? FoodexVanTokens.actionGreen : Colors.white,
       side: secondary
           ? const BorderSide(color: FoodexVanTokens.border)
           : BorderSide.none,
