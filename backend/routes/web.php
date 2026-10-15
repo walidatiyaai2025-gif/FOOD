@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
+use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -149,6 +150,7 @@ Route::prefix('admin')
         Route::get('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'showBusinessUnit'])->whereNumber('businessUnit')->name('enterprise-business-units.show');
         Route::patch('/administration/business-units/{businessUnit}', [EnterpriseOrganizationAdministrationController::class, 'updateBusinessUnit'])->whereNumber('businessUnit')->middleware('throttle:30,1')->name('enterprise-business-units.update');
         Route::post('/administration/business-units/{businessUnit}/stores/{store}', [EnterpriseOrganizationAdministrationController::class, 'assignStore'])->whereNumber('businessUnit')->whereNumber('store')->middleware('throttle:30,1')->name('enterprise-business-units.stores.assign');
+        Route::get('/administration/system-health', EnterpriseSystemHealthController::class)->name('enterprise-system-health.index');
         Route::get('/administration/modules', [EnterpriseModuleAdministrationController::class, 'index'])->name('enterprise-modules.index');
         Route::get('/administration/modules/{module}', [EnterpriseModuleAdministrationController::class, 'show'])
             ->where('module', '[a-z][a-z0-9_]*')

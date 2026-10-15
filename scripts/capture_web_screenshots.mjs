@@ -59,6 +59,7 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
+  ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
   ['16_إدارة_وحدات_المنصة', '/admin/administration/modules'],
   ['16_مركز_الإعدادات', '/admin/settings'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
