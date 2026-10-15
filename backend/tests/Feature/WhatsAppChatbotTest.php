@@ -291,6 +291,75 @@ final class WhatsAppChatbotTest extends TestCase
         $this->assertSame(42, $action->entities['product_id']);
     }
 
+    public function test_order_tracking_result_is_the_visible_meta_interactive_body(): void
+    {
+        $phone = '+96550000777';
+        $storeId = $this->store('B2B', 'WA-BOT-TRACK');
+        $customerId = $this->customer($storeId, 'b2b', $phone);
+        $conversationId = $this->conversation($customerId, $storeId, $phone);
+        $legacyCustomerId = (int) DB::table('platform_customers')
+            ->where('id', $customerId)
+            ->value('legacy_customer_id');
+
+        DB::table('orders')->insert([
+            'store_id' => $storeId,
+            'customer_id' => $legacyCustomerId,
+            'order_number' => 'WA-TRACK-001',
+            'channel' => 'b2b',
+            'status' => 'processing',
+            'currency' => 'KWD',
+            'subtotal' => 12.500,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 12.500,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('whats_app_chatbot_settings')->update([
+            'enabled' => true,
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'mode' => 'hybrid',
+            'default_locale' => 'en',
+            'working_from' => null,
+            'working_to' => null,
+            'updated_at' => now(),
+        ]);
+
+        WhatsAppModuleState::query()->findOrFail(1)->forceFill([
+            'lifecycle' => 'INTERNAL_TEST',
+            'emergency_stop' => false,
+            'capabilities' => [
+                Capability::INBOUND->value => true,
+                Capability::OUTBOUND->value => true,
+                Capability::AUTOMATION->value => true,
+            ],
+            'test_numbers' => [$phone],
+        ])->save();
+
+        $handled = app(ChatbotAutomationService::class)->handleInbound(
+            $conversationId,
+            $customerId,
+            'Track order',
+            ['interactive_id' => 'chatbot:order_tracking'],
+        );
+
+        $this->assertTrue($handled);
+
+        $message = DB::table('whats_app_messages')
+            ->where('conversation_id', $conversationId)
+            ->where('direction', 'outbound')
+            ->orderByDesc('id')
+            ->firstOrFail();
+        $metadata = json_decode((string) $message->attachment_metadata, true, 32, JSON_THROW_ON_ERROR);
+
+        $this->assertStringContainsString('#WA-TRACK-001', (string) $message->body);
+        $this->assertSame($message->body, $metadata['interactive']['body']['text']);
+        $this->assertSame('list', $metadata['interactive']['type']);
+        $this->assertNotEmpty($metadata['interactive']['action']['sections'][0]['rows']);
+    }
+
     public function test_guided_product_choice_updates_real_customer_cart_as_a_draft(): void
     {
         $storeId = $this->store('B2B', 'WA-BOT-CART');
