@@ -293,10 +293,12 @@ jobs:
 
   localization-quality:
     name: Localization quality
+    needs: changes
     uses: ./.github/workflows/localization-quality-gate.yml
     with:
       base_sha: ${{ github.head_ref == 'fix/1375-customer-hotfix-apk' && 'df785746585f98ffb147391d898eb065384fd4d1' || github.event.pull_request.base.sha }}
       head_sha: ${{ github.event.pull_request.head.sha }}
+      run_mobile_runtime: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && (needs.changes.outputs.customer == 'true' || needs.changes.outputs.driver == 'true' || needs.changes.outputs.van == 'true') }}
 
   app-preview-visual-parity:
     name: APP-PREVIEW visual runtime parity
