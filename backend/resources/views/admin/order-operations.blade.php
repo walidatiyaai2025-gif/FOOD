@@ -201,7 +201,7 @@ $businessLabel = static function ($value): string {
 
 @if($detail)
 @php($detailCloseQuery=request()->except(['order','edit']))
-<dialog class="order-detail-drawer" open aria-label="{{ __('order_operations.view_order') }}">
+<dialog class="order-detail-drawer" open aria-modal="true" aria-label="{{ __('order_operations.view_order') }}">
 <div class="order-detail-drawer-shell">
 <div class="order-detail-drawer-head"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.filters.reset') }}">×</a></div>
 <section class="detail-grid">
@@ -443,6 +443,34 @@ $businessLabel = static function ($value): string {
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
 </body></html>
+@if($detail)
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const drawer = document.querySelector('.order-detail-drawer');
+    const closeLink = drawer?.querySelector('.order-detail-close');
+    if (!(drawer instanceof HTMLElement) || !window.FoodexModalA11y) return;
+
+    let modalSession = null;
+    const leaveDrawer = () => {
+        modalSession?.deactivate({ restoreFocus: false });
+        modalSession = null;
+    };
+    const dismissDrawer = () => {
+        leaveDrawer();
+        if (closeLink instanceof HTMLAnchorElement) window.location.assign(closeLink.href);
+    };
+
+    modalSession = window.FoodexModalA11y.activate({
+        root: drawer,
+        dialog: drawer,
+        initialFocus: closeLink instanceof HTMLElement ? closeLink : drawer,
+        onEscape: dismissDrawer,
+    });
+    closeLink?.addEventListener('click', leaveDrawer, { once: true });
+    window.addEventListener('pagehide', leaveDrawer, { once: true });
+});
+</script>
+@endif
 @if($detail && request('edit') && $detail['can_edit'])
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
