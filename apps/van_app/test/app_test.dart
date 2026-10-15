@@ -22,7 +22,7 @@ Future<void> _scrollUntilBuilt(
   Finder scrollable,
   Finder target,
 ) async {
-  for (var attempt = 0; attempt < 40 && target.evaluate().isEmpty; attempt++) {
+  for (var attempt = 0; attempt < 80 && target.evaluate().isEmpty; attempt++) {
     await tester.drag(scrollable, const Offset(0, -400));
     await tester.pumpAndSettle();
   }
