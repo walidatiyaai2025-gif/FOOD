@@ -188,4 +188,7 @@ return [
         'accepting' => 'Accepting',
         'paused' => 'Paused',
     ],
+    'analytics' => [
+        'nav_title' => 'Restaurant Analytics',
+    ],
 ];
