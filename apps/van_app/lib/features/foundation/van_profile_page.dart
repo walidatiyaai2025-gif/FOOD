@@ -22,20 +22,15 @@ class VanProfilePage extends StatelessWidget {
   String _permissionLabel(BuildContext context, String permission) {
     final normalized = permission.trim().toLowerCase();
     return switch (normalized) {
-      'van.login' =>
-        _text(context, 'Van app access', 'الدخول إلى تطبيق الفان'),
-      'finance.view' =>
-        _text(context, 'View finance', 'عرض البيانات المالية'),
-      'orders.view' =>
-        _text(context, 'View orders', 'عرض الطلبات'),
+      'van.login' => _text(context, 'Van app access', 'الدخول إلى تطبيق الفان'),
+      'finance.view' => _text(context, 'View finance', 'عرض البيانات المالية'),
+      'orders.view' => _text(context, 'View orders', 'عرض الطلبات'),
       'orders.approve' =>
         _text(context, 'Approve orders', 'الموافقة على الطلبات'),
-      'platform.manage' =>
-        _text(context, 'Manage platform', 'إدارة المنصة'),
+      'platform.manage' => _text(context, 'Manage platform', 'إدارة المنصة'),
       'notifications.view' =>
         _text(context, 'View notifications', 'عرض الإشعارات'),
-      'reports.view' =>
-        _text(context, 'View reports', 'عرض التقارير'),
+      'reports.view' => _text(context, 'View reports', 'عرض التقارير'),
       _ => _text(
           context,
           'Additional authorized access',
@@ -114,7 +109,8 @@ class VanProfilePage extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.verified_user_outlined),
                 title: Text(
-                  _text(context, 'Authorized permissions', 'الصلاحيات المصرح بها'),
+                  _text(context, 'Authorized permissions',
+                      'الصلاحيات المصرح بها'),
                 ),
                 trailing: Text(
                   '${permissions.length}',
