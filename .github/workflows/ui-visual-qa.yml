@@ -83,6 +83,13 @@ jobs:
       - name: Capture Arabic and English Admin runtime screenshots
         working-directory: backend
         env:
+          APP_ENV: local
+          APP_URL: http://127.0.0.1:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: file
           FOODEX_SCREENSHOT_BASE_URL: http://127.0.0.1:8000
         run: |
           if ! node ../scripts/capture_web_screenshots.mjs; then
