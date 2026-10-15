@@ -12,7 +12,9 @@ use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\EnterpriseBusinessUnit;
 use App\Models\EnterpriseCompany;
+use App\Models\EnterpriseFinanceAccount;
 use App\Models\EnterpriseFinanceLedgerEntry;
+use App\Models\EnterpriseFiscalPeriod;
 use App\Models\EnterpriseLegalEntity;
 use App\Models\EnterpriseOrganization;
 use App\Models\Permission;
@@ -249,7 +251,7 @@ final class EnterpriseFinanceJournalFoundationTest extends TestCase
     }
 
     /**
-     * @return array{\App\Models\EnterpriseFinanceAccount,\App\Models\EnterpriseFinanceAccount}
+     * @return array{EnterpriseFinanceAccount,EnterpriseFinanceAccount}
      */
     private function postingAccounts(
         User $actor,
@@ -277,7 +279,7 @@ final class EnterpriseFinanceJournalFoundationTest extends TestCase
         User $actor,
         ResolvedTenantContext $context,
         string $prefix,
-    ): \App\Models\EnterpriseFiscalPeriod {
+    ): EnterpriseFiscalPeriod {
         $finance = app(FinanceFoundationService::class);
         $year = $finance->createFiscalYear($actor, $context, [
             'code' => 'FY27-'.$prefix,
@@ -323,7 +325,7 @@ final class EnterpriseFinanceJournalFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      * @return array{User,Store,ResolvedTenantContext}
      */
     private function scopedUser(array $permissions, string $storeCode): array
@@ -340,7 +342,7 @@ final class EnterpriseFinanceJournalFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      * @return array{User,Store,ResolvedTenantContext}
      */
     private function scopedUserInNewOrganization(array $permissions, string $storeCode): array
@@ -358,7 +360,7 @@ final class EnterpriseFinanceJournalFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      */
     private function userForStore(Store $store, array $permissions, string $code): User
     {
@@ -369,7 +371,7 @@ final class EnterpriseFinanceJournalFoundationTest extends TestCase
     }
 
     /**
-     * @param list<string> $permissions
+     * @param  list<string>  $permissions
      */
     private function attachPermissions(User $user, Store $store, array $permissions, string $code): void
     {
