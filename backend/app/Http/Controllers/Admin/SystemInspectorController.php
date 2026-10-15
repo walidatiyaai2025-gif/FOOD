@@ -2,15 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enterprise\Health\ModuleHealthService;
 use App\Http\Controllers\Controller;
-use App\Models\EnterpriseModule;
-use App\Models\EnterpriseModuleEntitlement;
-use App\Models\EnterpriseOutboxMessage;
-use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Store;
 use App\Models\SystemInspectorEvent;
 use App\Models\User;
+use App\Services\EnterpriseSystemInspector;
 use App\Services\SystemInspectorRecorder;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -28,7 +24,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class SystemInspectorController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, EnterpriseSystemInspector $enterpriseInspector): View
     {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -79,7 +75,7 @@ final class SystemInspectorController extends Controller
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),
-            'enterprise' => $this->enterpriseDiagnostics(),
+            'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector),
         ]);
     }
 
@@ -119,7 +115,7 @@ final class SystemInspectorController extends Controller
         return response()->json([], 202);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, EnterpriseSystemInspector $enterpriseInspector): StreamedResponse
     {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
@@ -132,6 +128,7 @@ final class SystemInspectorController extends Controller
             'generated_at' => now()->toIso8601String(),
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
+            'enterprise' => $this->enterpriseDiagnostics($enterpriseInspector, snapshot: true),
             'events' => $events->map(static fn (SystemInspectorEvent $event): array => [
                 'id' => $event->id,
                 'occurred_at' => $event->occurred_at->toIso8601String(),
@@ -189,9 +186,13 @@ final class SystemInspectorController extends Controller
         ));
     }
 
-    /** @return array<string,mixed> */
-    private function enterpriseDiagnostics(): array
-    {
+    /**
+     * @return array{available:bool,migration_pending:bool,data?:array<string,mixed>}
+     */
+    private function enterpriseDiagnostics(
+        EnterpriseSystemInspector $inspector,
+        bool $snapshot = false,
+    ): array {
         try {
             $requiredTables = [
                 'enterprise_modules',
@@ -200,107 +201,19 @@ final class SystemInspectorController extends Controller
                 'enterprise_workflow_requests',
             ];
 
-            $missingTables = array_values(array_filter(
-                $requiredTables,
-                static fn (string $table): bool => ! Schema::hasTable($table),
-            ));
-
-            if ($missingTables !== []) {
-                return [
-                    'available' => false,
-                    'migration_pending' => true,
-                ];
+            foreach ($requiredTables as $table) {
+                if (! Schema::hasTable($table)) {
+                    return [
+                        'available' => false,
+                        'migration_pending' => true,
+                    ];
+                }
             }
-
-            $registrations = EnterpriseModule::query()
-                ->get(['code', 'category', 'manifest_version', 'state'])
-                ->keyBy('code');
-
-            $modules = [];
-            foreach (app(ModuleHealthService::class)->all() as $moduleCode => $report) {
-                /** @var EnterpriseModule|null $registration */
-                $registration = $registrations->get($moduleCode);
-                $rawState = $registration?->getRawOriginal('state');
-
-                $modules[] = [
-                    'code' => $moduleCode,
-                    'category' => (string) (
-                        $registration?->getAttribute('category')
-                        ?? config("enterprise_modules.modules.{$moduleCode}.category", 'platform')
-                    ),
-                    'manifest_version' => (int) (
-                        $registration?->getAttribute('manifest_version')
-                        ?? config("enterprise_modules.modules.{$moduleCode}.version", 0)
-                    ),
-                    'lifecycle_state' => is_string($rawState) ? $rawState : 'NOT_INSTALLED',
-                    'health_status' => $report->status->value,
-                    'check_count' => count($report->checks),
-                ];
-            }
-
-            usort(
-                $modules,
-                static fn (array $left, array $right): int => $left['code'] <=> $right['code'],
-            );
-
-            $entitlementsByModule = EnterpriseModuleEntitlement::query()
-                ->selectRaw(
-                    'module_code, COUNT(*) AS total, SUM(CASE WHEN is_enabled = 1 THEN 1 ELSE 0 END) AS enabled',
-                )
-                ->groupBy('module_code')
-                ->orderBy('module_code')
-                ->limit(100)
-                ->get()
-                ->map(static fn (EnterpriseModuleEntitlement $row): array => [
-                    'module_code' => (string) $row->getAttribute('module_code'),
-                    'total' => (int) $row->getAttribute('total'),
-                    'enabled' => (int) $row->getAttribute('enabled'),
-                ])
-                ->all();
-
-            $outboxStatusCounts = EnterpriseOutboxMessage::query()
-                ->selectRaw('status, COUNT(*) AS aggregate')
-                ->groupBy('status')
-                ->orderBy('status')
-                ->pluck('aggregate', 'status')
-                ->map(static fn (mixed $count): int => (int) $count)
-                ->all();
-
-            $workflowStatusCounts = EnterpriseWorkflowRequest::query()
-                ->selectRaw('status, COUNT(*) AS aggregate')
-                ->groupBy('status')
-                ->orderBy('status')
-                ->pluck('aggregate', 'status')
-                ->map(static fn (mixed $count): int => (int) $count)
-                ->all();
 
             return [
                 'available' => true,
                 'migration_pending' => false,
-                'modules' => $modules,
-                'entitlements' => [
-                    'total' => EnterpriseModuleEntitlement::query()->count(),
-                    'enabled' => EnterpriseModuleEntitlement::query()->where('is_enabled', true)->count(),
-                    'by_module' => $entitlementsByModule,
-                ],
-                'outbox_status_counts' => $outboxStatusCounts,
-                'outbox_messages' => EnterpriseOutboxMessage::query()
-                    ->orderByDesc('id')
-                    ->simplePaginate(
-                        20,
-                        ['id', 'event_type', 'status', 'attempt_count', 'available_at', 'failed_at', 'created_at'],
-                        'outbox_page',
-                    )
-                    ->withQueryString(),
-                'workflow_status_counts' => $workflowStatusCounts,
-                'workflow_requests' => EnterpriseWorkflowRequest::query()
-                    ->orderByDesc('id')
-                    ->simplePaginate(
-                        20,
-                        ['id', 'workflow_key', 'entity_type', 'status', 'completed_at', 'created_at'],
-                        'workflow_page',
-                    )
-                    ->withQueryString(),
+                'data' => $snapshot ? $inspector->snapshot() : $inspector->page(),
             ];
         } catch (Throwable) {
             return [
