@@ -11,6 +11,8 @@ class SmartOrderingSite extends Model
 {
     protected $guarded = [];
 
+    protected $hidden = ['custom_domain_verification_token_hash'];
+
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
