@@ -138,7 +138,6 @@ final class RestaurantOperatorFoundationTest extends TestCase
             ->assertSee('Retained · destructive deletion disabled');
     }
 
-
     public function test_operator_console_uses_authoritative_subscription_state_without_exposing_billing_references(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'restaurant-subscription-operator@example.test');
