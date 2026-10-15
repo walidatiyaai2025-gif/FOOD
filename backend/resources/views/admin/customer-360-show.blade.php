@@ -431,10 +431,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
             invoice.issued_at || '',
             @json(__('customer_360.finance.outstanding')) + ': ' + Number(invoice.outstanding || 0).toFixed(2) + ' ' + (invoice.currency || ''),
         ].filter(Boolean).join(' · ');
-        const invoiceLabel = (invoice) => [
-            invoice.number || '',
-            invoice.internal_number || '',
-        ].filter(Boolean).join(' · ');
+        const invoiceLabel = (invoice) => invoice.number || '';
         const selectInvoice = (invoice) => {
             hidden.value = String(invoice.id);
             search.value = invoiceLabel(invoice);
