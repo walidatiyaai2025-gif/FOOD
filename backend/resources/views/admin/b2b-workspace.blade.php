@@ -111,6 +111,7 @@
     @if($module === 'dashboard' && $dashboard)
     @php
         $isAr = app()->getLocale() === 'ar';
+        $dashboardCurrency = strtoupper(trim((string) $dashboard['currency']));
         $kpiConfig = [
             ['key'=>'sales','label'=>$isAr?'مبيعات الفترة':'Period sales','icon'=>'revenue','money'=>true],
             ['key'=>'orders','label'=>$isAr?'عدد الطلبات':'Orders','icon'=>'orders','money'=>false],
@@ -174,8 +175,11 @@
             @foreach($kpiConfig as $config)
                 @php
                     $kpi = $dashboard['kpis'][$config['key']];
+                    $kpiExactValue = $config['money']
+                        ? \App\Support\DisplayNumber::money((float) $kpi['value'], $dashboardCurrency)
+                        : null;
                     $kpiValue = $config['money']
-                        ? 'EGP '.number_format((float) $kpi['value'], 0)
+                        ? $dashboardCurrency.' '.$kpiExactValue
                         : number_format((float) $kpi['value'], 0);
                     $delta = $kpi['delta'];
                     $deltaClass = $delta !== null && $delta < 0
@@ -185,7 +189,7 @@
                 <article class="b2b-ref-card b2b-ref-kpi">
                     <div class="b2b-ref-kpi-copy">
                         <div class="b2b-ref-kpi-label">{{ $config['label'] }}</div>
-                        <div class="b2b-ref-kpi-value">{{ $kpiValue }}</div>
+                        <div class="b2b-ref-kpi-value foodex-number" @if($config['money']) dir="ltr" aria-label="{{ $dashboardCurrency }} {{ $kpiExactValue }}" @endif>{{ $kpiValue }}</div>
                         <div class="b2b-ref-kpi-delta {{ $deltaClass }}">
                             @if($delta === null)
                                 <span>—</span>
@@ -219,19 +223,19 @@
                         <defs><linearGradient id="b2bRevenueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#33c56b" stop-opacity=".26"/><stop offset="100%" stop-color="#33c56b" stop-opacity=".02"/></linearGradient></defs>
                         @foreach([46,90,134,178] as $gridY)<line class="b2b-ref-chart-grid" x1="38" y1="{{ $gridY }}" x2="524" y2="{{ $gridY }}"/>@endforeach
                         <text class="b2b-ref-axis" x="5" y="181">0</text>
-                        <text class="b2b-ref-axis" x="2" y="137">{{ number_format($maxRevenue*.33/1000,0) }}K</text>
-                        <text class="b2b-ref-axis" x="2" y="93">{{ number_format($maxRevenue*.66/1000,0) }}K</text>
-                        <text class="b2b-ref-axis" x="2" y="49">{{ number_format($maxRevenue/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="137" aria-label="{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($maxRevenue*.33, $dashboardCurrency) }}">{{ number_format($maxRevenue*.33/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="93" aria-label="{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($maxRevenue*.66, $dashboardCurrency) }}">{{ number_format($maxRevenue*.66/1000,0) }}K</text>
+                        <text class="b2b-ref-axis" x="2" y="49" aria-label="{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($maxRevenue, $dashboardCurrency) }}">{{ number_format($maxRevenue/1000,0) }}K</text>
                         @if($areaPath)<path class="b2b-ref-chart-area" d="{{ $areaPath }}"/>@endif
                         @if($polyline)<polyline class="b2b-ref-chart-line foodex-viz-line" points="{{ $polyline }}"/>@endif
-                        @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8"/>@endforeach
+                        @foreach($chartPoints as $point)<circle class="b2b-ref-chart-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3.8" role="img" aria-label="{{ $point['label'] }} · {{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($point['revenue'], $dashboardCurrency) }}"/>@endforeach
                         @if(count($chartPoints))
                             @php
                                 $tooltipX = min(466, max(392, $lastPoint['x'] - 58));
                                 $tooltipY = max(6, $lastPoint['y'] - 35);
                             @endphp
                             <rect class="b2b-ref-tooltip" x="{{ $tooltipX }}" y="{{ $tooltipY }}" rx="5" ry="5" width="88" height="24"/>
-                            <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle">EGP {{ number_format($lastPoint['revenue'],0) }}</text>
+                            <text class="b2b-ref-tooltip-text" x="{{ $tooltipX + 44 }}" y="{{ $tooltipY + 16 }}" text-anchor="middle" direction="ltr">{{ $dashboardCurrency }} {{ \App\Support\DisplayNumber::money($lastPoint['revenue'], $dashboardCurrency) }}</text>
                         @endif
                     </svg>
                     <div class="b2b-ref-chart-labels" style="grid-template-columns:repeat({{ max(1,count($dashboard['series'])) }},minmax(0,1fr))">@foreach($dashboard['series'] as $index=>$point)<span>{{ ($index % $labelEvery === 0 || $index === count($dashboard['series'])-1) ? $point['label'] : '' }}</span>@endforeach</div>
@@ -282,7 +286,7 @@
                                 <td class="b2b-ref-order-number">#{{ $order['number'] }}</td>
                                 <td>{{ $order['customer'] }}</td>
                                 <td>{{ $order['warehouse'] ?: ($isAr?'غير محدد':'Not set') }}</td>
-                                <td class="foodex-number">{{ $order['currency'] }} {{ number_format($order['amount'],0) }}</td>
+                                <td class="foodex-number" dir="ltr">{{ strtoupper(trim((string) $order['currency'])) }} {{ \App\Support\DisplayNumber::money($order['amount'], $order['currency']) }}</td>
                                 <td><span class="b2b-ref-status {{ $order['status'] }}">{{ $statusLabels[$order['status']] ?? $order['status'] }}</span></td>
                             </tr>
                         @endforeach
