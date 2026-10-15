@@ -3,10 +3,10 @@
 Issue: #1544  
 Parent: #1488
 
-This lane records the first numeric regression anchor for the FOODEX application source verified as
+This lane records the current numeric regression anchor for the FOODEX application source verified as
 current `main` immediately before the baseline capture:
 
-`d171df2961687455f08c14b9419df83027edcbf0`
+`23ef53fc81b4fb2d3dfa1e77824afad9f4113d0c`
 
 The smoke baseline intentionally exercises real product routes, not synthetic benchmark-only routes:
 
