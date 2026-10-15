@@ -89,8 +89,7 @@ final class SmartOrderingMenuAdminController extends Controller
             ->values();
 
         $itemPrices = [];
-        foreach ($menus->flatMap(fn (SmartOrderingMenu $menu) => $menu->categories)
-            ->flatMap(fn (SmartOrderingMenuCategory $category) => $category->items) as $item) {
+        foreach (SmartOrderingMenuItem::query()->whereIn('id', $itemIds)->get() as $item) {
             $itemPrices[(int) $item->id] = $prices->displayPrice($site, $item)['amount'];
         }
 
