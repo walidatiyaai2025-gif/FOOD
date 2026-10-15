@@ -173,9 +173,9 @@ class DashboardDateRangeTest extends TestCase
         $orders = $this->actingAs($user)
             ->get(route('admin.b2b.module', array_merge(['module' => 'orders'], $period)));
 
-        $orders->assertOk()->assertViewHas('moduleData', function (array $moduleData) use ($period): bool {
-            return data_get($moduleData, 'filters.from') === $period['from']
-                && data_get($moduleData, 'filters.to') === $period['to'];
-        });
+        $orders->assertOk()
+            ->assertViewIs('admin.order-operations')
+            ->assertSee('name="from" value="'.$period['from'].'"', false)
+            ->assertSee('name="to" value="'.$period['to'].'"', false);
     }
 }
