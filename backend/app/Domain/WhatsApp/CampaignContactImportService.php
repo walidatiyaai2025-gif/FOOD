@@ -135,10 +135,10 @@ final class CampaignContactImportService
         );
 
         DB::table('whats_app_campaign_contact_imports')->where('id', $batchId)->update([
-            'channel' => DB::table('stores')
+            'channel' => strtolower((string) DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->where('stores.id', $storeId)
-                ->value(DB::raw('LOWER(store_types.code)')),
+                ->value('store_types.code')),
             'status' => 'committed',
             'created_count' => $result['created'],
             'matched_count' => $result['matched'],
@@ -187,7 +187,7 @@ final class CampaignContactImportService
                 if (count($rows) >= self::MAX_ROWS) {
                     throw ValidationException::withMessages(['file' => ['Campaign imports are limited to '.self::MAX_ROWS.' rows.']]);
                 }
-                if (! is_array($values) || $this->blankRow($values)) {
+                if ($this->blankRow($values)) {
                     continue;
                 }
                 $row = [];
@@ -301,7 +301,7 @@ final class CampaignContactImportService
             throw ValidationException::withMessages(['file' => ['Required XLSX worksheet data is missing.']]);
         }
 
-        $size = (int) ($stat['size'] ?? 0);
+        $size = (int) $stat['size'];
         if ($size < 0 || $size > self::MAX_XLSX_XML_BYTES) {
             throw ValidationException::withMessages([
                 'file' => ['XLSX worksheet data exceeds the safe uncompressed size limit.'],
