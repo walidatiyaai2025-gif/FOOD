@@ -109,10 +109,10 @@
                     </select>
                 </label>
                 <label class="grow">{{ __('enterprise_security.fields.workflow_key') }}
-                    <input type="text" name="workflow_key" maxlength="120" required placeholder="purchase_order" title="{{ __('enterprise_security.fields.workflow_key_hint') }}">
+                    <input type="text" name="workflow_key" maxlength="120" required placeholder="{{ __('enterprise_security.fields.workflow_key_placeholder') }}" title="{{ __('enterprise_security.fields.workflow_key_hint') }}">
                 </label>
-                <label>{{ __('enterprise_security.fields.currency') }}<input type="text" name="currency" maxlength="3" size="4" required placeholder="KWD"></label>
-                <label>{{ __('enterprise_security.fields.amount') }}<input type="text" name="amount" inputmode="decimal" required placeholder="1000.000"></label>
+                <label>{{ __('enterprise_security.fields.currency') }}<input type="text" name="currency" maxlength="3" size="4" required placeholder="{{ __('enterprise_security.fields.currency_placeholder') }}"></label>
+                <label>{{ __('enterprise_security.fields.amount') }}<input type="text" name="amount" inputmode="decimal" required placeholder="{{ __('enterprise_security.fields.amount_placeholder') }}"></label>
                 <label class="grow">{{ __('enterprise_security.fields.scope') }}
                     <select name="scope_reference" required style="width:100%">
                         @foreach($scopeOptions as $option)
