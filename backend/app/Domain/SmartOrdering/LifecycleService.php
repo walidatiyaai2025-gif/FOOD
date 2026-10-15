@@ -161,18 +161,27 @@ final class LifecycleService
                 );
 
                 if ($target === 'COMPLETED') {
-                    DB::table('order_items')
-                        ->where('order_id', $order->getKey())
-                        ->whereNotNull('product_id')
+                    DB::table('order_items as oi')
+                        ->leftJoin('products as p', 'p.id', '=', 'oi.product_id')
+                        ->where('oi.order_id', $order->getKey())
+                        ->whereNotNull('oi.product_id')
                         ->distinct()
-                        ->pluck('product_id')
-                        ->each(function ($productId) use ($order, $updated): void {
+                        ->get(['oi.product_id', 'p.category_id'])
+                        ->each(function (object $line) use ($order, $updated): void {
                             $this->analytics->rollupProductOnly(
                                 (int) $order->store_id,
                                 (int) $updated->branch_id,
-                                (int) $productId,
+                                (int) $line->product_id,
                                 'order_completed',
                             );
+                            if ($line->category_id !== null) {
+                                $this->analytics->rollupCategoryOnly(
+                                    (int) $order->store_id,
+                                    (int) $updated->branch_id,
+                                    (int) $line->category_id,
+                                    'order_completed',
+                                );
+                            }
                         });
                 }
             } catch (Throwable) {
