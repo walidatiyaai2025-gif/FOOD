@@ -189,7 +189,7 @@ final class RestaurantAnalyticsService
             ->whereIn('store_id', $storeIds)
             ->whereBetween('event_date', [$from->toDateString(), $to->toDateString()])
             ->whereIn('event_name', ['storefront_viewed', 'order_created', 'order_completed']);
-        $this->applyRollupDimensions($query, $filters, ['source', 'campaign']);
+        $this->applyRollupDimensions($query, $filters);
 
         return $query->groupBy('source_key', 'campaign_key')
             ->selectRaw('source_key, campaign_key')
