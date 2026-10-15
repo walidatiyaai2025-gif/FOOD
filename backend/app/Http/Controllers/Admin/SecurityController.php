@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\DemoDataManager;
+use App\Services\EnterpriseSecurityAdministration;
 use App\Services\RbacManager;
 use Database\Seeders\ProductDemoSeeder;
 use Illuminate\Contracts\View\View;
@@ -23,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 
 final class SecurityController extends Controller
 {
-    public function index(Request $request, DemoDataManager $demoData): View
+    public function index(Request $request, DemoDataManager $demoData, EnterpriseSecurityAdministration $enterpriseSecurityAdmin): View
     {
         Gate::authorize('security.view');
         $this->useActorLocale($request);
@@ -175,6 +177,18 @@ final class SecurityController extends Controller
             ->map(static fn ($id): int => (int) $id)
             ->all();
 
+        $enterpriseSecurity = $enterpriseSecurityAdmin->dashboard($actor);
+        $pendingSecuritySummaries = $enterpriseSecurity['pending_changes']->mapWithKeys(
+            fn (EnterpriseWorkflowRequest $workflow): array => [
+                (int) $workflow->getKey() => $enterpriseSecurityAdmin->summarizeRequest($workflow),
+            ],
+        );
+        $enterprisePolicyCandidates = User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(100)
+            ->get(['id', 'name', 'email']);
+
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
@@ -199,6 +213,11 @@ final class SecurityController extends Controller
             'search' => $search,
             'statusFilter' => $status,
             'demoSummary' => $demoData->summary(),
+            'enterpriseSecurityAvailable' => $enterpriseSecurityAdmin->available(),
+            'enterpriseSecurity' => $enterpriseSecurity,
+            'pendingSecuritySummaries' => $pendingSecuritySummaries,
+            'enterprisePolicyCandidates' => $enterprisePolicyCandidates,
+            'delegationPermissionOptions' => $permissions,
         ]);
     }
 
@@ -364,6 +383,131 @@ final class SecurityController extends Controller
         $rbac->deleteRole($this->actor($request), $role, $request);
 
         return back()->with('status', __('admin.security.role_deleted'));
+    }
+
+    public function requestEnterpriseChange(
+        Request $request,
+        EnterpriseSecurityAdministration $enterpriseSecurityAdmin,
+    ): RedirectResponse {
+        Gate::authorize('roles.manage');
+
+        $base = $request->validate([
+            'operation' => ['required', Rule::in([
+                EnterpriseSecurityAdministration::DATA_SCOPE_UPSERT,
+                EnterpriseSecurityAdministration::DATA_SCOPE_REMOVE,
+                EnterpriseSecurityAdministration::APPROVAL_LIMIT_UPSERT,
+                EnterpriseSecurityAdministration::APPROVAL_LIMIT_REMOVE,
+                EnterpriseSecurityAdministration::DELEGATION_CREATE,
+                EnterpriseSecurityAdministration::DELEGATION_REVOKE,
+            ])],
+            'request_token' => ['required', 'uuid'],
+        ]);
+
+        $operation = (string) $base['operation'];
+        $payload = [];
+
+        if ($operation === EnterpriseSecurityAdministration::DATA_SCOPE_UPSERT) {
+            $validated = $request->validate([
+                'target_user_id' => ['required', 'integer', 'exists:users,id'],
+                'scope_reference' => ['required', 'string', 'max:190'],
+                'starts_at' => ['nullable', 'date'],
+                'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            ]);
+            $scope = $enterpriseSecurityAdmin->resolveScopeReference(
+                (string) $validated['scope_reference'],
+                $this->actor($request),
+                false,
+            );
+            $payload = [
+                'target_user_id' => (int) $validated['target_user_id'],
+                ...$scope,
+                'starts_at' => $validated['starts_at'] ?? null,
+                'ends_at' => $validated['ends_at'] ?? null,
+            ];
+        } elseif ($operation === EnterpriseSecurityAdministration::APPROVAL_LIMIT_UPSERT) {
+            $validated = $request->validate([
+                'target_user_id' => ['required', 'integer', 'exists:users,id'],
+                'workflow_key' => ['required', 'string', 'max:120', 'regex:/^[A-Za-z0-9._*:-]+$/'],
+                'currency' => ['required', 'string', 'size:3', 'alpha'],
+                'amount' => ['required', 'regex:/^\\d{1,14}(?:\\.\\d{1,4})?$/'],
+                'scope_reference' => ['required', 'string', 'max:190'],
+                'starts_at' => ['nullable', 'date'],
+                'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            ]);
+            $scope = $enterpriseSecurityAdmin->resolveScopeReference(
+                (string) $validated['scope_reference'],
+                $this->actor($request),
+            );
+            $payload = [
+                'target_user_id' => (int) $validated['target_user_id'],
+                'workflow_key' => (string) $validated['workflow_key'],
+                'currency' => strtoupper((string) $validated['currency']),
+                'amount' => (string) $validated['amount'],
+                ...$scope,
+                'starts_at' => $validated['starts_at'] ?? null,
+                'ends_at' => $validated['ends_at'] ?? null,
+            ];
+        } elseif ($operation === EnterpriseSecurityAdministration::DELEGATION_CREATE) {
+            $validated = $request->validate([
+                'delegate_id' => ['required', 'integer', 'exists:users,id'],
+                'permission_code' => ['required', 'string', 'max:160', 'exists:permissions,code'],
+                'scope_reference' => ['required', 'string', 'max:190'],
+                'starts_at' => ['required', 'date'],
+                'ends_at' => ['required', 'date', 'after:starts_at'],
+            ]);
+            $scope = $enterpriseSecurityAdmin->resolveScopeReference(
+                (string) $validated['scope_reference'],
+                $this->actor($request),
+            );
+            $payload = [
+                'delegate_id' => (int) $validated['delegate_id'],
+                'permission_code' => (string) $validated['permission_code'],
+                ...$scope,
+                'starts_at' => (string) $validated['starts_at'],
+                'ends_at' => (string) $validated['ends_at'],
+            ];
+        } else {
+            $validated = $request->validate([
+                'policy_id' => ['required', 'integer', 'min:1'],
+            ]);
+            $payload = ['policy_id' => (int) $validated['policy_id']];
+        }
+
+        $enterpriseSecurityAdmin->requestChange(
+            $this->actor($request),
+            $operation,
+            $payload,
+            (string) $base['request_token'],
+        );
+
+        return back()->with('status', __('enterprise_security.change_requested'));
+    }
+
+    public function decideEnterpriseChange(
+        Request $request,
+        EnterpriseWorkflowRequest $workflow,
+        EnterpriseSecurityAdministration $enterpriseSecurityAdmin,
+    ): RedirectResponse {
+        Gate::authorize('roles.manage');
+
+        $validated = $request->validate([
+            'decision' => ['required', Rule::in(['APPROVED', 'REJECTED'])],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $enterpriseSecurityAdmin->decideChange(
+            $workflow,
+            $this->actor($request),
+            (string) $validated['decision'],
+            $validated['comment'] ?? null,
+        );
+
+        return back()->with(
+            'status',
+            $validated['decision'] === 'APPROVED'
+                ? __('enterprise_security.change_approved')
+                : __('enterprise_security.change_rejected'),
+        );
     }
 
     /** @return array<string, mixed> */
