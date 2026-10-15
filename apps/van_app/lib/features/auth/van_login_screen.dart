@@ -578,6 +578,7 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
                             if (_error != null) ...[
                               const SizedBox(height: 12),
                               Semantics(
+                                key: const Key('van-login-error-live'),
                                 container: true,
                                 liveRegion: true,
                                 child: Text(
