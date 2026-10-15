@@ -73,7 +73,7 @@
                 <div class="cbp-phone" aria-label="{{ __('chatbot.preview_screens.'.$screen) }}">
                     <div class="cbp-phone-inner">
                         <div class="cbp-phone-head">
-                            <div class="cbp-brand"><div class="cbp-brand-mark">F</div><div><strong>FOODEX</strong><div class="cbp-muted">{{ __('chatbot.preview.live_data') }}</div></div></div>
+                            <div class="cbp-brand"><div class="cbp-brand-mark">F</div><div><strong>FOODEX</strong><div class="cbp-muted">{{ __('chatbot.preview.live_data') }}</div></div></div> {{-- localization-gate: allow — FOODEX brand monogram is intentionally not translated --}}
                             <span class="cbp-pill">{{ $settings['mode'] === 'hybrid' ? __('chatbot.admin.mode_hybrid') : __('chatbot.admin.mode_'.$settings['mode']) }}</span>
                         </div>
                         <div class="cbp-content">
@@ -116,7 +116,7 @@
                             @elseif($screen === 'products')
                                 <input class="foodex-control cbp-search" type="search" placeholder="{{ __('chatbot.preview.search_placeholder') }}" aria-label="{{ __('chatbot.preview.search_placeholder') }}">
                                 @forelse($products as $product)
-                                    <article class="cbp-card"><div class="cbp-row"><div><strong>{{ $product->name }}</strong><div class="cbp-muted">{{ $product->sku }}</div></div><span class="cbp-pill">{{ __('chatbot.customer.product_search') }}</span></div>@if($product->description)<p class="cbp-muted">{{ \Illuminate\Support\Str::limit($product->description,120) }}</p>@endif</article>
+                                    <article class="cbp-card"><div class="cbp-row"><div><strong>{{ $product->name }}</strong><div class="cbp-muted">{{ $product->sku }}</div></div><span class="cbp-pill">{{ __('chatbot.customer.product_search') }}</span></div>@if($product->description)<p class="cbp-muted">{{ \Illuminate\Support\Str::limit($product->description,120) }}</p>@endif</article> {{-- localization-gate: allow — description is source data; the Blade condition is not user-facing text --}}
                                 @empty<div class="foodex-empty-state">{{ __('chatbot.preview.no_products') }}</div>@endforelse
                             @elseif($screen === 'cart')
                                 <h2>{{ __('chatbot.preview.cart_title') }}</h2>
