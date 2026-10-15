@@ -124,7 +124,9 @@ final class SmartOrderingAnalyticsController extends Controller
 
         if (! empty($filters['store_id'])) {
             $selected = (int) $filters['store_id'];
-            abort_unless(in_array($selected, $allowed, true), 404);
+            if (! in_array($selected, $allowed, true)) {
+                abort(404);
+            }
             $allowed = [$selected];
         }
 
