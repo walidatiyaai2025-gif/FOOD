@@ -273,7 +273,10 @@ final class EnterpriseSecurityAdministration
         return $this->workflow->request(
             definition: $definition,
             entityType: 'enterprise.security.policy',
-            entityId: hash('sha256', $requestToken),
+            entityId: hash(
+                'sha256',
+                $requestToken.'|'.json_encode($payload, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+            ),
             requester: $actor,
             scopeType: $scopeType,
             scopeId: $scopeId,
