@@ -43,6 +43,7 @@ const b2c = [
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
   ['19_التبديل_بين_بيانات_الإنتاج_والقديمة', '/admin/settings/production-dataset'],
   ['20_الطلب_الذكي', '/admin/smart-ordering'],
+  ['21_منشئ_قائمة_الطلب_الذكي', '/admin/smart-ordering/menu'],
 ];
 
 async function ensureDir(dir) {
