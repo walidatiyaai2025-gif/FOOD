@@ -1832,6 +1832,101 @@ paths:
           $ref: "#/components/responses/NotFound"
 
 
+  /admin/restaurant-saas/locations/{store}:
+    get:
+      tags: [Restaurant SaaS]
+      summary: Get the canonical Restaurant SaaS organization, brand and location mapping
+      operationId: getRestaurantSaaSLocationControlPlane
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: store
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: support_access
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Canonical control-plane context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantSaaSControlPlane"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Restaurant SaaS]
+      summary: Update Restaurant SaaS location lifecycle and market identity
+      operationId: updateRestaurantSaaSLocationProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: store
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: support_access
+          schema: { type: boolean, default: false }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestaurantSaaSLocationProfileWrite"
+      responses:
+        "200":
+          description: Updated canonical control-plane context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantSaaSControlPlane"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Restaurant location has not been provisioned
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/restaurant-saas/locations/{store}/provision:
+    post:
+      tags: [Restaurant SaaS]
+      summary: Idempotently map an existing retail store into the Restaurant SaaS control plane
+      operationId: provisionRestaurantSaaSLocation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: store
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: support_access
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Provisioned canonical control-plane context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantSaaSControlPlane"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /admin/security/permissions:
     get:
       tags: [Security]
