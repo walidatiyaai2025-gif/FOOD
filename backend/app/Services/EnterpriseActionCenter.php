@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\EnterpriseWorkflowRequest;
 use App\Models\EnterpriseWorkflowStep;
-use App\Models\Role;
 use App\Models\User;
 use App\Models\UserStoreRole;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,9 +18,7 @@ final class EnterpriseActionCenter
 
     public const MAX_CANDIDATES = 200;
 
-    /**
-     * @return array{actions:LengthAwarePaginator<int, array<string, mixed>>,truncated:bool}
-     */
+    /** @return array{actions:LengthAwarePaginator,truncated:bool} */
     public function page(
         User $actor,
         string $search,
@@ -69,7 +66,9 @@ final class EnterpriseActionCenter
                 continue;
             }
 
-            $context = is_array($workflow->context) ? $workflow->context : [];
+            /** @var mixed $rawContext */
+            $rawContext = $workflow->getAttribute('context');
+            $context = is_array($rawContext) ? $rawContext : [];
             $dueAt = $this->dueAt($context['due_at'] ?? null);
             $overdue = $dueAt !== null && $dueAt->isPast();
 
@@ -163,8 +162,8 @@ final class EnterpriseActionCenter
         }
 
         $storeIds = collect($steps)
-            ->map(fn (EnterpriseWorkflowStep $step): ?int => $step->workflowRequest?->scope_type === 'store'
-                && $step->workflowRequest?->scope_id !== null
+            ->map(fn (EnterpriseWorkflowStep $step): ?int => $step->workflowRequest->scope_type === 'store'
+                && $step->workflowRequest->scope_id !== null
                     ? (int) $step->workflowRequest->scope_id
                     : null)
             ->filter()
@@ -194,7 +193,7 @@ final class EnterpriseActionCenter
             }
 
             $role = $assignment->role;
-            if (! $role instanceof Role || ! $role->is_active || $role->scope !== 'store') {
+            if (! $role->is_active || $role->scope !== 'store') {
                 continue;
             }
 
