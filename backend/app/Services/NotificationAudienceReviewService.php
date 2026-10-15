@@ -24,7 +24,7 @@ final class NotificationAudienceReviewService
 
         User::query()
             ->where('is_active', true)
-            ->select(['id', 'name', 'email'])
+            ->select(['id', 'name', 'email', 'is_active'])
             ->orderBy('id')
             ->chunkById(self::CHUNK_SIZE, function ($users) use ($target, &$count, &$sample): void {
                 foreach ($users as $user) {
