@@ -45,17 +45,12 @@ final class CheckoutService
 
         $branch = $this->carts->branchForCart($cart);
         $mode = strtolower(trim((string) ($payload['fulfillment_mode'] ?? '')));
-        $scheduled = $this->branches->scheduledFor(
-            $branch,
-            $mode,
-            isset($payload['scheduled_for']) ? (string) $payload['scheduled_for'] : null,
-        );
 
         $idempotencyHash = hash('sha256', $branch->getKey().'|'.$idempotencyKey);
         $requestHash = hash('sha256', json_encode([
             'cart' => (string) $cart->public_id,
             'mode' => $mode,
-            'scheduled_for' => $scheduled->toAtomString(),
+            'scheduled_for' => isset($payload['scheduled_for']) ? trim((string) $payload['scheduled_for']) : null,
             'contact' => [
                 'name' => trim((string) ($payload['name'] ?? '')),
                 'phone' => trim((string) ($payload['phone'] ?? '')),
@@ -85,6 +80,12 @@ final class CheckoutService
                 'replayed' => true,
             ];
         }
+
+        $scheduled = $this->branches->scheduledFor(
+            $branch,
+            $mode,
+            isset($payload['scheduled_for']) ? (string) $payload['scheduled_for'] : null,
+        );
 
         abort_unless((string) $cart->status === 'active', 409, 'Cart is no longer active.');
 
