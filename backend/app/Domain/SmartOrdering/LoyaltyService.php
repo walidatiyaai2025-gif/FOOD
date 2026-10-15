@@ -422,7 +422,7 @@ final class LoyaltyService
                     return 0;
                 }
 
-                if (DB::table('smart_ordering_loyalty_ledger')->where('idempotency_key', $key)->exists()) {
+                if (DB::table('smart_ordering_loyalty_ledger')->where('idempotency_key', $key)->value('id') !== null) {
                     return 0;
                 }
 
