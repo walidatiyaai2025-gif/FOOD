@@ -1,0 +1,46 @@
+name: Smart Ordering GA Certification
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/smart-ordering-program
+    paths:
+      - 'backend/**'
+      - 'scripts/smart-ordering-ga-acceptance.sh'
+      - 'docs/releases/smart-ordering-ga-1456.md'
+      - '.github/workflows/smart-ordering-ga-certification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    name: Smart Ordering GA certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run Smart Ordering GA acceptance
+        run: bash scripts/smart-ordering-ga-acceptance.sh
