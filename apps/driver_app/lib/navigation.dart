@@ -391,7 +391,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                   gradient: const LinearGradient(
                     begin: AlignmentDirectional.topStart,
                     end: AlignmentDirectional.bottomEnd,
-                    colors: [FoodexBrand.greenDark, FoodexBrand.green],
+                    colors: [FoodexBrand.greenDark, FoodexBrand.actionGreen],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: const [
