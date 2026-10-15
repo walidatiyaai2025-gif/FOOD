@@ -864,6 +864,53 @@ final class OrderOperationsController extends Controller
         return ['items' => $items, 'page' => 1, 'has_more' => $hasMore];
     }
 
+    /** @param list<int> $productIds
+     * @return array<int,array<string,mixed>>
+     */
+    private function newOrderSelectedProducts(string $channel, int $storeId, array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        return DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', $channel)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->whereIn('products.id', $productIds)
+            ->when($channel === 'b2c', fn ($scope) => $scope->whereNotNull('store_products.price'))
+            ->get([
+                'products.id',
+                'products.sku',
+                'products.barcode',
+                'products.name',
+                'products.is_active as product_active',
+                'catalogs.is_active as catalog_active',
+                'store_products.is_active as store_product_active',
+                'store_products.price',
+            ])
+            ->mapWithKeys(static function (object $row): array {
+                $sku = trim((string) $row->sku);
+                $barcode = trim((string) ($row->barcode ?? ''));
+                $meta = array_values(array_filter([$sku, $barcode], static fn (string $value): bool => $value !== ''));
+                $id = (int) $row->id;
+
+                return [$id => [
+                    'id' => $id,
+                    'label' => (string) $row->name,
+                    'meta' => implode(' · ', $meta),
+                    'price' => $row->price === null ? null : (float) $row->price,
+                    'active' => (bool) $row->product_active && (bool) $row->catalog_active && (bool) $row->store_product_active,
+                ]];
+            })
+            ->all();
+    }
+
     /** @return array<string,mixed> */
     private function newOrderEditData(Order $order): array
     {
@@ -883,20 +930,15 @@ final class OrderOperationsController extends Controller
                 $customerId,
                 (int) $order->address_id,
             )['items'])->firstWhere('id', (int) $order->address_id);
-        $data['selected_products'] = DB::table('order_items')
+        $productIds = DB::table('order_items')
             ->where('order_id', $order->getKey())
             ->pluck('product_id')
             ->filter()
+            ->map(static fn ($productId): int => (int) $productId)
             ->unique()
-            ->mapWithKeys(function ($productId) use ($channel, $storeId): array {
-                $id = (int) $productId;
-                $item = collect($this->newOrderProductLookup($channel, $storeId, '', 1, $id)['items'])
-                    ->firstWhere('id', $id);
-
-                return [$id => $item];
-            })
-            ->filter()
+            ->values()
             ->all();
+        $data['selected_products'] = $this->newOrderSelectedProducts($channel, $storeId, $productIds);
 
         return $data;
     }
