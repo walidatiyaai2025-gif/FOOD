@@ -17,7 +17,7 @@ class RefreshTimeSensitiveVisualEvidenceSeeder extends Seeder
             ->value('drivers.id');
 
         if ($driverId > 0) {
-            $staleAt = $now->copy()->subSeconds(55);
+            // Keep the driver inside the 45-180 second stale window for both AR and EN passes.\n            $staleAt = $now->copy()->subSeconds(45);
             DB::table('driver_current_locations')
                 ->where('driver_id', $driverId)
                 ->update([
