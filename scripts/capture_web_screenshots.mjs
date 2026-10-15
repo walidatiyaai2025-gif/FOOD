@@ -295,7 +295,7 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
     throw new Error(`Order wizard discard focus trap did not wrap (${locale})`);
   }
 
-  await snap(page, `02_Web/Responsive/B2C_Admin/order-wizard-dirty__mobile-390__${locale}.png`);
+  await snap(page, `02_Web/B2C_Admin/23_order_wizard_dirty__mobile-390__${locale}.png`);
 
   await discardPanel.locator('[data-new-order-continue]').click();
   if ((await modal.locator('input[name="coupon_code"]').inputValue()) !== 'MOBILE-DRAFT') {
