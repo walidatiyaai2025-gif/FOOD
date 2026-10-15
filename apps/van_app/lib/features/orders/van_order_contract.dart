@@ -415,6 +415,9 @@ class VanOrderDraftController extends ChangeNotifier {
   String? paymentMethod;
   String? customerNote;
   final Map<int, VanOrderLine> _lines = {};
+  bool _addressSelectionInitialized = false;
+  bool _warehouseSelectionInitialized = false;
+  bool _paymentSelectionInitialized = false;
 
   List<VanOrderLine> get lines => _lines.values.toList(growable: false);
 
@@ -428,6 +431,9 @@ class VanOrderDraftController extends ChangeNotifier {
     warehouseId = null;
     paymentMethod = null;
     customerNote = null;
+    _addressSelectionInitialized = false;
+    _warehouseSelectionInitialized = false;
+    _paymentSelectionInitialized = false;
     notifyListeners();
   }
 
@@ -458,19 +464,39 @@ class VanOrderDraftController extends ChangeNotifier {
 
   void applyOptions(VanOrderOptions value) {
     options = value;
-    if (addressId == null) {
+
+    if (!_addressSelectionInitialized) {
       for (final item in value.addresses) {
         if (item.isDefault) {
           addressId = item.id;
           break;
         }
       }
+      addressId ??= value.addresses.isEmpty ? null : value.addresses.first.id;
+      _addressSelectionInitialized = true;
+    } else if (addressId != null &&
+        !value.addresses.any((item) => item.id == addressId)) {
+      addressId = null;
     }
-    addressId ??= value.addresses.isEmpty ? null : value.addresses.first.id;
-    warehouseId ??= value.warehouses.isEmpty ? null : value.warehouses.first.id;
-    paymentMethod ??= value.paymentMethods.contains(value.defaultPaymentMethod)
-        ? value.defaultPaymentMethod
-        : (value.paymentMethods.isEmpty ? null : value.paymentMethods.first);
+
+    if (!_warehouseSelectionInitialized) {
+      warehouseId = value.warehouses.isEmpty ? null : value.warehouses.first.id;
+      _warehouseSelectionInitialized = true;
+    } else if (warehouseId != null &&
+        !value.warehouses.any((item) => item.id == warehouseId)) {
+      warehouseId = null;
+    }
+
+    if (!_paymentSelectionInitialized) {
+      paymentMethod = value.paymentMethods.contains(value.defaultPaymentMethod)
+          ? value.defaultPaymentMethod
+          : (value.paymentMethods.isEmpty ? null : value.paymentMethods.first);
+      _paymentSelectionInitialized = true;
+    } else if (paymentMethod != null &&
+        !value.paymentMethods.contains(paymentMethod)) {
+      paymentMethod = null;
+    }
+
     notifyListeners();
   }
 
@@ -480,10 +506,42 @@ class VanOrderDraftController extends ChangeNotifier {
     String? payment,
     String? note,
   }) {
-    addressId = address;
-    warehouseId = warehouse;
-    paymentMethod = payment ?? paymentMethod;
-    customerNote = note ?? customerNote;
+    if (address != null) {
+      addressId = address;
+      _addressSelectionInitialized = true;
+    }
+    if (warehouse != null) {
+      warehouseId = warehouse;
+      _warehouseSelectionInitialized = true;
+    }
+    if (payment != null) {
+      paymentMethod = payment;
+      _paymentSelectionInitialized = true;
+    }
+    if (note != null) {
+      customerNote = note;
+    }
+    quote = null;
+    notifyListeners();
+  }
+
+  void clearAddressSelection() {
+    addressId = null;
+    _addressSelectionInitialized = true;
+    quote = null;
+    notifyListeners();
+  }
+
+  void clearWarehouseSelection() {
+    warehouseId = null;
+    _warehouseSelectionInitialized = true;
+    quote = null;
+    notifyListeners();
+  }
+
+  void clearPaymentSelection() {
+    paymentMethod = null;
+    _paymentSelectionInitialized = true;
     quote = null;
     notifyListeners();
   }
@@ -502,6 +560,9 @@ class VanOrderDraftController extends ChangeNotifier {
     warehouseId = null;
     paymentMethod = null;
     customerNote = null;
+    _addressSelectionInitialized = false;
+    _warehouseSelectionInitialized = false;
+    _paymentSelectionInitialized = false;
     notifyListeners();
   }
 }
