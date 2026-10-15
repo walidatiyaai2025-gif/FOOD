@@ -8,9 +8,9 @@
 body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .action-center{padding:clamp(18px,2.5vw,36px)}
 .action-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-block:18px 24px}.action-head h1{margin:4px 0 8px;font-size:clamp(1.55rem,2.5vw,2.2rem)}.action-head p{margin:0;color:var(--foodex-muted);max-width:760px}
-.action-card{background:var(--foodex-surface,#fff);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:18px;box-shadow:var(--foodex-shadow-sm)}
-.action-filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,.35fr) auto auto;gap:10px;align-items:end}.action-filters label{display:grid;gap:5px;font-weight:700}.action-filters input,.action-filters select,.decision-form input{min-height:42px;border:1px solid var(--foodex-border);border-radius:9px;padding-inline:10px;font:inherit;background:var(--foodex-surface,#fff);color:var(--foodex-ink)}.action-reset{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding-inline:13px;border:1px solid var(--foodex-border);border-radius:9px;color:var(--foodex-green-dark);text-decoration:none;font-weight:800}
-.action-state{padding:11px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-surface,#fff);margin-bottom:12px}.action-state ul{margin-block:0}
+.action-card{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:18px;box-shadow:var(--foodex-shadow-sm)}
+.action-filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,.35fr) auto auto;gap:10px;align-items:end}.action-filters label{display:grid;gap:5px;font-weight:700}.action-filters input,.action-filters select,.decision-form input{min-height:42px;border:1px solid var(--foodex-border);border-radius:9px;padding-inline:10px;font:inherit;background:var(--foodex-surface);color:var(--foodex-ink)}.action-reset{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding-inline:13px;border:1px solid var(--foodex-border);border-radius:9px;color:var(--foodex-green-dark);text-decoration:none;font-weight:800}
+.action-state{padding:11px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-surface);margin-bottom:12px}.action-state ul{margin-block:0}
 .action-table-wrap{margin-top:16px;overflow:auto}.action-table{width:100%;border-collapse:collapse;min-width:760px}.action-table th,.action-table td{text-align:start;padding:12px;border-bottom:1px solid var(--foodex-border);vertical-align:top}.action-table th{font-size:.82rem;color:var(--foodex-muted)}.action-table small{color:var(--foodex-muted)}
 .action-badge{display:inline-flex;align-items:center;min-height:30px;padding-inline:10px;border:1px solid var(--foodex-border);border-radius:999px;font-weight:800}.action-link{color:var(--foodex-green-dark);font-weight:800}.action-menu>summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;justify-content:center;min-width:42px;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;color:var(--foodex-green-dark);font-weight:900}.action-menu>summary::-webkit-details-marker{display:none}.action-menu[open] .decision-stack{margin-top:10px}
 .decision-stack{display:grid;gap:10px;min-width:min(320px,70vw)}.decision-form{display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:8px;align-items:end}.decision-form label{display:grid;gap:5px;font-size:.85rem;font-weight:700}.decision-form button{min-height:42px}.action-empty{padding:28px;text-align:center;color:var(--foodex-muted)}.action-pagination{margin-top:16px}
@@ -23,11 +23,11 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <header class="action-head foodex-page-header">
 <div><div class="foodex-subtitle">FOODEX · {{ __('enterprise_action_center.eyebrow') }}</div><h1>{{ __('enterprise_action_center.title') }}</h1><p>{{ __('enterprise_action_center.description') }}</p></div>
 </header>
-@if(session('status'))<div class="action-state" role="status">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="action-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-@if($truncated)<div class="action-state" role="status">{{ __('enterprise_action_center.bounded_notice') }}</div>@endif
+@if(session('status'))<div class="action-state foodex-state" role="status">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="action-state foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@if($truncated)<div class="action-state foodex-state" role="status">{{ __('enterprise_action_center.bounded_notice') }}</div>@endif
 
-<section class="action-card">
+<section class="action-card foodex-card">
 <form method="get" class="action-filters">
 <label>{{ __('enterprise_action_center.search') }}<input type="search" name="q" maxlength="100" value="{{ $search }}" placeholder="{{ __('enterprise_action_center.search_placeholder') }}"></label>
 <label>{{ __('enterprise_action_center.state') }}<select name="state"><option value="all" @selected($state==='all')>{{ __('enterprise_action_center.all') }}</option><option value="pending" @selected($state==='pending')>{{ __('enterprise_action_center.pending') }}</option><option value="overdue" @selected($state==='overdue')>{{ __('enterprise_action_center.overdue') }}</option></select></label>
@@ -36,11 +36,11 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </form>
 </section>
 
-<section class="action-card action-table-wrap">
+<section class="action-card foodex-card action-table-wrap foodex-table-wrap">
 @if($actions->count()===0)
-<div class="action-empty">{{ __('enterprise_action_center.empty') }}</div>
+<div class="action-empty foodex-empty-state">{{ __('enterprise_action_center.empty') }}</div>
 @else
-<table class="action-table">
+<table class="action-table foodex-table">
 <thead><tr><th>{{ __('enterprise_action_center.request') }}</th><th>{{ __('enterprise_action_center.requested_by') }}</th><th>{{ __('enterprise_action_center.created') }}</th><th>{{ __('enterprise_action_center.due') }}</th><th>{{ __('enterprise_action_center.status') }}</th><th>{{ __('enterprise_action_center.actions') }}</th></tr></thead>
 <tbody>
 @foreach($actions as $action)
