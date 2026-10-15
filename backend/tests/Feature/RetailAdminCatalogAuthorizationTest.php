@@ -119,10 +119,10 @@ class RetailAdminCatalogAuthorizationTest extends TestCase
 
         $view = file_get_contents(resource_path('views/admin/catalog-management.blade.php'));
         $this->assertIsString($view);
-        $this->assertStringContainsString("option.dataset.catalogId === catalogId", $view);
-        $this->assertStringContainsString("scope === 'b2b' && channel === 'b2b'", $view);
-        $this->assertStringContainsString("scope === 'store' && channel === 'b2c' && option.dataset.storeId === storeId", $view);
-        $this->assertStringContainsString("select.disabled = !storeId;", $view);
+        $this->assertStringContainsString('option.dataset.catalogId === catalogId', $view);
+        $this->assertStringContainsString('scope === \'b2b\' && channel === \'b2b\'', $view);
+        $this->assertStringContainsString('scope === \'store\' && channel === \'b2c\' && option.dataset.storeId === storeId', $view);
+        $this->assertStringContainsString('select.disabled = !storeId;', $view);
 
         $this->actingAs($admin)->post(route('admin.catalog.products.store'), [
             'store_id' => $storeA,
