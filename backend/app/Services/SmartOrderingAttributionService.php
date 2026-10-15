@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\SmartOrderingQrCode;
 use App\Models\SmartOrderingQrToken;
 use App\Models\SmartOrderingQrVisit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -61,6 +62,27 @@ final class SmartOrderingAttributionService
         return 'v1.'.$payload.'.'.$signature;
     }
 
+    public function contextFromRequest(Request $request): ?string
+    {
+        $context = trim((string) (
+            $request->header('X-Smart-Ordering-Context')
+            ?? $request->query('so_ctx')
+            ?? $request->cookie('foodex_so_attribution')
+            ?? ''
+        ));
+
+        if ($context === '') {
+            return null;
+        }
+
+        if (strlen($context) > 512
+            || preg_match('/^v1\.[A-Za-z0-9_-]+\.[a-f0-9]{64}$/', $context) !== 1) {
+            $this->invalidContext();
+        }
+
+        return $context;
+    }
+
     public function markStorefrontViewed(string $context, int $expectedStoreId): SmartOrderingQrVisit
     {
         return $this->transition(
@@ -108,35 +130,112 @@ final class SmartOrderingAttributionService
         );
     }
 
+    public function markCheckoutStartedForCart(Cart $cart): ?SmartOrderingQrVisit
+    {
+        $visit = SmartOrderingQrVisit::query()
+            ->with('qrCode')
+            ->where('cart_id', $cart->getKey())
+            ->first();
+
+        if (! $visit instanceof SmartOrderingQrVisit) {
+            return null;
+        }
+
+        $this->assertVisitStore($visit, (int) $cart->store_id);
+
+        if ($visit->checkout_started_at === null) {
+            $visit->forceFill(['checkout_started_at' => now()])->save();
+        }
+
+        $this->recordEvent($visit, self::EVENT_CHECKOUT_STARTED);
+
+        return $visit->fresh();
+    }
+
+    public function transferCartAttribution(Cart $source, Cart $target): void
+    {
+        if ((int) $source->store_id !== (int) $target->store_id) {
+            throw ValidationException::withMessages([
+                'attribution' => [__('smart_ordering_qr.validation.attribution_scope')],
+            ]);
+        }
+
+        $sourceVisit = SmartOrderingQrVisit::query()
+            ->with('qrCode')
+            ->where('cart_id', $source->getKey())
+            ->lockForUpdate()
+            ->first();
+
+        if (! $sourceVisit instanceof SmartOrderingQrVisit) {
+            return;
+        }
+
+        $this->assertVisitStore($sourceVisit, (int) $target->store_id);
+
+        $targetVisit = SmartOrderingQrVisit::query()
+            ->where('cart_id', $target->getKey())
+            ->whereKeyNot($sourceVisit->getKey())
+            ->lockForUpdate()
+            ->first();
+
+        if ($targetVisit instanceof SmartOrderingQrVisit) {
+            // First-touch attribution wins for an already-attributed authenticated cart.
+            $sourceVisit->forceFill(['cart_id' => null])->save();
+
+            return;
+        }
+
+        $sourceVisit->forceFill([
+            'cart_id' => $target->getKey(),
+            'cart_started_at' => $sourceVisit->cart_started_at ?? now(),
+        ])->save();
+    }
+
+    public function promotionIdForCart(Cart $cart): ?int
+    {
+        $visit = SmartOrderingQrVisit::query()
+            ->with('qrCode:id,store_id,promotion_id')
+            ->where('cart_id', $cart->getKey())
+            ->first();
+
+        if (! $visit instanceof SmartOrderingQrVisit || ! $visit->qrCode instanceof SmartOrderingQrCode) {
+            return null;
+        }
+
+        $this->assertVisitStore($visit, (int) $cart->store_id);
+
+        return $visit->qrCode->promotion_id === null ? null : (int) $visit->qrCode->promotion_id;
+    }
+
+    public function attachOrderFromCart(Cart $cart, Order $order): ?SmartOrderingQrVisit
+    {
+        if ((int) $cart->store_id !== (int) $order->store_id) {
+            throw ValidationException::withMessages([
+                'attribution' => [__('smart_ordering_qr.validation.attribution_scope')],
+            ]);
+        }
+
+        $visit = SmartOrderingQrVisit::query()
+            ->with('qrCode')
+            ->where('cart_id', $cart->getKey())
+            ->lockForUpdate()
+            ->first();
+
+        if (! $visit instanceof SmartOrderingQrVisit) {
+            return null;
+        }
+
+        $this->assertVisitStore($visit, (int) $order->store_id);
+
+        return $this->attachOrderToVisit($visit, $order);
+    }
+
     public function attachOrder(string $context, Order $order): SmartOrderingQrVisit
     {
         return DB::transaction(function () use ($context, $order): SmartOrderingQrVisit {
             $visit = $this->resolveContext($context, (int) $order->store_id, true);
 
-            $conflict = SmartOrderingQrVisit::query()
-                ->where('order_id', $order->getKey())
-                ->whereKeyNot($visit->getKey())
-                ->exists();
-
-            if ($conflict || ($visit->order_id !== null && (int) $visit->order_id !== (int) $order->getKey())) {
-                throw ValidationException::withMessages([
-                    'attribution' => [__('smart_ordering_qr.validation.order_attribution_conflict')],
-                ]);
-            }
-
-            if ($visit->order_id === null) {
-                $visit->forceFill([
-                    'order_id' => $order->getKey(),
-                    'order_created_at' => now(),
-                    'revenue' => (string) $order->grand_total,
-                ])->save();
-            }
-
-            $this->recordEvent($visit, self::EVENT_ORDER_CREATED, [
-                'order_reference' => (string) $order->order_number,
-            ]);
-
-            return $visit->fresh();
+            return $this->attachOrderToVisit($visit, $order);
         });
     }
 
@@ -174,7 +273,7 @@ final class SmartOrderingAttributionService
             ->groupBy('qr_code_id')
             ->selectRaw('qr_code_id, COUNT(*) AS scans')
             ->selectRaw('COUNT(DISTINCT visitor_hash) AS unique_visits')
-            ->selectRaw('SUM(CASE WHEN cart_id IS NOT NULL THEN 1 ELSE 0 END) AS carts')
+            ->selectRaw('SUM(CASE WHEN cart_started_at IS NOT NULL THEN 1 ELSE 0 END) AS carts')
             ->selectRaw('SUM(CASE WHEN order_id IS NOT NULL THEN 1 ELSE 0 END) AS orders')
             ->selectRaw('COALESCE(SUM(revenue), 0) AS revenue')
             ->get();
@@ -251,6 +350,45 @@ final class SmartOrderingAttributionService
         }
 
         return $visit;
+    }
+
+    private function attachOrderToVisit(SmartOrderingQrVisit $visit, Order $order): SmartOrderingQrVisit
+    {
+        $conflict = SmartOrderingQrVisit::query()
+            ->where('order_id', $order->getKey())
+            ->whereKeyNot($visit->getKey())
+            ->exists();
+
+        if ($conflict || ($visit->order_id !== null && (int) $visit->order_id !== (int) $order->getKey())) {
+            throw ValidationException::withMessages([
+                'attribution' => [__('smart_ordering_qr.validation.order_attribution_conflict')],
+            ]);
+        }
+
+        if ($visit->order_id === null) {
+            $visit->forceFill([
+                'order_id' => $order->getKey(),
+                'order_created_at' => now(),
+                // Persisted Order state is authoritative; no client discount/revenue value is accepted.
+                'revenue' => (string) $order->grand_total,
+            ])->save();
+        }
+
+        $this->recordEvent($visit, self::EVENT_ORDER_CREATED, [
+            'order_reference' => (string) $order->order_number,
+        ]);
+
+        return $visit->fresh();
+    }
+
+    private function assertVisitStore(SmartOrderingQrVisit $visit, int $expectedStoreId): void
+    {
+        if (! $visit->qrCode instanceof SmartOrderingQrCode
+            || (int) $visit->qrCode->store_id !== $expectedStoreId) {
+            throw ValidationException::withMessages([
+                'attribution' => [__('smart_ordering_qr.validation.attribution_scope')],
+            ]);
+        }
     }
 
     /** @param array<string, mixed> $metadata */
