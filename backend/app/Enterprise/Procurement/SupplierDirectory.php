@@ -287,8 +287,9 @@ final class SupplierDirectory
             || ($supplier->scope_type === 'store' && (int) $supplier->store_id === $scope->storeId);
     }
 
-    /** @param array<string, mixed> $attributes
-     *  @return array<string, mixed>
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
      */
     private function validatedSupplier(array $attributes, bool $partial = false): array
     {
@@ -332,7 +333,7 @@ final class SupplierDirectory
             ->where('code', $code)
             ->when(
                 $exceptSupplierId !== null,
-                fn (Builder $query): Builder => $query->whereKeyNot($exceptSupplierId),
+                fn (Builder $query): Builder => $query->where('id', '!=', $exceptSupplierId),
             )
             ->exists();
 
