@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseModuleAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
+use App\Http\Controllers\Admin\EnterpriseSavedViewController;
 use App\Http\Controllers\Admin\EnterpriseSecurityController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\FieldOperationsController;
@@ -169,6 +170,13 @@ Route::prefix('admin')
             ->where('module', '[a-z][a-z0-9_]*')
             ->middleware('throttle:30,1')
             ->name('enterprise-modules.lifecycle');
+        Route::post('/saved-views', [EnterpriseSavedViewController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('enterprise-saved-views.store');
+        Route::delete('/saved-views/{savedView}', [EnterpriseSavedViewController::class, 'destroy'])
+            ->whereNumber('savedView')
+            ->middleware('throttle:30,1')
+            ->name('enterprise-saved-views.destroy');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
