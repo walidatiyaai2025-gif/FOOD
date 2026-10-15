@@ -46,6 +46,7 @@ final class SmartOrderingAnalyticsService
     ];
 
     private const CUSTOMER_TYPES = ['new', 'repeat'];
+
     private const FULFILLMENT = ['dine_in', 'pickup', 'delivery'];
 
     /**
