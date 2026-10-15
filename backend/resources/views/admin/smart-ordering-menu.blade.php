@@ -89,7 +89,7 @@
                 <div class="so-flags">
                     <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" checked> {{ $isAr ? 'ظاهرة' : 'Visible' }}</label>
                     <input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1"> {{ $isAr ? 'افتراضية' : 'Default' }}</label>
-                    @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}"> {{ $localized(branch, 'name') }}</label>@endforeach
+                    @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}"> {{ $localized($branch, 'name') }}</label>@endforeach
                 </div>
                 <button class="primary" type="submit">{{ $isAr ? 'إضافة المنيو' : 'Add menu' }}</button>
             </form>
@@ -116,8 +116,8 @@
                 </div>
                 <label>{{ $isAr ? 'السجلات' : 'Records' }}
                     <select class="foodex-control so-bulk-select" name="public_ids[]" multiple required data-bulk-records>
-                        @foreach($allItems as $item)<option value="{{ $item->public_id }}" data-entity="items">{{ $localized(item, 'name') }}</option>@endforeach
-                        @foreach($allCategories as $category)<option value="{{ $category->public_id }}" data-entity="categories">{{ $localized(category, 'name') }}</option>@endforeach
+                        @foreach($allItems as $item)<option value="{{ $item->public_id }}" data-entity="items">{{ $localized($item, 'name') }}</option>@endforeach
+                        @foreach($allCategories as $category)<option value="{{ $category->public_id }}" data-entity="categories">{{ $localized($category, 'name') }}</option>@endforeach
                     </select>
                 </label>
                 <button class="primary" type="submit">{{ $isAr ? 'تطبيق' : 'Apply' }}</button>
@@ -129,7 +129,7 @@
 
             @forelse($menus as $menu)
             <article class="so-menu">
-                <div class="so-section-title"><h3>{{ $localized(menu, 'name') }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
+                <div class="so-section-title"><h3>{{ $localized($menu, 'name') }}</h3><span class="so-badge">{{ $menu->is_default ? ($isAr?'افتراضية':'Default') : ($isAr?'منيو':'Menu') }}</span></div>
                 <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.menus.update',$menu) }}">
                     @csrf @method('PUT')
                     <input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
@@ -145,7 +145,7 @@
                     <div class="so-flags">
                         <input type="hidden" name="is_visible" value="0"><label><input type="checkbox" name="is_visible" value="1" @checked($menu->is_visible)> {{ $isAr?'ظاهرة':'Visible' }}</label>
                         <input type="hidden" name="is_default" value="0"><label><input type="checkbox" name="is_default" value="1" @checked($menu->is_default)> {{ $isAr?'افتراضية':'Default' }}</label>
-                        @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array((int)$branch->id,$menuBranchIds[$menu->id] ?? [],true))> {{ $localized(branch, 'name') }}</label>@endforeach
+                        @foreach($branches as $branch)<label><input type="checkbox" name="branch_ids[]" value="{{ $branch->id }}" @checked(in_array((int)$branch->id,$menuBranchIds[$menu->id] ?? [],true))> {{ $localized($branch, 'name') }}</label>@endforeach
                     </div>
                     <button class="primary" type="submit">{{ $isAr?'حفظ المنيو':'Save menu' }}</button>
                 </form>
@@ -175,7 +175,7 @@
 
                 @foreach($menu->categories as $category)
                 <article class="so-category">
-                    <div class="so-section-title"><h4>{{ $localized(category, 'name') }}</h4><span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span></div>
+                    <div class="so-section-title"><h4>{{ $localized($category, 'name') }}</h4><span class="so-badge">{{ $category->items->count() }} {{ $isAr?'صنف':'items' }}</span></div>
                     <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.categories.update',$category) }}">
                         @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                         <div class="so-grid">
@@ -201,7 +201,7 @@
                         <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.categories.branch',$category) }}">
                             @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                             <div class="so-grid">
-                                <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id" required>@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized(branch, 'name') }}</option>@endforeach</select></label>
+                                <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id" required>@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
                                 <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                 <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
                                 <label>{{ $isAr?'ترتيب الفرع':'Branch sort order' }}<input class="foodex-control" type="number" min="0" name="override_sort_order"></label>
@@ -241,10 +241,10 @@
 
                     @foreach($category->items as $item)
                     <article class="so-item">
-                        <div class="so-section-title"><h5>{{ $localized(item, 'name') }}</h5><span class="so-badge">{{ number_format((float)($item->price_override ?? 0),3) }}</span></div>
+                        <div class="so-section-title"><h5>{{ $localized($item, 'name') }}</h5><span class="so-badge">{{ number_format((float)($item->price_override ?? 0),3) }}</span></div>
                         <form class="so-form" method="post" enctype="multipart/form-data" action="{{ route('admin.smart-ordering.menu.items.update',$item) }}">
                             @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
-                            <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $localized(targetCategory, 'name') }}</option>@endforeach</select></label>
+                            <label>{{ $isAr?'التصنيف':'Category' }}<select class="foodex-control" name="category_id">@foreach($allCategories as $targetCategory)<option value="{{ $targetCategory->id }}" @selected((int)$targetCategory->id===(int)$item->category_id)>{{ $localized($targetCategory, 'name') }}</option>@endforeach</select></label>
                             @include('admin._smart-ordering-product-picker',['selectedId'=>$item->source_product_id,'selectedLabel'=>$productLabels[(int)$item->source_product_id] ?? '','id'=>'item-product-'.$item->id])
                             <div class="so-grid">
                                 <label>{{ $isAr?'الاسم بالعربية':'Arabic name' }}<input class="foodex-control" data-localized-field="ar" name="name_ar" value="{{ $item->name_ar }}"></label>
@@ -276,7 +276,7 @@
                             <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.items.branch',$item) }}">
                                 @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                 <div class="so-grid">
-                                    <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized(branch, 'name') }}</option>@endforeach</select></label>
+                                    <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
                                     <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                     <label>{{ $isAr?'نفاد الكمية':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
                                     <label>{{ $isAr?'سعر الفرع':'Branch price' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price"></label>
@@ -344,7 +344,7 @@
                                     <form class="so-form" method="post" action="{{ route('admin.smart-ordering.menu.options.branch',$option) }}">
                                         @csrf @method('PUT')<input type="hidden" name="store_id" value="{{ $site->store_id }}">
                                         <div class="so-grid">
-                                            <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized(branch, 'name') }}</option>@endforeach</select></label>
+                                            <label>{{ $isAr?'الفرع':'Branch' }}<select class="foodex-control" name="branch_id">@foreach($branches as $branch)<option value="{{ $branch->id }}">{{ $localized($branch, 'name') }}</option>@endforeach</select></label>
                                             <label>{{ $isAr?'الظهور':'Visibility' }}<select class="foodex-control" name="override_visible"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'ظاهر':'Visible' }}</option><option value="0">{{ $isAr?'مخفي':'Hidden' }}</option></select></label>
                                             <label>{{ $isAr?'نفاد':'Sold out' }}<select class="foodex-control" name="override_sold_out"><option value="inherit">{{ $isAr?'وراثة':'Inherit' }}</option><option value="1">{{ $isAr?'نفد':'Sold out' }}</option><option value="0">{{ $isAr?'متاح':'Available' }}</option></select></label>
                                             <label>{{ $isAr?'فرق سعر الفرع':'Branch price delta' }}<input class="foodex-control" type="number" min="0" step="0.001" name="override_price_delta"></label>
