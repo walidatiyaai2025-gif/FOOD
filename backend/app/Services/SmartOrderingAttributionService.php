@@ -15,9 +15,13 @@ use Illuminate\Validation\ValidationException;
 final class SmartOrderingAttributionService
 {
     public const EVENT_QR_SCANNED = 'qr_scanned';
+
     public const EVENT_STOREFRONT_VIEWED = 'storefront_viewed';
+
     public const EVENT_CART_STARTED = 'cart_started';
+
     public const EVENT_CHECKOUT_STARTED = 'checkout_started';
+
     public const EVENT_ORDER_CREATED = 'order_created';
 
     public function startLanding(
