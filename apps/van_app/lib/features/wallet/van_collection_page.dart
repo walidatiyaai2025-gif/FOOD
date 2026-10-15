@@ -50,6 +50,9 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   String? _pendingIdempotencyKey;
   int _contextRequestGeneration = 0;
   VanCustomerScope? _contextCustomer;
+  _CollectionReviewReason? _reviewReason;
+  bool _initialCustomerResolutionPending = true;
+  bool _initialInvoiceResolutionPending = true;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -71,6 +74,28 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       mounted &&
       generation == _contextRequestGeneration &&
       _sameCustomer(_customer, customer);
+
+  void _resetPendingCollection() {
+    _lastResult = null;
+    _amount.clear();
+    _pendingOperation = null;
+    _pendingIdempotencyKey = null;
+  }
+
+  String _reviewMessage(_CollectionReviewReason reason) => switch (reason) {
+        _CollectionReviewReason.customerUnavailable => _text(
+            'The intended collection customer is no longer available. Choose an assigned customer deliberately before continuing.',
+            'عميل التحصيل المقصود لم يعد متاحًا. اختر عميلًا مسندًا بشكل صريح قبل المتابعة.',
+          ),
+        _CollectionReviewReason.invoiceUnavailable => _text(
+            'The intended invoice is no longer collectible. The amount was cleared; choose a current invoice deliberately and review the target again.',
+            'الفاتورة المقصودة لم تعد قابلة للتحصيل. تم مسح المبلغ؛ اختر فاتورة حالية بشكل صريح وراجع الهدف مرة أخرى.',
+          ),
+        _CollectionReviewReason.targetChanged => _text(
+            'The collection customer changed. The amount was cleared; choose the invoice again before posting.',
+            'تم تغيير عميل التحصيل. تم مسح المبلغ؛ اختر الفاتورة مرة أخرى قبل التسجيل.',
+          ),
+      };
 
   @override
   void initState() {
@@ -107,7 +132,8 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       final customers = await widget.repository.customers();
       if (!mounted) return;
       VanCustomerScope? selected;
-      final preferred = widget.initialCustomer;
+      final preferred =
+          _initialCustomerResolutionPending ? widget.initialCustomer : null;
       if (preferred != null) {
         for (final customer in customers) {
           if (customer.type == preferred.type &&
@@ -117,8 +143,14 @@ class _VanCollectionPageState extends State<VanCollectionPage>
             break;
           }
         }
+      } else if (_reviewReason == null && customers.isNotEmpty) {
+        selected = customers.first;
       }
-      selected ??= customers.isEmpty ? null : customers.first;
+      final preferredMissing = preferred != null && selected == null;
+      _initialCustomerResolutionPending = false;
+      if (preferredMissing) {
+        _resetPendingCollection();
+      }
       setState(() {
         _customers = customers;
         _customer = selected;
@@ -127,6 +159,9 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         _invoice = null;
         _loading = false;
         _stale = false;
+        if (preferredMissing) {
+          _reviewReason = _CollectionReviewReason.customerUnavailable;
+        }
       });
       if (selected != null) {
         await _loadContext(selected);
@@ -163,15 +198,31 @@ class _VanCollectionPageState extends State<VanCollectionPage>
       final context = await widget.repository.collectionContext(customer);
       if (!_ownsContextRequest(generation, customer)) return;
 
-      final preferredInvoiceId = _invoice?.id ?? widget.initialInvoiceId;
+      final currentInvoice = _invoice;
+      final preferredInvoiceId = currentInvoice?.id ??
+          (_initialInvoiceResolutionPending ? widget.initialInvoiceId : null);
+      final requireExplicitInvoice =
+          _reviewReason != null && currentInvoice == null;
       VanInvoiceBalance? selected;
-      for (final invoice in context.invoices) {
-        if (invoice.id == preferredInvoiceId) {
-          selected = invoice;
-          break;
+      if (!requireExplicitInvoice) {
+        for (final invoice in context.invoices) {
+          if (invoice.id == preferredInvoiceId) {
+            selected = invoice;
+            break;
+          }
+        }
+        if (selected == null &&
+            preferredInvoiceId == null &&
+            context.invoices.isNotEmpty) {
+          selected = context.invoices.first;
         }
       }
-      selected ??= context.invoices.isEmpty ? null : context.invoices.first;
+      final intendedInvoiceMissing =
+          preferredInvoiceId != null && selected == null;
+      _initialInvoiceResolutionPending = false;
+      if (intendedInvoiceMissing) {
+        _resetPendingCollection();
+      }
 
       setState(() {
         _context = context;
@@ -180,11 +231,29 @@ class _VanCollectionPageState extends State<VanCollectionPage>
         _loading = false;
         _refreshing = false;
         _stale = false;
+        if (intendedInvoiceMissing) {
+          _reviewReason = _CollectionReviewReason.invoiceUnavailable;
+        }
       });
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (error) {
       if (!_ownsContextRequest(generation, customer)) return;
+      if (error is VanApiException && error.statusCode == 404) {
+        _resetPendingCollection();
+        setState(() {
+          _customer = null;
+          _context = null;
+          _contextCustomer = null;
+          _invoice = null;
+          _loading = false;
+          _refreshing = false;
+          _stale = false;
+          _error = null;
+          _reviewReason = _CollectionReviewReason.customerUnavailable;
+        });
+        return;
+      }
       setState(() {
         _loading = false;
         _refreshing = false;
@@ -209,31 +278,28 @@ class _VanCollectionPageState extends State<VanCollectionPage>
   Future<void> _selectCustomer(VanCustomerScope? customer) async {
     if (customer == null || _sameCustomer(_customer, customer)) return;
     _contextRequestGeneration += 1;
+    _initialInvoiceResolutionPending = false;
+    _resetPendingCollection();
     setState(() {
       _customer = customer;
       _context = null;
       _contextCustomer = null;
       _invoice = null;
-      _lastResult = null;
       _loading = true;
       _refreshing = false;
       _stale = false;
       _error = null;
-      _amount.clear();
-      _pendingOperation = null;
-      _pendingIdempotencyKey = null;
+      _reviewReason = _CollectionReviewReason.targetChanged;
     });
     await _loadContext(customer);
   }
 
   void _selectInvoice(VanInvoiceBalance? invoice) {
     if (invoice == null) return;
+    _resetPendingCollection();
     setState(() {
       _invoice = invoice;
-      _lastResult = null;
-      _amount.clear();
-      _pendingOperation = null;
-      _pendingIdempotencyKey = null;
+      _reviewReason = null;
     });
   }
 
