@@ -112,6 +112,8 @@ final class CommerceQuoteService
         ?string $paymentMethod = null,
         bool $strict = true,
         ?int $preferredPromotionId = null,
+        ?float $deliveryTotalOverride = null,
+        bool $applyPromotions = true,
     ): array {
         $channel = strtolower(trim($channel));
         abort_unless(in_array($channel, ['b2b', 'b2c'], true), 422, 'Unsupported commerce channel.');
@@ -187,14 +189,18 @@ final class CommerceQuoteService
         }
 
         $subtotal = round($subtotal, 3);
-        $deliveryTotal = $this->deliveryFee($storeId);
-        [$promotionDiscount, $promotion] = $this->promotion(
-            $channel,
-            $storeId,
-            $subtotal,
-            $deliveryTotal,
-            $preferredPromotionId,
-        );
+        $deliveryTotal = $deliveryTotalOverride === null
+            ? $this->deliveryFee($storeId)
+            : round(max(0.0, $deliveryTotalOverride), 3);
+        [$promotionDiscount, $promotion] = $applyPromotions
+            ? $this->promotion(
+                $channel,
+                $storeId,
+                $subtotal,
+                $deliveryTotal,
+                $preferredPromotionId,
+            )
+            : [0.0, null];
 
         $couponDiscount = 0.0;
         $coupon = null;
@@ -578,6 +584,16 @@ final class CommerceQuoteService
             : B2bPriceTier::query()->find((int) $account->price_tier_id);
 
         return ['account' => $account, 'tier' => $tier];
+    }
+
+    /** @return array{0:float,1:array<string,mixed>|null} */
+    public function quotePromotionById(
+        int $storeId,
+        float $subtotal,
+        float $deliveryTotal,
+        int $promotionId,
+    ): array {
+        return $this->promotion('b2c', $storeId, $subtotal, $deliveryTotal, $promotionId);
     }
 
     /** @return array{0:float,1:array<string,mixed>|null} */
