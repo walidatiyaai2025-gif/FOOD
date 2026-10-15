@@ -61,8 +61,7 @@ final class EnterpriseSecurityAccessResolver
 
                 $delegator = $delegation->delegator;
 
-                return $delegator instanceof User
-                    && $this->directAllows($delegator, $permission, $scopeType, $scopeId, $amount, $currency);
+                return $this->directAllows($delegator, $permission, $scopeType, $scopeId, $amount, $currency);
             });
     }
 
