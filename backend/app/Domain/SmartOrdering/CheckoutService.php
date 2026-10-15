@@ -126,7 +126,8 @@ final class CheckoutService
             $idempotencyKey,
             $idempotencyHash,
             $requestHash,
-        ): array {
+        ): array
+        {
             $lockedCart = SmartOrderingCart::query()->whereKey($cart->getKey())->lockForUpdate()->firstOrFail();
             abort_unless((string) $lockedCart->status === 'active', 409, 'Cart is no longer active.');
 
@@ -318,7 +319,8 @@ final class CheckoutService
         return $result;
     }
 
-    /** @param list<array{product_id:int,quantity:float}> $items
+    /**
+     * @param list<array{product_id:int,quantity:float}> $items
      * @return array<int,float>
      */
     private function aggregate(array $items): array
