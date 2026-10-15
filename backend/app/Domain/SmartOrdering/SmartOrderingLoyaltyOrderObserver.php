@@ -37,8 +37,16 @@ final class SmartOrderingLoyaltyOrderObserver
         DB::afterCommit(static function () use ($site, $orderId, $status): void {
             try {
                 $loyalty = app(LoyaltyService::class);
+                $branchId = Schema::hasTable('smart_ordering_order_contexts')
+                    ? DB::table('smart_ordering_order_contexts')->where('order_id', $orderId)->value('branch_id')
+                    : null;
+
                 if (in_array($status, ['completed', 'delivered'], true)) {
-                    $loyalty->earnForCompletedOrder($site->fresh(), $orderId);
+                    $loyalty->earnForCompletedOrder(
+                        $site->fresh(),
+                        $orderId,
+                        $branchId === null ? null : (int) $branchId,
+                    );
                 } elseif (in_array($status, ['cancelled', 'refunded'], true)) {
                     $loyalty->reverseOrder($site->fresh(), $orderId);
                 }
