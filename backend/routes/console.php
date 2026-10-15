@@ -1,10 +1,10 @@
 <?php
 
+use App\Domain\SmartOrdering\LoyaltyService;
 use App\Domain\WhatsApp\CampaignService;
 use App\Domain\WhatsApp\CertificationAuthority;
 use App\Domain\WhatsApp\StateManager;
 use App\Domain\WhatsApp\TransportRetryService;
-use App\Domain\SmartOrdering\LoyaltyService;
 use App\Models\User;
 use App\Services\B2BVanFulfillmentCutoverService;
 use App\Services\B2BVanFulfillmentMigrationAudit;
