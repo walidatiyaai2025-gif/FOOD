@@ -499,9 +499,71 @@ async function exerciseOrderWizardDraftSafety(page, locale) {
   console.log(`verified recoverable Order wizard draft behavior (${locale})`);
 }
 
+async function captureSecurityPermissionEvidence(page, locale) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const response = await page.goto(`${baseUrl}/admin/security`, { waitUntil: 'networkidle' });
+  if (!response || !response.ok() || page.url().includes('/login')) {
+    throw new Error(`Security permission runtime route failed: HTTP ${response?.status() ?? 'no-response'} ${page.url()}`);
+  }
+
+  const createForm = page.locator('form[action$="/admin/security/roles"]').first();
+  if (await createForm.count() !== 1) {
+    throw new Error('Security create-role form was not rendered.');
+  }
+
+  await createForm.evaluate((form) => {
+    const host = form.closest('.foodex-operational-dialog-host');
+    const trigger = host?.querySelector('[data-foodex-dialog-open]');
+    if (trigger instanceof HTMLElement) {
+      trigger.click();
+      return;
+    }
+
+    const details = form.closest('details');
+    if (details instanceof HTMLDetailsElement) details.open = true;
+  });
+
+  const search = createForm.locator('[data-list-search]');
+  await search.waitFor({ state: 'visible' });
+  await search.fill('roles.manage');
+
+  const visiblePermissions = createForm.locator('[data-search-item]:visible input[name="permission_ids[]"]');
+  if (await visiblePermissions.count() < 1) {
+    throw new Error('Security permission search did not expose the expected roles.manage result.');
+  }
+
+  const firstPermission = visiblePermissions.first();
+  await firstPermission.check();
+
+  const proof = await createForm.evaluate((form) => {
+    const summary = form.querySelector('[data-impact-summary] span');
+    const checked = [...form.querySelectorAll('input[name="permission_ids[]"]:checked')];
+    const visible = [...form.querySelectorAll('[data-search-item]')].filter((item) => !item.hidden);
+    return {
+      checked: checked.length,
+      visible: visible.length,
+      impactText: summary?.textContent?.trim() ?? '',
+      addedLabel: form.querySelector('[data-permission-picker]')?.dataset.impactAdded ?? '',
+      hasTechnicalCode: visible.some((item) => item.querySelector('code')?.textContent?.includes('roles.manage')),
+    };
+  });
+
+  if (proof.checked < 1 || proof.visible < 1 || !proof.hasTechnicalCode || !proof.impactText.includes(proof.addedLabel)) {
+    throw new Error(`Security permission search/impact evidence failed: ${JSON.stringify(proof)}`);
+  }
+
+  await assertNoPageOverflow(page, `security-permissions/${locale}/desktop-1280`);
+  await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__desktop__${locale}.png`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await assertNoPageOverflow(page, `security-permissions/${locale}/mobile-390`);
+  await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__mobile-390__${locale}.png`);
+}
+
 async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const shellRoutes = [
     ['administration', '/admin/administration'],
+    ['security', '/admin/security'],
     ['live-tracking', '/admin/driver-live-tracking'],
     ['mobile-settings', '/admin/settings/mobile?app=van&environment=production'],
     ['notifications', '/admin/notifications'],
@@ -546,6 +608,7 @@ async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   }
 
   await exerciseOrderWizardDraftSafety(page, locale);
+  await captureSecurityPermissionEvidence(page, locale);
 
   await page.goto(`${baseUrl}/admin/settings/mobile?app=van&environment=production`, { waitUntil: 'networkidle' });
   const mobileSettingsProof = await page.evaluate(() => {

@@ -25,6 +25,21 @@ class _Auth implements DriverAuthRepository {
   Future<void> logout(String token) async {}
 }
 
+class _FailingAuth implements DriverAuthRepository {
+  const _FailingAuth();
+
+  @override
+  Future<DriverSession> login({
+    required String email,
+    required String password,
+  }) async {
+    throw const DriverAuthenticationException();
+  }
+
+  @override
+  Future<void> logout(String token) async {}
+}
+
 class _Store implements DriverSessionStore {
   DriverStoredSession? stored;
 
@@ -64,6 +79,7 @@ Widget _host({
   required DriverBiometricAuthenticator biometric,
   required DriverAuthenticatedCallback onAuthenticated,
   Locale locale = const Locale('ar'),
+  DriverAuthRepository? repository,
 }) =>
     MaterialApp(
       locale: locale,
@@ -73,7 +89,7 @@ Widget _host({
         locale: locale,
         overrides: const {},
         child: DriverLoginPage(
-          repository: _Auth(),
+          repository: repository ?? _Auth(),
           sessionStore: store,
           biometricAuthenticator: biometric,
           onAuthenticated: onAuthenticated,
@@ -103,6 +119,99 @@ void main() {
       expect(find.text(entry.$2), findsOneWidget);
       expect(tester.getSize(identity).height, greaterThan(0));
     }
+  });
+
+  testWidgets(
+      'blank Driver credentials expose localized field errors and first-invalid focus',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final entry in const <(Locale, String, String)>[
+      (Locale('en'), 'Enter email and password', 'Enter email and password'),
+      (
+        Locale('ar'),
+        'أدخل البريد الإلكتروني وكلمة المرور',
+        'أدخل البريد الإلكتروني وكلمة المرور'
+      ),
+    ]) {
+      await tester.pumpWidget(
+        _host(
+          store: _Store(),
+          biometric: const _Biometric(),
+          locale: entry.$1,
+          onAuthenticated: (_, __, ___) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final submit = find.byKey(const Key('driver-login-submit'));
+      await tester.ensureVisible(submit);
+      await tester.tap(submit);
+      await tester.pump();
+
+      final emailFinder = find.byKey(const Key('driver-login-email'));
+      final passwordFinder = find.byKey(const Key('driver-login-password'));
+      var emailField = tester.widget<TextField>(emailFinder);
+      var passwordField = tester.widget<TextField>(passwordFinder);
+
+      expect(emailField.decoration?.errorText, entry.$2);
+      expect(passwordField.decoration?.errorText, entry.$3);
+      expect(emailField.focusNode?.hasFocus, isTrue);
+
+      await tester.enterText(emailFinder, 'driver@example.test');
+      await tester.pump();
+      emailField = tester.widget<TextField>(emailFinder);
+      passwordField = tester.widget<TextField>(passwordFinder);
+      expect(emailField.decoration?.errorText, isNull);
+      expect(passwordField.decoration?.errorText, entry.$3);
+
+      await tester.ensureVisible(submit);
+      await tester.tap(submit);
+      await tester.pump();
+      passwordField = tester.widget<TextField>(passwordFinder);
+      expect(passwordField.focusNode?.hasFocus, isTrue);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+  });
+
+  testWidgets(
+      'Driver authentication errors use a live region and clear on edit',
+      (tester) async {
+    await tester.pumpWidget(
+      _host(
+        store: _Store(),
+        biometric: const _Biometric(),
+        locale: const Locale('en'),
+        repository: const _FailingAuth(),
+        onAuthenticated: (_, __, ___) {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final emailFinder = find.byKey(const Key('driver-login-email'));
+    final passwordFinder = find.byKey(const Key('driver-login-password'));
+    await tester.enterText(emailFinder, 'driver@example.test');
+    await tester.enterText(passwordFinder, 'wrong-password');
+
+    final submit = find.byKey(const Key('driver-login-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Invalid sign-in details'), findsOneWidget);
+    final liveRegion = tester.widget<Semantics>(
+      find.byKey(const Key('driver-login-error-live')),
+    );
+    expect(liveRegion.properties.liveRegion, isTrue);
+
+    await tester.enterText(emailFinder, 'driver2@example.test');
+    await tester.pump();
+    expect(find.byKey(const Key('driver-login-error')), findsNothing);
   });
 
   testWidgets(

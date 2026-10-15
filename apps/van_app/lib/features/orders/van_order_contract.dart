@@ -28,6 +28,20 @@ class VanCatalogProduct {
   final String currency;
 }
 
+class VanCatalogPage {
+  const VanCatalogPage({
+    required this.products,
+    required this.page,
+    required this.perPage,
+    required this.hasMore,
+  });
+
+  final List<VanCatalogProduct> products;
+  final int page;
+  final int perPage;
+  final bool hasMore;
+}
+
 class VanOrderAddressOption {
   const VanOrderAddressOption({
     required this.id,
@@ -325,9 +339,11 @@ class VanOrderExecutionState {
 }
 
 abstract interface class VanOrderRepository {
-  Future<List<VanCatalogProduct>> catalog(
+  Future<VanCatalogPage> catalog(
     VanCustomerScope customer, {
     String search = '',
+    int page = 1,
+    int perPage = 50,
   });
 
   Future<VanOrderOptions> options(VanCustomerScope customer);
@@ -402,15 +418,25 @@ class VanOrderDraftController extends ChangeNotifier {
   bool _addressSelectionInitialized = false;
   bool _warehouseSelectionInitialized = false;
   bool _paymentSelectionInitialized = false;
+  int _revision = 0;
+  int? _quotedRevision;
 
   List<VanOrderLine> get lines => _lines.values.toList(growable: false);
+  int get revision => _revision;
+  bool get hasCurrentQuote => quote != null && _quotedRevision == _revision;
+
+  void _touch() {
+    _revision += 1;
+    quote = null;
+    _quotedRevision = null;
+  }
 
   void selectCustomer(VanCustomerScope value) {
     if (customer?.type == value.type && customer?.id == value.id) return;
     customer = value;
     _lines.clear();
     options = null;
-    quote = null;
+    _touch();
     addressId = null;
     warehouseId = null;
     paymentMethod = null;
@@ -427,7 +453,7 @@ class VanOrderDraftController extends ChangeNotifier {
         ? product.minimumQuantity
         : existing.quantity + product.orderingIncrement;
     _lines[product.id] = VanOrderLine(product: product, quantity: quantity);
-    quote = null;
+    _touch();
     notifyListeners();
   }
 
@@ -442,11 +468,14 @@ class VanOrderDraftController extends ChangeNotifier {
             : quantity,
       );
     }
-    quote = null;
+    _touch();
     notifyListeners();
   }
 
   void applyOptions(VanOrderOptions value) {
+    final previousAddressId = addressId;
+    final previousWarehouseId = warehouseId;
+    final previousPaymentMethod = paymentMethod;
     options = value;
 
     if (!_addressSelectionInitialized) {
@@ -481,6 +510,11 @@ class VanOrderDraftController extends ChangeNotifier {
       paymentMethod = null;
     }
 
+    if (previousAddressId != addressId ||
+        previousWarehouseId != warehouseId ||
+        previousPaymentMethod != paymentMethod) {
+      _touch();
+    }
     notifyListeners();
   }
 
@@ -490,56 +524,65 @@ class VanOrderDraftController extends ChangeNotifier {
     String? payment,
     String? note,
   }) {
+    var changed = false;
     if (address != null) {
+      changed = changed || addressId != address;
       addressId = address;
       _addressSelectionInitialized = true;
     }
     if (warehouse != null) {
+      changed = changed || warehouseId != warehouse;
       warehouseId = warehouse;
       _warehouseSelectionInitialized = true;
     }
     if (payment != null) {
+      changed = changed || paymentMethod != payment;
       paymentMethod = payment;
       _paymentSelectionInitialized = true;
     }
     if (note != null) {
+      changed = changed || customerNote != note;
       customerNote = note;
     }
-    quote = null;
+    if (!changed) return;
+    _touch();
     notifyListeners();
   }
 
   void clearAddressSelection() {
     addressId = null;
     _addressSelectionInitialized = true;
-    quote = null;
+    _touch();
     notifyListeners();
   }
 
   void clearWarehouseSelection() {
     warehouseId = null;
     _warehouseSelectionInitialized = true;
-    quote = null;
+    _touch();
     notifyListeners();
   }
 
   void clearPaymentSelection() {
     paymentMethod = null;
     _paymentSelectionInitialized = true;
-    quote = null;
+    _touch();
     notifyListeners();
   }
 
-  void setQuote(VanOrderQuote value) {
+  bool setQuoteForRevision(VanOrderQuote value, int revision) {
+    if (revision != _revision) return false;
     quote = value;
+    _quotedRevision = revision;
     notifyListeners();
+    return true;
   }
 
   void reset() {
     customer = null;
     _lines.clear();
     options = null;
-    quote = null;
+    _touch();
     addressId = null;
     warehouseId = null;
     paymentMethod = null;

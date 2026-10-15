@@ -27,6 +27,23 @@ class _Auth implements VanAuthRepository {
   Future<void> logout(String token) async {}
 }
 
+class _RejectingAuth implements VanAuthRepository {
+  const _RejectingAuth(this.error);
+
+  final Object error;
+
+  @override
+  Future<VanSession> login({
+    required String email,
+    required String password,
+  }) async {
+    throw error;
+  }
+
+  @override
+  Future<void> logout(String token) async {}
+}
+
 class _MemoryStore implements VanSessionStore {
   VanSession? value;
 
@@ -120,6 +137,116 @@ void main() {
         find.byKey(const ValueKey('van-business-login-version')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'blank Van credentials expose localized field errors and first-invalid focus',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      for (final entry in const <(Locale, String, String)>[
+        (Locale('en'), 'Email is required.', 'Password is required.'),
+        (Locale('ar'), 'البريد الإلكتروني مطلوب.', 'كلمة المرور مطلوبة.'),
+      ]) {
+        await tester.pumpWidget(
+          FoodexVanApp(
+            locale: entry.$1,
+            authRepository: _Auth(),
+            sessionStore: _MemoryStore(),
+            authPreferenceStore: _PreferenceStore(),
+            biometricAuthenticator: const _Biometric(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final submit = find.byKey(const Key('van-login-submit'));
+        await tester.ensureVisible(submit);
+        await tester.tap(submit);
+        await tester.pump();
+
+        final emailFinder = find.byKey(const Key('van-login-email'));
+        final passwordFinder = find.byKey(const Key('van-login-password'));
+        var emailField = tester.widget<TextField>(emailFinder);
+        var passwordField = tester.widget<TextField>(passwordFinder);
+
+        expect(emailField.decoration?.errorText, entry.$2);
+        expect(passwordField.decoration?.errorText, entry.$3);
+        expect(emailField.focusNode?.hasFocus, isTrue);
+
+        await tester.enterText(emailFinder, 'van@example.test');
+        await tester.pump();
+        emailField = tester.widget<TextField>(emailFinder);
+        passwordField = tester.widget<TextField>(passwordFinder);
+        expect(emailField.decoration?.errorText, isNull);
+        expect(passwordField.decoration?.errorText, entry.$3);
+
+        await tester.ensureVisible(submit);
+        await tester.tap(submit);
+        await tester.pump();
+        passwordField = tester.widget<TextField>(passwordFinder);
+        expect(passwordField.focusNode?.hasFocus, isTrue);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      }
+    },
+  );
+
+  testWidgets(
+    'Van authentication outcomes use a live region and clear on credential edit',
+    (tester) async {
+      for (final entry in const <(Object, String)>[
+        (
+          VanAuthenticationException(),
+          'Invalid email or password.',
+        ),
+        (
+          VanAccessDeniedException(),
+          'This account is not authorized for the Van app.',
+        ),
+        (
+          VanOfflineException(),
+          'No network connection. Try again.',
+        ),
+      ]) {
+        await tester.pumpWidget(
+          FoodexVanApp(
+            locale: const Locale('en'),
+            authRepository: _RejectingAuth(entry.$1),
+            sessionStore: _MemoryStore(),
+            authPreferenceStore: _PreferenceStore(),
+            biometricAuthenticator: const _Biometric(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final emailFinder = find.byKey(const Key('van-login-email'));
+        final passwordFinder = find.byKey(const Key('van-login-password'));
+        await tester.enterText(emailFinder, 'van@example.test');
+        await tester.enterText(passwordFinder, 'wrong-password');
+
+        final submit = find.byKey(const Key('van-login-submit'));
+        await tester.ensureVisible(submit);
+        await tester.tap(submit);
+        await tester.pumpAndSettle();
+
+        expect(find.text(entry.$2), findsOneWidget);
+        final liveRegion = tester.widget<Semantics>(
+          find.byKey(const Key('van-login-error-live')),
+        );
+        expect(liveRegion.properties.liveRegion, isTrue);
+
+        await tester.enterText(emailFinder, 'van2@example.test');
+        await tester.pump();
+        expect(find.byKey(const Key('van-login-error')), findsNothing);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      }
     },
   );
 

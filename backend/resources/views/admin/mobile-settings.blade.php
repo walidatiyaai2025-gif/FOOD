@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('mobile_settings.title') }}</title>
 <style>
-body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr);min-height:100vh;width:100%}.mobile-settings-nav{display:flex;gap:8px;overflow-x:auto;max-width:1180px;margin:0 auto 16px;padding:8px;background:#fff;border:1px solid var(--foodex-border);border-radius:14px;box-shadow:var(--foodex-shadow-sm);scrollbar-width:thin}.mobile-settings-nav a{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:10px;text-decoration:none;color:var(--foodex-ink);font-weight:800;border:1px solid transparent}.mobile-settings-nav a:hover{background:var(--foodex-background)}.mobile-settings-nav a.active{background:var(--foodex-action-green);color:#fff}.mobile-settings-panel.is-section-hidden{display:none!important}.sidebar{background:#111827;color:#fff;padding:20px}.main{min-width:0;width:100%;padding:clamp(16px,1.8vw,32px)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:20px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;font-weight:650;font-size:.85rem;margin:9px 0 5px}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #cbd5e1;border-radius:10px}textarea{min-height:70px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}.button{display:inline-block;margin-top:12px;padding:10px 14px;border:0;border-radius:10px;background:#0f172a;color:#fff;text-decoration:none}.button.secondary{background:#475569}.notice{padding:12px;background:#ecfdf5;border-radius:10px;margin-bottom:14px}.warning{padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px}.muted{color:#64748b}.log{padding:8px 0;border-top:1px solid #e2e8f0}.policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.policy{border:1px solid #e2e8f0;border-radius:12px;padding:12px}.status-ready{color:#166534}.status-blocked{color:#991b1b}.blockers{margin:8px 0;padding-inline-start:20px}.runtime-picker{padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px}@media(max-width:1023px){.layout{grid-template-columns:1fr}.row,.policy-grid{grid-template-columns:1fr}}
+body{margin:0;background:#f6f7f9;color:#17202a}.layout{display:grid;grid-template-columns:var(--foodex-sidebar-width) minmax(0,1fr);min-height:100vh;width:100%}.mobile-settings-nav{display:flex;gap:8px;overflow-x:auto;max-width:1180px;margin:0 auto 16px;padding:8px;background:#fff;border:1px solid var(--foodex-border);border-radius:14px;box-shadow:var(--foodex-shadow-sm);scrollbar-width:thin}.mobile-settings-nav a{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:10px;text-decoration:none;color:var(--foodex-ink);font-weight:800;border:1px solid transparent}.mobile-settings-nav a:hover{background:var(--foodex-background)}.mobile-settings-nav a.active{background:var(--foodex-action-green);color:#fff}.mobile-settings-panel.is-section-hidden{display:none!important}.sidebar{background:#111827;color:#fff;padding:20px}.main{min-width:0;width:100%;padding:clamp(16px,1.8vw,32px)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:20px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;font-weight:650;font-size:.85rem;margin:9px 0 5px}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #cbd5e1;border-radius:10px}textarea{min-height:70px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}.button{display:inline-block;margin-top:12px;padding:10px 14px;border:0;border-radius:10px;background:#0f172a;color:#fff;text-decoration:none}.button.secondary{background:#475569}.notice{padding:12px;background:#ecfdf5;border-radius:10px;margin-bottom:14px}.warning{padding:12px;background:var(--foodex-orange-soft);border:1px solid var(--foodex-border);border-radius:10px}.muted{color:#64748b}.log{padding:8px 0;border-top:1px solid #e2e8f0}.policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.policy{border:1px solid #e2e8f0;border-radius:12px;padding:12px}.status-ready{color:#166534}.status-blocked{color:#991b1b}.blockers{margin:8px 0;padding-inline-start:20px}.runtime-picker{padding:12px;background:var(--foodex-background);border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px}.critical-review{width:min(680px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;border:1px solid var(--foodex-border);border-radius:18px;padding:0;box-shadow:0 24px 70px rgba(15,23,42,.28)}.critical-review::backdrop{background:rgba(15,23,42,.55)}.critical-review__body{padding:22px}.critical-review__grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.critical-review__item{border:1px solid var(--foodex-border);border-radius:12px;padding:12px;background:var(--foodex-background)}.critical-review__actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}.critical-review__impact{padding:12px;border:1px solid var(--foodex-border);background:var(--foodex-orange-soft);border-radius:12px}.critical-review__versions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}@media(max-width:640px){.critical-review__grid,.critical-review__versions{grid-template-columns:1fr}.critical-review__actions .button{width:100%;text-align:center}}@media(max-width:1023px){.layout{grid-template-columns:1fr}.row,.policy-grid{grid-template-columns:1fr}}
 </style>
 @include('admin._brand-components')
 @include('admin._settings-page-polish')
@@ -70,10 +70,11 @@ $submissionListText = static function ($value): string {
 <button class="button secondary" type="submit">{{ __('mobile_settings.load_saved') }}</button>
 </form>
 
-<form method="post" action="{{ route('admin.mobile-settings.app') }}">
+<form method="post" action="{{ route('admin.mobile-settings.app') }}" data-runtime-settings-form data-runtime-environment="{{ $selectedEnvironment }}" data-runtime-app-label="{{ __('mobile_settings.apps.'.$selectedApp) }}" data-runtime-environment-label="{{ __('mobile_settings.environments.'.$selectedEnvironment) }}" data-current-force-update="{{ (int) ($selectedSetting?->force_update ?? false) }}" data-current-maintenance="{{ (int) ($selectedSetting?->maintenance_mode ?? false) }}" aria-busy="false">
 @csrf @method('put')
 <input type="hidden" name="app" value="{{ $selectedApp }}">
 <input type="hidden" name="environment" value="{{ $selectedEnvironment }}">
+<input type="hidden" name="critical_policy_confirm" value="0" data-critical-policy-confirm>
 <p><strong>{{ __('mobile_settings.selected_record') }}:</strong> {{ __('mobile_settings.apps.'.$selectedApp) }} · {{ __('mobile_settings.environments.'.$selectedEnvironment) }} @if(!$selectedSetting)<span class="muted">({{ __('mobile_settings.new_record') }})</span>@endif</p>
 
 <label>{{ __('mobile_settings.display_name') }}</label><input name="display_name" value="{{ old('display_name', $selectedSetting?->display_name) }}" placeholder="{{ __('mobile_settings.ui.display_name_placeholder') }}" required>
@@ -125,8 +126,35 @@ $submissionListText = static function ($value): string {
 <div><input type="hidden" name="readiness_ios" value="0"><label class="check"><input type="checkbox" name="readiness_ios" value="1" @checked((bool) old('readiness_ios', data_get($selectedSetting?->store_readiness, 'ios', false)))>{{ __('mobile_settings.readiness_ios') }}</label></div>
 <div><input type="hidden" name="readiness_privacy" value="0"><label class="check"><input type="checkbox" name="readiness_privacy" value="1" @checked((bool) old('readiness_privacy', data_get($selectedSetting?->store_readiness, 'privacy', false)))>{{ __('mobile_settings.readiness_privacy') }}</label></div>
 </div>
-<button class="button">{{ __('mobile_settings.save') }}</button>
+<button class="button" type="submit" data-runtime-save>{{ __('mobile_settings.save') }}</button>
 </form>
+
+<dialog class="critical-review" data-critical-policy-review aria-labelledby="critical-policy-review-title">
+<div class="critical-review__body">
+<h3 id="critical-policy-review-title">{{ __('mobile_settings.critical_review.title') }}</h3>
+<p class="muted">{{ __('mobile_settings.critical_review.summary') }}</p>
+<p><strong>{{ __('mobile_settings.critical_review.target') }}:</strong> <span data-review-target></span></p>
+<div class="critical-review__grid">
+<div class="critical-review__item"><strong>{{ __('mobile_settings.critical_review.force_update') }}</strong><p>{{ __('mobile_settings.critical_review.before') }}: <span data-review-force-before></span></p><p>{{ __('mobile_settings.critical_review.after') }}: <span data-review-force-after></span></p></div>
+<div class="critical-review__item"><strong>{{ __('mobile_settings.critical_review.maintenance') }}</strong><p>{{ __('mobile_settings.critical_review.before') }}: <span data-review-maintenance-before></span></p><p>{{ __('mobile_settings.critical_review.after') }}: <span data-review-maintenance-after></span></p></div>
+</div>
+<h4>{{ __('mobile_settings.critical_review.versions') }}</h4>
+<div class="critical-review__versions">
+<div class="critical-review__item"><strong>{{ __('mobile_settings.critical_review.published') }}</strong><div data-review-published>—</div></div>
+<div class="critical-review__item"><strong>{{ __('mobile_settings.critical_review.minimum') }}</strong><div data-review-minimum>—</div></div>
+<div class="critical-review__item"><strong>{{ __('mobile_settings.critical_review.recommended') }}</strong><div data-review-recommended>—</div></div>
+</div>
+<h4>{{ __('mobile_settings.critical_review.messages') }}</h4>
+<div class="critical-review__item"><div dir="rtl" data-review-message-ar>—</div><div dir="ltr" data-review-message-en>—</div></div>
+<p class="critical-review__impact" data-review-impact></p>
+<p class="muted">{{ __('mobile_settings.critical_review.authoritative_note') }}</p>
+<p class="muted">{{ __('mobile_settings.critical_review.rollback') }}</p>
+<div class="critical-review__actions">
+<button class="button secondary" type="button" data-critical-review-cancel>{{ __('mobile_settings.critical_review.cancel') }}</button>
+<button class="button" type="button" data-critical-review-confirm>{{ __('mobile_settings.critical_review.confirm') }}</button>
+</div>
+</div>
+</dialog>
 </section>
 
 <section id="location" class="card mobile-settings-panel" data-mobile-section="location" data-driver-location-policy>
@@ -332,6 +360,85 @@ $submissionListText = static function ($value): string {
 
     window.addEventListener('hashchange', () => show(sectionFromHash(), false));
     show(sectionFromHash(), false);
+})();
+
+(() => {
+    const form = document.querySelector('[data-runtime-settings-form]');
+    const dialog = document.querySelector('[data-critical-policy-review]');
+    if (!form || !dialog) return;
+
+    const forceUpdate = form.querySelector('input[type="checkbox"][name="force_update"]');
+    const maintenance = form.querySelector('input[type="checkbox"][name="maintenance_mode"]');
+    const confirmInput = form.querySelector('[data-critical-policy-confirm]');
+    const saveButton = form.querySelector('[data-runtime-save]');
+    const cancelButton = dialog.querySelector('[data-critical-review-cancel]');
+    const confirmButton = dialog.querySelector('[data-critical-review-confirm]');
+    const currentForce = form.dataset.currentForceUpdate === '1';
+    const currentMaintenance = form.dataset.currentMaintenance === '1';
+    const onText = @json(__('mobile_settings.on'));
+    const offText = @json(__('mobile_settings.off'));
+    const impactMaintenance = @json(__('mobile_settings.critical_review.impact_enable_maintenance'));
+    const impactForce = @json(__('mobile_settings.critical_review.impact_enable_force'));
+    const impactDisable = @json(__('mobile_settings.critical_review.impact_disable'));
+    const savingText = @json(__('mobile_settings.critical_review.saving'));
+
+    const fieldValue = (name) => String(form.querySelector('[name="' + name + '"]')?.value || '').trim() || '—';
+    const boolText = (value) => value ? onText : offText;
+    const criticalChanged = () => form.dataset.runtimeEnvironment === 'production'
+        && ((forceUpdate?.checked ?? false) !== currentForce
+            || (maintenance?.checked ?? false) !== currentMaintenance);
+
+    const renderReview = () => {
+        const nextForce = forceUpdate?.checked ?? false;
+        const nextMaintenance = maintenance?.checked ?? false;
+        dialog.querySelector('[data-review-target]').textContent =
+            form.dataset.runtimeAppLabel + ' · ' + form.dataset.runtimeEnvironmentLabel;
+        dialog.querySelector('[data-review-force-before]').textContent = boolText(currentForce);
+        dialog.querySelector('[data-review-force-after]').textContent = boolText(nextForce);
+        dialog.querySelector('[data-review-maintenance-before]').textContent = boolText(currentMaintenance);
+        dialog.querySelector('[data-review-maintenance-after]').textContent = boolText(nextMaintenance);
+        dialog.querySelector('[data-review-published]').textContent = fieldValue('published_version');
+        dialog.querySelector('[data-review-minimum]').textContent = fieldValue('minimum_supported_version');
+        dialog.querySelector('[data-review-recommended]').textContent = fieldValue('recommended_version');
+        dialog.querySelector('[data-review-message-ar]').textContent = fieldValue('maintenance_message_ar');
+        dialog.querySelector('[data-review-message-en]').textContent = fieldValue('maintenance_message_en');
+
+        const impacts = [];
+        if (!currentMaintenance && nextMaintenance) impacts.push(impactMaintenance);
+        if (!currentForce && nextForce) impacts.push(impactForce);
+        if ((currentMaintenance && !nextMaintenance) || (currentForce && !nextForce)) impacts.push(impactDisable);
+        dialog.querySelector('[data-review-impact]').textContent = impacts.join(' ');
+    };
+
+    const setBusy = () => {
+        form.setAttribute('aria-busy', 'true');
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.textContent = savingText;
+        }
+    };
+
+    form.addEventListener('input', () => {
+        if (confirmInput) confirmInput.value = '0';
+    });
+
+    form.addEventListener('submit', (event) => {
+        if (confirmInput?.value === '1' || !criticalChanged()) {
+            setBusy();
+            return;
+        }
+
+        event.preventDefault();
+        renderReview();
+        dialog.showModal();
+    });
+
+    cancelButton?.addEventListener('click', () => dialog.close());
+    confirmButton?.addEventListener('click', () => {
+        if (confirmInput) confirmInput.value = '1';
+        dialog.close();
+        form.requestSubmit();
+    });
 })();
 </script>
 </body>

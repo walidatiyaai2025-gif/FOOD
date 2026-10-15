@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\NotificationCampaign;
 use App\Models\User;
+use App\Support\EngagementDestinationCatalog;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rule;
 
 final class NotificationCampaignPopupController extends Controller
 {
+    public function __construct(private readonly EngagementDestinationCatalog $destinations) {}
+
     public function index(Request $request): JsonResponse
     {
         $data = $this->validatedContext($request);
@@ -290,22 +293,30 @@ final class NotificationCampaignPopupController extends Controller
             'cta_label' => $locale === 'en'
                 ? $campaign->popup_cta_label_en
                 : $campaign->popup_cta_label_ar,
-            'cta_target' => $this->safeTarget($campaign->popup_cta_target),
+            'cta_target' => $this->safeTarget($campaign),
             'frequency' => (string) ($campaign->popup_frequency ?: 'once_per_session'),
             'starts_at' => $this->dateTime($campaign->starts_at),
             'ends_at' => $this->dateTime($campaign->ends_at),
         ];
     }
 
-    private function safeTarget(mixed $target): ?string
+    private function safeTarget(NotificationCampaign $campaign): ?string
     {
-        if (! is_string($target)) {
+        $target = is_string($campaign->popup_cta_target)
+            ? trim($campaign->popup_cta_target)
+            : '';
+        if ($target === '') {
             return null;
         }
 
-        $value = trim($target);
+        $storeId = $campaign->store_id === null ? null : (int) $campaign->store_id;
 
-        return $value !== '' && str_starts_with($value, '/') ? $value : null;
+        return $this->destinations->codeForTarget(
+            $target,
+            (string) $campaign->app,
+            (string) $campaign->target_channel,
+            $storeId,
+        ) === null ? null : $target;
     }
 
     private function assetUrl(mixed $path): ?string

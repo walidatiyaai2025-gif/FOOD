@@ -16,6 +16,7 @@ use App\Domain\SmartOrdering\SmartOrderingPriceResolver;
 use App\Domain\SmartOrdering\SmartOrderingSiteService;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CommerceQuoteService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,7 +71,7 @@ class SmartOrderingMenuDomainTest extends TestCase
             'sold_out' => false,
             'sort_order' => 0,
         ]);
-        $writer->createItem($fixture['admin'], $fixture['site'], $draft->fresh(), $category, [
+        $reviewItem = $writer->createItem($fixture['admin'], $fixture['site'], $draft->fresh(), $category, [
             'name_en' => 'Review Burger',
             'image_path' => 'smart-ordering/demo/item.webp',
             'price_override' => 4.250,
@@ -81,6 +82,19 @@ class SmartOrderingMenuDomainTest extends TestCase
             'sort_order' => 0,
         ]);
 
+        $checkoutQuote = app(CommerceQuoteService::class)->quote(
+            'b2c',
+            $fixture['store_id'],
+            null,
+            [['product_id' => $fixture['product_id'], 'quantity' => 1]],
+        );
+        $this->assertSame('EGP', $checkoutQuote['currency']);
+        $this->assertSame(4.25, $checkoutQuote['subtotal']);
+        $this->assertSame(
+            app(SmartOrderingPriceResolver::class)->displayPrice($fixture['site'], $reviewItem)['amount'],
+            $checkoutQuote['subtotal'],
+        );
+
         $this->actingAs($fixture['admin'])
             ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
             ->assertOk()
@@ -89,7 +103,10 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('Current category image')
             ->assertSee('Current item image')
             ->assertSee('Visual Menu')
-            ->assertSee('Review Burger');
+            ->assertSee('Review Burger')
+            ->assertSee('4.25 EGP')
+            ->assertSee('step="0.01"', false)
+            ->assertDontSee('KWD');
 
         $published = app(SmartOrderingMenuRevisionService::class)->publish(
             $fixture['admin'],
@@ -103,6 +120,60 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame($menu->image_path, $publishedMenu->image_path);
+    }
+
+    public function test_menu_builder_keeps_unavailable_linked_items_repairable_and_blocks_publish(): void
+    {
+        $fixture = $this->fixture('REPAIR', 4.500);
+        $writer = app(SmartOrderingMenuWriteService::class);
+        [$draft, , $category, $linkedItem] = $this->draftItem($fixture, $writer);
+        $writer->createItem($fixture['admin'], $fixture['site'], $draft, $category, [
+            'name_en' => 'Unaffected Item',
+            'price_override' => 7.500,
+            'is_visible' => true,
+            'sold_out' => false,
+            'spicy_level' => 0,
+            'allow_customer_notes' => true,
+            'sort_order' => 1,
+        ]);
+
+        DB::table('products')->where('id', $fixture['product_id'])->update(['is_active' => false]);
+
+        app()->setLocale('en');
+        $response = $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]));
+
+        $response->assertOk()
+            ->assertSee('Resolve unavailable menu items before publishing')
+            ->assertSee('Linked product needs attention')
+            ->assertSee('Replace product')
+            ->assertSee('Unlink product')
+            ->assertSee('Set override price')
+            ->assertSee('Review visibility')
+            ->assertSee('Unaffected Item')
+            ->assertSee('7.50 EGP')
+            ->assertDontSee('0.00 EGP')
+            ->assertSee('menu-item-'.$linkedItem->public_id, false)
+            ->assertSee('disabled', false);
+
+        try {
+            app(SmartOrderingMenuRevisionService::class)->publish(
+                $fixture['admin'],
+                $fixture['site']->fresh(),
+                $draft->fresh(),
+            );
+            $this->fail('Publishing must remain fail-closed while a linked item has no authoritative price.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('source_product_id', $exception->errors());
+        }
+
+        $fixture['admin']->forceFill(['locale' => 'ar'])->save();
+        app()->setLocale('ar');
+        $this->actingAs($fixture['admin']->fresh())
+            ->get(route('admin.smart-ordering.menu.index', ['store_id' => $fixture['store_id']]))
+            ->assertOk()
+            ->assertSee('عالج أصناف المنيو غير المتاحة قبل النشر')
+            ->assertSee('إلغاء ربط المنتج');
     }
 
     public function test_modifier_bounds_and_price_deltas_are_deterministic(): void
@@ -448,7 +519,11 @@ class SmartOrderingMenuDomainTest extends TestCase
             ]))
             ->assertOk()
             ->assertJsonCount(1, 'products')
-            ->assertJsonPath('products.0.id', $a['product_id']);
+            ->assertJsonPath('currency', 'EGP')
+            ->assertJsonPath('money_step', '0.01')
+            ->assertJsonPath('products.0.id', $a['product_id'])
+            ->assertJsonPath('products.0.currency', 'EGP')
+            ->assertJsonPath('products.0.display_price', '4.00');
 
         $this->actingAs($a['admin'])
             ->get(route('admin.smart-ordering.menu.index', ['store_id' => $a['store_id']]))

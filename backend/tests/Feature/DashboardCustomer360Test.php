@@ -458,6 +458,30 @@ class DashboardCustomer360Test extends TestCase
         ]);
     }
 
+    public function test_customer_360_map_search_exposes_distinct_states_and_rejects_stale_results(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/customer-360-show.blade.php'));
+        $this->assertIsString($view);
+
+        $this->assertStringContainsString('data-address-map-search-state', $view);
+        $this->assertStringContainsString('data-address-map-search-retry', $view);
+        $this->assertStringContainsString('role="status" aria-live="polite"', $view);
+        $this->assertStringContainsString('let searchRequestId = 0;', $view);
+        $this->assertStringContainsString('let mapSessionId = 0;', $view);
+        $this->assertStringContainsString('requestId === searchRequestId', $view);
+        $this->assertStringContainsString('sessionId === mapSessionId', $view);
+        $this->assertStringContainsString('activeForm === requestForm', $view);
+        $this->assertStringContainsString('if (!response.ok) throw new Error(\'map-search-http-\' + response.status);', $view);
+        $this->assertStringContainsString('runSearch(lastSearchQuery)', $view);
+
+        $english = require lang_path('en/customer_360.php');
+        $arabic = require lang_path('ar/customer_360.php');
+        foreach (['map_searching', 'map_no_results', 'map_failed', 'map_retry', 'map_results_aria'] as $key) {
+            $this->assertNotEmpty($english['addresses'][$key] ?? null);
+            $this->assertNotEmpty($arabic['addresses'][$key] ?? null);
+        }
+    }
+
     public function test_b2b_admin_does_not_receive_exact_retail_origin_store(): void
     {
         $storeA = $this->store('B2C', 'RETAIL-A', 'Retail A');

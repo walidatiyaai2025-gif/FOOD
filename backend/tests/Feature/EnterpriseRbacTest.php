@@ -35,6 +35,58 @@ class EnterpriseRbacTest extends TestCase
             ->assertSee('dir="rtl"', false);
     }
 
+    public function test_security_center_exposes_localized_searchable_permission_review_controls(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/security')
+            ->assertOk()
+            ->assertSee('Roles — Manage')
+            ->assertSee('roles.manage')
+            ->assertSee('Search permissions by business name or technical code')
+            ->assertSee('Review access impact before saving')
+            ->assertSee('data-bulk-action="select"', false)
+            ->assertSee('data-impact-summary', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+
+        $this->actingAs($admin->fresh())
+            ->get('/admin/security')
+            ->assertOk()
+            ->assertSee('الأدوار — إدارة')
+            ->assertSee('ابحث عن صلاحية بالاسم التجاري أو الكود التقني')
+            ->assertSee('راجع أثر الصلاحيات قبل الحفظ');
+    }
+
+    public function test_delegated_security_operator_is_only_offered_grants_within_own_authority(): void
+    {
+        $operator = User::factory()->create(['locale' => 'en', 'is_active' => true]);
+        $operatorRole = Role::query()->create([
+            'code' => 'SECURITY_DELEGATE',
+            'name' => 'Security Delegate',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $operatorRole->permissions()->attach([
+            Permission::query()->where('code', 'security.view')->value('id'),
+            Permission::query()->where('code', 'roles.manage')->value('id'),
+            Permission::query()->where('code', 'users.roles.manage')->value('id'),
+        ]);
+        $operator->roles()->attach($operatorRole);
+
+        $this->actingAs($operator)
+            ->get('/admin/security')
+            ->assertOk()
+            ->assertSee('Roles — Manage')
+            ->assertSee('User role assignments — Manage')
+            ->assertDontSee('platform.manage')
+            ->assertDontSee('Platform — Manage')
+            ->assertSee('Only permissions within your own effective authority are offered.')
+            ->assertSee('This role includes permissions outside your grant authority.');
+    }
+
     public function test_ordinary_admin_without_security_permission_is_denied(): void
     {
         $admin = $this->userWithGlobalRole('B2B_ADMIN');

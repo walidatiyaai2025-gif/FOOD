@@ -27,8 +27,10 @@ class VanOrderReviewPage extends StatefulWidget {
 class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   final _note = TextEditingController();
   bool _loading = false;
+  bool _quoteFailed = false;
   bool _submitting = false;
-  late final String _idempotencyKey;
+  int? _idempotencyRevision;
+  String? _idempotencyKey;
 
   bool get _arabic => Localizations.localeOf(context).languageCode == 'ar';
   String _text(String en, String ar) => _arabic ? ar : en;
@@ -37,8 +39,6 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   void initState() {
     super.initState();
     _note.text = widget.draft.customerNote ?? '';
-    _idempotencyKey =
-        'van-order-${DateTime.now().microsecondsSinceEpoch}-review';
     if (widget.draft.options == null || widget.draft.quote == null) {
       _reload();
     }
@@ -53,27 +53,39 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
   Future<void> _reload() async {
     final customer = widget.draft.customer;
     if (customer == null || widget.draft.lines.isEmpty || _loading) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _quoteFailed = false;
+    });
     try {
       var options = widget.draft.options;
       options ??= await widget.repository.options(customer);
       widget.draft.applyOptions(options);
+      widget.draft.setSelection(note: _note.text);
       final payment = widget.draft.paymentMethod;
       if (payment == null) throw StateError('No payment method.');
+      final revision = widget.draft.revision;
+      final lines = List<VanOrderLine>.unmodifiable(widget.draft.lines);
+      final addressId = widget.draft.addressId;
+      final warehouseId = widget.draft.warehouseId;
+      final customerNote = widget.draft.customerNote;
       final quote = await widget.repository.quote(
         customer: customer,
-        lines: widget.draft.lines,
+        lines: lines,
         paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: _note.text,
+        addressId: addressId,
+        warehouseId: warehouseId,
+        customerNote: customerNote,
       );
-      widget.draft.setSelection(note: _note.text);
-      widget.draft.setQuote(quote);
+      final accepted = widget.draft.setQuoteForRevision(quote, revision);
+      if (!accepted && mounted) {
+        setState(() => _quoteFailed = true);
+      }
     } on VanSessionExpiredException {
       await widget.onSessionExpired();
     } catch (_) {
       if (!mounted) return;
+      setState(() => _quoteFailed = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -86,28 +98,49 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
     }
   }
 
+  String _idempotencyKeyFor(int revision) {
+    if (_idempotencyRevision != revision || _idempotencyKey == null) {
+      _idempotencyRevision = revision;
+      _idempotencyKey =
+          'van-order-${DateTime.now().microsecondsSinceEpoch}-r$revision';
+    }
+    return _idempotencyKey!;
+  }
+
   Future<void> _submit() async {
+    final revision = widget.draft.revision;
     final customer = widget.draft.customer;
     final payment = widget.draft.paymentMethod;
     final quote = widget.draft.quote;
     if (customer == null ||
         payment == null ||
         quote == null ||
+        !widget.draft.hasCurrentQuote ||
         quote.hasUnavailableItems ||
+        _loading ||
         _submitting) {
       return;
     }
 
+    final lines = List<VanOrderLine>.unmodifiable(widget.draft.lines);
+    final addressId = widget.draft.addressId;
+    final warehouseId = widget.draft.warehouseId;
+    final customerNote = widget.draft.customerNote;
+    final idempotencyKey = _idempotencyKeyFor(revision);
+
     setState(() => _submitting = true);
     try {
+      if (!widget.draft.hasCurrentQuote || widget.draft.revision != revision) {
+        return;
+      }
       final order = await widget.repository.createOrder(
         customer: customer,
-        lines: widget.draft.lines,
+        lines: lines,
         paymentMethod: payment,
-        addressId: widget.draft.addressId,
-        warehouseId: widget.draft.warehouseId,
-        customerNote: _note.text,
-        idempotencyKey: _idempotencyKey,
+        addressId: addressId,
+        warehouseId: warehouseId,
+        customerNote: customerNote,
+        idempotencyKey: idempotencyKey,
       );
       if (!mounted) return;
       widget.onSubmitted(order);
@@ -189,10 +222,12 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                         ),
                       ),
                   ],
-                  onChanged: (value) {
-                    widget.draft.setSelection(warehouse: value);
-                    _reload();
-                  },
+                  onChanged: _loading || _submitting
+                      ? null
+                      : (value) {
+                          widget.draft.setSelection(warehouse: value);
+                          _reload();
+                        },
                 ),
               if (options.warehouses.isNotEmpty) const SizedBox(height: 10),
               if (options.addresses.isNotEmpty)
@@ -215,10 +250,12 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                         ),
                       ),
                   ],
-                  onChanged: (value) {
-                    widget.draft.setSelection(address: value);
-                    _reload();
-                  },
+                  onChanged: _loading || _submitting
+                      ? null
+                      : (value) {
+                          widget.draft.setSelection(address: value);
+                          _reload();
+                        },
                 ),
               if (options.addresses.isNotEmpty) const SizedBox(height: 10),
               DropdownButtonFormField<String>(
@@ -239,20 +276,35 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
                       ),
                     ),
                 ],
-                onChanged: (value) {
-                  widget.draft.setSelection(payment: value);
-                  _reload();
-                },
+                onChanged: _loading || _submitting
+                    ? null
+                    : (value) {
+                        widget.draft.setSelection(payment: value);
+                        _reload();
+                      },
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _note,
+                enabled: !_loading && !_submitting,
                 maxLines: 2,
                 decoration: InputDecoration(
                   labelText: _text('Note (optional)', 'ملاحظة (اختياري)'),
                   border: const OutlineInputBorder(),
                 ),
+                onChanged: (value) => widget.draft.setSelection(note: value),
                 onEditingComplete: _reload,
+              ),
+            ],
+            if (_quoteFailed) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                key: const ValueKey('van-order-quote-retry'),
+                onPressed: _loading || _submitting ? null : _reload,
+                icon: const Icon(Icons.refresh),
+                label: Text(
+                  _text('Retry order quote', 'إعادة محاولة تسعير الطلب'),
+                ),
               ),
             ],
             if (quote != null) ...[
@@ -309,10 +361,13 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
             const SizedBox(height: 14),
             FilledButton.icon(
               key: const ValueKey('van-order-submit'),
-              onPressed:
-                  _submitting || quote == null || quote.hasUnavailableItems
-                      ? null
-                      : _submit,
+              onPressed: _submitting ||
+                      _loading ||
+                      !widget.draft.hasCurrentQuote ||
+                      quote == null ||
+                      quote.hasUnavailableItems
+                  ? null
+                  : _submit,
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,
