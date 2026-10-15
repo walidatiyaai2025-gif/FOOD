@@ -542,6 +542,7 @@ Route::prefix('admin')
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');
         Route::delete('/operations/orders/{order}/driver', [OrderOperationsController::class, 'unassign'])->whereNumber('order')->name('operations.orders.unassign');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/lookups/{entity}', [ReportController::class, 'lookup'])->whereIn('entity', ['products', 'customers'])->name('reports.lookups');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/inspector', [SystemInspectorController::class, 'index'])->name('inspector.index');
         Route::post('/inspector/client-events', [SystemInspectorController::class, 'clientEvent'])->name('inspector.client-events');

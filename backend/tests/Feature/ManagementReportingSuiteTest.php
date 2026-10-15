@@ -81,6 +81,146 @@ class ManagementReportingSuiteTest extends TestCase
         $this->getJson('/api/v1/admin/reports/orders?store_id='.$this->storeA)->assertOk();
     }
 
+    public function test_report_lookup_searches_complete_product_and_channel_customer_domains(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $catalog = (int) DB::table('catalogs')
+            ->where('store_id', $this->storeA)
+            ->where('channel', 'b2c')
+            ->value('id');
+        $unit = (int) DB::table('units')->where('code', 'RPT-U')->value('id');
+        $category = (int) DB::table('categories')
+            ->where('catalog_id', $catalog)
+            ->where('slug', 'reporting')
+            ->value('id');
+
+        $products = [];
+        for ($i = 1; $i <= 250; $i++) {
+            $products[] = [
+                'catalog_id' => $catalog,
+                'category_id' => $category,
+                'unit_id' => $unit,
+                'sku' => sprintf('RPT-FILLER-%03d', $i),
+                'name' => sprintf('Lookup Filler Product %03d', $i),
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        foreach (array_chunk($products, 50) as $chunk) {
+            DB::table('products')->insert($chunk);
+        }
+
+        $targetProduct = $this->product($catalog, $unit, $category, 'RPT-LOOKUP-Z', 'ZZZ Lookup Target');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/products?store_id='.$this->storeA.'&channel=b2c&q='.urlencode('ZZZ Lookup Target'))
+            ->assertOk()
+            ->assertJsonPath('products.0.id', $targetProduct)
+            ->assertJsonPath('products.0.sku', 'RPT-LOOKUP-Z');
+
+        $retailCustomers = [];
+        for ($i = 1; $i <= 251; $i++) {
+            $retailCustomers[] = [
+                'legacy_customer_id' => null,
+                'store_id' => $this->storeA,
+                'user_id' => null,
+                'name' => sprintf('Retail Lookup Customer %03d', $i),
+                'phone' => null,
+                'email' => sprintf('retail-lookup-%03d@example.test', $i),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        foreach (array_chunk($retailCustomers, 50) as $chunk) {
+            DB::table('b2c_customers')->insert($chunk);
+        }
+
+        DB::table('b2c_customers')->insert([
+            'id' => 9001,
+            'legacy_customer_id' => null,
+            'store_id' => $this->storeA,
+            'user_id' => null,
+            'name' => 'Retail Same Identity',
+            'phone' => '+96550009001',
+            'email' => 'retail-same-id@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $legacyWholesale = Customer::query()->create([
+            'type' => 'b2b',
+            'name' => 'Wholesale Same Identity',
+            'email' => 'wholesale-same-id@example.test',
+        ]);
+        DB::table('b2b_customers')->insert([
+            'id' => 9001,
+            'legacy_customer_id' => $legacyWholesale->id,
+            'user_id' => null,
+            'name' => 'Wholesale Same Identity',
+            'phone' => '+96560009001',
+            'email' => 'wholesale-same-id@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->insert([
+            'store_id' => $this->storeA,
+            'customer_id' => $legacyWholesale->id,
+            'b2b_customer_id' => 9001,
+            'order_number' => 'RPT-B2B-LOOKUP',
+            'channel' => 'b2b',
+            'status' => 'delivered',
+            'currency' => 'KWD',
+            'subtotal' => 1,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/customers?store_id='.$this->storeA.'&channel=b2c&q='.urlencode('Retail Lookup Customer 251'))
+            ->assertOk()
+            ->assertJsonPath('customers.0.name', 'Retail Lookup Customer 251')
+            ->assertJsonPath('customers.0.channel', 'b2c');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/customers?store_id='.$this->storeA.'&channel=b2c&q='.urlencode('Retail Same Identity'))
+            ->assertOk()
+            ->assertJsonPath('customers.0.id', 9001)
+            ->assertJsonPath('customers.0.channel', 'b2c');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/customers?store_id='.$this->storeA.'&channel=b2b&q='.urlencode('Wholesale Same Identity'))
+            ->assertOk()
+            ->assertJsonPath('customers.0.id', 9001)
+            ->assertJsonPath('customers.0.channel', 'b2b');
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/customers?q=Retail')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('channel');
+    }
+
+    public function test_report_filters_use_shared_picker_and_clear_dependent_selections(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $productId = (int) DB::table('products')->where('sku', 'RPT-A')->value('id');
+
+        $this->actingAs($admin)
+            ->get('/admin/reports?report=products&store_id='.$this->storeA.'&channel=b2c&product_id='.$productId)
+            ->assertOk()
+            ->assertSee('data-foodex-entity-picker', false)
+            ->assertSee('assets/admin/entity-lookup.js', false)
+            ->assertSee('Best Product')
+            ->assertSee('data-report-store', false)
+            ->assertSee('data-report-channel', false)
+            ->assertSee('data-report-category', false)
+            ->assertSee('clearPicker(productPicker)', false)
+            ->assertSee('clearPicker(customerPicker)', false);
+    }
+
     public function test_admin_center_is_bilingual_and_exports_real_files_with_audit(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN');

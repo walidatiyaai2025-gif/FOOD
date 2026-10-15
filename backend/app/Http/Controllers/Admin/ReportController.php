@@ -10,9 +10,11 @@ use App\Services\OperationalTenantScope;
 use App\Services\ReportExportService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ReportController extends Controller
@@ -32,6 +34,7 @@ final class ReportController extends Controller
         $perPage = (int) ($validated['per_page'] ?? 25);
         unset($validated['page'], $validated['per_page']);
 
+        $this->assertFilterIdentities($user, $validated);
         $data = $reports->run($user, $report, $validated, $perPage, ($page - 1) * $perPage);
         // More rows are reachable through pagination, so the UI is not truncated.
         $data['meta']['truncated'] = false;
@@ -51,7 +54,139 @@ final class ReportController extends Controller
             'catalog' => $reports->catalog(),
             'data' => $data,
             'rowsPaginator' => $rowsPaginator,
-            'options' => $this->options($user),
+            'options' => $this->options($user, $validated),
+        ]);
+    }
+
+    public function lookup(Request $request, string $entity): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless(in_array($entity, ['products', 'customers'], true), 404);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'store_id' => ['nullable', 'integer', 'min:1', 'exists:stores,id'],
+            'channel' => ['nullable', 'required_with:customer_id', 'in:b2b,b2c'],
+            'category_id' => ['nullable', 'integer', 'min:1', 'exists:categories,id'],
+        ]);
+
+        $scope = app(OperationalTenantScope::class);
+        $superAdmin = $user->hasRole('SUPER_ADMIN');
+        $channel = isset($validated['channel']) ? (string) $validated['channel'] : null;
+        $allowedStoreIds = $scope->allowedStoreIds($user, 'reports.view', $channel);
+        abort_unless($superAdmin || $allowedStoreIds !== [], 403);
+
+        $storeId = isset($validated['store_id']) ? (int) $validated['store_id'] : null;
+        if (
+            $storeId !== null
+            && $superAdmin === false
+            && in_array($storeId, $allowedStoreIds, true) === false
+        ) {
+            abort(403);
+        }
+
+        $term = trim((string) ($validated['q'] ?? ''));
+        $page = max(1, (int) ($validated['page'] ?? 1));
+        $pageSize = 25;
+
+        if ($entity === 'customers') {
+            if ($channel === null) {
+                throw ValidationException::withMessages([
+                    'channel' => [__('reports.lookup.channel_required')],
+                ]);
+            }
+
+            $query = $channel === 'b2b'
+                ? DB::table('b2b_customers')
+                    ->whereExists(function (Builder $orders) use ($allowedStoreIds, $storeId, $superAdmin): void {
+                        $orders->selectRaw('1')
+                            ->from('orders')
+                            ->whereColumn('orders.b2b_customer_id', 'b2b_customers.id')
+                            ->where('orders.channel', 'b2b')
+                            ->when($storeId !== null, fn (Builder $query) => $query->where('orders.store_id', $storeId))
+                            ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('orders.store_id', $allowedStoreIds));
+                    })
+                : DB::table('b2c_customers')
+                    ->when($storeId !== null, fn (Builder $query) => $query->where('store_id', $storeId))
+                    ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('store_id', $allowedStoreIds));
+
+            $rows = $query
+                ->when($term !== '', function (Builder $query) use ($term): void {
+                    $like = '%'.$term.'%';
+                    $query->where(function (Builder $search) use ($like): void {
+                        $search->where('name', 'like', $like)
+                            ->orWhere('phone', 'like', $like)
+                            ->orWhere('email', 'like', $like);
+                    });
+                })
+                ->orderBy('name')
+                ->orderBy('id')
+                ->offset(($page - 1) * $pageSize)
+                ->limit($pageSize + 1)
+                ->get(['id', 'name', 'phone', 'email']);
+
+            $hasMore = $rows->count() > $pageSize;
+            $items = $rows->take($pageSize)->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'phone' => $row->phone === null ? null : (string) $row->phone,
+                'email' => $row->email === null ? null : (string) $row->email,
+                'channel' => $channel,
+            ])->values();
+
+            return response()->json([
+                'customers' => $items,
+                'next_page' => $hasMore ? $page + 1 : null,
+                'meta' => ['page' => $page, 'page_size' => $pageSize, 'has_more' => $hasMore],
+            ]);
+        }
+
+        $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
+        $rows = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->when($storeId !== null, fn (Builder $query) => $query->where('catalogs.store_id', $storeId))
+            ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('catalogs.store_id', $allowedStoreIds))
+            ->when($channel !== null, fn (Builder $query) => $query->where('catalogs.channel', $channel))
+            ->when($categoryId !== null, fn (Builder $query) => $query->where('products.category_id', $categoryId))
+            ->when($term !== '', function (Builder $query) use ($term): void {
+                $like = '%'.$term.'%';
+                $query->where(function (Builder $search) use ($like): void {
+                    $search->where('products.name', 'like', $like)
+                        ->orWhere('products.sku', 'like', $like)
+                        ->orWhere('products.barcode', 'like', $like);
+                });
+            })
+            ->orderBy('products.name')
+            ->orderBy('products.id')
+            ->offset(($page - 1) * $pageSize)
+            ->limit($pageSize + 1)
+            ->get([
+                'products.id',
+                'products.name',
+                'products.sku',
+                'products.barcode',
+                'products.is_active',
+                'catalogs.store_id',
+                'catalogs.channel',
+            ]);
+
+        $hasMore = $rows->count() > $pageSize;
+        $items = $rows->take($pageSize)->map(fn (object $row): array => [
+            'id' => (int) $row->id,
+            'name' => (string) $row->name,
+            'sku' => $row->sku === null ? null : (string) $row->sku,
+            'barcode' => $row->barcode === null ? null : (string) $row->barcode,
+            'is_active' => (bool) $row->is_active,
+            'store_id' => (int) $row->store_id,
+            'channel' => (string) $row->channel,
+        ])->values();
+
+        return response()->json([
+            'products' => $items,
+            'next_page' => $hasMore ? $page + 1 : null,
+            'meta' => ['page' => $page, 'page_size' => $pageSize, 'has_more' => $hasMore],
         ]);
     }
 
@@ -74,6 +209,7 @@ final class ReportController extends Controller
         $format = (string) $validated['format'];
         unset($validated['report'], $validated['format']);
 
+        $this->assertFilterIdentities($user, $validated);
         $reports->authorizeExport($user, $validated);
         $data = $reports->run($user, $report, $validated, ManagementReportService::EXPORT_LIMIT);
         $locale = in_array(app()->getLocale(), ['ar', 'en'], true) ? app()->getLocale() : 'en';
@@ -113,8 +249,11 @@ final class ReportController extends Controller
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function options(User $user): array
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    private function options(User $user, array $filters): array
     {
         $scope = app(OperationalTenantScope::class);
         $superAdmin = $user->hasRole('SUPER_ADMIN');
@@ -125,53 +264,6 @@ final class ReportController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
-
-        $products = DB::table('products')
-            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
-            ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('catalogs.store_id', $storeIds))
-            ->orderBy('products.name')
-            ->limit(250)
-            ->get(['products.id', 'products.name', 'products.sku']);
-
-        $b2cStoreIds = $scope->allowedStoreIds($user, 'reports.view', 'b2c');
-        $b2bStoreIds = $scope->allowedStoreIds($user, 'reports.view', 'b2b');
-
-        $customers = collect();
-        if ($b2cStoreIds !== []) {
-            $customers = $customers->concat(
-                DB::table('b2c_customers')
-                    ->whereIn('store_id', $b2cStoreIds)
-                    ->orderBy('name')
-                    ->limit(250)
-                    ->get(['id', 'name'])
-                    ->map(fn (object $row): object => (object) [
-                        'id' => (int) $row->id,
-                        'name' => (string) $row->name,
-                        'type' => 'b2c',
-                    ]),
-            );
-        }
-        if ($b2bStoreIds !== []) {
-            $customers = $customers->concat(
-                DB::table('b2b_customers')
-                    ->whereExists(function (Builder $sub) use ($b2bStoreIds): void {
-                        $sub->selectRaw('1')
-                            ->from('orders')
-                            ->whereColumn('orders.b2b_customer_id', 'b2b_customers.id')
-                            ->whereIn('orders.store_id', $b2bStoreIds)
-                            ->where('orders.channel', 'b2b');
-                    })
-                    ->orderBy('name')
-                    ->limit(250)
-                    ->get(['id', 'name'])
-                    ->map(fn (object $row): object => (object) [
-                        'id' => (int) $row->id,
-                        'name' => (string) $row->name,
-                        'type' => 'b2b',
-                    ]),
-            );
-        }
-        $customers = $customers->take(250)->values();
 
         $statuses = DB::table('orders')
             ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('store_id', $storeIds))
@@ -192,6 +284,12 @@ final class ReportController extends Controller
             ->values()
             ->all();
 
+        $storeId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
+        $channel = isset($filters['channel']) ? (string) $filters['channel'] : null;
+        $categoryId = isset($filters['category_id']) ? (int) $filters['category_id'] : null;
+        $productId = isset($filters['product_id']) ? (int) $filters['product_id'] : null;
+        $customerId = isset($filters['customer_id']) ? (int) $filters['customer_id'] : null;
+
         return [
             'stores' => $stores,
             'categories' => DB::table('categories')
@@ -199,11 +297,109 @@ final class ReportController extends Controller
                 ->where('categories.is_active', true)
                 ->when(! $superAdmin, fn (Builder $query) => $query->whereIn('catalogs.store_id', $storeIds))
                 ->orderBy('categories.name')
-                ->get(['categories.id', 'categories.name']),
-            'products' => $products,
-            'customers' => $customers,
+                ->get([
+                    'categories.id',
+                    'categories.name',
+                    'catalogs.store_id',
+                    'catalogs.channel',
+                ]),
+            'selected_product' => $productId === null
+                ? null
+                : $this->productLookupQuery($user, $storeId, $channel, $categoryId)
+                    ->where('products.id', $productId)
+                    ->first([
+                        'products.id',
+                        'products.name',
+                        'products.sku',
+                        'products.barcode',
+                        'products.is_active',
+                        'catalogs.store_id',
+                        'catalogs.channel',
+                    ]),
+            'selected_customer' => $customerId === null || $channel === null
+                ? null
+                : $this->customerLookupQuery($user, $channel, $storeId)
+                    ->where('id', $customerId)
+                    ->first(['id', 'name', 'phone', 'email']),
             'statuses' => $statuses,
             'payment_providers' => $providers,
         ];
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function assertFilterIdentities(User $user, array $filters): void
+    {
+        $storeId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
+        $channel = isset($filters['channel']) ? (string) $filters['channel'] : null;
+        $categoryId = isset($filters['category_id']) ? (int) $filters['category_id'] : null;
+
+        if (isset($filters['product_id'])) {
+            $exists = $this->productLookupQuery($user, $storeId, $channel, $categoryId)
+                ->where('products.id', (int) $filters['product_id'])
+                ->exists();
+
+            if (! $exists) {
+                throw ValidationException::withMessages([
+                    'product_id' => [__('reports.lookup.invalid_product')],
+                ]);
+            }
+        }
+
+        if (isset($filters['customer_id'])) {
+            if ($channel === null) {
+                throw ValidationException::withMessages([
+                    'channel' => [__('reports.lookup.channel_required')],
+                ]);
+            }
+
+            $exists = $this->customerLookupQuery($user, $channel, $storeId)
+                ->where('id', (int) $filters['customer_id'])
+                ->exists();
+
+            if (! $exists) {
+                throw ValidationException::withMessages([
+                    'customer_id' => [__('reports.lookup.invalid_customer')],
+                ]);
+            }
+        }
+    }
+
+    private function productLookupQuery(
+        User $user,
+        ?int $storeId,
+        ?string $channel,
+        ?int $categoryId,
+    ): Builder {
+        $superAdmin = $user->hasRole('SUPER_ADMIN');
+        $storeIds = app(OperationalTenantScope::class)->allowedStoreIds($user, 'reports.view', $channel);
+
+        return DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->when($storeId !== null, fn (Builder $query) => $query->where('catalogs.store_id', $storeId))
+            ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('catalogs.store_id', $storeIds))
+            ->when($channel !== null, fn (Builder $query) => $query->where('catalogs.channel', $channel))
+            ->when($categoryId !== null, fn (Builder $query) => $query->where('products.category_id', $categoryId));
+    }
+
+    private function customerLookupQuery(User $user, string $channel, ?int $storeId): Builder
+    {
+        $superAdmin = $user->hasRole('SUPER_ADMIN');
+        $storeIds = app(OperationalTenantScope::class)->allowedStoreIds($user, 'reports.view', $channel);
+
+        if ($channel === 'b2b') {
+            return DB::table('b2b_customers')
+                ->whereExists(function (Builder $orders) use ($storeIds, $storeId, $superAdmin): void {
+                    $orders->selectRaw('1')
+                        ->from('orders')
+                        ->whereColumn('orders.b2b_customer_id', 'b2b_customers.id')
+                        ->where('orders.channel', 'b2b')
+                        ->when($storeId !== null, fn (Builder $query) => $query->where('orders.store_id', $storeId))
+                        ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('orders.store_id', $storeIds));
+                });
+        }
+
+        return DB::table('b2c_customers')
+            ->when($storeId !== null, fn (Builder $query) => $query->where('store_id', $storeId))
+            ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('store_id', $storeIds));
     }
 }
