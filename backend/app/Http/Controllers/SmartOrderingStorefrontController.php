@@ -20,8 +20,7 @@ final class SmartOrderingStorefrontController extends Controller
         string $siteKey,
         StorefrontThemeRenderer $renderer,
         SmartOrderingRevisionService $revisions,
-    ): Response
-    {
+    ): Response {
         $provider = app()->bound(StorefrontSnapshotProvider::class)
             ? app(StorefrontSnapshotProvider::class)
             : app(ConfigStorefrontSnapshotProvider::class);
