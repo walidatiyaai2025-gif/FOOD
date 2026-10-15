@@ -45,10 +45,13 @@ command -v dart >/dev/null || { echo "Dart is required for strict $app analysis.
 
 echo "Strict changed-file Flutter analysis: app=$app files=${#files[@]} base=$base head=$head"
 
-if ! (
+(
   cd "$root/$prefix"
-  dart format --output=none --set-exit-if-changed "${files[@]}"
-); then
+  dart format --output=none "${files[@]}"
+)
+if ! git -C "$root" diff --quiet -- "$prefix/lib" "$prefix/test"; then
+  echo "=== dart format diff ===" >&2
+  git -C "$root" diff -- "$prefix/lib" "$prefix/test" >&2
   echo "Changed $app Dart files are not canonically formatted. Run dart format before push." >&2
   exit 1
 fi
