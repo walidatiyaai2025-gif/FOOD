@@ -129,7 +129,7 @@ final class FeedbackService
                 'low_rating_threshold' => $lowRatingThreshold,
                 'external_review_min_rating' => $externalReviewMinRating,
                 'external_review_url' => $externalReviewUrl,
-                'created_at' => $before?->created_at ?? now(),
+                'created_at' => $before === null ? now() : $before->created_at,
                 'updated_at' => now(),
             ],
         );
