@@ -36,6 +36,8 @@ Route::prefix('admin/smart-ordering')
             ->whereNumber('site')->name('loyalty.rewards.store');
         Route::put('/sites/{site}/reviews/settings', [SmartOrderingCustomerGrowthController::class, 'reviewSettings'])
             ->whereNumber('site')->name('reviews.settings');
+        Route::get('/sites/{site}/service-recovery', [SmartOrderingCustomerGrowthController::class, 'recoveryCases'])
+            ->whereNumber('site')->name('service-recovery.index');
         Route::post('/sites/{site}/service-recovery/{case}/resolve', [SmartOrderingCustomerGrowthController::class, 'resolveRecovery'])
             ->whereNumber('site')->whereUuid('case')->name('service-recovery.resolve');
     });
