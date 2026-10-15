@@ -43,6 +43,7 @@ Route::prefix('admin/smart-ordering')
         Route::put('/menu/bulk-availability', [SmartOrderingMenuAdminController::class, 'bulkAvailability'])->name('menu.bulk-availability');
         Route::post('/menu/revisions/{revision}/publish', [SmartOrderingMenuAdminController::class, 'publish'])->whereNumber('revision')->name('menu.publish');
 
+        Route::get('/supply', [SmartOrderingSupplyController::class, 'entry'])->name('supply.entry');
         Route::get('/sites/{site}/supply', [SmartOrderingSupplyController::class, 'index'])
             ->whereNumber('site')->name('supply.index');
         Route::post('/sites/{site}/supply/mappings', [SmartOrderingSupplyController::class, 'storeMapping'])
