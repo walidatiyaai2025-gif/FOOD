@@ -183,10 +183,16 @@ class _VanRouteMapPageState extends State<VanRouteMapPage>
     );
   }
 
-  String _stopSemanticsLabel(int stopNumber, VanVisitRecord visit) => _text(
-        'Stop $stopNumber. ${_customerName(visit)}. ${_statusLabel(visit.status)}. ${_stopLocationLabel(visit)}.',
-        'المحطة $stopNumber. ${_customerName(visit)}. ${_statusLabel(visit.status)}. ${_stopLocationLabel(visit)}.',
-      );
+  String _stopSemanticsLabel(int stopNumber, VanVisitRecord visit) {
+    final customerName = _customerName(visit);
+    final status = _statusLabel(visit.status);
+    final location = _stopLocationLabel(visit);
+
+    return _text(
+      'Stop $stopNumber. $customerName. $status. $location.',
+      'المحطة $stopNumber. $customerName. $status. $location.',
+    );
+  }
 
   VanVisitRecord? get _nextVisit {
     for (final visit in _routeVisits) {
