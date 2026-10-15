@@ -219,7 +219,7 @@ class FieldOperationsRoutingRuleBuilderTest extends TestCase
             'is_active' => true,
         ]);
         $role->permissions()->attach(
-            Permission::query()->where('code', 'field_ops.manage')->firstOrFail(),
+            Permission::query()->whereIn('code', ['field_ops.manage', 'customers.view'])->pluck('id'),
         );
         $user->roles()->attach($role);
         DB::table('user_store_roles')->insert([
