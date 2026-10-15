@@ -13,6 +13,8 @@ class AdminModalAccessibilityContractTest extends TestCase
         $this->assertIsString($brand);
         $this->assertStringContainsString('window.FoodexModalA11y = modalA11y;', $brand);
         $this->assertStringContainsString("if (event.key !== 'Tab') return;", $brand);
+        $this->assertStringContainsString('activeStack[activeStack.length - 1] !== token', $brand);
+        $this->assertStringContainsString('activeStack.splice(stackIndex, 1);', $brand);
         $this->assertStringContainsString('sibling.inert = true;', $brand);
         $this->assertStringContainsString('restoreIsolation();', $brand);
         $this->assertStringContainsString('target?.focus();', $brand);
