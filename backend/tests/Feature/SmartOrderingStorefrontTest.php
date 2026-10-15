@@ -124,6 +124,28 @@ final class SmartOrderingStorefrontTest extends TestCase
         $this->assertStringContainsString('[data-theme=dark]', $stylesheet);
     }
 
+    public function test_public_storefront_cart_controls_use_public_item_identity_and_canonical_ordering_runtime(): void
+    {
+        foreach (['quick-bite', 'elegant-dining', 'cafe-bakery', 'visual-market', 'signature-brand'] as $theme) {
+            $this->app->instance(StorefrontSnapshotProvider::class, $this->provider($this->snapshot($theme, 'light')));
+
+            $this->get('/smart-ordering/demo')
+                ->assertOk()
+                ->assertSee('data-item-id="burger-1"', false)
+                ->assertSee('data-cart-open', false)
+                ->assertSee('data-cart-dialog', false)
+                ->assertSee('data-add-to-cart', false)
+                ->assertSee('data-ordering-enabled="0"', false);
+        }
+
+        $script = file_get_contents(public_path('js/smart-ordering-storefront.js'));
+        $this->assertIsString($script);
+        $this->assertStringContainsString('/menu-items/', $script);
+        $this->assertStringContainsString('Idempotency-Key', $script);
+        $this->assertStringContainsString('[data-cart-remove]', $script);
+        $this->assertStringContainsString('[data-cart-qty]', $script);
+    }
+
     private function provider(?array $snapshot): StorefrontSnapshotProvider
     {
         return new class($snapshot) implements StorefrontSnapshotProvider
