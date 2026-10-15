@@ -231,23 +231,25 @@ final class CampaignContactImportService
             }
 
             $namespaces = $sheet->getNamespaces(true);
-            $main = isset($namespaces['']) ? $sheet->children($namespaces['']) : $sheet;
+            $namespace = (string) ($namespaces[''] ?? 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+            $sheetChildren = $sheet->children($namespace);
+            $sheetData = $sheetChildren->sheetData;
 
             $matrix = [];
             $formulaRows = 0;
-            foreach ($main->sheetData->row as $rowNodeRaw) {
-                $rowNode = isset($namespaces['']) ? $rowNodeRaw->children($namespaces['']) : $rowNodeRaw;
+            foreach ($sheetData->children($namespace)->row as $rowNode) {
+                $rowChildren = $rowNode->children($namespace);
                 $values = [];
                 $hasFormula = false;
-                foreach ($rowNode->c as $cellRaw) {
-                    $cell = isset($namespaces['']) ? $cellRaw->children($namespaces['']) : $cellRaw;
+                foreach ($rowChildren->c as $cell) {
+                    $cellChildren = $cell->children($namespace);
                     $attributes = $cell->attributes();
                     $reference = (string) ($attributes['r'] ?? '');
                     $index = $this->columnIndex($reference);
-                    if (isset($cell->f)) {
+                    if (isset($cellChildren->f)) {
                         $hasFormula = true;
                     }
-                    $values[$index] = $this->xlsxCellValue($cell, $shared);
+                    $values[$index] = $this->xlsxCellValue($cell, $shared, $namespace);
                 }
                 if ($values === []) {
                     continue;
@@ -324,19 +326,20 @@ final class CampaignContactImportService
         }
 
         $namespaces = $root->getNamespaces(true);
-        $main = isset($namespaces['']) ? $root->children($namespaces['']) : $root;
+        $namespace = (string) ($namespaces[''] ?? 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        $main = $root->children($namespace);
         $values = [];
-        foreach ($main->si as $siRaw) {
-            $si = isset($namespaces['']) ? $siRaw->children($namespaces['']) : $siRaw;
-            if (isset($si->t)) {
-                $values[] = (string) $si->t;
+        foreach ($main->si as $si) {
+            $siChildren = $si->children($namespace);
+            if (isset($siChildren->t)) {
+                $values[] = (string) $siChildren->t;
 
                 continue;
             }
             $text = '';
-            foreach ($si->r as $runRaw) {
-                $run = isset($namespaces['']) ? $runRaw->children($namespaces['']) : $runRaw;
-                $text .= (string) $run->t;
+            foreach ($siChildren->r as $run) {
+                $runChildren = $run->children($namespace);
+                $text .= (string) $runChildren->t;
             }
             $values[] = $text;
         }
@@ -344,22 +347,26 @@ final class CampaignContactImportService
         return $values;
     }
 
-    private function xlsxCellValue(\SimpleXMLElement $cell, array $shared): string
+    private function xlsxCellValue(\SimpleXMLElement $cell, array $shared, string $namespace): string
     {
         $type = (string) ($cell->attributes()['t'] ?? '');
+        $children = $cell->children($namespace);
         if ($type === 'inlineStr') {
-            if (isset($cell->is->t)) {
-                return (string) $cell->is->t;
+            $inline = $children->is;
+            $inlineChildren = $inline->children($namespace);
+            if (isset($inlineChildren->t)) {
+                return (string) $inlineChildren->t;
             }
             $value = '';
-            foreach ($cell->is->r as $run) {
-                $value .= (string) $run->t;
+            foreach ($inlineChildren->r as $run) {
+                $runChildren = $run->children($namespace);
+                $value .= (string) $runChildren->t;
             }
 
             return $value;
         }
 
-        $raw = (string) ($cell->v ?? '');
+        $raw = (string) ($children->v ?? '');
         if ($type === 's' && ctype_digit($raw)) {
             return (string) ($shared[(int) $raw] ?? '');
         }
