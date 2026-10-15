@@ -52,8 +52,8 @@
             <div><small>{{ __('notifications.delivery_channel') }}</small><strong>{{ __('notifications.delivery_options.'.$reviewNotification->channel) }}</strong></div>
         </div>
         <div class="preview">
-            <div dir="rtl"><small>{{ __('notifications.preview_ar') }}</small><strong>{{ $reviewNotification->title_ar }}</strong><p>{{ $reviewNotification->body_ar }}</p></div>
-            <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $reviewNotification->title_en }}</strong><p>{{ $reviewNotification->body_en }}</p></div>
+            <div dir="rtl"><small>{{ __('notifications.preview_ar') }}</small><strong>{{ $reviewNotification->title_ar }}</strong><p>{{ $reviewNotification->body_ar }}</p></div> {{-- localization-gate: allow intentional bilingual publication review --}}
+            <div dir="ltr"><small>{{ __('notifications.preview_en') }}</small><strong>{{ $reviewNotification->title_en }}</strong><p>{{ $reviewNotification->body_en }}</p></div> {{-- localization-gate: allow intentional bilingual publication review --}}
         </div>
 
         @if($reviewSummary['sample'] !== [])
