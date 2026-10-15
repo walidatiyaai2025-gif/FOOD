@@ -51,6 +51,7 @@
 <label>{{ app()->getLocale()==='ar'?'التنفيذ':'Fulfillment' }}
 <select name="fulfillment"><option value="">{{ app()->getLocale()==='ar'?'الكل':'All' }}</option>@foreach(['dine_in','pickup','delivery'] as $mode)<option value="{{ $mode }}" @selected(($filters['fulfillment']??'')===$mode)>{{ $mode }}</option>@endforeach</select>
 </label>
+<label>QR ID<input name="qr_public_id" maxlength="36" value="{{ $filters['qr_public_id']??'' }}" placeholder="UUID"></label>
 <label>Source<input name="source" maxlength="64" value="{{ $filters['source']??'' }}"></label>
 <label>Campaign<input name="campaign" maxlength="120" value="{{ $filters['campaign']??'' }}"></label>
 <label>Offer<input name="offer" maxlength="120" value="{{ $filters['offer']??'' }}"></label>
@@ -76,7 +77,9 @@
 'abandoned_carts'=>app()->getLocale()==='ar'?'سلات متروكة':'Abandoned carts',
 'cancellation_rate'=>app()->getLocale()==='ar'?'الإلغاء %':'Cancellation %',
 'repeat_conversion'=>app()->getLocale()==='ar'?'تحويل إعادة الطلب %':'Repeat conversion %',
-'offer_conversion'=>app()->getLocale()==='ar'?'تحويل العروض %':'Offer conversion %'
+'offer_conversion'=>app()->getLocale()==='ar'?'تحويل العروض %':'Offer conversion %',
+'feedback_count'=>app()->getLocale()==='ar'?'عدد التقييمات':'Feedback count',
+'average_rating'=>app()->getLocale()==='ar'?'متوسط التقييم':'Average rating'
 ] as $key=>$label)
 <article class="foodex-card so-a-kpi"><span>{{ $label }}</span><strong class="foodex-number">{{ is_float($k[$key])?number_format($k[$key],3):$k[$key] }}</strong></article>
 @endforeach
@@ -98,8 +101,8 @@
 
 <section class="foodex-card so-a-card">
 <h2>{{ app()->getLocale()==='ar'?'أداء المصدر والحملة':'Source & campaign performance' }}</h2>
-<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>Source</th><th>Campaign</th><th>Views</th><th>Orders</th><th>Conv %</th><th>Revenue</th><th>AOV</th></tr></thead><tbody>
-@forelse($dashboard['sources'] as $row)<tr><td>{{ $row['source']?:'direct' }}</td><td>{{ $row['campaign']?:'—' }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td><td>{{ number_format($row['aov'],3) }}</td></tr>@empty<tr><td colspan="7" class="so-a-empty">—</td></tr>@endforelse
+<div class="so-a-table-wrap"><table class="so-a-table"><thead><tr><th>QR</th><th>Source</th><th>Campaign</th><th>Views</th><th>Orders</th><th>Conv %</th><th>Revenue</th><th>AOV</th></tr></thead><tbody>
+@forelse($dashboard['sources'] as $row)<tr><td>{{ $row['qr_public_id']?:'—' }}</td><td>{{ $row['source']?:'direct' }}</td><td>{{ $row['campaign']?:'—' }}</td><td>{{ $row['views'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['conversion'],2) }}</td><td>{{ number_format($row['revenue'],3) }}</td><td>{{ number_format($row['aov'],3) }}</td></tr>@empty<tr><td colspan="8" class="so-a-empty">—</td></tr>@endforelse
 </tbody></table></div>
 </section>
 
