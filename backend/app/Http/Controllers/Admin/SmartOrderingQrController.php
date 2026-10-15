@@ -200,10 +200,13 @@ final class SmartOrderingQrController extends Controller
         $url = $manager->publicUrlFor($qr);
         abort_unless(is_string($url), 404);
 
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
         return response($assets->svg($url), 200, [
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="foodex-qr-'.$qr->public_id.'.svg"',
+            'Content-Disposition' => $disposition.'; filename="foodex-qr-'.$qr->public_id.'.svg"',
             'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
