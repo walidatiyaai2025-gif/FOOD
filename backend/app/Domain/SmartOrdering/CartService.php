@@ -406,7 +406,7 @@ final class CartService
      * Resolve public menu/group/option UUIDs to the legacy product-backed cart selection.
      * The public browser never receives internal product identifiers.
      *
-     * @param  list<array{group_id?:mixed,option_ids?:mixed}>  $rows
+     * @param  list<mixed>  $rows
      * @return array{0:int,1:array<string,mixed>}
      */
     private function resolvePublicMenuSelection(
@@ -446,7 +446,7 @@ final class CartService
         $modifierLines = [];
 
         foreach ($validated['selections'] as $groupSelection) {
-            $optionIds = (array) ($groupSelection['option_ids'] ?? []);
+            $optionIds = $groupSelection['option_ids'];
             if ($optionIds === []) {
                 continue;
             }
