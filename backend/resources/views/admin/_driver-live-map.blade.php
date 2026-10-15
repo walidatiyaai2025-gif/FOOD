@@ -2,6 +2,8 @@
     $liveMapMode = $liveMapMode ?? 'full';
     $trackingActor = $trackingActor ?? 'driver';
     $secondaryFeedUrl = $secondaryFeedUrl ?? null;
+    $lookupUrl = $lookupUrl ?? null;
+    $lookupInstance = 'live-map-'.uniqid();
     $showFilters = $showFilters ?? true;
     $showList = $showList ?? true;
     $showSummary = $showSummary ?? true;
@@ -18,6 +20,10 @@
         'networkFailed' => __('admin.driver_live_tracking.network_failed'),
         'invalidFeed' => __('admin.driver_live_tracking.invalid_feed'),
         'timeout' => __('admin.driver_live_tracking.timeout'),
+        'lookupLoading' => __('admin.driver_live_tracking.lookup_loading'),
+        'lookupNoResults' => __('admin.driver_live_tracking.lookup_no_results'),
+        'lookupFailed' => __('admin.driver_live_tracking.lookup_failed'),
+        'lookupClear' => __('admin.driver_live_tracking.lookup_clear'),
     ]);
     $trackingI18n += [
         'noDrivers' => __('admin.driver_live_tracking.no_drivers'),
@@ -58,6 +64,7 @@
     data-show-list="{{ $showList ? '1' : '0' }}"
     data-feed-url="{{ $feedUrl }}"
     data-secondary-feed-url="{{ $secondaryFeedUrl ?? '' }}"
+    data-lookup-url="{{ $lookupUrl ?? '' }}"
     data-poll-ms="{{ $pollMs }}"
     data-actor-kind="{{ $trackingActor }}"
     data-assets-failed="{{ __('admin.driver_live_tracking.assets_failed') }}"
@@ -100,13 +107,82 @@
                         <option value="offline">{{ __('admin.driver_live_tracking.offline') }}</option>
                     </select>
                 </label>
-                @if($trackingActor === 'van')
-                    <label>{{ $trackingI18n['entityId'] }}<input data-live-map="actor-id" type="number" min="1" inputmode="numeric"></label>
-                    <label>{{ $trackingI18n['route'] }}<input data-live-map="route-key" type="text"></label>
-                @elseif($trackingActor === 'driver')
-                    <label>{{ __('admin.driver_live_tracking.driver_id') }}<input data-live-map="driver-id" type="number" min="1" inputmode="numeric"></label>
+                @if($lookupUrl)
+                    <div class="tracking-lookup" data-live-lookup="entity">
+                        <label for="{{ $lookupInstance }}-entity">{{ __('admin.driver_live_tracking.entity_filter') }}</label>
+                        <div class="tracking-lookup-control">
+                            <input
+                                class="foodex-control"
+                                id="{{ $lookupInstance }}-entity"
+                                type="search"
+                                autocomplete="off"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-expanded="false"
+                                aria-controls="{{ $lookupInstance }}-entity-results"
+                                placeholder="{{ __('admin.driver_live_tracking.entity_search_placeholder') }}"
+                                data-live-lookup-search="entity"
+                            >
+                            <button type="button" class="tracking-lookup-clear" data-live-lookup-clear="entity" aria-label="{{ __('admin.driver_live_tracking.lookup_clear') }}" hidden>×</button>
+                        </div>
+                        <input data-live-map="entity-id" type="hidden">
+                        <input data-live-map="entity-kind" type="hidden">
+                        <div id="{{ $lookupInstance }}-entity-results" class="tracking-lookup-results" role="listbox" data-live-lookup-results="entity" hidden></div>
+                        <div class="tracking-lookup-state" data-live-lookup-state="entity" aria-live="polite"></div>
+                    </div>
+
+                    <div class="tracking-lookup" data-live-lookup="order">
+                        <label for="{{ $lookupInstance }}-order">{{ __('admin.driver_live_tracking.order_filter') }}</label>
+                        <div class="tracking-lookup-control">
+                            <input
+                                class="foodex-control"
+                                id="{{ $lookupInstance }}-order"
+                                type="search"
+                                autocomplete="off"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-expanded="false"
+                                aria-controls="{{ $lookupInstance }}-order-results"
+                                placeholder="{{ __('admin.driver_live_tracking.order_search_placeholder') }}"
+                                data-live-lookup-search="order"
+                            >
+                            <button type="button" class="tracking-lookup-clear" data-live-lookup-clear="order" aria-label="{{ __('admin.driver_live_tracking.lookup_clear') }}" hidden>×</button>
+                        </div>
+                        <input data-live-map="order-id" type="hidden">
+                        <div id="{{ $lookupInstance }}-order-results" class="tracking-lookup-results" role="listbox" data-live-lookup-results="order" hidden></div>
+                        <div class="tracking-lookup-state" data-live-lookup-state="order" aria-live="polite"></div>
+                    </div>
+
+                    <div class="tracking-lookup" data-live-lookup="route">
+                        <label for="{{ $lookupInstance }}-route">{{ __('admin.driver_live_tracking.route') }}</label>
+                        <div class="tracking-lookup-control">
+                            <input
+                                class="foodex-control"
+                                id="{{ $lookupInstance }}-route"
+                                type="search"
+                                autocomplete="off"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-expanded="false"
+                                aria-controls="{{ $lookupInstance }}-route-results"
+                                placeholder="{{ __('admin.driver_live_tracking.route_search_placeholder') }}"
+                                data-live-lookup-search="route"
+                            >
+                            <button type="button" class="tracking-lookup-clear" data-live-lookup-clear="route" aria-label="{{ __('admin.driver_live_tracking.lookup_clear') }}" hidden>×</button>
+                        </div>
+                        <input data-live-map="route-key" type="hidden">
+                        <div id="{{ $lookupInstance }}-route-results" class="tracking-lookup-results" role="listbox" data-live-lookup-results="route" hidden></div>
+                        <div class="tracking-lookup-state" data-live-lookup-state="route" aria-live="polite"></div>
+                    </div>
+                @else
+                    @if($trackingActor === 'van')
+                        <label>{{ $trackingI18n['entityId'] }}<input data-live-map="actor-id" type="number" min="1" inputmode="numeric"></label>
+                        <label>{{ $trackingI18n['route'] }}<input data-live-map="route-key" type="text"></label>
+                    @elseif($trackingActor === 'driver')
+                        <label>{{ __('admin.driver_live_tracking.driver_id') }}<input data-live-map="driver-id" type="number" min="1" inputmode="numeric"></label>
+                    @endif
+                    <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
                 @endif
-                <label>{{ __('admin.driver_live_tracking.order_id') }}<input data-live-map="order-id" type="number" min="1" inputmode="numeric"></label>
             </div>
             <div class="tracking-actions">
                 <button class="btn btn-primary" type="button" data-live-map="apply">{{ __('admin.driver_live_tracking.apply') }}</button>
