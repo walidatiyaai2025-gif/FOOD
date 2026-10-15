@@ -131,7 +131,11 @@ void main() {
 
     for (final entry in const <(Locale, String, String)>[
       (Locale('en'), 'Enter email and password', 'Enter email and password'),
-      (Locale('ar'), 'أدخل البريد الإلكتروني وكلمة المرور', 'أدخل البريد الإلكتروني وكلمة المرور'),
+      (
+        Locale('ar'),
+        'أدخل البريد الإلكتروني وكلمة المرور',
+        'أدخل البريد الإلكتروني وكلمة المرور'
+      ),
     ]) {
       await tester.pumpWidget(
         _host(
