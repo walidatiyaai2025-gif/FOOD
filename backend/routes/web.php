@@ -556,3 +556,5 @@ Route::prefix('admin')
         Route::patch('/settings/translations/{translation}', [TranslationController::class, 'update'])->name('translations.update');
         Route::post('/settings/translations/{translation}/reset', [TranslationController::class, 'reset'])->name('translations.reset');
     });
+
+require __DIR__.'/smart_ordering.php';

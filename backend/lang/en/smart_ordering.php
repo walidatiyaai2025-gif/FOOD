@@ -1,0 +1,38 @@
+<?php
+
+return [
+    'appearance' => [
+        'page_title' => 'Smart Ordering Appearance',
+        'eyebrow' => 'Smart Ordering',
+        'heading' => 'Storefront appearance',
+        'description' => 'Preview and switch the published storefront design without changing menu or site content.',
+        'controls_label' => 'Storefront appearance controls',
+        'site_key_label' => 'Restaurant public key',
+        'site_key_placeholder' => 'restaurant-public-key',
+        'template_label' => 'Template',
+        'appearance_label' => 'Appearance',
+        'light' => 'Light',
+        'dark' => 'Dark',
+        'language_label' => 'Language',
+        'english' => 'English',
+        'arabic' => 'Arabic',
+        'revision_label' => 'Revision',
+        'draft' => 'Draft appearance',
+        'published' => 'Published appearance',
+        'preview_size_label' => 'Preview size',
+        'mobile' => 'Mobile',
+        'tablet' => 'Tablet',
+        'desktop' => 'Desktop',
+        'privacy_hint' => 'Preview responses are private, no-store and noindex. Public pages always use the published appearance.',
+        'preview_region_label' => 'Live storefront preview',
+        'preview_title' => 'Smart Ordering live preview',
+        'empty' => 'Enter a restaurant public key to start the live preview.',
+        'themes' => [
+            'quick-bite' => ['label' => 'Quick Bite', 'layout' => 'Fast ordering'],
+            'elegant-dining' => ['label' => 'Elegant Dining', 'layout' => 'Editorial dining'],
+            'cafe-bakery' => ['label' => 'Café & Bakery', 'layout' => 'Modifier-forward café'],
+            'visual-market' => ['label' => 'Visual Market', 'layout' => 'Dense visual catalog'],
+            'signature-brand' => ['label' => 'Signature Brand', 'layout' => 'Restaurant mini-site'],
+        ],
+    ],
+];
