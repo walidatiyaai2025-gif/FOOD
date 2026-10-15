@@ -163,8 +163,9 @@ final class CampaignAudienceService
         ], static fn (mixed $value): bool => $value !== null && $value !== []);
     }
 
-    /** @param list<array{name?:mixed,phone?:mixed,email?:mixed}> $rows
-     * @return array{created:int,matched:int,updated:int,skipped:int,invalid:int,customer_ids:list<int>,errors:list<array<string,mixed>>}
+    /**
+     * @param  list<array{name?:mixed,phone?:mixed,email?:mixed,consent_state?:mixed,consent_source?:mixed,consent_evidence?:mixed,consent_date?:mixed}>  $rows
+     * @return array{created:int,matched:int,updated:int,skipped:int,invalid:int,consent_skipped:int,customer_ids:list<int>,errors:list<array<string,mixed>>}
      */
     public function importRows(
         User $actor,
@@ -174,6 +175,7 @@ final class CampaignAudienceService
         ?string $consentState = null,
         ?string $consentSource = null,
         ?string $consentEvidence = null,
+        ?int $sourceReference = null,
     ): array {
         $channel = $this->scope->assertStore($actor, $storeId, 'whatsapp.campaigns.manage');
         if (! in_array($channel, ['b2b', 'b2c'], true)) {
@@ -196,7 +198,7 @@ final class CampaignAudienceService
 
         $phoneMap = $this->phoneMap();
         $seen = [];
-        $created = $matched = $updated = $skipped = $invalid = 0;
+        $created = $matched = $updated = $skipped = $invalid = $consentSkipped = 0;
         $customerIds = [];
         $errors = [];
 
@@ -259,13 +261,50 @@ final class CampaignAudienceService
             }
 
             $customerIds[] = $customerId;
-            if ($consentState !== null) {
+
+            $rowConsentState = trim((string) ($row['consent_state'] ?? ''));
+            $effectiveConsentState = $rowConsentState === '' ? $consentState : strtolower($rowConsentState);
+            $effectiveConsentSource = trim((string) ($row['consent_source'] ?? ''));
+            $effectiveConsentSource = $effectiveConsentSource === '' ? trim((string) $consentSource) : $effectiveConsentSource;
+            $effectiveConsentEvidence = trim((string) ($row['consent_evidence'] ?? ''));
+            $effectiveConsentEvidence = $effectiveConsentEvidence === '' ? trim((string) $consentEvidence) : $effectiveConsentEvidence;
+            $consentDate = trim((string) ($row['consent_date'] ?? ''));
+
+            if ($effectiveConsentState !== null && ! in_array($effectiveConsentState, [
+                MarketingConsentService::GRANTED,
+                MarketingConsentService::DENIED,
+                MarketingConsentService::OPTED_OUT,
+            ], true)) {
+                $consentSkipped++;
+                $errors[] = ['row' => $rowNumber, 'reason' => 'invalid_consent_state'];
+                $effectiveConsentState = null;
+            }
+
+            if ($effectiveConsentState !== null
+                && ($effectiveConsentSource === '' || $effectiveConsentEvidence === '')) {
+                $consentSkipped++;
+                $errors[] = ['row' => $rowNumber, 'reason' => 'consent_evidence_required'];
+                $effectiveConsentState = null;
+            }
+
+            if ($effectiveConsentState !== null) {
+                $metadata = [
+                    'evidence' => $effectiveConsentEvidence,
+                    'source_type' => $sourceType,
+                ];
+                if ($sourceReference !== null) {
+                    $metadata['source_reference'] = $sourceReference;
+                }
+                if ($consentDate !== '') {
+                    $metadata['evidence_date'] = mb_substr($consentDate, 0, 64);
+                }
+
                 $this->consent->record(
                     $customerId,
-                    $consentState,
-                    mb_substr(trim((string) $consentSource), 0, 64),
+                    $effectiveConsentState,
+                    mb_substr($effectiveConsentSource, 0, 64),
                     (int) $actor->getKey(),
-                    ['evidence' => trim((string) $consentEvidence), 'source_type' => $sourceType],
+                    $metadata,
                 );
             }
         }
@@ -286,6 +325,8 @@ final class CampaignAudienceService
                 'updated' => $updated,
                 'skipped' => $skipped,
                 'invalid' => $invalid,
+                'consent_skipped' => $consentSkipped,
+                'source_reference' => $sourceReference,
             ],
         );
 
@@ -295,6 +336,7 @@ final class CampaignAudienceService
             'updated' => $updated,
             'skipped' => $skipped,
             'invalid' => $invalid,
+            'consent_skipped' => $consentSkipped,
             'customer_ids' => $customerIds,
             'errors' => array_slice($errors, 0, 200),
         ];

@@ -70,6 +70,7 @@ final class CampaignReportExporter
         return [
             'Customer',
             'Phone',
+            'Contact type',
             'Email',
             'Channel',
             'Store',
@@ -100,6 +101,7 @@ final class CampaignReportExporter
         return [
             $row->customer_name,
             $row->phone,
+            $row->contact_type,
             $row->email,
             $row->origin_channel,
             $row->store_name,

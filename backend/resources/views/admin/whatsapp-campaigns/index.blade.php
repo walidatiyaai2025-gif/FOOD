@@ -126,6 +126,10 @@
                                             <label>{{ __('whatsapp.campaigns.map_name') }}<select id="wa-map-name"></select></label>
                                             <label>{{ __('whatsapp.campaigns.map_phone') }}<select id="wa-map-phone"></select></label>
                                             <label>{{ __('whatsapp.campaigns.map_email') }}<select id="wa-map-email"><option value="">{{ __('whatsapp.campaigns.none') }}</option></select></label>
+                                            <label>{{ __('whatsapp.campaigns.map_consent_state') }}<select id="wa-map-consent-state"><option value="">{{ __('whatsapp.campaigns.none') }}</option></select></label>
+                                            <label>{{ __('whatsapp.campaigns.map_consent_source') }}<select id="wa-map-consent-source"><option value="">{{ __('whatsapp.campaigns.none') }}</option></select></label>
+                                            <label>{{ __('whatsapp.campaigns.map_consent_evidence') }}<select id="wa-map-consent-evidence"><option value="">{{ __('whatsapp.campaigns.none') }}</option></select></label>
+                                            <label>{{ __('whatsapp.campaigns.map_consent_date') }}<select id="wa-map-consent-date"><option value="">{{ __('whatsapp.campaigns.none') }}</option></select></label>
                                         </div>
                                         <div id="wa-import-sample" class="wa-campaign-table-wrap"></div>
                                         @include('admin.whatsapp-campaigns._consent-fields', ['prefix' => 'import'])
@@ -157,6 +161,9 @@
                                         <div class="wa-kpi"><span>{{ __('whatsapp.campaigns.eligible') }}</span><strong id="wa-preview-eligible">0</strong></div>
                                         <div class="wa-kpi"><span>{{ __('whatsapp.campaigns.suppressed') }}</span><strong id="wa-preview-suppressed">0</strong></div>
                                         <div class="wa-kpi"><span>{{ __('whatsapp.campaigns.suppression_reasons') }}</span><strong id="wa-preview-reasons">—</strong></div>
+                                        <div class="wa-kpi"><span>{{ __('whatsapp.campaigns.first_contact') }}</span><strong id="wa-preview-first-contact">0</strong></div>
+                                        <div class="wa-kpi"><span>{{ __('whatsapp.campaigns.existing_contact') }}</span><strong id="wa-preview-existing-contact">0</strong></div>
+                                        <div class="wa-kpi"><span>{{ __('whatsapp.campaigns.estimated_batches') }}</span><strong id="wa-preview-batches">0</strong></div>
                                     </div>
                                     <div class="wa-campaign-table-wrap" id="wa-preview-sample"></div>
                                 </div>
@@ -174,6 +181,10 @@
 
                             <section class="wa-step">
                                 <h3>5. {{ __('whatsapp.campaigns.step_review') }}</h3>
+                                <div class="foodex-state" id="wa-review-summary" role="status" style="margin-bottom:12px">
+                                    <strong>{{ __('whatsapp.campaigns.review_summary') }}</strong>
+                                    <div class="wa-muted" id="wa-review-summary-text">{{ __('whatsapp.campaigns.preview_required_live') }}</div>
+                                </div>
                                 <div class="wa-inline">
                                     <label>{{ __('whatsapp.campaigns.action') }}
                                         <select name="launch_action">
@@ -301,6 +312,7 @@
     const selectedIds = new Set();
     const selectedStores = new Set();
     let importBatch = null;
+    let lastPreview = null;
 
     const urls = {
         customers: @json(route('admin.whatsapp-campaigns.customers')),
@@ -325,6 +337,14 @@
         samplePhone: @json(__('whatsapp.campaigns.sample_phone')),
         sampleStatus: @json(__('whatsapp.campaigns.sample_status')),
         sampleReason: @json(__('whatsapp.campaigns.sample_reason')),
+        contactType: @json(__('whatsapp.campaigns.contact_type')),
+        firstContact: @json(__('whatsapp.campaigns.contact_type_values.first_contact')),
+        existingContact: @json(__('whatsapp.campaigns.contact_type_values.existing_contact')),
+        reviewTemplate: @json(__('whatsapp.campaigns.review_template')),
+        templateApproved: @json(__('whatsapp.campaigns.review_template_approved')),
+        templateBlocked: @json(__('whatsapp.campaigns.review_template_blocked')),
+        previewRequiredLive: @json(__('whatsapp.campaigns.preview_required_live')),
+        suppressionReasons: @json(__('whatsapp.campaigns.suppression_reason_values')),
         localeLabel: @json(__('whatsapp.campaigns.locale')),
         categoryLabel: @json(__('whatsapp.campaigns.template_category')),
         row: @json(__('whatsapp.campaigns.row')),
@@ -333,6 +353,8 @@
             invalid_name_phone_or_email: @json(__('whatsapp.campaigns.import_errors.invalid_name_phone_or_email')),
             duplicate_in_file: @json(__('whatsapp.campaigns.import_errors.duplicate_in_file')),
             duplicate_outside_scope: @json(__('whatsapp.campaigns.import_errors.duplicate_outside_scope')),
+            invalid_consent_state: @json(__('whatsapp.campaigns.import_errors.invalid_consent_state')),
+            consent_evidence_required: @json(__('whatsapp.campaigns.import_errors.consent_evidence_required')),
         },
     };
 
@@ -358,7 +380,7 @@
         const matchAll=document.getElementById('wa-segment-search').value!=='';
         document.getElementById('wa-selected-count').textContent = matchAll ? t.allMatching : String(selectedIds.size);
     };
-    const addIds = ids => { ids.forEach(id=>selectedIds.add(Number(id))); syncSelection(); };
+    const addIds = ids => { ids.forEach(id=>selectedIds.add(Number(id))); lastPreview=null; syncSelection(); };
 
     document.getElementById('wa-create-campaign')?.addEventListener('click',()=>{builder.classList.add('show');builder.scrollIntoView({behavior:'smooth',block:'start'});});
     document.getElementById('wa-close-builder')?.addEventListener('click',()=>builder.classList.remove('show'));
@@ -403,12 +425,14 @@
 
     document.querySelectorAll('.wa-source-tab').forEach(button=>button.addEventListener('click',()=>{
         const source=button.dataset.source;
+        lastPreview=null;
         document.getElementById('wa-audience-source').value=source;
         document.querySelectorAll('.wa-source-tab').forEach(item=>{item.classList.toggle('foodex-action-primary',item===button);item.classList.toggle('foodex-action-secondary',item!==button);});
         document.querySelectorAll('.wa-source-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===source));
     }));
 
     form.template_id?.addEventListener('change',()=>{
+        lastPreview=null;
         const option=form.template_id.selectedOptions[0];
         if(!option?.value){document.getElementById('wa-template-preview').textContent='';return;}
         const locale=option.dataset.locale||'';
@@ -437,21 +461,23 @@
             const payload=await json(urls.customers+'?'+params.toString());
             const customers=payload.customers||[];
             box.innerHTML=customers.length?customers.map(c=>'<label class="wa-customer-row"><input type="checkbox" class="wa-customer-check" value="'+c.id+'" data-store="'+(c.store_id||'')+'" '+(selectedIds.has(Number(c.id))?'checked':'')+'><span><strong>'+escapeHtml(c.name)+'</strong><br><small>'+escapeHtml(c.phone)+' · '+escapeHtml(c.store_name||c.channel||'')+' · '+escapeHtml(c.consent)+'</small></span></label>').join(''):'<div class="wa-muted">'+t.noResults+'</div>';
-            box.querySelectorAll('.wa-customer-check').forEach(check=>check.addEventListener('change',()=>{document.getElementById('wa-segment-search').value='';const id=Number(check.value);if(check.checked){selectedIds.add(id);if(check.dataset.store)selectedStores.add(Number(check.dataset.store));}else selectedIds.delete(id);syncSelection();}));
+            box.querySelectorAll('.wa-customer-check').forEach(check=>check.addEventListener('change',()=>{lastPreview=null;document.getElementById('wa-segment-search').value='';const id=Number(check.value);if(check.checked){selectedIds.add(id);if(check.dataset.store)selectedStores.add(Number(check.dataset.store));}else selectedIds.delete(id);syncSelection();}));
         }catch(error){box.innerHTML='<div class="wa-muted">'+escapeHtml(error.message)+'</div>';}
     };
     document.getElementById('wa-search-customers')?.addEventListener('click',searchCustomers);
     document.getElementById('wa-customer-search')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchCustomers();}});
     document.getElementById('wa-select-results')?.addEventListener('click',()=>{
         selectedIds.clear();
+        lastPreview=null;
         const q=document.getElementById('wa-customer-search').value.trim();
         document.getElementById('wa-segment-search').value=q;
         const store=document.getElementById('wa-existing-store').value;
+        lastPreview=null;
         if(store) selectedStores.add(Number(store));
         document.querySelectorAll('.wa-customer-check').forEach(check=>{check.checked=false;});
         syncSelection();
     });
-    document.getElementById('wa-existing-channel')?.addEventListener('change',syncSelection);
+    document.getElementById('wa-existing-channel')?.addEventListener('change',()=>{lastPreview=null;syncSelection();});
     document.getElementById('wa-existing-store')?.addEventListener('change',()=>{
         const store=document.getElementById('wa-existing-store').value;
         if(store) selectedStores.add(Number(store));
@@ -465,7 +491,15 @@
         try{
             const payload=await json(urls.importPreview,{method:'POST',body});
             const preview=payload.preview; importBatch=preview.batch_id;document.getElementById('wa-import-batch').value=String(importBatch);
-            const selectors=[['wa-map-name','name'],['wa-map-phone','phone'],['wa-map-email','email']];
+            const selectors=[
+                ['wa-map-name','name'],
+                ['wa-map-phone','phone'],
+                ['wa-map-email','email'],
+                ['wa-map-consent-state','consent_state'],
+                ['wa-map-consent-source','consent_source'],
+                ['wa-map-consent-evidence','consent_evidence'],
+                ['wa-map-consent-date','consent_date'],
+            ];
             selectors.forEach(([id,key])=>{const select=document.getElementById(id);const empty=id==='wa-map-email'?'<option value="">—</option>':'';select.innerHTML=empty+preview.headers.map(h=>'<option value="'+escapeHtml(h)+'" '+(preview.mapping?.[key]===h?'selected':'')+'>'+escapeHtml(h)+'</option>').join('');});
             const sample=preview.sample||[];document.getElementById('wa-import-sample').innerHTML=sample.length?'<table class="wa-preview-table" data-pagination-exempt="bounded-preview"><thead><tr>'+preview.headers.map(h=>'<th>'+escapeHtml(h)+'</th>').join('')+'</tr></thead><tbody>'+sample.slice(0,10).map(row=>'<tr>'+preview.headers.map(h=>'<td>'+escapeHtml(row[h]||'')+'</td>').join('')+'</tr>').join('')+'</tbody></table>':'';
             document.getElementById('wa-import-preview').classList.add('show');status.textContent=String(preview.rows_total)+' '+t.rows;
@@ -505,7 +539,15 @@
     document.getElementById('wa-import-commit')?.addEventListener('click',async()=>{
         if(!importBatch)return;const status=document.getElementById('wa-import-status');status.textContent=t.loading;
         const store=document.getElementById('wa-import-store').value;
-        const payload={store_id:Number(store),mapping:{name:document.getElementById('wa-map-name').value,phone:document.getElementById('wa-map-phone').value,email:document.getElementById('wa-map-email').value||null},...consentPayload('import')};
+        const payload={store_id:Number(store),mapping:{
+            name:document.getElementById('wa-map-name').value,
+            phone:document.getElementById('wa-map-phone').value,
+            email:document.getElementById('wa-map-email').value||null,
+            consent_state:document.getElementById('wa-map-consent-state').value||null,
+            consent_source:document.getElementById('wa-map-consent-source').value||null,
+            consent_evidence:document.getElementById('wa-map-consent-evidence').value||null,
+            consent_date:document.getElementById('wa-map-consent-date').value||null,
+        },...consentPayload('import')};
         try{
             const result=await json(urls.importCommitTemplate.replace('/0/commit','/'+importBatch+'/commit'),{method:'POST',body:JSON.stringify(payload)});
             addIds(result.customer_ids||[]);selectedStores.add(Number(store));syncSelection();resetConsentFields('import');status.textContent=t.created+' '+result.created+' · '+t.matched+' '+result.matched+' · '+t.updated+' '+result.updated+' · '+t.skipped+' '+result.skipped+' · '+t.invalid+' '+result.invalid;
@@ -524,7 +566,20 @@
     });
 
     const buildPreviewPayload=()=>{
-        const data=new FormData(form),payload={search:document.getElementById('wa-segment-search').value||'',customer_ids:[...selectedIds],store_ids:[...selectedStores],channels:[],agent_ids:[],tag_ids:[],category_ids:[],test_mode:data.get('test_mode')==='1',test_allowlist:data.get('test_allowlist')||'',max_recipients:Number(data.get('max_recipients')||1000)};
+        const data=new FormData(form),payload={
+            search:document.getElementById('wa-segment-search').value||'',
+            customer_ids:[...selectedIds],
+            store_ids:[...selectedStores],
+            channels:[],
+            agent_ids:[],
+            tag_ids:[],
+            category_ids:[],
+            template_id:Number(data.get('template_id')||0)||null,
+            test_mode:data.get('test_mode')==='1',
+            test_allowlist:data.get('test_allowlist')||'',
+            max_recipients:Number(data.get('max_recipients')||1000),
+            batch_size:Number(data.get('batch_size')||50),
+        };
         ['agent_ids[]','tag_ids[]','category_ids[]'].forEach(name=>{const key=name.replace('[]','');payload[key]=data.getAll(name).map(Number).filter(Boolean);});
         ['min_value','max_value','recency_days'].forEach(key=>{const value=data.get(key);if(value!==null&&value!=='')payload[key]=value;});
         const channel=document.getElementById('wa-existing-channel').value;if(channel)payload.channels=[channel];
@@ -535,18 +590,45 @@
     document.getElementById('wa-preview-audience')?.addEventListener('click',async()=>{
         try{
             const result=await json(urls.preview,{method:'POST',body:JSON.stringify(buildPreviewPayload())});
-            const sample=result.sample||[];document.getElementById('wa-preview-total').textContent=String((result.eligible||0)+(result.suppressed||0));document.getElementById('wa-preview-eligible').textContent=String(result.eligible||0);document.getElementById('wa-preview-suppressed').textContent=String(result.suppressed||0);document.getElementById('wa-preview-reasons').textContent=Object.entries(result.suppression_reasons||{}).map(([k,v])=>k+': '+v).join(' · ')||'—';
-            document.getElementById('wa-preview-sample').innerHTML=sample.length?'<table class="wa-preview-table" data-pagination-exempt="bounded-preview"><thead><tr><th>'+escapeHtml(t.sampleName)+'</th><th>'+escapeHtml(t.samplePhone)+'</th><th>'+escapeHtml(t.sampleStatus)+'</th><th>'+escapeHtml(t.sampleReason)+'</th></tr></thead><tbody>'+sample.map(r=>'<tr><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.phone)+'</td><td>'+(r.eligible?t.eligible:t.suppressed)+'</td><td>'+escapeHtml(r.reason||'')+'</td></tr>').join('')+'</tbody></table>':'';
+            lastPreview=result;
+            const sample=result.sample||[];
+            document.getElementById('wa-preview-total').textContent=String((result.eligible||0)+(result.suppressed||0));
+            document.getElementById('wa-preview-eligible').textContent=String(result.eligible||0);
+            document.getElementById('wa-preview-suppressed').textContent=String(result.suppressed||0);
+            document.getElementById('wa-preview-first-contact').textContent=String(result.first_contact||0);
+            document.getElementById('wa-preview-existing-contact').textContent=String(result.existing_contact||0);
+            document.getElementById('wa-preview-batches').textContent=String(result.estimated_batches||0);
+            document.getElementById('wa-preview-reasons').textContent=Object.entries(result.suppression_reasons||{}).map(([k,v])=>(t.suppressionReasons[k]||k)+': '+v).join(' · ')||'—';
+            document.getElementById('wa-preview-sample').innerHTML=sample.length?'<table class="wa-preview-table" data-pagination-exempt="bounded-preview"><thead><tr><th>'+escapeHtml(t.sampleName)+'</th><th>'+escapeHtml(t.samplePhone)+'</th><th>'+escapeHtml(t.contactType)+'</th><th>'+escapeHtml(t.sampleStatus)+'</th><th>'+escapeHtml(t.sampleReason)+'</th></tr></thead><tbody>'+sample.map(r=>'<tr><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.phone)+'</td><td>'+escapeHtml(r.contact_type==='first_contact'?t.firstContact:t.existingContact)+'</td><td>'+(r.eligible?t.eligible:t.suppressed)+'</td><td>'+escapeHtml(t.suppressionReasons[r.reason]||r.reason||'')+'</td></tr>').join('')+'</tbody></table>':'';
+            const template=result.template;
+            const templateState=template?.approved?t.templateApproved:t.templateBlocked;
+            document.getElementById('wa-review-summary-text').textContent=
+                t.reviewTemplate+': '+(template?.name||'—')+' · '+templateState+
+                ' · '+t.firstContact+': '+String(result.first_contact||0)+
+                ' · '+t.existingContact+': '+String(result.existing_contact||0)+
+                ' · '+t.eligible+': '+String(result.eligible||0)+
+                ' · '+t.suppressed+': '+String(result.suppressed||0);
             document.getElementById('wa-preview-box').classList.remove('wa-hide');
         }catch(error){alert(error.message);}
     });
 
-    form?.addEventListener('submit',()=>{
+    form?.addEventListener('change',event=>{
+        const name=event.target?.name||'';
+        if(!['launch_action','scheduled_at','per_minute_limit'].includes(name)) lastPreview=null;
+    });
+
+    form?.addEventListener('submit',event=>{
         syncSelection();
         const source=document.getElementById('wa-audience-source').value;
         if(source==='import'){const store=document.getElementById('wa-import-store').value;if(store)selectedStores.add(Number(store));}
         if(source==='manual'){const store=document.getElementById('wa-manual-store').value;if(store)selectedStores.add(Number(store));}
         syncSelection();
+
+        const action=String(new FormData(form).get('launch_action')||'draft');
+        if(action!=='draft' && (!lastPreview || lastPreview.template?.approved!==true)){
+            event.preventDefault();
+            alert(t.previewRequiredLive);
+        }
     });
 })();
 </script>
