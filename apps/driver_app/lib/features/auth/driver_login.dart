@@ -306,6 +306,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 const SizedBox(height: 8),
                                 if (_errorKey != null)
                                   Semantics(
+                                    key: const Key('driver-login-error-live'),
                                     container: true,
                                     liveRegion: true,
                                     child: Container(
