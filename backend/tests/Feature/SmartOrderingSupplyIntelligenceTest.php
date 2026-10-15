@@ -72,6 +72,67 @@ class SmartOrderingSupplyIntelligenceTest extends TestCase
         $this->assertStringContainsString('not counted or physical inventory', $result['disclaimer']);
     }
 
+    public function test_consumption_respects_branch_scope_and_rejects_foreign_branch_mapping(): void
+    {
+        $f = $this->fixture();
+        $supply = app(SupplyIntelligenceService::class);
+
+        $supply->createMapping($f['actor'], $f['site'], [
+            'menu_item_public_id' => $f['menu_item_public_id'],
+            'foodex_product_id' => $f['wholesale_product_id'],
+            'quantity_per_item' => 1,
+            'waste_factor' => 0,
+            'effective_from' => now()->subDay(),
+        ]);
+
+        $secondaryBranchId = $this->smartBranch($f['site_id'], 'SECONDARY');
+        $this->smartOrder($f, 'delivered', 'COMPLETED', [
+            ['menu_item_public_id' => $f['menu_item_public_id'], 'product_id' => $f['restaurant_product_id'], 'quantity' => 5, 'selection' => []],
+        ], now()->subHours(2));
+        $secondary = $f;
+        $secondary['branch_id'] = $secondaryBranchId;
+        $this->smartOrder($secondary, 'delivered', 'COMPLETED', [
+            ['menu_item_public_id' => $f['menu_item_public_id'], 'product_id' => $f['restaurant_product_id'], 'quantity' => 7, 'selection' => []],
+        ], now()->subHour());
+
+        $from = CarbonImmutable::now('Asia/Kuwait')->subDay();
+        $to = CarbonImmutable::now('Asia/Kuwait');
+
+        $main = $supply->consumption($f['site'], $from, $to, $f['branch_id']);
+        $second = $supply->consumption($f['site'], $from, $to, $secondaryBranchId);
+
+        $this->assertSame(1, $main['total_completed_orders']);
+        $this->assertEqualsWithDelta(5.0, $main['products'][0]['estimated_usage'], 0.000001);
+        $this->assertSame(1, $second['total_completed_orders']);
+        $this->assertEqualsWithDelta(7.0, $second['products'][0]['estimated_usage'], 0.000001);
+
+        $foreignStoreId = $this->store('B2C', 'SO-FOREIGN-'.Str::upper(Str::random(6)));
+        $foreignSiteId = (int) DB::table('smart_ordering_sites')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $foreignStoreId,
+            'slug' => 'foreign-'.Str::lower(Str::random(10)),
+            'runtime_state' => 'ENABLED',
+            'master_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignBranchId = $this->smartBranch($foreignSiteId, 'FOREIGN');
+
+        try {
+            $supply->createMapping($f['actor'], $f['site'], [
+                'menu_item_public_id' => $f['menu_item_public_id'],
+                'branch_id' => $foreignBranchId,
+                'foodex_product_id' => $f['wholesale_product_id'],
+                'quantity_per_item' => 1,
+                'waste_factor' => 0,
+                'effective_from' => now(),
+            ]);
+            $this->fail('A foreign-tenant branch must not be accepted.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+    }
+
     public function test_reorder_is_deterministic_uses_authoritative_stock_only_when_present_and_blocks_stale_sku(): void
     {
         $f = $this->fixture();
@@ -394,6 +455,29 @@ class SmartOrderingSupplyIntelligenceTest extends TestCase
             'wholesale_product_id' => $wholesaleProductId,
             'b2b_customer_id' => (int) $customer->getKey(),
         ];
+    }
+
+    private function smartBranch(int $siteId, string $code): int
+    {
+        return (int) DB::table('smart_ordering_branches')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'site_id' => $siteId,
+            'code' => $code,
+            'name_en' => $code,
+            'timezone' => 'Asia/Kuwait',
+            'is_default' => false,
+            'is_active' => true,
+            'accepting_orders' => true,
+            'supports_dine_in' => true,
+            'supports_pickup' => true,
+            'supports_delivery' => true,
+            'allow_scheduled' => true,
+            'pickup_lead_minutes' => 0,
+            'max_schedule_days' => 7,
+            'service_charge' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function store(string $type, string $code): int
