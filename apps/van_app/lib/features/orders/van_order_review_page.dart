@@ -309,9 +309,8 @@ class _VanOrderReviewPageState extends State<VanOrderReviewPage> {
             const SizedBox(height: 14),
             FilledButton.icon(
               key: const ValueKey('van-order-submit'),
-              onPressed: _submitting ||
-                      quote == null ||
-                      quote.hasUnavailableItems
+              onPressed:
+                  _submitting || quote == null || quote.hasUnavailableItems
                   ? null
                   : _submit,
               icon: _submitting
