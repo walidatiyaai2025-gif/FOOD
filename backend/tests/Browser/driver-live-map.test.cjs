@@ -97,6 +97,28 @@ test('mixed mode merges authoritative Driver and Van feeds on one map runtime',a
     );
     assert.equal(env.roots[0].parts['count-online'].textContent,'2');
 });
+test('full live tracking lookup runtime is bounded, cancellable and keyboard accessible',()=> {
+    assert.ok(source.includes("window.setTimeout(load, 250)"));
+    assert.ok(source.includes("controller?.abort()"));
+    assert.ok(source.includes("event.key === 'ArrowDown'"));
+    assert.ok(source.includes("event.key === 'ArrowUp'"));
+    assert.ok(source.includes("event.key === 'Enter'"));
+    assert.ok(source.includes("event.key === 'Escape'"));
+    assert.ok(source.includes("credentials:'same-origin'"));
+    assert.ok(source.includes("url.searchParams.set('store_id', store)"));
+    assert.ok(source.includes("url.searchParams.set('channel', channel)"));
+});
+
+test('selected business lookup identities drive feed parameters without exposing typed ids',()=> {
+    assert.ok(source.includes("selectedEntityKind() === 'van'"));
+    assert.ok(source.includes("selectedEntityKind() === 'driver'"));
+    assert.ok(source.includes("order_id: inputValue('order-id')"));
+    assert.ok(source.includes("route_key: inputValue('route-key')"));
+    assert.ok(source.includes("lookupRegistry.get('entity')?.clear()"));
+    assert.ok(source.includes("lookupRegistry.get('order')?.clear()"));
+    assert.ok(source.includes("lookupRegistry.get('route')?.clear()"));
+});
+
 test('mixed runtime defines visually distinct Driver and Van marker symbols',()=>{
     assert.ok(source.includes("kind === 'van' ? '🚐' : '👤'"));
     assert.ok(source.includes("foodex-tracking-entity-marker-'+kind"));
