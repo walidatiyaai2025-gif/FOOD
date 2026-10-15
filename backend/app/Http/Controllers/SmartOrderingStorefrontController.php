@@ -76,10 +76,22 @@ final class SmartOrderingStorefrontController extends Controller
             }
         }
 
+        $attributionContext = app(SmartOrderingAttributionService::class)->contextFromRequest($request);
         $prepared['analytics'] = [
             'site_public_id' => $analyticsSite?->public_id,
             'branch_public_id' => $analyticsBranch?->public_id,
-            'attribution_context' => app(SmartOrderingAttributionService::class)->contextFromRequest($request),
+            'attribution_context' => $attributionContext,
+        ];
+        $prepared['commerce'] = [
+            'branch_public_id' => $analyticsBranch?->public_id,
+            'revision_public_id' => preg_match('/^[0-9a-fA-F-]{36}$/', (string) ($prepared['revision'] ?? '')) === 1
+                ? (string) $prepared['revision']
+                : null,
+            'fulfillment_modes' => $analyticsBranch === null ? [] : array_values(array_filter([
+                $analyticsBranch->supports_pickup ? 'pickup' : null,
+                $analyticsBranch->supports_delivery ? 'delivery' : null,
+                $analyticsBranch->supports_dine_in ? 'dine_in' : null,
+            ])),
         ];
 
         return response()->view($renderer->view($prepared), $prepared)
