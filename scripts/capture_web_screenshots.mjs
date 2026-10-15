@@ -1,10 +1,19 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const baseUrl = process.env.FOODEX_SCREENSHOT_BASE_URL ?? 'http://127.0.0.1:8000';
 const root = path.resolve(process.cwd(), '..');
 const screenshotRoot = path.join(root, 'ScreenShots');
+
+function refreshTimeSensitiveEvidence() {
+  execFileSync(
+    'php',
+    ['artisan', 'db:seed', '--class=Database\\Seeders\\RefreshTimeSensitiveVisualEvidenceSeeder', '--force'],
+    { cwd: process.cwd(), stdio: 'inherit' },
+  );
+}
 
 const b2b = [
   ['12_whatsapp_foundation', '/admin/settings/whatsapp'],
@@ -904,7 +913,9 @@ async function captureLocale(browser, locale) {
 
 const browser = await chromium.launch({ headless: true });
 try {
+  refreshTimeSensitiveEvidence();
   await captureLocale(browser, 'ar');
+  refreshTimeSensitiveEvidence();
   await captureLocale(browser, 'en');
 } finally {
   await browser.close();
