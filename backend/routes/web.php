@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseSavedViewController;
 use App\Http\Controllers\Admin\EnterpriseSecurityController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
+use App\Http\Controllers\Admin\EnterpriseWorkspaceController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
 use App\Http\Controllers\Admin\GlobalSearchController;
@@ -141,6 +142,9 @@ Route::prefix('admin')
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
+        Route::get('/workspaces/{workspace?}', EnterpriseWorkspaceController::class)
+            ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
+            ->name('enterprise-workspaces.index');
         Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
             ->whereNumber('workflowRequest')
             ->where('stepCode', '[A-Za-z0-9._-]+')

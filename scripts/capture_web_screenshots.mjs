@@ -59,6 +59,7 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
   ['15_مركز_الإجراءات', '/admin/action-center'],
+  ['15_مساحات_عمل_المؤسسة', '/admin/workspaces'],
   ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_صحة_الوحدات_والنظام', '/admin/administration/system-health'],
   ['16_إدارة_وحدات_المنصة', '/admin/administration/modules'],
