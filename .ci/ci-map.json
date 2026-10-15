@@ -36,6 +36,9 @@
     },
     "policy": {
       "path_regex": "^(AGENTS\\\\.md|\\\\.ai/(KNOWN_ISSUES\\\\.md|skill-router\\\\.json)|\\\\.ci/|docs/worker-rules/|scripts/(worker-start|worker-preflight|detect-changed-areas|ci-plan|ci-failure-registry|foodex-branch-policy|flutter-test-hermeticity|foodex-skill-router|validate-repo)\\\\.(sh|py)$|scripts/tests/test_(ci_plan|ci_failure_registry|foodex_branch_policy|flutter_test_hermeticity|one_push_green_contract|foodex_skill_router)\\\\.py$|\\\\.github/workflows/(repository-policy|required-ci-gate)\\\\.yml$)"
+    },
+    "enterprise_performance": {
+      "path_regex": "^(backend/(app/Enterprise/|tests/(Feature/Performance/|Performance/|Unit/Performance/)|database/seeders/EnterprisePerformanceSeeder\\.php)|benchmarks/enterprise/|scripts/enterprise-performance-(compare|report)\\.py$|docs/(quality/CPANEL_PERFORMANCE_CONTRACT\\.md|architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE\\.md|execution/FOODEX_ENTERPRISE_(ERP_PROGRAM\\.md|MODULE_GATES\\.json))$|\\.github/workflows/(enterprise-performance-gate|required-ci-gate)\\.yml$|\\.ci/ci-map\\.json$)"
     }
   },
   "expansions": [

@@ -1,0 +1,172 @@
+name: Enterprise Performance Gate
+
+on:
+  workflow_call:
+    inputs:
+      source_head:
+        description: Exact candidate PR head SHA
+        required: true
+        type: string
+      baseline_head:
+        description: Accepted immutable baseline source SHA
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      source_head:
+        description: Exact candidate source SHA to certify
+        required: true
+        type: string
+      baseline_head:
+        description: Accepted immutable baseline source SHA
+        required: false
+        default: d171df2961687455f08c14b9419df83027edcbf0
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Exact-head smoke comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      FOODEX_PERF_MODE: candidate
+      FOODEX_PERF_SOURCE_HEAD: ${{ inputs.source_head }}
+      FOODEX_PERF_BASELINE_HEAD: ${{ inputs.baseline_head }}
+      FOODEX_PERF_HARNESS_HEAD: ${{ inputs.source_head }}
+      BASELINE_FILE: ../benchmarks/enterprise/baselines/e4f5049831efabe3/smoke/d171df2961687455f08c14b9419df83027edcbf0.json
+      CANDIDATE_FILE: storage/app/private/enterprise-performance/current-main-smoke-evidence.json
+      COMPARISON_FILE: ../artifacts/enterprise-performance-comparison.json
+      REPORT_FILE: ../artifacts/enterprise-performance-candidate.md
+
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_head }}
+          fetch-depth: 0
+
+      - name: Prove checked-out candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          expected="${{ inputs.source_head }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Performance benchmark checkout mismatch: $actual != $expected"
+            exit 1
+          fi
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_sqlite, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install backend dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare isolated benchmark environment
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+          mkdir -p ../artifacts
+
+      - name: Validate exact lineage inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          sha = re.compile(r"^[0-9a-f]{40,64}$")
+          source = os.environ["FOODEX_PERF_SOURCE_HEAD"].strip().lower()
+          baseline = os.environ["FOODEX_PERF_BASELINE_HEAD"].strip().lower()
+          if not sha.fullmatch(source):
+              raise SystemExit("candidate source_head is not an exact SHA")
+          if not sha.fullmatch(baseline):
+              raise SystemExit("baseline_head is not an exact SHA")
+          if source == baseline:
+              raise SystemExit("candidate source_head must differ from baseline_head")
+          report = json.loads(Path(os.environ["BASELINE_FILE"]).read_text())
+          if report.get("source_head") != baseline:
+              raise SystemExit(
+                  f"immutable baseline lineage mismatch: {report.get('source_head')} != {baseline}"
+              )
+          PY
+
+      - name: Produce exact-head candidate evidence
+        run: vendor/bin/phpunit tests/Feature/Performance/CurrentMainPerformanceBaselineTest.php
+
+      - name: Validate candidate identity and numeric schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ../scripts/enterprise-performance-report.py "$CANDIDATE_FILE" --validate-only
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          candidate = json.loads(Path(os.environ["CANDIDATE_FILE"]).read_text())
+          if candidate.get("source_head") != os.environ["FOODEX_PERF_SOURCE_HEAD"].lower():
+              raise SystemExit("candidate evidence source_head is not the requested exact PR head")
+          if candidate.get("baseline_head") != os.environ["FOODEX_PERF_BASELINE_HEAD"].lower():
+              raise SystemExit("candidate evidence baseline_head is not the accepted baseline")
+          for scenario in candidate.get("scenarios", []):
+              metrics = scenario["metrics"]
+              for key in ("p50_ms", "p95_ms", "p99_ms"):
+                  if not isinstance(metrics.get(key), (int, float)):
+                      raise SystemExit(f"{scenario.get('id')}: missing numeric {key}")
+              if not isinstance(scenario["queries"].get("count"), int):
+                  raise SystemExit(f"{scenario.get('id')}: missing numeric query count")
+              if not isinstance(scenario["memory"].get("peak_bytes"), int):
+                  raise SystemExit(f"{scenario.get('id')}: missing numeric peak memory")
+          PY
+
+      - name: Enforce immutable baseline comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ../scripts/enterprise-performance-compare.py compare             "$BASELINE_FILE"             "$CANDIDATE_FILE"             --output "$COMPARISON_FILE"
+
+      - name: Render candidate evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f "$CANDIDATE_FILE" ]]; then
+            python3 ../scripts/enterprise-performance-report.py               "$CANDIDATE_FILE"               --output "$REPORT_FILE"
+          fi
+
+      - name: Upload exact-head performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-performance-${{ inputs.source_head }}
+          path: |
+            backend/storage/app/private/enterprise-performance/current-main-smoke-evidence.json
+            artifacts/enterprise-performance-comparison.json
+            artifacts/enterprise-performance-candidate.md
+          if-no-files-found: error
+          retention-days: 30
