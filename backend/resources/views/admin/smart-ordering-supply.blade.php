@@ -33,6 +33,7 @@
     };
     $itemIndex = collect($menuItems)->keyBy('public_id');
     $displayRecommendations = array_slice($recommendations['rows'], 0, 500);
+    $supportAccess = $supportAccess;
 @endphp
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="smart-ordering-supply">
     <aside class="sidebar">
@@ -44,7 +45,7 @@
                 <h1>{{ __('smart_ordering_supply.title') }}</h1>
                 <p>{{ __('smart_ordering_supply.subtitle') }}</p>
             </div>
-            <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + (request()->boolean('support_access') ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.smart_ordering_settings') }}</a>
+            <a class="foodex-action-primary" href="{{ route('admin.smart-ordering.index',['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_supply.smart_ordering_settings') }}</a>
         </header>
 
         @if(session('status'))<p class="foodex-alert success" role="status">{{ session('status') }}</p>@endif
@@ -57,7 +58,7 @@
         <section class="panel">
             <h2>{{ __('smart_ordering_supply.period_scope') }}</h2>
             <form class="si-grid" method="get" action="{{ route('admin.smart-ordering.supply.index',$site) }}">
-                @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
+                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 <label>{{ __('smart_ordering_supply.from') }}<input class="foodex-control" type="date" name="from" value="{{ $from->toDateString() }}"></label>
                 <label>{{ __('smart_ordering_supply.to') }}<input class="foodex-control" type="date" name="to" value="{{ $to->toDateString() }}"></label>
                 <label>{{ __('smart_ordering_supply.branch') }}
@@ -88,7 +89,7 @@
                 <p class="si-muted">{{ __('smart_ordering_supply.mapping_help') }}</p>
                 <form class="si-form" method="post" action="{{ route('admin.smart-ordering.supply.mappings.store',$site) }}">
                     @csrf
-                    @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <label>{{ __('smart_ordering_supply.menu_item') }}
                         <select class="foodex-control" name="menu_item_public_id" required>
                             @foreach($menuItems as $item)
@@ -136,7 +137,7 @@
                 <p class="si-muted">{{ __('smart_ordering_supply.stock_help') }}</p>
                 <form class="si-form" method="post" action="{{ route('admin.smart-ordering.supply.stock',$site) }}">
                     @csrf @method('PUT')
-                    @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
+                    @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <label>{{ __('smart_ordering_supply.foodex_sku') }}
                         <select class="foodex-control" name="foodex_product_id" required>
                             @foreach($foodexProducts as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} — {{ $product['name'] }}</option>@endforeach
@@ -172,7 +173,7 @@
                         <td>{{ $mapping['effective_from'] }} → {{ $mapping['effective_to'] ?: '∞' }}<br><span class="si-badge">{{ $mapping['is_active'] ? __('smart_ordering_supply.active') : __('smart_ordering_supply.historical') }}</span></td>
                         <td>
                             @if($mapping['is_active'])
-                            <form method="post" action="{{ route('admin.smart-ordering.supply.mappings.deactivate',[$site,$mapping['public_id']]) }}">@csrf @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif<button class="si-danger" type="submit">{{ __('smart_ordering_supply.end_mapping') }}</button></form>
+                            <form method="post" action="{{ route('admin.smart-ordering.supply.mappings.deactivate',[$site,$mapping['public_id']]) }}">@csrf @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif<button class="si-danger" type="submit">{{ __('smart_ordering_supply.end_mapping') }}</button></form>
                             @endif
                         </td>
                     </tr>
@@ -213,7 +214,7 @@
             <p class="si-muted">{{ __('smart_ordering_supply.reorder_help') }}</p>
             <form method="post" action="{{ route('admin.smart-ordering.supply.draft',$site) }}">
                 @csrf
-                @if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif
+                @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                 @if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
                 <div class="si-table-wrap"><table class="si-table" data-pagination-exempt="bounded-500-analysis-snapshot">
                     <thead><tr><th>{{ __('smart_ordering_supply.foodex_sku') }}</th><th>{{ __('smart_ordering_supply.state') }}</th><th>{{ __('smart_ordering_supply.basis') }}</th><th>{{ __('smart_ordering_supply.live_price') }}</th><th>{{ __('smart_ordering_supply.foodex_available') }}</th><th>{{ __('smart_ordering_supply.suggested_quantity') }}</th><th>{{ __('smart_ordering_supply.cost') }}</th><th></th></tr></thead>
@@ -247,7 +248,7 @@
             </form>
             @foreach($displayRecommendations as $row)
                 <form id="dismiss-{{ $row['foodex_product_id'] }}" method="post" action="{{ route('admin.smart-ordering.supply.dismiss',[$site,$row['foodex_product_id']]) }}" style="display:none">
-                    @csrf<input type="hidden" name="days" value="7">@if(request()->boolean('support_access'))<input type="hidden" name="support_access" value="1">@endif @if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
+                    @csrf<input type="hidden" name="days" value="7">@if($supportAccess)<input type="hidden" name="support_access" value="1">@endif @if($branchId)<input type="hidden" name="branch_id" value="{{ $branchId }}">@endif
                 </form>
             @endforeach
         </section>
