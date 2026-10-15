@@ -133,7 +133,6 @@ final class SmartOrderingOperationsController extends Controller
             ->with('status', __('smart_ordering.branch_saved'));
     }
 
-
     public function storeZone(string $branch, Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
