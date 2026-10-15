@@ -24,12 +24,14 @@ final class ConversationService
         ?int $storeId,
         string $channel = 'whatsapp',
         ?string $externalParticipantPhone = null,
+        bool $autoAssign = true,
     ): int {
         return DB::transaction(function () use (
             $platformCustomerId,
             $storeId,
             $channel,
             $externalParticipantPhone,
+            $autoAssign,
         ): int {
             $query = DB::table('whats_app_conversations')
                 ->where('store_id', $storeId)
@@ -71,7 +73,9 @@ final class ConversationService
                 'updated_at' => $now,
             ]);
 
-            $this->autoAssign($id);
+            if ($autoAssign) {
+                $this->autoAssign($id);
+            }
 
             return $id;
         }, 3);
@@ -85,6 +89,7 @@ final class ConversationService
         ?int $connectionProfileId = null,
         ?DateTimeInterface $occurredAt = null,
         string $contentType = 'text',
+        bool $autoAssign = true,
     ): int {
         return DB::transaction(function () use (
             $conversationId,
@@ -94,6 +99,7 @@ final class ConversationService
             $connectionProfileId,
             $occurredAt,
             $contentType,
+            $autoAssign,
         ): int {
             if ($providerReference !== null && $connectionProfileId !== null) {
                 $existing = DB::table('whats_app_messages')
@@ -144,13 +150,57 @@ final class ConversationService
                 'updated_at' => $now,
             ]);
 
-            if ($conversation->primary_agent_id === null) {
+            if ($autoAssign && $conversation->primary_agent_id === null) {
                 $this->autoAssign($conversationId);
             }
 
             // #1428: create the Dashboard alert only after the inbound message
             // and any deterministic assignment have been durably persisted.
             $this->inboundAlerts->recordForPersistedMessage($messageId);
+
+            return $messageId;
+        }, 3);
+    }
+
+    public function appendAutomationPending(
+        int $conversationId,
+        string $body,
+        array $attachmentMetadata = [],
+    ): int {
+        return DB::transaction(function () use ($conversationId, $body, $attachmentMetadata): int {
+            $conversation = $this->lockConversation($conversationId);
+            $now = now();
+            $contentType = isset($attachmentMetadata['interactive'])
+                ? 'interactive'
+                : (isset($attachmentMetadata['template_name'])
+                    ? 'template'
+                    : (isset($attachmentMetadata['media_type']) ? 'media' : 'text'));
+
+            $messageId = (int) DB::table('whats_app_messages')->insertGetId([
+                'conversation_id' => $conversationId,
+                'direction' => 'outbound',
+                'content_type' => $contentType,
+                'actor_type' => 'bot',
+                'actor_user_id' => null,
+                'body' => trim($body),
+                'attachment_metadata' => $attachmentMetadata === []
+                    ? null
+                    : json_encode($attachmentMetadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'provider_message_ref' => null,
+                'delivery_status' => 'pending_transport',
+                'occurred_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            DB::table('whats_app_conversations')->where('id', $conversationId)->update([
+                'status' => 'WAITING_FOR_CUSTOMER',
+                'last_outbound_at' => $now,
+                'unread_count' => 0,
+                'waiting_since' => null,
+                'lock_version' => ((int) $conversation->lock_version) + 1,
+                'updated_at' => $now,
+            ]);
 
             return $messageId;
         }, 3);

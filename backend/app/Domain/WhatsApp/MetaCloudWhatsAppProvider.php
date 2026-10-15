@@ -69,7 +69,7 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
                 accountIdentity: $this->stringOrNull($response->json('verified_name')),
                 phoneIdentity: $this->stringOrNull($response->json('display_phone_number')),
                 providerAvailable: true,
-                capabilities: ['text', 'template', 'media'],
+                capabilities: ['text', 'template', 'media', 'interactive'],
                 diagnosticCode: 'webhook_secrets_missing',
                 message: 'Meta API is reachable, but webhook verification secrets are not configured.',
                 checkedAt: new DateTimeImmutable,
@@ -83,7 +83,7 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
                 accountIdentity: $this->stringOrNull($response->json('verified_name')),
                 phoneIdentity: $this->stringOrNull($response->json('display_phone_number')),
                 providerAvailable: true,
-                capabilities: ['text', 'template', 'media'],
+                capabilities: ['text', 'template', 'media', 'interactive'],
                 diagnosticCode: 'webhook_not_confirmed',
                 message: 'Meta API is reachable, but the configured webhook callback has not been verified.',
                 checkedAt: new DateTimeImmutable,
@@ -96,7 +96,7 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
             accountIdentity: $this->stringOrNull($response->json('verified_name')),
             phoneIdentity: $this->stringOrNull($response->json('display_phone_number')) ?? $profile->normalized_phone_number,
             providerAvailable: true,
-            capabilities: ['text', 'template', 'media', 'webhooks', 'delivery_status'],
+            capabilities: ['text', 'template', 'media', 'interactive', 'webhooks', 'delivery_status'],
             diagnosticCode: 'ok',
             message: 'Meta Cloud API connection validated.',
             checkedAt: new DateTimeImmutable,
@@ -183,6 +183,16 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
 
                     if ($type === 'text') {
                         $body = isset($message['text']['body']) ? (string) $message['text']['body'] : null;
+                    } elseif ($type === 'interactive') {
+                        $interactive = is_array($message['interactive'] ?? null) ? $message['interactive'] : [];
+                        $reply = is_array($interactive['button_reply'] ?? null)
+                            ? $interactive['button_reply']
+                            : (is_array($interactive['list_reply'] ?? null) ? $interactive['list_reply'] : []);
+                        $body = isset($reply['title']) ? (string) $reply['title'] : null;
+                        $metadata = [
+                            'interactive_type' => (string) ($interactive['type'] ?? 'unknown'),
+                            'interactive_id' => isset($reply['id']) ? mb_substr((string) $reply['id'], 0, 191) : null,
+                        ];
                     } elseif (isset($message[$type]) && is_array($message[$type])) {
                         $metadata = $this->safeMediaMetadata($type, $message[$type]);
                         $body = isset($message[$type]['caption']) ? (string) $message[$type]['caption'] : null;
@@ -256,6 +266,18 @@ final class MetaCloudWhatsAppProvider implements WhatsAppProvider
             }
 
             return $base + ['type' => 'template', 'template' => $template];
+        }
+
+        if ($message->kind === 'interactive') {
+            $interactive = $message->metadata['interactive'] ?? null;
+            if (! is_array($interactive) || ! in_array((string) ($interactive['type'] ?? ''), ['button', 'list'], true)) {
+                throw new ProviderTransportException('Valid interactive button/list payload is required.', false);
+            }
+
+            return $base + [
+                'type' => 'interactive',
+                'interactive' => $interactive,
+            ];
         }
 
         if ($message->kind === 'media') {

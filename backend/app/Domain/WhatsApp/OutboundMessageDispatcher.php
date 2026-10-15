@@ -60,9 +60,11 @@ final class OutboundMessageDispatcher
             }
 
             $metadata = $this->decodeMetadata($message->attachment_metadata);
-            $kind = isset($metadata['template_name'])
-                ? 'template'
-                : (isset($metadata['media_type']) ? 'media' : 'text');
+            $kind = isset($metadata['interactive']) && is_array($metadata['interactive'])
+                ? 'interactive'
+                : (isset($metadata['template_name'])
+                    ? 'template'
+                    : (isset($metadata['media_type']) ? 'media' : 'text'));
             $payload = [
                 'kind' => $kind,
                 'body' => $message->body,
