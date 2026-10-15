@@ -10,7 +10,8 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 
 | Token | Value | Use |
 |---|---|---|
-| Primary green | `#158A3A` | active navigation, primary actions, positive brand emphasis |
+| Primary green | `#158A3A` | brand/positive emphasis and non-text accents; do not pair with normal white action text |
+| Accessible action green | `#137A35` | normal-sized primary action, active navigation/pill and pagination fills with white text (WCAG AA >= 4.5:1) |
 | Dark green | `#165D2D` | wordmark, high-contrast brand text |
 | Bright green | `#27B658` | chart/positive accents |
 | Green soft | `#EAF7EF` | selected/positive surfaces |
@@ -18,7 +19,8 @@ The palette and visual direction are sampled from the user-approved FOODEX dashb
 | Bright orange | `#FC8F33` | charts and soft emphasis |
 | Orange soft | `#FFF1E6` | warm card surfaces |
 | Info blue | `#4B8CF5` | in-transit/info states and charts |
-| Error red | `#EF5350` | cancelled/destructive states |
+| Error red | `#EF5350` | cancelled/destructive non-text accents |
+| Accessible danger text | `#B42318` | destructive/danger text on white or `#FFF0F0` soft-danger surfaces |
 | Ink | `#172033` | primary text |
 | Muted | `#667085` | secondary text |
 | Surface | `#FFFFFF` | cards/topbar/sidebar |
@@ -45,7 +47,7 @@ The numeric color values must stay identical across these three sources. Any pal
 
 ## Branding rules
 
-- FOODEX green is the primary interactive brand color.
+- FOODEX green is the primary interactive brand family. Normal-sized white text on filled actions/active navigation uses the semantic accessible action green `#137A35`; hover/pressed uses dark green `#165D2D`. The base `#158A3A` remains available for non-text brand accents.
 - FOODEX orange is an accent, not the dominant page background.
 - Primary application surfaces are white/light neutral as in the approved dashboard.
 - Arabic is RTL-first. English mirrors layout direction without changing information hierarchy.
