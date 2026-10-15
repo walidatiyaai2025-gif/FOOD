@@ -122,7 +122,7 @@ final class SmartOrderingQrManager
         abort_unless($qr instanceof SmartOrderingQrCode, 404);
         abort_unless($qr->is_enabled, 404);
         abort_if($qr->valid_from !== null && $qr->valid_from->isFuture(), 404);
-        abort_if($qr->valid_until !== null && ! $qr->valid_until->isFuture(), 404);
+        abort_if($qr->valid_until !== null && $qr->valid_until->isPast(), 404);
         abort_unless($qr->store?->is_active === true, 404);
 
         return ['qr' => $qr, 'token' => $token];
@@ -148,7 +148,7 @@ final class SmartOrderingQrManager
     private function validateBusinessContext(array $data): void
     {
         $type = (string) ($data['type'] ?? '');
-        if (! in_array($type, self::TYPES, true)) {
+        if (in_array($type, self::TYPES, true) === false) {
             throw ValidationException::withMessages(['type' => [__('smart_ordering_qr.validation.invalid_type')]]);
         }
 
@@ -166,7 +166,7 @@ final class SmartOrderingQrManager
             ]);
         }
 
-        if (! empty($data['promotion_id'])) {
+        if (empty($data['promotion_id']) === false) {
             $owned = DB::table('promotions')
                 ->where('id', (int) $data['promotion_id'])
                 ->where(function ($query) use ($data): void {
@@ -174,7 +174,7 @@ final class SmartOrderingQrManager
                 })
                 ->exists();
 
-            if (! $owned) {
+            if ($owned === false) {
                 throw ValidationException::withMessages([
                     'promotion_id' => [__('smart_ordering_qr.validation.promotion_scope')],
                 ]);
@@ -193,7 +193,7 @@ final class SmartOrderingQrManager
     {
         $target = trim($target);
         if ($target === ''
-            || ! str_starts_with($target, '/')
+            || str_starts_with($target, '/') === false
             || str_starts_with($target, '//')
             || str_contains($target, '://')
             || str_contains($target, '\\')
@@ -226,7 +226,7 @@ final class SmartOrderingQrManager
 
     private function nullableTrim(mixed $value): ?string
     {
-        if (! is_string($value)) {
+        if (is_string($value) === false) {
             return null;
         }
 
