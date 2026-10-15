@@ -49,7 +49,7 @@ final class LoyaltyService
             ->first(['id', 'customer_id', 'grand_total', 'status']);
 
         abort_unless($order !== null, 404);
-        abort_unless(strtolower((string) $order->status) === 'completed', 409, 'Loyalty points are earned only after completion.');
+        abort_unless(in_array(strtolower((string) $order->status), ['completed', 'delivered'], true), 409, 'Loyalty points are earned only after completion.');
 
         $this->assertBranch($site, $branchId);
         $rule = $this->rule($site, $branchId);
