@@ -181,6 +181,30 @@ final class SmartOrderingAnalyticsService
         );
     }
 
+    public function rollupProductOnly(
+        int $storeId,
+        int $branchId,
+        int $productId,
+        string $eventName,
+        float $revenue = 0.0,
+        ?CarbonInterface $occurredAt = null,
+    ): void {
+        abort_unless(in_array($eventName, self::EVENTS, true), 422, 'Unsupported Smart Ordering analytics event.');
+        abort_unless($storeId > 0 && $branchId > 0 && $productId > 0, 422, 'Invalid product analytics scope.');
+
+        $occurredAt ??= now();
+        DB::transaction(function () use ($storeId, $branchId, $productId, $eventName, $revenue, $occurredAt): void {
+            $this->incrementProductDaily(
+                $occurredAt->toDateString(),
+                $storeId,
+                $branchId,
+                $productId,
+                $eventName,
+                round(max(0.0, $revenue), 3),
+            );
+        }, 3);
+    }
+
     /**
      * Public browser analytics are deliberately limited to non-financial interaction events.
      *
