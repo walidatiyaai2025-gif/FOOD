@@ -87,12 +87,18 @@ final class EnterpriseModuleAdministrationController extends Controller
      */
     private function page(Request $request, User $actor, ?array $selected): View
     {
+        $moduleStates = array_map(
+            static fn (ModuleState $state): string => $state->value,
+            ModuleState::cases(),
+        );
         $grid = EnterpriseGridState::fromRequest(
             $request,
             self::GRID_FILTERS,
             self::GRID_SORTS,
             self::GRID_COLUMNS,
             self::GRID_COLUMNS,
+            25,
+            ['state' => $moduleStates],
         );
 
         $modules = $this->modules->modules();
@@ -108,12 +114,7 @@ final class EnterpriseModuleAdministrationController extends Controller
 
         if (isset($grid->filters['state'])) {
             $state = strtoupper($grid->filters['state']);
-            $allowedStates = array_map(
-                static fn (ModuleState $item): string => $item->value,
-                ModuleState::cases(),
-            );
-
-            if (in_array($state, $allowedStates, true)) {
+            if (in_array($state, $moduleStates, true)) {
                 $modules = $modules->filter(
                     static fn (array $module): bool => (string) $module['state'] === $state,
                 );
@@ -159,10 +160,7 @@ final class EnterpriseModuleAdministrationController extends Controller
             'selected' => $selected,
             'gridState' => $grid,
             'visibleColumns' => $grid->columns,
-            'moduleStates' => array_map(
-                static fn (ModuleState $state): string => $state->value,
-                ModuleState::cases(),
-            ),
+            'moduleStates' => $moduleStates,
             'savedViews' => $savedViews,
             'savedViewStateToken' => $this->savedViews->stateToken(
                 self::SURFACE_KEY,
