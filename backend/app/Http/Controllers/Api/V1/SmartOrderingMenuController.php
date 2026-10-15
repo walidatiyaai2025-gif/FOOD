@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\SmartOrdering\Models\SmartOrderingBranch;
+use App\Domain\SmartOrdering\Models\SmartOrderingMenuItem;
+use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\SmartOrderingMenuReadService;
 use App\Domain\SmartOrdering\SmartOrderingModifierService;
 use App\Domain\SmartOrdering\SmartOrderingRuntimePolicy;
@@ -95,7 +98,7 @@ final class SmartOrderingMenuController extends Controller
 
         [$site, $branch] = $this->context($request, $slug, $runtime, $menus);
         $revision = $menus->publishedRevision($site);
-        $model = \App\Domain\SmartOrdering\Models\SmartOrderingMenuItem::query()
+        $model = SmartOrderingMenuItem::query()
             ->where('revision_id', $revision->id)
             ->where('site_id', $site->id)
             ->where('public_id', $item)
@@ -111,8 +114,8 @@ final class SmartOrderingMenuController extends Controller
 
     /**
      * @return array{
-     *   0:\App\Domain\SmartOrdering\Models\SmartOrderingSite,
-     *   1:?\App\Domain\SmartOrdering\Models\SmartOrderingBranch,
+     *   0:SmartOrderingSite,
+     *   1:?SmartOrderingBranch,
      *   2:string
      * }
      */
