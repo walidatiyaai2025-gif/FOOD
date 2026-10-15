@@ -197,6 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let isSubmitting = false;
     let discardReturnFocus = null;
     let modalSession = null;
+    let quoteRevision = 0;
+    let quoteSession = 0;
+    let quoteAbortController = null;
+    let quoteOwner = null;
     let customerLookupAbort = null;
     let customerLookupPage = 1;
     let customerLookupQuery = '';
@@ -233,10 +237,13 @@ document.addEventListener('DOMContentLoaded', () => {
             || (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + '-' + Math.random().toString(36).slice(2));
         return 'dashboard:' + randomPart;
     };
+    const ownsCurrentQuote = (owner) => owner !== null
+        && owner.revision === quoteRevision
+        && owner.session === quoteSession;
     const setSubmitting = (active) => {
         isSubmitting = active;
         form.setAttribute('aria-busy', active ? 'true' : 'false');
-        createButton.disabled = active || !quoteReady;
+        createButton.disabled = active || !quoteReady || !ownsCurrentQuote(quoteOwner);
         createButton.textContent = active ? t.submitting : createButtonLabel;
         if (submitState) {
             submitState.hidden = !active;
@@ -244,12 +251,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     const invalidateQuote = () => {
+        quoteRevision += 1;
         quoteReady = false;
+        quoteOwner = null;
+        quoteAbortController?.abort();
+        quoteAbortController = null;
         if (!isSubmitting) createButton.disabled = true;
     };
 
     const setStep = (target) => {
         step = Math.max(0, Math.min(5, target));
+        if (step !== 5) invalidateQuote();
         form.querySelectorAll('[data-wizard-step]').forEach((node) => { node.dataset.active = Number(node.dataset.wizardStep) === step ? '1' : '0'; });
         form.querySelectorAll('[data-wizard-progress]').forEach((node) => {
             const index = Number(node.dataset.wizardProgress);
@@ -561,7 +573,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const renderQuote = (quote) => {
+    const renderQuote = (quote, owner) => {
+        if (!ownsCurrentQuote(owner)) return;
         quoteBox.innerHTML = '';
         const currency = quote.currency || 'EGP';
         const lines = document.createElement('div');
@@ -575,14 +588,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const grand = document.createElement('strong');
         grand.textContent = t.total + ': ' + money(quote.grand_total, currency) + ' ' + currency;
         quoteBox.append(lines, totals, grand);
+        quoteOwner = owner;
         quoteReady = !quote.has_unavailable_items;
-        if (!isSubmitting) createButton.disabled = !quoteReady;
+        if (!isSubmitting) createButton.disabled = !quoteReady || !ownsCurrentQuote(quoteOwner);
         if (!quoteReady) showError(t.unavailable);
     };
 
     const loadReviewAndQuote = async () => {
         renderReview();
         invalidateQuote();
+        const owner = { revision: quoteRevision, session: quoteSession };
+        const controller = new AbortController();
+        quoteAbortController = controller;
         quoteBox.textContent = t.quoteLoading;
         showError('');
         try {
@@ -590,13 +607,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 body: new FormData(form),
                 headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                signal: controller.signal,
             });
             const payload = await response.json().catch(() => ({}));
+            if (controller.signal.aborted || !ownsCurrentQuote(owner)) return;
             if (!response.ok) throw new Error(firstApiError(payload));
-            renderQuote(payload.data || {});
+            renderQuote(payload.data || {}, owner);
         } catch (error) {
+            if (controller.signal.aborted || !ownsCurrentQuote(owner)) return;
             quoteBox.textContent = t.quoteFailed;
             showError(error.message || t.quoteFailed);
+        } finally {
+            if (quoteAbortController === controller) quoteAbortController = null;
         }
     };
 
@@ -616,6 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const reset = ({ freshIdentity = initialized } = {}) => {
+        quoteSession += 1;
+        invalidateQuote();
         form.reset();
         setSubmitting(false);
         if (freshIdentity && idempotencyInput) idempotencyInput.value = createIdempotencyKey();
@@ -633,6 +657,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const closeModal = () => {
+        quoteSession += 1;
+        invalidateQuote();
         hideDiscardPrompt({ restoreFocus: false });
         modalSession?.deactivate({ restoreFocus: true });
         modalSession = null;
@@ -784,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!quoteReady) {
+        if (!quoteReady || !ownsCurrentQuote(quoteOwner)) {
             event.preventDefault();
             loadReviewAndQuote();
             return;
