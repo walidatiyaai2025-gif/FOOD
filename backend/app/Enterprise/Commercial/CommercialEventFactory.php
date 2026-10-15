@@ -11,7 +11,7 @@ final class CommercialEventFactory
     ) {}
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function make(
         string $fact,
