@@ -97,7 +97,9 @@ final class WorkflowAuthorizer
                 ? (int) $request->scope_id
                 : null;
 
-            if (! $delegator->hasPermission($permission, $storeId)) {
+            if (! $delegator->hasPermission($permission, $storeId)
+                || ! $this->directScopeAllows($delegator, $request)
+                || ! $this->approvalLimitAllows($delegator, $request)) {
                 continue;
             }
 
