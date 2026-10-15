@@ -174,8 +174,15 @@ class SmartOrderingMenuDomainTest extends TestCase
             ->assertSee('Visual Menu')
             ->assertSee('Review Burger')
             ->assertSee('4.25 EGP')
-            ->assertSee('step="0.01"', false)
             ->assertDontSee('KWD');
+
+        $this->actingAs($fixture['admin'])
+            ->get(route('admin.smart-ordering.menu.index', [
+                'store_id' => $fixture['store_id'],
+                'menu_id' => $menu->id,
+            ]))
+            ->assertOk()
+            ->assertSee('step="0.01"', false);
 
         $published = app(SmartOrderingMenuRevisionService::class)->publish(
             $fixture['admin'],
