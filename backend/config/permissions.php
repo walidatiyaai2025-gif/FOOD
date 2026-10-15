@@ -81,6 +81,8 @@ return [
         'catalog.manage' => 'Manage products and catalog data',
         'lookups.view' => 'View business lookup and master data',
         'lookups.manage' => 'Manage business lookup and master data',
+        'procurement.suppliers.view' => 'View suppliers within authorized enterprise scope',
+        'procurement.suppliers.manage' => 'Manage suppliers within authorized enterprise scope',
         'inventory.view' => 'View inventory',
         'inventory.adjust' => 'Adjust inventory quantities',
         'inventory.manage' => 'Manage inventory',
