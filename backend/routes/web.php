@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\EnterpriseOrganizationAdministrationController;
 use App\Http\Controllers\Admin\EnterpriseSystemHealthController;
 use App\Http\Controllers\Admin\FieldOperationsController;
 use App\Http\Controllers\Admin\FoodexResetController;
+use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LiveAdController;
 use App\Http\Controllers\Admin\LookupManagementController;
@@ -136,6 +137,7 @@ Route::prefix('admin')
     ->middleware('management.dashboard')
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
+        Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
         Route::post('/action-center/{workflowRequest}/steps/{stepCode}/decision', [EnterpriseActionCenterController::class, 'decide'])
             ->whereNumber('workflowRequest')
