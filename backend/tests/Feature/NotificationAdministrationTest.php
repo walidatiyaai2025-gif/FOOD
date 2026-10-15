@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\NotificationAudienceReviewService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,14 @@ class NotificationAdministrationTest extends TestCase
 
         $this->actingAs($admin)->get('/admin/notifications')->assertOk();
 
+        $recipient = $this->user('publish-recipient@example.test', 'en');
+        Customer::query()->create([
+            'user_id' => $recipient->id,
+            'type' => 'b2c',
+            'name' => 'Publish Recipient',
+            'email' => $recipient->email,
+        ]);
+
         $this->actingAs($admin)->post('/admin/notifications', [
             'title_ar' => 'طلبك في الطريق',
             'title_en' => 'Your order is on the way',
@@ -46,10 +55,31 @@ class NotificationAdministrationTest extends TestCase
         $notification = Notification::query()->firstOrFail();
         $this->assertSame('draft', $notification->status);
 
-        $this->actingAs($admin)->post("/admin/notifications/{$notification->id}/publish")->assertRedirect();
+        $this->actingAs($admin)
+            ->post("/admin/notifications/{$notification->id}/publish")
+            ->assertSessionHasErrors('review_token');
+        $this->assertSame('draft', $notification->fresh()->status);
+
+        $this->actingAs($admin)
+            ->get("/admin/notifications?review_notification={$notification->id}")
+            ->assertOk()
+            ->assertSee('Review notification publication')
+            ->assertSee('1 eligible accounts')
+            ->assertSee('Publish Recipient');
+
+        $token = app(NotificationAudienceReviewService::class)->reviewToken($notification->fresh(), 'publish');
+        $this->actingAs($admin)
+            ->post("/admin/notifications/{$notification->id}/publish", ['review_token' => $token])
+            ->assertRedirect();
+
         $this->assertDatabaseHas('notifications', ['id' => $notification->id, 'status' => 'published']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'notification.created']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'notification.published']);
+
+        $this->actingAs($admin)
+            ->post("/admin/notifications/{$notification->id}/publish", ['review_token' => $token])
+            ->assertStatus(409);
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'notification.published')->count());
     }
 
     public function test_customer_receives_requested_locale_and_read_state_is_user_owned(): void
