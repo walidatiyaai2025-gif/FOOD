@@ -186,7 +186,7 @@ final class InventoryCountService
                     ]);
                 }
 
-                if ($normalized[(int) $line->inventory_id] + 0.0005 < (float) $inventory->reserved_quantity) {
+                if ((float) $inventory->reserved_quantity > $normalized[(int) $line->inventory_id] + 0.0005) {
                     throw ValidationException::withMessages([
                         'counts' => ['Counted quantity cannot be lower than reserved quantity.'],
                     ]);
