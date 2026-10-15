@@ -344,7 +344,7 @@ final class WhatsAppCampaignBuilderTest extends TestCase
     {
         return app(TemplateRegistryService::class)->upsert([
             'name' => 'Approved Offer',
-            'provider_name' => 'approved_offer_'.Str::random(6),
+            'provider_name' => 'approved_offer_'.strtolower(Str::random(6)),
             'locale' => 'en',
             'category' => 'marketing',
             'provider_status' => 'approved',
