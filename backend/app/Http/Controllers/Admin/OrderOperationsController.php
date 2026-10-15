@@ -717,7 +717,9 @@ final class OrderOperationsController extends Controller
 
             $items = $rows->take($limit)->map(static function (object $row): array {
                 $name = trim((string) ($row->company_name ?? ''));
-                if ($name === '') $name = trim((string) $row->name);
+                if ($name === '') {
+                    $name = trim((string) $row->name);
+                }
                 $meta = array_values(array_filter([
                     trim((string) ($row->name ?? '')) !== $name ? trim((string) ($row->name ?? '')) : '',
                     trim((string) ($row->retail_store_name ?? '')),
@@ -743,7 +745,9 @@ final class OrderOperationsController extends Controller
             ->where('catalogs.is_active', true)
             ->where('products.is_active', true)
             ->where('store_products.is_active', true);
-        if ($channel === 'b2c') $query->whereNotNull('store_products.price');
+        if ($channel === 'b2c') {
+            $query->whereNotNull('store_products.price');
+        }
         if ($search !== '') {
             $needle = '%'.$search.'%';
             $query->where(function ($query) use ($needle): void {
