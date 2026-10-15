@@ -14,6 +14,7 @@ use App\Services\CommercialPolicyService;
 use App\Services\FlashOfferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
@@ -29,10 +30,49 @@ final class VanFlashOfferController extends Controller
         $storeId = $this->assertCustomerScope($request, $actor, $type, $customer);
         $customerUserId = $this->customerUserId($type, $customer);
         $offers = $flash->activeOffers($storeId, 'van', $customerUserId);
+        $productIds = $offers
+            ->flatMap(static fn (FlashOffer $offer) => $offer->products->pluck('product_id'))
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $productNames = $productIds->isEmpty()
+            ? []
+            : DB::table('products')
+                ->whereIn('id', $productIds)
+                ->pluck('name', 'id')
+                ->map(static fn ($name): string => trim((string) $name))
+                ->all();
+
+        $sellingUnitRows = $productIds->isEmpty()
+            ? collect()
+            : DB::table('product_selling_units')
+                ->whereIn('product_id', $productIds)
+                ->get(['id', 'product_id', 'code', 'name']);
+
+        $sellingUnitNamesById = $sellingUnitRows
+            ->mapWithKeys(static fn (object $unit): array => [
+                (int) $unit->id => trim((string) $unit->name),
+            ])
+            ->all();
+
+        $sellingUnitNamesByProductCode = $sellingUnitRows
+            ->mapWithKeys(static fn (object $unit): array => [
+                (int) $unit->product_id.'|'.strtolower(trim((string) $unit->code))
+                    => trim((string) $unit->name),
+            ])
+            ->all();
 
         return response()->json([
             'server_time' => now()->toAtomString(),
-            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload($offer))->values(),
+            'data' => $offers->map(
+                fn (FlashOffer $offer): array => $this->offerPayload(
+                    $offer,
+                    $productNames,
+                    $sellingUnitNamesById,
+                    $sellingUnitNamesByProductCode,
+                ),
+            )->values(),
         ]);
     }
 
@@ -250,9 +290,18 @@ final class VanFlashOfferController extends Controller
         return (int) $userId;
     }
 
-    /** @return array<string,mixed> */
-    private function offerPayload(FlashOffer $offer): array
-    {
+    /**
+     * @param  array<int|string,string>  $productNames
+     * @param  array<int|string,string>  $sellingUnitNamesById
+     * @param  array<string,string>  $sellingUnitNamesByProductCode
+     * @return array<string,mixed>
+     */
+    private function offerPayload(
+        FlashOffer $offer,
+        array $productNames,
+        array $sellingUnitNamesById,
+        array $sellingUnitNamesByProductCode,
+    ): array {
         return [
             'id' => (int) $offer->getKey(),
             'store_id' => (int) $offer->store_id,
@@ -265,15 +314,46 @@ final class VanFlashOfferController extends Controller
             'ends_at' => $offer->endsAt()->toAtomString(),
             'priority' => (int) $offer->priority,
             'reservation_seconds' => (int) $offer->reservation_seconds,
-            'products' => $offer->products->map(static fn (FlashOfferProduct $product): array => [
-                'id' => (int) $product->getKey(),
-                'product_id' => (int) $product->product_id,
-                'selling_unit_id' => $product->selling_unit_id === null ? null : (int) $product->selling_unit_id,
-                'selling_unit_code' => $product->selling_unit_code,
-                'conversion_factor' => (float) $product->conversion_factor,
-                'flash_price' => (float) $product->flash_price,
-                'allocation_base' => $product->allocation_base === null ? null : (float) $product->allocation_base,
-            ])->values(),
+            'products' => $offer->products->map(
+                function (FlashOfferProduct $product) use (
+                    $productNames,
+                    $sellingUnitNamesById,
+                    $sellingUnitNamesByProductCode,
+                ): array {
+                    $productId = (int) $product->product_id;
+                    $sellingUnitId = $product->selling_unit_id === null
+                        ? null
+                        : (int) $product->selling_unit_id;
+                    $sellingUnitCode = trim((string) ($product->selling_unit_code ?? ''));
+                    $sellingUnitName = $sellingUnitId === null
+                        ? null
+                        : ($sellingUnitNamesById[$sellingUnitId] ?? null);
+
+                    if (($sellingUnitName === null || trim((string) $sellingUnitName) === '')
+                        && $sellingUnitCode !== '') {
+                        $sellingUnitName = $sellingUnitNamesByProductCode[
+                            $productId.'|'.strtolower($sellingUnitCode)
+                        ] ?? null;
+                    }
+
+                    $productName = trim((string) ($productNames[$productId] ?? ''));
+                    $sellingUnitName = trim((string) ($sellingUnitName ?? ''));
+
+                    return [
+                        'id' => (int) $product->getKey(),
+                        'product_id' => $productId,
+                        'product_name' => $productName === '' ? null : $productName,
+                        'selling_unit_id' => $sellingUnitId,
+                        'selling_unit_code' => $product->selling_unit_code,
+                        'selling_unit_name' => $sellingUnitName === '' ? null : $sellingUnitName,
+                        'conversion_factor' => (float) $product->conversion_factor,
+                        'flash_price' => (float) $product->flash_price,
+                        'allocation_base' => $product->allocation_base === null
+                            ? null
+                            : (float) $product->allocation_base,
+                    ];
+                },
+            )->values(),
         ];
     }
 
