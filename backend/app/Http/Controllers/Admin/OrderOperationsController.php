@@ -1087,9 +1087,7 @@ final class OrderOperationsController extends Controller
      */
     private function primeRowCache(array $orders): void
     {
-        $orderModels = collect($orders)
-            ->filter(static fn (mixed $order): bool => $order instanceof Order)
-            ->values();
+        $orderModels = collect($orders)->values();
 
         if ($orderModels->isEmpty()) {
             $this->rowCache = [];
@@ -1271,7 +1269,7 @@ final class OrderOperationsController extends Controller
                     ? $territories->get((int) $dispatch->service_territory_id)
                     : null,
                 'customer_name' => $channel === 'b2b'
-                    ? ($b2bCustomer?->name ?? null)
+                    ? data_get($b2bCustomer, 'name')
                     : ($b2cCustomer->name ?? null),
                 'b2b_customer' => $b2bCustomer instanceof B2bCustomer ? $b2bCustomer : null,
                 'payment' => $payments->get($orderId),
