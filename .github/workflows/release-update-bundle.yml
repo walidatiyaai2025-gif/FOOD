@@ -1,6 +1,9 @@
 name: FOODEX Update Bundle
 
 on:
+  # Quiet mode (#1637): PR validation is deferred to final convergence.
+  # Release update branches retain their publication trigger; final main
+  # validation can be invoked once through workflow_dispatch.
   push:
     branches:
       - "release/**-update"
@@ -9,20 +12,7 @@ on:
       - "docs/release/RELEASE_NOTES.md"
       - "docs/release/UPDATE_NOTES_*.md"
       - "docs/release/RELEASE_REGISTRY.json"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - VERSION
-      - "backend/**"
-      - "apps/customer_app/**"
-      - "apps/driver_app/**"
-      - CHANGELOG.md
-      - docs/release/RELEASE_NOTES.md
-      - scripts/build-update-bundle.py
-      - .github/workflows/release-update-bundle.yml
-      - docs/release/RELEASE_REGISTRY.json
-      - .github/scripts/release-registry.js
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

@@ -1,22 +1,16 @@
 name: Worker Watchdog
 
 on:
+  # Quiet mode (#1637): one periodic reconciliation per hour is enough while
+  # active program lanes are converging. Event fan-out from comments, every
+  # branch-update event, and Required CI completion is intentionally disabled.
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
   issues:
-    types: [opened, reopened, edited]
-  issue_comment:
-    types: [created, edited]
+    types: [opened, reopened]
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
-  workflow_run:
-    # Required CI Gate already aggregates Repository Policy and the business
-    # validation matrix. Listening to both doubled watchdog invocations for the
-    # same PR head and amplified GitHub API pressure.
-    workflows:
-      - "FOODEX Required CI Gate"
-    types: [completed]
+    types: [opened, reopened, ready_for_review, closed]
 
 permissions:
   actions: read

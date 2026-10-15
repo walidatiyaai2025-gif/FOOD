@@ -1,15 +1,7 @@
 name: Smart Ordering GA Certification
 
 on:
-  pull_request:
-    branches:
-      - main
-      - feature/smart-ordering-program
-    paths:
-      - 'backend/**'
-      - 'scripts/smart-ordering-ga-acceptance.sh'
-      - 'docs/releases/smart-ordering-ga-1456.md'
-      - '.github/workflows/smart-ordering-ga-certification.yml'
+  # Quiet mode (#1637): certify the final convergence candidate on demand.
   workflow_dispatch:
 
 permissions:

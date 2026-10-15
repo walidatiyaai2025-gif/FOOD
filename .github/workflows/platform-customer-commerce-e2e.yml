@@ -1,9 +1,7 @@
 name: FOODEX Platform Customer Commerce E2E
 
 on:
-  pull_request:
-    branches:
-      - main
+  # Quiet mode (#1637): this heavyweight integrated gate is final-candidate only.
   workflow_dispatch:
 
 permissions:
