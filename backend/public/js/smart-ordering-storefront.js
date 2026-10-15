@@ -289,9 +289,10 @@ checkoutForm?.addEventListener('submit',async event=>{
         payload.table_public_id=tablePublicId;payload.table_token=tableToken;
     }
     if(checkoutError)checkoutError.hidden=true;
+    if(!cartAuth.checkoutKey){cartAuth.checkoutKey=uuid();persistCart();}
     submit.disabled=true;submit.setAttribute('aria-busy','true');if(cartStatus)cartStatus.textContent=copy.placing||'';
     try{
-        const result=await request(cartUrl('/checkout'),{method:'POST',headers:{...cartHeaders(),'Idempotency-Key':cartAuth.checkoutKey||uuid()},body:JSON.stringify(payload)});
+        const result=await request(cartUrl('/checkout'),{method:'POST',headers:{...cartHeaders(),'Idempotency-Key':cartAuth.checkoutKey},body:JSON.stringify(payload)});
         if(orderReference)orderReference.textContent=(copy.orderPlaced||':reference').replace(':reference',String(result.data.reference||result.data.order_number||''));
         if(orderConfirmation){orderConfirmation.hidden=false;orderConfirmation.focus();}
         if(checkoutPanel)checkoutPanel.hidden=true;if(cartLines)cartLines.replaceChildren();if(cartSummary)cartSummary.hidden=true;if(checkoutToggle)checkoutToggle.hidden=true;
