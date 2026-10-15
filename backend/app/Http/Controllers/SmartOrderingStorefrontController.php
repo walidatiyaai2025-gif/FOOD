@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\Models\SmartOrderingSite;
 use App\Domain\SmartOrdering\Themes\ConfigStorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\Contracts\StorefrontSnapshotProvider;
 use App\Domain\SmartOrdering\Themes\StorefrontThemeRenderer;
+use App\Domain\SmartOrdering\SmartOrderingRevisionService;
 use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,7 +15,12 @@ use Illuminate\Support\Facades\Schema;
 
 final class SmartOrderingStorefrontController extends Controller
 {
-    public function __invoke(Request $request, string $siteKey, StorefrontThemeRenderer $renderer): Response
+    public function __invoke(
+        Request $request,
+        string $siteKey,
+        StorefrontThemeRenderer $renderer,
+        SmartOrderingRevisionService $revisions,
+    ): Response
     {
         $provider = app()->bound(StorefrontSnapshotProvider::class)
             ? app(StorefrontSnapshotProvider::class)
@@ -76,14 +82,36 @@ final class SmartOrderingStorefrontController extends Controller
             }
         }
 
+        $attributionContext = app(SmartOrderingAttributionService::class)->contextFromRequest($request);
+        $published = $analyticsSite instanceof SmartOrderingSite
+            ? $revisions->published($analyticsSite)
+            : null;
+
         $prepared['analytics'] = [
             'site_public_id' => $analyticsSite?->public_id,
             'branch_public_id' => $analyticsBranch?->public_id,
-            'attribution_context' => app(SmartOrderingAttributionService::class)->contextFromRequest($request),
+            'attribution_context' => $attributionContext,
+        ];
+        $prepared['ordering'] = [
+            'enabled' => $analyticsSite instanceof SmartOrderingSite
+                && $analyticsBranch !== null
+                && $published !== null
+                && (bool) ($prepared['is_open'] ?? false),
+            'site_slug' => $analyticsSite?->slug,
+            'branch_public_id' => $analyticsBranch?->public_id,
+            'revision_public_id' => $published?->public_id,
+            'attribution_context' => $attributionContext,
+            'supports_pickup' => (bool) ($analyticsBranch?->supports_pickup ?? false),
+            'supports_delivery' => (bool) ($analyticsBranch?->supports_delivery ?? false),
+            'supports_dine_in' => (bool) ($analyticsBranch?->supports_dine_in ?? false),
         ];
 
+        $cacheControl = $attributionContext === null
+            ? 'public, max-age=60, stale-while-revalidate=300'
+            : 'private, no-store';
+
         return response()->view($renderer->view($prepared), $prepared)
-            ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+            ->header('Cache-Control', $cacheControl)
             ->header('Vary', 'Accept-Language');
     }
 }
