@@ -64,7 +64,7 @@ A single static image is not sufficient when the same screen has materially diff
 
 Every accepted screenshot must be checked against `docs/architecture/FOODEX_BRAND_SYSTEM.md`:
 
-- Primary green: `#158A3A`
+- Primary green: `#148638`
 - Dark green: `#165D2D`
 - Bright green: `#27B658`
 - Primary orange: `#EE731C`
