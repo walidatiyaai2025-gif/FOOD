@@ -58,6 +58,7 @@ const b2c = [
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_العروض_السريعة', '/admin/b2c/commercial/flash-offers'],
   ['15_مركز_الإدارة', '/admin/administration'],
+  ['16_إدارة_الهيكل_المؤسسي', '/admin/administration/organizations'],
   ['16_مركز_الإعدادات', '/admin/settings'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
   ['18_بوابة_إطلاق_الإنتاج', '/admin/settings/production-launch'],
@@ -563,6 +564,7 @@ async function captureSecurityPermissionEvidence(page, locale) {
 async function captureOwnedDashboardRuntimeEvidence(page, locale) {
   const shellRoutes = [
     ['administration', '/admin/administration'],
+    ['enterprise-organizations', '/admin/administration/organizations'],
     ['security', '/admin/security'],
     ['live-tracking', '/admin/driver-live-tracking'],
     ['mobile-settings', '/admin/settings/mobile?app=van&environment=production'],
