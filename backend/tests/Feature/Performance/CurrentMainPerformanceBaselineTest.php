@@ -15,7 +15,7 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const BASE_SOURCE_HEAD = '8969f3cc685f94f07b9b99982e770dc2adb9b83c';
+    private const BASE_SOURCE_HEAD = 'd171df2961687455f08c14b9419df83027edcbf0';
 
     public function test_current_main_smoke_baseline_emits_canonical_numeric_evidence(): void
     {
