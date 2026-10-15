@@ -29,6 +29,39 @@ Future<void> _scrollUntilBuilt(
   }
 }
 
+
+class _PagedOrderRepository extends _OrderRepository {
+  final List<int> requestedPages = <int>[];
+
+  @override
+  Future<VanCatalogPage> catalog(
+    VanCustomerScope customer, {
+    String search = '',
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    requestedPages.add(page);
+    return VanCatalogPage(
+      page: page,
+      perPage: perPage,
+      hasMore: page == 1,
+      products: [
+        VanCatalogProduct(
+          id: 300 + page,
+          name: 'Page $page Product',
+          sku: 'PAGE-$page',
+          unitPrice: 12,
+          minimumQuantity: 1,
+          orderingIncrement: 1,
+          availableQuantity: 20,
+          isAvailable: true,
+          currency: 'KWD',
+        ),
+      ],
+    );
+  }
+}
+
 void main() {
   test('approved Van production inventory stays locked to 19 surfaces', () {
     expect(vanProductionScreenInventory.length, 19);
@@ -878,6 +911,74 @@ void main() {
     expect(find.text('Acme Grocery'), findsOneWidget);
   });
 
+
+  testWidgets('Van Catalog loads later pages and preserves selected cart items',
+      (tester) async {
+    final orders = _PagedOrderRepository();
+    await tester.pumpWidget(
+      FoodexVanApp(
+        locale: const Locale('en'),
+        walletRepository: const _CustomerWalletRepository(),
+        orderRepository: orders,
+        initialSession: const VanSession(
+          token: 'test-token',
+          name: 'Van Operator',
+          email: 'van@example.test',
+          locale: 'en',
+          permissions: {'van.login'},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).last);
+    scaffold.openDrawer();
+    await tester.pumpAndSettle();
+    final catalogTarget = find.byKey(const ValueKey('van-screen-catalog'));
+    await tester.scrollUntilVisible(
+      catalogTarget,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('van-production-screen-menu')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.tap(catalogTarget);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Page 1 Product'), findsOneWidget);
+    expect(orders.requestedPages, <int>[1]);
+
+    final catalogScrollable = find.descendant(
+      of: find.byKey(const ValueKey('van-catalog-page')),
+      matching: find.byType(Scrollable),
+    ).first;
+    final addProduct = find.byKey(const ValueKey('van-catalog-add-301'));
+    await tester.scrollUntilVisible(
+      addProduct,
+      180,
+      scrollable: catalogScrollable,
+    );
+    await tester.tap(addProduct);
+    await tester.pumpAndSettle();
+
+    final loadMore = find.text('Load more products');
+    await tester.scrollUntilVisible(
+      loadMore,
+      180,
+      scrollable: catalogScrollable,
+    );
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Page 2 Product'), findsOneWidget);
+    expect(orders.requestedPages, <int>[1, 2]);
+    expect(find.text('Open cart · 1 items'), findsOneWidget);
+    expect(
+      find.text('Loaded 2 products · end of results'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('Van sales flow reaches Catalog Builder Review and Orders',
       (tester) async {
