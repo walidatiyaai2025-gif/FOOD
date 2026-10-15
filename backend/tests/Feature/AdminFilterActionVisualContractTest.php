@@ -12,7 +12,7 @@ class AdminFilterActionVisualContractTest extends TestCase
 
         $this->assertIsString($brand);
         $this->assertStringContainsString('.foodex-filter-action{', $brand);
-        $this->assertStringContainsString('background:var(--foodex-green)!important', $brand);
+        $this->assertStringContainsString('background:var(--foodex-action-green)!important', $brand);
         $this->assertStringContainsString('.foodex-filter-action:hover', $brand);
 
         foreach ([
