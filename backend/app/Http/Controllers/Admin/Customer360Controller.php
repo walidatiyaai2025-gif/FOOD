@@ -24,6 +24,7 @@ use App\Support\DisplayNumber;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -294,6 +295,108 @@ final class Customer360Controller extends Controller
         ]);
     }
 
+    public function financeInvoices(
+        Request $request,
+        int $platformCustomer,
+        B2bAccountLedgerService $ledger,
+    ): JsonResponse {
+        $actor = $this->actor($request);
+        $access = $this->access($actor);
+        $customer = $this->findVisible($platformCustomer, $access);
+
+        abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.manage'), 403);
+        abort_if($access['mode'] === 'b2c', 403);
+
+        $domain = $this->wholesaleDomain($customer, $access);
+        abort_unless($domain instanceof B2bCustomer, 404);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'selected_id' => ['nullable', 'integer', 'min:1'],
+            'entry_type' => ['nullable', Rule::in(B2bAccountLedgerService::MANUAL_TYPES)],
+        ]);
+        $currency = strtoupper((string) $ledger->summary($domain)['currency']);
+        $search = trim((string) ($validated['q'] ?? ''));
+        $referenceId = $search === '' ? null : DisplayNumber::referenceId($search);
+
+        $base = DB::table('invoices')
+            ->leftJoin('stores', 'stores.id', '=', 'invoices.store_id')
+            ->where('invoices.b2b_customer_id', $domain->getKey())
+            ->where('invoices.channel', 'b2b')
+            ->whereIn('invoices.store_id', $access['b2b_store_ids'])
+            ->whereRaw('UPPER(invoices.currency) = ?', [$currency]);
+
+        $query = clone $base;
+        if ($search !== '') {
+            $needle = '%'.$search.'%';
+            $query->where(function ($builder) use ($needle, $referenceId): void {
+                $builder->where('invoices.invoice_number', 'like', $needle);
+                if ($referenceId !== null) {
+                    $builder->orWhere('invoices.id', $referenceId);
+                }
+            });
+        }
+
+        $rows = $query
+            ->orderByDesc('invoices.issued_at')
+            ->orderByDesc('invoices.id')
+            ->limit(20)
+            ->get([
+                'invoices.id',
+                'invoices.invoice_number',
+                'invoices.status',
+                'invoices.currency',
+                'invoices.total',
+                'invoices.issued_at',
+                'stores.name as store_name',
+            ]);
+
+        $format = function (object $row) use ($ledger): array {
+            $invoice = Invoice::query()->findOrFail((int) $row->id);
+            $amounts = $ledger->invoiceAmounts($invoice);
+            $currency = strtoupper((string) $row->currency);
+
+            return [
+                'id' => (int) $row->id,
+                'number' => DisplayNumber::reference($row->id),
+                'internal_number' => (string) $row->invoice_number,
+                'store' => (string) ($row->store_name ?? ''),
+                'status' => (string) $row->status,
+                'status_label' => $this->businessLabel((string) $row->status),
+                'currency' => $currency,
+                'total' => round((float) $row->total, 3),
+                'outstanding' => round((float) $amounts['outstanding_amount'], 3),
+                'issued_at' => $row->issued_at === null ? null : (string) $row->issued_at,
+            ];
+        };
+
+        $results = $rows->map($format)->values();
+        $selected = null;
+        $selectedId = isset($validated['selected_id']) ? (int) $validated['selected_id'] : null;
+        if ($selectedId !== null && $selectedId > 0) {
+            $selectedRow = (clone $base)
+                ->where('invoices.id', $selectedId)
+                ->first([
+                    'invoices.id',
+                    'invoices.invoice_number',
+                    'invoices.status',
+                    'invoices.currency',
+                    'invoices.total',
+                    'invoices.issued_at',
+                    'stores.name as store_name',
+                ]);
+            if ($selectedRow !== null) {
+                $selected = $format($selectedRow);
+            }
+        }
+
+        return response()->json([
+            'currency' => $currency,
+            'results' => $results,
+            'selected' => $selected,
+        ]);
+    }
+
     public function updateCreditLimit(
         Request $request,
         int $platformCustomer,
@@ -375,6 +478,23 @@ final class Customer360Controller extends Controller
         ]);
 
         $amount = round((float) $validated['amount'], $fractionDigits);
+        $invoiceId = isset($validated['invoice_id']) ? (int) $validated['invoice_id'] : null;
+        if ($invoiceId !== null && $invoiceId > 0) {
+            $eligibleInvoice = DB::table('invoices')
+                ->where('id', $invoiceId)
+                ->where('b2b_customer_id', $domain->getKey())
+                ->where('channel', 'b2b')
+                ->whereIn('store_id', $access['b2b_store_ids'])
+                ->whereRaw('UPPER(currency) = ?', [$currency])
+                ->exists();
+
+            if (! $eligibleInvoice) {
+                throw ValidationException::withMessages([
+                    'invoice_id' => [__('customer_360.finance.invoice_not_eligible')],
+                ]);
+            }
+        }
+
         $entryId = $ledger->appendManual($domain, [
             'entry_type' => $validated['entry_type'],
             'debit' => $validated['direction'] === 'debit' ? $amount : 0,
@@ -382,7 +502,7 @@ final class Customer360Controller extends Controller
             'currency' => $currency,
             'reference' => $validated['reference'] ?? null,
             'description' => $validated['description'] ?? null,
-            'invoice_id' => $validated['invoice_id'] ?? null,
+            'invoice_id' => $invoiceId,
             'occurred_at' => $validated['occurred_at'] ?? now(),
             'source' => 'dashboard_customer_360',
         ], $actor);
