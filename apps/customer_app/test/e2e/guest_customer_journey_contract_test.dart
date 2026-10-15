@@ -34,7 +34,10 @@ void main() {
             );
           }
           return http.Response(
-            jsonEncode({'data': <Object>[]}),
+            jsonEncode({
+              'data': <Object>[],
+              'meta': {'current_page': 1, 'per_page': 20, 'total': 0},
+            }),
             200,
             headers: const {'content-type': 'application/json'},
           );
