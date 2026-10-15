@@ -473,6 +473,7 @@ class _RetailCatalogCategoriesScreenState
           },
         ),
       );
+}
 
 
 class RetailCatalogOffersScreen extends StatefulWidget {
