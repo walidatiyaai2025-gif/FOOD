@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialized = false;
     let dirty = false;
     let discardReturnFocus = null;
+    let modalSession = null;
 
     const makeOption = (value, label) => {
         const node = document.createElement('option');
@@ -396,18 +397,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const closeModal = () => {
         hideDiscardPrompt({ restoreFocus: false });
+        modalSession?.deactivate({ restoreFocus: true });
+        modalSession = null;
         modal.dataset.open = '0';
         modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
     };
 
-    const open = () => {
+    const open = (event) => {
+        if (modal.dataset.open === '1') return;
         if (!initialized) reset();
+        const opener = event?.currentTarget instanceof HTMLElement ? event.currentTarget : document.activeElement;
         modal.dataset.open = '1';
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
         const focusTarget = step === 0 ? channelSelect : form.querySelector('[data-wizard-step="' + step + '"] input, [data-wizard-step="' + step + '"] select, [data-wizard-step="' + step + '"] textarea, [data-wizard-step="' + step + '"] button');
-        (focusTarget || channelSelect).focus();
+        modalSession = window.FoodexModalA11y?.activate({
+            root: modal,
+            dialog: modal.querySelector('.new-order-dialog'),
+            initialFocus: focusTarget || channelSelect,
+            returnFocus: opener instanceof HTMLElement ? opener : null,
+            fallbackFocus: document.querySelector('[data-new-order-open]'),
+        }) || null;
+        if (!modalSession) (focusTarget || channelSelect).focus();
     };
 
     const requestClose = (trigger = null) => {
