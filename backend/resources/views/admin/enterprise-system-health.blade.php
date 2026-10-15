@@ -15,9 +15,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}.healt
 
 <h2>{{ __('enterprise_health.system_signals') }}</h2>
 <div class="signal-grid">
-<section class="signal"><span>{{ __('enterprise_health.outbox') }}</span>@if($outboxCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="counts">@foreach($outboxCounts as $status=>$count)<span class="count">{{ IlluminateSupportStr::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</section>
-<section class="signal"><span>{{ __('enterprise_health.workflow') }}</span>@if($workflowCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="counts">@foreach($workflowCounts as $status=>$count)<span class="count">{{ IlluminateSupportStr::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</section>
-<section class="signal"><span>{{ __('enterprise_health.queue') }}</span><strong>{{ IlluminateSupportStr::headline($queueDriver !== '' ? $queueDriver : __('enterprise_health.none')) }}</strong></section>
+<section class="signal"><span>{{ __('enterprise_health.outbox') }}</span>@if($outboxCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="counts">@foreach($outboxCounts as $status=>$count)<span class="count">{{ \Illuminate\Support\Str::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</section>
+<section class="signal"><span>{{ __('enterprise_health.workflow') }}</span>@if($workflowCounts===[])<strong>{{ __('enterprise_health.no_activity') }}</strong>@else<div class="counts">@foreach($workflowCounts as $status=>$count)<span class="count">{{ \Illuminate\Support\Str::headline($status) }} · {{ $count }}</span>@endforeach</div>@endif</section>
+<section class="signal"><span>{{ __('enterprise_health.queue') }}</span><strong>{{ \Illuminate\Support\Str::headline($queueDriver !== '' ? $queueDriver : __('enterprise_health.none')) }}</strong></section>
 </div>
 
 <h2>{{ __('enterprise_health.modules') }}</h2>
