@@ -25,7 +25,9 @@ final class WorkflowAuthorizer
             return false;
         }
 
-        $context = is_array($request->context) ? $request->context : [];
+        /** @var array<string, mixed>|null $contextValue */
+        $contextValue = $request->getAttribute('context');
+        $context = is_array($contextValue) ? $contextValue : [];
         $amount = isset($context['amount']) && is_numeric($context['amount'])
             ? (string) $context['amount']
             : null;
