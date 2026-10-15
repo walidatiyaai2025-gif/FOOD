@@ -212,6 +212,10 @@ class SystemInspectorTest extends TestCase
         $enterprisePage = app(EnterpriseSystemInspector::class)->page();
         $this->assertCount(25, $enterprisePage['outbox_messages']->items());
         $this->assertCount(25, $enterprisePage['workflow_requests']->items());
+        $this->assertFalse(collect($enterprisePage['outbox_messages']->items())
+            ->contains(static fn (EnterpriseOutboxMessage $message): bool => $message->event_type === 'SafeEvent1'));
+        $this->assertFalse(collect($enterprisePage['workflow_requests']->items())
+            ->contains(static fn (EnterpriseWorkflowRequest $request): bool => $request->workflow_key === 'wf-1'));
 
         $export = $this->actingAs($admin)->get(route('admin.inspector.export'));
         $export->assertOk();
