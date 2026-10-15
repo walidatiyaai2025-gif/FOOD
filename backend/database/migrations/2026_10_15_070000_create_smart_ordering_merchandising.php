@@ -46,7 +46,7 @@ return new class extends Migration
             $table->string('name', 190);
             $table->string('placement', 50);
             $table->foreignId('trigger_product_id')->nullable()->constrained('products')->nullOnDelete();
-            $table->foreignId('recommended_product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('recommended_product_id')->constrained('products', 'id', 'so_reco_recommended_product_fk')->cascadeOnDelete();
             $table->integer('priority')->default(100);
             $table->decimal('minimum_basket', 14, 3)->nullable();
             $table->json('conditions')->nullable();
@@ -74,7 +74,7 @@ return new class extends Migration
             $table->foreignId('site_id')->constrained('smart_ordering_sites')->cascadeOnDelete();
             $table->foreignId('branch_id')->nullable()->constrained('smart_ordering_branches')->nullOnDelete();
             $table->foreignId('offer_rule_id')->nullable()->constrained('smart_ordering_offer_rules')->nullOnDelete();
-            $table->foreignId('recommendation_rule_id')->nullable()->constrained('smart_ordering_recommendation_rules')->nullOnDelete();
+            $table->foreignId('recommendation_rule_id')->nullable()->constrained('smart_ordering_recommendation_rules', 'id', 'so_merch_recommendation_rule_fk')->nullOnDelete();
             $table->unsignedBigInteger('customer_id')->nullable()->index();
             $table->foreignId('order_id')->nullable()->constrained('orders')->nullOnDelete();
             $table->uuid('cart_public_id')->nullable()->index();
