@@ -581,8 +581,18 @@ async function captureSecurityPermissionEvidence(page, locale) {
   await mobileCreateForm.evaluate((form) => {
     const host = form.closest('.foodex-operational-dialog-host');
     const trigger = host?.querySelector('[data-foodex-dialog-open]');
-    if (trigger instanceof HTMLElement) trigger.click();
+    if (trigger instanceof HTMLElement) {
+      trigger.click();
+      return;
+    }
+    const details = form.closest('details');
+    if (details instanceof HTMLDetailsElement) details.open = true;
   });
+  const mobilePermissionSearch = mobileCreateForm.locator('[data-list-search]');
+  await mobilePermissionSearch.waitFor({ state: 'visible' });
+  await mobilePermissionSearch.fill('roles.manage');
+  const mobilePermission = mobileCreateForm.locator('[data-search-item]:visible input[name="permission_ids[]"]').first();
+  await mobilePermission.check();
   await assertNoPageOverflow(page, `security-permissions/${locale}/mobile-390`);
   await snap(page, `02_Web/B2C_Admin/21_security_permissions_review__mobile-390__${locale}.png`);
 }
