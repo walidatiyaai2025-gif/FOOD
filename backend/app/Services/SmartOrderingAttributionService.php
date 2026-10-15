@@ -450,6 +450,7 @@ final class SmartOrderingAttributionService
             $analyticsIdentity,
             [
                 'branch_id' => $this->branchIdForVisit($visit, (int) $qr->store_id),
+                'qr_public_id' => (string) $qr->public_id,
                 'visitor_hash' => (string) $visit->visitor_hash,
                 'order_id' => $visit->order_id === null ? null : (int) $visit->order_id,
                 'source' => $visit->source_snapshot,
