@@ -16,10 +16,15 @@ final class CartService
         private readonly BranchPolicyService $branches,
         private readonly CommerceQuoteService $quotes,
         private readonly SmartOrderingRevisionService $revisions,
+        private readonly SmartOrderingMerchandisingService $merchandising,
     ) {}
 
     /** @return array{cart:SmartOrderingCart,token:string,quote:array<string,mixed>} */
-    public function create(string $branchPublicId, ?string $revisionPublicId = null): array
+    public function create(
+        string $branchPublicId,
+        ?string $revisionPublicId = null,
+        ?string $attributionContext = null,
+    ): array
     {
         $branch = $this->branches->branch($branchPublicId);
         $this->branches->assertAccepting($branch);
@@ -31,6 +36,7 @@ final class CartService
             abort(409, 'Requested Smart Ordering revision is stale or unpublished.');
         }
 
+        $trustedContext = $this->merchandising->verifiedAttribution($attributionContext, $branch);
         $token = Str::random(64);
         $cart = SmartOrderingCart::query()->create([
             'public_id' => (string) Str::uuid(),
@@ -38,6 +44,7 @@ final class CartService
             'branch_id' => $branch->getKey(),
             'revision_public_id' => (string) $published->public_id,
             'status' => 'active',
+            'merchandising_context' => $trustedContext,
             'expires_at' => now()->addHours(4),
         ]);
 
@@ -191,7 +198,8 @@ final class CartService
             ];
         }
 
-        return $this->quotes->quote(
+        $site = $branch->site()->firstOrFail();
+        $quote = $this->quotes->quote(
             'b2c',
             (int) $branch->store_id,
             null,
@@ -200,7 +208,21 @@ final class CartService
             null,
             'cash_on_delivery',
             $strict,
+            null,
+            0.0,
+            false,
         );
+
+        return $this->merchandising->decorateQuote(
+            $site,
+            $branch,
+            $lines,
+            $quote,
+            null,
+            is_array($cart->merchandising_context) ? $cart->merchandising_context : null,
+            0.0,
+            false,
+        )['quote'];
     }
 
     /** @return list<array{product_id:int,quantity:float}> */
