@@ -75,6 +75,7 @@ $newOrderOldInput = $newOrderRestore ? [
 <h3>{{ $isAr?'4. عنوان التوصيل':'4. Delivery address' }}</h3>
 <label class="new-order-field"><span>{{ $isAr?'العنوان':'Address' }}</span><select name="address_id" data-wizard-address disabled><option value="">{{ $isAr?'بدون عنوان / استلام':'No address / pickup' }}</option></select></label>
 <small data-wizard-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.select_customer_first') }}</small>
+<button type="button" class="btn secondary" data-wizard-address-retry hidden>{{ __('order_operations.lookup.retry') }}</button>
 </section>
 
 <section class="new-order-step" data-wizard-step="4" data-active="0">
@@ -174,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerMore = form.querySelector('[data-wizard-customer-more]');
     const addressSelect = form.querySelector('[data-wizard-address]');
     const addressStatus = form.querySelector('[data-wizard-address-status]');
+    const addressRetry = form.querySelector('[data-wizard-address-retry]');
     const paymentSelect = form.querySelector('[data-wizard-payment]');
     const linesBox = form.querySelector('[data-wizard-lines]');
     const errorBox = form.querySelector('[data-wizard-error]');
@@ -341,6 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const sequence = ++customerLookupSequence;
         const scopeVersion = lookupScopeVersion;
         customerStatus.textContent = t.searching;
+        customerMore.dataset.retry = '0';
+        customerMore.textContent = t.loadMore;
         customerSelect.disabled = true;
         if (page === 1 && !selectedId) customerSelect.value = '';
         try {
@@ -351,6 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
             replaceLookupOptions(customerSelect, result.items, isAr ? 'اختر العميل' : 'Select customer', {append: page > 1, selectedId});
             customerSelect.disabled = false;
             customerStatus.textContent = result.items.length ? t.resultsHelp : t.noResults;
+            customerMore.dataset.retry = '0';
+            customerMore.textContent = t.loadMore;
             customerMore.hidden = !result.has_more;
             if (selectedId) customerSelect.value = String(selectedId);
         } catch (error) {
@@ -358,7 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (scopeVersion !== lookupScopeVersion) return;
             customerSelect.disabled = false;
             customerStatus.textContent = t.lookupFailed;
-            customerMore.hidden = true;
+            customerMore.dataset.retry = '1';
+            customerMore.textContent = @json(__('order_operations.lookup.retry'));
+            customerMore.hidden = false;
         }
     };
     const loadAddresses = async (selectedId = null) => {
@@ -375,12 +383,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         addressSelect.disabled = true;
+        addressRetry.hidden = true;
         addressStatus.textContent = t.addressLoading;
         try {
             const result = await fetchLookup('address', {customer_id: customerId, selected_id: selectedId}, controller.signal);
             if (scopeVersion !== lookupScopeVersion || String(customerSelect.value) !== String(customerId)) return;
             replaceLookupOptions(addressSelect, result.items, t.pickup, {selectedId});
             addressSelect.disabled = false;
+            addressRetry.hidden = true;
             addressStatus.textContent = result.items.length ? t.resultsHelp : t.noResults;
             if (selectedId) addressSelect.value = String(selectedId);
         } catch (error) {
@@ -388,6 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (scopeVersion !== lookupScopeVersion) return;
             addressSelect.disabled = false;
             addressStatus.textContent = t.lookupFailed;
+            addressRetry.hidden = false;
         }
     };
     const loadProducts = async (row, query = '', page = 1, selectedId = null) => {
@@ -402,6 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
         row._lookupSequence = sequence;
         const scopeVersion = lookupScopeVersion;
         status.textContent = t.searching;
+        more.dataset.retry = '0';
+        more.textContent = t.loadMore;
         select.disabled = true;
         try {
             const result = await fetchLookup('product', {q: query, page, selected_id: selectedId}, controller.signal);
@@ -411,14 +424,18 @@ document.addEventListener('DOMContentLoaded', () => {
             replaceLookupOptions(select, result.items, isAr ? 'اختر المنتج' : 'Select product', {append: page > 1, selectedId});
             select.disabled = false;
             status.textContent = result.items.length ? t.resultsHelp : t.noResults;
-            if (more) more.hidden = !result.has_more;
+            more.dataset.retry = '0';
+            more.textContent = t.loadMore;
+            more.hidden = !result.has_more;
             if (selectedId) select.value = String(selectedId);
         } catch (error) {
             if (error.name === 'AbortError') return;
             if (scopeVersion !== lookupScopeVersion) return;
             select.disabled = false;
             status.textContent = t.lookupFailed;
-            if (more) more.hidden = true;
+            more.dataset.retry = '1';
+            more.textContent = @json(__('order_operations.lookup.retry'));
+            more.hidden = false;
         }
     };
 
@@ -498,7 +515,10 @@ document.addEventListener('DOMContentLoaded', () => {
             window.clearTimeout(searchTimer);
             searchTimer = window.setTimeout(() => loadProducts(row, productSearch.value.trim(), 1), 250);
         });
-        productMore.addEventListener('click', () => loadProducts(row, row._lookupQuery || '', (row._lookupPage || 1) + 1));
+        productMore.addEventListener('click', () => {
+            const retrying = productMore.dataset.retry === '1';
+            loadProducts(row, row._lookupQuery || '', retrying ? (row._lookupPage || 1) : (row._lookupPage || 1) + 1);
+        });
 
         const quantityLabel = document.createElement('label');
         quantityLabel.className = 'new-order-field';
@@ -780,7 +800,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.clearTimeout(customerSearchTimer);
         customerSearchTimer = window.setTimeout(() => loadCustomers(customerSearch.value.trim(), 1), 250);
     });
-    customerMore.addEventListener('click', () => loadCustomers(customerLookupQuery, customerLookupPage + 1));
+    customerMore.addEventListener('click', () => {
+        const retrying = customerMore.dataset.retry === '1';
+        loadCustomers(customerLookupQuery, retrying ? customerLookupPage : customerLookupPage + 1);
+    });
+    addressRetry.addEventListener('click', () => loadAddresses(addressSelect.value || null));
     customerSelect.addEventListener('change', () => { loadAddresses(); invalidateQuote(); });
     form.addEventListener('input', () => { dirty = true; invalidateQuote(); });
     form.addEventListener('change', () => { dirty = true; invalidateQuote(); });
