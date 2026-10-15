@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('runtime_state', 24)->default('DISABLED');
             $table->boolean('master_enabled')->default(false);
             $table->string('custom_domain')->nullable()->unique();
-            $table->string('custom_domain_verification_token', 96)->nullable();
+            $table->char('custom_domain_verification_token_hash', 64)->nullable();
             $table->timestamp('custom_domain_verified_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
@@ -51,10 +51,12 @@ return new class extends Migration
         Schema::create('smart_ordering_entitlements', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('site_id')->constrained('smart_ordering_sites')->cascadeOnDelete();
+            $table->foreignId('branch_id')->nullable()->constrained('smart_ordering_branches')->cascadeOnDelete();
+            $table->string('scope_key', 64)->default('site');
             $table->string('module', 64);
             $table->boolean('enabled')->default(false);
             $table->timestamps();
-            $table->unique(['site_id', 'module']);
+            $table->unique(['site_id', 'scope_key', 'module'], 'smart_ordering_entitlement_scope_unique');
         });
 
         Schema::create('smart_ordering_revisions', function (Blueprint $table): void {
@@ -160,7 +162,7 @@ return new class extends Migration
     {
         $base = Str::slug($source);
         if ($base === '' || in_array($base, (array) config('smart_ordering.reserved_slugs', []), true)) {
-            $base = 'restaurant-'.$storeId;
+            $base = 'restaurant-'.strtolower(Str::random(8));
         }
 
         $base = Str::limit($base, 50, '');
@@ -182,6 +184,8 @@ return new class extends Migration
             ->filter('is_string')
             ->map(fn (string $module): array => [
                 'site_id' => $siteId,
+                'branch_id' => null,
+                'scope_key' => 'site',
                 'module' => $module,
                 'enabled' => false,
                 'created_at' => $now,
