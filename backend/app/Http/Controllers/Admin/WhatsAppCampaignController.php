@@ -314,7 +314,14 @@ final class WhatsAppCampaignController extends Controller
         return $this->mutationResponse(
             $request,
             $result,
-            __('whatsapp.campaigns.meta_templates_synced'),
+            __('whatsapp.campaigns.meta_templates_sync_summary', [
+                'fetched' => $result['fetched'],
+                'updated' => $result['updated'],
+                'imported' => $result['imported'],
+                'approved' => $result['approved'],
+                'pending' => $result['pending'],
+                'rejected' => $result['rejected'],
+            ]),
         );
     }
 

@@ -357,6 +357,105 @@ final class WhatsAppCampaignBuilderTest extends TestCase
         });
     }
 
+    public function test_meta_template_sync_paginates_and_imports_remote_templates(): void
+    {
+        $this->enableCampaigns([]);
+        $admin = $this->superAdmin();
+        $this->metaProfile();
+
+        app(TemplateRegistryService::class)->upsert([
+            'name' => 'Existing Pending',
+            'provider_name' => 'existing_pending',
+            'locale' => 'en',
+            'category' => 'marketing',
+            'provider_status' => 'pending',
+            'body_preview' => 'Existing body',
+            'is_active' => true,
+        ]);
+
+        $getCount = 0;
+        Http::fake(function ($request) use (&$getCount) {
+            if ($request->method() !== 'GET' || ! str_contains($request->url(), '/waba-foodex/message_templates')) {
+                return Http::response([], 404);
+            }
+
+            $getCount++;
+
+            if ($getCount === 1) {
+                return Http::response([
+                    'data' => [[
+                        'id' => 'meta-existing',
+                        'name' => 'existing_pending',
+                        'status' => 'APPROVED',
+                        'category' => 'MARKETING',
+                        'language' => 'en_US',
+                        'components' => [[
+                            'type' => 'BODY',
+                            'text' => 'Existing body',
+                        ]],
+                    ]],
+                    'paging' => [
+                        'cursors' => ['after' => 'cursor-page-2'],
+                        'next' => 'https://graph.facebook.com/v26.0/waba-foodex/message_templates?after=cursor-page-2',
+                    ],
+                ], 200);
+            }
+
+            return Http::response([
+                'data' => [[
+                    'id' => 'meta-remote-only',
+                    'name' => 'remote_only_offer',
+                    'status' => 'APPROVED',
+                    'category' => 'UTILITY',
+                    'language' => 'ar',
+                    'components' => [[
+                        'type' => 'BODY',
+                        'text' => 'قالب موجود في ميتا',
+                    ]],
+                ]],
+            ], 200);
+        });
+
+        $response = $this->actingAs($admin)
+            ->postJson(route('admin.whatsapp-campaigns.templates.meta.sync'))
+            ->assertOk()
+            ->assertJson([
+                'fetched' => 2,
+                'updated' => 1,
+                'imported' => 1,
+                'approved' => 2,
+                'pending' => 0,
+                'rejected' => 0,
+                'ok' => true,
+            ]);
+
+        $this->assertDatabaseHas('whats_app_templates', [
+            'provider_name' => 'existing_pending',
+            'locale' => 'en',
+            'provider_status' => 'approved',
+        ]);
+        $this->assertDatabaseHas('whats_app_templates', [
+            'provider_name' => 'remote_only_offer',
+            'locale' => 'ar',
+            'category' => 'utility',
+            'provider_status' => 'approved',
+        ]);
+
+        $this->assertSame(2, $getCount);
+        Http::assertSent(function ($request): bool {
+            if ($request->method() !== 'GET') {
+                return false;
+            }
+
+            $query = [];
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return ($query['after'] ?? null) === 'cursor-page-2';
+        });
+
+        $this->assertSame(2, $response->json('approved'));
+    }
+
     public function test_meta_template_creation_fails_closed_without_valid_provider_or_permission(): void
     {
         $this->enableCampaigns([]);

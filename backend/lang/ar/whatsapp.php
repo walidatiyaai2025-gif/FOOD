@@ -270,6 +270,7 @@ return [
         'create_on_whatsapp' => 'إنشاء على واتساب',
         'meta_template_created' => 'تم إرسال القالب إلى Meta. زامن الحالة بعد الموافقة.',
         'meta_templates_synced' => 'تمت مزامنة حالات القوالب من Meta.',
+        'meta_templates_sync_summary' => 'اكتملت مزامنة Meta: تم جلب :fetched، تحديث :updated، استيراد :imported، موافق عليه :approved، قيد المراجعة :pending، مرفوض :rejected.',
         'meta_template_connection_required' => 'يلزم اتصال Meta WhatsApp أساسي ونشط يحتوي على معرّف حساب الأعمال.',
         'meta_template_name_invalid' => 'اسم القالب في Meta يقبل الحروف الإنجليزية الصغيرة والأرقام والشرطة السفلية فقط.',
         'meta_template_invalid' => 'لغة القالب أو فئته أو نصه غير صالح.',
