@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\NotificationCampaign;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\NotificationAudienceReviewService;
 use App\Services\NotificationCampaignDispatcher;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
@@ -48,13 +49,123 @@ class PromotionalNotificationCampaignTest extends TestCase
             'schedule_kind' => 'recurring',
             'interval_value' => 2,
             'interval_unit' => 'hour',
-            'status' => 'active',
+            'status' => 'draft',
         ]);
 
         $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
             'target_channel' => 'b2c',
             'store_id' => $this->store('B2C', 'CAMPAIGN-FOREIGN-RETAIL'),
         ]))->assertForbidden();
+    }
+
+    public function test_campaign_activation_requires_current_review_and_effective_audience(): void
+    {
+        $store = $this->store('B2C', 'REVIEW-AUDIENCE');
+        $admin = $this->storeRoleUser($store, 'B2C_STORE_ADMIN', 'review-admin@example.test');
+        $customer = User::query()->create([
+            'name' => 'Eligible Customer',
+            'email' => 'eligible-review@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        DB::table('b2c_customers')->insert([
+            'user_id' => $customer->id,
+            'store_id' => $store,
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
+            'target_channel' => 'b2c',
+            'store_id' => $store,
+            'delivery_channel' => 'in_app',
+            'activate' => 1,
+        ]))->assertRedirect();
+
+        $campaign = NotificationCampaign::query()->firstOrFail();
+        $this->assertSame('draft', $campaign->status);
+
+        $this->actingAs($admin)
+            ->post("/admin/notification-campaigns/{$campaign->id}/state", ['state' => 'active'])
+            ->assertSessionHasErrors('review_token');
+        $this->assertSame('draft', $campaign->fresh()->status);
+
+        $this->actingAs($admin)
+            ->get("/admin/notification-campaigns?review_campaign={$campaign->id}&review_action=activate")
+            ->assertOk()
+            ->assertSee('Review campaign delivery')
+            ->assertSee('1 eligible accounts')
+            ->assertSee('Eligible Customer');
+
+        $token = app(NotificationAudienceReviewService::class)->reviewToken($campaign->fresh(), 'activate');
+        $this->actingAs($admin)
+            ->post("/admin/notification-campaigns/{$campaign->id}/state", [
+                'state' => 'active',
+                'review_token' => $token,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('active', $campaign->fresh()->status);
+    }
+
+    public function test_campaign_review_blocks_empty_audience_and_send_now_is_single_delivery(): void
+    {
+        $store = $this->store('B2C', 'REVIEW-SEND');
+        $admin = $this->storeRoleUser($store, 'B2C_STORE_ADMIN', 'review-send-admin@example.test');
+
+        $this->actingAs($admin)->post('/admin/notification-campaigns', $this->payload([
+            'target_channel' => 'b2c',
+            'store_id' => $store,
+            'delivery_channel' => 'in_app',
+        ]))->assertRedirect();
+
+        $emptyCampaign = NotificationCampaign::query()->firstOrFail();
+        $emptyToken = app(NotificationAudienceReviewService::class)->reviewToken($emptyCampaign, 'activate');
+        $this->actingAs($admin)
+            ->post("/admin/notification-campaigns/{$emptyCampaign->id}/state", [
+                'state' => 'active',
+                'review_token' => $emptyToken,
+            ])
+            ->assertSessionHasErrors('audience');
+        $this->assertSame('draft', $emptyCampaign->fresh()->status);
+
+        $customer = User::query()->create([
+            'name' => 'Send Customer',
+            'email' => 'send-review@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        DB::table('b2c_customers')->insert([
+            'user_id' => $customer->id,
+            'store_id' => $store,
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $sendToken = app(NotificationAudienceReviewService::class)->reviewToken($emptyCampaign->fresh(), 'send_now');
+        $this->actingAs($admin)
+            ->post("/admin/notification-campaigns/{$emptyCampaign->id}/send-now", [
+                'review_token' => $sendToken,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('completed', $emptyCampaign->fresh()->status);
+        $this->assertDatabaseCount('notification_campaign_runs', 1);
+        $this->assertDatabaseCount('notifications', 1);
+
+        $this->actingAs($admin)
+            ->post("/admin/notification-campaigns/{$emptyCampaign->id}/send-now", [
+                'review_token' => $sendToken,
+            ])
+            ->assertStatus(409);
+        $this->assertDatabaseCount('notification_campaign_runs', 1);
+        $this->assertDatabaseCount('notifications', 1);
     }
 
     public function test_b2c_store_admin_can_only_manage_campaigns_for_assigned_store(): void
